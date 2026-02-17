@@ -112,6 +112,17 @@ export async function POST(request: NextRequest) {
     if (!workflow) {
       // Create new workflow with the correct AI service based on the assigned agent
       const aiService = task.assignee?.email ? getAgentService(task.assignee.email) : 'claude'
+
+      // OpenClaw tasks use the channel plugin (SSE), not the orchestrator workflow
+      if (aiService === 'openclaw') {
+        console.log(`🔌 [GitHub Trigger] Skipping workflow creation — OpenClaw tasks use the channel plugin`)
+        return NextResponse.json({
+          success: false,
+          message: 'OpenClaw tasks are handled via the channel plugin (SSE), not the orchestrator workflow.',
+          taskId
+        }, { status: 200 })
+      }
+
       console.log(`🚀 [GitHub Trigger] Creating new coding workflow with aiService: ${aiService}`)
       workflow = await prisma.codingTaskWorkflow.create({
         data: {

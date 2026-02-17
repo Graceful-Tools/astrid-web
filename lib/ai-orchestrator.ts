@@ -437,6 +437,11 @@ export class AIOrchestrator {
     if (task.assignee?.isAIAgent && task.assignee.email) {
       selectedProvider = getAgentService(task.assignee.email)
       console.log(`[AIOrchestrator] Using assigned agent's service: ${selectedProvider} (${task.assignee.email})`)
+
+      // OpenClaw tasks use the channel plugin (SSE), not the orchestrator
+      if (selectedProvider === 'openclaw') {
+        throw new Error('OpenClaw tasks are handled via the channel plugin (SSE), not the AI orchestrator. Do not create workflows for OpenClaw agents.')
+      }
     } else if (taskList.preferredAiProvider && availableProviders.includes(taskList.preferredAiProvider)) {
       selectedProvider = taskList.preferredAiProvider as AIService
     } else if (taskList.fallbackAiProvider && availableProviders.includes(taskList.fallbackAiProvider)) {

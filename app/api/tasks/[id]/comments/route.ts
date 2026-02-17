@@ -387,6 +387,13 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
                 if (!workflow) {
                   // Determine AI service from the assigned agent's email
                   const aiService = task.assignee?.email ? getAgentService(task.assignee.email) : 'claude'
+
+                  // OpenClaw tasks use the channel plugin (SSE), not the orchestrator workflow
+                  if (aiService === 'openclaw') {
+                    console.log(`🔌 [COMMENT] Skipping workflow creation — OpenClaw tasks are handled via channel plugin (SSE)`)
+                    return
+                  }
+
                   workflow = await prisma.codingTaskWorkflow.create({
                     data: {
                       taskId,
