@@ -7,7 +7,7 @@
  */
 
 // Plugin wrapper (OpenClaw lifecycle)
-export { AstridOpenClawChannel, type OpenClawChannelAPI } from './channel.js'
+export { AstridOpenClawChannel, type OpenClawChannelAPI } from './channel'
 
 // Re-export SDK channel primitives for convenience
 export {

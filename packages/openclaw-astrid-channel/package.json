@@ -2,12 +2,12 @@
   "name": "@gracefultools/openclaw-astrid-channel",
   "version": "0.1.0",
   "description": "OpenClaw channel plugin for Astrid.cc task management",
-  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
       "import": "./dist/index.js"
     }
   },
