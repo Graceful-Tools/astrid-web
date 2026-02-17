@@ -513,7 +513,7 @@ export function MainContent({
                         </>
                       ) : (
                         <div
-                          className={`theme-text-muted text-sm text-left prose prose-sm max-w-none ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                          className={`theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                           onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListDescription(currentList) : undefined}
                           dangerouslySetInnerHTML={{
                             __html: newFilterState.filters.search.trim()
