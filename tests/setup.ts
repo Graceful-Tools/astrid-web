@@ -167,6 +167,14 @@ export const mockPrisma = {
     findMany: vi.fn().mockResolvedValue([]),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  codingTaskWorkflow: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findFirst: vi.fn().mockResolvedValue(null),
+    create: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({}),
+    delete: vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
   userWebhookConfig: {
     findUnique: vi.fn().mockResolvedValue(null),
     findFirst: vi.fn().mockResolvedValue(null),
