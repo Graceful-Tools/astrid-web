@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { X, Plus } from "lucide-react"
+import { X, Plus, Bot, FileText } from "lucide-react"
 import type { User } from "@/types/task"
 
 interface AddListModalProps {
@@ -120,19 +120,25 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
             />
           </div>
 
-          {/* Description */}
+          {/* Agent Instructions (Description) */}
           <div>
-            <Label htmlFor="description" className="theme-text-secondary text-sm font-medium">
-              Description
+            <Label htmlFor="description" className="theme-text-secondary text-sm font-medium flex items-center space-x-1.5">
+              <FileText className="w-4 h-4" />
+              <span>Description / Agent Instructions</span>
+              <span className="text-xs theme-text-muted font-normal">(optional)</span>
             </Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What's this list for?"
-              className="theme-input theme-text-primary mt-1 resize-none"
-              rows={3}
+              placeholder={"What's this list for?\n\nAI agents use this as guidance when working on tasks. Example:\n\"Help plan meals, suggest recipes based on dietary preferences, and create shopping lists.\""}
+              className="theme-input theme-text-primary mt-1 resize-none text-sm"
+              rows={4}
             />
+            <div className="flex items-center space-x-1 text-xs theme-text-muted mt-1">
+              <Bot className="w-3 h-3" />
+              <span>AI agents use this as instructions when working on tasks in this list</span>
+            </div>
           </div>
 
           {/* Share With */}
