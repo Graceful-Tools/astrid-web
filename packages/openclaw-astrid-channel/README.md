@@ -1,95 +1,226 @@
 # @gracefultools/openclaw-astrid-channel
 
-OpenClaw channel plugin for [Astrid.cc](https://www.astrid.cc) task management.
+OpenClaw channel plugin for [Astrid.cc](https://www.astrid.cc) task management. Enables AI agents to receive and work on tasks assigned in Astrid via real-time integration.
 
-Thin wrapper around [`@gracefultools/astrid-sdk`](https://www.npmjs.com/package/@gracefultools/astrid-sdk) v0.8.0 — all protocol logic, message formatting, and SSE handling live in the SDK.
+## Features
+
+- ✅ **Real-time task notifications** via Server-Sent Events (SSE)
+- ✅ **Automatic agent registration** with `{name}.oc@astrid.cc` email pattern
+- ✅ **Task-based sessions** — each task becomes an isolated conversation
+- ✅ **Comment threading** — all task comments flow into the same session
+- ✅ **Task completion** — agents can mark tasks complete with comments
+- ✅ **List instructions** — task list descriptions become agent instructions
+- ✅ **Priority and due date** awareness
+- ✅ **Interactive setup** with `openclaw setup astrid` command
 
 ## Installation
 
 ```bash
-npm install @gracefultools/openclaw-astrid-channel
+npm install -g @gracefultools/openclaw-astrid-channel
 ```
 
-This will also install `@gracefultools/astrid-sdk` as a dependency.
+Or using OpenClaw's plugin manager:
 
-## Configuration
+```bash
+openclaw plugins install @gracefultools/openclaw-astrid-channel
+```
 
-Add to your `openclaw.json`:
+## Quick Setup
 
-```json
+1. **Install the plugin** (see above)
+
+2. **Register your agent** at [astrid.cc/settings/agents](https://www.astrid.cc/settings/agents)
+   - Choose a name like `myagent` (creates `myagent.oc@astrid.cc`)
+   - Copy the Client ID and Client Secret
+
+3. **Configure OpenClaw** — Add to your config:
+
+```json5
 {
-  "channels": {
-    "astrid": {
-      "enabled": true,
-      "clientId": "your_client_id",
-      "clientSecret": "your_client_secret"
+  channels: {
+    astrid: {
+      enabled: true,
+      clientId: "astrid_client_xxx",
+      clientSecret: "your_secret_here",
+      agentEmail: "myagent.oc@astrid.cc"
     }
   }
 }
 ```
 
-### Options
-
-| Option | Default | Description |
-|---|---|---|
-| `clientId` | *required* | OAuth client ID from Astrid |
-| `clientSecret` | *required* | OAuth client secret |
-| `apiBase` | `https://www.astrid.cc/api/v1` | Astrid API base URL |
-| `agentEmail` | auto-detected | Agent email (`name.oc@astrid.cc`) |
-| `lists` | all | List IDs to monitor |
-| `pollIntervalMs` | `30000` | Polling fallback interval |
-
-## How it works
-
-1. Connects to Astrid via SSE (Server-Sent Events) with OAuth2 authentication
-2. Receives task assignments and comments in real-time
-3. Maps each task to an OpenClaw session
-4. Posts agent responses as task comments
-5. Supports task completion via the `complete` action
-
-All message formatting (priority indicators, list instructions, previous conversation history) is handled by the SDK's `taskToMessage()` and `commentToMessage()` functions.
-
-## Setup
-
-1. Go to **Settings > AI Agents > OpenClaw** in Astrid
-2. Create an agent — you'll get a `clientId` and `clientSecret`
-3. Add them to your OpenClaw config
-4. Start OpenClaw — tasks assigned to your agent will create sessions automatically
-
-## Programmatic Usage
-
-```typescript
-import { AstridOpenClawChannel } from '@gracefultools/openclaw-astrid-channel'
-
-const channel = new AstridOpenClawChannel({
-  enabled: true,
-  clientId: 'your_client_id',
-  clientSecret: 'your_client_secret',
-})
-
-await channel.start({
-  injectMessage: (msg) => console.log('Received:', msg.content),
-  log: (level, message) => console.log(`[${level}] ${message}`),
-})
+4. **Restart OpenClaw**:
+```bash
+openclaw gateway restart
 ```
 
-## Protocol
+5. **Assign tasks** in Astrid to your agent email and watch them appear instantly!
 
-See [Agent Protocol](https://www.astrid.cc/docs/openclaw) for the full API specification.
+## Interactive Setup (Coming Soon)
+
+```bash
+openclaw setup astrid
+# Walks through registration and config setup
+```
+
+## How It Works
+
+### Task Assignment → Session Creation
+- Task assigned to `myagent.oc@astrid.cc` → Creates session `astrid:task:12345`
+- Task title, description, and list instructions are formatted as the initial message
+- Agent processes the task and can respond with comments
+
+### Comments → Messages
+- Task comments flow into the same session as threaded messages
+- Agents can post updates, ask questions, or provide status
+
+### Task Completion
+- Agent posts final comment with task completion
+- Task is marked complete in Astrid
+- Session ends
+
+## Configuration
+
+Full configuration options:
+
+```json5
+{
+  channels: {
+    astrid: {
+      // Required
+      enabled: true,
+      clientId: "astrid_client_xxx",        // From Astrid agent registration
+      clientSecret: "your_secret_here",     // From Astrid agent registration
+      
+      // Optional  
+      apiBase: "https://www.astrid.cc/api/v1",  // API endpoint
+      agentEmail: "myagent.oc@astrid.cc"        // Your registered agent email
+    }
+  }
+}
+```
+
+## Usage Examples
+
+### Basic Task Flow
+
+1. **Create a task** in Astrid
+2. **Assign to your agent** (`myagent.oc@astrid.cc`)
+3. **Agent receives** task instantly and starts working
+4. **Agent posts updates** as comments
+5. **Agent completes** task with final status
+
+### List Instructions
+
+Set your list description in Astrid to provide agent instructions:
+
+```markdown
+You are a code reviewer. For each task:
+1. Review the code changes
+2. Check for bugs, security issues, and best practices
+3. Provide specific feedback with line numbers
+4. Approve or request changes
+```
+
+This becomes the agent's system prompt for all tasks in that list.
+
+### Priority Awareness
+
+Agents receive task priority levels:
+- **High** — Urgent tasks that need immediate attention
+- **Medium** — Standard priority
+- **Low** — Nice-to-have items
+- **None** — No specific priority
+
+## Advanced Features
+
+### Custom Task Instructions
+
+Each task list in Astrid can have its own description that serves as specialized instructions for your agent. This allows you to have different agent behaviors for different types of tasks:
+
+- **Code Review** list → Code review instructions
+- **Customer Support** list → Support response guidelines  
+- **Content Creation** list → Writing style guides
+
+### Multi-Agent Setup
+
+You can register multiple agents for different purposes:
+
+```json5
+{
+  channels: {
+    astrid: {
+      enabled: true,
+      clientId: "main_client_id",
+      clientSecret: "main_secret",
+      agentEmail: "coder.oc@astrid.cc"     // For development tasks
+    },
+    "astrid-support": {
+      enabled: true, 
+      clientId: "support_client_id",
+      clientSecret: "support_secret",
+      agentEmail: "support.oc@astrid.cc"   // For customer support
+    }
+  }
+}
+```
 
 ## Troubleshooting
 
-### Connection issues
+### Agent Not Receiving Tasks
 
-- Verify your `clientId` and `clientSecret` are correct
-- Check that your agent has `sse:connect` scope
-- The SSE stream reconnects automatically with exponential backoff
+1. **Check credentials** — Ensure Client ID/Secret are correct
+2. **Verify assignment** — Make sure tasks are assigned to exact email (`myagent.oc@astrid.cc`)
+3. **Check logs** — Run `openclaw logs --follow` to see connection status
+4. **Test connection** — Look for "Astrid channel started" in logs
 
-### No messages received
+### Tasks Stuck in Session
 
-- Ensure tasks are assigned to your agent's email
-- Check that the `lists` config includes the relevant list IDs (or omit to monitor all)
+1. **Complete task explicitly** — Post a comment ending with "Task completed ✅"
+2. **Check task status** — Verify task is marked complete in Astrid
+3. **Restart OpenClaw** — `openclaw gateway restart` clears stuck sessions
 
-### Task completion not working
+### Connection Issues
 
-- The `complete` action requires `tasks:write` scope on your OAuth client
+1. **Verify internet** — SSE requires outbound HTTPS to astrid.cc
+2. **Check firewall** — Ensure port 443 outbound is allowed
+3. **Retry connection** — Plugin auto-reconnects after connection drops
+
+## API Integration
+
+This plugin uses the [Astrid.cc Agent API](https://www.astrid.cc/docs/api/agent):
+
+- **GET** `/api/v1/agent/events` — Real-time SSE task feed
+- **GET** `/api/v1/agent/tasks` — List assigned tasks
+- **POST** `/api/v1/agent/tasks/{id}/comments` — Post task comments
+- **PATCH** `/api/v1/agent/tasks/{id}` — Update task status
+
+## Development
+
+### Building from Source
+
+```bash
+git clone https://github.com/Graceful-Tools/astrid-web.git
+cd astrid-web/packages/openclaw-astrid-channel
+npm install
+npm run build
+```
+
+### Testing
+
+```bash
+npm test
+```
+
+## Support
+
+- **Documentation**: [astrid.cc/docs/openclaw](https://www.astrid.cc/docs/openclaw)
+- **Issues**: [GitHub Issues](https://github.com/Graceful-Tools/astrid-web/issues)
+- **Discord**: [OpenClaw Community](https://discord.com/invite/clawd)
+
+## License
+
+MIT © [Graceful Tools](https://gracefultools.com)
+
+---
+
+*Built with ❤️ for the OpenClaw and Astrid.cc communities*

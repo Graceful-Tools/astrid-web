@@ -1,35 +1,52 @@
 {
   "name": "@gracefultools/openclaw-astrid-channel",
-  "version": "0.2.0",
-  "description": "OpenClaw channel plugin for Astrid.cc task management",
+  "version": "1.0.0",
+  "description": "Astrid.cc channel plugin for OpenClaw - task management integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": ["dist", "openclaw.plugin.json", "README.md"],
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["openclaw", "astrid", "channel", "plugin", "task-management"],
+  "keywords": [
+    "openclaw",
+    "astrid",
+    "task-management",
+    "channel",
+    "plugin",
+    "ai-agent"
+  ],
+  "author": "Graceful Tools",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Graceful-Tools/astrid-web.git",
     "directory": "packages/openclaw-astrid-channel"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "dependencies": {
     "@gracefultools/astrid-sdk": "^0.8.0"
   },
+  "peerDependencies": {
+    "openclaw": ">=2026.2.0"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0"
-  }
+    "typescript": "^5.3.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "openclaw": {
+    "type": "channel-plugin",
+    "id": "astrid",
+    "name": "Astrid.cc",
+    "description": "Task management channel for Astrid.cc",
+    "setupCommand": "setup-astrid"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "CHANGELOG.md"
+  ]
 }
