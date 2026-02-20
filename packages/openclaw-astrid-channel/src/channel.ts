@@ -1,25 +1,65 @@
 /**
- * Astrid.cc Channel Plugin for OpenClaw
- * 
- * Provides real-time task assignment and comment integration via SSE.
+ * Astrid.cc Channel Plugin for OpenClaw (Legacy standalone class)
+ *
+ * Kept for backward compatibility with programmatic users who import
+ * AstridChannelPlugin directly. New integrations should use the default
+ * export (OpenClawPluginDefinition) from the package root.
  */
 
 import { AstridChannel as SDKChannel } from '@gracefultools/astrid-sdk';
-import type { 
-  ChannelPlugin, 
-  OpenClawChannelAPI, 
-  AstridChannelConfig, 
-  InboundMessage, 
-  OutboundMessage 
-} from './types';
+import type { AstridChannelConfig } from './types.js';
 
-export class AstridChannelPlugin implements ChannelPlugin {
-  private api: OpenClawChannelAPI | null = null;
+/** Legacy plugin API shape (v1 compat) */
+export interface LegacyChannelAPI {
+  getConfig<T = any>(key?: string): T;
+  injectMessage(message: LegacyInboundMessage): Promise<void>;
+  onOutbound(handler: (message: LegacyOutboundMessage) => Promise<void>): void;
+  log(level: 'debug' | 'info' | 'warn' | 'error', message: string, meta?: Record<string, any>): void;
+  registerCommand(name: string, handler: (args: string[]) => Promise<void>): void;
+}
+
+export interface LegacyInboundMessage {
+  channel: 'astrid';
+  sessionKey: string;
+  content: string;
+  from: string;
+  fromName?: string;
+  timestamp?: string;
+  metadata?: {
+    taskId: string;
+    type: 'task' | 'comment';
+    listName?: string;
+    listDescription?: string;
+    priority?: number;
+    dueDateTime?: string;
+    [key: string]: any;
+  };
+}
+
+export interface LegacyOutboundMessage {
+  channel: 'astrid';
+  sessionKey: string;
+  content: string;
+  target?: string;
+  action?: 'send' | 'complete' | 'update';
+  metadata?: {
+    taskId?: string;
+    updates?: {
+      completed?: boolean;
+      title?: string;
+      description?: string;
+      priority?: number;
+    };
+  };
+}
+
+export class AstridChannelPlugin {
+  private api: LegacyChannelAPI | null = null;
   private config: AstridChannelConfig | null = null;
-  private adapter: any = null; // SDK adapter instance
-  private sessionMap = new Map<string, string>(); // taskId -> sessionKey
+  private adapter: any = null;
+  private sessionMap = new Map<string, string>();
 
-  async init(api: OpenClawChannelAPI): Promise<void> {
+  async init(api: LegacyChannelAPI): Promise<void> {
     this.api = api;
     this.config = api.getConfig<AstridChannelConfig>();
 
@@ -33,7 +73,6 @@ export class AstridChannelPlugin implements ChannelPlugin {
       throw new Error('Missing Astrid credentials');
     }
 
-    // Create SDK adapter
     this.adapter = SDKChannel.createAdapter({
       enabled: true,
       clientId: this.config.clientId,
@@ -41,8 +80,7 @@ export class AstridChannelPlugin implements ChannelPlugin {
       apiBase: this.config.apiBase || 'https://www.astrid.cc/api/v1',
     });
 
-    // Register outbound handler
-    api.onOutbound(async (message: OutboundMessage) => {
+    api.onOutbound(async (message: LegacyOutboundMessage) => {
       await this.send(message);
     });
 
@@ -54,10 +92,8 @@ export class AstridChannelPlugin implements ChannelPlugin {
       throw new Error('Channel not initialized');
     }
 
-    // Initialize SDK adapter
     await this.adapter.init();
 
-    // Connect with message handler
     await this.adapter.connect((message: any) => {
       this.handleInboundMessage(message).catch((error) => {
         this.api!.log('error', 'Failed to handle inbound message', { error: error.message });
@@ -75,14 +111,13 @@ export class AstridChannelPlugin implements ChannelPlugin {
     this.api?.log('info', 'Astrid channel stopped');
   }
 
-  async send(message: OutboundMessage): Promise<void> {
+  async send(message: LegacyOutboundMessage): Promise<void> {
     if (!this.adapter) {
       throw new Error('Channel not started');
     }
 
-    // Extract task ID from session key (format: astrid:task:12345)
     const taskId = message.sessionKey.replace(/^astrid:task:/, '');
-    
+
     if (!taskId || taskId === message.sessionKey) {
       this.api?.log('warn', 'Invalid session key for Astrid channel', { sessionKey: message.sessionKey });
       return;
@@ -90,41 +125,33 @@ export class AstridChannelPlugin implements ChannelPlugin {
 
     try {
       if (message.action === 'complete') {
-        // Complete the task and optionally post a comment
         if (message.content) {
-          // Post comment first, then complete
           await this.adapter.send({
             content: message.content,
             sessionKey: message.sessionKey,
           });
         }
-        
-        // Complete task (this would need to be added to the SDK)
-        // For now, we'll post a completion comment
+
         await this.adapter.send({
-          content: message.content || '✅ Task completed',
+          content: message.content || 'Task completed',
           sessionKey: message.sessionKey,
         });
-        
-        // Remove from session map
+
         this.sessionMap.delete(taskId);
-        
       } else {
-        // Regular comment
         await this.adapter.send({
           content: message.content,
           sessionKey: message.sessionKey,
         });
       }
 
-      this.api?.log('debug', `Sent message to task ${taskId}`, { 
+      this.api?.log('debug', `Sent message to task ${taskId}`, {
         action: message.action || 'comment',
-        length: message.content.length 
+        length: message.content.length,
       });
-
     } catch (error) {
-      this.api?.log('error', `Failed to send message to task ${taskId}`, { 
-        error: error instanceof Error ? error.message : String(error) 
+      this.api?.log('error', `Failed to send message to task ${taskId}`, {
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -138,32 +165,24 @@ export class AstridChannelPlugin implements ChannelPlugin {
     };
   }
 
-  /**
-   * Handle inbound messages from Astrid SDK
-   */
   private async handleInboundMessage(sdkMessage: any): Promise<void> {
     if (!this.api) return;
 
-    // Extract task ID from the SDK message metadata
     const taskId = sdkMessage.metadata?.taskId;
     if (!taskId) {
       this.api.log('warn', 'Received message without task ID', { sdkMessage });
       return;
     }
 
-    // Generate session key
     const sessionKey = `astrid:task:${taskId}`;
     this.sessionMap.set(taskId, sessionKey);
 
-    // Determine message type and content
     let content = sdkMessage.content || '';
     let messageType: 'task' | 'comment' = 'comment';
 
-    // If this is a new task assignment, format it nicely
     if (sdkMessage.metadata?.type === 'task' || content.startsWith('# Task:')) {
       messageType = 'task';
-      
-      // Format task as a proper message
+
       const taskData = sdkMessage.metadata;
       content = `# Task: ${taskData?.title || 'Untitled Task'}
 
@@ -176,8 +195,7 @@ ${taskData?.dueDateTime ? `**Due:** ${new Date(taskData.dueDateTime).toLocaleDat
 ${taskData?.listDescription ? `## Instructions\n${taskData.listDescription}` : ''}`;
     }
 
-    // Create OpenClaw inbound message
-    const message: InboundMessage = {
+    const message: LegacyInboundMessage = {
       channel: 'astrid',
       sessionKey,
       content,
@@ -194,9 +212,7 @@ ${taskData?.listDescription ? `## Instructions\n${taskData.listDescription}` : '
       },
     };
 
-    // Inject into OpenClaw session system
     await this.api.injectMessage(message);
-
     this.api.log('debug', `Injected ${messageType} message for task ${taskId}`);
   }
 
@@ -204,7 +220,7 @@ ${taskData?.listDescription ? `## Instructions\n${taskData.listDescription}` : '
     switch (priority) {
       case 0: return 'None';
       case 1: return 'Low';
-      case 2: return 'Medium';  
+      case 2: return 'Medium';
       case 3: return 'High';
       default: return 'Unknown';
     }

@@ -4,10 +4,10 @@
  * Provides interactive setup: `openclaw setup astrid`
  */
 
-import { OpenClawChannelAPI } from './types';
+import type { LegacyChannelAPI } from './channel.js';
 
 interface SetupContext {
-  api: OpenClawChannelAPI;
+  api: LegacyChannelAPI;
   args: string[];
 }
 
@@ -93,7 +93,7 @@ export async function setupAstridChannel(ctx: SetupContext): Promise<void> {
 /**
  * Register agent via Astrid API
  */
-async function registerAgent(agentName: string, api: OpenClawChannelAPI): Promise<{ clientId: string; clientSecret: string } | null> {
+async function registerAgent(agentName: string, api: LegacyChannelAPI): Promise<{ clientId: string; clientSecret: string } | null> {
   // This would need to integrate with user authentication
   // For now, we'll return instructions for manual registration
   
