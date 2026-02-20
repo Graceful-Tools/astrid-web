@@ -10,7 +10,7 @@
 
 import { NextRequest } from 'next/server'
 import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude } from '@/lib/agent-protocol'
-import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents } from '@/lib/sse-utils'
+import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from '@/lib/sse-utils'
 import { AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { createRateLimitHeaders } from '@/lib/rate-limiter'
 
@@ -100,17 +100,22 @@ export async function GET(request: NextRequest) {
           .catch(err => console.error('[Agent SSE] Replay error:', err))
       }
 
-      // Keepalive every 30s — events are pushed via broadcastToUsers,
-      // no need to poll Redis on each tick. Just send keepalive comment.
-      const keepaliveInterval = setInterval(() => {
+      // Poll for events and send keepalive every 10s.
+      // In production (Vercel), broadcastToUsers runs in separate serverless instances
+      // that can't reach this connection directly. Events are cached in Redis,
+      // so we poll Redis to deliver them — matching the pattern from /api/sse.
+      const keepaliveInterval = setInterval(async () => {
         try {
+          // Check Redis for events from other instances (production)
+          await checkAndDeliverNewEvents(userId, connectionId)
+
           controller.enqueue(encoder.encode(':keepalive\n\n'))
           updateConnectionPing(userId)
         } catch {
           removeConnection(userId, connectionId)
           clearInterval(keepaliveInterval)
         }
-      }, 30_000)
+      }, 10_000)
 
       // Refresh connection every 5 minutes
       const refreshTimeout = setTimeout(() => {

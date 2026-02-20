@@ -10,6 +10,8 @@ import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude } from '
 import { prisma } from '@/lib/prisma'
 import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
+import { broadcastToUsers } from '@/lib/sse-utils'
+import { getListMemberIds } from '@/lib/list-member-utils'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -80,6 +82,42 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       data,
       include: agentTaskInclude,
     })
+
+    // Broadcast SSE event to task creator and list members
+    try {
+      const eventType = body.completed ? 'task_completed' : 'task_updated'
+      const recipientIds = new Set<string>()
+
+      // Add task creator
+      if (task.creatorId && task.creatorId !== auth.userId) {
+        recipientIds.add(task.creatorId)
+      }
+
+      // Add list members
+      for (const list of (task as any).lists || []) {
+        const memberIds = getListMemberIds(list)
+        memberIds.forEach((mid: string) => {
+          if (mid !== auth.userId) recipientIds.add(mid)
+        })
+      }
+
+      if (recipientIds.size > 0) {
+        broadcastToUsers(Array.from(recipientIds), {
+          type: eventType,
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            title: task.title,
+            completed: task.completed,
+            priority: task.priority,
+            updatedBy: auth.userId,
+            listNames: ((task as any).lists || []).map((l: any) => l.name),
+          },
+        })
+      }
+    } catch (sseError) {
+      console.error('[Agent API] SSE broadcast error:', sseError)
+    }
 
     return addRateLimitHeaders(
       NextResponse.json({ task: enrichTaskForAgent(task) }),
