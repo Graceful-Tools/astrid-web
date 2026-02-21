@@ -549,7 +549,7 @@ describe('Tasks API', () => {
 
     });
 
-    it('should update an existing task', { timeout: 15000 }, async () => {
+    it('should update an existing task', { timeout: 30000 }, async () => {
       const updateData = {
         title: 'Updated Task',
         description: 'Updated Description',

@@ -256,11 +256,14 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
           data: {
             taskId: task.id,
             taskTitle: task.title,
-            commentId: comment.id,
-            content: comment.content,
-            authorName: (comment as any).author?.name || (comment as any).author?.email,
-            authorId: comment.authorId,
-            isAgentComment: false
+            comment: {
+              id: comment.id,
+              content: comment.content,
+              authorName: (comment as any).author?.name || (comment as any).author?.email || null,
+              authorId: comment.authorId,
+              isAgent: false,
+              createdAt: new Date(comment.createdAt).toISOString(),
+            }
           }
         })
       }

@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { enrichTaskForAgent } from '@/lib/agent-protocol'
 
 /**
  * GET /api/v1/tasks
@@ -384,6 +385,7 @@ export async function POST(req: NextRequest) {
           timestamp: new Date().toISOString(),
           data: {
             taskId: task.id,
+            task: enrichTaskForAgent(task),
             title: task.title,
             description: task.description,
             priority: task.priority,

@@ -9,8 +9,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, requireScopes, requireTaskAccess, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { hasListAccess } from '@/lib/list-member-utils'
+import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { broadcastToUsers } from '@/lib/sse-utils'
+import { enrichTaskForAgent } from '@/lib/agent-protocol'
 
 interface RouteContext {
   params: Promise<{
@@ -442,6 +444,65 @@ export async function PUT(
     // AI agent workflow triggering is handled by Prisma middleware
     // The middleware posts the "starting" comment, sends webhooks, and triggers assistant workflow
     // This keeps the API route simple and avoids duplicate processing
+
+    // Broadcast SSE event for real-time updates
+    try {
+      const userIds = new Set<string>()
+
+      // Add all list members
+      for (const list of task.lists) {
+        const fullList = await prisma.taskList.findUnique({
+          where: { id: list.id },
+          include: {
+            listMembers: { select: { userId: true } },
+          },
+        })
+        if (fullList) {
+          userIds.add(fullList.ownerId)
+          fullList.listMembers.forEach(m => userIds.add(m.userId))
+        }
+      }
+
+      // Add task assignee and creator
+      if (task.assigneeId) userIds.add(task.assigneeId)
+      if (task.creatorId) userIds.add(task.creatorId)
+
+      // Remove the updater
+      userIds.delete(auth.userId)
+
+      if (userIds.size > 0) {
+        // Detect assignee change → send task_assigned to new assignee
+        const assigneeChanged = existingTask && body.assigneeId !== undefined &&
+          body.assigneeId !== existingTask.assigneeId
+        if (assigneeChanged && task.assigneeId) {
+          broadcastToUsers([task.assigneeId], {
+            type: 'task_assigned',
+            timestamp: new Date().toISOString(),
+            data: {
+              taskId: task.id,
+              task: enrichTaskForAgent(task),
+            }
+          })
+          // Don't also send task_updated to the new assignee
+          userIds.delete(task.assigneeId)
+        }
+
+        const eventType = (body.completed === true && existingTask && !existingTask.completed)
+          ? 'task_completed'
+          : 'task_updated'
+
+        broadcastToUsers(Array.from(userIds), {
+          type: eventType,
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            task: enrichTaskForAgent(task),
+          }
+        })
+      }
+    } catch (sseError) {
+      console.error('[API v1] Failed to broadcast task update SSE:', sseError)
+    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)

@@ -349,10 +349,13 @@ export async function broadcastCommentCreatedNotification(
           comment: {
             id: comment.id,
             content: comment.content,
+            authorName: comment.author?.name || comment.author?.email || null,
+            authorId: comment.authorId,
+            isAgent: comment.author?.isAIAgent ?? false,
+            createdAt: new Date(comment.createdAt).toISOString(),
+            // Legacy fields for web client compatibility
             type: comment.type,
             author: comment.author,
-            authorId: comment.authorId, // Required by TaskDetail component
-            createdAt: comment.createdAt,
             parentCommentId: comment.parentCommentId
           }
         }

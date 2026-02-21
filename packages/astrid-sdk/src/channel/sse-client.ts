@@ -154,9 +154,43 @@ export class SSEClient {
   }
 
   private dispatch(event: AgentSSEEvent): void {
-    const handlers = this.handlers.get(event.type) || []
+    let type = event.type
+    let data = event.data
+
+    // Handle unnamed SSE events from broadcastToUsers / Redis polling.
+    // These arrive as: data: {"type":"task_assigned","timestamp":"...","data":{...}}
+    // Parsed as { type: 'message', data: { type: 'task_assigned', data: {...} } }
+    // We need to map the internal type and unwrap the nested data.
+    if (type === 'message' && data?.type) {
+      type = this.mapEventType(data.type as string)
+      data = data.data || data
+    }
+
+    const mapped: AgentSSEEvent = { type, data }
+    const handlers = this.handlers.get(type) || []
     for (const handler of handlers) {
-      try { handler(event) } catch (err) { console.error('SSE handler error:', err) }
+      try { handler(mapped) } catch (err) { console.error('SSE handler error:', err) }
+    }
+  }
+
+  /** Map internal server event types to agent protocol event names */
+  private mapEventType(type: string): string {
+    switch (type) {
+      case 'task_assigned':
+      case 'task_created':
+        return 'task.assigned'
+      case 'task_updated':
+        return 'task.updated'
+      case 'task_completed':
+        return 'task.completed'
+      case 'task_deleted':
+        return 'task.deleted'
+      case 'comment_created':
+      case 'comment_added':
+      case 'agent_task_comment':
+        return 'task.commented'
+      default:
+        return type
     }
   }
 

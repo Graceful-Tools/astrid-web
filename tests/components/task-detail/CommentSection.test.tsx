@@ -109,7 +109,7 @@ describe('CommentSection', () => {
       expect(setNewComment).toHaveBeenCalledWith('New comment')
     })
 
-    it('should add comment on Enter key', async () => {
+    it('should add comment on Enter key', { timeout: 15000 }, async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({

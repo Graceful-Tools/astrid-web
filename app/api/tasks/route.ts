@@ -8,6 +8,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { getListMemberIds, hasListAccess } from "@/lib/list-member-utils"
 import { RedisCache, isRedisAvailable } from "@/lib/redis"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
+import { enrichTaskForAgent } from "@/lib/agent-protocol"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { logError } from "@/lib/logging/error-sanitizer"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
@@ -594,6 +595,7 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString(),
           data: {
             taskId: task.id,
+            task: enrichTaskForAgent(task),
             title: (task as any).title,
             description: (task as any).description,
             priority: (task as any).priority,

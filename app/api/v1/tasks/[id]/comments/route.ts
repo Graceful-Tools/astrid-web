@@ -353,6 +353,15 @@ export async function POST(
       userIds.delete(authorId)
 
       if (userIds.size > 0) {
+        // Build AgentComment-compatible object for SDK consumers
+        const agentComment = {
+          id: comment.id,
+          content: comment.content,
+          authorName: comment.author?.name || comment.author?.email || null,
+          authorId: comment.authorId,
+          isAgent: comment.author ? !!(comment.author as any).isAIAgent : false,
+          createdAt: new Date(comment.createdAt).toISOString(),
+        }
         broadcastToUsers(Array.from(userIds), {
           type: 'comment_created',
           timestamp: new Date().toISOString(),
@@ -360,7 +369,7 @@ export async function POST(
             taskId: task.id,
             commentId: comment.id,
             listNames: task.lists.map(l => l.name),
-            comment
+            comment: agentComment
           }
         })
       }
@@ -380,11 +389,14 @@ export async function POST(
           data: {
             taskId: task.id,
             taskTitle: task.title,
-            commentId: comment.id,
-            content: comment.content,
-            authorName: comment.author?.name || comment.author?.email,
-            authorId: comment.authorId,
-            isAgentComment: false
+            comment: {
+              id: comment.id,
+              content: comment.content,
+              authorName: comment.author?.name || comment.author?.email || null,
+              authorId: comment.authorId,
+              isAgent: false,
+              createdAt: new Date(comment.createdAt).toISOString(),
+            }
           }
         })
         console.log(`[API v1] Sent agent_task_comment to OpenClaw agent ${task.assignee.email}`)
