@@ -200,3 +200,85 @@ export const agentTaskInclude = {
     },
   },
 }
+
+// ── SSE Event Transform ───────────────────────────────────────────────
+
+/**
+ * Map internal SSE event types to agent protocol event names.
+ */
+export function mapEventType(type: string): string | null {
+  switch (type) {
+    case 'task_assigned':
+    case 'task_created':
+      return 'task.assigned'
+    case 'task_updated':
+      return 'task.updated'
+    case 'task_completed':
+      return 'task.completed'
+    case 'task_deleted':
+      return 'task.deleted'
+    case 'comment_created':
+    case 'comment_added':
+      return 'task.commented'
+    default:
+      return null
+  }
+}
+
+/**
+ * Transform a cached SSE event into the agent protocol format.
+ *
+ * Cached events (from broadcastToUsers → getMissedEvents) have the shape:
+ *   { type: 'task_assigned', timestamp: '...', data: { taskId, title, ... } }
+ *
+ * Agent protocol expects named SSE events with structured payloads:
+ *   event: task.assigned\ndata: { taskId, task: AgentTask }
+ *
+ * For task_assigned/task_created we fetch the full task from DB to include
+ * listDescription and properly formatted AgentTask fields.
+ */
+export async function transformEventForAgent(
+  cachedEvent: any
+): Promise<{ type: string; data: any } | null> {
+  const internalType = cachedEvent.type
+  const mappedType = mapEventType(internalType)
+  if (!mappedType) return null
+
+  const data = cachedEvent.data || {}
+
+  if (internalType === 'task_assigned' || internalType === 'task_created') {
+    const taskId = data.taskId
+    if (!taskId) return null
+
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: agentTaskInclude,
+    })
+    if (!task) return null
+
+    return { type: mappedType, data: { taskId, task: enrichTaskForAgent(task) } }
+  }
+
+  if (internalType === 'comment_created' || internalType === 'comment_added') {
+    const comment = data.comment
+    return {
+      type: mappedType,
+      data: {
+        taskId: data.taskId,
+        comment: comment
+          ? {
+              id: comment.id,
+              content: comment.content,
+              authorName: comment.author?.name || comment.author?.email || null,
+              authorId: comment.authorId || comment.author?.id,
+              isAgent: comment.author?.isAIAgent ?? false,
+              createdAt: comment.createdAt,
+            }
+          : null,
+      },
+    }
+  }
+
+  // task_updated, task_completed, task_deleted — pass through with taskId
+  return { type: mappedType, data: { taskId: data.taskId, ...data } }
+}

@@ -6,11 +6,16 @@
  * SSE stream filtered to the authenticated agent's tasks.
  * Sends: task.assigned, task.commented, task.updated, task.completed, task.deleted
  * Supports ?since=ISO8601 for replaying missed events.
+ *
+ * This endpoint registers in the shared SSE connection pool so that
+ * broadcastToUsers() delivers events directly (real-time push). A proxy
+ * controller transforms internal events into agent protocol format.
+ * A 5-second poll remains as a safety net for edge cases.
  */
 
 import { NextRequest } from 'next/server'
-import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude, AGENT_EVENT_TYPES, mapEventType } from '@/lib/agent-protocol'
-import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from '@/lib/sse-utils'
+import { authenticateAgentRequest, transformEventForAgent } from '@/lib/agent-protocol'
+import { registerConnection, removeConnection, getMissedEvents } from '@/lib/sse-utils'
 import { AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { createRateLimitHeaders } from '@/lib/rate-limiter'
 
@@ -45,46 +50,96 @@ export async function GET(request: NextRequest) {
   const sinceTimestamp = sinceParam ? new Date(sinceParam).getTime() : null
 
   const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
 
   const stream = new ReadableStream({
     start(controller) {
-      const connectionId = registerConnection(userId, controller)
+      let lastCheckTime = Date.now()
 
       // Send connected event
       controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`))
 
-      // Replay missed events if since provided
+      // ── Direct push via global SSE pool ──────────────────────────────
+      // Register a proxy controller that transforms raw internal events
+      // (from broadcastToUsers) into agent protocol named SSE events.
+      const proxyController = {
+        enqueue(chunk: Uint8Array) {
+          const text = decoder.decode(chunk)
+          const match = text.match(/^data: ([\s\S]+)\n\n$/)
+          if (!match) return // skip non-data messages (keepalive, etc.)
+          try {
+            const parsed = JSON.parse(match[1])
+            // Advance the poll cursor so we don't re-deliver this event
+            lastCheckTime = Date.now()
+            transformEventForAgent(parsed).then(transformed => {
+              if (transformed) {
+                try {
+                  controller.enqueue(
+                    encoder.encode(`event: ${transformed.type}\ndata: ${JSON.stringify(transformed.data)}\n\n`)
+                  )
+                } catch { /* stream closed */ }
+              }
+            }).catch(err => {
+              console.error('[Agent SSE] Transform error during direct push:', err)
+            })
+          } catch { /* malformed JSON */ }
+        },
+        close() {
+          try { controller.close() } catch {}
+        },
+      } as unknown as ReadableStreamDefaultController
+
+      const connectionId = registerConnection(userId, proxyController)
+
+      // ── Replay missed events ─────────────────────────────────────────
       if (sinceTimestamp && !isNaN(sinceTimestamp)) {
+        lastCheckTime = sinceTimestamp
         getMissedEvents(userId, sinceTimestamp)
-          .then(events => {
+          .then(async (events) => {
             for (const event of events) {
-              const mappedType = mapEventType(event.type)
-              if (mappedType) {
-                controller.enqueue(
-                  encoder.encode(`event: ${mappedType}\ndata: ${JSON.stringify(event.data || event)}\n\n`)
-                )
+              try {
+                const transformed = await transformEventForAgent(event)
+                if (transformed) {
+                  controller.enqueue(
+                    encoder.encode(`event: ${transformed.type}\ndata: ${JSON.stringify(transformed.data)}\n\n`)
+                  )
+                }
+              } catch (err) {
+                console.error('[Agent SSE] Transform error during replay:', err)
               }
             }
+            lastCheckTime = Date.now()
           })
           .catch(err => console.error('[Agent SSE] Replay error:', err))
       }
 
-      // Poll for events and send keepalive every 10s.
-      // In production (Vercel), broadcastToUsers runs in separate serverless instances
-      // that can't reach this connection directly. Events are cached in Redis,
-      // so we poll Redis to deliver them — matching the pattern from /api/sse.
-      const keepaliveInterval = setInterval(async () => {
+      // ── Safety-net poll (5s) ─────────────────────────────────────────
+      // Catches events that might slip through if the proxy registration
+      // races with a concurrent broadcastToUsers call.
+      const pollInterval = setInterval(async () => {
         try {
-          // Check Redis for events from other instances (production)
-          await checkAndDeliverNewEvents(userId, connectionId)
+          const checkTime = lastCheckTime
+          const events = await getMissedEvents(userId, checkTime)
+          lastCheckTime = Date.now()
+
+          for (const event of events) {
+            try {
+              const transformed = await transformEventForAgent(event)
+              if (transformed) {
+                controller.enqueue(
+                  encoder.encode(`event: ${transformed.type}\ndata: ${JSON.stringify(transformed.data)}\n\n`)
+                )
+              }
+            } catch (err) {
+              console.error('[Agent SSE] Transform error during poll:', err)
+            }
+          }
 
           controller.enqueue(encoder.encode(':keepalive\n\n'))
-          updateConnectionPing(userId)
         } catch {
-          removeConnection(userId, connectionId)
-          clearInterval(keepaliveInterval)
+          clearInterval(pollInterval)
         }
-      }, 10_000)
+      }, 5_000)
 
       // Refresh connection every 5 minutes
       const refreshTimeout = setTimeout(() => {
@@ -93,15 +148,14 @@ export async function GET(request: NextRequest) {
             encoder.encode(`event: reconnect\ndata: ${JSON.stringify({ reason: 'periodic refresh' })}\n\n`)
           )
         } catch {}
-        removeConnection(userId, connectionId)
-        clearInterval(keepaliveInterval)
+        clearInterval(pollInterval)
         try { controller.close() } catch {}
       }, 300_000)
 
       const cleanup = () => {
-        removeConnection(userId, connectionId)
-        clearInterval(keepaliveInterval)
+        clearInterval(pollInterval)
         clearTimeout(refreshTimeout)
+        removeConnection(userId, connectionId)
       }
 
       request.signal.addEventListener('abort', cleanup)
