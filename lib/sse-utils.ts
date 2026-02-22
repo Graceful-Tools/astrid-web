@@ -215,7 +215,7 @@ function sanitizeForSSE(obj: any, depth = 0): any {
 }
 
 // Helper function to broadcast events to specific users
-export function broadcastToUsers(userIds: string[], event: any) {
+export async function broadcastToUsers(userIds: string[], event: any) {
   const encoder = new TextEncoder()
   // Send as unnamed event (like ping) so it's received by onmessage handler
   // Include type and timestamp in the data payload
@@ -228,12 +228,13 @@ export function broadcastToUsers(userIds: string[], event: any) {
   const sseMessage = `data: ${eventData}\n\n`
 
   const deadConnectionIds: Array<{userId: string, connectionId: string}> = []
+  const cachePromises: Promise<void>[] = []
 
   userIds.forEach(userId => {
     // ALWAYS cache event for user (even if not connected) for reconnection recovery
     // Skip caching for ping/pong/connected events
     if (!['ping', 'pong', 'connected', 'reconnect'].includes(event.type)) {
-      cacheEventForUser(userId, fullEvent)
+      cachePromises.push(cacheEventForUser(userId, fullEvent))
     }
 
     const userConnections = connections.get(userId)
@@ -276,17 +277,23 @@ export function broadcastToUsers(userIds: string[], event: any) {
       }
     }
   })
+
+  // Ensure all cache writes complete before returning so that
+  // poll-based consumers (getMissedEvents) see the events.
+  if (cachePromises.length > 0) {
+    await Promise.allSettled(cachePromises)
+  }
 }
 
 // Helper function to broadcast to all connected users
-export function broadcastToAll(event: any) {
+export async function broadcastToAll(event: any) {
   const userIds = Array.from(connections.keys())
-  broadcastToUsers(userIds, event)
+  await broadcastToUsers(userIds, event)
 }
 
 // Helper function to send event to a specific user
-export function sendEventToUser(userId: string, event: any) {
-  broadcastToUsers([userId], event)
+export async function sendEventToUser(userId: string, event: any) {
+  await broadcastToUsers([userId], event)
 }
 
 // Helper function to broadcast comment created notifications

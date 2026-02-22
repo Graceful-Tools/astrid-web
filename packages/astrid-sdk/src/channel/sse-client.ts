@@ -72,13 +72,16 @@ export class SSEClient {
         const { done, value } = await reader.read()
         if (done) break
 
+        // Any data from the server (including keepalive comments) means
+        // the connection is alive — reset the keepalive timer.
+        this.resetKeepalive()
+
         buffer += decoder.decode(value, { stream: true })
         const { events, remaining } = this.parseBuffer(buffer)
         buffer = remaining
 
         for (const event of events) {
           this.lastEventTime = Date.now()
-          this.resetKeepalive()
           this.dispatch(event)
         }
       }

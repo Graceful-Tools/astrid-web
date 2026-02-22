@@ -204,28 +204,6 @@ export const agentTaskInclude = {
 // ── SSE Event Transform ───────────────────────────────────────────────
 
 /**
- * Map internal SSE event types to agent protocol event names.
- */
-export function mapEventType(type: string): string | null {
-  switch (type) {
-    case 'task_assigned':
-    case 'task_created':
-      return 'task.assigned'
-    case 'task_updated':
-      return 'task.updated'
-    case 'task_completed':
-      return 'task.completed'
-    case 'task_deleted':
-      return 'task.deleted'
-    case 'comment_created':
-    case 'comment_added':
-      return 'task.commented'
-    default:
-      return null
-  }
-}
-
-/**
  * Transform a cached SSE event into the agent protocol format.
  *
  * Cached events (from broadcastToUsers → getMissedEvents) have the shape:
