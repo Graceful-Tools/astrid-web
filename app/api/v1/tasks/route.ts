@@ -441,47 +441,14 @@ export async function POST(req: NextRequest) {
             timestamp: new Date().toISOString(),
             data: {
               taskId: task.id,
+              task: enrichTaskForAgent(task),
+              // Legacy fields for web client backward compat
               taskTitle: task.title,
               taskPriority: task.priority,
               taskDueDateTime: task.dueDateTime,
               creatorName: task.creator?.name || task.creator?.email || "Someone",
               userId: auth.userId,
               listNames: task.lists?.map((list: any) => list.name) || [],
-              task: {
-                id: task.id,
-                title: task.title,
-                description: task.description,
-                priority: task.priority,
-                completed: task.completed,
-                assigneeId: task.assigneeId,
-                creatorId: task.creatorId,
-                createdAt: task.createdAt,
-                updatedAt: task.updatedAt,
-                assignee: task.assignee ? {
-                  id: task.assignee.id,
-                  name: task.assignee.name,
-                  email: task.assignee.email,
-                  image: task.assignee.image,
-                  isAIAgent: task.assignee.isAIAgent,
-                } : null,
-                creator: task.creator ? {
-                  id: task.creator.id,
-                  name: task.creator.name,
-                  email: task.creator.email,
-                  image: task.creator.image,
-                  isAIAgent: task.creator.isAIAgent,
-                } : null,
-                lists: task.lists?.map((list: any) => ({
-                  id: list.id,
-                  name: list.name,
-                  color: list.color,
-                })),
-                dueDateTime: task.dueDateTime,
-                isAllDay: task.isAllDay,
-                repeating: task.repeating,
-                repeatingData: task.repeatingData,
-                isPrivate: task.isPrivate
-              }
             }
           })
           console.log('[v1 API SSE] Broadcast sent successfully')

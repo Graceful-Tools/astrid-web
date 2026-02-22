@@ -305,6 +305,7 @@ export async function PUT(
             select: {
               id: true,
               name: true,
+              description: true,
               color: true,
               githubRepositoryId: true,
               aiAgentConfiguredBy: true,
@@ -328,6 +329,19 @@ export async function PUT(
               image: true,
             },
           },
+          comments: {
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  isAIAgent: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'asc' as const },
+          },
         },
       })
 
@@ -343,6 +357,38 @@ export async function PUT(
       // Track analytics - task was edited and completed (repeating task roll-forward)
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_EDITED, { taskId })
+
+      // Broadcast SSE event for repeating task roll-forward
+      try {
+        const userIds = new Set<string>()
+
+        for (const list of task.lists) {
+          const fullList = await prisma.taskList.findUnique({
+            where: { id: list.id },
+            include: { listMembers: { select: { userId: true } } },
+          })
+          if (fullList) {
+            userIds.add(fullList.ownerId)
+            fullList.listMembers.forEach(m => userIds.add(m.userId))
+          }
+        }
+        if (task.assigneeId) userIds.add(task.assigneeId)
+        if (task.creatorId) userIds.add(task.creatorId)
+        userIds.delete(auth.userId)
+
+        if (userIds.size > 0) {
+          broadcastToUsers(Array.from(userIds), {
+            type: 'task_updated',
+            timestamp: new Date().toISOString(),
+            data: {
+              taskId: task.id,
+              task: enrichTaskForAgent(task),
+            },
+          })
+        }
+      } catch (sseError) {
+        console.error('[API v1] Failed to broadcast repeating task SSE:', sseError)
+      }
 
       const headers: Record<string, string> = {}
       const deprecationWarning = getDeprecationWarning(auth)
@@ -377,6 +423,7 @@ export async function PUT(
           select: {
             id: true,
             name: true,
+            description: true,
             color: true,
             githubRepositoryId: true,
             aiAgentConfiguredBy: true,
@@ -399,6 +446,19 @@ export async function PUT(
             email: true,
             image: true,
           },
+        },
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                isAIAgent: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' as const },
         },
       },
     })
@@ -562,10 +622,60 @@ export async function DELETE(
     // Check access
     await requireTaskAccess(auth.userId, taskId)
 
+    // Fetch task with associations before deletion for SSE broadcast
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        lists: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    // Compute recipients before deletion
+    const recipientIds = new Set<string>()
+    if (task) {
+      for (const list of task.lists) {
+        const memberIds = await getListMemberIds(
+          await prisma.taskList.findUnique({
+            where: { id: list.id },
+            include: {
+              owner: { select: { id: true, name: true, email: true, image: true } },
+              listMembers: {
+                include: { user: { select: { id: true, name: true, email: true, image: true } } },
+              },
+            },
+          }) as any
+        )
+        memberIds.forEach((id: string) => recipientIds.add(id))
+      }
+      if (task.assigneeId) recipientIds.add(task.assigneeId)
+      if (task.creatorId) recipientIds.add(task.creatorId)
+      recipientIds.delete(auth.userId)
+    }
+
     // Delete task
     await prisma.task.delete({
       where: { id: taskId },
     })
+
+    // Broadcast task_deleted to all relevant users
+    if (recipientIds.size > 0) {
+      try {
+        broadcastToUsers(Array.from(recipientIds), {
+          type: 'task_deleted',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId,
+          },
+        })
+      } catch (sseError) {
+        console.error('[API v1] Failed to broadcast task_deleted SSE:', sseError)
+      }
+    }
 
     // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_DELETED, { taskId })

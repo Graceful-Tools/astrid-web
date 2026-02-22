@@ -122,6 +122,41 @@ export function enrichTaskForAgent(task: any): AgentTask {
   }
 }
 
+// ── Event Type Mapping ────────────────────────────────────────────────
+
+/** Internal SSE event types relevant to agent consumers */
+export const AGENT_EVENT_TYPES = new Set([
+  'task_assigned',
+  'task_created',
+  'task_updated',
+  'task_completed',
+  'task_deleted',
+  'comment_created',
+  'comment_added',
+  'agent_task_comment',
+])
+
+/** Map internal event types to protocol event names (e.g. task.assigned) */
+export function mapEventType(type: string): AgentEventType | null {
+  switch (type) {
+    case 'task_assigned':
+    case 'task_created':
+      return 'task.assigned'
+    case 'task_updated':
+      return 'task.updated'
+    case 'task_completed':
+      return 'task.completed'
+    case 'task_deleted':
+      return 'task.deleted'
+    case 'comment_created':
+    case 'comment_added':
+    case 'agent_task_comment':
+      return 'task.commented'
+    default:
+      return null
+  }
+}
+
 // ── Prisma Includes ────────────────────────────────────────────────────
 
 /** Standard Prisma include for agent task queries */

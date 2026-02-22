@@ -9,43 +9,12 @@
  */
 
 import { NextRequest } from 'next/server'
-import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude } from '@/lib/agent-protocol'
+import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude, AGENT_EVENT_TYPES, mapEventType } from '@/lib/agent-protocol'
 import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from '@/lib/sse-utils'
 import { AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { createRateLimitHeaders } from '@/lib/rate-limiter'
 
 export const runtime = 'nodejs'
-
-// Agent-relevant event types
-const AGENT_EVENT_TYPES = new Set([
-  'task_assigned',
-  'task_created',
-  'task_updated',
-  'task_completed',
-  'task_deleted',
-  'comment_created',
-  'comment_added',
-])
-
-// Map internal event types to protocol event names
-function mapEventType(type: string): string | null {
-  switch (type) {
-    case 'task_assigned':
-    case 'task_created':
-      return 'task.assigned'
-    case 'task_updated':
-      return 'task.updated'
-    case 'task_completed':
-      return 'task.completed'
-    case 'task_deleted':
-      return 'task.deleted'
-    case 'comment_created':
-    case 'comment_added':
-      return 'task.commented'
-    default:
-      return null
-  }
-}
 
 export async function GET(request: NextRequest) {
   let auth

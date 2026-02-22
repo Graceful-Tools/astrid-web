@@ -153,25 +153,23 @@ export async function POST(req: NextRequest, context: RouteContext) {
       userIds.delete(auth.userId) // Don't notify ourselves
 
       if (userIds.size > 0) {
+        // Build AgentComment-compatible object for SDK consumers
+        const agentComment = {
+          id: comment.id,
+          content: comment.content,
+          authorName: comment.author?.name || comment.author?.email || null,
+          authorId: comment.authorId,
+          isAgent: comment.author?.isAIAgent ?? false,
+          createdAt: new Date(comment.createdAt).toISOString(),
+        }
         broadcastToUsers(Array.from(userIds), {
           type: 'comment_created',
           timestamp: new Date().toISOString(),
           data: {
             taskId: id,
-            taskTitle: task.title,
             commentId: comment.id,
-            commentContent: comment.content.substring(0, 100),
-            commenterName: comment.author?.name || comment.author?.email || 'AI Agent',
-            userId: auth.userId,
-            comment: {
-              id: comment.id,
-              content: comment.content,
-              type: comment.type,
-              author: comment.author,
-              authorId: comment.authorId,
-              createdAt: comment.createdAt,
-              parentCommentId: null,
-            },
+            listNames: (task.lists || []).map((l: any) => l.name),
+            comment: agentComment,
           },
         })
       }

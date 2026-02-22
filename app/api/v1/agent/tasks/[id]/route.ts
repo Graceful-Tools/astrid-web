@@ -107,11 +107,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           timestamp: new Date().toISOString(),
           data: {
             taskId: task.id,
-            title: task.title,
-            completed: task.completed,
-            priority: task.priority,
-            updatedBy: auth.userId,
-            listNames: ((task as any).lists || []).map((l: any) => l.name),
+            task: enrichTaskForAgent(task),
           },
         })
       }
