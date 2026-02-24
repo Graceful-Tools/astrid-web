@@ -1,10 +1,14 @@
 import { getServerSession } from "next-auth"
 import { NextRequest } from "next/server"
 import { authConfig } from "@/lib/auth-config"
+import { authenticateAPI, type AuthContext } from "@/lib/api-auth-middleware"
+import { hasRequiredScopes } from "@/lib/oauth/oauth-scopes"
 import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from "@/lib/sse-utils"
 
 // Explicitly use Node.js runtime for SSE compatibility in production
 export const runtime = 'nodejs'
+
+type SSESession = { user: { id: string; email?: string | null; name?: string | null; image?: string | null }; expires?: string } | null
 
 export async function GET(request: NextRequest) {
   console.log('[SSE] GET request received')
@@ -20,42 +24,69 @@ export async function GET(request: NextRequest) {
     'origin': request.headers.get('origin'),
   })
 
-  let session
+  let session: SSESession = null
+
   try {
-    session = await getServerSession(authConfig)
-    console.log('[SSE] Session result:', session ? `User: ${session.user?.email}` : 'NO SESSION')
-
-    // If JWT session validation failed, try database session (for mobile apps)
-    if (!session?.user && cookieHeader) {
-      console.log('[SSE] JWT validation failed, trying database session...')
-
-      // Extract session token from cookie header
-      const sessionTokenMatch = cookieHeader.match(/next-auth\.session-token=([^;]+)/)
-      if (sessionTokenMatch) {
-        const sessionToken = sessionTokenMatch[1]
-        console.log('[SSE] Found session token, checking database...')
-
-        // Check database for valid session
-        const { prisma } = await import("@/lib/prisma")
-        const dbSession = await prisma.session.findUnique({
-          where: { sessionToken },
-          include: { user: true }
-        })
-
-        if (dbSession && dbSession.expires > new Date()) {
-          console.log('[SSE] Valid database session found for:', dbSession.user.email)
-          // Create session object matching NextAuth format
-          session = {
-            user: {
-              id: dbSession.user.id,
-              email: dbSession.user.email,
-              name: dbSession.user.name,
-              image: dbSession.user.image,
-            },
-            expires: dbSession.expires.toISOString()
+    // Priority 1: OAuth Bearer token (for OpenClaw and API clients)
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.toLowerCase().startsWith('bearer ')) {
+      try {
+        const auth: AuthContext = await authenticateAPI(request)
+        // Check for sse:connect or tasks:read scope
+        if (!hasRequiredScopes(auth.scopes, ['sse:connect']) && !hasRequiredScopes(auth.scopes, ['tasks:read']) && !hasRequiredScopes(auth.scopes, ['*'])) {
+          console.log('[SSE] OAuth token missing required scope (sse:connect or tasks:read)')
+          return new Response('Forbidden - Missing required scope: sse:connect or tasks:read', { status: 403 })
+        }
+        console.log(`[SSE] Authenticated via OAuth: ${auth.user.email} (source: ${auth.source})`)
+        session = {
+          user: {
+            id: auth.userId,
+            email: auth.user.email,
+            name: auth.user.name,
           }
-        } else {
-          console.log('[SSE] Database session expired or not found')
+        }
+      } catch (oauthError) {
+        console.log('[SSE] OAuth authentication failed:', oauthError)
+        return new Response('Unauthorized - Invalid Bearer token', { status: 401 })
+      }
+    }
+
+    // Priority 2: Session-based auth (existing web UI flow)
+    if (!session) {
+      session = await getServerSession(authConfig) as SSESession
+      console.log('[SSE] Session result:', session ? `User: ${session.user?.email}` : 'NO SESSION')
+
+      // If JWT session validation failed, try database session (for mobile apps)
+      if (!session?.user && cookieHeader) {
+        console.log('[SSE] JWT validation failed, trying database session...')
+
+        // Extract session token from cookie header
+        const sessionTokenMatch = cookieHeader.match(/next-auth\.session-token=([^;]+)/)
+        if (sessionTokenMatch) {
+          const sessionToken = sessionTokenMatch[1]
+          console.log('[SSE] Found session token, checking database...')
+
+          // Check database for valid session
+          const { prisma } = await import("@/lib/prisma")
+          const dbSession = await prisma.session.findUnique({
+            where: { sessionToken },
+            include: { user: true }
+          })
+
+          if (dbSession && dbSession.expires > new Date()) {
+            console.log('[SSE] Valid database session found for:', dbSession.user.email)
+            session = {
+              user: {
+                id: dbSession.user.id,
+                email: dbSession.user.email,
+                name: dbSession.user.name,
+                image: dbSession.user.image,
+              },
+              expires: dbSession.expires.toISOString()
+            }
+          } else {
+            console.log('[SSE] Database session expired or not found')
+          }
         }
       }
     }

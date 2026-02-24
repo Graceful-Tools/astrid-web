@@ -5,7 +5,7 @@
 /**
  * Valid coding agent types that can perform GitHub operations
  */
-const CODING_AGENT_TYPES = ['coding_agent', 'claude_agent', 'openai_agent', 'gemini_agent'] as const
+const CODING_AGENT_TYPES = ['coding_agent', 'claude_agent', 'openai_agent', 'gemini_agent', 'openclaw_worker'] as const
 
 /**
  * Check if an AI agent type is a valid coding agent

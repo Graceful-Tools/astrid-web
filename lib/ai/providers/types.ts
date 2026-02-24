@@ -46,7 +46,7 @@ export type ToolExecutionCallback = (toolName: string, input: any) => Promise<an
 /**
  * AI Service type (matches existing AIService type)
  */
-export type AIServiceType = 'claude' | 'openai' | 'gemini'
+export type AIServiceType = 'claude' | 'openai' | 'gemini' | 'openclaw'
 
 /**
  * Provider interface for unified access

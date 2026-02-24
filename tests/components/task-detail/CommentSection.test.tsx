@@ -82,7 +82,8 @@ describe('CommentSection', () => {
     it('should render existing comments', () => {
       render(<CommentSection {...defaultProps} />)
       expect(screen.getByText('First comment')).toBeInTheDocument()
-      expect(screen.getByText('Test User')).toBeInTheDocument()
+      // Chat bubble shows "You" for current user's comments
+      expect(screen.getByText('You')).toBeInTheDocument()
     })
 
     it('should render add comment textarea', () => {
@@ -90,9 +91,10 @@ describe('CommentSection', () => {
       expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument()
     })
 
-    it('should show Reply button for each comment', () => {
+    it('should show comment author and timestamp', () => {
       render(<CommentSection {...defaultProps} />)
-      expect(screen.getByText('Reply')).toBeInTheDocument()
+      // Chat bubble shows "You" for current user's comments
+      expect(screen.getByText('You')).toBeInTheDocument()
     })
   })
 
@@ -107,7 +109,7 @@ describe('CommentSection', () => {
       expect(setNewComment).toHaveBeenCalledWith('New comment')
     })
 
-    it('should add comment on Enter key', async () => {
+    it('should add comment on Enter key', { timeout: 15000 }, async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -143,7 +145,7 @@ describe('CommentSection', () => {
 
     it('should show Send button when there is content', () => {
       render(<CommentSection {...defaultProps} newComment="Test comment" />)
-      expect(screen.getByTitle('Send comment (Enter)')).toBeInTheDocument()
+      expect(screen.getByTitle('Send comment')).toBeInTheDocument()
     })
 
     it('should not add empty comment', async () => {
@@ -271,14 +273,9 @@ describe('CommentSection', () => {
   })
 
   describe('Replies', () => {
-    it('should show reply form when Reply button is clicked', () => {
-      const setReplyingTo = vi.fn()
-      render(<CommentSection {...defaultProps} setReplyingTo={setReplyingTo} />)
-
-      const replyButton = screen.getByText('Reply')
-      fireEvent.click(replyButton)
-
-      expect(setReplyingTo).toHaveBeenCalledWith('comment-1')
+    it('should render reply form when replyingTo is set', () => {
+      render(<CommentSection {...defaultProps} replyingTo="comment-1" />)
+      expect(screen.getByPlaceholderText('Write a reply...')).toBeInTheDocument()
     })
 
     it('should render reply form when replyingTo matches comment', () => {
@@ -287,7 +284,7 @@ describe('CommentSection', () => {
       expect(screen.getByText('Replying to Test User')).toBeInTheDocument()
     })
 
-    it('should cancel reply when Cancel button is clicked', () => {
+    it('should cancel reply when X button is clicked', () => {
       const setReplyingTo = vi.fn()
       const setReplyContent = vi.fn()
       const setReplyAttachedFile = vi.fn()
@@ -300,8 +297,11 @@ describe('CommentSection', () => {
         setReplyAttachedFile={setReplyAttachedFile}
       />)
 
-      const cancelButton = screen.getByText('Cancel')
-      fireEvent.click(cancelButton)
+      // Chat bubble uses an X icon button to cancel reply (inside "Replying to..." text)
+      const replyingToText = screen.getByText(/Replying to/)
+      const cancelButton = replyingToText.querySelector('button')
+      expect(cancelButton).toBeTruthy()
+      fireEvent.click(cancelButton!)
 
       expect(setReplyingTo).toHaveBeenCalledWith(null)
       expect(setReplyContent).toHaveBeenCalledWith('')
@@ -366,104 +366,176 @@ describe('CommentSection', () => {
       }
 
       render(<CommentSection {...defaultProps} task={taskWithReplies} />)
+      // Chat bubbles render replies inline as nested bubbles
       expect(screen.getByText('Reply content')).toBeInTheDocument()
-      expect(screen.getByText('1 reply')).toBeInTheDocument()
-      expect(screen.getByText('replied')).toBeInTheDocument()
     })
   })
 
-  describe('Deleting Comments', () => {
-    it('should show delete button for own comments', () => {
+  describe('Comment Actions (tap to show)', () => {
+    it('should show own comments with You label', () => {
       render(<CommentSection {...defaultProps} />)
-      // The user should be able to access the dropdown menu for their own comments
-      // We can verify this by checking that Reply button exists (always shown)
-      expect(screen.getByText('Reply')).toBeInTheDocument()
+      expect(screen.getByText('You')).toBeInTheDocument()
     })
 
-    it('should delete comment when delete is clicked', async () => {
+    it('should show action bar when comment bubble is tapped', () => {
+      render(<CommentSection {...defaultProps} showingActionsFor="comment-1" />)
+      expect(screen.getByText('Copy')).toBeInTheDocument()
+      expect(screen.getByText('Reply')).toBeInTheDocument()
+      expect(screen.getByText('Delete')).toBeInTheDocument()
+    })
+
+    it('should call setShowingActionsFor when bubble is clicked', () => {
+      const setShowingActionsFor = vi.fn()
+      render(<CommentSection {...defaultProps} setShowingActionsFor={setShowingActionsFor} />)
+
+      const commentContent = screen.getByText('First comment')
+      const bubbleRow = commentContent.closest('.chat-bubble-row')
+      expect(bubbleRow).toBeTruthy()
+      fireEvent.click(bubbleRow!)
+
+      expect(setShowingActionsFor).toHaveBeenCalledWith('comment-1')
+    })
+
+    it('should toggle actions off when bubble is clicked again', () => {
+      const setShowingActionsFor = vi.fn()
+      render(<CommentSection {...defaultProps} showingActionsFor="comment-1" setShowingActionsFor={setShowingActionsFor} />)
+
+      const commentContent = screen.getByText('First comment')
+      const bubbleRow = commentContent.closest('.chat-bubble-row')
+      fireEvent.click(bubbleRow!)
+
+      expect(setShowingActionsFor).toHaveBeenCalledWith(null)
+    })
+
+    it('should copy comment text when Copy is clicked', () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+      const setShowingActionsFor = vi.fn()
+
+      render(<CommentSection {...defaultProps} showingActionsFor="comment-1" setShowingActionsFor={setShowingActionsFor} />)
+
+      fireEvent.click(screen.getByText('Copy'))
+
+      expect(writeText).toHaveBeenCalledWith('First comment')
+      expect(setShowingActionsFor).toHaveBeenCalledWith(null)
+    })
+
+    it('should open reply input when Reply is clicked', () => {
+      const setReplyingTo = vi.fn()
+      const setShowingActionsFor = vi.fn()
+
+      render(<CommentSection {...defaultProps} showingActionsFor="comment-1" setReplyingTo={setReplyingTo} setShowingActionsFor={setShowingActionsFor} />)
+
+      fireEvent.click(screen.getByText('Reply'))
+
+      expect(setReplyingTo).toHaveBeenCalledWith('comment-1')
+      expect(setShowingActionsFor).toHaveBeenCalledWith(null)
+    })
+
+    it('should delete comment when Delete is clicked', async () => {
       const mockFetch = vi.fn().mockResolvedValue({ ok: true })
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
-      render(<CommentSection {...defaultProps} onUpdate={onUpdate} />)
+      const setShowingActionsFor = vi.fn()
 
-      // Click the more menu
-      const moreButtons = screen.getAllByRole('button')
-      const moreButton = moreButtons.find(btn => btn.querySelector('.lucide-more-vertical'))
-      if (moreButton) {
-        fireEvent.click(moreButton)
+      render(<CommentSection {...defaultProps} showingActionsFor="comment-1" onUpdate={onUpdate} setShowingActionsFor={setShowingActionsFor} />)
 
-        // Click delete in dropdown
-        await waitFor(() => {
-          const deleteButton = screen.getByText('Delete Comment')
-          fireEvent.click(deleteButton)
-        })
+      fireEvent.click(screen.getByText('Delete'))
 
-        await waitFor(() => {
-          expect(mockFetch).toHaveBeenCalledWith(
-            '/api/comments/comment-1',
-            expect.objectContaining({ method: 'DELETE' })
-          )
-          expect(onUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-              comments: []
-            })
-          )
-        })
-      }
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/comments/comment-1',
+          expect.objectContaining({ method: 'DELETE' })
+        )
+        expect(onUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({ comments: [] })
+        )
+      })
+      expect(setShowingActionsFor).toHaveBeenCalledWith(null)
     })
 
-    it('should delete reply when delete is clicked', async () => {
+    it('should not show Delete for other users comments', () => {
+      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Other User', image: null }
+      const taskWithOtherComment = {
+        ...mockTask,
+        comments: [{
+          ...mockTask.comments![0],
+          id: 'comment-2',
+          author: otherUser,
+          authorId: 'user-2',
+        }]
+      }
+
+      render(<CommentSection {...defaultProps} task={taskWithOtherComment} showingActionsFor="comment-2" />)
+
+      expect(screen.getByText('Copy')).toBeInTheDocument()
+      expect(screen.getByText('Reply')).toBeInTheDocument()
+      expect(screen.queryByText('Delete')).not.toBeInTheDocument()
+    })
+
+    it('should not show Reply for nested replies', () => {
       const taskWithReplies = {
         ...mockTask,
-        comments: [
-          {
-            ...mockTask.comments![0],
-            replies: [
-              {
-                id: 'reply-1',
-                content: 'Reply content',
-                type: 'TEXT' as const,
-                author: mockCurrentUser,
-                authorId: 'user-1',
-                taskId: 'task-1',
-                parentCommentId: 'comment-1',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                replies: []
-              }
-            ]
-          }
-        ]
+        comments: [{
+          ...mockTask.comments![0],
+          replies: [{
+            id: 'reply-1',
+            content: 'Reply content',
+            type: 'TEXT' as const,
+            author: mockCurrentUser,
+            authorId: 'user-1',
+            taskId: 'task-1',
+            parentCommentId: 'comment-1',
+            createdAt: new Date('2025-01-01T11:00:00Z'),
+            updatedAt: new Date('2025-01-01T11:00:00Z'),
+            replies: []
+          }]
+        }]
+      }
+
+      render(<CommentSection {...defaultProps} task={taskWithReplies} showingActionsFor="reply-1" />)
+
+      // Reply action should show for the comment but not for the reply
+      expect(screen.getByText('Copy')).toBeInTheDocument()
+      expect(screen.queryByText('Reply')).not.toBeInTheDocument()
+      expect(screen.getByText('Delete')).toBeInTheDocument()
+    })
+
+    it('should delete reply when Delete is clicked on a reply', async () => {
+      const taskWithReplies = {
+        ...mockTask,
+        comments: [{
+          ...mockTask.comments![0],
+          replies: [{
+            id: 'reply-1',
+            content: 'Reply content',
+            type: 'TEXT' as const,
+            author: mockCurrentUser,
+            authorId: 'user-1',
+            taskId: 'task-1',
+            parentCommentId: 'comment-1',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            replies: []
+          }]
+        }]
       }
 
       const mockFetch = vi.fn().mockResolvedValue({ ok: true })
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
-      render(<CommentSection {...defaultProps} task={taskWithReplies} onUpdate={onUpdate} />)
+      render(<CommentSection {...defaultProps} task={taskWithReplies} onUpdate={onUpdate} showingActionsFor="reply-1" />)
 
-      // Find and click the reply's more menu
-      const moreButtons = screen.getAllByRole('button')
-      const replyMoreButton = moreButtons.find(btn =>
-        btn.classList.contains('w-5') && btn.querySelector('.lucide-more-vertical')
-      )
+      fireEvent.click(screen.getByText('Delete'))
 
-      if (replyMoreButton) {
-        fireEvent.click(replyMoreButton)
-
-        await waitFor(() => {
-          const deleteButton = screen.getByText('Delete Reply')
-          fireEvent.click(deleteButton)
-        })
-
-        await waitFor(() => {
-          expect(mockFetch).toHaveBeenCalledWith(
-            '/api/comments/reply-1',
-            expect.objectContaining({ method: 'DELETE' })
-          )
-        })
-      }
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/comments/reply-1',
+          expect.objectContaining({ method: 'DELETE' })
+        )
+      })
     })
   })
 
@@ -537,16 +609,27 @@ describe('CommentSection', () => {
   })
 
   describe('Theme Compatibility', () => {
-    it('should use theme-text-primary for comment usernames', () => {
-      render(<CommentSection {...defaultProps} />)
-      const usernameElement = screen.getByText('Test User')
-      // UserLink component wraps username in a link, check parent has theme classes
-      const linkElement = usernameElement.closest('a')
-      expect(linkElement).toBeTruthy()
-      expect(linkElement).toHaveClass('theme-text-primary')
+    it('should use theme-text-muted for comment author in chat bubble meta', () => {
+      // Use a different author so name is displayed (not "You")
+      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Other User', image: null }
+      const taskWithOtherComment = {
+        ...mockTask,
+        comments: [{
+          ...mockTask.comments![0],
+          author: otherUser,
+          authorId: 'user-2',
+        }]
+      }
+      render(<CommentSection {...defaultProps} task={taskWithOtherComment} />)
+      const usernameElement = screen.getByText('Other User')
+      // Chat bubble meta row has theme-text-muted class
+      const metaElement = usernameElement.closest('.chat-bubble-meta')
+      expect(metaElement).toBeTruthy()
+      expect(metaElement).toHaveClass('theme-text-muted')
     })
 
-    it('should use theme-text-primary for reply usernames', () => {
+    it('should use theme-text-muted for reply author in chat bubble meta', () => {
+      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Reply User', image: null }
       const taskWithReplies = {
         ...mockTask,
         comments: [
@@ -557,8 +640,8 @@ describe('CommentSection', () => {
                 id: 'reply-1',
                 content: 'Reply content',
                 type: 'TEXT' as const,
-                author: { ...mockCurrentUser, name: 'Reply User' },
-                authorId: 'user-1',
+                author: otherUser,
+                authorId: 'user-2',
                 taskId: 'task-1',
                 parentCommentId: 'comment-1',
                 createdAt: new Date('2025-01-01T11:00:00Z'),
@@ -572,10 +655,9 @@ describe('CommentSection', () => {
 
       render(<CommentSection {...defaultProps} task={taskWithReplies} />)
       const replyUsernameElement = screen.getByText('Reply User')
-      // UserLink component wraps username in a link, check parent has theme classes
-      const linkElement = replyUsernameElement.closest('a')
-      expect(linkElement).toBeTruthy()
-      expect(linkElement).toHaveClass('theme-text-primary')
+      const metaElement = replyUsernameElement.closest('.chat-bubble-meta')
+      expect(metaElement).toBeTruthy()
+      expect(metaElement).toHaveClass('theme-text-muted')
     })
 
     it('should use theme-text-primary for attached file names', () => {

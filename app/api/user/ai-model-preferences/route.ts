@@ -6,12 +6,12 @@ import { z } from "zod"
 import { DEFAULT_MODELS, SUGGESTED_MODELS, type AIService } from "@/lib/ai/agent-config"
 
 const UpdateModelSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
   model: z.string().min(1).max(100)
 })
 
 const ResetModelSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini'])
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw'])
 })
 
 /**
@@ -50,6 +50,10 @@ export async function GET() {
       gemini: {
         model: modelPreferences.gemini || DEFAULT_MODELS.gemini,
         isDefault: !modelPreferences.gemini
+      },
+      openclaw: {
+        model: modelPreferences.openclaw || DEFAULT_MODELS.openclaw,
+        isDefault: !modelPreferences.openclaw
       }
     }
 

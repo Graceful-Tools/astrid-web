@@ -91,7 +91,6 @@ model User {
   ownedLists                   TaskList[]         @relation("ListOwner")
   analyticsEvents              AnalyticsEvent[]   @relation("AnalyticsEvents")
   adminUser                    AdminUser?         @relation("AdminUsers")
-
   @@index([email])
   @@index([emailVerified])
   @@index([createdAt])
@@ -218,6 +217,7 @@ model Task {
   reminderTime    DateTime?
   reminderType    String?
   aiAgentId       String?
+  clientRequestId String?              @unique
   occurrenceCount Int                 @default(0)
   repeatFrom      RepeatFromMode      @default(COMPLETION_DATE)
   timerDuration   Int?
@@ -757,3 +757,4 @@ model AdminUser {
 
   user User @relation("AdminUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
+

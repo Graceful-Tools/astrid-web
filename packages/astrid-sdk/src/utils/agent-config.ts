@@ -30,6 +30,11 @@ export const SUGGESTED_MODELS: Record<AIService, string[]> = {
     'gemini-3-flash-preview',
     'gemini-2.5-pro',
   ],
+  openclaw: [
+    'anthropic/claude-opus-4-5',
+    'anthropic/claude-sonnet-4',
+    'openai/gpt-4o',
+  ],
 }
 
 /**
@@ -39,6 +44,7 @@ export const DEFAULT_MODELS: Record<AIService, string> = {
   claude: 'claude-sonnet-4-20250514',
   openai: 'o4-mini',
   gemini: 'gemini-2.5-flash',
+  openclaw: 'anthropic/claude-opus-4-5',
 }
 
 /**
@@ -71,6 +77,14 @@ export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
     agentType: 'gemini_agent',
     contextFile: 'ASTRID.md',
     capabilities: ['code_generation', 'code_review', 'planning', 'github_operations'],
+  },
+  'openclaw@astrid.cc': {
+    service: 'openclaw',
+    model: 'anthropic/claude-opus-4-5',
+    displayName: 'OpenClaw Worker',
+    agentType: 'openclaw_worker',
+    contextFile: 'ASTRID.md',
+    capabilities: ['code_generation', 'code_review', 'planning', 'github_operations', 'workflow_suggestions'],
   },
 } as const
 

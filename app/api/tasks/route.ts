@@ -8,6 +8,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { getListMemberIds, hasListAccess } from "@/lib/list-member-utils"
 import { RedisCache, isRedisAvailable } from "@/lib/redis"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
+import { enrichTaskForAgent } from "@/lib/agent-protocol"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { logError } from "@/lib/logging/error-sanitizer"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
@@ -401,53 +402,115 @@ export async function POST(request: NextRequest) {
     const finalDueDateTime = dueDateTimeValue || whenValue
     const finalIsAllDay = data.isAllDay ?? (whenValue !== null && dueDateTimeValue === null)
 
+    // Task include shape (reused for idempotency and creation)
+    const taskFullInclude = {
+      assignee: true,
+      creator: true,
+      lists: {
+        include: {
+          owner: true,
+          listMembers: {
+            include: {
+              user: true
+            }
+          }
+        }
+      },
+      comments: {
+        include: {
+          author: true,
+        },
+      },
+      attachments: true,
+    } as const
+
+    // ── Idempotency: clientRequestId-based (preferred) ─────────────────
+    const rawClientRequestId = typeof (data as any).clientRequestId === 'string' ? (data as any).clientRequestId.trim() : null
+    if (rawClientRequestId !== null) {
+      if (rawClientRequestId.length < 8 || rawClientRequestId.length > 128) {
+        return NextResponse.json({ error: 'clientRequestId must be between 8 and 128 characters' }, { status: 400 })
+      }
+
+      // Optimistic check
+      const existing = await prisma.task.findUnique({
+        where: { clientRequestId: rawClientRequestId },
+        include: taskFullInclude,
+      })
+      if (existing) {
+        console.log(`[tasks API] Idempotency (clientRequestId): returning existing task ${existing.id}`)
+        return NextResponse.json(existing)
+      }
+    }
+
+    // ── Idempotency: time-based dedup (fallback for clients without clientRequestId) ──
+    if (rawClientRequestId === null) {
+      const recentDuplicate = await prisma.task.findFirst({
+        where: {
+          title: data.title.trim(),
+          creatorId: session.user.id,
+          createdAt: { gte: new Date(Date.now() - 60_000) },
+          ...(nonVirtualListIds.length > 0
+            ? { lists: { some: { id: { in: nonVirtualListIds } } } }
+            : {}),
+        },
+        include: taskFullInclude,
+      })
+
+      if (recentDuplicate) {
+        console.log(`[tasks API] Idempotency (time-based): returning existing task ${recentDuplicate.id} (created ${Date.now() - recentDuplicate.createdAt.getTime()}ms ago)`)
+        return NextResponse.json(recentDuplicate)
+      }
+    }
+
     // Create the task with attachments
     const taskData: any = {
       title: data.title.trim(),
       description: data.description || "",
-      // Use nullish coalescing to properly handle priority 0 (none)
       priority: data.priority ?? 0,
       repeating: data.repeating || "never",
       repeatingData: sanitizedRepeatingData,
       isPrivate: data.isPrivate ?? true,
-      dueDateTime: finalDueDateTime,  // Primary datetime field
-      isAllDay: finalIsAllDay,  // All-day task flag
+      dueDateTime: finalDueDateTime,
+      isAllDay: finalIsAllDay,
       reminderTime: reminderTimeValue,
       reminderType: data.reminderType || null,
-      reminderSent: false, // Initialize as not sent
+      reminderSent: false,
       creatorId: session.user.id,
       lists: {
         connect: nonVirtualListIds.map((id) => ({ id })),
       },
     }
-    
+
     if (finalAssigneeId) {
       taskData.assigneeId = finalAssigneeId
     }
-    
-    const task = await prisma.task.create({
-      data: taskData,
-      include: {
-        assignee: true,
-        creator: true,
-        lists: {
-          include: {
-            owner: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            }
-          }
-        },
-        comments: {
-          include: {
-            author: true,
-          },
-        },
-        attachments: true,
-      },
-    })
+
+    // Include clientRequestId if provided (for database-level dedup)
+    if (rawClientRequestId) {
+      taskData.clientRequestId = rawClientRequestId
+    }
+
+    let task
+    try {
+      task = await prisma.task.create({
+        data: taskData,
+        include: taskFullInclude,
+      })
+    } catch (err) {
+      // P2002 = unique constraint violation on clientRequestId (race condition)
+      if (rawClientRequestId && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const raceExisting = await prisma.task.findUnique({
+          where: { clientRequestId: rawClientRequestId },
+          include: taskFullInclude,
+        })
+        if (raceExisting && raceExisting.creatorId === session.user.id) {
+          console.log(`[tasks API] Idempotency (P2002 fallback): returning existing task ${raceExisting.id}`)
+          return NextResponse.json(raceExisting)
+        }
+        return NextResponse.json({ error: 'clientRequestId already used by another request' }, { status: 409 })
+      }
+      throw err
+    }
 
     if (nonVirtualListIds.length > 0) {
       for (const manualList of nonVirtualListIds) {
@@ -594,12 +657,28 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString(),
           data: {
             taskId: task.id,
-            taskTitle: task.title,
-            taskPriority: task.priority,
-            taskDueDateTime: task.dueDateTime,
+            task: enrichTaskForAgent(task),
+            title: (task as any).title,
+            description: (task as any).description,
+            priority: (task as any).priority,
+            dueDateTime: (task as any).dueDateTime,
+            listId: (task as any).lists?.[0]?.id,
+            listName: (task as any).lists?.[0]?.name,
+            githubRepositoryId: (task as any).lists?.[0]?.githubRepositoryId,
             assignerName: (task as any).creator?.name || (task as any).creator?.email || "Someone",
-            userId: session.user.id, // Add userId for client-side filtering
-            listNames: (task as any).lists?.map((list: any) => list.name) || []
+            assignerId: (task as any).creator?.id,
+            // Legacy fields for backward compatibility
+            taskTitle: (task as any).title,
+            taskPriority: (task as any).priority,
+            taskDueDateTime: (task as any).dueDateTime,
+            userId: session.user.id,
+            listNames: (task as any).lists?.map((list: any) => list.name) || [],
+            comments: (task as any).comments?.map((c: any) => ({
+              id: c.id,
+              content: c.content,
+              authorName: c.author?.name,
+              createdAt: c.createdAt
+            })) || []
           }
         })
       } catch (sseError) {
@@ -639,7 +718,12 @@ export async function POST(request: NextRequest) {
         
         // Remove the user who created the task (they already see it)
         userIds.delete(session.user.id)
-        
+
+        // Remove the assignee — they already got a task_assigned event above
+        if (task.assigneeId) {
+          userIds.delete(task.assigneeId)
+        }
+
         if (userIds.size > 0) {
           console.log(`[SSE] Broadcasting task creation to ${userIds.size} users:`, Array.from(userIds))
           broadcastToUsers(Array.from(userIds), {

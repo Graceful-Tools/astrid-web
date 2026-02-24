@@ -11,11 +11,12 @@ import type { AIService } from './agent-config'
 import { getAgentService } from './agent-config'
 
 // Hardcoded default models - these are reliable fallbacks
-const FALLBACK_MODELS = {
+const FALLBACK_MODELS: Record<AIService, string> = {
   claude: 'claude-sonnet-4-20250514',
   openai: 'gpt-4o',  // Use gpt-4o as reliable default
   gemini: 'gemini-2.0-flash',
-} as const
+  openclaw: 'anthropic/claude-opus-4-5',
+}
 
 interface AssistantResult {
   success: boolean
@@ -167,6 +168,14 @@ Format your response in clear markdown. Be thorough but concise.`
           }
         }
       }
+
+      case 'openclaw':
+      default:
+        return {
+          success: false,
+          response: '',
+          error: `Unsupported AI service: ${service}. OpenClaw uses a different execution path.`
+        }
     }
   } catch (error) {
     return {

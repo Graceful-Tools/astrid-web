@@ -3,11 +3,9 @@
  * Securely retrieves and caches API keys for AI orchestration
  */
 
-import { PrismaClient } from '@prisma/client'
 import CryptoJS from 'crypto-js'
 import crypto from 'crypto'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // Cache to avoid repeated database queries
 const apiKeyCache = new Map<string, { key: string; timestamp: number }>()
@@ -18,7 +16,7 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
  */
 export async function getCachedApiKey(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini'
+  service: 'claude' | 'openai' | 'gemini' | 'openclaw'
 ): Promise<string | null> {
   try {
     const cacheKey = `${userId}-${service}`
@@ -157,7 +155,7 @@ function decryptApiKeyNew(encryptedData: { encrypted: string; iv: string }): str
  */
 export async function hasValidApiKey(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini'
+  service: 'claude' | 'openai' | 'gemini' | 'openclaw'
 ): Promise<boolean> {
   try {
     const key = await getCachedApiKey(userId, service)
@@ -173,7 +171,7 @@ export async function hasValidApiKey(
  */
 export async function getCachedModelPreference(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini'
+  service: 'claude' | 'openai' | 'gemini' | 'openclaw'
 ): Promise<string | null> {
   try {
     // Fetch from database
@@ -209,7 +207,7 @@ export async function getCachedModelPreference(
 /**
  * Get the user's preferred AI service (with fallback)
  */
-export async function getPreferredAIService(userId: string): Promise<'claude' | 'openai' | 'gemini'> {
+export async function getPreferredAIService(userId: string): Promise<'claude' | 'openai' | 'gemini' | 'openclaw'> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -228,6 +226,7 @@ export async function getPreferredAIService(userId: string): Promise<'claude' | 
     }
 
     // Fallback: return the first service that has an API key
+    // Note: openclaw uses gateway URLs, not API keys, so it's not included here
     const services: Array<'claude' | 'openai' | 'gemini'> = ['claude', 'openai', 'gemini']
 
     for (const service of services) {

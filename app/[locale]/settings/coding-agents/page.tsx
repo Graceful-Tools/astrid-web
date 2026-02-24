@@ -20,6 +20,7 @@ import {
   Terminal,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   ExternalLink
 } from "lucide-react"
 import Image from "next/image"
@@ -116,12 +117,38 @@ function CodingAgentsContent() {
             </CardContent>
           </Card>
 
+          {/* OpenClaw Section */}
+          <Card
+            className="theme-bg-secondary border-orange-500/50 border cursor-pointer hover:scale-[1.01] transition-transform"
+            onClick={() => router.push('/settings/agents')}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">🦞</span>
+                  <div>
+                    <p className="text-sm theme-text-primary font-medium flex items-center gap-2">
+                      OpenClaw
+                    </p>
+                    <p className="text-sm theme-text-muted mt-1">
+                      Run Claude Code on your own machine. Configure your gateway URL in{' '}
+                      <span className="inline-flex items-center gap-1 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded">
+                        AI Agents → API Keys
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 theme-text-muted flex-shrink-0" />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Quick Start */}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center gap-2">
                 <Terminal className="w-5 h-5 text-green-500" />
-                Quick Start
+                Astrid SDK Quick Start
               </CardTitle>
               <CardDescription className="theme-text-muted">
                 Install the Astrid SDK and start running coding agents

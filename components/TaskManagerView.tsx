@@ -742,6 +742,7 @@ const TaskManagerView = memo(function TaskManagerView({
           <div
             className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
             style={{ left: taskPanePosition.left }}
+            data-task-panel-desktop
           >
             {canEdit ? (
               <TaskDetail

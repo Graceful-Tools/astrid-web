@@ -176,8 +176,8 @@ describe('TaskDetail Upload Functionality', () => {
 
       render(<TaskDetail {...mockProps} />)
 
-      // Find the file input and upload a file
-      const fileInput = document.querySelector('#comment-file-upload')
+      // Find the file input in the floating CommentInputBar
+      const fileInput = document.querySelector('#comment-file-upload-bar')
       expect(fileInput).toBeTruthy()
 
       const file = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
@@ -238,14 +238,14 @@ describe('TaskDetail Upload Functionality', () => {
         })
       })
 
+      // Reply buttons removed from UI (matching iOS pattern)
+      // Test that reply file input exists when replyingTo is set
+      // Since TaskDetail manages replyingTo internally and there's no UI button,
+      // we verify the comment upload works instead
       render(<TaskDetail {...mockProps} task={mockTaskWithComments} />)
 
-      // Click reply button
-      const replyButton = screen.getByText('Reply')
-      await user.click(replyButton)
-
-      // Find the reply file input
-      const fileInput = document.querySelector('#reply-file-upload-comment-1')
+      // Find the comment file input (bar version)
+      const fileInput = document.querySelector('#comment-file-upload-bar')
       expect(fileInput).toBeTruthy()
 
       const file = new File(['reply content'], 'reply.jpg', { type: 'image/jpeg' })

@@ -227,8 +227,10 @@ export async function callGemini(options: GeminiProviderOptions): Promise<AIProv
 /**
  * Default export for provider interface compatibility
  */
-export default {
+const geminiProvider = {
   name: 'gemini' as const,
   call: callGemini,
   repositoryTools: GEMINI_REPOSITORY_TOOLS,
 }
+
+export default geminiProvider

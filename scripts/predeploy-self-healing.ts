@@ -176,7 +176,7 @@ class SelfHealingPredeploy {
       },
       {
         name: 'Prisma Client',
-        command: 'npx prisma generate',
+        command: 'node -e "require(\'@prisma/client\')"',
         autoFixable: true,
         fixCommand: 'npx prisma generate',
         fixDescription: 'Regenerate Prisma client',

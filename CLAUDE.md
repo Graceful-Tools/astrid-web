@@ -53,7 +53,7 @@ When user says **"ship it"**, execute the complete deployment sequence:
 
 3. **Trigger Vercel production deployment**:
    ```bash
-   vercel --prod --yes
+   npx vercel --prod --yes --no-dotenv
    ```
 
 ### Asking for Approval
@@ -83,7 +83,7 @@ Claude Code executes:
 2. git pull origin main
 3. git merge feature-branch  # if on a branch
 4. git push origin main
-5. vercel --prod --yes
+5. npx vercel --prod --yes --no-dotenv
 6. Mark Astrid task as complete (if working on a task)
 ```
 
@@ -99,7 +99,7 @@ Claude Code detects comment and executes:
 5. git pull origin main
 6. gh pr merge <PR-number> --merge  # Merge the PR
 7. git pull origin main  # Get merged changes
-8. vercel --prod --yes  # Deploy to production
+8. npx vercel --prod --yes --no-dotenv  # Deploy to production
 9. npx tsx scripts/complete-task-with-workflow.ts <taskId>  # Mark complete
 ```
 
@@ -119,12 +119,42 @@ This project uses **manual Vercel CLI deployments** (not GitHub auto-deploy) for
 - Multiple build type support
 - Direct deployment oversight
 
+### CRITICAL: NEVER Pull From Vercel
+
+**NEVER run these commands - they destroy `.env.local`:**
+- `vercel pull` - FORBIDDEN
+- `vercel link` - FORBIDDEN
+- `vercel env pull` - FORBIDDEN
+
+These commands download Vercel's env vars and **overwrite your local secrets**.
+
+**ONLY use Vercel CLI to push deployments:**
+```bash
+export VERCEL_TOKEN=$(grep "^VERCEL_TOKEN=" .env.local | cut -d'=' -f2 | tr -d '\r"')
+npx vercel --prod --yes --token="$VERCEL_TOKEN"
+```
+
+**Environment variables in `.env.local`:**
+- `VERCEL_PROD` - production project ID (newastrid → astrid.cc)
+- `VERCEL_STAGING` - staging project ID (astrid-web)
+- `VERCEL_TOKEN` - auth token (works for both)
+
+**If `.vercel/project.json` doesn't exist**, create it manually for production:
+```json
+{"projectId":"prj_MUWxfWJ9lIZOi2clHPZhlHsYqSiy","orgId":"team_gFxp7fWaX7e8tUPt8Vt3YXl0","projectName":"newastrid"}
+```
+
+**NEVER run `vercel link`** - it will nuke your `.env.local`.
+
 ### Standard Deployment Flow
 
 ```bash
 # After user approves push to main
 git push origin main
-vercel --prod --yes
+
+# Extract token and deploy (avoids sourcing .env.local which may have issues)
+export VERCEL_TOKEN=$(grep "^VERCEL_TOKEN=" .env.local | cut -d'=' -f2 | tr -d '\r"')
+npx vercel --prod --yes --token="$VERCEL_TOKEN"
 ```
 
 ### Force Production Rebuild
@@ -132,7 +162,8 @@ vercel --prod --yes
 To trigger a fresh production build without code changes:
 
 ```bash
-vercel --prod --yes
+export VERCEL_TOKEN=$(grep "^VERCEL_TOKEN=" .env.local | cut -d'=' -f2 | tr -d '\r"')
+npx vercel --prod --yes --token="$VERCEL_TOKEN"
 ```
 
 **Note:** Vercel token must be configured. See `.env.local` for `VERCEL_TOKEN`.
@@ -195,7 +226,7 @@ git fetch origin
 git checkout main
 gh pr merge <PR-number> --merge
 git push origin main
-vercel --prod --yes
+npx vercel --prod --yes --no-dotenv
 npx tsx scripts/complete-task-with-workflow.ts <taskId>
 ```
 
@@ -568,7 +599,7 @@ Then configure your webhook URL in Astrid Settings.
 | `npm run test:e2e` | Run Playwright E2E tests |
 | `npm run dev` | Start dev server |
 | **Deployment** | |
-| `vercel --prod --yes` | Deploy to production (manual, no auto-deploy) |
+| `npx vercel --prod --yes --no-dotenv` | Deploy to production (ALWAYS use --no-dotenv!) |
 | `gh pr merge <PR#> --merge` | Merge PR |
 | **Astrid Tasks** | |
 | `npx tsx scripts/get-astrid-tasks.ts` | Pull tasks |
@@ -579,7 +610,7 @@ Then configure your webhook URL in Astrid Settings.
 
 | Scenario | Action |
 |----------|--------|
-| User says "ship it" (local session) | Merge PR → push main → `vercel --prod --yes` → `npm run deploy:canary` |
+| User says "ship it" (local session) | Merge PR → push main → `npx vercel --prod --yes --no-dotenv` → `npm run deploy:canary` |
 | User comments "ship it" on Astrid task | Fetch tasks → merge PR → push main → deploy → canary → mark complete |
 | Check for ship it comments | `npx tsx scripts/get-astrid-tasks.ts` and look for user "ship it" comments |
 | Build failing | Run `npm run predeploy` to auto-fix and retry |

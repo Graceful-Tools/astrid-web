@@ -58,12 +58,8 @@ import {
   MINIMAL_WORKFLOW_STEPS,
   type ImplementationDetails,
 } from './ai/workflow-comments'
-import {
-  executeWithClaudeAgentSDK,
-  prepareRepository,
-  toGeneratedCode,
-  type ClaudeAgentExecutorConfig,
-} from './ai/claude-agent-sdk-executor'
+// NOTE: Built-in Claude Agent SDK executor removed. Astrid now dispatches to
+// external agent runtimes (OpenClaw, Claude Code Remote) via webhooks/SSE.
 import {
   createGitHubImplementation as createGitHubImpl,
   resolveTargetRepository as resolveTargetRepo,
@@ -90,18 +86,8 @@ export type { CodeGenerationRequest, GeneratedCode, ImplementationPlan }
 /**
  * Configuration for hybrid Claude Agent SDK execution mode
  */
-export interface HybridExecutionConfig {
-  /** Enable Claude Agent SDK for code execution (instead of API-based generation) */
-  useClaudeAgentSDK: boolean
-  /** Path to local repo clone (if already available) */
-  localRepoPath?: string
-  /** GitHub token for cloning repos */
-  githubToken?: string
-  /** Maximum budget in USD for SDK execution */
-  maxBudgetUsd?: number
-  /** Maximum turns for SDK execution */
-  maxTurns?: number
-}
+// NOTE: HybridExecutionConfig removed — built-in executors stripped.
+// Code generation now dispatches to external agent runtimes via webhooks/SSE.
 
 export class AIOrchestrator {
   private aiService: AIService
@@ -118,7 +104,7 @@ export class AIOrchestrator {
   private currentTaskId?: string // Track current task for context storage
 
   // ✅ Hybrid execution mode configuration
-  private hybridConfig?: HybridExecutionConfig
+  // hybridConfig removed — built-in executors stripped
 
   constructor(aiService: AIService, userId: string, repositoryId?: string) {
     this.aiService = aiService
@@ -133,19 +119,7 @@ export class AIOrchestrator {
     })
   }
 
-  /**
-   * Enable hybrid execution mode with Claude Agent SDK
-   * When enabled, the IMPLEMENTING phase uses Claude Code's native tools
-   * instead of generating code via API and parsing JSON responses.
-   */
-  setHybridExecutionConfig(config: HybridExecutionConfig): void {
-    this.hybridConfig = config
-    this.log('info', 'Hybrid execution mode configured', {
-      useClaudeAgentSDK: config.useClaudeAgentSDK,
-      hasLocalRepo: !!config.localRepoPath,
-      maxBudgetUsd: config.maxBudgetUsd
-    })
-  }
+  // setHybridExecutionConfig removed — built-in executors stripped
 
   /**
    * Expose trace identifier for external logging without leaking internal state
@@ -463,6 +437,11 @@ export class AIOrchestrator {
     if (task.assignee?.isAIAgent && task.assignee.email) {
       selectedProvider = getAgentService(task.assignee.email)
       console.log(`[AIOrchestrator] Using assigned agent's service: ${selectedProvider} (${task.assignee.email})`)
+
+      // OpenClaw tasks use the channel plugin (SSE), not the orchestrator
+      if (selectedProvider === 'openclaw') {
+        throw new Error('OpenClaw tasks are handled via the channel plugin (SSE), not the AI orchestrator. Do not create workflows for OpenClaw agents.')
+      }
     } else if (taskList.preferredAiProvider && availableProviders.includes(taskList.preferredAiProvider)) {
       selectedProvider = taskList.preferredAiProvider as AIService
     } else if (taskList.fallbackAiProvider && availableProviders.includes(taskList.fallbackAiProvider)) {
@@ -734,126 +713,9 @@ Respond with ONLY the JSON object as specified above.`
     return generatedCode
   }
 
-  /**
-   * Generate code using Claude Agent SDK (Hybrid Mode)
-   *
-   * Instead of calling an API and parsing JSON responses, this:
-   * 1. Clones the repo to a local directory
-   * 2. Runs Claude Code with native tools (Read, Write, Edit, Bash)
-   * 3. Claude Code actually edits files in the repo
-   * 4. Returns the file changes from git diff
-   *
-   * Benefits:
-   * - Better code quality (real file editing vs generated text)
-   * - Native error handling and recovery
-   * - Can run tests and validate changes
-   * - No JSON parsing issues
-   */
-  async generateCodeWithSDK(
-    request: CodeGenerationRequest,
-    approvedPlan: ImplementationPlan,
-    onProgress?: (message: string) => void
-  ): Promise<GeneratedCode> {
-    if (!this.hybridConfig?.useClaudeAgentSDK) {
-      throw new Error('Hybrid execution mode not enabled. Call setHybridExecutionConfig() first.')
-    }
-
-    this.log('info', 'Starting Claude Agent SDK code generation', {
-      taskTitle: request.taskTitle,
-      filesInPlan: approvedPlan.files.length,
-      complexity: approvedPlan.estimatedComplexity
-    })
-
-    // Determine repo path - either use provided path or clone the repo
-    let repoPath = this.hybridConfig.localRepoPath
-    let cleanup: (() => Promise<void>) | null = null
-
-    if (!repoPath && this._repositoryId) {
-      // Need to clone the repo
-      // _repositoryId is in "owner/repo" format
-      if (!this.hybridConfig.githubToken) {
-        throw new Error('GitHub token required to clone repository for SDK execution')
-      }
-
-      // Parse owner/repo from the repository ID string
-      const [owner, name] = this._repositoryId.split('/')
-      if (!owner || !name) {
-        throw new Error(`Invalid repository ID format: ${this._repositoryId}. Expected "owner/repo"`)
-      }
-
-      onProgress?.('Cloning repository...')
-      const prepared = await prepareRepository(
-        owner,
-        name,
-        'main', // Default to main branch
-        this.hybridConfig.githubToken
-      )
-      repoPath = prepared.repoPath
-      cleanup = prepared.cleanup
-    }
-
-    if (!repoPath) {
-      throw new Error('No repository path available for SDK execution')
-    }
-
-    try {
-      // Get API key for Claude
-      const apiKey = await getCachedApiKey(this.userId, 'claude')
-
-      // Execute with Claude Agent SDK
-      const config: ClaudeAgentExecutorConfig = {
-        repoPath,
-        apiKey: apiKey || undefined,
-        maxBudgetUsd: this.hybridConfig.maxBudgetUsd || 5.0,
-        maxTurns: this.hybridConfig.maxTurns || 50,
-        logger: (level, msg, meta) => this.log(level, msg, meta),
-        onProgress
-      }
-
-      const result = await executeWithClaudeAgentSDK(
-        approvedPlan,
-        request.taskTitle,
-        request.taskDescription,
-        config
-      )
-
-      if (!result.success) {
-        throw new Error(result.error || 'SDK execution failed')
-      }
-
-      this.log('info', 'Claude Agent SDK code generation completed', {
-        filesGenerated: result.files.length,
-        costUsd: result.usage?.costUSD,
-        inputTokens: result.usage?.inputTokens,
-        outputTokens: result.usage?.outputTokens
-      })
-
-      return toGeneratedCode(result)
-
-    } finally {
-      // Cleanup cloned repo if we created it
-      if (cleanup) {
-        await cleanup()
-      }
-    }
-  }
-
-  /**
-   * Smart code generation that chooses between API and SDK based on config
-   */
-  async generateCodeSmart(
-    request: CodeGenerationRequest,
-    approvedPlan: ImplementationPlan,
-    onProgress?: (message: string) => void
-  ): Promise<GeneratedCode> {
-    if (this.hybridConfig?.useClaudeAgentSDK) {
-      this.log('info', 'Using Claude Agent SDK for code generation (hybrid mode)')
-      return this.generateCodeWithSDK(request, approvedPlan, onProgress)
-    } else {
-      this.log('info', 'Using API-based code generation (standard mode)')
-      return this.generateCode(request, approvedPlan)
-    }
-  }
+    // NOTE: generateCodeWithSDK and generateCodeSmart removed — built-in executors stripped.
+  // Code generation now dispatches to external agent runtimes via webhooks/SSE.
+  // Use generateCode() for basic/fallback mode.
 
   /**
    * ✅ Check if workflow or task has been cancelled/completed

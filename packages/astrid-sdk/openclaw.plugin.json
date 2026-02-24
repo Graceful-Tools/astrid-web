@@ -1,0 +1,25 @@
+{
+  "id": "astrid",
+  "name": "Astrid.cc",
+  "description": "Task management channel for Astrid.cc",
+  "channels": ["astrid"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "astrid": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "clientId": { "type": "string" },
+          "clientSecret": { "type": "string" },
+          "apiBase": { "type": "string" },
+          "agentEmail": { "type": "string" },
+          "pollIntervalMs": { "type": "number" },
+          "lists": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["clientId", "clientSecret"]
+      }
+    }
+  }
+}

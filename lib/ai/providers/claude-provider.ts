@@ -124,8 +124,10 @@ export async function callClaude(options: ClaudeProviderOptions): Promise<AIProv
 /**
  * Default export for provider interface compatibility
  */
-export default {
+const claudeProvider = {
   name: 'claude' as const,
   call: callClaude,
   repositoryTools: CLAUDE_REPOSITORY_TOOLS,
 }
+
+export default claudeProvider

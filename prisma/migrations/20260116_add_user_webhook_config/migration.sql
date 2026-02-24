@@ -25,4 +25,4 @@ CREATE INDEX "user_webhook_configs_userId_idx" ON "user_webhook_configs"("userId
 CREATE INDEX "user_webhook_configs_enabled_idx" ON "user_webhook_configs"("enabled");
 
 -- AddForeignKey
-ALTER TABLE "user_webhook_configs" ADD CONSTRAINT "user_webhook_configs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_webhook_configs" ADD CONSTRAINT "user_webhook_configs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

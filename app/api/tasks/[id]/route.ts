@@ -11,7 +11,6 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { canUserEditTask } from "@/lib/list-permissions"
 import {
   TASK_FULL_INCLUDE,
-  LIST_WITH_MEMBERS_INCLUDE,
   type TaskWithFullRelations,
   type ListWithMembers,
   type WorkflowMetadata
@@ -416,7 +415,11 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         try {
           const listRecord = await prisma.taskList.findUnique({
             where: { id: candidateId },
-            include: LIST_WITH_MEMBERS_INCLUDE,
+            select: {
+              id: true, sortBy: true, manualSortOrder: true, ownerId: true,
+              owner: { select: { id: true, name: true, email: true, image: true } },
+              listMembers: { select: { userId: true, role: true } },
+            },
           })
 
           if (!listRecord || listRecord.sortBy !== "manual") {
@@ -446,7 +449,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
             data: {
               manualSortOrder: nextOrder as Prisma.JsonArray
             },
-            include: LIST_WITH_MEMBERS_INCLUDE,
+            include: {
+              owner: { select: { id: true, name: true, email: true, image: true } },
+              listMembers: { select: { userId: true, role: true } },
+            },
           })
 
           const memberIds = getListMemberIds(updatedList)
@@ -853,14 +859,11 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       try {
         const listRecord = await prisma.taskList.findUnique({
           where: { id: list.id },
-          include: {
-            owner: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            }
-          }
+          select: {
+            id: true, sortBy: true, manualSortOrder: true, ownerId: true,
+            owner: { select: { id: true, name: true, email: true, image: true } },
+            listMembers: { select: { userId: true, role: true } },
+          },
         })
 
         if (!listRecord || listRecord.sortBy !== "manual") {
@@ -883,13 +886,9 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
             manualSortOrder: nextOrder as Prisma.JsonArray
           },
           include: {
-            owner: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            }
-          }
+            owner: { select: { id: true, name: true, email: true, image: true } },
+            listMembers: { select: { userId: true, role: true } },
+          },
         })
 
         const memberIds = getListMemberIds(updatedList)

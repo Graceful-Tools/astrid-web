@@ -6,6 +6,10 @@ let redis: ReturnType<typeof createClient> | null = null
 let upstashRedis: UpstashRedis | null = null
 let isUsingUpstash = false
 
+// Circuit breaker: avoid retrying Redis connections that are known to be down
+let redisUnavailableUntil = 0
+const REDIS_BACKOFF_MS = 30_000 // Wait 30s before retrying after failure
+
 // Initialize Redis client
 export async function getRedisClient() {
   // Return existing Upstash client if available
@@ -18,6 +22,11 @@ export async function getRedisClient() {
     return redis
   }
 
+  // Circuit breaker: don't retry if we recently failed
+  if (Date.now() < redisUnavailableUntil) {
+    throw new Error('Redis unavailable (circuit breaker)')
+  }
+
   try {
     // Create Redis client - support both Upstash REST and local Redis
     const isProduction = process.env.NODE_ENV === 'production'
@@ -25,7 +34,7 @@ export async function getRedisClient() {
 
     if (isProduction && hasUpstashConfig) {
       // Production: Use Upstash REST API (serverless-friendly)
-      console.log('📦 [Redis] Using Upstash REST API for production')
+      console.log('[Redis] Using Upstash REST API for production')
       upstashRedis = new UpstashRedis({
         url: process.env.UPSTASH_REDIS_REST_URL!,
         token: process.env.UPSTASH_REDIS_REST_TOKEN!
@@ -36,35 +45,42 @@ export async function getRedisClient() {
       return createUpstashAdapter(upstashRedis)
     } else if (process.env.REDIS_URL) {
       // Development: Use local Redis server
-      console.log('📦 [Redis] Using local Redis server')
+      console.log('[Redis] Using local Redis server')
       redis = createClient({
-        url: process.env.REDIS_URL
+        url: process.env.REDIS_URL,
+        socket: {
+          reconnectStrategy: false, // Don't auto-reconnect; use circuit breaker instead
+          connectTimeout: 3_000,
+        }
       })
     } else {
-      // Fallback: Use local Redis default (will fail gracefully if not available)
-      console.log('📦 [Redis] Attempting local Redis connection (localhost:6379)')
-      redis = createClient({
-        url: 'redis://localhost:6379'
-      })
+      // No Redis configured - skip connection
+      console.log('[Redis] No REDIS_URL configured, skipping Redis')
+      return null
     }
 
     // Only set up event handlers for standard Redis client
     if (redis) {
       redis.on('error', (err) => {
-        console.error('Redis Client Error:', err)
-        redis = null // Reset client on error
+        // Only log once, not on every reconnect attempt
+        if (Date.now() >= redisUnavailableUntil) {
+          console.error('[Redis] Client error:', err.message || err)
+        }
+        redis = null
+        redisUnavailableUntil = Date.now() + REDIS_BACKOFF_MS
       })
 
       redis.on('connect', () => {
-        console.log('✅ [Redis] Client Connected')
+        console.log('[Redis] Client connected')
+        redisUnavailableUntil = 0 // Reset circuit breaker on success
       })
 
       redis.on('ready', () => {
-        console.log('✅ [Redis] Client Ready')
+        console.log('[Redis] Client ready')
       })
 
       redis.on('end', () => {
-        console.log('📴 [Redis] Client Disconnected')
+        console.log('[Redis] Client disconnected')
         redis = null
       })
 
@@ -75,9 +91,15 @@ export async function getRedisClient() {
 
     throw new Error('No Redis client initialized')
   } catch (error) {
-    console.error('❌ [Redis] Failed to connect:', error)
     redis = null
     upstashRedis = null
+    redisUnavailableUntil = Date.now() + REDIS_BACKOFF_MS
+    const msg = error instanceof Error ? error.message : String(error)
+    // Suppress noisy ECONNREFUSED in dev — Redis is optional
+    if (msg.includes('circuit breaker')) {
+      throw error
+    }
+    console.warn(`[Redis] Unavailable (will retry in ${REDIS_BACKOFF_MS / 1000}s): ${msg}`)
     throw error
   }
 }
@@ -405,29 +427,26 @@ export class RedisCache {
 
 // Helper to check if Redis is available
 export async function isRedisAvailable(): Promise<boolean> {
+  // Fast path: circuit breaker is active, skip connection attempt
+  if (Date.now() < redisUnavailableUntil) {
+    return false
+  }
+
   try {
     const isProduction = process.env.NODE_ENV === 'production'
     const hasUpstashConfig = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    
+
     // Check if Redis is configured
     if (isProduction && !hasUpstashConfig) {
       return false
     }
     if (!isProduction && !process.env.REDIS_URL) {
-      // Try to connect to default local Redis
-      try {
-        const client = await getRedisClient()
-        return client && client.isReady
-      } catch {
-        return false
-      }
+      return false
     }
-    
+
+
     const client = await getRedisClient()
-    if (client && client.isReady) {
-      return true
-    }
-    return false
+    return client && client.isReady
   } catch {
     return false
   }

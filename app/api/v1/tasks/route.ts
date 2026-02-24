@@ -7,11 +7,14 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { enrichTaskForAgent } from '@/lib/agent-protocol'
+import { RedisCache, isRedisAvailable } from '@/lib/redis'
 
 /**
  * GET /api/v1/tasks
@@ -113,12 +116,21 @@ export async function GET(req: NextRequest) {
           updatedAt: true,
           originalTaskId: true,
           sourceListId: true,
+          clientRequestId: true,
           lists: {
             select: {
               id: true,
               name: true,
               color: true,
               githubRepositoryId: true,
+              listMembers: {
+                select: {
+                  id: true,
+                  listId: true,
+                  userId: true,
+                  role: true,
+                }
+              },
             },
           },
           assignee: {
@@ -317,7 +329,159 @@ export async function POST(req: NextRequest) {
         .map(list => list.id)
     }
 
-    // Create task
+    // Task include shape (reused for idempotency and creation)
+    const taskInclude = {
+      lists: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          ownerId: true,
+          description: true,
+          listMembers: {
+            select: {
+              id: true,
+              listId: true,
+              userId: true,
+              role: true,
+            }
+          }
+        },
+      },
+      assignee: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          isAIAgent: true,
+          aiAgentType: true,
+        },
+      },
+      creator: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          isAIAgent: true,
+        },
+      },
+      comments: true,
+      attachments: true,
+    } as const
+
+    // ── Idempotency: clientRequestId-based (preferred) ─────────────────
+    const rawClientRequestId = typeof body.clientRequestId === 'string' ? body.clientRequestId.trim() : null
+    if (rawClientRequestId !== null) {
+      if (rawClientRequestId.length < 8 || rawClientRequestId.length > 128) {
+        return NextResponse.json(
+          { error: 'clientRequestId must be between 8 and 128 characters' },
+          { status: 400 }
+        )
+      }
+
+      // Optimistic check — fast path
+      const existing = await prisma.task.findUnique({
+        where: { clientRequestId: rawClientRequestId },
+        include: taskInclude,
+      })
+      if (existing) {
+        console.log(`[v1 API] Idempotency (clientRequestId): returning existing task ${existing.id}`)
+        const headers: Record<string, string> = {}
+        const deprecationWarning = getDeprecationWarning(auth)
+        if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+        return NextResponse.json(
+          { task: existing, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
+          { status: 200, headers }
+        )
+      }
+
+      // Try to create with clientRequestId — unique constraint catches races
+      try {
+        const task = await prisma.task.create({
+          data: {
+            title: body.title,
+            description: body.description || '',
+            priority: body.priority ?? 0,
+            assigneeId: body.assigneeId,
+            creatorId: auth.userId,
+            clientRequestId: rawClientRequestId,
+            dueDateTime,
+            isAllDay,
+            isPrivate: body.isPrivate ?? true,
+            repeating: body.repeating || 'never',
+            completed: false,
+            lists: validatedListIds.length
+              ? { connect: validatedListIds.map((id: string) => ({ id })) }
+              : undefined,
+          },
+          include: taskInclude,
+        })
+
+        // Fall through to SSE broadcast + response below
+        return await handleTaskCreated(req, task, auth, validatedListIds)
+      } catch (err) {
+        // P2002 = unique constraint violation on clientRequestId (race condition)
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          const raceExisting = await prisma.task.findUnique({
+            where: { clientRequestId: rawClientRequestId },
+            include: taskInclude,
+          })
+          if (raceExisting && raceExisting.creatorId === auth.userId) {
+            console.log(`[v1 API] Idempotency (P2002 fallback): returning existing task ${raceExisting.id}`)
+            const headers: Record<string, string> = {}
+            const deprecationWarning = getDeprecationWarning(auth)
+            if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+            return NextResponse.json(
+              { task: raceExisting, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
+              { status: 200, headers }
+            )
+          }
+          // Different creator — treat as a conflict
+          return NextResponse.json(
+            { error: 'clientRequestId already used by another request' },
+            { status: 409 }
+          )
+        }
+        throw err // re-throw other errors
+      }
+    }
+
+    // ── Idempotency: time-based dedup (fallback for clients without clientRequestId) ──
+    const recentDuplicate = await prisma.task.findFirst({
+      where: {
+        title: body.title.trim(),
+        creatorId: auth.userId,
+        createdAt: { gte: new Date(Date.now() - 60_000) },
+        ...(validatedListIds.length > 0
+          ? { lists: { some: { id: { in: validatedListIds } } } }
+          : {}),
+      },
+      include: taskInclude,
+    })
+
+    if (recentDuplicate) {
+      console.log(`[v1 API] Idempotency (time-based): returning existing task ${recentDuplicate.id} (created ${Date.now() - recentDuplicate.createdAt.getTime()}ms ago)`)
+      const headers: Record<string, string> = {}
+      const deprecationWarning = getDeprecationWarning(auth)
+      if (deprecationWarning) {
+        headers['X-Deprecation-Warning'] = deprecationWarning
+      }
+      return NextResponse.json(
+        {
+          task: recentDuplicate,
+          meta: {
+            apiVersion: 'v1',
+            authSource: auth.source,
+            idempotent: true,
+          },
+        },
+        { status: 200, headers }
+      )
+    }
+
+    // Create task (no clientRequestId, or clientRequestId was null/empty)
     const task = await prisma.task.create({
       data: {
         title: body.title,
@@ -325,6 +489,7 @@ export async function POST(req: NextRequest) {
         priority: body.priority ?? 0,
         assigneeId: body.assigneeId,
         creatorId: auth.userId,
+        clientRequestId: rawClientRequestId,
         dueDateTime,
         isAllDay,
         isPrivate: body.isPrivate ?? true,
@@ -336,160 +501,10 @@ export async function POST(req: NextRequest) {
             }
           : undefined,
       },
-      include: {
-        lists: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            ownerId: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            }
-          },
-        },
-        assignee: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            isAIAgent: true,
-            aiAgentType: true,
-          },
-        },
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            isAIAgent: true,
-          },
-        },
-        comments: true,
-        attachments: true,
-      },
+      include: taskInclude,
     })
 
-    // Broadcast SSE event to task assignee if different from creator
-    if (task.assigneeId && task.assigneeId !== auth.userId) {
-      try {
-        broadcastToUsers([task.assigneeId], {
-          type: 'task_assigned',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            taskTitle: task.title,
-            taskPriority: task.priority,
-            taskDueDateTime: task.dueDateTime,
-            assignerName: task.creator?.name || task.creator?.email || "Someone",
-            userId: auth.userId,
-            listNames: task.lists?.map((list: any) => list.name) || []
-          }
-        })
-      } catch (sseError) {
-        console.error("[v1 API] Failed to send task_assigned SSE notification:", sseError)
-      }
-    }
-
-    // Broadcast to all list members
-    const taskListIds = task.lists?.map((list: any) => list.id) || []
-    if (taskListIds.length > 0) {
-      try {
-        // Collect all user IDs who should be notified
-        const userIds = new Set<string>()
-
-        console.log(`[v1 API SSE] Task created in ${task.lists.length} lists`)
-
-        // Add all list members from all associated lists
-        for (const list of task.lists) {
-          const memberIds = getListMemberIds(list as any)
-          console.log(`[v1 API SSE] List "${list.name}" members:`, memberIds)
-          memberIds.forEach(id => userIds.add(id))
-        }
-
-        // Remove the user who created the task (they already see it)
-        userIds.delete(auth.userId)
-
-        if (userIds.size > 0) {
-          console.log(`[v1 API SSE] Broadcasting task_created to ${userIds.size} users:`, Array.from(userIds))
-          broadcastToUsers(Array.from(userIds), {
-            type: 'task_created',
-            timestamp: new Date().toISOString(),
-            data: {
-              taskId: task.id,
-              taskTitle: task.title,
-              taskPriority: task.priority,
-              taskDueDateTime: task.dueDateTime,
-              creatorName: task.creator?.name || task.creator?.email || "Someone",
-              userId: auth.userId,
-              listNames: task.lists?.map((list: any) => list.name) || [],
-              task: {
-                id: task.id,
-                title: task.title,
-                description: task.description,
-                priority: task.priority,
-                completed: task.completed,
-                assigneeId: task.assigneeId,
-                creatorId: task.creatorId,
-                createdAt: task.createdAt,
-                updatedAt: task.updatedAt,
-                assignee: task.assignee,
-                creator: task.creator,
-                lists: task.lists,
-                comments: task.comments,
-                attachments: task.attachments,
-                dueDateTime: task.dueDateTime,
-                isAllDay: task.isAllDay,
-                repeating: task.repeating,
-                repeatingData: task.repeatingData,
-                isPrivate: task.isPrivate
-              }
-            }
-          })
-          console.log('[v1 API SSE] Broadcast sent successfully')
-        } else {
-          console.log('[v1 API SSE] No other users to notify')
-        }
-      } catch (sseError) {
-        console.error("[v1 API] Failed to send task_created SSE notifications:", sseError)
-      }
-    }
-
-    // Notify AI agent if task is assigned to an AI agent (server-side, client-independent)
-    if (task.assigneeId && task.assignee?.isAIAgent) {
-      try {
-        const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
-        console.log(`🤖 [v1 API] Task created with AI agent assignee ${task.assignee.name} (${task.assignee.aiAgentType || 'unknown'}), triggering webhook...`)
-        await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
-      } catch (aiNotificationError) {
-        console.error("[v1 API] Failed to notify AI agent about task assignment:", aiNotificationError)
-        // Don't fail the task creation if AI notification fails
-      }
-    }
-
-    const headers: Record<string, string> = {}
-    const deprecationWarning = getDeprecationWarning(auth)
-    if (deprecationWarning) {
-      headers['X-Deprecation-Warning'] = deprecationWarning
-    }
-
-    // Track analytics event
-    trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_CREATED, { taskId: task.id })
-
-    return NextResponse.json(
-      {
-        task,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
-      },
-      { status: 201, headers }
-    )
+    return await handleTaskCreated(req, task, auth, validatedListIds)
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json(
@@ -509,4 +524,130 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * Shared handler for post-creation: SSE broadcasts, AI agent notification, analytics, response.
+ */
+async function handleTaskCreated(req: NextRequest, task: any, auth: any, validatedListIds: string[]) {
+  // Broadcast SSE event to task assignee if different from creator
+  if (task.assigneeId && task.assigneeId !== auth.userId) {
+    try {
+      broadcastToUsers([task.assigneeId], {
+        type: 'task_assigned',
+        timestamp: new Date().toISOString(),
+        data: {
+          taskId: task.id,
+          task: enrichTaskForAgent(task),
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          dueDateTime: task.dueDateTime,
+          listId: task.lists?.[0]?.id,
+          listName: task.lists?.[0]?.name,
+          githubRepositoryId: (task.lists?.[0] as any)?.githubRepositoryId,
+          assignerName: task.creator?.name || task.creator?.email || "Someone",
+          assignerId: task.creator?.id,
+          userId: auth.userId,
+          listNames: task.lists?.map((list: any) => list.name) || [],
+          comments: task.comments?.map((c: any) => ({
+            id: c.id,
+            content: c.content,
+            authorName: c.author?.name,
+            createdAt: c.createdAt
+          })) || []
+        }
+      })
+    } catch (sseError) {
+      console.error("[v1 API] Failed to send task_assigned SSE notification:", sseError)
+    }
+  }
+
+  // Broadcast to all list members
+  const taskListIds = task.lists?.map((list: any) => list.id) || []
+  if (taskListIds.length > 0) {
+    try {
+      const userIds = new Set<string>()
+
+      for (const list of task.lists) {
+        const memberIds = getListMemberIds(list as any)
+        memberIds.forEach((id: string) => userIds.add(id))
+      }
+
+      userIds.delete(auth.userId)
+      if (task.assigneeId) {
+        userIds.delete(task.assigneeId)
+      }
+
+      if (userIds.size > 0) {
+        broadcastToUsers(Array.from(userIds), {
+          type: 'task_created',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            task: enrichTaskForAgent(task),
+            taskTitle: task.title,
+            taskPriority: task.priority,
+            taskDueDateTime: task.dueDateTime,
+            creatorName: task.creator?.name || task.creator?.email || "Someone",
+            userId: auth.userId,
+            listNames: task.lists?.map((list: any) => list.name) || [],
+          }
+        })
+      }
+    } catch (sseError) {
+      console.error("[v1 API] Failed to send task_created SSE notifications:", sseError)
+    }
+  }
+
+  // Notify AI agent if task is assigned to an AI agent
+  if (task.assigneeId && task.assignee?.isAIAgent) {
+    try {
+      const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
+      await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
+    } catch (aiNotificationError) {
+      console.error("[v1 API] Failed to notify AI agent about task assignment:", aiNotificationError)
+    }
+  }
+
+  // Invalidate Redis cache for all affected users
+  try {
+    const redisAvailable = await isRedisAvailable()
+    if (redisAvailable) {
+      const affectedUserIds = new Set<string>()
+      affectedUserIds.add(auth.userId) // creator
+      if (task.assigneeId) affectedUserIds.add(task.assigneeId)
+      for (const list of (task.lists || [])) {
+        const memberIds = getListMemberIds(list as any)
+        memberIds.forEach((id: string) => affectedUserIds.add(id))
+      }
+      await Promise.all(
+        Array.from(affectedUserIds).map(userId =>
+          RedisCache.del(RedisCache.keys.userTasks(userId))
+        )
+      )
+      console.log(`🗄️ [API v1] Invalidated task cache for ${affectedUserIds.size} users after creation`)
+    }
+  } catch (cacheError) {
+    console.error('❌ [API v1] Failed to invalidate task cache (create):', cacheError)
+  }
+
+  const headers: Record<string, string> = {}
+  const deprecationWarning = getDeprecationWarning(auth)
+  if (deprecationWarning) {
+    headers['X-Deprecation-Warning'] = deprecationWarning
+  }
+
+  trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_CREATED, { taskId: task.id })
+
+  return NextResponse.json(
+    {
+      task,
+      meta: {
+        apiVersion: 'v1',
+        authSource: auth.source,
+      },
+    },
+    { status: 201, headers }
+  )
 }

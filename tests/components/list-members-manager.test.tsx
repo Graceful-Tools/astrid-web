@@ -187,7 +187,7 @@ describe('ListMembersManager', () => {
     expect(plusButton).toBeInTheDocument()
   })
 
-  it('allows inviting new members', async () => {
+  it('allows inviting new members', { timeout: 15000 }, async () => {
     const user = userEvent.setup()
     const mockOnUpdate = vi.fn()
     

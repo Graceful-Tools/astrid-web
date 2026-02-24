@@ -57,8 +57,8 @@ describe('Light Mode Text Visibility Regression Test', () => {
     // 1. Comments section should use theme-text-muted (now in CommentSection component)
     expect(commentSectionContent).toMatch(/className="text-sm theme-text-muted">Comments/)
 
-    // 2. Helper text should use theme-text-muted (now in CommentSection component)
-    expect(commentSectionContent).toMatch(/className="text-xs theme-text-muted[^"]*">[\s\S]*?Press Enter/)
+    // 2. Chat bubble meta should use theme-text-muted (now in CommentSection component)
+    expect(commentSectionContent).toMatch(/chat-bubble-meta theme-text-muted/)
 
     // 3. Task title when completed should use theme-text-muted
     expect(componentContent).toMatch(/line-through theme-text-muted/)

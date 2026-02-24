@@ -17,6 +17,7 @@ export interface CreateTaskData {
   listIds?: string[]
   assigneeId?: string
   assigneeEmail?: string // For assigning to non-registered users
+  clientRequestId?: string // Idempotency key for dedup (8-128 chars)
   attachments?: Array<{
     name: string
     url: string

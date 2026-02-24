@@ -9,7 +9,7 @@ import crypto from "crypto"
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
 
 const TestAPIKeySchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini'])
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw'])
 })
 
 // Decryption function
@@ -159,6 +159,10 @@ export async function POST(request: NextRequest) {
         break
       case 'gemini':
         testResult = await testGeminiKey(decryptedKey)
+        break
+      case 'openclaw':
+        // OpenClaw connects via channel plugin — no gateway URL to test
+        testResult = { success: false, error: 'OpenClaw now connects via the channel plugin. No API key or gateway URL needed.' }
         break
       default:
         return NextResponse.json(

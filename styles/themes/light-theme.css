@@ -318,6 +318,14 @@
 .lite .theme-comment-bg { background-color: rgb(var(--theme-comment-bg)); }
 .lite .theme-count-bg { background-color: rgb(var(--theme-count-bg)); }
 
+/* Chat bubble colors */
+.light .chat-bubble-mine { background-color: rgb(var(--theme-bg-secondary)); }
+.light .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
+
+/* Chat bubble colors - lite theme */
+.lite .chat-bubble-mine { background-color: rgb(var(--theme-bg-secondary)); }
+.lite .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
+
 /* ===== LIGHT THEME: Glass/Blur Material Effects ===== */
 /* Matches iOS LiquidGlass theme - translucent backgrounds with blur */
 
@@ -362,6 +370,12 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Comment input bar: Match mobile quick add styling */
+.light .chat-input-bar {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid rgba(229, 231, 235, 0.8);
 }
 
 /* Mobile sidebar: Glass material */

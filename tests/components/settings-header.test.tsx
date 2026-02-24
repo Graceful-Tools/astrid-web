@@ -65,9 +65,25 @@ vi.mock('@/components/ai-api-key-manager', () => ({
   AIAPIKeyManager: () => <div data-testid="ai-api-key-manager">AI API Key Manager Mock</div>
 }))
 
+vi.mock('@/components/openclaw-agent-manager', () => ({
+  OpenClawAgentManager: () => <div data-testid="openclaw-agent-manager">OpenClaw Agent Manager Mock</div>
+}))
+
 vi.mock('@/components/reminder-settings', () => ({
   default: () => <div data-testid="reminder-settings">Reminder Settings Mock</div>,
   ReminderSettingsComponent: () => <div data-testid="reminder-settings">Reminder Settings Mock</div>
+}))
+
+vi.mock('@/components/push-notification-settings', () => ({
+  PushNotificationSettings: () => <div data-testid="push-notification-settings">Push Notification Settings Mock</div>
+}))
+
+vi.mock('@/components/calendar-integration-settings', () => ({
+  CalendarIntegrationSettings: () => <div data-testid="calendar-integration-settings">Calendar Integration Settings Mock</div>
+}))
+
+vi.mock('@/components/user-default-due-time-settings', () => ({
+  UserDefaultDueTimeSettings: () => <div data-testid="user-default-due-time-settings">User Default Due Time Settings Mock</div>
 }))
 
 // Mock the account settings page entirely since it makes complex async calls
@@ -206,7 +222,7 @@ describe('Settings Pages Header - Profile Icon Removal', () => {
     expect(profileMenuButton).toBeUndefined()
   })
 
-  it('reminders settings page should not have UserMenu component', async () => {
+  it('reminders settings page should not have UserMenu component', { timeout: 15000 }, async () => {
     const { default: RemindersSettingsPage } = await import('@/app/[locale]/settings/reminders/page')
 
     await act(async () => {

@@ -57,28 +57,9 @@ export {
   getAllAgentConfigs,
 } from './utils/agent-config.js'
 
-// Claude Executor
-export {
-  planWithClaude,
-  executeWithClaude,
-  prepareRepository,
-  getGitHubUser,
-  type ClaudeExecutorConfig,
-} from './executors/claude.js'
-
-// OpenAI Executor
-export {
-  planWithOpenAI,
-  executeWithOpenAI,
-  type OpenAIExecutorConfig,
-} from './executors/openai.js'
-
-// Gemini Executor
-export {
-  planWithGemini,
-  executeWithGemini,
-  type GeminiExecutorConfig,
-} from './executors/gemini.js'
+// NOTE: Built-in AI executors (Claude, OpenAI, Gemini) have been removed.
+// Astrid now dispatches to external agent runtimes (OpenClaw, Claude Code Remote)
+// via webhooks and SSE instead of calling AI APIs directly.
 
 // Astrid OAuth Client
 export {
@@ -109,37 +90,23 @@ export {
   type VercelDeployResult,
 } from './deploy/vercel.js'
 
-// Terminal Executors
-export type {
-  TerminalExecutor,
-  TerminalExecutionResult,
-  TerminalTaskContext,
-  TerminalProgressCallback,
-  ParsedOutput,
-} from './executors/terminal-base.js'
+// NOTE: Terminal executors have been removed as part of the architecture simplification.
+// External agent runtimes handle execution directly.
 
+// Channel Plugin (OpenClaw integration)
 export {
-  extractPrUrl,
-  formatCommentHistory,
-  captureGitBaseline,
-  captureGitChanges,
-  buildDefaultPrompt,
-} from './executors/terminal-base.js'
-
-export {
-  TerminalClaudeExecutor,
-  terminalSessionStore,
-  type TerminalClaudeOptions,
-} from './executors/terminal-claude.js'
-
-export {
-  TerminalOpenAIExecutor,
-  terminalOpenAIExecutor,
-  type TerminalOpenAIOptions,
-} from './executors/terminal-openai.js'
-
-export {
-  TerminalGeminiExecutor,
-  terminalGeminiExecutor,
-  type TerminalGeminiOptions,
-} from './executors/terminal-gemini.js'
+  AstridChannel,
+  SSEClient,
+  OAuthClient as ChannelOAuthClient,
+  RestClient as ChannelRestClient,
+  SessionMapper,
+  taskToMessage,
+  commentToMessage,
+  responseToComment,
+  type AstridChannelConfig,
+  type AgentTask as ChannelAgentTask,
+  type AgentComment as ChannelAgentComment,
+  type AgentSSEEvent,
+  type InboundMessage,
+  type OutboundMessage,
+} from './channel/index.js'

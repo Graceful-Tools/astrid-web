@@ -211,7 +211,12 @@ export async function POST(
     // Verify task access and write permission (allow collaborative public list viewers)
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      include: taskAccessInclude,
+      include: {
+        ...taskAccessInclude,
+        assignee: {
+          select: { id: true, email: true, name: true, isAIAgent: true }
+        },
+      },
     })
 
     if (!task) {
@@ -348,6 +353,15 @@ export async function POST(
       userIds.delete(authorId)
 
       if (userIds.size > 0) {
+        // Build AgentComment-compatible object for SDK consumers
+        const agentComment = {
+          id: comment.id,
+          content: comment.content,
+          authorName: comment.author?.name || comment.author?.email || null,
+          authorId: comment.authorId,
+          isAgent: comment.author ? !!(comment.author as any).isAIAgent : false,
+          createdAt: new Date(comment.createdAt).toISOString(),
+        }
         broadcastToUsers(Array.from(userIds), {
           type: 'comment_created',
           timestamp: new Date().toISOString(),
@@ -355,13 +369,40 @@ export async function POST(
             taskId: task.id,
             commentId: comment.id,
             listNames: task.lists.map(l => l.name),
-            comment
+            comment: agentComment
           }
         })
       }
     } catch (error) {
       console.error('[API v1] Failed to broadcast comment_created:', error)
       // Don't fail the comment creation if SSE broadcast fails
+    }
+
+    // Broadcast agent_task_comment event if task is assigned to an OpenClaw agent
+    try {
+      if (task.assigneeId && task.assignee?.email &&
+          (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
+          authorId !== task.assigneeId) {
+        broadcastToUsers([task.assigneeId], {
+          type: 'agent_task_comment',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            taskTitle: task.title,
+            comment: {
+              id: comment.id,
+              content: comment.content,
+              authorName: comment.author?.name || comment.author?.email || null,
+              authorId: comment.authorId,
+              isAgent: false,
+              createdAt: new Date(comment.createdAt).toISOString(),
+            }
+          }
+        })
+        console.log(`[API v1] Sent agent_task_comment to OpenClaw agent ${task.assignee.email}`)
+      }
+    } catch (error) {
+      console.error('[API v1] Failed to broadcast agent_task_comment:', error)
     }
 
     // Track analytics

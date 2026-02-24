@@ -75,7 +75,9 @@ export async function createAIAgentComment(
           ? 'claude@astrid.cc'
           : task.aiAgent.service === 'gemini'
             ? 'gemini@astrid.cc'
-            : null
+            : task.aiAgent.service === 'openclaw'
+              ? 'openclaw@astrid.cc'
+              : null
 
       if (targetEmail) {
         const agentByEmail = await prisma.user.findUnique({

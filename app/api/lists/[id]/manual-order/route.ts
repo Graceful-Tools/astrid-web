@@ -85,20 +85,19 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
         manualSortOrder: sanitizedOrder as Prisma.JsonArray
       },
       include: {
-        owner: true,
+        owner: { select: { id: true, name: true, email: true, image: true } },
         listMembers: {
-          include: {
-            user: true
-          }
+          select: { userId: true, role: true }
         }
       }
     })
 
     // Invalidate caches for all members
-    await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+    const broadcastIds = getListMemberIds(updatedList)
+    await Promise.all(broadcastIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
 
     // Broadcast update so other clients refresh
-    await broadcastToUsers(memberIds, {
+    await broadcastToUsers(broadcastIds, {
       type: "list_updated",
       data: updatedList
     })

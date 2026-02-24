@@ -344,6 +344,14 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between"
+                onClick={() => router.push('/docs/openclaw')}
+              >
+                <span>OpenClaw Agent Protocol</span>
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-between"
                 onClick={() => router.push('/settings/api-testing')}
               >
                 <span>Try API Testing Tool</span>

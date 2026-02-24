@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, memo } from "react"
+import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { Button } from "@/components/ui/button"
@@ -8,11 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MarkdownEditor } from "./markdown-editor"
 import { SecureAttachmentViewer } from "./secure-attachment-viewer"
 import { UserPicker } from "./user-picker"
@@ -20,7 +19,7 @@ import { CustomRepeatingEditor } from "./custom-repeating-editor"
 import { TaskCheckbox } from "./task-checkbox"
 import { PriorityPicker } from "./ui/priority-picker"
 import { TimePicker, formatConciseTime } from "./ui/time-picker"
-import { CommentSection } from "./task-detail/CommentSection"
+import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { TaskModals } from "./task-detail/TaskModals"
 import type { Task, Comment, User, TaskList } from "../types/task"
@@ -147,6 +146,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
   const shouldShowMobileAttachmentButtons = () => {
     return isMobileDevice() || isIPadDevice() || is1ColumnView()
   }
+
+  // Scroll area ref for auto-scrolling when new comments are added
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+  const prevCommentCountRef = useRef((task.comments || []).length)
 
   // Arrow positioning state
   const { top: arrowTop, setArrowTop } = state.arrow
@@ -456,9 +459,12 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
       
       // Handle repeating editing - no auto-save, user must click Save button
 
-      // Hide mobile comment actions when clicking elsewhere
+      // Hide comment actions when clicking elsewhere (but not on an action button itself)
       if (showingActionsFor) {
-        setShowingActionsFor(null)
+        const actionBar = (target as HTMLElement).closest?.('[data-comment-actions]')
+        if (!actionBar) {
+          setShowingActionsFor(null)
+        }
       }
     }
 
@@ -497,7 +503,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
   
   // Simple arrow positioning based on selected task
   useEffect(() => {
-    const panelElement = document.querySelector('[data-task-detail-panel]') as HTMLElement
+    // Use the desktop wrapper if available (arrow renders outside overflow:hidden),
+    // otherwise fall back to the panel element itself
+    const panelElement = document.querySelector('[data-task-panel-desktop]') as HTMLElement
+      || document.querySelector('[data-task-detail-panel]') as HTMLElement
 
     const updateArrowPosition = () => {
       try {
@@ -1165,6 +1174,26 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
     disabled: !isMobileDevice()
   })
 
+  // Combined callback ref for scroll area (pullToRefresh + auto-scroll)
+  const scrollAreaCallbackRef = useCallback((el: HTMLDivElement | null) => {
+    scrollAreaRef.current = el
+    pullToRefresh.bindToElement(el)
+  }, [pullToRefresh])
+
+  // Auto-scroll to bottom when new comments are added
+  const commentCount = (task.comments || []).length
+  useEffect(() => {
+    if (commentCount > prevCommentCountRef.current && scrollAreaRef.current) {
+      setTimeout(() => {
+        scrollAreaRef.current?.scrollTo({
+          top: scrollAreaRef.current.scrollHeight,
+          behavior: 'smooth'
+        })
+      }, 100)
+    }
+    prevCommentCountRef.current = commentCount
+  }, [commentCount])
+
   const handleCancelLists = () => {
     setTempLists(task.lists || [])
     setListSearchTerm("")
@@ -1303,22 +1332,21 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
   }
 
   return (
-    <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
-      {/* Arrow pointing to the selected task - Show on desktop, hide on mobile */}
+    <>
+      {/* Arrow rendered outside the panel div so it escapes overflow:hidden */}
       {!onClose ? (
         <div
           className="task-panel-arrow theme-panel-arrow"
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
       ) : (
-        // Show arrow on desktop even when onClose is provided
         <div
           className="task-panel-arrow theme-panel-arrow hidden lg:block"
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
       )}
-      
-      
+      <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
+
       <div className="border-b border-gray-200 dark:border-gray-700">
         {/* Mobile/Tablet Back Navigation - Full Width */}
         {onClose && (
@@ -1339,7 +1367,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
         {/* Task Content Row */}
         <div className="p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 flex-1">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
             <TaskCheckbox
               checked={tempCompleted}
               onToggle={handleToggleComplete}
@@ -1347,21 +1375,30 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
               repeating={task.repeating !== 'never'}
             />
             {editingTitle ? (
-              <div className="flex items-center space-x-2 flex-1">
-                <Input
-                  value={tempTitle}
-                  onChange={(e) => setTempTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveTitle()
-                    if (e.key === "Escape") handleCancelTitle()
-                  }}
-                  onBlur={handleSaveTitle}
-                  className="bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white flex-1"
-                  autoFocus
-                />
-              </div>
+              <textarea
+                value={tempTitle}
+                onChange={(e) => {
+                  setTempTitle(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSaveTitle() }
+                  if (e.key === "Escape") handleCancelTitle()
+                }}
+                onBlur={handleSaveTitle}
+                ref={(el) => {
+                  if (el) {
+                    el.focus()
+                    el.style.height = 'auto'
+                    el.style.height = el.scrollHeight + 'px'
+                  }
+                }}
+                className="text-lg px-2 py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary"
+                rows={1}
+              />
             ) : (
-              <span 
+              <span
                 className={`text-lg cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 ${
                   task.completed ? "line-through theme-text-muted" : "theme-text-primary"
                 }`}
@@ -1371,13 +1408,56 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
               </span>
             )}
           </div>
+          {/* Action menu (... button) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex-shrink-0 theme-text-muted hover:theme-text-secondary">
+                <MoreVertical className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={handleCopyClick}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShareClick}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </DropdownMenuItem>
+              {(() => {
+                const taskList = task.lists?.[0]
+                const isPublicListTask = taskList?.privacy === 'PUBLIC'
+                const isUserOwnerOrAdmin = taskList?.ownerId === currentUser.id ||
+                                          taskList?.admins?.some(admin => admin.id === currentUser.id)
+                if (isPublicListTask && !isUserOwnerOrAdmin) return null
+                return (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDeleteClick} className="text-red-600 focus:text-red-600">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )
+              })()}
+              {reminderDebugMode && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleTestReminder} className="text-orange-500 focus:text-orange-500">
+                    <Bug className="w-4 h-4 mr-2" />
+                    Test Reminder
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         </div>
       </div>
 
       <div
         className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 relative"
-        ref={pullToRefresh.bindToElement}
+        ref={scrollAreaCallbackRef}
         onTouchStart={pullToRefresh.onTouchStart}
         onTouchMove={pullToRefresh.onTouchMove}
         onTouchEnd={pullToRefresh.onTouchEnd}
@@ -1498,19 +1578,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
         })()}
 
 
-        {/* Comments Section */}
-        {!shouldHideTaskComments(task) && (
-        <CommentSection
-          task={task}
-          currentUser={currentUser}
-          onUpdate={onUpdate}
-          onLocalUpdate={onLocalUpdate}
-          onRefreshComments={handleRefreshComments}
-          {...state.comments}
-        />
-        )}
-
-        {/* Timer Button */}
+        {/* Timer Button (before comments, matching iOS order) */}
         <div className="mt-4 px-4">
           <Button
             variant="outline"
@@ -1535,90 +1603,35 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
           />
         )}
 
-        {/* Action Buttons - at bottom of scrollable content */}
-        <div className="pt-8 pb-32 md:pb-4 flex flex-wrap justify-center gap-3 border-t border-gray-200 dark:border-gray-700 mt-6">
-          {(() => {
-            // Check if this is a public list task that user doesn't own/admin
-            const taskList = task.lists?.[0] // Assuming task belongs to one primary list
-            const isPublicListTask = taskList?.privacy === 'PUBLIC'
-            const isUserOwnerOrAdmin = taskList?.ownerId === currentUser.id ||
-                                      taskList?.admins?.some(admin => admin.id === currentUser.id)
-
-            if (isPublicListTask && !isUserOwnerOrAdmin) {
-              // Show Copy and Share buttons for public list tasks that user doesn't own/admin
-              return (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyClick}
-                    className="border-blue-600 text-blue-400 bg-transparent hover:bg-blue-600 hover:border-blue-600 hover:text-white"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleShareClick}
-                    className="border-green-600 text-green-400 bg-transparent hover:bg-green-600 hover:border-green-600 hover:text-white"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                </>
-              )
-            }
-
-            // Show Copy, Share and Delete buttons for tasks user can edit
-            return (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyClick}
-                  className="border-blue-600 text-blue-400 bg-transparent hover:bg-blue-600 hover:border-blue-600 hover:text-white"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShareClick}
-                  className="border-green-600 text-green-400 bg-transparent hover:bg-green-600 hover:border-green-600 hover:text-white"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDeleteClick}
-                  className="border-gray-600 theme-text-secondary bg-transparent hover:bg-red-600 hover:border-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </Button>
-              </>
-            )
-          })()}
-
-          {/* Debug Mode: Test Reminder Button */}
-          {reminderDebugMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTestReminder}
-              className="border-orange-500 text-orange-400 bg-transparent hover:bg-orange-600 hover:border-orange-600 hover:text-white"
-              title="[DEBUG] Test reminder notification for this task"
-            >
-              <Bug className="w-4 h-4 mr-2" />
-              Test Reminder
-            </Button>
-          )}
-        </div>
+        {/* Comments Section (chat bubbles only - input bar is outside scroll area) */}
+        {!shouldHideTaskComments(task) && (
+        <CommentSection
+          task={task}
+          currentUser={currentUser}
+          onUpdate={onUpdate}
+          onLocalUpdate={onLocalUpdate}
+          onRefreshComments={handleRefreshComments}
+          hideInput={true}
+          {...state.comments}
+        />
+        )}
       </div>
+
+      {/* Floating comment input bar - outside scroll area, sticks to bottom */}
+      {!shouldHideTaskComments(task) && !readOnly && (
+        <CommentInputBar
+          task={task}
+          currentUser={currentUser}
+          onUpdate={onUpdate}
+          onLocalUpdate={onLocalUpdate}
+          newComment={newComment}
+          setNewComment={setNewComment}
+          uploadingFile={uploadingFile}
+          setUploadingFile={setUploadingFile}
+          attachedFile={attachedFile}
+          setAttachedFile={setAttachedFile}
+        />
+      )}
 
       {/* Footer with Action Buttons - only for new tasks now */}
       {isNewTask && onSaveNew && (
@@ -1658,6 +1671,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
         setShareUrlCopied={setShareUrlCopied}
       />
     </div>
+    </>
   )
 }
 

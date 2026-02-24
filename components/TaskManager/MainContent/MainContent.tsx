@@ -14,6 +14,12 @@ import { TaskCheckbox } from "../../task-checkbox"
 import { PublicTaskCopyButton } from "../../public-task-copy-button"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   Settings,
   Filter,
   Check,
@@ -22,7 +28,11 @@ import {
   Globe,
   Users,
   Copy,
-  Hash
+  Hash,
+  Eye,
+  Edit3,
+  FileText,
+  Bot
 } from "lucide-react"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
 import { format } from "date-fns"
@@ -214,6 +224,11 @@ export function MainContent({
   // Detect current layout type for enhanced task creation
   const layoutType = useLayoutType()
 
+  // Description viewer/editor dialog state
+  const [showDescriptionDialog, setShowDescriptionDialog] = React.useState(false)
+  const [descriptionDialogMode, setDescriptionDialogMode] = React.useState<'view' | 'edit'>('view')
+  const [dialogDescription, setDialogDescription] = React.useState('')
+
   const [draggingTaskMetrics, setDraggingTaskMetrics] = React.useState<{ taskId: string; height: number } | null>(null)
   const taskMeasurementsRef = React.useRef<Map<string, number>>(new Map())
   const [mobileDragState, setMobileDragState] = React.useState<{ taskId: string } | null>(null)
@@ -388,7 +403,11 @@ export function MainContent({
   // Calculate parallax state for mobile transitions
   const isShowingTaskDetail = isMobile && mobileView === 'task' && !isMobileTaskDetailClosing
 
+  // Get the current list for dialog context
+  const currentListForDialog = lists.find(l => l.id === selectedListId)
+
   return (
+    <>
     <div className={`flex-1 min-w-0 ${isMobile ? 'relative' : 'flex'}`}>
       {/* Task List Area */}
       <div
@@ -513,8 +532,20 @@ export function MainContent({
                         </>
                       ) : (
                         <div
-                          className={`theme-text-muted text-sm text-left prose prose-sm max-w-none ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
-                          onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListDescription(currentList) : undefined}
+                          className={`theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden ${
+                            !newFilterState.filters.search.trim() ? 'cursor-pointer hover:theme-text-secondary' : ''
+                          }`}
+                          onClick={!newFilterState.filters.search.trim() ? () => {
+                            if (currentList.description) {
+                              // Has description → open viewer dialog
+                              setDialogDescription(currentList.description)
+                              setDescriptionDialogMode('view')
+                              setShowDescriptionDialog(true)
+                            } else if (canEditListSettingsMemo(currentList) && !isViewingFromFeatured) {
+                              // No description + can edit → go straight to inline edit
+                              handleEditListDescription(currentList)
+                            }
+                          } : undefined}
                           dangerouslySetInnerHTML={{
                             __html: newFilterState.filters.search.trim()
                               ? `Showing tasks matching "<strong>${newFilterState.filters.search}</strong>" from all accessible lists`
@@ -1244,5 +1275,122 @@ export function MainContent({
         />
       )}
     </div>
+
+    {/* Description Viewer/Editor Dialog */}
+    <Dialog open={showDescriptionDialog} onOpenChange={(open) => {
+      if (!open) {
+        setShowDescriptionDialog(false)
+        setDescriptionDialogMode('view')
+      }
+    }}>
+      <DialogContent className="theme-bg-primary theme-border sm:max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="theme-text-primary flex items-center space-x-2">
+            <FileText className="w-5 h-5" />
+            <span>Agent Instructions</span>
+            {currentListForDialog && (
+              <span className="text-sm font-normal theme-text-muted">— {currentListForDialog.name}</span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Mode toggle */}
+        {currentListForDialog && canEditListSettingsMemo(currentListForDialog) && !isViewingFromFeatured && (
+          <div className="flex items-center space-x-1">
+            <button
+              type="button"
+              onClick={() => setDescriptionDialogMode('view')}
+              className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'view' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+            >
+              <Eye className="w-3 h-3 inline mr-1" />
+              View
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDescriptionDialogMode('edit')
+                setDialogDescription(currentListForDialog.description || '')
+              }}
+              className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'edit' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+            >
+              <Edit3 className="w-3 h-3 inline mr-1" />
+              Edit
+            </button>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {descriptionDialogMode === 'view' ? (
+            <div
+              className="prose prose-sm max-w-none theme-text-primary p-1"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(dialogDescription || '*No instructions yet*') }}
+            />
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-end">
+                <span className="text-xs theme-text-muted">{dialogDescription.length} chars</span>
+              </div>
+              <textarea
+                value={dialogDescription}
+                onChange={(e) => setDialogDescription(e.target.value)}
+                placeholder={"Write instructions for AI agents working in this list...\n\nSupports markdown: **bold**, *italic*, ## headings, - lists, [links](url)"}
+                className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm min-h-[200px]"
+                rows={12}
+                autoFocus
+              />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1 text-xs theme-text-muted">
+                  <Bot className="w-3 h-3" />
+                  <span>Agents receive this as their primary context. Supports markdown.</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDescriptionDialogMode('view')}
+                    className="text-xs theme-border theme-text-secondary hover:theme-bg-hover"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      // Save via the existing handler
+                      setTempListDescription(dialogDescription)
+                      // Directly call the save
+                      if (currentListForDialog && dialogDescription !== (currentListForDialog.description || '')) {
+                        try {
+                          const response = await fetch(`/api/lists/${currentListForDialog.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              ...currentListForDialog,
+                              description: dialogDescription.trim() || undefined
+                            }),
+                          })
+                          if (response.ok) {
+                            const updatedList = await response.json()
+                            onListUpdate(updatedList)
+                          }
+                        } catch (error) {
+                          console.error('Error updating description:', error)
+                        }
+                      }
+                      setDescriptionDialogMode('view')
+                    }}
+                    className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Check className="w-3 h-3 mr-1" />
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

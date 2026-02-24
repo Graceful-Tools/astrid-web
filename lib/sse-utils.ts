@@ -172,26 +172,69 @@ export function updateConnectionPing(userId: string) {
   }
 }
 
+// Fields that should NEVER appear in SSE broadcasts
+const SENSITIVE_USER_FIELDS = new Set([
+  'password', 'emailVerificationToken', 'emailTokenExpiresAt',
+  'mcpSettings', 'aiAssistantSettings', 'aiAgentConfig',
+  'pendingEmail', 'myTasksPreferences', 'invitedBy',
+])
+
+// Safe user fields for SSE
+const SAFE_USER_FIELDS = new Set([
+  'id', 'name', 'email', 'image', 'isAIAgent', 'aiAgentType',
+])
+
+/**
+ * Strip sensitive fields from objects before SSE broadcast.
+ * Recursively sanitizes user objects and removes dangerous fields.
+ */
+function sanitizeForSSE(obj: any, depth = 0): any {
+  if (depth > 8 || obj === null || obj === undefined) return obj
+  if (typeof obj !== 'object') return obj
+  if (obj instanceof Date) return obj
+  if (Array.isArray(obj)) return obj.map(item => sanitizeForSSE(item, depth + 1))
+
+  const result: Record<string, any> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    // Strip known sensitive fields at any depth
+    if (SENSITIVE_USER_FIELDS.has(key)) continue
+
+    // If this looks like a user object (has email + id), restrict to safe fields
+    if (key === 'user' && typeof value === 'object' && value !== null && 'id' in value && 'email' in value) {
+      const safeUser: Record<string, any> = {}
+      for (const field of Array.from(SAFE_USER_FIELDS)) {
+        if (field in value) safeUser[field] = (value as any)[field]
+      }
+      result[key] = safeUser
+      continue
+    }
+
+    result[key] = sanitizeForSSE(value, depth + 1)
+  }
+  return result
+}
+
 // Helper function to broadcast events to specific users
-export function broadcastToUsers(userIds: string[], event: any) {
+export async function broadcastToUsers(userIds: string[], event: any) {
   const encoder = new TextEncoder()
   // Send as unnamed event (like ping) so it's received by onmessage handler
   // Include type and timestamp in the data payload
   const fullEvent = {
     type: event.type,
     timestamp: event.timestamp || new Date().toISOString(),
-    data: event.data
+    data: sanitizeForSSE(event.data)
   }
   const eventData = JSON.stringify(fullEvent)
   const sseMessage = `data: ${eventData}\n\n`
 
   const deadConnectionIds: Array<{userId: string, connectionId: string}> = []
+  const cachePromises: Promise<void>[] = []
 
   userIds.forEach(userId => {
     // ALWAYS cache event for user (even if not connected) for reconnection recovery
     // Skip caching for ping/pong/connected events
     if (!['ping', 'pong', 'connected', 'reconnect'].includes(event.type)) {
-      cacheEventForUser(userId, fullEvent)
+      cachePromises.push(cacheEventForUser(userId, fullEvent))
     }
 
     const userConnections = connections.get(userId)
@@ -204,6 +247,7 @@ export function broadcastToUsers(userIds: string[], event: any) {
           try {
             connection.controller.enqueue(encoder.encode(sseMessage))
             connection.lastPing = Date.now()
+            connection.lastEventCheck = Date.now()
             console.log(`[SSE] ✅ Sent ${event.type} to connection ${connectionId}`)
           } catch (error) {
             console.error(`[SSE] ❌ Failed to send SSE to user ${userId} connection ${connectionId}:`, error)
@@ -234,17 +278,23 @@ export function broadcastToUsers(userIds: string[], event: any) {
       }
     }
   })
+
+  // Ensure all cache writes complete before returning so that
+  // poll-based consumers (getMissedEvents) see the events.
+  if (cachePromises.length > 0) {
+    await Promise.allSettled(cachePromises)
+  }
 }
 
 // Helper function to broadcast to all connected users
-export function broadcastToAll(event: any) {
+export async function broadcastToAll(event: any) {
   const userIds = Array.from(connections.keys())
-  broadcastToUsers(userIds, event)
+  await broadcastToUsers(userIds, event)
 }
 
 // Helper function to send event to a specific user
-export function sendEventToUser(userId: string, event: any) {
-  broadcastToUsers([userId], event)
+export async function sendEventToUser(userId: string, event: any) {
+  await broadcastToUsers([userId], event)
 }
 
 // Helper function to broadcast comment created notifications
@@ -307,10 +357,13 @@ export async function broadcastCommentCreatedNotification(
           comment: {
             id: comment.id,
             content: comment.content,
+            authorName: comment.author?.name || comment.author?.email || null,
+            authorId: comment.authorId,
+            isAgent: comment.author?.isAIAgent ?? false,
+            createdAt: new Date(comment.createdAt).toISOString(),
+            // Legacy fields for web client compatibility
             type: comment.type,
             author: comment.author,
-            authorId: comment.authorId, // Required by TaskDetail component
-            createdAt: comment.createdAt,
             parentCommentId: comment.parentCommentId
           }
         }

@@ -232,8 +232,10 @@ export async function callOpenAI(options: OpenAIProviderOptions): Promise<AIProv
 /**
  * Default export for provider interface compatibility
  */
-export default {
+const openaiProvider = {
   name: 'openai' as const,
   call: callOpenAI,
   repositoryTools: OPENAI_REPOSITORY_TOOLS,
 }
+
+export default openaiProvider

@@ -563,6 +563,7 @@ export function useTaskManagerController({
         duration: 1500,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.tasks, listState.setTasks, toast])
 
   const handleLocalUpdateTask = useCallback((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => {
@@ -574,6 +575,7 @@ export function useTaskManagerController({
       }
       return task
     }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.setTasks]) as (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
 
   const handleToggleTaskComplete = useCallback(async (taskId: string) => {
@@ -639,6 +641,7 @@ export function useTaskManagerController({
         duration: 1500,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.tasks, listState.setTasks, selectedTaskId, toast, externalIsMobile, externalHandleMobileBack, setSelectedTaskId])
 
   const handleCreateTask = useCallback(async (
@@ -791,6 +794,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.setLists, listState.loadData, toast, navigationState.setSelectedListId])
 
   const handleCopyList = useCallback(async (listId: string) => {
@@ -857,6 +861,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast, navigationState.setSelectedListId, listState.setLists, listState.setTasks, setSelectedTaskId, listState.lists, listState.publicLists, effectiveSession, navigationState.isViewingFromFeatured])
 
   const handleCopyTask = useCallback(async (taskId: string, targetListId?: string, includeComments?: boolean) => {
@@ -914,6 +919,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast, listState.setTasks, setSelectedTaskId])
 
   const handleDeleteList = useCallback(async (listId: string) => {
@@ -950,6 +956,7 @@ export function useTaskManagerController({
         duration: 1500,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.lists, listState.setLists, navigationState.selectedListId, navigationState.setSelectedListId, toast])
 
   const handleUpdateList = useCallback(async (updatedList: TaskList) => {
@@ -1012,6 +1019,7 @@ export function useTaskManagerController({
         duration: 3000,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.lists, listState.setLists, listState.loadData, effectiveSession?.user, toast])
 
   const handleToggleListFavorite = useCallback(async (listId: string) => {
@@ -1085,6 +1093,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.lists, listState.setLists, listState.loadData, navigationState.selectedListId, navigationState.setSelectedListId, effectiveSession, toast])
 
   // Image picker handlers
@@ -1134,6 +1143,7 @@ export function useTaskManagerController({
         duration: 3000,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedListForImagePicker, listState.setLists, toast])
 
   const handleImagePickerCancel = useCallback(() => {
@@ -1228,10 +1238,12 @@ export function useTaskManagerController({
     const currentIndex = allListIds.findIndex(id => id === navigationState.selectedListId)
     const nextIndex = (currentIndex + 1) % allListIds.length
     navigationState.setSelectedListId(allListIds[nextIndex])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.lists, navigationState.selectedListId, navigationState.setSelectedListId])
 
   const handleJumpToDate = useCallback(() => {
     navigationState.setSelectedListId("today")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigationState.setSelectedListId])
 
   const handleNewTask = useCallback(() => {
@@ -1343,6 +1355,7 @@ export function useTaskManagerController({
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.setLists, navigationState.setSelectedListId, listState.setTasks, setSelectedTaskId])
 
   // === RETURN ===

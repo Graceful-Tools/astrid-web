@@ -9,8 +9,11 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, requireScopes, requireTaskAccess, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { hasListAccess } from '@/lib/list-member-utils'
+import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { broadcastToUsers } from '@/lib/sse-utils'
+import { enrichTaskForAgent } from '@/lib/agent-protocol'
+import { RedisCache, isRedisAvailable } from '@/lib/redis'
 
 interface RouteContext {
   params: Promise<{
@@ -48,6 +51,14 @@ export async function GET(
             privacy: true,
             githubRepositoryId: true,
             aiAgentConfiguredBy: true,
+            listMembers: {
+              select: {
+                id: true,
+                listId: true,
+                userId: true,
+                role: true,
+              }
+            },
           },
         },
         assignee: {
@@ -276,6 +287,25 @@ export async function PUT(
       },
     })
 
+    // Optimistic concurrency control (opt-in via If-Unmodified-Since header)
+    const ifUnmodifiedSince = req.headers.get('If-Unmodified-Since')
+    if (ifUnmodifiedSince && existingTask) {
+      const clientDate = new Date(ifUnmodifiedSince)
+      if (!isNaN(clientDate.getTime()) && existingTask.updatedAt > clientDate) {
+        return NextResponse.json(
+          {
+            error: 'Task has been modified since your last read',
+            code: 'STALE_UPDATE',
+            task: {
+              id: existingTask.id,
+              updatedAt: existingTask.updatedAt,
+            },
+          },
+          { status: 412 }
+        )
+      }
+    }
+
     // Handle repeating task completion
     const { handleRepeatingTaskCompletion, applyRepeatingTaskRollForward } = await import('@/lib/repeating-task-handler')
     let repeatingTaskResult = null
@@ -303,9 +333,18 @@ export async function PUT(
             select: {
               id: true,
               name: true,
+              description: true,
               color: true,
               githubRepositoryId: true,
               aiAgentConfiguredBy: true,
+              listMembers: {
+                select: {
+                  id: true,
+                  listId: true,
+                  userId: true,
+                  role: true,
+                }
+              },
             },
           },
           assignee: {
@@ -326,6 +365,19 @@ export async function PUT(
               image: true,
             },
           },
+          comments: {
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  isAIAgent: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'asc' as const },
+          },
         },
       })
 
@@ -341,6 +393,66 @@ export async function PUT(
       // Track analytics - task was edited and completed (repeating task roll-forward)
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_EDITED, { taskId })
+
+      // Broadcast SSE event for repeating task roll-forward
+      try {
+        const userIds = new Set<string>()
+
+        for (const list of task.lists) {
+          const fullList = await prisma.taskList.findUnique({
+            where: { id: list.id },
+            include: { listMembers: { select: { userId: true } } },
+          })
+          if (fullList) {
+            userIds.add(fullList.ownerId)
+            fullList.listMembers.forEach(m => userIds.add(m.userId))
+          }
+        }
+        if (task.assigneeId) userIds.add(task.assigneeId)
+        if (task.creatorId) userIds.add(task.creatorId)
+        userIds.delete(auth.userId)
+
+        if (userIds.size > 0) {
+          broadcastToUsers(Array.from(userIds), {
+            type: 'task_updated',
+            timestamp: new Date().toISOString(),
+            data: {
+              taskId: task.id,
+              task: enrichTaskForAgent(task),
+            },
+          })
+        }
+      } catch (sseError) {
+        console.error('[API v1] Failed to broadcast repeating task SSE:', sseError)
+      }
+
+      // Invalidate Redis cache for all affected users (repeating task path)
+      try {
+        const redisAvailable = await isRedisAvailable()
+        if (redisAvailable) {
+          const affectedUserIds = new Set<string>()
+          if (task.assigneeId) affectedUserIds.add(task.assigneeId)
+          if (task.creatorId) affectedUserIds.add(task.creatorId)
+          for (const list of task.lists) {
+            const fullList = await prisma.taskList.findUnique({
+              where: { id: list.id },
+              include: { listMembers: { select: { userId: true } } },
+            })
+            if (fullList) {
+              affectedUserIds.add(fullList.ownerId)
+              fullList.listMembers.forEach(m => affectedUserIds.add(m.userId))
+            }
+          }
+          await Promise.all(
+            Array.from(affectedUserIds).map(userId =>
+              RedisCache.del(RedisCache.keys.userTasks(userId))
+            )
+          )
+          console.log(`🗄️ [API v1] Invalidated task cache for ${affectedUserIds.size} users (repeating task)`)
+        }
+      } catch (cacheError) {
+        console.error('❌ [API v1] Failed to invalidate task cache (repeating):', cacheError)
+      }
 
       const headers: Record<string, string> = {}
       const deprecationWarning = getDeprecationWarning(auth)
@@ -375,9 +487,18 @@ export async function PUT(
           select: {
             id: true,
             name: true,
+            description: true,
             color: true,
             githubRepositoryId: true,
             aiAgentConfiguredBy: true,
+            listMembers: {
+              select: {
+                id: true,
+                listId: true,
+                userId: true,
+                role: true,
+              }
+            },
           },
         },
         assignee: {
@@ -397,6 +518,19 @@ export async function PUT(
             email: true,
             image: true,
           },
+        },
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                isAIAgent: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' as const },
         },
       },
     })
@@ -442,6 +576,124 @@ export async function PUT(
     // AI agent workflow triggering is handled by Prisma middleware
     // The middleware posts the "starting" comment, sends webhooks, and triggers assistant workflow
     // This keeps the API route simple and avoids duplicate processing
+
+    // Broadcast SSE event for real-time updates
+    try {
+      const userIds = new Set<string>()
+
+      // Add all list members
+      for (const list of task.lists) {
+        const fullList = await prisma.taskList.findUnique({
+          where: { id: list.id },
+          include: {
+            listMembers: { select: { userId: true } },
+          },
+        })
+        if (fullList) {
+          userIds.add(fullList.ownerId)
+          fullList.listMembers.forEach(m => userIds.add(m.userId))
+        }
+      }
+
+      // Add task assignee and creator
+      if (task.assigneeId) userIds.add(task.assigneeId)
+      if (task.creatorId) userIds.add(task.creatorId)
+
+      // Remove the updater
+      userIds.delete(auth.userId)
+
+      if (userIds.size > 0) {
+        // Detect assignee change → send task_assigned to new assignee
+        const assigneeChanged = existingTask && body.assigneeId !== undefined &&
+          body.assigneeId !== existingTask.assigneeId
+        if (assigneeChanged && task.assigneeId) {
+          broadcastToUsers([task.assigneeId], {
+            type: 'task_assigned',
+            timestamp: new Date().toISOString(),
+            data: {
+              taskId: task.id,
+              task: enrichTaskForAgent(task),
+            }
+          })
+          // Don't also send task_updated to the new assignee
+          userIds.delete(task.assigneeId)
+        }
+
+        const eventType = (body.completed === true && existingTask && !existingTask.completed)
+          ? 'task_completed'
+          : 'task_updated'
+
+        broadcastToUsers(Array.from(userIds), {
+          type: eventType,
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            task: enrichTaskForAgent(task),
+          }
+        })
+      }
+    } catch (sseError) {
+      console.error('[API v1] Failed to broadcast task update SSE:', sseError)
+    }
+
+    // Invalidate user stats if completion status or assignment changed
+    try {
+      const completionChanged = existingTask && existingTask.completed !== task.completed
+      const assignmentChanged = existingTask && existingTask.assigneeId !== task.assigneeId
+
+      if (completionChanged || assignmentChanged) {
+        const { invalidateUserStats } = await import('@/lib/user-stats')
+        const statsUserIds = new Set<string>()
+
+        if (task.assigneeId && completionChanged) {
+          statsUserIds.add(task.assigneeId)
+        }
+        if (existingTask.assigneeId && assignmentChanged && existingTask.assigneeId !== task.assigneeId) {
+          statsUserIds.add(existingTask.assigneeId)
+        }
+        if (task.creatorId && completionChanged) {
+          statsUserIds.add(task.creatorId)
+        }
+
+        if (statsUserIds.size > 0) {
+          await invalidateUserStats(Array.from(statsUserIds))
+          console.log(`📊 [API v1] Invalidated user stats for ${statsUserIds.size} users`)
+        }
+      }
+    } catch (statsError) {
+      console.error('❌ [API v1] Failed to invalidate user stats:', statsError)
+    }
+
+    // Invalidate Redis cache for all affected users
+    try {
+      const redisAvailable = await isRedisAvailable()
+      if (redisAvailable) {
+        const affectedUserIds = new Set<string>()
+        if (task.assigneeId) affectedUserIds.add(task.assigneeId)
+        if (existingTask?.assigneeId && existingTask.assigneeId !== task.assigneeId) {
+          affectedUserIds.add(existingTask.assigneeId)
+        }
+        if (task.creatorId) affectedUserIds.add(task.creatorId)
+        for (const list of task.lists) {
+          const fullList = await prisma.taskList.findUnique({
+            where: { id: list.id },
+            include: { listMembers: { select: { userId: true } } },
+          })
+          if (fullList) {
+            affectedUserIds.add(fullList.ownerId)
+            fullList.listMembers.forEach(m => affectedUserIds.add(m.userId))
+          }
+        }
+        await Promise.all(
+          Array.from(affectedUserIds).map(userId =>
+            RedisCache.del(RedisCache.keys.userTasks(userId))
+          )
+        )
+        console.log(`🗄️ [API v1] Invalidated task cache for ${affectedUserIds.size} users after update`)
+      }
+    } catch (cacheError) {
+      console.error('❌ [API v1] Failed to invalidate task cache:', cacheError)
+    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -501,10 +753,81 @@ export async function DELETE(
     // Check access
     await requireTaskAccess(auth.userId, taskId)
 
+    // Fetch task with associations before deletion for SSE broadcast
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        lists: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    // Compute recipients before deletion
+    const recipientIds = new Set<string>()
+    if (task) {
+      for (const list of task.lists) {
+        const memberIds = await getListMemberIds(
+          await prisma.taskList.findUnique({
+            where: { id: list.id },
+            include: {
+              owner: { select: { id: true, name: true, email: true, image: true } },
+              listMembers: {
+                include: { user: { select: { id: true, name: true, email: true, image: true } } },
+              },
+            },
+          }) as any
+        )
+        memberIds.forEach((id: string) => recipientIds.add(id))
+      }
+      if (task.assigneeId) recipientIds.add(task.assigneeId)
+      if (task.creatorId) recipientIds.add(task.creatorId)
+      recipientIds.delete(auth.userId)
+    }
+
     // Delete task
     await prisma.task.delete({
       where: { id: taskId },
     })
+
+    // Invalidate Redis cache for all affected users
+    try {
+      const redisAvailable = await isRedisAvailable()
+      if (redisAvailable) {
+        const cacheUserIds = new Set(recipientIds)
+        // Also invalidate for the deleting user
+        cacheUserIds.add(auth.userId)
+        if (task?.creatorId) cacheUserIds.add(task.creatorId)
+        if (task?.assigneeId) cacheUserIds.add(task.assigneeId)
+
+        await Promise.all(
+          Array.from(cacheUserIds).map(userId =>
+            RedisCache.del(RedisCache.keys.userTasks(userId))
+          )
+        )
+        console.log(`🗄️ [API v1] Invalidated task cache for ${cacheUserIds.size} users after deletion`)
+      }
+    } catch (cacheError) {
+      console.error('❌ [API v1] Failed to invalidate task cache (delete):', cacheError)
+    }
+
+    // Broadcast task_deleted to all relevant users
+    if (recipientIds.size > 0) {
+      try {
+        broadcastToUsers(Array.from(recipientIds), {
+          type: 'task_deleted',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId,
+          },
+        })
+      } catch (sseError) {
+        console.error('[API v1] Failed to broadcast task_deleted SSE:', sseError)
+      }
+    }
 
     // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_DELETED, { taskId })

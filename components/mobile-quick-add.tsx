@@ -168,7 +168,12 @@ export function MobileQuickAdd({
     <>
       {/* Quick Add Bar - margins match task list container (px-2) */}
       <div
-        className={`fixed bottom-3 left-2 right-2 z-30 ${className}`}
+        className={`fixed z-30 ${className}`}
+        style={{
+          left: 'max(0.5rem, env(safe-area-inset-left, 0.5rem))',
+          right: 'max(0.5rem, env(safe-area-inset-right, 0.5rem))',
+          bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))',
+        }}
       >
         <div
           className="mobile-quick-add bg-white dark:bg-gray-800 rounded-xl px-4 py-3"

@@ -123,7 +123,7 @@ export function useTaskListState({
       // Smart merge: preserve optimistically added tasks and comments
       setTasks(prev => {
         const serverTaskIds = new Set(tasksArray.map((t: Task) => t.id))
-        const optimisticTasks = prev.filter((t: Task) => !serverTaskIds.has(t.id))
+        const optimisticTasks = prev.filter((t: Task) => !serverTaskIds.has(t.id) && t.id.startsWith('temp-'))
         const prevTaskMap = new Map(prev.map((t: Task) => [t.id, t]))
 
         // Merge server tasks with preserved comments from existing state
@@ -146,7 +146,7 @@ export function useTaskListState({
       // Smart merge: preserve optimistically added lists
       setLists(prev => {
         const serverListIds = new Set(listsArray.map((l: TaskList) => l.id))
-        const optimisticLists = prev.filter((l: TaskList) => !serverListIds.has(l.id))
+        const optimisticLists = prev.filter((l: TaskList) => !serverListIds.has(l.id) && l.id.startsWith('temp-'))
 
         if (optimisticLists.length > 0) {
           console.log(`[useTaskListState] Preserving ${optimisticLists.length} optimistic lists during loadData`)

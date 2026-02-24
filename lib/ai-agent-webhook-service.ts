@@ -11,11 +11,16 @@ import type { PrismaClient } from '@prisma/client'
  * or from agent name (e.g., "Claude" -> claude, "OpenAI" -> openai)
  */
 function getAgentType(email?: string, name?: string): string | null {
-  // Try email first (e.g., claude@astrid.cc, openai@astrid.cc, gemini@astrid.cc)
+  // Check for OpenClaw agent pattern: {name}.oc@astrid.cc
+  if (email?.match(/^[a-z0-9._-]+\.oc@astrid\.cc$/i)) {
+    return 'openclaw'
+  }
+
+  // Try email first (e.g., claude@astrid.cc, openai@astrid.cc, gemini@astrid.cc, openclaw@astrid.cc)
   if (email?.endsWith('@astrid.cc')) {
     const prefix = email.split('@')[0].toLowerCase()
-    // Normalize: claude, openai, gemini are the standard types
-    if (['claude', 'openai', 'gemini'].includes(prefix)) {
+    // Normalize: claude, openai, gemini, openclaw are the standard types
+    if (['claude', 'openai', 'gemini', 'openclaw'].includes(prefix)) {
       return prefix
     }
   }
@@ -26,6 +31,7 @@ function getAgentType(email?: string, name?: string): string | null {
     if (lowerName.includes('claude')) return 'claude'
     if (lowerName.includes('openai') || lowerName.includes('gpt')) return 'openai'
     if (lowerName.includes('gemini')) return 'gemini'
+    if (lowerName.includes('openclaw') || lowerName.includes('claw')) return 'openclaw'
   }
 
   return null
@@ -258,7 +264,7 @@ export class AIAgentWebhookService {
             'add_comment',
             'get_task_comments'
           ],
-          contextInstructions: aiAgentConfig.contextInstructions || `You have been assigned a task in Astrid Task Manager. Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}. You can reference this repository in your responses and use it for code-related tasks.` : ''}`
+          contextInstructions: task.lists[0]?.description || aiAgentConfig.contextInstructions || `You have been assigned a task in Astrid. Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`
         },
         creator: {
           id: task.creator?.id || task.creatorId,
@@ -281,6 +287,13 @@ export class AIAgentWebhookService {
       // Determine agent type for routing (claude, openai, gemini)
       const agentType = getAgentType(agentUser?.email ?? undefined, agentRecord?.name ?? agentName)
       console.log(`🔍 [WEBHOOK-TRACE] Agent type: ${agentType} (from email: ${agentUser?.email}, name: ${agentRecord?.name})`)
+
+      // OpenClaw agents connect via SSE channel plugin — no webhook or workflow trigger needed
+      if (agentType === 'openclaw') {
+        console.log(`🐾 OpenClaw agent detected — routing via SSE channel plugin (no webhook needed)`)
+        await this.sendSSENotification(task, payload)
+        return
+      }
 
       // FIRST: Check if task creator OR list owner has Claude Code Remote configured
       // If so, route to their self-hosted server instead of standard processing
@@ -309,7 +322,7 @@ export class AIAgentWebhookService {
       // Works for internal agents OR any agent assigned to astrid.cc
       const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
       const envRemoteSecret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET
-      const isClaudeAgent = isInternalAgent || agentRecord?.name?.toLowerCase().includes('claude')
+      const isClaudeAgent = agentType === 'claude'
       console.log(`🔍 [WEBHOOK-TRACE] ENV check: URL=${!!envRemoteUrl}, SECRET=${!!envRemoteSecret}, isClaudeAgent=${isClaudeAgent}, isInternalAgent=${isInternalAgent}`)
       if (envRemoteUrl && envRemoteSecret && isClaudeAgent) {
         console.log(`📤 Sending to env-configured Claude Code Remote: ${envRemoteUrl}`)
@@ -562,7 +575,9 @@ export class AIAgentWebhookService {
         const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
         const envRemoteSecret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET
 
-        if (envRemoteUrl && envRemoteSecret) {
+        // Only use env fallback for Claude agents (or when agent type is unknown)
+        const isClaudeAgentType = !agentType || agentType === 'claude'
+        if (envRemoteUrl && envRemoteSecret && isClaudeAgentType) {
           console.log(`📤 [WEBHOOK] No UserWebhookConfig, using env-based Claude Remote: ${envRemoteUrl}`)
 
           const body = JSON.stringify(payload)
@@ -834,7 +849,7 @@ export class AIAgentWebhookService {
             'add_comment',
             'get_task_comments'
           ],
-          contextInstructions: aiAgentConfig.contextInstructions || `Someone has commented on your assigned task. You can read the comment and respond if needed using the MCP API.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}. You can reference this repository in your responses.` : ''}`
+          contextInstructions: task.lists[0]?.description || aiAgentConfig.contextInstructions || `Someone has commented on your assigned task. Read the comment and respond if needed using the MCP API.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`
         },
         creator: {
           id: task.creator?.id || task.creatorId,
@@ -861,6 +876,15 @@ export class AIAgentWebhookService {
       console.log(`🔔 Notifying AI agent ${task.assignee.name} about comment from ${commenterName}`)
       console.log(`📝 Including ${task.comments?.length || 0} comments in payload`)
 
+      // Determine agent type for routing
+      const agentType = getAgentType(task.assignee.email ?? undefined, task.assignee.name ?? undefined)
+
+      // OpenClaw agents connect via SSE channel plugin — comment delivered via SSE
+      if (agentType === 'openclaw') {
+        console.log(`🐾 OpenClaw agent — comment notification delivered via SSE channel`)
+        return
+      }
+
       // FIRST: Check if task creator OR list owner has Claude Code Remote configured
       // Fall back to list owner when creatorId is null
       const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
@@ -869,7 +893,8 @@ export class AIAgentWebhookService {
         const userWebhookResult = await this.sendToUserWebhook(
           webhookUserId,
           'comment.created',
-          payload
+          payload,
+          agentType
         )
 
         if (userWebhookResult.sent) {

@@ -126,10 +126,19 @@
 }
 
 .task-panel-arrow {
-  @apply absolute -left-3 w-6 h-6 border-l border-b transform rotate-45 transition-all duration-75;
+  @apply absolute w-6 h-6 transform rotate-45 transition-all duration-75;
+  left: -13px;
   z-index: 10;
+  border-left: 2px solid rgb(var(--theme-bg-selected-border));
+  border-bottom: 2px solid rgb(var(--theme-bg-selected-border));
   border-right: none;
   border-top: none;
+}
+
+/* Desktop arrow: blue border matching the panel box-shadow border (overrides theme border-color) */
+.task-panel-desktop > .task-panel-arrow {
+  border-left-color: rgb(var(--theme-bg-selected-border));
+  border-bottom-color: rgb(var(--theme-bg-selected-border));
 }
 
 .panel-header {
@@ -243,6 +252,37 @@
 
 .comment-input {
   @apply w-full rounded-lg px-3 py-2 pr-12 resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+/* Chat-style Comments */
+.chat-bubble {
+  @apply rounded-lg max-w-[85%];
+  padding: 12px;
+}
+
+.chat-bubble-row {
+  @apply flex items-end gap-2;
+}
+
+.chat-bubble-row-mine {
+  @apply flex-row-reverse;
+}
+
+.chat-bubble-meta {
+  @apply text-xs mt-1 flex items-center gap-1;
+}
+
+.chat-input-bar {
+  @apply flex items-center gap-3 p-3;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-input-textarea {
+  @apply flex-1 resize-none rounded-lg border px-3 py-2;
+  min-height: 36px;
+  max-height: 200px;
+  overflow: hidden;
+  font-size: 16px;
 }
 
 /* Form Components */
@@ -498,11 +538,13 @@
 }
 
 .task-panel {
-  @apply w-96 border-l flex flex-col h-full relative md:relative md:translate-x-0;
+  @apply w-96 flex flex-col h-full relative md:relative md:translate-x-0 rounded-xl overflow-hidden;
 }
 
 .task-panel-desktop {
-  @apply fixed top-32 bottom-10 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col z-30 rounded-l-lg rounded-r-lg rounded-lg shadow-lg;
+  @apply fixed top-32 bottom-10 bg-white dark:bg-gray-800 flex flex-col z-30 rounded-xl;
+  /* Blue border matching selected task row, using box-shadow so it doesn't affect layout */
+  box-shadow: 0 0 0 2px rgb(var(--theme-bg-selected-border)), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   /* Responsive width that adapts to available space and layout configuration */
   width: clamp(
     var(--task-panel-min-width),
@@ -511,6 +553,12 @@
   );
   min-width: var(--task-panel-min-width);
   max-width: var(--task-panel-max-width);
+}
+
+/* Inner panel clips content to rounded corners while arrow stays outside */
+.task-panel-desktop > [data-task-detail-panel] {
+  overflow: hidden;
+  border-radius: 0.75rem;
 }
 
 /* For 3-column layouts with visible sidebar */
@@ -535,8 +583,8 @@
   -webkit-overflow-scrolling: touch;
   /* Prevent blue screen overlay issues on iOS */
   isolation: isolate;
-  /* Ensure keyboard compatibility */
-  overflow-y: auto;
+  /* Let internal flex layout handle scrolling so floating input bar stays at bottom */
+  overflow: hidden;
 }
 
 /* Mobile-specific textarea styling to fix iOS blue screen issue */
@@ -572,7 +620,10 @@
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
+    height: 100vh !important; /* fallback for browsers without dvh support */
+    height: 100dvh !important; /* dvh accounts for mobile browser chrome (address bar) */
+    /* Let internal flex layout handle scrolling so input bar stays at bottom */
+    overflow: hidden !important;
     /* Start off-screen right for slide-in animation */
     transform: translateX(100%);
     -webkit-transform: translateX(100%);

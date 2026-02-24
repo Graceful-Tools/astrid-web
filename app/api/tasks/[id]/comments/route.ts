@@ -243,8 +243,30 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
 
     // Broadcast real-time updates to relevant users
     try {
-      const { broadcastCommentCreatedNotification } = await import("@/lib/sse-utils")
+      const { broadcastCommentCreatedNotification, broadcastToUsers } = await import("@/lib/sse-utils")
       await broadcastCommentCreatedNotification(task, comment, session.user.id)
+
+      // Broadcast agent_task_comment if task is assigned to an OpenClaw agent
+      if (task.assigneeId && task.assignee?.email &&
+          (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
+          session.user.id !== task.assigneeId) {
+        broadcastToUsers([task.assigneeId], {
+          type: 'agent_task_comment',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            taskTitle: task.title,
+            comment: {
+              id: comment.id,
+              content: comment.content,
+              authorName: (comment as any).author?.name || (comment as any).author?.email || null,
+              authorId: comment.authorId,
+              isAgent: false,
+              createdAt: new Date(comment.createdAt).toISOString(),
+            }
+          }
+        })
+      }
 
       // Handle @mentions and assignee notifications
       const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
@@ -368,6 +390,13 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
                 if (!workflow) {
                   // Determine AI service from the assigned agent's email
                   const aiService = task.assignee?.email ? getAgentService(task.assignee.email) : 'claude'
+
+                  // OpenClaw tasks use the channel plugin (SSE), not the orchestrator workflow
+                  if (aiService === 'openclaw') {
+                    console.log(`🔌 [COMMENT] Skipping workflow creation — OpenClaw tasks are handled via channel plugin (SSE)`)
+                    return
+                  }
+
                   workflow = await prisma.codingTaskWorkflow.create({
                     data: {
                       taskId,

@@ -1,12 +1,9 @@
 {
   "name": "@gracefultools/astrid-sdk",
-  "version": "0.7.16",
-  "description": "AI agent SDK for automated coding tasks with Claude, OpenAI, and Gemini",
+  "version": "0.8.2",
+  "description": "Astrid.cc SDK \u2014 AI agent integration and OpenClaw channel plugin",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "astrid-agent": "./dist/bin/cli.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,7 +19,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "prepublishOnly": "npm run clean && npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -35,33 +32,25 @@
     "gemini",
     "coding",
     "automation",
-    "astrid"
+    "astrid",
+    "openclaw"
   ],
   "author": "Astrid",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Graceful-Tools/astrid-res-www.git",
+    "url": "https://github.com/Graceful-Tools/astrid-web.git",
     "directory": "packages/astrid-sdk"
   },
   "homepage": "https://astrid.cc",
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
-    "dotenv": "^16.3.1",
-    "glob": "^10.3.10"
-  },
   "peerDependencies": {
-    "express": "^4.18.0 || ^5.0.0",
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "typescript": {
-      "optional": true
-    },
-    "express": {
       "optional": true
     }
   },
@@ -69,7 +58,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
     "vitest": "^3.2.4"

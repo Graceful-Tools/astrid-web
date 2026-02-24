@@ -14,6 +14,7 @@ const AI_AGENTS = [
   { email: "claude@astrid.cc", filename: "claude.png", contentType: "image/png" },
   { email: "openai@astrid.cc", filename: "openai.png", contentType: "image/png" },
   { email: "gemini@astrid.cc", filename: "gemini.png", contentType: "image/png" },
+  { email: "openclaw@astrid.cc", filename: "openclaw.svg", contentType: "image/svg+xml" },
 ]
 
 async function uploadAgentImages() {

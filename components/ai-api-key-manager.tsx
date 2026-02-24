@@ -31,6 +31,7 @@ interface AIServiceConfig {
   icon: string
   baseUrl?: string
   testEndpoint?: string
+  isGateway?: boolean
   keyFormat: {
     prefix: string
     length?: number
@@ -78,7 +79,7 @@ const AI_SERVICES: AIServiceConfig[] = [
       pattern: /^AIza[a-zA-Z0-9_-]+$/
     },
     documentation: 'https://aistudio.google.com/apikey'
-  }
+  },
 ]
 
 interface APIKeyData {
@@ -112,6 +113,7 @@ export function AIAPIKeyManager() {
   const [showKey, setShowKey] = useState<{ [serviceId: string]: boolean }>({})
   const [apiKeys, setApiKeys] = useState<{ [serviceId: string]: string }>({})
   const [keyData, setKeyData] = useState<APIKeyData>({})
+  const [authTokens, setAuthTokens] = useState<{ [serviceId: string]: string }>({})
   const [selectedService, setSelectedService] = useState<string>(AI_SERVICES[0].id)
   const [modelData, setModelData] = useState<ModelData | null>(null)
   const [modelInputs, setModelInputs] = useState<{ [serviceId: string]: string }>({})
@@ -160,6 +162,11 @@ export function AIAPIKeyManager() {
     const service = AI_SERVICES.find(s => s.id === serviceId)
     if (!service) return false
 
+    // Gateway services validate URL format instead of key format
+    if (service.isGateway) {
+      return service.keyFormat.pattern ? service.keyFormat.pattern.test(key) : key.startsWith('ws')
+    }
+
     if (!key.startsWith(service.keyFormat.prefix)) {
       return false
     }
@@ -180,33 +187,42 @@ export function AIAPIKeyManager() {
   }
 
   const handleSaveKey = async (serviceId: string) => {
+    const service = AI_SERVICES.find(s => s.id === serviceId)
     const key = apiKeys[serviceId]
     if (!key) return
 
     if (!validateKeyFormat(serviceId, key)) {
-      toast.error('Invalid API key format')
+      toast.error(service?.isGateway ? 'Invalid gateway URL format' : 'Invalid API key format')
       return
     }
 
     try {
       setSaving(serviceId)
+
+      const body: Record<string, string> = { serviceId }
+      if (service?.isGateway) {
+        body.gatewayUrl = key
+        const token = authTokens[serviceId]
+        if (token) body.authToken = token
+      } else {
+        body.apiKey = key
+      }
+
       const response = await fetch('/api/user/ai-api-keys', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serviceId,
-          apiKey: key
-        })
+        body: JSON.stringify(body)
       })
 
-      if (!response.ok) throw new Error('Failed to save API key')
+      if (!response.ok) throw new Error(service?.isGateway ? 'Failed to save gateway config' : 'Failed to save API key')
 
       await fetchAPIKeys()
       setApiKeys(prev => ({ ...prev, [serviceId]: '' }))
-      toast.success(`${AI_SERVICES.find(s => s.id === serviceId)?.name} API key saved`)
+      setAuthTokens(prev => ({ ...prev, [serviceId]: '' }))
+      toast.success(`${service?.name} ${service?.isGateway ? 'gateway' : 'API key'} saved`)
     } catch (error) {
       console.error('Error saving API key:', error)
-      toast.error('Failed to save API key')
+      toast.error(service?.isGateway ? 'Failed to save gateway config' : 'Failed to save API key')
     } finally {
       setSaving(null)
     }
@@ -406,7 +422,7 @@ export function AIAPIKeyManager() {
                   <div className="space-y-4">
                     <div className="p-4 border rounded-lg bg-muted/50">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <Label className="font-medium">Current API Key</Label>
+                        <Label className="font-medium">{service.isGateway ? 'Current Gateway URL' : 'Current API Key'}</Label>
                         <div className="flex flex-wrap items-center gap-2">
                           {getStatusBadge(service.id)}
                           {data.lastTested && (
@@ -468,16 +484,20 @@ export function AIAPIKeyManager() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor={`key-${service.id}`} className="font-medium">
-                      {data?.hasKey ? 'Update API Key' : 'Enter API Key'}
+                      {service.isGateway
+                        ? (data?.hasKey ? 'Update Gateway URL' : 'Enter Gateway URL')
+                        : (data?.hasKey ? 'Update API Key' : 'Enter API Key')}
                     </Label>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Key should start with &quot;{service.keyFormat.prefix}&quot;{service.keyFormat.length ? ` and be ${service.keyFormat.length} characters long` : ''}.
+                      {service.isGateway
+                        ? 'WebSocket URL for your OpenClaw Gateway (ws:// or wss://).'
+                        : <>Key should start with &quot;{service.keyFormat.prefix}&quot;{service.keyFormat.length ? ` and be ${service.keyFormat.length} characters long` : ''}.</>}
                     </p>
                     <div className="flex flex-wrap sm:flex-nowrap gap-2">
                       <Input
                         id={`key-${service.id}`}
-                        type="password"
-                        placeholder={`${service.keyFormat.prefix}...`}
+                        type={service.isGateway ? 'text' : 'password'}
+                        placeholder={service.isGateway ? 'ws://localhost:18789' : `${service.keyFormat.prefix}...`}
                         value={currentKey}
                         onChange={(e) => handleKeyChange(service.id, e.target.value)}
                         className="font-mono flex-1 min-w-[200px]"
@@ -496,6 +516,24 @@ export function AIAPIKeyManager() {
                       </Button>
                     </div>
                   </div>
+                  {service.isGateway && (
+                    <div>
+                      <Label htmlFor={`token-${service.id}`} className="font-medium">
+                        Auth Token (optional)
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Authentication token for your gateway. Not needed for local connections.
+                      </p>
+                      <Input
+                        id={`token-${service.id}`}
+                        type="password"
+                        placeholder="Gateway authentication token"
+                        value={authTokens[service.id] || ''}
+                        onChange={(e) => setAuthTokens(prev => ({ ...prev, [service.id]: e.target.value }))}
+                        className="font-mono"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Model Selection */}
@@ -562,16 +600,34 @@ export function AIAPIKeyManager() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    Get your API key from{' '}
-                    <a
-                      href={service.documentation}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:no-underline"
-                    >
-                      {service.name} documentation
-                    </a>
-                    . This key enables the AI assistant to respond to your tasks intelligently.
+                    {service.isGateway ? (
+                      <>
+                        Run <code className="bg-muted px-1 rounded text-xs">npx astrid-agent --terminal</code> in your project directory, then enter the gateway URL above.
+                        See{' '}
+                        <a
+                          href={service.documentation}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:no-underline"
+                        >
+                          {service.name} documentation
+                        </a>
+                        {' '}for details.
+                      </>
+                    ) : (
+                      <>
+                        Get your API key from{' '}
+                        <a
+                          href={service.documentation}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:no-underline"
+                        >
+                          {service.name} documentation
+                        </a>
+                        . This key enables the AI assistant to respond to your tasks intelligently.
+                      </>
+                    )}
                   </AlertDescription>
                 </Alert>
               </div>

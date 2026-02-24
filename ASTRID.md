@@ -154,16 +154,38 @@ hooks/task-detail/useTaskDetailState.ts
 
 | Agent | Service | Purpose |
 |-------|---------|---------|
-| Claude | Claude API | Code generation, review |
-| OpenAI Codex | OpenAI API | Code generation, review |
-| Gemini | Gemini API | Code generation, review |
+| `claude@astrid.cc` | Claude API | Code generation, review |
+| `openai@astrid.cc` | OpenAI API | Code generation, review |
+| `gemini@astrid.cc` | Gemini API | Code generation, review |
+| `openclaw@astrid.cc` | OpenClaw Gateway | Self-hosted agent (any model) |
+| `{name}.oc@astrid.cc` | OpenClaw Gateway | Named OpenClaw agents |
+
+### List Descriptions as Agent Instructions
+
+Each list's **description** field serves as the instruction file for AI agents working on tasks in that list. Think of it like `claude.md` or `AGENTS.md` but per-list.
+
+**How it works:**
+1. User writes markdown in the list description (List Settings → Admin → Description)
+2. When an agent picks up a task, the list description is included as `## Instructions`
+3. Same description works across all agent types (Claude, OpenAI, Gemini, OpenClaw)
+4. Lists without descriptions get a minimal default
+
+**Example:** A "Code Reviews" list with description:
+```markdown
+Review PRs for security issues, test coverage, and style.
+Post findings as comments. Mark complete when done.
+```
+
+See `docs/LIST_DESCRIPTION_AS_AGENT_INSTRUCTIONS.md` for full details.
 
 ### Agent Routing
 
 Tasks assigned to AI agents are automatically routed:
-1. Agent → AI service (via `lib/ai-agent-config.ts`)
-2. Load ASTRID.md as context
-3. Execute workflow via AIOrchestrator
+1. Agent email → service (via `lib/ai/agent-config.ts`)
+2. List description loaded as agent instructions
+3. For cloud agents (Claude/OpenAI/Gemini): direct API call via `assistant-workflow`
+4. For OpenClaw: fire-and-forget POST to user's gateway via `/hooks/agent`
+5. For Claude Code Remote: signed webhook to user's self-hosted server
 
 ### Communication Protocol
 

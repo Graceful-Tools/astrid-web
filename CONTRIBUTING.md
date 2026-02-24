@@ -42,8 +42,27 @@ This file covers contributing to the **web repository**. For iOS contributions, 
    ```bash
    cp .env.example .env.local
    # Edit .env.local with your configuration
-   # At minimum: DATABASE_URL, NEXTAUTH_SECRET
    ```
+
+   **Minimum required for tests:**
+   ```bash
+   # .env.local
+   NEXTAUTH_SECRET=any-secret-for-testing
+   NEXTAUTH_URL=http://localhost:3000
+   ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+   ```
+
+   **For full local development (with database):**
+   ```bash
+   # PostgreSQL connection string
+   DATABASE_URL=postgresql://user:password@localhost:5432/astrid_dev
+
+   # Google OAuth (optional, for sign-in)
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   ```
+
+   > **Note:** Tests run with mocked database by default. You only need PostgreSQL for running the full app locally.
 
 4. **Set up the database**
    ```bash
@@ -80,6 +99,59 @@ Before submitting a bug report:
 4. **Update documentation** as needed
 5. **Ensure all tests pass**: `npm run predeploy`
 6. **Submit your PR** with a clear description
+
+### Contributor Git Workflow
+
+**Initial Setup (one-time):**
+
+```bash
+# Fork the repo on GitHub, then clone your fork
+git clone git@github.com:YOUR-GITHUB-ID/astrid-web.git
+cd astrid-web
+
+# Add upstream remote to track the main repo
+git remote add upstream git@github.com:Graceful-Tools/astrid-web.git
+```
+
+**Working on new features/fixes:**
+
+```bash
+# Start from a fresh branch based on upstream main
+git fetch upstream
+git checkout -b my-new-feature upstream/main
+
+# Work on your changes...
+# Make separate commits for each logical change:
+# - One commit per bug fix
+# - One commit per feature
+# - One commit for style/formatting changes
+# - One commit for copy/documentation edits
+
+git add .
+git commit -m "feat(scope): description of change"
+
+# Before pushing, sync with upstream and clean up commits
+git fetch upstream
+git rebase -i upstream/main
+# Use rebase -i to:
+# - Verify what you're committing
+# - Squash small/fixup commits together
+# - Ensure clean commit history
+
+# Push to your fork
+git push origin HEAD
+
+# Go to GitHub and open a Pull Request!
+```
+
+**Keeping your fork up to date:**
+
+```bash
+git fetch upstream
+git checkout main
+git merge upstream/main
+git push origin main
+```
 
 ### Coding Standards
 

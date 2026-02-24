@@ -84,8 +84,30 @@ async function createSpecificAIAgents() {
 
     console.log('✅ Gemini agent:', geminiAgent.name, '(' + geminiAgent.email + ')')
 
+    // Create OpenClaw agent
+    const openclawAgent = await prisma.user.upsert({
+      where: { email: 'openclaw@astrid.cc' },
+      update: {
+        name: 'OpenClaw Worker',
+        image: `${blobBase}/openclaw.svg`,
+        isAIAgent: true,
+        aiAgentType: 'openclaw_worker',
+        isActive: true
+      },
+      create: {
+        email: 'openclaw@astrid.cc',
+        name: 'OpenClaw Worker',
+        image: `${blobBase}/openclaw.svg`,
+        isAIAgent: true,
+        aiAgentType: 'openclaw_worker',
+        isActive: true
+      }
+    })
+
+    console.log('✅ OpenClaw agent:', openclawAgent.name, '(' + openclawAgent.email + ')')
+
     // Create MCP tokens for each agent
-    for (const agent of [claudeAgent, openaiAgent, geminiAgent]) {
+    for (const agent of [claudeAgent, openaiAgent, geminiAgent, openclawAgent]) {
       // Check if token already exists
       const existingToken = await prisma.mCPToken.findFirst({
         where: { userId: agent.id }
@@ -116,6 +138,7 @@ async function createSpecificAIAgents() {
     console.log('  - Claude Agent: claude@astrid.cc')
     console.log('  - OpenAI Agent: openai@astrid.cc')
     console.log('  - Gemini Agent: gemini@astrid.cc')
+    console.log('  - OpenClaw Worker: openclaw@astrid.cc')
     console.log('')
     console.log('Now you can enable these agents in list settings!')
 
