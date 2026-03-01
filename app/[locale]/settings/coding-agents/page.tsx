@@ -112,6 +112,11 @@ function CodingAgentsContent() {
                       gemini@astrid.cc
                     </span>
                   </div>
+                  <div className="mt-3">
+                    <Link href="/docs/integrate" className="text-xs text-blue-500 hover:underline">
+                      Full integration documentation &rarr;
+                    </Link>
+                  </div>
                 </div>
               </div>
             </CardContent>

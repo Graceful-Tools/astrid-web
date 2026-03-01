@@ -146,6 +146,17 @@ function APIAccessSettingsContent() {
             </div>
           </div>
 
+          {/* Documentation Links */}
+          <div className="flex flex-wrap gap-2">
+            <Link href="/docs" className="text-xs text-blue-500 hover:underline">
+              API Documentation
+            </Link>
+            <span className="text-xs theme-text-muted">&middot;</span>
+            <Link href="/docs/integrate" className="text-xs text-blue-500 hover:underline">
+              Integration Guide
+            </Link>
+          </div>
+
           {/* OAuth App Manager - the main functionality */}
           <OAuthAppManager />
 

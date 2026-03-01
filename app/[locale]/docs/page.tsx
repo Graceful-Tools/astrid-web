@@ -335,6 +335,22 @@ export default function APIDocsPage() {
             <CardContent className="space-y-3">
               <Button
                 variant="outline"
+                className="w-full justify-between border-blue-500/30"
+                onClick={() => router.push('/docs/integrate')}
+              >
+                <span>Integration Guide</span>
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => router.push('/docs/mcp')}
+              >
+                <span>MCP Documentation</span>
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
                 className="w-full justify-between"
                 onClick={() => router.push('/docs/endpoints')}
               >
