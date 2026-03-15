@@ -24,56 +24,139 @@ A modern, production-ready task management application built with Next.js, NextA
 
 ## Getting Started
 
-1. **Clone the repository**
+### Quick Start (Recommended)
+
+One command installs everything you need (Homebrew, PostgreSQL, Node.js, npm packages, database):
+
+```bash
+git clone https://github.com/Graceful-Tools/astrid-web.git
+cd astrid-web
+./scripts/setup.sh
+```
+
+Then start the dev server:
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) and sign in with the demo account: `demo@astrid.cc`
+
+> **Note:** The setup script creates `.env.local` from `.env.example`. To enable Google OAuth sign-in, add your `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env.local`. See `.env.example` for all available options.
+
+---
+
+### Manual Setup
+
+If you prefer to set things up yourself, or are not on macOS:
+
+#### 1. Install PostgreSQL
+
+The app requires PostgreSQL. Choose one option:
+
+**Option A: Homebrew (macOS)**
+```bash
+brew install postgresql@17
+brew services start postgresql@17
+```
+
+Then add it to your PATH so `psql`, `createdb`, etc. are available:
+```bash
+echo 'export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+> **Important:** PostgreSQL 17 is keg-only in Homebrew, so this PATH step is required.
+
+Create the development database:
+```bash
+createdb astrid_dev
+```
+
+Your `DATABASE_URL` will be:
+```
+postgresql://$(whoami)@localhost:5432/astrid_dev
+```
+
+**Option B: [Postgres.app](https://postgresapp.com/) (macOS)**
+
+1. Download and install from [postgresapp.com](https://postgresapp.com/)
+2. Open Postgres.app and click "Initialize" to start the server
+3. Add CLI tools to your PATH:
    ```bash
-   git clone <your-repo-url>
-   cd astrid-web
+   sudo mkdir -p /etc/paths.d && echo /Applications/Postgres.app/Contents/Versions/latest/bin | sudo tee /etc/paths.d/postgresapp
    ```
-
-2. **Install dependencies**
+4. Create the database:
    ```bash
-   npm install
-   # or
-   pnpm install
+   createdb astrid_dev
    ```
 
-3. **Set up environment variables**
-   Create a `.env.local` file with:
-   ```env
-   DATABASE_URL="your-database-url"
-   NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="your-secret-key"
-   GOOGLE_CLIENT_ID="your-google-client-id"
-   GOOGLE_CLIENT_SECRET="your-google-client-secret"
-   
-   # Redis (optional, improves performance)
-   REDIS_URL="redis://localhost:6379"
-   ```
+**Option C: Docker**
+```bash
+docker run --name astrid-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=astrid_dev -p 5432:5432 -d postgres:17
+```
 
-4. **Set up the database**
-   ```bash
-   npm run db:generate
-   npm run db:push
-   npm run db:seed
-   ```
+Your `DATABASE_URL` will be:
+```
+postgresql://postgres:password@localhost:5432/astrid_dev
+```
 
-5. **Set up Redis (optional, for caching)**
-   ```bash
-   # Run the setup script (installs and starts Redis)
-   ./scripts/setup-redis-dev.sh
-   
-   # Or install manually
-   brew install redis        # macOS
-   brew services start redis
-   ```
+**Option D: [Neon](https://neon.tech/) (Cloud - no local install)**
 
-6. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+1. Create a free project at [neon.tech](https://neon.tech/)
+2. Copy the connection string from the dashboard
+3. Use the pooled URL as `DATABASE_URL` and the direct URL as `DATABASE_URL_DIRECT`
 
-7. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+**Verify PostgreSQL is running:**
+```bash
+pg_isready
+# Should output: localhost:5432 - accepting connections
+```
+
+#### 2. Clone and install
+
+```bash
+git clone https://github.com/Graceful-Tools/astrid-web.git
+cd astrid-web
+npm install
+```
+
+#### 3. Set up environment variables
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` and fill in your values. At minimum:
+```env
+DATABASE_URL="postgresql://youruser@localhost:5432/astrid_dev"
+DATABASE_URL_DIRECT="postgresql://youruser@localhost:5432/astrid_dev"
+NEXTAUTH_SECRET="$(openssl rand -base64 32)"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+See `.env.example` for all available options (Google OAuth, email, AI features, etc.)
+
+#### 4. Set up the database
+
+```bash
+npm run db:generate
+npm run db:push
+npm run db:seed
+```
+
+#### 5. Set up Redis (optional, for caching)
+
+```bash
+brew install redis        # macOS
+brew services start redis
+```
+
+#### 6. Run the development server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Authentication
 
