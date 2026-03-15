@@ -13,7 +13,7 @@ import { SoundInitializer } from "@/components/sound-initializer"
 // Force all pages to be dynamically rendered to avoid SessionProvider issues during static generation
 export const dynamic = 'force-dynamic'
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export const viewport: Viewport = {
   width: "device-width",

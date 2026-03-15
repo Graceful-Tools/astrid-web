@@ -17,7 +17,6 @@ export function SignInContent() {
   const [providers, setProviders] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [providersLoading, setProvidersLoading] = useState(true)
   // Default to signup (Create your account) view
   const [showSignIn, setShowSignIn] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -44,21 +43,15 @@ export function SignInContent() {
     clearError: clearPasskeyError,
   } = useWebAuthn()
 
+  // Fetch providers in background — render buttons immediately to avoid blocking LCP
   useEffect(() => {
-    const fetchProviders = async () => {
-      try {
-        setProvidersLoading(true)
-        const res = await getProviders()
+    getProviders()
+      .then((res) => {
         setProviders(res)
-        setError(null)
-      } catch (err) {
+      })
+      .catch((err) => {
         console.error("Failed to fetch providers:", err)
-        setError("Authentication service is currently unavailable. Please check your configuration.")
-      } finally {
-        setProvidersLoading(false)
-      }
-    }
-    fetchProviders()
+      })
   }, [])
 
   const handleGoogleSignIn = async () => {
@@ -214,6 +207,7 @@ export function SignInContent() {
             alt="Astrid"
             width={88}
             height={88}
+            priority
             className="rounded-2xl"
           />
           <div className="text-left">
@@ -260,24 +254,17 @@ export function SignInContent() {
             {/* Create Account View (Default) */}
             {!showSignIn && !showPasskeyEmailPrompt && (
               <div className="space-y-4">
-                {/* 1. Google - Most prominent (blue) */}
-                {providersLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                    <span className="ml-2 text-gray-400">Loading...</span>
-                  </div>
-                ) : providers?.google ? (
-                  <Button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading || isPasskeyLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-12 rounded-xl shadow-sm"
-                    size="lg"
-                  >
-                    {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
-                    {loading ? "Continuing..." : "Continue with Google"}
-                  </Button>
-                ) : null}
+                {/* 1. Google - Most prominent (blue), rendered immediately for fast LCP */}
+                <Button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading || isPasskeyLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-12 rounded-xl shadow-sm"
+                  size="lg"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
+                  {loading ? "Continuing..." : "Continue with Google"}
+                </Button>
 
                 {/* 2. Passkey - Opens dialog with New/Returning options */}
                 <Button
