@@ -53,7 +53,7 @@ When user says **"ship it"**, execute the complete deployment sequence:
 
 3. **Trigger Vercel production deployment**:
    ```bash
-   npx vercel --prod --yes --no-dotenv
+   ./scripts/deploy-preview.sh --production
    ```
 
 ### Asking for Approval
@@ -83,7 +83,7 @@ Claude Code executes:
 2. git pull origin main
 3. git merge feature-branch  # if on a branch
 4. git push origin main
-5. npx vercel --prod --yes --no-dotenv
+5. ./scripts/deploy-preview.sh --production
 6. Mark Astrid task as complete (if working on a task)
 ```
 
@@ -99,7 +99,7 @@ Claude Code detects comment and executes:
 5. git pull origin main
 6. gh pr merge <PR-number> --merge  # Merge the PR
 7. git pull origin main  # Get merged changes
-8. npx vercel --prod --yes --no-dotenv  # Deploy to production
+8. ./scripts/deploy-preview.sh --production  # Deploy to production
 9. npx tsx scripts/complete-task-with-workflow.ts <taskId>  # Mark complete
 ```
 
@@ -135,11 +135,13 @@ npx vercel --prod --yes --token="$VERCEL_TOKEN"
 ```
 
 **Environment variables in `.env.local`:**
-- `VERCEL_PROD` - production project ID (astrid-web → astrid.cc)
-- `VERCEL_STAGING` - staging project ID (astrid-staging → staging.astrid.cc)
-- `VERCEL_TOKEN` - auth token (works for both)
+- `VERCEL_TOKEN` - auth token for deployments
 
-**If `.vercel/project.json` doesn't exist**, create it manually for production:
+**Single Vercel project:** `astrid-web` (prj_MUWxfWJ9lIZOi2clHPZhlHsYqSiy)
+- Production: `astrid.cc` / `www.astrid.cc`
+- Previews: `<branch>.astrid.cc` (via `*.astrid.cc` wildcard)
+
+**If `.vercel/project.json` doesn't exist**, create it manually:
 ```json
 {"projectId":"prj_MUWxfWJ9lIZOi2clHPZhlHsYqSiy","orgId":"team_gFxp7fWaX7e8tUPt8Vt3YXl0","projectName":"astrid-web"}
 ```
@@ -149,37 +151,34 @@ npx vercel --prod --yes --token="$VERCEL_TOKEN"
 ### Standard Deployment Flow
 
 ```bash
-# After user approves push to main
-git push origin main
+# Production deploy (astrid.cc)
+./scripts/deploy-preview.sh --production
 
-# Extract token and deploy (avoids sourcing .env.local which may have issues)
-export VERCEL_TOKEN=$(grep "^VERCEL_TOKEN=" .env.local | cut -d'=' -f2 | tr -d '\r"')
-npx vercel --prod --yes --token="$VERCEL_TOKEN"
+# Preview deploy (feature branch → <branch>.astrid.cc)
+./scripts/deploy-preview.sh feature-dark-mode
+# → Deploys to: dark-mode.astrid.cc
+
+# Deploy current branch
+./scripts/deploy-preview.sh
 ```
 
-### Force Production Rebuild
+### Feature Branch Preview Workflow
 
-To trigger a fresh production build without code changes:
+When working on a feature (especially via AI agent tasks):
 
-```bash
-export VERCEL_TOKEN=$(grep "^VERCEL_TOKEN=" .env.local | cut -d'=' -f2 | tr -d '\r"')
-npx vercel --prod --yes --token="$VERCEL_TOKEN"
-```
+1. Create a feature branch: `git checkout -b feature-xyz`
+2. Implement the feature
+3. Deploy preview: `./scripts/deploy-preview.sh`
+4. Preview is live at `feature-xyz.astrid.cc`
+5. User reviews the preview
+6. User approves → merge to main → deploy production
 
-**Note:** Vercel token must be configured. See `.env.local` for `VERCEL_TOKEN`.
-**Note:** GitHub Actions workflows exist for CI but NOT for auto-deploy.
+Multiple features can be previewed simultaneously:
+- `feature-x.astrid.cc`
+- `feature-y.astrid.cc`
+- `dark-mode.astrid.cc`
 
----
-
-## Preview Links
-
-When AI agents create PRs, preview deployments are available.
-
-### Web (Vercel Preview)
-
-- Use `vercel` CLI to create preview deployments
-- Preview URL shown in CLI output
-- Production deploys require `vercel --prod --yes`
+All powered by the `*.astrid.cc` wildcard domain on one Vercel project.
 
 **Note:** GitHub auto-deploy is disabled. Use CLI for all deployments.
 
@@ -226,7 +225,7 @@ git fetch origin
 git checkout main
 gh pr merge <PR-number> --merge
 git push origin main
-npx vercel --prod --yes --no-dotenv
+./scripts/deploy-preview.sh --production
 npx tsx scripts/complete-task-with-workflow.ts <taskId>
 ```
 
@@ -599,7 +598,8 @@ Then configure your webhook URL in Astrid Settings.
 | `npm run test:e2e` | Run Playwright E2E tests |
 | `npm run dev` | Start dev server |
 | **Deployment** | |
-| `npx vercel --prod --yes --no-dotenv` | Deploy to production (ALWAYS use --no-dotenv!) |
+| `./scripts/deploy-preview.sh --production` | Deploy to production (astrid.cc) |
+| `./scripts/deploy-preview.sh` | Deploy current branch to preview (<branch>.astrid.cc) |
 | `gh pr merge <PR#> --merge` | Merge PR |
 | **Astrid Tasks** | |
 | `npx tsx scripts/get-astrid-tasks.ts` | Pull tasks |
@@ -610,7 +610,7 @@ Then configure your webhook URL in Astrid Settings.
 
 | Scenario | Action |
 |----------|--------|
-| User says "ship it" (local session) | Merge PR → push main → `npx vercel --prod --yes --no-dotenv` → `npm run deploy:canary` |
+| User says "ship it" (local session) | Merge PR → push main → `./scripts/deploy-preview.sh --production` → `npm run deploy:canary` |
 | User comments "ship it" on Astrid task | Fetch tasks → merge PR → push main → deploy → canary → mark complete |
 | Check for ship it comments | `npx tsx scripts/get-astrid-tasks.ts` and look for user "ship it" comments |
 | Build failing | Run `npm run predeploy` to auto-fix and retry |

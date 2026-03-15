@@ -24,14 +24,6 @@ on:
   # Allow manual triggering
   workflow_dispatch:
     inputs:
-      deploy_environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - 'production'
-          - 'staging'
       skip_tests:
         description: 'Skip tests (emergency deployment)'
         required: false
@@ -39,7 +31,7 @@ on:
         type: boolean
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
@@ -54,10 +46,10 @@ jobs:
       quality-passed: ${{ steps.quality-check.outputs.passed }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -171,10 +163,10 @@ jobs:
       migration-success: ${{ steps.migration.outputs.success }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -306,10 +298,10 @@ jobs:
       deployment-success: ${{ steps.deploy.outputs.success }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -320,12 +312,7 @@ jobs:
       - name: Pull Vercel Environment Information
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ "${{ inputs.deploy_environment }}" = "staging" ]; then
-            vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
-          else
-            vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-          fi
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
 
       - name: Build Project Artifacts
         env:
@@ -377,7 +364,8 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Checking deployment status..."
 
-            if curl -s --head --fail --max-time 10 "$DEPLOYMENT_URL" > /dev/null 2>&1; then
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 --max-time 10 "$DEPLOYMENT_URL" 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
               echo "✅ Deployment is ready!"
               break
             fi
@@ -396,10 +384,10 @@ jobs:
         run: |
           echo "Running health checks against: $DEPLOYMENT_URL"
 
-          # Test home page
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL")
+          # Test home page (may redirect to /auth/signin for unauthenticated users)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 "$DEPLOYMENT_URL")
           if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Home page health check passed"
+            echo "✅ Home page health check passed (status: $HTTP_STATUS)"
           else
             echo "❌ Home page health check failed with status: $HTTP_STATUS"
             exit 1
@@ -472,45 +460,12 @@ jobs:
               }
             }" || echo "Warning: Could not notify AI agent of deployment"
 
-  # Job 6: Deploy to Staging (mirrors production)
-  deploy-staging:
-    name: 'Deploy to Staging'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [deploy-production, health-check]
-    if: needs.deploy-production.outputs.deployment-success == 'true'
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Deploy to Staging
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
-        run: |
-          echo "Deploying to staging (staging.astrid.cc)..."
-          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-          vercel build --prod --token=$VERCEL_TOKEN
-          STAGING_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>&1 | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
-          echo "✅ Staging deployed: $STAGING_URL"
-          echo "🌐 https://staging.astrid.cc"
-
-  # Job 7: Deployment Summary
+  # Job 6: Deployment Summary
   deployment-summary:
     name: 'Deployment Summary'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [quality-gates, database-migration, deploy-production, health-check, deploy-staging]
+    needs: [quality-gates, database-migration, deploy-production, health-check]
     if: always()
     steps:
       - name: Generate Deployment Summary

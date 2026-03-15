@@ -195,6 +195,42 @@ Agents communicate through **task comments**:
 - Post completion summary with commit details
 - Wait for user approval before marking complete
 
+### Preview Deployments
+
+Agents deploy feature branches to preview subdomains for review before merging:
+
+```bash
+# Deploy current branch to <branch-name>.astrid.cc
+./scripts/deploy-preview.sh
+
+# Deploy specific branch
+./scripts/deploy-preview.sh feature-dark-mode
+# → Live at: dark-mode.astrid.cc
+
+# Deploy to production (after user approval)
+./scripts/deploy-preview.sh --production
+# → Live at: astrid.cc
+```
+
+**How it works:**
+- Single Vercel project (`astrid-web`) with `*.astrid.cc` wildcard domain
+- Each feature branch gets its own subdomain (e.g., `feature-x.astrid.cc`)
+- Multiple features can be previewed simultaneously
+- User reviews preview → approves → agent merges to main → deploys production
+
+**Agent workflow with previews:**
+1. Agent creates feature branch and implements changes
+2. Agent runs `./scripts/deploy-preview.sh` and posts preview URL to task
+3. User reviews at `<branch>.astrid.cc`
+4. User comments feedback or "ship it"
+5. Agent merges to main and deploys production
+
+**Setup for your own project:**
+1. Add a `*.yourdomain.com` wildcard domain to your Vercel project
+2. Copy `scripts/deploy-preview.sh` to your repo
+3. Set `VERCEL_TOKEN` in your `.env.local`
+4. Update the `--scope` flag in the script to match your Vercel team
+
 ---
 
 ## Development Workflow
