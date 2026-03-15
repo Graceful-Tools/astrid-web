@@ -472,12 +472,45 @@ jobs:
               }
             }" || echo "Warning: Could not notify AI agent of deployment"
 
-  # Job 6: Deployment Summary
+  # Job 6: Deploy to Staging (mirrors production)
+  deploy-staging:
+    name: 'Deploy to Staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [deploy-production, health-check]
+    if: needs.deploy-production.outputs.deployment-success == 'true'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy to Staging
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
+        run: |
+          echo "Deploying to staging (staging.astrid.cc)..."
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          STAGING_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>&1 | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
+          echo "✅ Staging deployed: $STAGING_URL"
+          echo "🌐 https://staging.astrid.cc"
+
+  # Job 7: Deployment Summary
   deployment-summary:
     name: 'Deployment Summary'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [quality-gates, database-migration, deploy-production, health-check]
+    needs: [quality-gates, database-migration, deploy-production, health-check, deploy-staging]
     if: always()
     steps:
       - name: Generate Deployment Summary

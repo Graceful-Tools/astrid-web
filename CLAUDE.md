@@ -135,13 +135,13 @@ npx vercel --prod --yes --token="$VERCEL_TOKEN"
 ```
 
 **Environment variables in `.env.local`:**
-- `VERCEL_PROD` - production project ID (newastrid → astrid.cc)
-- `VERCEL_STAGING` - staging project ID (astrid-web)
+- `VERCEL_PROD` - production project ID (astrid-web → astrid.cc)
+- `VERCEL_STAGING` - staging project ID (astrid-staging → staging.astrid.cc)
 - `VERCEL_TOKEN` - auth token (works for both)
 
 **If `.vercel/project.json` doesn't exist**, create it manually for production:
 ```json
-{"projectId":"prj_MUWxfWJ9lIZOi2clHPZhlHsYqSiy","orgId":"team_gFxp7fWaX7e8tUPt8Vt3YXl0","projectName":"newastrid"}
+{"projectId":"prj_MUWxfWJ9lIZOi2clHPZhlHsYqSiy","orgId":"team_gFxp7fWaX7e8tUPt8Vt3YXl0","projectName":"astrid-web"}
 ```
 
 **NEVER run `vercel link`** - it will nuke your `.env.local`.
