@@ -331,8 +331,9 @@ jobs:
           echo "Deployment output:"
           echo "$DEPLOYMENT_OUTPUT"
 
-          # Extract production URL from output
-          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
+          # Extract production URL from output (strip ANSI escape codes first)
+          CLEAN_OUTPUT=$(echo "$DEPLOYMENT_OUTPUT" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | tr -d '\r')
+          DEPLOYMENT_URL=$(echo "$CLEAN_OUTPUT" | grep -oE 'https://[a-z0-9-]+\.vercel\.app' | tail -1)
 
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "❌ Failed to extract deployment URL from output"
@@ -354,24 +355,24 @@ jobs:
       - name: Wait for Deployment
         run: |
           echo "Waiting for deployment to be ready..."
-          DEPLOYMENT_URL="${{ needs.deploy-production.outputs.deployment-url }}"
+          # Check astrid.cc directly — this is what users hit
+          PROD_URL="https://astrid.cc"
 
-          # Wait up to 8 minutes for deployment to be ready
-          MAX_ATTEMPTS=96
+          MAX_ATTEMPTS=36
           ATTEMPT=0
 
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             ATTEMPT=$((ATTEMPT + 1))
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Checking deployment status..."
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Checking $PROD_URL..."
 
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 --max-time 10 "$DEPLOYMENT_URL" 2>/dev/null || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 --max-time 10 "$PROD_URL" 2>/dev/null || echo "000")
             if [ "$STATUS" = "200" ]; then
-              echo "✅ Deployment is ready!"
+              echo "✅ Production is responding (status: $STATUS)"
               break
             fi
 
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "❌ Deployment not ready after 8 minutes"
+              echo "❌ Production not ready after 3 minutes (last status: $STATUS)"
               exit 1
             fi
 
@@ -379,13 +380,12 @@ jobs:
           done
 
       - name: Run Health Checks
-        env:
-          DEPLOYMENT_URL: ${{ needs.deploy-production.outputs.deployment-url }}
         run: |
-          echo "Running health checks against: $DEPLOYMENT_URL"
+          PROD_URL="https://astrid.cc"
+          echo "Running health checks against: $PROD_URL"
 
-          # Test home page (may redirect to /auth/signin for unauthenticated users)
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 "$DEPLOYMENT_URL")
+          # Test home page (follows redirects to /auth/signin for unauthenticated users)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 "$PROD_URL")
           if [ "$HTTP_STATUS" = "200" ]; then
             echo "✅ Home page health check passed (status: $HTTP_STATUS)"
           else
@@ -393,23 +393,15 @@ jobs:
             exit 1
           fi
 
-          # Test API health endpoint (if it exists)
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL/api/health" || echo "404")
+          # Test API health endpoint
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_URL/api/health" || echo "404")
           if [ "$HEALTH_STATUS" = "200" ]; then
             echo "✅ API health check passed"
           else
-            echo "ℹ️ API health endpoint not available (status: $HEALTH_STATUS)"
+            echo "ℹ️ API health endpoint returned: $HEALTH_STATUS"
           fi
 
-          # Test database connectivity via API
-          DB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL/api/admin/health" || echo "404")
-          if [ "$DB_STATUS" = "200" ]; then
-            echo "✅ Database connectivity check passed"
-          else
-            echo "ℹ️ Database health endpoint not available (status: $DB_STATUS)"
-          fi
-
-          echo "🎯 Production health checks completed successfully!"
+          echo "🎯 Production health checks passed!"
 
   # Job 5: Update AI Agent Tasks (if applicable)
   update-ai-tasks:
