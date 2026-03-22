@@ -317,11 +317,24 @@ export function useTaskListState({
     })
   }, [])
 
+  // Dedup ref for rapid-fire task_updated events
+  const lastTaskUpdateRef = useRef<Map<string, number>>(new Map())
+
   const handleTaskUpdated = useCallback((event: any) => {
+    const taskData = event.task || event
+    if (!taskData?.id) return
+
+    // Dedup: skip if we processed this task update within 500ms
+    const now = Date.now()
+    const lastUpdate = lastTaskUpdateRef.current.get(taskData.id)
+    if (lastUpdate && now - lastUpdate < 500) {
+      return
+    }
+    lastTaskUpdateRef.current.set(taskData.id, now)
+
     if (process.env.NODE_ENV === 'development') {
       console.log('[useTaskListState] SSE: Task updated', event)
     }
-    const taskData = event.task || event
     const { comments: _ignoredComments, ...taskDataWithoutComments } = taskData
 
     setTasks(prev => prev.map(task =>

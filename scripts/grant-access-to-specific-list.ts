@@ -16,7 +16,6 @@ async function grantAccessToList(listId: string, listName: string) {
 
   const databaseUrl = process.env.DATABASE_URL_PROD
   const prisma = new PrismaClient({
-    datasources: { db: { url: databaseUrl } }
   })
 
   try {

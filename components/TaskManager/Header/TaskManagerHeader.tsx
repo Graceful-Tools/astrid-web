@@ -4,6 +4,7 @@ import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, ArrowLeft, Settings, Filter, X, Keyboard } from "lucide-react"
+import { ChatToggle } from "@/components/chat/ChatToggle"
 import Image from "next/image"
 import { useTranslations } from "@/lib/i18n/client"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
@@ -14,7 +15,7 @@ interface TaskManagerHeaderProps {
   // Layout and responsive
   isMobile: boolean
   showHamburgerMenu: boolean
-  mobileView: 'list' | 'task'
+  mobileView: 'list' | 'task' | 'chat'
   isMobileTaskDetailClosing?: boolean
 
   // Data
@@ -44,6 +45,10 @@ interface TaskManagerHeaderProps {
   onShowKeyboardShortcuts: () => void
   isTaskDragActive?: boolean
   onHamburgerDragHover?: () => void
+
+  // Chat toggle
+  activePanel?: 'tasks' | 'chat'
+  onToggleActivePanel?: (panel: 'tasks' | 'chat') => void
 }
 
 export function TaskManagerHeader({
@@ -70,7 +75,9 @@ export function TaskManagerHeader({
   setShowSettingsPopover,
   onShowKeyboardShortcuts,
   isTaskDragActive = false,
-  onHamburgerDragHover
+  onHamburgerDragHover,
+  activePanel = 'tasks',
+  onToggleActivePanel
 }: TaskManagerHeaderProps) {
   const { t } = useTranslations()
   const { filters } = useMyTasksPreferences()
@@ -254,8 +261,15 @@ export function TaskManagerHeader({
             )}
           </div>
 
-          {/* Right: Search icon + Settings icon (always visible) */}
+          {/* Right: Chat toggle + Search icon + Settings icon (always visible) */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {onToggleActivePanel && !(mobileSearchMode || searchValue.trim()) && (
+              <ChatToggle
+                activePanel={activePanel}
+                onToggle={onToggleActivePanel}
+              />
+            )}
+
             {!(mobileSearchMode || searchValue.trim()) && (
               <Button
                 variant="ghost"

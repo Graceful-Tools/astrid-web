@@ -3,13 +3,7 @@ import { PrismaClient } from '@prisma/client'
 
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL_PROD
-    }
-  }
-})
+const prisma = new PrismaClient()
 
 async function main() {
   const userId = 'cmeje966q0000k1045si7zrz3'

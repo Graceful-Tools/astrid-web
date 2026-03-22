@@ -47,7 +47,7 @@ export interface TaskList {
   preferredAiProvider?: string | null // 'claude', 'openai'
   fallbackAiProvider?: string | null // backup AI provider
   githubRepositoryId?: string | null // target GitHub repository full name (e.g., 'user/repo')
-  aiAgentsEnabled?: string[] | null // List of enabled AI agent types: ['coding', 'general', 'claude', 'openai']
+  aiAgentsEnabled?: string[] | { enabledTypes: string[]; defaultAgentId?: string | null } | null // Agent config: legacy array or { enabledTypes, defaultAgentId }
   createdAt: Date
   updatedAt: Date
   description?: string

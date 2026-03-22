@@ -106,6 +106,19 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
               }
             }
           }
+        },
+        chatMessage: {
+          include: {
+            channel: {
+              include: {
+                list: {
+                  include: {
+                    listMembers: true
+                  }
+                }
+              }
+            }
+          }
         }
       }
     })
@@ -163,6 +176,25 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
           task.lists.some((list) => list.privacy === 'PUBLIC')
 
         if (canView) {
+          hasAccess = true
+        }
+      }
+    }
+
+    if (!hasAccess && secureFile.chatMessageId && (secureFile as any).chatMessage) {
+      // Check chat message access through channel
+      const chatMessage = (secureFile as any).chatMessage
+      if (chatMessage.authorId === session.user.id) {
+        hasAccess = true
+      }
+
+      if (!hasAccess && chatMessage.channel?.list) {
+        const list = chatMessage.channel.list
+        if (list.ownerId === session.user.id) {
+          hasAccess = true
+        } else if (list.listMembers?.some((m: any) => m.userId === session.user.id)) {
+          hasAccess = true
+        } else if (list.privacy === 'PUBLIC') {
           hasAccess = true
         }
       }

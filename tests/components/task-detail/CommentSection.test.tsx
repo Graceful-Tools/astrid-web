@@ -70,7 +70,12 @@ describe('CommentSection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    global.fetch = vi.fn()
+    // Default fetch mock returns empty JSON for any unhandled requests
+    // (e.g., /api/user/ai-assistant-settings called in useEffect)
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({})
+    })
   })
 
   describe('Rendering', () => {
@@ -145,7 +150,9 @@ describe('CommentSection', () => {
 
     it('should show Send button when there is content', () => {
       render(<CommentSection {...defaultProps} newComment="Test comment" />)
-      expect(screen.getByTitle('Send comment')).toBeInTheDocument()
+      // RichTextInput renders a send button with a Send icon (no title attribute)
+      const sendButton = document.querySelector('.lucide-send')?.closest('button')
+      expect(sendButton).toBeTruthy()
     })
 
     it('should not add empty comment', async () => {
@@ -197,80 +204,7 @@ describe('CommentSection', () => {
     })
   })
 
-  describe('File Attachments', () => {
-    it('should show file attachment preview when file is attached', () => {
-      const attachedFile: FileAttachment = {
-        url: '/api/secure-files/file-123',
-        name: 'test.png',
-        type: 'image/png',
-        size: 1024
-      }
-      render(<CommentSection {...defaultProps} attachedFile={attachedFile} />)
-      expect(screen.getByText('test.png')).toBeInTheDocument()
-    })
-
-    it('should remove attachment when X button is clicked', () => {
-      const attachedFile: FileAttachment = {
-        url: '/api/secure-files/file-123',
-        name: 'test.png',
-        type: 'image/png',
-        size: 1024
-      }
-      const setAttachedFile = vi.fn()
-      render(<CommentSection {...defaultProps} attachedFile={attachedFile} setAttachedFile={setAttachedFile} />)
-
-      const removeButton = screen.getAllByRole('button').find(btn =>
-        btn.querySelector('.lucide-x')
-      )
-      if (removeButton) {
-        fireEvent.click(removeButton)
-        expect(setAttachedFile).toHaveBeenCalledWith(null)
-      }
-    })
-
-    it('should upload file when file input changes', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          fileId: 'file-123',
-          fileName: 'test.png',
-          mimeType: 'image/png',
-          fileSize: 1024
-        })
-      })
-      global.fetch = mockFetch
-
-      const setAttachedFile = vi.fn()
-      const setUploadingFile = vi.fn()
-      render(<CommentSection {...defaultProps} setAttachedFile={setAttachedFile} setUploadingFile={setUploadingFile} />)
-
-      const fileInput = document.getElementById('comment-file-upload') as HTMLInputElement
-      const file = new File(['content'], 'test.png', { type: 'image/png' })
-
-      Object.defineProperty(fileInput, 'files', {
-        value: [file],
-        writable: false
-      })
-
-      fireEvent.change(fileInput)
-
-      expect(setUploadingFile).toHaveBeenCalledWith(true)
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/secure-upload/request-upload',
-          expect.objectContaining({ method: 'POST' })
-        )
-        expect(setAttachedFile).toHaveBeenCalledWith({
-          url: '/api/secure-files/file-123',
-          name: 'test.png',
-          type: 'image/png',
-          size: 1024
-        })
-        expect(setUploadingFile).toHaveBeenCalledWith(false)
-      })
-    })
-  })
+  // File attachments removed from task comment UI (attachments are now in chat messages only)
 
   describe('Replies', () => {
     it('should render reply form when replyingTo is set', () => {
@@ -585,27 +519,7 @@ describe('CommentSection', () => {
       expect(setNewComment).toHaveBeenCalledWith('Test comment')
     })
 
-    it('should handle upload error gracefully', async () => {
-      const mockFetch = vi.fn().mockRejectedValue(new Error('Upload failed'))
-      global.fetch = mockFetch
-
-      const setUploadingFile = vi.fn()
-      render(<CommentSection {...defaultProps} setUploadingFile={setUploadingFile} />)
-
-      const fileInput = document.getElementById('comment-file-upload') as HTMLInputElement
-      const file = new File(['content'], 'test.png', { type: 'image/png' })
-
-      Object.defineProperty(fileInput, 'files', {
-        value: [file],
-        writable: false
-      })
-
-      fireEvent.change(fileInput)
-
-      await waitFor(() => {
-        expect(setUploadingFile).toHaveBeenCalledWith(false)
-      })
-    })
+    // Upload error test removed — file attachments removed from task comment UI
   })
 
   describe('Theme Compatibility', () => {
@@ -660,31 +574,7 @@ describe('CommentSection', () => {
       expect(metaElement).toHaveClass('theme-text-muted')
     })
 
-    it('should use theme-text-primary for attached file names', () => {
-      const attachedFile: FileAttachment = {
-        url: '/api/secure-files/file-123',
-        name: 'document.pdf',
-        type: 'application/pdf',
-        size: 1024
-      }
-      render(<CommentSection {...defaultProps} attachedFile={attachedFile} />)
-      const fileNameElement = screen.getByText('document.pdf')
-      expect(fileNameElement).toHaveClass('theme-text-primary')
-      expect(fileNameElement).not.toHaveClass('text-white')
-    })
-
-    it('should use theme-text-primary for reply attached file names', () => {
-      const replyAttachedFile: FileAttachment = {
-        url: '/api/secure-files/file-456',
-        name: 'image.png',
-        type: 'image/png',
-        size: 2048
-      }
-      render(<CommentSection {...defaultProps} replyingTo="comment-1" replyAttachedFile={replyAttachedFile} />)
-      const fileNameElement = screen.getByText('image.png')
-      expect(fileNameElement).toHaveClass('theme-text-primary')
-      expect(fileNameElement).not.toHaveClass('text-white')
-    })
+    // Attached file name theme tests removed — file attachments removed from task comment UI
   })
 
   describe('Content Formatting', () => {

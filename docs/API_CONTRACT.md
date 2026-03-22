@@ -284,15 +284,22 @@ Get comments for a task.
 ```
 
 ### POST `/api/tasks/{taskId}/comments`
-Create a comment on a task.
+Create a comment on a task. Supports file attachments via `fileId`.
 
 **Request:**
 ```json
 {
   "content": "string",
-  "type": "TEXT"
+  "type": "TEXT | IMAGE | FILE | CODE | AUDIO | VIDEO",
+  "fileId": "string (optional - SecureFile ID to attach)",
+  "parentCommentId": "string (optional - for threaded replies)"
 }
 ```
+
+**Notes:**
+- `content` is required unless `fileId` is provided
+- `fileId` links an existing SecureFile to the comment
+- Files can be from the user's uploads or from chat channels the user has access to
 
 ### PUT `/api/comments/{id}`
 Update a comment.
@@ -415,6 +422,21 @@ Upload a file (multipart/form-data).
 
 ---
 
+## Chat Endpoints
+
+See [iOS Chat API Spec](ios/IOS_CHAT_API_SPEC.md) for full details.
+
+### POST `/api/chat/channels`
+Get or create a chat channel for a list or virtual key (My Tasks).
+
+### GET `/api/chat/channels/{channelId}/messages`
+Paginated messages. Query: `limit`, `before` (cursor).
+
+### POST `/api/chat/channels/{channelId}/messages`
+Send a message. Body: `{ content, type?, fileId?, replyToId?, clientRequestId? }`
+
+---
+
 ## Real-Time Updates
 
 ### GET `/api/sse`
@@ -428,6 +450,11 @@ Server-Sent Events endpoint for real-time updates.
 - `list:updated` - List modified
 - `list:deleted` - List removed
 - `comment:created` - New comment added
+- `chat_message_created` - New chat message
+- `chat_message_updated` - Chat message edited
+- `chat_message_deleted` - Chat message removed
+- `agent_typing_start` - AI agent began processing (show typing indicator)
+- `agent_typing_stop` - AI agent finished processing (hide typing indicator)
 
 ---
 

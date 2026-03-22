@@ -15,13 +15,7 @@ if (!productionDbUrl) {
   process.exit(1)
 }
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: productionDbUrl
-    }
-  }
-})
+const prisma = new PrismaClient()
 
 async function checkProductionAIAgents() {
   try {

@@ -227,6 +227,36 @@ export class PushNotificationService {
     await this.sendNotification(userId, payload)
   }
 
+  async sendChatMentionNotification(userId: string, data: {
+    channelId: string
+    messageId: string
+    senderName: string
+    content: string
+  }): Promise<void> {
+    const { channelId, messageId, senderName, content } = data
+
+    // Strip reference markup for display: @[Name](id) → @Name
+    const cleanContent = content
+      .replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
+      .replace(/#\[([^\]]+)\]\([^)]+\)/g, '#$1')
+      .replace(/!\[([^\]]+)\]\([^)]+\)/g, '!$1')
+
+    const payload: PushNotificationPayload = {
+      title: `${senderName} mentioned you in chat`,
+      body: `"${cleanContent.substring(0, 80)}${cleanContent.length > 80 ? '...' : ''}"`,
+      data: {
+        channelId,
+        messageId,
+        action: 'chat_mention',
+        url: '/',
+      },
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+    }
+
+    await this.sendNotification(userId, payload)
+  }
+
   private getTimeUntilDue(dueDateTime: Date): string | null {
     const due = new Date(dueDateTime)
     const now = new Date()

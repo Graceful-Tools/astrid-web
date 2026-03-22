@@ -193,7 +193,7 @@ describe('Secure Upload API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data).toEqual({ error: "Upload context must specify taskId, listId, or commentId" })
+      expect(data).toEqual({ error: "Upload context must specify taskId, listId, commentId, or channelId" })
     })
 
     it('should reject upload for non-existent task', async () => {

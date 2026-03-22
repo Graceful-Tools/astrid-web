@@ -75,7 +75,7 @@ fi
 # ---------------------------------------------------------------------------
 if [[ "$PRODUCTION" == "true" ]]; then
   echo -e "${BOLD}Deploying to production (astrid.cc)...${NC}"
-  DEPLOY_OUTPUT=$(npx vercel --prod --yes --token="$VERCEL_TOKEN" --scope jon-paris-projects 2>&1)
+  DEPLOY_OUTPUT=$(npx vercel --prod --yes --token="$VERCEL_TOKEN" --scope gracefultools 2>&1)
   DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
 
   echo ""
@@ -83,7 +83,7 @@ if [[ "$PRODUCTION" == "true" ]]; then
   info "Live at: https://astrid.cc"
 else
   echo -e "${BOLD}Deploying branch: ${BRANCH}${NC}"
-  DEPLOY_OUTPUT=$(npx vercel --yes --token="$VERCEL_TOKEN" --scope jon-paris-projects 2>&1)
+  DEPLOY_OUTPUT=$(npx vercel --yes --token="$VERCEL_TOKEN" --scope gracefultools 2>&1)
   DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
 
   if [[ -z "$DEPLOY_URL" ]]; then

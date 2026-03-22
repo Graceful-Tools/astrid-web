@@ -125,6 +125,8 @@ export interface PushNotificationPayload {
   data?: {
     taskId?: string
     commentId?: string
+    channelId?: string
+    messageId?: string
     action?: string
     url?: string
   }

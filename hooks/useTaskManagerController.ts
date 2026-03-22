@@ -41,7 +41,7 @@ interface UseTaskManagerControllerProps {
   taskMetadata?: any
   isMobile?: boolean
   is1Column?: boolean
-  setMobileView?: (view: 'list' | 'task') => void
+  setMobileView?: (view: 'list' | 'task' | 'chat') => void
   handleMobileBack?: () => void
   setShowMobileSidebar?: (show: boolean) => void
 }

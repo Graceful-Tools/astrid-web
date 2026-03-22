@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
+import { useAgentTyping } from "@/hooks/use-agent-typing"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -59,6 +60,7 @@ interface TaskDetailProps {
   task: Task
   currentUser: User
   availableLists?: TaskList[]
+  availableTasks?: Task[]
   onUpdate: (task: Task) => void
   onLocalUpdate?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void  // Update local state only, no API call
   onDelete: (taskId: string) => void
@@ -75,7 +77,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
   // SSE subscriptions handled by useSSESubscription hook below
   const { reminderDebugMode } = useSettings()
@@ -86,6 +88,9 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
     console.log('🎯 [TaskDetail] Coding workflow created:', workflowId)
     // Could show a notification or update UI here
   })
+
+  // Agent typing indicator for task comments
+  const agentTyping = useAgentTyping(null, task.id)
 
   // Consolidated state management using custom hook
   const state = useTaskDetailState(task)
@@ -1612,6 +1617,9 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
           onLocalUpdate={onLocalUpdate}
           onRefreshComments={handleRefreshComments}
           hideInput={true}
+          lists={availableLists}
+          tasks={availableTasks}
+          agentTyping={agentTyping}
           {...state.comments}
         />
         )}
@@ -1624,6 +1632,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
           currentUser={currentUser}
           onUpdate={onUpdate}
           onLocalUpdate={onLocalUpdate}
+          lists={availableLists}
+          tasks={availableTasks}
           newComment={newComment}
           setNewComment={setNewComment}
           uploadingFile={uploadingFile}

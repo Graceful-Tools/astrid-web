@@ -280,9 +280,33 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       const pushService = new PushNotificationService()
       const commenterName = session.user.name || session.user.email || "Someone"
 
-      // 1. Notify mentioned users
+      // 1. Notify mentioned users (and trigger AI agents)
       for (const mentionedUserId of mentionedUserIds) {
-        if (mentionedUserId !== session.user.id) {
+        if (mentionedUserId === session.user.id) continue
+
+        // Check if mentioned user is an AI agent
+        const mentionedUser = await prisma.user.findUnique({
+          where: { id: mentionedUserId },
+          select: { id: true, isAIAgent: true, email: true },
+        })
+
+        if (mentionedUser?.isAIAgent) {
+          // Trigger AI agent response
+          const { ASTRID_EMAIL } = await import('@/lib/astrid-agent')
+          if (mentionedUser.email === ASTRID_EMAIL) {
+            const { processAstridComment } = await import('@/lib/astrid-agent-runtime')
+            const listId = task.lists?.[0]?.id || null
+            processAstridComment({
+              commentContent: comment.content,
+              userId: session.user.id,
+              userName: commenterName,
+              taskId: task.id,
+              taskTitle: task.title,
+              listId,
+            }).catch(err => console.error('[Comments API] Astrid @mention comment error:', err))
+          }
+        } else {
+          // Human user — send push notification
           await pushService.sendCommentNotification(mentionedUserId, {
             taskId: task.id,
             commentId: comment.id,
@@ -478,6 +502,9 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       console.log(`🤖 Skipped AI agent notification - comment by AI agent itself`)
     } else if (isSystemGenerated) {
       console.log(`🔧 Skipped AI agent notification - system-generated comment`)
+    } else if (!task.assignee?.isAIAgent && !isCommenterAIAgent && !isSystemGenerated) {
+      // No AI agent assigned — agents only respond to task comments when @mentioned.
+      // The @mention handling above already covers this case.
     }
 
     // Track analytics event (fire-and-forget)

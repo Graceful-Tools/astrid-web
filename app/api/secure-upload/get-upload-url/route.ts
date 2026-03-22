@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate context has at least one target
-    if (!context.taskId && !context.listId && !context.commentId) {
+    if (!context.taskId && !context.listId && !context.commentId && !context.channelId) {
       return NextResponse.json({
-        error: "Upload context must specify taskId, listId, or commentId"
+        error: "Upload context must specify taskId, listId, commentId, or channelId"
       }, { status: 400 })
     }
 
@@ -182,6 +182,16 @@ export async function POST(request: NextRequest) {
       if (!comment) {
         return NextResponse.json({
           error: "Comment not found or access denied"
+        }, { status: 404 })
+      }
+    }
+
+    if (context.channelId) {
+      const { canAccessChatChannel } = await import('@/lib/chat-access')
+      const hasAccess = await canAccessChatChannel(context.channelId, session.user.id)
+      if (!hasAccess) {
+        return NextResponse.json({
+          error: "Chat channel not found or access denied"
         }, { status: 404 })
       }
     }

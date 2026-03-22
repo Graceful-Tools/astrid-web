@@ -233,7 +233,7 @@ export async function broadcastToUsers(userIds: string[], event: any) {
   userIds.forEach(userId => {
     // ALWAYS cache event for user (even if not connected) for reconnection recovery
     // Skip caching for ping/pong/connected events
-    if (!['ping', 'pong', 'connected', 'reconnect'].includes(event.type)) {
+    if (!['ping', 'pong', 'connected', 'reconnect', 'agent_typing_start', 'agent_typing_stop'].includes(event.type)) {
       cachePromises.push(cacheEventForUser(userId, fullEvent))
     }
 

@@ -4,13 +4,7 @@ import { isCodingAgent } from '../lib/ai-agent-utils'
 
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL_PROD
-    }
-  }
-})
+const prisma = new PrismaClient()
 
 async function main() {
   const userEmail = 'jonparis@gmail.com'

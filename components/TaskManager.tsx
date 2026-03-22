@@ -11,7 +11,8 @@ import { OwnerLeaveDialog } from "@/components/owner-leave-dialog"
 import { TaskManagerView } from "./TaskManagerView"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useToast } from "@/hooks/use-toast"
-import type { TaskList } from "@/types/task"
+import { useListChatChannel } from "@/hooks/use-list-chat-channel"
+import type { TaskList, User } from "@/types/task"
 
 interface TaskManagerProps {
   initialSelectedListId?: string
@@ -79,6 +80,64 @@ export function TaskManager({
     loadDataRef.current = controller.loadData
     searchClearRef.current = () => controller.setSearchValue("")
   }, [controller])
+
+  // Chat channel resolution
+  const isVirtualList = ['my-tasks', 'today', 'not-in-list', 'public', 'assigned'].includes(controller.selectedListId)
+  const { channelId: chatChannelId, isLoading: chatChannelLoading } = useListChatChannel({
+    listId: isVirtualList ? null : controller.selectedListId,
+    virtualListType: isVirtualList ? controller.selectedListId : null,
+    userId: controller.effectiveSession?.user?.id,
+    enabled: !!controller.effectiveSession?.user?.id,
+  })
+
+  // Fetch Astrid agent for mention autocomplete — always available regardless of default setting
+  const [defaultAgentUser, setDefaultAgentUser] = React.useState<User | null>(null)
+  React.useEffect(() => {
+    if (!controller.effectiveSession?.user?.id) return
+    // Fetch available agents — this also ensures astrid@astrid.cc exists in the DB
+    fetch('/api/user/available-agents')
+      .then(r => r.json())
+      .then((data) => {
+        // Find Astrid (always first in the list if user has any API key)
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
+          setDefaultAgentUser({
+            id: astrid.id,
+            name: astrid.name,
+            email: astrid.email,
+            image: astrid.image,
+            createdAt: new Date(),
+            isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [controller.effectiveSession?.user?.id])
+
+  // Chat list members for mention system — includes the configured default agent
+  const chatListMembers = React.useMemo((): User[] => {
+    let members: User[]
+    if (isVirtualList) {
+      members = controller.availableUsers || []
+    } else {
+      const list = controller.lists.find(l => l.id === controller.selectedListId)
+      if (!list) return defaultAgentUser ? [defaultAgentUser] : []
+      members = getAllListMembers(list).map(m => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        image: m.image,
+        createdAt: new Date(),
+      }))
+    }
+
+    // Inject the default agent if not already in the list
+    if (defaultAgentUser && !members.some(m => m.id === defaultAgentUser.id)) {
+      members = [defaultAgentUser, ...members]
+    }
+
+    return members
+  }, [controller.selectedListId, controller.lists, controller.availableUsers, isVirtualList, defaultAgentUser])
 
   // Modal and dialog management
   const modals = useTaskManagerModals()
@@ -418,6 +477,14 @@ export function TaskManager({
       setShowHotkeyMenu={controller.setShowHotkeyMenu}
       handleListCopied={controller.handleListCopied}
       setShowPublicBrowser={modals.setShowPublicBrowser}
+
+      // Chat
+      activePanel={layout.activePanel}
+      setActivePanel={layout.setActivePanel}
+      chatChannelId={chatChannelId}
+      chatChannelLoading={chatChannelLoading}
+      chatListMembers={chatListMembers}
+      chatListId={isVirtualList ? null : controller.selectedListId}
       />
 
       {/* Image Picker Modal */}

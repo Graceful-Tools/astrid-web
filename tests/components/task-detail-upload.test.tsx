@@ -5,7 +5,12 @@ import { TaskDetail } from '@/components/task-detail'
 import type { Task, User, TaskList } from '@/types/task'
 
 // Mock fetch for upload tests
-const mockFetch = vi.fn()
+// Default implementation returns empty JSON for any unhandled requests
+// (e.g., /api/user/ai-assistant-settings called by CommentSection useEffect)
+const mockFetch = vi.fn().mockResolvedValue({
+  ok: true,
+  json: () => Promise.resolve({})
+})
 global.fetch = mockFetch
 
 // Mock layout detection
@@ -133,141 +138,13 @@ const mockProps = {
   selectedTaskElement: null
 }
 
+// File attachment tests removed — attachments removed from task comment UI
+// File attachments are now available in chat messages only
 describe('TaskDetail Upload Functionality', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  describe('Comment attachments', () => {
-    it('should upload file for comment using secure upload', async () => {
-      const user = userEvent.setup()
-
-      // Mock successful upload response
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          fileId: 'test-file-id',
-          fileName: 'test.jpg',
-          mimeType: 'image/jpeg',
-          fileSize: 1024,
-          success: true
-        })
-      })
-
-      // Mock successful comment creation
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          id: 'comment-1',
-          content: 'Attached: test.jpg',
-          type: 'ATTACHMENT',
-          attachmentUrl: '/api/secure-files/test-file-id',
-          attachmentName: 'test.jpg',
-          attachmentType: 'image/jpeg',
-          attachmentSize: 1024,
-          authorId: 'user-1',
-          author: mockUser,
-          taskId: 'task-1',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          replies: []
-        })
-      })
-
-      render(<TaskDetail {...mockProps} />)
-
-      // Find the file input in the floating CommentInputBar
-      const fileInput = document.querySelector('#comment-file-upload-bar')
-      expect(fileInput).toBeTruthy()
-
-      const file = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
-      if (fileInput) {
-        await user.upload(fileInput as HTMLInputElement, file)
-      }
-
-      // Wait for upload to complete
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
-          method: 'POST',
-          body: expect.any(FormData)
-        })
-      })
-
-      // Verify the FormData contains correct data
-      const uploadCall = mockFetch.mock.calls[0]
-      const formData = uploadCall[1].body as FormData
-      expect(formData.get('file')).toBe(file)
-
-      const context = JSON.parse(formData.get('context') as string)
-      expect(context).toEqual({ taskId: 'task-1' })
-    })
-  })
-
-  describe('Reply attachments', () => {
-    const mockTaskWithComments: Task = {
-      ...mockTask,
-      comments: [{
-        id: 'comment-1',
-        content: 'Original comment',
-        type: 'TEXT',
-        attachmentUrl: null,
-        attachmentName: null,
-        attachmentType: null,
-        attachmentSize: null,
-        authorId: 'user-1',
-        author: mockUser,
-        taskId: 'task-1',
-        parentCommentId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        replies: []
-      }]
-    }
-
-    it('should upload file for reply using secure upload', async () => {
-      const user = userEvent.setup()
-
-      // Mock successful upload response
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          fileId: 'test-file-id',
-          fileName: 'reply.jpg',
-          mimeType: 'image/jpeg',
-          fileSize: 2048
-        })
-      })
-
-      // Reply buttons removed from UI (matching iOS pattern)
-      // Test that reply file input exists when replyingTo is set
-      // Since TaskDetail manages replyingTo internally and there's no UI button,
-      // we verify the comment upload works instead
-      render(<TaskDetail {...mockProps} task={mockTaskWithComments} />)
-
-      // Find the comment file input (bar version)
-      const fileInput = document.querySelector('#comment-file-upload-bar')
-      expect(fileInput).toBeTruthy()
-
-      const file = new File(['reply content'], 'reply.jpg', { type: 'image/jpeg' })
-      if (fileInput) {
-        await user.upload(fileInput as HTMLInputElement, file)
-      }
-
-      // Wait for upload to complete
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
-          method: 'POST',
-          body: expect.any(FormData)
-        })
-      })
-
-      // Verify the FormData contains correct data
-      const uploadCall = mockFetch.mock.calls[0]
-      const formData = uploadCall[1].body as FormData
-      expect(formData.get('file')).toBe(file)
-
-      const context = JSON.parse(formData.get('context') as string)
-      expect(context).toEqual({ taskId: 'task-1' })
-    })
+  it('should not render file upload input in comment section', () => {
+    render(<TaskDetail {...mockProps} />)
+    // No file input should be present since attachments are disabled in comments
+    const fileInput = document.querySelector('input[type="file"]')
+    expect(fileInput).toBeFalsy()
   })
 })

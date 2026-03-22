@@ -297,15 +297,34 @@ export async function POST(
     // Associate secure file if provided
     if (body.fileId) {
       try {
-        await prisma.secureFile.update({
-          where: {
-            id: body.fileId,
-            uploadedBy: auth.userId // Security: only allow linking files uploaded by the user
+        // Find the file — allow if user uploaded it OR if it's in a chat channel they have access to
+        const secureFile = await prisma.secureFile.findUnique({
+          where: { id: body.fileId },
+          select: {
+            id: true,
+            uploadedBy: true,
+            chatMessageId: true,
+            chatMessage: { select: { channelId: true } },
           },
-          data: {
-            commentId: comment.id
-          }
         })
+
+        let canLink = false
+        if (secureFile) {
+          if (secureFile.uploadedBy === auth.userId) {
+            canLink = true
+          } else if (secureFile.chatMessage?.channelId) {
+            // User can link files from channels they have access to
+            const { canAccessChatChannel } = await import('@/lib/chat-access')
+            canLink = await canAccessChatChannel(secureFile.chatMessage.channelId, auth.userId)
+          }
+        }
+
+        if (canLink) {
+          await prisma.secureFile.update({
+            where: { id: body.fileId },
+            data: { commentId: comment.id },
+          })
+        }
 
         // Refetch comment to include the associated file
         const updatedComment = await prisma.comment.findUnique({
