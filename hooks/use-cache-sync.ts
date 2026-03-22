@@ -68,7 +68,8 @@ export function useCacheSync() {
         case 'task_created':
         case 'task_updated':
           if (event.data.task) {
-            await CacheManager.setTask(event.data.task, true)
+            // skipCrossTabSync=true: all tabs receive SSE independently, no need to re-broadcast
+            await CacheManager.setTask(event.data.task, true, true)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}:`, event.data.task.id)
             }
@@ -88,7 +89,7 @@ export function useCacheSync() {
         case 'comment_created':
         case 'comment_updated':
           if (event.data.comment) {
-            await CacheManager.setComment(event.data.comment, true)
+            await CacheManager.setComment(event.data.comment, true, true)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}:`, event.data.comment.id)
             }
@@ -108,7 +109,7 @@ export function useCacheSync() {
         case 'list_created':
         case 'list_updated':
           if (event.data.list) {
-            await CacheManager.setList(event.data.list, true)
+            await CacheManager.setList(event.data.list, true, true)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}:`, event.data.list.id)
             }

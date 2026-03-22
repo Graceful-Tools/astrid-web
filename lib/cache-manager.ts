@@ -362,7 +362,7 @@ class CacheManagerClass {
   /**
    * Set task in all caches
    */
-  async setTask(task: Task, persistToIndexedDB = true): Promise<void> {
+  async setTask(task: Task, persistToIndexedDB = true, skipCrossTabSync = false): Promise<void> {
     // Update memory cache
     this.taskCache.set(task.id, task)
 
@@ -386,8 +386,10 @@ class CacheManagerClass {
       }
     }
 
-    // Broadcast to other tabs
-    CrossTabSync.broadcastCacheUpdated('task', task.id)
+    // Broadcast to other tabs (skip when update came from SSE, since all tabs get SSE independently)
+    if (!skipCrossTabSync) {
+      CrossTabSync.broadcastCacheUpdated('task', task.id)
+    }
 
     // Notify listeners
     this.notifyListeners(`task:${task.id}`)
@@ -546,7 +548,7 @@ class CacheManagerClass {
   /**
    * Set list in all caches
    */
-  async setList(list: TaskList, persistToIndexedDB = true): Promise<void> {
+  async setList(list: TaskList, persistToIndexedDB = true, skipCrossTabSync = false): Promise<void> {
     this.listCache.set(list.id, list)
 
     // Update user lists collection
@@ -560,7 +562,9 @@ class CacheManagerClass {
       }
     }
 
-    CrossTabSync.broadcastCacheUpdated('list', list.id)
+    if (!skipCrossTabSync) {
+      CrossTabSync.broadcastCacheUpdated('list', list.id)
+    }
     this.notifyListeners(`list:${list.id}`)
     this.notifyListeners('lists')
   }
@@ -659,7 +663,7 @@ class CacheManagerClass {
   /**
    * Set comment in all caches
    */
-  async setComment(comment: Comment, persistToIndexedDB = true): Promise<void> {
+  async setComment(comment: Comment, persistToIndexedDB = true, skipCrossTabSync = false): Promise<void> {
     this.commentCache.set(comment.id, comment)
 
     // Update task's comment collection
@@ -673,7 +677,9 @@ class CacheManagerClass {
       }
     }
 
-    CrossTabSync.broadcastCacheUpdated('comment', comment.id)
+    if (!skipCrossTabSync) {
+      CrossTabSync.broadcastCacheUpdated('comment', comment.id)
+    }
     this.notifyListeners(`comment:${comment.id}`)
     this.notifyListeners(`comments:${comment.taskId}`)
   }
