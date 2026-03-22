@@ -748,6 +748,19 @@ const TaskManagerView = memo(function TaskManagerView({
             handleCopyTask={handleCopyTask}
           />
         )}
+
+        {/* 3-Column Chat Panel - inline flex column on the right */}
+        {is3Column && effectiveSession?.user && !selectedTask && (
+          <div className="flex-shrink-0 border-l theme-border" style={{ width: 'clamp(320px, 30vw, 480px)' }}>
+            <ChatPanel
+              channelId={chatChannelId}
+              currentUser={effectiveSession.user}
+              listMembers={chatListMembers}
+              isLoading={chatChannelLoading}
+              className="h-full"
+            />
+          </div>
+        )}
         </div>
       </div>
 
@@ -757,28 +770,6 @@ const TaskManagerView = memo(function TaskManagerView({
           className="ios-drawer-overlay ios-drawer-overlay-visible"
           onClick={() => setShowMobileSidebar(false)}
         />
-      )}
-
-      {/* 3-Column Chat Panel - always visible as default in 3rd column */}
-      {is3Column && effectiveSession?.user && (
-        <div
-          className="task-panel-desktop scrollbar-hide"
-          style={{
-            left: taskPanePosition.left,
-            // Hide behind task detail when a task is selected
-            zIndex: selectedTask ? 0 : 1,
-            opacity: selectedTask ? 0 : 1,
-            transition: 'opacity 0.2s ease',
-          }}
-        >
-          <ChatPanel
-            channelId={chatChannelId}
-            currentUser={effectiveSession.user}
-            listMembers={chatListMembers}
-            isLoading={chatChannelLoading}
-            className="h-full"
-          />
-        </div>
       )}
 
       {/* Desktop Task Pane - positioned absolutely, slide-out from right */}
