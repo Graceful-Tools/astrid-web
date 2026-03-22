@@ -18,6 +18,8 @@ import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/use
 import { EnhancedTaskCreation } from "./enhanced-task-creation"
 import { MobileQuickAdd } from "./mobile-quick-add"
 import { KeyboardShortcutsMenu } from "./keyboard-shortcuts-menu"
+import { ChatPanel } from "./chat/ChatPanel"
+import { ChatToggle } from "./chat/ChatToggle"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
@@ -74,7 +76,7 @@ interface TaskManagerViewProps {
   is2Column: boolean
   is3Column: boolean
   isMobile: boolean
-  mobileView: 'list' | 'task'
+  mobileView: 'list' | 'task' | 'chat'
   showHamburgerMenu: boolean
   showMobileSidebar: boolean
   mobileSearchMode: boolean
@@ -217,7 +219,12 @@ interface TaskManagerViewProps {
   handleListCopied: (copiedList: any) => Promise<void>
   setShowPublicBrowser: (show: boolean) => void
 
-  // TODO: Add more props as needed
+  // Chat
+  activePanel: 'tasks' | 'chat'
+  setActivePanel: (panel: 'tasks' | 'chat') => void
+  chatChannelId: string | null
+  chatChannelLoading?: boolean
+  chatListMembers: User[]
 }
 
 /**
@@ -366,6 +373,11 @@ const TaskManagerView = memo(function TaskManagerView({
   setShowHotkeyMenu,
   handleListCopied,
   setShowPublicBrowser,
+  activePanel,
+  setActivePanel,
+  chatChannelId,
+  chatChannelLoading,
+  chatListMembers,
 }: TaskManagerViewProps) {
   const autoOpenedSidebarRef = React.useRef(false)
 
@@ -619,6 +631,8 @@ const TaskManagerView = memo(function TaskManagerView({
           onShowKeyboardShortcuts={handleShowHotkeyMenu}
           isTaskDragActive={Boolean(activeDragTaskId)}
           onHamburgerDragHover={handleHamburgerDragHover}
+          activePanel={activePanel}
+          onToggleActivePanel={setActivePanel}
         />
 
         {/* Main Layout */}
@@ -654,73 +668,86 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {/* Main Content */}
-        <MainContent
-          isMobile={isMobile}
-          mobileView={mobileView}
-          isMobileTaskDetailClosing={isMobileTaskDetailClosing}
-          is2Column={is2Column}
-          is3Column={is3Column}
-          selectedListId={selectedListId}
-          lists={lists}
-          finalFilteredTasks={finalFilteredTasks}
-          listMetadata={{}}
-          effectiveSession={effectiveSession}
-          availableUsers={availableUsers}
-          newFilterState={newFilterState}
-          selectedTaskId={selectedTaskId}
-          isViewingFromFeatured={isViewingFromFeatured}
-          showSettingsPopover={showSettingsPopover}
-          setShowSettingsPopover={setShowSettingsPopover}
-          showLeaveListMenu={showLeaveListMenu}
-          setShowLeaveListMenu={setShowLeaveListMenu}
-          editingListName={editingListName}
-          setEditingListName={setEditingListName}
-          tempListName={tempListName}
-          setTempListName={setTempListName}
-          editingListDescription={editingListDescription}
-          setEditingListDescription={setEditingListDescription}
-          tempListDescription={tempListDescription}
-          setTempListDescription={setTempListDescription}
-          quickTaskInput={quickTaskInput}
-          setQuickTaskInput={setQuickTaskInput}
-          recentlyChangedList={false}
-          isSessionReady={isSessionReady}
-          justReturnedFromTaskDetail={justReturnedFromTaskDetail}
-          pullToRefresh={pullToRefresh}
-          handleListImageClick={handleListImageClick}
-          handleEditListName={handleEditListName}
-          handleSaveListName={handleSaveListName}
-          handleEditListDescription={handleEditListDescription}
-          handleSaveListDescription={handleSaveListDescription}
-          handleLeaveList={handleLeaveList}
-          handleQuickTaskKeyDown={handleQuickTaskKeyDown}
-          handleAddTaskButtonClick={handleAddTaskButtonClick}
-          handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
-          handleToggleTaskComplete={handleToggleTaskComplete}
-          handleQuickCreateTask={handleQuickCreateTask}
-          handleCreateNewTask={handleCreateNewTask}
-          handleTaskDragStart={handleTaskDragStartInternal}
-          handleTaskDragHover={handleTaskDragHover}
-          handleTaskDragLeaveTask={handleTaskDragLeaveTask}
-          handleTaskDragHoverEnd={handleTaskDragHoverEnd}
-          handleTaskDragEnd={handleTaskDragEndInternal}
-          activeDragTaskId={activeDragTaskId}
-          dragTargetTaskId={dragTargetTaskId}
-          dragTargetPosition={dragTargetPosition}
-          manualSortActive={manualSortActive}
-          manualSortPreviewActive={manualSortPreviewActive}
-          closeTaskDetail={closeTaskDetail}
-          canEditListSettingsMemo={canEditListSettingsMemo}
-          getSelectedListInfo={getSelectedListInfo}
-          getPriorityColor={getPriorityColor}
-          taskManagerRef={taskManagerRef}
-          isKeyboardScrollingRef={isKeyboardScrollingRef}
-          onListUpdate={handleUpdateList}
-          onListDelete={handleDeleteList}
-          handleCopyList={handleCopyList}
-          handleCopyTask={handleCopyTask}
-        />
+        {/* Main Content - show tasks or chat based on activePanel */}
+        {activePanel === 'chat' && !is3Column ? (
+          // 1-column and 2-column: ChatPanel replaces task list
+          <div className="flex-1 min-h-0" ref={taskManagerRef}>
+            <ChatPanel
+              channelId={chatChannelId}
+              currentUser={effectiveSession?.user}
+              listMembers={chatListMembers}
+              isLoading={chatChannelLoading}
+              className="h-full"
+            />
+          </div>
+        ) : (
+          <MainContent
+            isMobile={isMobile}
+            mobileView={mobileView}
+            isMobileTaskDetailClosing={isMobileTaskDetailClosing}
+            is2Column={is2Column}
+            is3Column={is3Column}
+            selectedListId={selectedListId}
+            lists={lists}
+            finalFilteredTasks={finalFilteredTasks}
+            listMetadata={{}}
+            effectiveSession={effectiveSession}
+            availableUsers={availableUsers}
+            newFilterState={newFilterState}
+            selectedTaskId={selectedTaskId}
+            isViewingFromFeatured={isViewingFromFeatured}
+            showSettingsPopover={showSettingsPopover}
+            setShowSettingsPopover={setShowSettingsPopover}
+            showLeaveListMenu={showLeaveListMenu}
+            setShowLeaveListMenu={setShowLeaveListMenu}
+            editingListName={editingListName}
+            setEditingListName={setEditingListName}
+            tempListName={tempListName}
+            setTempListName={setTempListName}
+            editingListDescription={editingListDescription}
+            setEditingListDescription={setEditingListDescription}
+            tempListDescription={tempListDescription}
+            setTempListDescription={setTempListDescription}
+            quickTaskInput={quickTaskInput}
+            setQuickTaskInput={setQuickTaskInput}
+            recentlyChangedList={false}
+            isSessionReady={isSessionReady}
+            justReturnedFromTaskDetail={justReturnedFromTaskDetail}
+            pullToRefresh={pullToRefresh}
+            handleListImageClick={handleListImageClick}
+            handleEditListName={handleEditListName}
+            handleSaveListName={handleSaveListName}
+            handleEditListDescription={handleEditListDescription}
+            handleSaveListDescription={handleSaveListDescription}
+            handleLeaveList={handleLeaveList}
+            handleQuickTaskKeyDown={handleQuickTaskKeyDown}
+            handleAddTaskButtonClick={handleAddTaskButtonClick}
+            handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
+            handleToggleTaskComplete={handleToggleTaskComplete}
+            handleQuickCreateTask={handleQuickCreateTask}
+            handleCreateNewTask={handleCreateNewTask}
+            handleTaskDragStart={handleTaskDragStartInternal}
+            handleTaskDragHover={handleTaskDragHover}
+            handleTaskDragLeaveTask={handleTaskDragLeaveTask}
+            handleTaskDragHoverEnd={handleTaskDragHoverEnd}
+            handleTaskDragEnd={handleTaskDragEndInternal}
+            activeDragTaskId={activeDragTaskId}
+            dragTargetTaskId={dragTargetTaskId}
+            dragTargetPosition={dragTargetPosition}
+            manualSortActive={manualSortActive}
+            manualSortPreviewActive={manualSortPreviewActive}
+            closeTaskDetail={closeTaskDetail}
+            canEditListSettingsMemo={canEditListSettingsMemo}
+            getSelectedListInfo={getSelectedListInfo}
+            getPriorityColor={getPriorityColor}
+            taskManagerRef={taskManagerRef}
+            isKeyboardScrollingRef={isKeyboardScrollingRef}
+            onListUpdate={handleUpdateList}
+            onListDelete={handleDeleteList}
+            handleCopyList={handleCopyList}
+            handleCopyTask={handleCopyTask}
+          />
+        )}
         </div>
       </div>
 
@@ -730,6 +757,28 @@ const TaskManagerView = memo(function TaskManagerView({
           className="ios-drawer-overlay ios-drawer-overlay-visible"
           onClick={() => setShowMobileSidebar(false)}
         />
+      )}
+
+      {/* 3-Column Chat Panel - always visible as default in 3rd column */}
+      {is3Column && effectiveSession?.user && (
+        <div
+          className="task-panel-desktop scrollbar-hide"
+          style={{
+            left: taskPanePosition.left,
+            // Hide behind task detail when a task is selected
+            zIndex: selectedTask ? 0 : 1,
+            opacity: selectedTask ? 0 : 1,
+            transition: 'opacity 0.2s ease',
+          }}
+        >
+          <ChatPanel
+            channelId={chatChannelId}
+            currentUser={effectiveSession.user}
+            listMembers={chatListMembers}
+            isLoading={chatChannelLoading}
+            className="h-full"
+          />
+        </div>
       )}
 
       {/* Desktop Task Pane - positioned absolutely, slide-out from right */}

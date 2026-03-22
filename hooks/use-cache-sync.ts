@@ -26,7 +26,10 @@ const CACHE_SYNC_EVENTS = [
   'list_deleted',
   'list_member_added',
   'list_member_removed',
-  'list_member_updated'
+  'list_member_updated',
+  'chat_message_created',
+  'chat_message_updated',
+  'chat_message_deleted'
 ] as const
 
 type CacheSyncEventType = typeof CACHE_SYNC_EVENTS[number]
@@ -133,6 +136,18 @@ export function useCacheSync() {
             CacheManager.invalidateEntity('list', event.data.listId)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}: invalidated list`, event.data.listId)
+            }
+          }
+          break
+
+        // Chat events - dispatched as custom events for chat hooks to pick up
+        case 'chat_message_created':
+        case 'chat_message_updated':
+        case 'chat_message_deleted':
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent(event.type, { detail: event.data }))
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`📥 [CacheSync] ${event.type}: dispatched to chat hooks`)
             }
           }
           break

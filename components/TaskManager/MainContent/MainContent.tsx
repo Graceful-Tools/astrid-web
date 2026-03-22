@@ -45,7 +45,7 @@ import type { Task, TaskList } from "@/types/task"
 interface MainContentProps {
   // Layout and responsive props
   isMobile: boolean
-  mobileView: 'list' | 'task'
+  mobileView: 'list' | 'task' | 'chat'
   isMobileTaskDetailClosing?: boolean
   is2Column?: boolean
   is3Column?: boolean
