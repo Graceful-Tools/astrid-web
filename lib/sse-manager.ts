@@ -218,6 +218,9 @@ class SSEManagerClass {
     }
   }
 
+  // Dedup: track recently dispatched events to suppress rapid-fire duplicates from the server
+  private recentEventKeys = new Map<string, number>()
+
   /**
    * Handle incoming SSE messages
    */
@@ -254,6 +257,28 @@ class SSEManagerClass {
       // Skip ping events
       if (eventData.type === 'ping') {
         return
+      }
+
+      // Dedup: suppress rapid-fire identical events (same type + entity within 1s)
+      const entityId = eventData.data?.taskId || eventData.data?.task?.id ||
+                       eventData.data?.commentId || eventData.data?.comment?.id ||
+                       eventData.data?.listId || eventData.data?.list?.id ||
+                       eventData.data?.channelId
+      if (entityId) {
+        const dedupKey = `${eventData.type}:${entityId}`
+        const now = Date.now()
+        const lastSeen = this.recentEventKeys.get(dedupKey)
+        if (lastSeen && now - lastSeen < 1000) {
+          return // Suppress duplicate
+        }
+        this.recentEventKeys.set(dedupKey, now)
+        // Prune old entries
+        if (this.recentEventKeys.size > 200) {
+          const cutoff = now - 10000
+          for (const [key, ts] of this.recentEventKeys) {
+            if (ts < cutoff) this.recentEventKeys.delete(key)
+          }
+        }
       }
 
       // Route event to relevant subscribers
