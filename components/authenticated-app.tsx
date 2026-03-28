@@ -2,7 +2,6 @@
 
 import { useEffect } from "react"
 import { TaskManager } from "@/components/TaskManager"
-import { LoadingScreen } from "@/components/loading-screen"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { offlineDB } from "@/lib/offline-db"
@@ -45,25 +44,25 @@ export function AuthenticatedApp({
     }
   }, [status, router])
 
-  if (status === "loading") {
-    // Show minimal loading instead of full screen
+  if (status === "loading" || !session) {
+    // App shell skeleton — matches real layout so transition is smooth
     return (
-      <div className="min-h-screen flex items-center justify-center theme-bg-primary">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="theme-text-muted text-sm">Checking authentication...</p>
+      <div className="min-h-screen theme-bg-primary flex">
+        <div className="w-64 border-r theme-border hidden md:block p-4">
+          <div className="h-8 w-32 bg-gray-800 rounded animate-pulse mb-6" />
+          <div className="space-y-3">
+            <div className="h-6 w-full bg-gray-800 rounded animate-pulse" />
+            <div className="h-6 w-3/4 bg-gray-800 rounded animate-pulse" />
+            <div className="h-6 w-5/6 bg-gray-800 rounded animate-pulse" />
+          </div>
         </div>
-      </div>
-    )
-  }
-
-  if (!session) {
-    // Show minimal loading instead of full screen
-    return (
-      <div className="min-h-screen flex items-center justify-center theme-bg-primary">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="theme-text-muted text-sm">Loading session...</p>
+        <div className="flex-1 p-6">
+          <div className="h-8 w-48 bg-gray-800 rounded animate-pulse mb-6" />
+          <div className="space-y-4">
+            <div className="h-12 w-full bg-gray-800 rounded animate-pulse" />
+            <div className="h-12 w-full bg-gray-800 rounded animate-pulse" />
+            <div className="h-12 w-3/4 bg-gray-800 rounded animate-pulse" />
+          </div>
         </div>
       </div>
     )

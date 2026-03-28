@@ -55,12 +55,33 @@ interface SSECacheEvent {
  */
 export function useCacheSync() {
   const isProcessingRef = useRef(false)
+  // Dedup: track recently processed events to prevent rapid-fire loops
+  const recentEventKeys = useRef(new Map<string, number>())
 
   // Handle SSE events
   const handleSSEEvent = useCallback(async (event: SSECacheEvent) => {
     // Prevent concurrent processing
     if (isProcessingRef.current) {
       return
+    }
+
+    // Dedup: skip if we processed the same entity event within 500ms
+    const entityId = event.data.task?.id || event.data.taskId || event.data.comment?.id || event.data.commentId || event.data.list?.id || event.data.listId
+    if (entityId) {
+      const dedupKey = `${event.type}:${entityId}`
+      const now = Date.now()
+      const lastProcessed = recentEventKeys.current.get(dedupKey)
+      if (lastProcessed && now - lastProcessed < 500) {
+        return // Skip duplicate
+      }
+      recentEventKeys.current.set(dedupKey, now)
+      // Cleanup old entries periodically
+      if (recentEventKeys.current.size > 100) {
+        const cutoff = now - 5000
+        for (const [key, ts] of recentEventKeys.current) {
+          if (ts < cutoff) recentEventKeys.current.delete(key)
+        }
+      }
     }
 
     isProcessingRef.current = true
@@ -71,7 +92,8 @@ export function useCacheSync() {
         case 'task_created':
         case 'task_updated':
           if (event.data.task) {
-            await CacheManager.setTask(event.data.task, true)
+            // skipCrossTabSync=true: all tabs receive SSE independently, no need to re-broadcast
+            await CacheManager.setTask(event.data.task, true, true)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}:`, event.data.task.id)
             }
@@ -91,7 +113,7 @@ export function useCacheSync() {
         case 'comment_created':
         case 'comment_updated':
           if (event.data.comment) {
-            await CacheManager.setComment(event.data.comment, true)
+            await CacheManager.setComment(event.data.comment, true, true)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}:`, event.data.comment.id)
             }
@@ -111,7 +133,7 @@ export function useCacheSync() {
         case 'list_created':
         case 'list_updated':
           if (event.data.list) {
-            await CacheManager.setList(event.data.list, true)
+            await CacheManager.setList(event.data.list, true, true)
             if (process.env.NODE_ENV === 'development') {
               console.log(`📥 [CacheSync] ${event.type}:`, event.data.list.id)
             }
