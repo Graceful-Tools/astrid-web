@@ -22,7 +22,8 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
   // Layout state
   const [layoutType, setLayoutType] = useState<LayoutType>('computer-2-column')
   const [isMobile, setIsMobile] = useState(false)
-  const [mobileView, setMobileView] = useState<'list' | 'task'>('list')
+  const [mobileView, setMobileView] = useState<'list' | 'task' | 'chat'>('list')
+  const [activePanel, setActivePanel] = useState<'tasks' | 'chat'>('tasks')
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [mobileSearchMode, setMobileSearchMode] = useState(false)
@@ -45,6 +46,15 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
       const currentLayoutType = getLayoutType()
       const mobile = is1ColumnView(currentLayoutType)
       const hamburgerMenu = shouldShowHamburgerMenu(currentLayoutType)
+
+      // Reset activePanel when transitioning to mobile — in 2-column and
+      // 3-column, chat is always visible as a right column, but in mobile
+      // activePanel='chat' replaces the task list entirely
+      const wasDesktop = !is1ColumnView(layoutType)
+      const nowMobile = is1ColumnView(currentLayoutType)
+      if (wasDesktop && nowMobile) {
+        setActivePanel('tasks')
+      }
 
       setLayoutType(currentLayoutType)
       setIsMobile(mobile)
@@ -126,6 +136,8 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
         setIsMobileTaskDetailClosing(false)
         setTimeout(() => setJustReturnedFromTaskDetail(false), 500)
       }, 350) // Match animation duration (0.35s)
+    } else if (mobileView === 'chat') {
+      setMobileView('list')
     }
   }, [mobileView])
 
@@ -241,6 +253,8 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
     pullToRefresh,
 
     // State setters
+    activePanel,
+    setActivePanel,
     setMobileView,
     setShowMobileSidebar,
     setMobileSearchMode,

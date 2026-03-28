@@ -57,7 +57,7 @@ export interface UseTaskSelectionProps {
   selectedListId: string
   finalTasks: Task[]
   closeTaskPaneAnimated: () => void
-  setMobileView?: (view: 'list' | 'task') => void
+  setMobileView?: (view: 'list' | 'task' | 'chat') => void
   setShowMobileSidebar?: (show: boolean) => void
 }
 
@@ -101,7 +101,7 @@ export function useTaskSelection({
   const selectedTaskId = selectedTaskIdState
 
   // Safe mobile view setter
-  const setMobileViewSafe = useCallback((view: 'list' | 'task') => {
+  const setMobileViewSafe = useCallback((view: 'list' | 'task' | 'chat') => {
     if (setMobileView) {
       setMobileView(view)
     }

@@ -4,7 +4,7 @@ import type { Task, TaskList } from "@/types/task"
 export interface UseTaskNavigationProps {
   initialSelectedListId?: string
   isMobile: boolean
-  setMobileView?: (view: 'list' | 'task') => void
+  setMobileView?: (view: 'list' | 'task' | 'chat') => void
   initialSelectedTaskId?: string
   loading: boolean
   tasks: Task[]
@@ -23,7 +23,7 @@ export interface UseTaskNavigationReturn {
   setRecentlyChangedList: React.Dispatch<React.SetStateAction<boolean>>
 
   // Navigation helpers
-  setMobileViewSafe: (view: 'list' | 'task') => void
+  setMobileViewSafe: (view: 'list' | 'task' | 'chat') => void
 }
 
 export function useTaskNavigation({
@@ -49,7 +49,7 @@ export function useTaskNavigation({
   }, [])
 
   // Safe mobile view setter
-  const setMobileViewSafe = useCallback((view: 'list' | 'task') => {
+  const setMobileViewSafe = useCallback((view: 'list' | 'task' | 'chat') => {
     if (setMobileView) {
       setMobileView(view)
     }

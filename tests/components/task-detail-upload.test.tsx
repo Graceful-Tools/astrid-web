@@ -176,8 +176,8 @@ describe('TaskDetail Upload Functionality', () => {
 
       render(<TaskDetail {...mockProps} />)
 
-      // Find the file input in the floating CommentInputBar
-      const fileInput = document.querySelector('#comment-file-upload-bar')
+      // RichTextInput renders a hidden file input (no ID) - find it by type
+      const fileInput = document.querySelector('input[type="file"]')
       expect(fileInput).toBeTruthy()
 
       const file = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
@@ -244,8 +244,8 @@ describe('TaskDetail Upload Functionality', () => {
       // we verify the comment upload works instead
       render(<TaskDetail {...mockProps} task={mockTaskWithComments} />)
 
-      // Find the comment file input (bar version)
-      const fileInput = document.querySelector('#comment-file-upload-bar')
+      // RichTextInput renders a hidden file input (no ID) - find it by type
+      const fileInput = document.querySelector('input[type="file"]')
       expect(fileInput).toBeTruthy()
 
       const file = new File(['reply content'], 'reply.jpg', { type: 'image/jpeg' })

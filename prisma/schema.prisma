@@ -36,61 +36,64 @@ model Session {
 }
 
 model User {
-  id                           String             @id @default(cuid())
+  id                           String               @id @default(cuid())
   name                         String?
-  email                        String             @unique
+  email                        String               @unique
   emailVerified                DateTime?
   image                        String?
-  createdAt                    DateTime           @default(now())
-  updatedAt                    DateTime           @updatedAt
-  isActive                     Boolean            @default(true)
+  createdAt                    DateTime             @default(now())
+  updatedAt                    DateTime             @updatedAt
+  isActive                     Boolean              @default(true)
   pendingEmail                 String?
-  emailVerificationToken       String?            @unique
+  emailVerificationToken       String?              @unique
   emailTokenExpiresAt          DateTime?
   password                     String?
   aiAssistantSettings          String?
-  defaultDueTime               String?            @default("17:00")
-  mcpEnabled                   Boolean            @default(true)
+  defaultDueTime               String?              @default("17:00")
+  mcpEnabled                   Boolean              @default(true)
   mcpSettings                  String?
   aiAgentConfig                String?
   aiAgentType                  String?
-  isAIAgent                    Boolean            @default(false)
+  isAIAgent                    Boolean              @default(false)
   webhookUrl                   String?
-  defaultNewListMcpAccessLevel String             @default("WRITE")
-  defaultNewListMcpEnabled     Boolean            @default(true)
-  defaultTaskDueOffset         String?            @default("1_week")
-  emailToTaskEnabled           Boolean            @default(true)
+  defaultNewListMcpAccessLevel String               @default("WRITE")
+  defaultNewListMcpEnabled     Boolean              @default(true)
+  defaultTaskDueOffset         String?              @default("1_week")
+  emailToTaskEnabled           Boolean              @default(true)
   emailToTaskListId            String?
-  smartTaskCreationEnabled     Boolean            @default(true)
+  smartTaskCreationEnabled     Boolean              @default(true)
   invitedBy                    String?
-  isPlaceholder                Boolean            @default(false)
-  statsCompletedTasks          Int                @default(0)
-  statsInspiredTasks           Int                @default(0)
-  statsSupportedTasks          Int                @default(0)
+  isPlaceholder                Boolean              @default(false)
+  statsCompletedTasks          Int                  @default(0)
+  statsInspiredTasks           Int                  @default(0)
+  statsSupportedTasks          Int                  @default(0)
   statsLastCalculated          DateTime?
   myTasksPreferences           String?
   accounts                     Account[]
   authenticators               Authenticator[]
   comments                     Comment[]
   githubIntegrations           GitHubIntegration[]
-  receivedInvitations          Invitation[]       @relation("InvitationReceiver")
-  sentInvitations              Invitation[]       @relation("InvitationSender")
-  createdInvites               ListInvite[]       @relation("ListInviteCreator")
-  listMemberships              ListMember[]       @relation("ListMembership")
+  receivedInvitations          Invitation[]         @relation("InvitationReceiver")
+  sentInvitations              Invitation[]         @relation("InvitationSender")
+  createdInvites               ListInvite[]         @relation("ListInviteCreator")
+  listMemberships              ListMember[]         @relation("ListMembership")
   mcpTokens                    MCPToken[]
-  oauthClients                 OAuthClient[]      @relation("OAuthClients")
-  oauthTokens                  OAuthToken[]       @relation("OAuthTokens")
+  oauthClients                 OAuthClient[]        @relation("OAuthClients")
+  oauthTokens                  OAuthToken[]         @relation("OAuthTokens")
   pushSubscriptions            PushSubscription[]
   reminderQueue                ReminderQueue[]
   reminderSettings             ReminderSettings?
   webhookConfig                UserWebhookConfig?
   secureFiles                  SecureFile[]
   sessions                     Session[]
-  assignedTasks                Task[]             @relation("TaskAssignee")
-  createdTasks                 Task[]             @relation("TaskCreator")
-  ownedLists                   TaskList[]         @relation("ListOwner")
-  analyticsEvents              AnalyticsEvent[]   @relation("AnalyticsEvents")
-  adminUser                    AdminUser?         @relation("AdminUsers")
+  assignedTasks                Task[]               @relation("TaskAssignee")
+  createdTasks                 Task[]               @relation("TaskCreator")
+  ownedLists                   TaskList[]           @relation("ListOwner")
+  analyticsEvents              AnalyticsEvent[]     @relation("AnalyticsEvents")
+  adminUser                    AdminUser?           @relation("AdminUsers")
+  chatMessages                 ChatMessage[]
+  addressBookContacts          AddressBookContact[] @relation("AddressBookContacts")
+
   @@index([email])
   @@index([emailVerified])
   @@index([createdAt])
@@ -103,13 +106,12 @@ model User {
   @@index([invitedBy])
   @@index([emailToTaskEnabled])
   @@index([statsLastCalculated])
-  addressBookContacts      AddressBookContact[] @relation("AddressBookContacts")
 }
 
 model AddressBookContact {
   id          String   @id @default(cuid())
   userId      String
-  email       String   // Normalized to lowercase
+  email       String // Normalized to lowercase
   name        String?
   phoneNumber String?
   uploadedAt  DateTime @default(now())
@@ -183,6 +185,7 @@ model TaskList {
   listMembers         ListMember[]
   mcpTokens           MCPToken[]
   secureFiles         SecureFile[]
+  chatChannel         ChatChannel?
   owner               User            @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   tasks               Task[]          @relation("TaskToTaskList")
 
@@ -217,7 +220,7 @@ model Task {
   reminderTime    DateTime?
   reminderType    String?
   aiAgentId       String?
-  clientRequestId String?              @unique
+  clientRequestId String?             @unique
   occurrenceCount Int                 @default(0)
   repeatFrom      RepeatFromMode      @default(COMPLETION_DATE)
   timerDuration   Int?
@@ -431,8 +434,8 @@ model ReminderSettings {
 model UserWebhookConfig {
   id            String    @id @default(cuid())
   userId        String    @unique
-  webhookUrl    String    // Encrypted - URL for Code Remote server
-  webhookSecret String    // Encrypted - HMAC secret for signing requests
+  webhookUrl    String // Encrypted - URL for Code Remote server
+  webhookSecret String // Encrypted - HMAC secret for signing requests
   enabled       Boolean   @default(true)
   events        String[]  @default(["task.assigned", "comment.created"])
   agents        String[]  @default([]) // Which agents this webhook handles (opt-in, empty = none)
@@ -450,18 +453,18 @@ model UserWebhookConfig {
 
 // Webhook delivery audit log for reliability tracking
 model WebhookDeliveryLog {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   taskId         String
-  event          String    // task.assigned, comment.created, etc.
-  webhookUrl     String    // Target URL (not encrypted for debugging)
-  status         String    // pending, success, failed
-  attempts       Int       @default(0)
-  responseCode   Int?      // HTTP status code if received
-  responseTimeMs Int?      // Response time in milliseconds
-  errorMessage   String?   // Error details if failed
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  event          String // task.assigned, comment.created, etc.
+  webhookUrl     String // Target URL (not encrypted for debugging)
+  status         String // pending, success, failed
+  attempts       Int      @default(0)
+  responseCode   Int? // HTTP status code if received
+  responseTimeMs Int? // Response time in milliseconds
+  errorMessage   String? // Error details if failed
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId, createdAt])
   @@index([taskId])
@@ -646,6 +649,44 @@ model Shortcode {
   @@index([expiresAt])
 }
 
+model ChatChannel {
+  id         String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  listId     String?       @unique
+  virtualKey String?       @unique
+  name       String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  messages   ChatMessage[]
+  list       TaskList?     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@index([virtualKey])
+}
+
+model ChatMessage {
+  id              String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  channelId       String
+  authorId        String
+  content         String
+  type            CommentType   @default(TEXT)
+  attachmentUrl   String?
+  attachmentName  String?
+  attachmentType  String?
+  attachmentSize  Int?
+  replyToId       String?
+  clientRequestId String?       @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  channel         ChatChannel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author          User          @relation(fields: [authorId], references: [id])
+  replyTo         ChatMessage?  @relation("ChatMessageReplies", fields: [replyToId], references: [id])
+  replies         ChatMessage[] @relation("ChatMessageReplies")
+
+  @@index([channelId, createdAt], map: "ChatMessage_channelId_createdAt_asc_idx")
+  @@index([channelId, createdAt(sort: Desc)], map: "ChatMessage_channelId_createdAt_desc_idx")
+  @@index([authorId])
+}
+
 enum CommentType {
   TEXT
   MARKDOWN
@@ -701,11 +742,11 @@ enum RepeatFromMode {
 model AnalyticsEvent {
   id        String   @id @default(cuid())
   userId    String
-  eventType String   // task_created, task_edited, task_completed, task_deleted,
-                     // comment_added, comment_deleted, list_added, list_edited,
-                     // list_deleted, settings_updated
-  platform  String   // web-desktop, web-iPhone, web-android, iOS-app, API-other, unknown
-  metadata  Json?    // Optional additional context
+  eventType String // task_created, task_edited, task_completed, task_deleted,
+  // comment_added, comment_deleted, list_added, list_edited,
+  // list_deleted, settings_updated
+  platform  String // web-desktop, web-iPhone, web-android, iOS-app, API-other, unknown
+  metadata  Json? // Optional additional context
   createdAt DateTime @default(now())
 
   user User @relation("AnalyticsEvents", fields: [userId], references: [id], onDelete: Cascade)
@@ -719,9 +760,9 @@ model AnalyticsEvent {
 model AnalyticsDailyStats {
   id   String   @id @default(cuid())
   date DateTime @unique @db.Date // Day (midnight UTC)
-  dau  Int      // Distinct users active that day
-  wau  Int      // Distinct users active in trailing 7 days
-  mau  Int      // Distinct users active in trailing 30 days
+  dau  Int // Distinct users active that day
+  wau  Int // Distinct users active in trailing 7 days
+  mau  Int // Distinct users active in trailing 30 days
 
   // Platform breakdown for DAU
   dauWebDesktop Int @default(0)
@@ -752,9 +793,8 @@ model AnalyticsDailyStats {
 model AdminUser {
   id        String   @id @default(cuid())
   userId    String   @unique
-  grantedBy String?  // userId of admin who granted access (null for initial admin)
+  grantedBy String? // userId of admin who granted access (null for initial admin)
   createdAt DateTime @default(now())
 
   user User @relation("AdminUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
-

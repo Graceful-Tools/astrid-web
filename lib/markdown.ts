@@ -115,14 +115,26 @@ export function renderMarkdownWithLinks(text: string, options?: { codeClass?: st
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
     .replace(/`(.*?)`/g, `<code${codeClass ? ` class="${codeClass}"` : ''}>$1</code>`)
 
-  // Linkify URLs with safety validation
-  html = safeLinkify(html)
+  // Handle references BEFORE safeLinkify — otherwise safeLinkify's [text](url)
+  // pattern consumes @[Name](id), #[Name](id), and ![Name](id)
 
-  // Handle mentions @[Name](userId)
-  const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g
-  html = html.replace(mentionPattern, (_match, name, _userId) => {
-    return `<span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium">@${escapeHtml(name)}</span>`
+  // Handle mentions @[Name](userId) — links to user profile
+  html = html.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, (_match, name, userId) => {
+    return `<a href="/u/${encodeURIComponent(userId)}" class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline">@${escapeHtml(name)}</a>`
   })
+
+  // Handle list references #[ListName](listId) — links to list view
+  html = html.replace(/#\[([^\]]+)\]\(([^)]+)\)/g, (_match, name, listId) => {
+    return `<a href="/lists/${encodeURIComponent(listId)}" class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline">#${escapeHtml(name)}</a>`
+  })
+
+  // Handle task references ![TaskTitle](taskId) — links to task detail
+  html = html.replace(/!\[([^\]]+)\]\(([^)]+)\)/g, (_match, title, taskId) => {
+    return `<a href="/?task=${encodeURIComponent(taskId)}" class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline">!${escapeHtml(title)}</a>`
+  })
+
+  // Linkify URLs with safety validation (after references so it doesn't eat [Name](id))
+  html = safeLinkify(html)
 
   // Convert newlines to <br>
   html = html.replace(/\n/g, "<br>")
@@ -130,8 +142,10 @@ export function renderMarkdownWithLinks(text: string, options?: { codeClass?: st
   // Sanitize the HTML to prevent XSS
   if (typeof window !== 'undefined') {
     return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'a'],
-      ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'a', 'span'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+      // Allow relative URLs and standard protocols — we control all href generation
+      ALLOW_UNKNOWN_PROTOCOLS: true,
     })
   }
 

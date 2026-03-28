@@ -11,7 +11,8 @@ import { OwnerLeaveDialog } from "@/components/owner-leave-dialog"
 import { TaskManagerView } from "./TaskManagerView"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useToast } from "@/hooks/use-toast"
-import type { TaskList } from "@/types/task"
+import { useListChatChannel } from "@/hooks/use-list-chat-channel"
+import type { TaskList, User } from "@/types/task"
 
 interface TaskManagerProps {
   initialSelectedListId?: string
@@ -79,6 +80,33 @@ export function TaskManager({
     loadDataRef.current = controller.loadData
     searchClearRef.current = () => controller.setSearchValue("")
   }, [controller])
+
+  // Chat channel resolution
+  const isVirtualList = ['my-tasks', 'today', 'not-in-list', 'public', 'assigned'].includes(controller.selectedListId)
+  const { channelId: chatChannelId, isLoading: chatChannelLoading } = useListChatChannel({
+    listId: isVirtualList ? null : controller.selectedListId,
+    virtualListType: isVirtualList ? controller.selectedListId : null,
+    userId: controller.effectiveSession?.user?.id,
+    enabled: !!controller.effectiveSession?.user?.id,
+  })
+
+  // Chat list members for mention system
+  const chatListMembers = React.useMemo((): User[] => {
+    if (isVirtualList) {
+      // For virtual lists, use available users from controller
+      return controller.availableUsers || []
+    }
+    // For real lists, get list members
+    const list = controller.lists.find(l => l.id === controller.selectedListId)
+    if (!list) return []
+    return getAllListMembers(list).map(m => ({
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      image: m.image,
+      createdAt: new Date(),
+    }))
+  }, [controller.selectedListId, controller.lists, controller.availableUsers, isVirtualList])
 
   // Modal and dialog management
   const modals = useTaskManagerModals()
@@ -418,6 +446,14 @@ export function TaskManager({
       setShowHotkeyMenu={controller.setShowHotkeyMenu}
       handleListCopied={controller.handleListCopied}
       setShowPublicBrowser={modals.setShowPublicBrowser}
+
+      // Chat
+      activePanel={layout.activePanel}
+      setActivePanel={layout.setActivePanel}
+      chatChannelId={chatChannelId}
+      chatChannelLoading={chatChannelLoading}
+      chatListMembers={chatListMembers}
+      chatListId={isVirtualList ? null : controller.selectedListId}
       />
 
       {/* Image Picker Modal */}
