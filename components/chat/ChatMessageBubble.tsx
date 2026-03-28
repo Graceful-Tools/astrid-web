@@ -3,12 +3,19 @@
 import React from 'react'
 import type { ChatMessage } from '@/types/chat'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
-import { Bot } from 'lucide-react'
+import { Bot, FileText } from 'lucide-react'
+import { SecureAttachmentViewer } from '@/components/secure-attachment-viewer'
 
 interface ChatMessageBubbleProps {
   message: ChatMessage
   isOwnMessage: boolean
   showAuthor: boolean
+}
+
+/** Extract a secure file ID from a /api/secure-files/{id} URL */
+function extractSecureFileId(url: string): string | null {
+  const match = url.match(/\/api\/secure-files\/([a-zA-Z0-9_-]+)/)
+  return match ? match[1] : null
 }
 
 export const ChatMessageBubble = React.memo(function ChatMessageBubble({
@@ -23,6 +30,8 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble({
     hour: '2-digit',
     minute: '2-digit',
   })
+
+  const secureFileId = message.attachmentUrl ? extractSecureFileId(message.attachmentUrl) : null
 
   return (
     <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} ${showAuthor ? 'mt-3' : 'mt-0.5'}`}>
@@ -50,7 +59,14 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble({
           {/* Attachment */}
           {message.attachmentUrl && (
             <div className="mb-1">
-              {message.attachmentType?.startsWith('image/') ? (
+              {secureFileId ? (
+                // Secure file — use viewer for images, show file info for others
+                <SecureAttachmentViewer
+                  fileId={secureFileId}
+                  fileName={message.attachmentName || undefined}
+                  showFileName
+                />
+              ) : message.attachmentType?.startsWith('image/') ? (
                 <img
                   src={message.attachmentUrl}
                   alt={message.attachmentName || 'Attachment'}
@@ -61,8 +77,9 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble({
                   href={message.attachmentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`text-xs underline ${isOwnMessage ? 'text-blue-100' : 'text-blue-600 dark:text-blue-400'}`}
+                  className={`inline-flex items-center gap-1.5 text-xs underline ${isOwnMessage ? 'text-blue-100' : 'text-blue-600 dark:text-blue-400'}`}
                 >
+                  <FileText className="w-3.5 h-3.5" />
                   {message.attachmentName || 'Download attachment'}
                 </a>
               )}

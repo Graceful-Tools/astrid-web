@@ -10,6 +10,7 @@ import { format } from "date-fns"
 import { isMobileDevice } from "@/lib/layout-detection"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
+import { RichTextInput } from "@/components/shared/RichTextInput"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 
@@ -104,6 +105,10 @@ interface CommentSectionProps {
   readOnly?: boolean  // If true, hide comment input
   hideInput?: boolean  // If true, hide the bottom input bar (rendered separately outside scroll area)
   onRefreshComments?: () => Promise<void>  // Callback to refresh comments from API
+  /** Lists for # autocomplete in comments */
+  lists?: import('@/types/task').TaskList[]
+  /** Tasks for ! autocomplete in comments */
+  tasks?: Task[]
   // Comment state from useTaskDetailState
   newComment: string
   setNewComment: (value: string) => void
@@ -134,6 +139,10 @@ export interface CommentInputBarProps {
   onUpdate: (updatedTask: Task) => void
   onLocalUpdate?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
   readOnly?: boolean
+  /** Lists for # autocomplete */
+  lists?: import('@/types/task').TaskList[]
+  /** Tasks for ! autocomplete */
+  tasks?: Task[]
   newComment: string
   setNewComment: (value: string) => void
   uploadingFile: boolean
@@ -171,7 +180,9 @@ export function CommentSection({
   uploadError,
   setUploadError,
   replyUploadError,
-  setReplyUploadError
+  setReplyUploadError,
+  lists: availableLists,
+  tasks: availableTasks,
 }: CommentSectionProps) {
   const [showSystemComments, setShowSystemComments] = useState(false)
   const [localUploadError, setLocalUploadError] = useState<string | null>(null)
@@ -1119,7 +1130,7 @@ export function CommentSection({
 
       {/* Messaging-style input bar - hidden when hideInput is true (rendered outside scroll area) */}
       {!hideInput && (
-      <div className="border-t theme-border pt-0 mt-auto">
+      <div className="border-t theme-border mt-auto">
         {/* Upload error */}
         {uploadErrorState && (
           <div className="m-3 mb-0 p-2 bg-red-900/20 border border-red-500/50 rounded-lg">
@@ -1150,70 +1161,25 @@ export function CommentSection({
           </div>
         )}
 
-        {/* Input bar: [paperclip] [textarea] [send] */}
+        {/* Rich text input bar with @mention autocomplete, file upload, and highlight overlay */}
         {!readOnly && (
-          <div className="relative">
-            {renderMentionPopup(false)}
-            <div className="chat-input-bar">
-              {/* Paperclip button */}
-              <button
-                onClick={() => document.getElementById('comment-file-upload')?.click()}
-                disabled={uploadingFile}
-                className="theme-text-muted hover:theme-text-secondary transition-colors flex-shrink-0"
-                title={uploadingFile ? 'Uploading...' : 'Attach file'}
-              >
-                <input
-                  type="file"
-                  id="comment-file-upload"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
-                  disabled={uploadingFile}
-                />
-                {uploadingFile ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Paperclip className="w-5 h-5" />
-                )}
-              </button>
-
-              {/* Expandable textarea */}
-              <textarea
-                ref={commentInputRef}
-                value={newComment}
-                onChange={(e) => handleTextChange(e, false)}
-                placeholder="Add a comment..."
-                className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={1}
-                inputMode="text"
-                enterKeyHint="send"
-                style={{ height: 'auto', minHeight: '36px', maxHeight: '200px' }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement
-                  target.style.height = 'auto'
-                  target.style.height = target.scrollHeight + 'px'
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (e.shiftKey || e.metaKey || e.ctrlKey) return
-                    e.preventDefault()
-                    if (newComment.trim() || attachedFile) {
-                      handleAddComment()
-                    }
-                  }
-                }}
-              />
-
-              {/* Send button */}
-              <button
-                onClick={handleAddComment}
-                disabled={!canSend}
-                className="flex-shrink-0 transition-colors"
-                title="Send comment"
-              >
-                <Send className={`w-5 h-5 ${canSend ? 'text-blue-500' : 'theme-text-muted'}`} />
-              </button>
-            </div>
+          <div className="px-3 py-3">
+            <RichTextInput
+              value={newComment}
+              onChange={setNewComment}
+              onSend={handleAddComment}
+              mentionableUsers={mentionableUsers}
+              currentUserId={currentUser.id}
+              lists={availableLists}
+              tasks={availableTasks}
+              enableAttachments
+              uploadContext={{ taskId: task.id }}
+              attachedFile={attachedFile}
+              onAttachedFileChange={setAttachedFile}
+              uploadError={uploadErrorState}
+              onUploadErrorChange={setUploadErrorState}
+              placeholder="Add a comment..."
+            />
           </div>
         )}
       </div>
@@ -1232,6 +1198,8 @@ export function CommentInputBar({
   onUpdate,
   onLocalUpdate,
   readOnly = false,
+  lists: availableLists,
+  tasks: availableTasks,
   newComment,
   setNewComment,
   uploadingFile,
@@ -1433,123 +1401,23 @@ export function CommentInputBar({
   if (readOnly) return null
 
   return (
-    <div className="border-t theme-border pt-0">
-      {/* Upload error */}
-      {uploadErrorState && (
-        <div className="m-3 mb-0 p-2 bg-red-900/20 border border-red-500/50 rounded-lg">
-          <div className="flex items-start space-x-2">
-            <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-300 flex-1">{uploadErrorState}</p>
-            <button onClick={() => setUploadErrorState(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* File attachment preview */}
-      {attachedFile && (
-        <div className="mx-3 mt-3 p-2 theme-comment-bg rounded theme-border border">
-          <div className="flex items-center space-x-2">
-            {attachedFile.type?.startsWith('image/') ? (
-              <ImageIcon className="w-4 h-4 text-blue-400" />
-            ) : (
-              <FileText className="w-4 h-4 text-green-400" />
-            )}
-            <span className="text-sm theme-text-primary flex-1 truncate">{attachedFile.name}</span>
-            <button onClick={() => setAttachedFile(null)} className="text-red-400 hover:text-red-300">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Input bar: [paperclip] [textarea] [send] */}
-      <div className="relative">
-        {mentionSearch !== null && (
-          <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border rounded-md shadow-lg z-50 overflow-hidden">
-            <div className="p-2 text-xs font-semibold text-muted-foreground border-b bg-muted/50 flex items-center">
-              Mention member
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {filteredMentionUsers.length === 0 ? (
-                <div className="p-2 text-sm text-muted-foreground">No members found</div>
-              ) : (
-                filteredMentionUsers.map(user => (
-                  <button
-                    key={user.id}
-                    className="w-full flex items-center px-3 py-2 text-sm hover:bg-accent text-left transition-colors"
-                    onClick={() => insertMention(user)}
-                  >
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={user.image || undefined} />
-                      <AvatarFallback>{getAuthorInitial(user)}</AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{user.name || user.email}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-        <div className="chat-input-bar">
-          <button
-            onClick={() => document.getElementById('comment-file-upload-bar')?.click()}
-            disabled={uploadingFile}
-            className="theme-text-muted hover:theme-text-secondary transition-colors flex-shrink-0"
-            title={uploadingFile ? 'Uploading...' : 'Attach file'}
-          >
-            <input
-              type="file"
-              id="comment-file-upload-bar"
-              onChange={handleFileUpload}
-              className="hidden"
-              accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
-              disabled={uploadingFile}
-            />
-            {uploadingFile ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Paperclip className="w-5 h-5" />
-            )}
-          </button>
-
-          <textarea
-            ref={commentInputRef}
-            value={newComment}
-            onChange={handleTextChange}
-            placeholder="Add a comment..."
-            className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={1}
-            inputMode="text"
-            enterKeyHint="send"
-            style={{ height: 'auto', minHeight: '36px', maxHeight: '200px' }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement
-              target.style.height = 'auto'
-              target.style.height = target.scrollHeight + 'px'
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (e.shiftKey || e.metaKey || e.ctrlKey) return
-                e.preventDefault()
-                if (newComment.trim() || attachedFile) {
-                  handleAddComment()
-                }
-              }
-            }}
-          />
-
-          <button
-            onClick={handleAddComment}
-            disabled={!canSend}
-            className="flex-shrink-0 transition-colors"
-            title="Send comment"
-          >
-            <Send className={`w-5 h-5 ${canSend ? 'text-blue-500' : 'theme-text-muted'}`} />
-          </button>
-        </div>
-      </div>
+    <div className="border-t theme-border px-3 py-3">
+      <RichTextInput
+        value={newComment}
+        onChange={setNewComment}
+        onSend={handleAddComment}
+        mentionableUsers={mentionableUsers}
+        currentUserId={currentUser.id}
+        lists={availableLists}
+        tasks={availableTasks}
+        enableAttachments
+        uploadContext={{ taskId: task.id }}
+        attachedFile={attachedFile}
+        onAttachedFileChange={setAttachedFile}
+        uploadError={uploadErrorState}
+        onUploadErrorChange={setUploadErrorState}
+        placeholder="Add a comment..."
+      />
     </div>
   )
 }

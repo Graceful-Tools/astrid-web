@@ -453,6 +453,7 @@ export function TaskManager({
       chatChannelId={chatChannelId}
       chatChannelLoading={chatChannelLoading}
       chatListMembers={chatListMembers}
+      chatListId={isVirtualList ? null : controller.selectedListId}
       />
 
       {/* Image Picker Modal */}

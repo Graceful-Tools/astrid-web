@@ -59,6 +59,7 @@ interface TaskDetailProps {
   task: Task
   currentUser: User
   availableLists?: TaskList[]
+  availableTasks?: Task[]
   onUpdate: (task: Task) => void
   onLocalUpdate?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void  // Update local state only, no API call
   onDelete: (taskId: string) => void
@@ -75,7 +76,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
   // SSE subscriptions handled by useSSESubscription hook below
   const { reminderDebugMode } = useSettings()
@@ -1612,6 +1613,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
           onLocalUpdate={onLocalUpdate}
           onRefreshComments={handleRefreshComments}
           hideInput={true}
+          lists={availableLists}
+          tasks={availableTasks}
           {...state.comments}
         />
         )}
@@ -1624,6 +1627,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], onUpdate,
           currentUser={currentUser}
           onUpdate={onUpdate}
           onLocalUpdate={onLocalUpdate}
+          lists={availableLists}
+          tasks={availableTasks}
           newComment={newComment}
           setNewComment={setNewComment}
           uploadingFile={uploadingFile}

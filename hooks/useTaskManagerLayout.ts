@@ -47,6 +47,15 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
       const mobile = is1ColumnView(currentLayoutType)
       const hamburgerMenu = shouldShowHamburgerMenu(currentLayoutType)
 
+      // Reset activePanel when transitioning to mobile — in 2-column and
+      // 3-column, chat is always visible as a right column, but in mobile
+      // activePanel='chat' replaces the task list entirely
+      const wasDesktop = !is1ColumnView(layoutType)
+      const nowMobile = is1ColumnView(currentLayoutType)
+      if (wasDesktop && nowMobile) {
+        setActivePanel('tasks')
+      }
+
       setLayoutType(currentLayoutType)
       setIsMobile(mobile)
       setShowHamburgerMenu(hamburgerMenu)

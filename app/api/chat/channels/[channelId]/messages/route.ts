@@ -11,6 +11,7 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { PushNotificationService } from '@/lib/push-notification-service'
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -157,19 +158,24 @@ export async function POST(
         })
       }
 
-      // Parse @mentions and notify AI agents
+      // Parse @mentions and notify users
       const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g
       let match
+      const senderName = message.author.name || message.author.email || 'Someone'
+
       while ((match = mentionPattern.exec(content || '')) !== null) {
         const mentionedUserId = match[2]
-        // Check if mentioned user is an AI agent
+        if (mentionedUserId === session.user.id) continue // Don't notify self
+
         const mentionedUser = await prisma.user.findUnique({
           where: { id: mentionedUserId },
           select: { id: true, isAIAgent: true },
         })
 
-        if (mentionedUser?.isAIAgent) {
-          // Get channel's listId for context
+        if (!mentionedUser) continue
+
+        if (mentionedUser.isAIAgent) {
+          // AI agent — send chat_mention SSE event for agent processing
           const channel = await prisma.chatChannel.findUnique({
             where: { id: channelId },
             select: { listId: true },
@@ -184,10 +190,23 @@ export async function POST(
               messageId: message.id,
               content: content,
               authorId: session.user.id,
-              authorName: message.author.name || message.author.email,
+              authorName: senderName,
               mentionedAgentId: mentionedUserId,
             },
           })
+        } else {
+          // Human user — send push notification
+          try {
+            const pushService = new PushNotificationService()
+            await pushService.sendChatMentionNotification(mentionedUserId, {
+              channelId,
+              messageId: message.id,
+              senderName,
+              content: content || '',
+            })
+          } catch (pushError) {
+            console.error('[Chat API] Push notification error:', pushError)
+          }
         }
       }
     } catch (sseError) {

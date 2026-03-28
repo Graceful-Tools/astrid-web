@@ -5,12 +5,17 @@ import { ChatMessageList } from './ChatMessageList'
 import { ChatInput } from './ChatInput'
 import { useChatChannel } from '@/hooks/use-chat-channel'
 import { Loader2 } from 'lucide-react'
-import type { User } from '@/types/task'
+import type { User, TaskList, Task } from '@/types/task'
 
 interface ChatPanelProps {
   channelId: string | null
   currentUser: { id: string; name?: string | null; email: string; image?: string | null }
   listMembers: User[]
+  lists?: TaskList[]
+  tasks?: Task[]
+  selectedListId?: string
+  /** The actual list ID for this chat (used for file upload context) */
+  listId?: string | null
   isLoading?: boolean
   className?: string
 }
@@ -19,6 +24,10 @@ export const ChatPanel = React.memo(function ChatPanel({
   channelId,
   currentUser,
   listMembers,
+  lists = [],
+  tasks = [],
+  selectedListId,
+  listId,
   isLoading: externalLoading,
   className = '',
 }: ChatPanelProps) {
@@ -64,6 +73,10 @@ export const ChatPanel = React.memo(function ChatPanel({
         onSend={sendMessage}
         mentionableUsers={listMembers}
         currentUserId={currentUser.id}
+        lists={lists}
+        tasks={tasks}
+        selectedListId={selectedListId}
+        listId={listId}
       />
     </div>
   )
