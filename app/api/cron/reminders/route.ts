@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ReminderService } from '@/lib/reminder-service'
 import { EmailReminderService } from '@/lib/email-reminder-service'
 import { PushNotificationService } from '@/lib/push-notification-service'
+import { processAgentTasksDueSoon } from '@/lib/agent-task-scheduler'
 import { prisma } from '@/lib/prisma'
 
 // Initialize services
@@ -22,10 +23,11 @@ export async function GET(request: NextRequest) {
 
     const startTime = Date.now()
 
-    // Process different types of reminders
+    // Process different types of reminders + agent task dispatch
     await Promise.allSettled([
       reminderService.processDueReminders(),
       reminderService.retryFailedReminders(),
+      processAgentTasksDueSoon(),
     ])
 
     // Check if it's time for daily digests (runs every hour, but service filters by time)

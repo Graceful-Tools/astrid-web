@@ -382,15 +382,15 @@ export function ListMembership({
         </div>
       )}
 
-      {/* List Assistant — set the active AI agent for this list */}
+      {/* Astrid — set the AI agent for this list */}
       {canEditSettings && availableAiAgents.length > 0 && (
         <div className="border-t theme-border pt-4">
           <div className="flex items-center space-x-2 mb-2">
             <Bot className="w-4 h-4 text-blue-500" />
-            <Label className="text-sm font-medium theme-text-primary">List Assistant</Label>
+            <Label className="text-sm font-medium theme-text-primary">Astrid Agent</Label>
           </div>
           <p className="text-xs theme-text-muted mb-2">
-            This agent reads messages, responds, and acts on tasks in this list.
+            Choose a model for Astrid in this list. Astrid reads messages, acts on tasks, and completes tasks by their due dates.
           </p>
           <select
             value={(() => {

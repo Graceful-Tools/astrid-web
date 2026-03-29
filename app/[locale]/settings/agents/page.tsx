@@ -29,7 +29,7 @@ interface AgentOption {
   service: string
 }
 
-function ListAssistantSelector() {
+function AstridAgentSelector() {
   const [agents, setAgents] = useState<AgentOption[]>([])
   const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,7 +61,7 @@ function ListAssistantSelector() {
   if (agents.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register an OpenClaw agent below to enable a list assistant.
+        Add an API key or register an OpenClaw agent below to power Astrid.
       </p>
     )
   }
@@ -95,7 +95,7 @@ function ListAssistantSelector() {
         </button>
       ))}
       <p className="text-xs theme-text-muted pt-1">
-        Click to select. Click again to deselect. Override per-list in list settings.
+        Choose the model that powers Astrid for My Tasks and your private lists.
       </p>
     </div>
   )
@@ -159,20 +159,20 @@ function AgentsSettingsContent() {
             </div>
           </div>
 
-          {/* List Assistant — default agent for private lists */}
+          {/* Astrid — default agent for private lists */}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-                <Bot className="w-6 h-6 text-blue-500" />
-                <span>List Assistant</span>
+                <Sparkles className="w-6 h-6 text-blue-500" />
+                <span>Astrid</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                Choose an agent for your private lists and My Tasks. This agent reads and responds to messages, acts on tasks, and creates tasks.
-                For shared lists, set the agent in each list&apos;s settings.
+                Choose a model to power Astrid. Astrid can read tasks across your lists, respond to messages, and complete tasks before their due dates.
+                For shared lists, choose a different agent in list settings.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ListAssistantSelector />
+              <AstridAgentSelector />
             </CardContent>
           </Card>
 

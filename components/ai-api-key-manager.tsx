@@ -641,13 +641,13 @@ export function AIAPIKeyManager() {
                   </div>
                 )}
 
-                {/* Set as list assistant */}
+                {/* Power Astrid with this agent */}
                 {keyData[service.id]?.isValid && agentUserIds[service.id] && (
                   <div className="flex items-center justify-between pt-3 border-t">
                     <div>
-                      <Label className="text-sm font-medium">List Assistant</Label>
+                      <Label className="text-sm font-medium">Power Astrid</Label>
                       <p className="text-xs text-muted-foreground">
-                        This agent reads and responds to messages, acts on tasks, and creates tasks in your private lists. Override per-list in list settings.
+                        Use this model for Astrid across your private lists and My Tasks.
                       </p>
                     </div>
                     <Button

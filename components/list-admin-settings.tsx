@@ -500,12 +500,12 @@ export function ListAdminSettings({
         />
       </div>
 
-      {/* List Assistant — AI agent for this list */}
+      {/* Astrid — AI agent for this list */}
       {canEditSettings && availableAgents.length > 0 && (
         <div className="space-y-2">
           <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
             <Bot className="w-4 h-4" />
-            <span>List Assistant</span>
+            <span>Astrid Agent</span>
           </Label>
           <Select
             value={listDefaultAgentId || '_account_default'}
@@ -546,7 +546,7 @@ export function ListAdminSettings({
             </SelectContent>
           </Select>
           <p className="text-xs theme-text-muted">
-            This agent reads and responds to messages, acts on tasks, and creates tasks in this list.
+            Choose a model to power Astrid for this list. Astrid reads messages, acts on tasks, and completes tasks by their due dates.
           </p>
         </div>
       )}
