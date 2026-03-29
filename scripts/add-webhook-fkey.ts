@@ -16,7 +16,6 @@ async function main() {
   }
 
   const prisma = new PrismaClient({
-    datasources: { db: { url: prodDbUrl } }
   })
 
   try {

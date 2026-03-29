@@ -19,13 +19,7 @@ async function main() {
 
   console.log('Connecting to production database...')
 
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: prodDbUrl
-      }
-    }
-  })
+  const prisma = new PrismaClient()
 
   try {
     // Check if table already exists

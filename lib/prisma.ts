@@ -200,12 +200,6 @@ const createPrismaClient = () => {
     const client = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
       errorFormat: "pretty",
-      // Optimize for Vercel serverless environment
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL
-        }
-      },
       // Configure for better performance in serverless
       transactionOptions: {
         timeout: 10000, // 10 seconds max transaction timeout

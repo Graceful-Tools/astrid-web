@@ -21,13 +21,7 @@ async function grantAIAgentAccess() {
     return
   }
 
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: databaseUrl
-      }
-    }
-  })
+  const prisma = new PrismaClient()
 
   try {
     await prisma.$connect()
@@ -99,9 +93,7 @@ async function addAIAgentToAllLists() {
   console.log('🔧 Adding AI agent as member to all lists...\n')
 
   const databaseUrl = process.env.DATABASE_URL_PROD
-  const prisma = new PrismaClient({
-    datasources: { db: { url: databaseUrl } }
-  })
+  const prisma = new PrismaClient()
 
   try {
     await prisma.$connect()
