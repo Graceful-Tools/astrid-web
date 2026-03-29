@@ -203,11 +203,8 @@
   background-color: rgba(243, 244, 246, 0.8);
 }
 
-/* Chat panel: white background so bubbles are visible (matches task comment area) */
-.ocean [data-chat-panel] { background-color: white; }
-
-/* Chat bubble colors — blue tint on white background */
-.ocean .chat-bubble-mine { background-color: rgba(59, 130, 246, 0.15); }
-.ocean .chat-bubble-other { background-color: rgba(59, 130, 246, 0.08); }
+/* Chat bubble colors — white bubbles visible on both cyan and white backgrounds */
+.ocean .chat-bubble-mine { background-color: rgba(255, 255, 255, 0.85); }
+.ocean .chat-bubble-other { background-color: rgba(255, 255, 255, 0.65); }
 
 /* Ocean theme inherits all component styles from light theme */
