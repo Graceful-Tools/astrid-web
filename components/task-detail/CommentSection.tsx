@@ -1239,8 +1239,29 @@ export function CommentInputBar({
   const [mentionSearch, setMentionSearch] = useState<string | null>(null)
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
 
+  // Fetch default agent for mention autocomplete
+  const [defaultAgentBar, setDefaultAgentBar] = useState<User | null>(null)
+  useEffect(() => {
+    fetch('/api/user/ai-assistant-settings')
+      .then(r => r.json())
+      .then(async (settings) => {
+        if (!settings.defaultAgentId) return
+        const agentsRes = await fetch('/api/user/available-agents')
+        const agentsData = await agentsRes.json()
+        const agent = (agentsData.agents || []).find((a: { id: string }) => a.id === settings.defaultAgentId)
+        if (agent) {
+          setDefaultAgentBar({
+            id: agent.id, name: agent.name, email: agent.email,
+            image: agent.image, createdAt: new Date(), isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const mentionableUsers = useMemo(() => {
     const users = new Map<string, User>()
+    if (defaultAgentBar) users.set(defaultAgentBar.id, defaultAgentBar)
     if (task.creator) users.set(task.creator.id, task.creator)
     if (task.assignee) users.set(task.assignee.id, task.assignee)
     task.lists?.forEach(list => {
@@ -1252,7 +1273,7 @@ export function CommentInputBar({
       list.admins?.forEach(admin => users.set(admin.id, admin))
     })
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
-  }, [task, currentUser.id])
+  }, [task, currentUser.id, defaultAgentBar])
 
   const filteredMentionUsers = useMemo(() => {
     if (!mentionSearch) return mentionableUsers
