@@ -8,6 +8,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { generateAccessToken } from '@/lib/oauth/oauth-token-manager'
+import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 
 // Cache tokens per user (valid for 1 hour typically)
@@ -133,6 +134,15 @@ export async function astridCreateTask(params: {
   }
 
   const data = await res.json()
+
+  // Broadcast to the user — the API skips the requester, but the user
+  // needs to see Astrid's actions reflected in their UI immediately
+  broadcastToUsers([params.creatorId], {
+    type: 'task_created',
+    timestamp: new Date().toISOString(),
+    data: { task: data.task },
+  }).catch(() => {})
+
   return { id: data.task.id, title: data.task.title }
 }
 
@@ -165,6 +175,15 @@ export async function astridUpdateTask(params: {
   }
 
   const data = await res.json()
+
+  // Broadcast to the user so their UI updates in real-time
+  const eventType = params.completed ? 'task_completed' : 'task_updated'
+  broadcastToUsers([params.userId], {
+    type: eventType,
+    timestamp: new Date().toISOString(),
+    data: { taskId: data.task.id, task: data.task },
+  }).catch(() => {})
+
   return { id: data.task.id, title: data.task.title }
 }
 
