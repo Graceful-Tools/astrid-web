@@ -482,25 +482,46 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       // No AI agent assigned to this task — check for a default agent
       try {
         const { resolveDefaultAgent } = await import('@/lib/resolve-default-agent')
+        const { ASTRID_EMAIL } = await import('@/lib/astrid-agent')
         const listId = task.lists?.[0]?.id || null
         const defaultAgentId = await resolveDefaultAgent(listId, session.user.id)
         if (defaultAgentId) {
-          const { broadcastToUsers } = await import('@/lib/sse-utils')
-          await broadcastToUsers([defaultAgentId], {
-            type: 'agent_task_comment',
-            timestamp: new Date().toISOString(),
-            data: {
+          // Check if default agent is Astrid
+          const defaultAgent = await prisma.user.findUnique({
+            where: { id: defaultAgentId },
+            select: { email: true },
+          })
+
+          if (defaultAgent?.email === ASTRID_EMAIL) {
+            // Use Astrid runtime to respond
+            const { processAstridComment } = await import('@/lib/astrid-agent-runtime')
+            processAstridComment({
+              commentContent: comment.content,
+              userId: session.user.id,
+              userName: session.user.name || session.user.email || 'Someone',
               taskId: task.id,
               taskTitle: task.title,
-              comment: {
-                id: comment.id,
-                content: comment.content,
-                authorId: session.user.id,
-                authorName: session.user.name || session.user.email || 'Someone',
+              listId,
+            }).catch(err => console.error('[Comments API] Astrid comment error:', err))
+          } else {
+            // External agent — send SSE event
+            const { broadcastToUsers } = await import('@/lib/sse-utils')
+            await broadcastToUsers([defaultAgentId], {
+              type: 'agent_task_comment',
+              timestamp: new Date().toISOString(),
+              data: {
+                taskId: task.id,
+                taskTitle: task.title,
+                comment: {
+                  id: comment.id,
+                  content: comment.content,
+                  authorId: session.user.id,
+                  authorName: session.user.name || session.user.email || 'Someone',
+                },
+                isDefaultAgent: true,
               },
-              isDefaultAgent: true,
-            },
-          })
+            })
+          }
           console.log(`🤖 Notified default agent ${defaultAgentId} about comment`)
         }
       } catch (defaultAgentError) {
