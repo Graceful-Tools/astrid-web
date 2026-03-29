@@ -137,7 +137,7 @@ async function executeTool(
 
       case 'update_task': {
         const taskId = input.task_id as string
-        const updates: Record<string, unknown> = { taskId }
+        const updates: Record<string, unknown> = { taskId, userId: context.userId }
         if (input.title) updates.title = input.title
         if (input.description !== undefined) updates.description = input.description
         if (input.priority !== undefined) updates.priority = input.priority
@@ -164,7 +164,7 @@ async function executeTool(
 
       case 'complete_task': {
         const taskId = input.task_id as string
-        const result = await astridCompleteTask({ taskId })
+        const result = await astridCompleteTask({ taskId, userId: context.userId })
         return JSON.stringify({ success: true, taskId: result.id, title: result.title })
       }
 
@@ -181,6 +181,7 @@ async function executeTool(
       case 'add_comment': {
         const result = await astridAddComment({
           taskId: input.task_id as string,
+          userId: context.userId,
           content: input.content as string,
         })
         return JSON.stringify({ success: true, commentId: result.id })
