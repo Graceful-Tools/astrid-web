@@ -202,7 +202,7 @@ export function AIAPIKeyManager() {
         fetchLiveModels(service.id)
       }
     }
-  }, [modelData, keyData])
+  }, [modelData, keyData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateKeyFormat = (serviceId: string, key: string): boolean => {
     const service = AI_SERVICES.find(s => s.id === serviceId)
