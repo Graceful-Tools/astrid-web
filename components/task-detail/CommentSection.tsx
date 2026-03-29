@@ -197,12 +197,35 @@ export function CommentSection({
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
   const [isMentioningForReply, setIsMentioningForReply] = useState(false)
 
+  // Fetch the user's default agent (Astrid) for mention autocomplete
+  const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
+  useEffect(() => {
+    fetch('/api/user/ai-assistant-settings')
+      .then(r => r.json())
+      .then(async (settings) => {
+        if (!settings.defaultAgentId) return
+        const agentsRes = await fetch('/api/user/available-agents')
+        const agentsData = await agentsRes.json()
+        const agent = (agentsData.agents || []).find((a: { id: string }) => a.id === settings.defaultAgentId)
+        if (agent) {
+          setDefaultAgent({
+            id: agent.id, name: agent.name, email: agent.email,
+            image: agent.image, createdAt: new Date(), isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const mentionableUsers = useMemo(() => {
     const users = new Map<string, User>()
-    
+
+    // Add Astrid/default agent first
+    if (defaultAgent) users.set(defaultAgent.id, defaultAgent)
+
     if (task.creator) users.set(task.creator.id, task.creator)
     if (task.assignee) users.set(task.assignee.id, task.assignee)
-    
+
     task.lists?.forEach(list => {
       if (list.owner) users.set(list.owner.id, list.owner)
       list.members?.forEach(member => users.set(member.id, member))
@@ -211,9 +234,9 @@ export function CommentSection({
       })
       list.admins?.forEach(admin => users.set(admin.id, admin))
     })
-    
+
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
-  }, [task, currentUser.id])
+  }, [task, currentUser.id, defaultAgent])
 
   const filteredMentionUsers = useMemo(() => {
     if (!mentionSearch) return mentionableUsers
