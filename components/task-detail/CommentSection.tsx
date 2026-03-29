@@ -11,6 +11,7 @@ import { isMobileDevice } from "@/lib/layout-detection"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
+import { MessageBubble } from "@/components/shared/MessageBubble"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 
@@ -815,73 +816,38 @@ export function CommentSection({
     .filter(comment => showSystemComments || comment.authorId !== null)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-  // Inline ChatBubble component for rendering a single comment as a chat bubble
+  // Render a comment using the shared MessageBubble component
   const renderChatBubble = (comment: any, isReply: boolean = false, parentCommentId?: string) => {
     const isCurrentUser = comment.authorId === currentUser.id
     const isSystem = comment.authorId === null
-
-    // System comment: centered muted text, no bubble
-    if (isSystem) {
-      return (
-        <div className="text-xs theme-text-muted text-center py-1">
-          On {format(new Date(comment.createdAt), "MMM d 'at' h:mm a")}, {comment.content}
-        </div>
-      )
-    }
-
     const isActionsVisible = showingActionsFor === comment.id
 
+    // Build attachments from secureFiles
+    const attachments = (comment.secureFiles || []).map((file: any) => ({
+      fileId: file.id,
+      name: file.originalName,
+      type: file.mimeType,
+    }))
+
     return (
-      <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-        {/* Bubble row: avatar + bubble */}
-        <div
-          className={`chat-bubble-row ${isCurrentUser ? 'chat-bubble-row-mine' : ''} cursor-pointer`}
-          onClick={() => setShowingActionsFor(isActionsVisible ? null : comment.id)}
-        >
-          {/* Avatar */}
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarImage src={comment.author?.image || undefined} />
-            <AvatarFallback>{getAuthorInitial(comment.author)}</AvatarFallback>
-          </Avatar>
-
-          {/* Bubble */}
-          <div className={`chat-bubble ${isCurrentUser ? 'chat-bubble-mine' : 'chat-bubble-other'}`}>
-            {/* Attachments first */}
-            {comment.secureFiles && comment.secureFiles.length > 0 && (
-              <div className="flex gap-2 flex-wrap mb-1">
-                {comment.secureFiles.map((file: any) => (
-                  <SecureAttachmentViewer
-                    key={file.id}
-                    fileId={file.id}
-                    fileName={file.originalName}
-                    showFileName={false}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Text content */}
-            {comment.content && !comment.content.startsWith('Attached: ') && (
-              <div
-                className="text-sm theme-text-secondary"
-                dangerouslySetInnerHTML={{
-                  __html: renderMarkdownWithLinks(comment.content, { codeClass: 'theme-bg-tertiary px-1 rounded' })
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Meta: "Author · time" below bubble */}
-        <div className={`chat-bubble-meta theme-text-muted ${isCurrentUser ? 'pr-10' : 'pl-10'}`}>
-          <span>{isCurrentUser ? 'You' : getAuthorDisplay(comment.author)}</span>
-          <span>·</span>
-          <span>{format(new Date(comment.createdAt), "MMM d 'at' h:mm a")}</span>
-        </div>
-
-        {/* Action bar: Copy, Reply, Delete - shown on tap */}
-        {isActionsVisible && (
-          <div className={`flex items-center gap-3 mt-1 ${isCurrentUser ? 'pr-10' : 'pl-10'}`} data-comment-actions>
+      <MessageBubble
+        key={comment.id}
+        id={comment.id}
+        content={comment.content}
+        author={comment.author ? {
+          id: comment.author.id,
+          name: comment.author.name,
+          email: comment.author.email,
+          image: comment.author.image,
+          isAIAgent: comment.author.isAIAgent,
+        } : null}
+        isOwnMessage={isCurrentUser}
+        createdAt={comment.createdAt}
+        attachments={attachments.length > 0 ? attachments : undefined}
+        isSystem={isSystem}
+        onClick={() => setShowingActionsFor(isActionsVisible ? null : comment.id)}
+        actions={isActionsVisible ? (
+          <div className="flex items-center gap-3" data-comment-actions>
             <button
               className="flex items-center gap-1 text-xs theme-text-muted hover:theme-text-secondary transition-colors"
               onClick={(e) => {
@@ -924,8 +890,8 @@ export function CommentSection({
               </button>
             )}
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
     )
   }
 

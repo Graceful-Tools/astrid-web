@@ -70,7 +70,12 @@ describe('CommentSection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    global.fetch = vi.fn()
+    // Default fetch mock returns empty JSON for any unhandled requests
+    // (e.g., /api/user/ai-assistant-settings called in useEffect)
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({})
+    })
   })
 
   describe('Rendering', () => {

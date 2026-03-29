@@ -5,7 +5,12 @@ import { TaskDetail } from '@/components/task-detail'
 import type { Task, User, TaskList } from '@/types/task'
 
 // Mock fetch for upload tests
-const mockFetch = vi.fn()
+// Default implementation returns empty JSON for any unhandled requests
+// (e.g., /api/user/ai-assistant-settings called by CommentSection useEffect)
+const mockFetch = vi.fn().mockResolvedValue({
+  ok: true,
+  json: () => Promise.resolve({})
+})
 global.fetch = mockFetch
 
 // Mock layout detection
@@ -193,9 +198,12 @@ describe('TaskDetail Upload Functionality', () => {
         })
       })
 
-      // Verify the FormData contains correct data
-      const uploadCall = mockFetch.mock.calls[0]
-      const formData = uploadCall[1].body as FormData
+      // Find the upload call (may not be calls[0] due to other fetch calls like ai-assistant-settings)
+      const uploadCall = mockFetch.mock.calls.find(
+        (call: any[]) => call[0] === '/api/secure-upload/request-upload'
+      )
+      expect(uploadCall).toBeTruthy()
+      const formData = uploadCall![1].body as FormData
       expect(formData.get('file')).toBe(file)
 
       const context = JSON.parse(formData.get('context') as string)
@@ -261,9 +269,12 @@ describe('TaskDetail Upload Functionality', () => {
         })
       })
 
-      // Verify the FormData contains correct data
-      const uploadCall = mockFetch.mock.calls[0]
-      const formData = uploadCall[1].body as FormData
+      // Find the upload call (may not be calls[0] due to other fetch calls like ai-assistant-settings)
+      const uploadCall = mockFetch.mock.calls.find(
+        (call: any[]) => call[0] === '/api/secure-upload/request-upload'
+      )
+      expect(uploadCall).toBeTruthy()
+      const formData = uploadCall![1].body as FormData
       expect(formData.get('file')).toBe(file)
 
       const context = JSON.parse(formData.get('context') as string)
