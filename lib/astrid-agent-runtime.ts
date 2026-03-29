@@ -118,6 +118,7 @@ async function executeTool(
 function buildSystemPrompt(context: {
   userName: string
   userEmail: string
+  userId: string
   listName?: string
   listId?: string | null
   taskContext?: string
@@ -149,11 +150,11 @@ You have a tool called \`api_request\` that makes authenticated HTTP requests to
 **Key fields:**
 - Priority: 0=none, 1=low, 2=medium, 3=high
 - dueDateTime: ISO 8601 format (e.g. "2026-03-30T17:00:00Z")
-- assigneeId: User ID (use "${context.userEmail}" lookup or the IDs from task data)
+- assigneeId: User ID string. When the user says "assign to me", use their ID: "${context.userId}"
 
 ## Current context
 ${context.listName ? `- List: ${context.listName} (ID: ${context.listId})` : '- View: My Tasks'}
-- User: ${context.userName} (${context.userEmail})
+- User: ${context.userName} (${context.userEmail}, ID: ${context.userId})
 ${context.taskContext ? `\n## Current tasks\n${context.taskContext}` : ''}
 
 ## Response style
@@ -329,7 +330,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const taskContext = await buildTaskContext(listId, userId)
 
     const systemPrompt = buildSystemPrompt({
-      userName, userEmail,
+      userName, userEmail, userId,
       listName: listName || undefined, listId,
       taskContext,
     })
@@ -417,7 +418,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
 
     const taskContext = await buildTaskContext(listId, userId)
     const systemPrompt = buildSystemPrompt({
-      userName, userEmail,
+      userName, userEmail, userId,
       listName: listId ? (await prisma.taskList.findUnique({ where: { id: listId }, select: { name: true } }))?.name || undefined : undefined,
       listId,
       taskContext,
