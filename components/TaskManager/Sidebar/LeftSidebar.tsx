@@ -354,7 +354,7 @@ export function LeftSidebar({
                 // Deduplicate lists by ID (keep first occurrence)
                 return self.findIndex(l => l.id === list.id) === index
               })
-              .sort((a, b) => a.name.localeCompare(b.name))
+              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
               .map((list) => (
                 <ListItem
                   key={list.id}
