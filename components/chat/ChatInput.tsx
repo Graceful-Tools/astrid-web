@@ -85,7 +85,7 @@ export const ChatInput = React.memo(function ChatInput({
         onAttachedFileChange={setAttachedFile}
         uploadError={uploadError}
         onUploadErrorChange={setUploadError}
-        placeholder="Type a message... @ mention, # list, ! task"
+        placeholder="Message list..."
         disabled={disabled}
         isSending={isSending}
       />

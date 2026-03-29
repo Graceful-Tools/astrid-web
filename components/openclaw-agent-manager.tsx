@@ -379,7 +379,7 @@ export function OpenClawAgentManager() {
 
       {/* Credentials dialog (one-time display) */}
       <Dialog open={!!credentials} onOpenChange={() => setCredentials(null)}>
-        <DialogContent className="theme-bg-secondary theme-border max-w-lg">
+        <DialogContent className="theme-bg-secondary theme-border max-w-lg sm:max-w-xl mx-4">
           <DialogHeader>
             <DialogTitle className="theme-text-primary flex items-center gap-2">
               <Check className="w-5 h-5 text-green-500" />

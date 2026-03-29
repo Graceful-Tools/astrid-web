@@ -756,8 +756,8 @@ const TaskManagerView = memo(function TaskManagerView({
         )}
 
         {/* Chat Panel - inline flex column on the right (2-column and 3-column) */}
-        {(is3Column || is2Column) && effectiveSession?.user && !selectedTask && (
-          <div className="flex-shrink-0 border-l theme-border" style={{ width: 'clamp(320px, 30vw, 480px)' }}>
+        {(is3Column || is2Column) && effectiveSession?.user && (
+          <div className="flex-1 min-w-[300px] max-w-[480px] h-full border-l theme-border">
             <ChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}

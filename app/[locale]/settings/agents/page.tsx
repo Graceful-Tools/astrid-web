@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,9 +16,90 @@ import {
   Sparkles,
   Cloud,
   FileText,
-  Bot
+  Bot,
+  Check
 } from "lucide-react"
 import Image from "next/image"
+
+interface AgentOption {
+  id: string
+  name: string
+  email: string
+  image: string | null
+  service: string
+}
+
+function ListAssistantSelector() {
+  const [agents, setAgents] = useState<AgentOption[]>([])
+  const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/user/available-agents').then(r => r.json()),
+      fetch('/api/user/ai-assistant-settings').then(r => r.json()),
+    ]).then(([agentsData, settingsData]) => {
+      setAgents(agentsData.agents || [])
+      setCurrentAgentId(settingsData.defaultAgentId || null)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const handleSelect = async (agentId: string | null) => {
+    setCurrentAgentId(agentId)
+    await fetch('/api/user/ai-assistant-settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ defaultAgentId: agentId }),
+    })
+  }
+
+  if (loading) {
+    return <div className="h-10 bg-gray-800/50 rounded animate-pulse" />
+  }
+
+  if (agents.length === 0) {
+    return (
+      <p className="text-sm theme-text-muted">
+        Add an API key or register an OpenClaw agent below to enable a list assistant.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {agents.map(agent => (
+        <button
+          key={agent.id}
+          onClick={() => handleSelect(currentAgentId === agent.id ? null : agent.id)}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
+            currentAgentId === agent.id
+              ? 'border-blue-500 bg-blue-500/10'
+              : 'theme-border hover:border-blue-500/50'
+          }`}
+        >
+          {agent.image ? (
+            <img src={agent.image} alt="" className="w-8 h-8 rounded-full" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-purple-500" />
+            </div>
+          )}
+          <div className="flex-1 text-left">
+            <div className="text-sm font-medium theme-text-primary">{agent.name}</div>
+            <div className="text-xs theme-text-muted">{agent.email}</div>
+          </div>
+          {currentAgentId === agent.id && (
+            <Check className="w-5 h-5 text-blue-500 flex-shrink-0" />
+          )}
+        </button>
+      ))}
+      <p className="text-xs theme-text-muted pt-1">
+        Click to select. Click again to deselect. Override per-list in list settings.
+      </p>
+    </div>
+  )
+}
 
 function AgentsSettingsContent() {
   const { data: session, status } = useSession()
@@ -77,6 +158,23 @@ function AgentsSettingsContent() {
               <p className="theme-text-muted">Assign tasks to AI agents and get intelligent help</p>
             </div>
           </div>
+
+          {/* List Assistant — default agent for private lists */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
+                <Bot className="w-6 h-6 text-blue-500" />
+                <span>List Assistant</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                Choose an agent for your private lists and My Tasks. This agent reads and responds to messages, acts on tasks, and creates tasks.
+                For shared lists, set the agent in each list&apos;s settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ListAssistantSelector />
+            </CardContent>
+          </Card>
 
           {/* Cloud Agents link */}
           <Card

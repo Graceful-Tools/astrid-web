@@ -478,6 +478,34 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       console.log(`🤖 Skipped AI agent notification - comment by AI agent itself`)
     } else if (isSystemGenerated) {
       console.log(`🔧 Skipped AI agent notification - system-generated comment`)
+    } else if (!task.assignee?.isAIAgent && !isCommenterAIAgent && !isSystemGenerated) {
+      // No AI agent assigned to this task — check for a default agent
+      try {
+        const { resolveDefaultAgent } = await import('@/lib/resolve-default-agent')
+        const listId = task.lists?.[0]?.id || null
+        const defaultAgentId = await resolveDefaultAgent(listId, session.user.id)
+        if (defaultAgentId) {
+          const { broadcastToUsers } = await import('@/lib/sse-utils')
+          await broadcastToUsers([defaultAgentId], {
+            type: 'agent_task_comment',
+            timestamp: new Date().toISOString(),
+            data: {
+              taskId: task.id,
+              taskTitle: task.title,
+              comment: {
+                id: comment.id,
+                content: comment.content,
+                authorId: session.user.id,
+                authorName: session.user.name || session.user.email || 'Someone',
+              },
+              isDefaultAgent: true,
+            },
+          })
+          console.log(`🤖 Notified default agent ${defaultAgentId} about comment`)
+        }
+      } catch (defaultAgentError) {
+        console.error('[Comments API] Default agent dispatch error:', defaultAgentError)
+      }
     }
 
     // Track analytics event (fire-and-forget)

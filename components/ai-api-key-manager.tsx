@@ -20,7 +20,8 @@ import {
   Shield,
   Zap,
   Info,
-  Trash2
+  Trash2,
+  Check
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -117,6 +118,10 @@ export function AIAPIKeyManager() {
   const [selectedService, setSelectedService] = useState<string>(AI_SERVICES[0].id)
   const [modelData, setModelData] = useState<ModelData | null>(null)
   const [modelInputs, setModelInputs] = useState<{ [serviceId: string]: string }>({})
+  const [liveModels, setLiveModels] = useState<{ [serviceId: string]: string[] }>({})
+  const [loadingModels, setLoadingModels] = useState<{ [serviceId: string]: boolean }>({})
+  const [defaultAgentId, setDefaultAgentId] = useState<string | null>(null)
+  const [agentUserIds, setAgentUserIds] = useState<{ [service: string]: string }>({}) // service → agent user ID
 
   const fetchAPIKeys = async () => {
     try {
@@ -149,14 +154,55 @@ export function AIAPIKeyManager() {
     }
   }
 
+  const fetchLiveModels = async (serviceId: string) => {
+    if (liveModels[serviceId]?.length || loadingModels[serviceId]) return
+    setLoadingModels(prev => ({ ...prev, [serviceId]: true }))
+    try {
+      const res = await fetch(`/api/user/ai-available-models?service=${serviceId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setLiveModels(prev => ({ ...prev, [serviceId]: data.models || [] }))
+      }
+    } catch {
+      // Fall back to static suggestions
+    } finally {
+      setLoadingModels(prev => ({ ...prev, [serviceId]: false }))
+    }
+  }
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
-      await Promise.all([fetchAPIKeys(), fetchModelPreferences()])
+      await Promise.all([
+        fetchAPIKeys(),
+        fetchModelPreferences(),
+        // Fetch default agent settings
+        fetch('/api/user/ai-assistant-settings').then(r => r.json()).then(data => {
+          setDefaultAgentId(data.defaultAgentId || null)
+        }).catch(() => {}),
+        // Fetch agent user IDs (maps service → user ID)
+        fetch('/api/user/available-agents').then(r => r.json()).then(data => {
+          const map: { [service: string]: string } = {}
+          for (const agent of (data.agents || [])) {
+            map[agent.service] = agent.id
+          }
+          setAgentUserIds(map)
+        }).catch(() => {}),
+      ])
       setLoading(false)
     }
     loadData()
   }, [])
+
+  // Fetch live models for each service that has a valid key
+  useEffect(() => {
+    if (!modelData) return
+    for (const service of AI_SERVICES) {
+      if (keyData[service.id]?.isValid) {
+        fetchLiveModels(service.id)
+      }
+    }
+  }, [modelData, keyData])
 
   const validateKeyFormat = (serviceId: string, key: string): boolean => {
     const service = AI_SERVICES.find(s => s.id === serviceId)
@@ -549,23 +595,33 @@ export function AIAPIKeyManager() {
                       </Label>
                       <p className="text-sm text-muted-foreground mb-2">
                         Choose which model to use for {service.name} coding workflows.
-                        You can enter any model name for future compatibility.
                       </p>
                       <div className="flex flex-wrap sm:flex-nowrap gap-2">
                         <div className="flex-1 min-w-[200px]">
-                          <Input
-                            id={`model-${service.id}`}
-                            list={`model-suggestions-${service.id}`}
-                            placeholder={modelData.defaults[service.id]}
-                            value={modelInputs[service.id] || ''}
-                            onChange={(e) => handleModelChange(service.id, e.target.value)}
-                            className="font-mono text-sm"
-                          />
-                          <datalist id={`model-suggestions-${service.id}`}>
-                            {modelData.suggestions[service.id]?.map((model) => (
-                              <option key={model} value={model} />
-                            ))}
-                          </datalist>
+                          {(() => {
+                            const models = liveModels[service.id]?.length
+                              ? liveModels[service.id]
+                              : modelData.suggestions[service.id] || []
+                            return (
+                              <select
+                                id={`model-${service.id}`}
+                                value={modelInputs[service.id] || ''}
+                                onChange={(e) => handleModelChange(service.id, e.target.value)}
+                                className="w-full font-mono text-sm rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                              >
+                                {models.map((model) => (
+                                  <option key={model} value={model}>{model}</option>
+                                ))}
+                                {/* If current value isn't in the list (custom), add it */}
+                                {modelInputs[service.id] && !models.includes(modelInputs[service.id]) && (
+                                  <option value={modelInputs[service.id]}>{modelInputs[service.id]} (custom)</option>
+                                )}
+                              </select>
+                            )
+                          })()}
+                          {loadingModels[service.id] && (
+                            <p className="text-xs text-muted-foreground mt-1">Fetching latest models...</p>
+                          )}
                         </div>
                         <Button
                           onClick={() => handleSaveModel(service.id)}
@@ -580,20 +636,42 @@ export function AIAPIKeyManager() {
                           )}
                           Save Model
                         </Button>
-                        {!modelData.preferences[service.id]?.isDefault && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleResetModel(service.id)}
-                            disabled={savingModel === service.id}
-                            title="Reset to default"
-                            className="w-full sm:w-auto"
-                          >
-                            Reset to Default
-                          </Button>
-                        )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Set as list assistant */}
+                {keyData[service.id]?.isValid && agentUserIds[service.id] && (
+                  <div className="flex items-center justify-between pt-3 border-t">
+                    <div>
+                      <Label className="text-sm font-medium">List Assistant</Label>
+                      <p className="text-xs text-muted-foreground">
+                        This agent reads and responds to messages, acts on tasks, and creates tasks in your private lists. Override per-list in list settings.
+                      </p>
+                    </div>
+                    <Button
+                      variant={defaultAgentId === agentUserIds[service.id] ? "default" : "outline"}
+                      size="sm"
+                      onClick={async () => {
+                        const newId = defaultAgentId === agentUserIds[service.id] ? null : agentUserIds[service.id]
+                        setDefaultAgentId(newId)
+                        await fetch('/api/user/ai-assistant-settings', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ defaultAgentId: newId }),
+                        })
+                      }}
+                    >
+                      {defaultAgentId === agentUserIds[service.id] ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          Active
+                        </>
+                      ) : (
+                        'Enable'
+                      )}
+                    </Button>
                   </div>
                 )}
 

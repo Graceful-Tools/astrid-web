@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { PushNotificationService } from '@/lib/push-notification-service'
+import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -162,6 +163,8 @@ export async function POST(
       const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g
       let match
       const senderName = message.author.name || message.author.email || 'Someone'
+      let agentExplicitlyMentioned = false
+      const senderIsAgent = message.author.isAIAgent
 
       while ((match = mentionPattern.exec(content || '')) !== null) {
         const mentionedUserId = match[2]
@@ -175,6 +178,7 @@ export async function POST(
         if (!mentionedUser) continue
 
         if (mentionedUser.isAIAgent) {
+          agentExplicitlyMentioned = true
           // AI agent — send chat_mention SSE event for agent processing
           const channel = await prisma.chatChannel.findUnique({
             where: { id: channelId },
@@ -207,6 +211,37 @@ export async function POST(
           } catch (pushError) {
             console.error('[Chat API] Push notification error:', pushError)
           }
+        }
+      }
+
+      // If no agent was explicitly @mentioned and sender is not an agent,
+      // check for a default agent assigned to this list/user
+      if (!agentExplicitlyMentioned && !senderIsAgent) {
+        try {
+          const channel = await prisma.chatChannel.findUnique({
+            where: { id: channelId },
+            select: { listId: true },
+          })
+
+          const defaultAgentId = await resolveDefaultAgent(channel?.listId || null, session.user.id)
+          if (defaultAgentId) {
+            await broadcastToUsers([defaultAgentId], {
+              type: 'chat_mention',
+              timestamp: new Date().toISOString(),
+              data: {
+                channelId,
+                listId: channel?.listId || null,
+                messageId: message.id,
+                content: content,
+                authorId: session.user.id,
+                authorName: senderName,
+                mentionedAgentId: defaultAgentId,
+                isDefaultAgent: true,
+              },
+            })
+          }
+        } catch (defaultAgentError) {
+          console.error('[Chat API] Default agent dispatch error:', defaultAgentError)
         }
       }
     } catch (sseError) {

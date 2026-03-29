@@ -74,7 +74,15 @@ export function ListAdminSettings({
   // AI providers state (determines if GitHub integration should be shown)
   const [availableAiProviders, setAvailableAiProviders] = useState<Array<{id: string, name: string}>>([])
   const [loadingAiProviders, setLoadingAiProviders] = useState(false)
-
+  // Default agent for this list
+  const [availableAgents, setAvailableAgents] = useState<Array<{id: string, name: string | null, email: string, image: string | null, service: string}>>([])
+  const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(() => {
+    const config = list.aiAgentsEnabled
+    if (config && typeof config === 'object' && !Array.isArray(config)) {
+      return (config as Record<string, unknown>).defaultAgentId as string || null
+    }
+    return null
+  })
 
   // Refs for click-outside handling
   const listNameRef = useRef<HTMLDivElement>(null)
@@ -143,6 +151,10 @@ export function ListAdminSettings({
   useEffect(() => {
     loadAiProviders()
     loadRepositories()
+    // Load available agents for default agent selector
+    fetch('/api/user/available-agents').then(r => r.json()).then(data => {
+      setAvailableAgents(data.agents || [])
+    }).catch(() => {})
   }, [])
 
   // Update temporary state when list changes
@@ -487,6 +499,57 @@ export function ListAdminSettings({
           className="rounded-full"
         />
       </div>
+
+      {/* List Assistant — AI agent for this list */}
+      {canEditSettings && availableAgents.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
+            <Bot className="w-4 h-4" />
+            <span>List Assistant</span>
+          </Label>
+          <Select
+            value={listDefaultAgentId || '_account_default'}
+            onValueChange={(value) => {
+              const newAgentId = value === '_account_default' ? null : value
+              setListDefaultAgentId(newAgentId)
+              // Build the updated aiAgentsEnabled config
+              const currentTypes = Array.isArray(list.aiAgentsEnabled)
+                ? list.aiAgentsEnabled
+                : (list.aiAgentsEnabled as Record<string, unknown>)?.enabledTypes || []
+              const updatedConfig = {
+                enabledTypes: currentTypes,
+                defaultAgentId: newAgentId,
+              }
+              onUpdate({ ...list, aiAgentsEnabled: updatedConfig as unknown as string[] })
+            }}
+          >
+            <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary">
+              <SelectValue placeholder="Use account default" />
+            </SelectTrigger>
+            <SelectContent className="theme-bg-primary theme-border">
+              <SelectItem value="_account_default" className="theme-text-primary">
+                Use account default
+              </SelectItem>
+              {availableAgents.map(agent => (
+                <SelectItem key={agent.id} value={agent.id} className="theme-text-primary">
+                  <div className="flex items-center gap-2">
+                    {agent.image ? (
+                      <img src={agent.image} alt="" className="w-4 h-4 rounded-full" />
+                    ) : (
+                      <Bot className="w-4 h-4 text-purple-500" />
+                    )}
+                    <span>{agent.name || agent.email}</span>
+                    <span className="text-xs theme-text-muted">({agent.service})</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs theme-text-muted">
+            This agent reads and responds to messages, acts on tasks, and creates tasks in this list.
+          </p>
+        </div>
+      )}
 
       {/* Agent Instructions (List Description) */}
       {canEditSettings && (

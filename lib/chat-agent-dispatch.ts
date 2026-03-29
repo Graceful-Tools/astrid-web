@@ -15,6 +15,8 @@ interface DispatchChatMentionParams {
   authorId: string
   authorName: string
   mentionedAgentId: string
+  /** True when the agent was resolved as a default agent, not explicitly @mentioned */
+  isDefaultAgent?: boolean
 }
 
 /**
@@ -34,6 +36,7 @@ export async function dispatchChatMention(params: DispatchChatMentionParams) {
         authorId: params.authorId,
         authorName: params.authorName,
         mentionedAgentId: params.mentionedAgentId,
+        isDefaultAgent: params.isDefaultAgent || false,
       },
     })
   } catch (error) {
