@@ -61,7 +61,7 @@ export const ChatPanel = React.memo(function ChatPanel({
   }
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-full ${className}`} data-chat-panel>
       <ChatMessageList
         messages={messages}
         currentUserId={currentUser.id}
