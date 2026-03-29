@@ -2,95 +2,39 @@
  * Astrid Agent Runtime
  *
  * Processes messages directed at Astrid and generates responses using
- * the user's configured AI model with tool calling for real task actions.
+ * the user's configured AI model. Astrid has access to the full Astrid
+ * v1 API via a single `api_request` tool — the same API that mobile
+ * apps and external agents use.
  */
 
 import { prisma } from '@/lib/prisma'
 import { getCachedApiKey, getPreferredAIService } from '@/lib/api-key-cache'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
-import { astridCreateTask, astridUpdateTask, astridCompleteTask, astridListTasks, astridAddComment } from '@/lib/astrid-api-client'
+import { getTokenForUser, getBaseUrl } from '@/lib/astrid-api-client'
 
-// ─── Tool Definitions ─────────────────────────────────────────────
+// ─── Single Tool: API Request ─────────────────────────────────────
 
 const TOOLS_CLAUDE = [
   {
-    name: 'create_task',
-    description: 'Create a new task in a list. The task will be visible to the user immediately.',
+    name: 'api_request',
+    description: 'Make an authenticated HTTP request to the Astrid API. Use this for ALL actions: creating tasks, updating tasks, listing tasks, creating lists, adding comments, etc. See the API documentation in your system prompt for available endpoints.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        title: { type: 'string', description: 'Task title' },
-        description: { type: 'string', description: 'Task description (markdown supported)' },
-        assignee_email: { type: 'string', description: 'Email of the person to assign the task to. Use the current user\'s email if they say "assign to me".' },
-        list_id: { type: 'string', description: 'List ID to add the task to. Use the current list ID if available.' },
-        priority: { type: 'number', description: 'Priority 0-3 (0=none, 1=low, 2=medium, 3=high)', enum: [0, 1, 2, 3] },
-        due_date: { type: 'string', description: 'Due date in ISO 8601 format (e.g. 2026-03-30T17:00:00Z). Optional.' },
+        method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE'], description: 'HTTP method' },
+        path: { type: 'string', description: 'API path starting with /api/v1/ (e.g. /api/v1/tasks, /api/v1/lists)' },
+        body: { type: 'object', description: 'Request body for POST/PUT requests. Omit for GET/DELETE.' },
+        query: { type: 'object', description: 'Query parameters as key-value pairs for GET requests.' },
       },
-      required: ['title'],
-    },
-  },
-  {
-    name: 'update_task',
-    description: 'Update an existing task. Only include fields you want to change.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        task_id: { type: 'string', description: 'The task ID to update' },
-        title: { type: 'string', description: 'New title' },
-        description: { type: 'string', description: 'New description' },
-        priority: { type: 'number', description: 'Priority 0-3 (0=none, 1=low, 2=medium, 3=high)', enum: [0, 1, 2, 3] },
-        due_date: { type: 'string', description: 'New due date in ISO 8601 format. Set to empty string to clear.' },
-        assignee_email: { type: 'string', description: 'Email of new assignee. Set to empty string to unassign.' },
-        completed: { type: 'boolean', description: 'Set to true to complete, false to reopen' },
-      },
-      required: ['task_id'],
-    },
-  },
-  {
-    name: 'complete_task',
-    description: 'Mark a task as complete.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        task_id: { type: 'string', description: 'The task ID to complete' },
-      },
-      required: ['task_id'],
-    },
-  },
-  {
-    name: 'list_tasks',
-    description: 'List tasks in the current context. Returns incomplete tasks by default.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        include_completed: { type: 'boolean', description: 'Include completed tasks' },
-        limit: { type: 'number', description: 'Max tasks to return (default 10)' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'add_comment',
-    description: 'Add a comment to a task. Use this to provide updates, ask questions, or leave notes on specific tasks.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        task_id: { type: 'string', description: 'The task ID to comment on' },
-        content: { type: 'string', description: 'Comment content (markdown supported)' },
-      },
-      required: ['task_id', 'content'],
+      required: ['method', 'path'],
     },
   },
 ]
 
 const TOOLS_OPENAI = TOOLS_CLAUDE.map(t => ({
   type: 'function' as const,
-  function: {
-    name: t.name,
-    description: t.description,
-    parameters: t.input_schema,
-  },
+  function: { name: t.name, description: t.description, parameters: t.input_schema },
 }))
 
 // ─── Tool Execution ───────────────────────────────────────────────
@@ -98,105 +42,78 @@ const TOOLS_OPENAI = TOOLS_CLAUDE.map(t => ({
 async function executeTool(
   toolName: string,
   input: Record<string, unknown>,
-  context: { userId: string; userEmail: string; listId: string | null }
+  context: { userId: string }
 ): Promise<string> {
+  if (toolName !== 'api_request') {
+    return JSON.stringify({ error: `Unknown tool: ${toolName}` })
+  }
+
   try {
-    switch (toolName) {
-      case 'create_task': {
-        const title = input.title as string
-        const assigneeEmail = input.assignee_email as string | undefined
-        const listId = (input.list_id as string) || context.listId
-        const priority = (input.priority as number) || 0
-        const dueDate = input.due_date ? new Date(input.due_date as string) : null
+    const method = input.method as string
+    const path = input.path as string
+    const body = input.body as Record<string, unknown> | undefined
+    const query = input.query as Record<string, string> | undefined
 
-        // Resolve assignee by email
-        let assigneeId: string | null = null
-        if (assigneeEmail) {
-          if (assigneeEmail === context.userEmail) {
-            assigneeId = context.userId
-          } else {
-            const assignee = await prisma.user.findFirst({
-              where: { email: assigneeEmail },
-              select: { id: true },
-            })
-            assigneeId = assignee?.id || null
-          }
-        }
-
-        const result = await astridCreateTask({
-          title,
-          assigneeId,
-          creatorId: context.userId,
-          listIds: listId ? [listId] : [],
-          priority,
-          dueDateTime: dueDate,
-        })
-
-        return JSON.stringify({ success: true, taskId: result.id, title: result.title })
-      }
-
-      case 'update_task': {
-        const taskId = input.task_id as string
-        const updates: Record<string, unknown> = { taskId, userId: context.userId }
-        if (input.title) updates.title = input.title
-        if (input.description !== undefined) updates.description = input.description
-        if (input.priority !== undefined) updates.priority = input.priority
-        if (input.completed !== undefined) updates.completed = input.completed
-        if (input.due_date !== undefined) {
-          updates.dueDateTime = input.due_date ? new Date(input.due_date as string) : null
-        }
-        if (input.assignee_email !== undefined) {
-          if (!input.assignee_email) {
-            updates.assigneeId = null
-          } else if (input.assignee_email === context.userEmail) {
-            updates.assigneeId = context.userId
-          } else {
-            const assignee = await prisma.user.findFirst({
-              where: { email: input.assignee_email as string },
-              select: { id: true },
-            })
-            updates.assigneeId = assignee?.id || null
-          }
-        }
-        const result = await astridUpdateTask(updates as Parameters<typeof astridUpdateTask>[0])
-        return JSON.stringify({ success: true, taskId: result.id, title: result.title })
-      }
-
-      case 'complete_task': {
-        const taskId = input.task_id as string
-        const result = await astridCompleteTask({ taskId, userId: context.userId })
-        return JSON.stringify({ success: true, taskId: result.id, title: result.title })
-      }
-
-      case 'list_tasks': {
-        const tasks = await astridListTasks({
-          userId: context.userId,
-          listId: context.listId,
-          includeCompleted: input.include_completed as boolean || false,
-          limit: (input.limit as number) || 10,
-        })
-        return JSON.stringify({ tasks })
-      }
-
-      case 'add_comment': {
-        const result = await astridAddComment({
-          taskId: input.task_id as string,
-          userId: context.userId,
-          content: input.content as string,
-        })
-        return JSON.stringify({ success: true, commentId: result.id })
-      }
-
-      default:
-        return JSON.stringify({ error: `Unknown tool: ${toolName}` })
+    // Security: only allow /api/v1/ paths
+    if (!path.startsWith('/api/v1/')) {
+      return JSON.stringify({ error: 'Only /api/v1/ endpoints are allowed' })
     }
+
+    const token = await getTokenForUser(context.userId)
+    const baseUrl = getBaseUrl()
+    let url = `${baseUrl}${path}`
+
+    if (query && Object.keys(query).length > 0) {
+      const params = new URLSearchParams(query)
+      url += `?${params}`
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      ...(body && ['POST', 'PUT', 'PATCH'].includes(method) ? { body: JSON.stringify(body) } : {}),
+    })
+
+    const responseBody = await res.json().catch(() => ({}))
+
+    // After mutations, broadcast to user so their UI updates
+    if (['POST', 'PUT', 'DELETE'].includes(method) && res.ok) {
+      if (path.match(/\/api\/v1\/tasks/) && responseBody.task) {
+        const eventType = path.includes('/comments') ? 'comment_created'
+          : method === 'POST' ? 'task_created'
+          : method === 'DELETE' ? 'task_deleted'
+          : responseBody.task.completed ? 'task_completed'
+          : 'task_updated'
+        broadcastToUsers([context.userId], {
+          type: eventType,
+          timestamp: new Date().toISOString(),
+          data: { taskId: responseBody.task.id, task: responseBody.task },
+        }).catch(() => {})
+      }
+      if (path.match(/\/api\/v1\/lists/) && responseBody.list && method === 'POST') {
+        broadcastToUsers([context.userId], {
+          type: 'list_created',
+          timestamp: new Date().toISOString(),
+          data: { list: responseBody.list },
+        }).catch(() => {})
+      }
+    }
+
+    if (!res.ok) {
+      return JSON.stringify({ error: responseBody.error || `HTTP ${res.status}`, status: res.status })
+    }
+
+    return JSON.stringify(responseBody)
   } catch (error) {
-    console.error(`[Astrid] Tool ${toolName} failed:`, error)
-    return JSON.stringify({ error: `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}` })
+    console.error('[Astrid] api_request failed:', error)
+    return JSON.stringify({ error: error instanceof Error ? error.message : 'Request failed' })
   }
 }
 
-// ─── System Prompt ────────────────────────────────────────────────
+// ─── System Prompt with API Docs ──────────────────────────────────
 
 function buildSystemPrompt(context: {
   userName: string
@@ -207,36 +124,57 @@ function buildSystemPrompt(context: {
 }): string {
   return `You are Astrid, a helpful task management assistant. You help ${context.userName} (${context.userEmail}) manage their tasks and lists.
 
-## Tools
-You have real tools to create tasks, complete tasks, and list tasks. USE THEM when the user asks you to take action. Do not just say you did something — actually call the tool.
+## API Access
+You have a tool called \`api_request\` that makes authenticated HTTP requests to the Astrid API. Use it for ALL actions.
+
+### API Endpoints
+
+**Tasks:**
+- \`GET /api/v1/tasks\` — List tasks. Query params: \`listId\`, \`completed\` (true/false), \`limit\`, \`offset\`, \`priority\`, \`assigneeId\`
+- \`POST /api/v1/tasks\` — Create task. Body: \`{ title, description?, listIds?: [id], assigneeId?, priority?: 0-3, dueDateTime?: ISO8601 }\`
+- \`GET /api/v1/tasks/:id\` — Get task details
+- \`PUT /api/v1/tasks/:id\` — Update task. Body: any subset of \`{ title, description, priority, dueDateTime, assigneeId, completed }\`
+- \`DELETE /api/v1/tasks/:id\` — Delete task
+
+**Task Comments:**
+- \`GET /api/v1/tasks/:id/comments\` — List comments
+- \`POST /api/v1/tasks/:id/comments\` — Add comment. Body: \`{ content, type?: "TEXT"|"MARKDOWN" }\`
+
+**Lists:**
+- \`GET /api/v1/lists\` — List all accessible lists
+- \`POST /api/v1/lists\` — Create list. Body: \`{ name, description? }\`
+- \`GET /api/v1/lists/:id\` — Get list details
+- \`PUT /api/v1/lists/:id\` — Update list. Body: \`{ name?, description? }\`
+
+**Key fields:**
+- Priority: 0=none, 1=low, 2=medium, 3=high
+- dueDateTime: ISO 8601 format (e.g. "2026-03-30T17:00:00Z")
+- assigneeId: User ID (use "${context.userEmail}" lookup or the IDs from task data)
 
 ## Current context
 ${context.listName ? `- List: ${context.listName} (ID: ${context.listId})` : '- View: My Tasks'}
-- User email: ${context.userEmail}
+- User: ${context.userName} (${context.userEmail})
 ${context.taskContext ? `\n## Current tasks\n${context.taskContext}` : ''}
 
 ## Response style
 - Be concise and action-oriented
-- When creating/completing tasks, call the tool FIRST, then confirm briefly
+- When asked to do something, USE the api_request tool — don't just say you did it
 - Keep responses under 2-3 sentences
-- Use markdown sparingly`
+- Use markdown sparingly
+- After taking an action, briefly confirm what you did`
 }
 
-// ─── AI Provider Calls with Tools ─────────────────────────────────
+// ─── AI Provider Calls ────────────────────────────────────────────
 
 async function callClaudeWithTools(
-  apiKey: string,
-  systemPrompt: string,
-  userMessage: string,
-  context: { userId: string; userEmail: string; listId: string | null },
-  model?: string
+  apiKey: string, systemPrompt: string, userMessage: string,
+  context: { userId: string }, model?: string
 ): Promise<string> {
   let messages: Array<{ role: string; content: unknown }> = [
     { role: 'user', content: userMessage },
   ]
 
-  // Allow up to 3 tool-use rounds
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -255,30 +193,22 @@ async function callClaudeWithTools(
     if (!res.ok) throw new Error(`Claude API error: ${res.status}`)
     const data = await res.json()
 
-    // Check for tool use
     const toolUseBlocks = (data.content || []).filter((b: { type: string }) => b.type === 'tool_use')
     const textBlocks = (data.content || []).filter((b: { type: string }) => b.type === 'text')
 
     if (toolUseBlocks.length === 0) {
-      // No tool calls — return text
       return textBlocks.map((b: { text: string }) => b.text).join('\n') || 'Done!'
     }
 
-    // Execute tools and continue conversation
     messages.push({ role: 'assistant', content: data.content })
 
     const toolResults = []
     for (const toolBlock of toolUseBlocks) {
       const result = await executeTool(toolBlock.name, toolBlock.input, context)
-      toolResults.push({
-        type: 'tool_result',
-        tool_use_id: toolBlock.id,
-        content: result,
-      })
+      toolResults.push({ type: 'tool_result', tool_use_id: toolBlock.id, content: result })
     }
     messages.push({ role: 'user', content: toolResults })
 
-    // If stop_reason is 'end_turn', we're done after getting final text
     if (data.stop_reason === 'end_turn') {
       return textBlocks.map((b: { text: string }) => b.text).join('\n') || 'Done!'
     }
@@ -288,44 +218,29 @@ async function callClaudeWithTools(
 }
 
 async function callOpenAIWithTools(
-  apiKey: string,
-  systemPrompt: string,
-  userMessage: string,
-  context: { userId: string; userEmail: string; listId: string | null },
-  model?: string
+  apiKey: string, systemPrompt: string, userMessage: string,
+  context: { userId: string }, model?: string
 ): Promise<string> {
   let messages: Array<{ role: string; content: string | null; tool_calls?: unknown[]; tool_call_id?: string }> = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userMessage },
   ]
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model || 'gpt-4o',
-        max_tokens: 1024,
-        tools: TOOLS_OPENAI,
-        messages,
-      }),
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model || 'gpt-4o', max_tokens: 1024, tools: TOOLS_OPENAI, messages }),
     })
     if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`)
     const data = await res.json()
 
-    const choice = data.choices?.[0]
-    const msg = choice?.message
-
+    const msg = data.choices?.[0]?.message
     if (!msg?.tool_calls?.length) {
       return msg?.content || 'Done!'
     }
 
-    // Execute tool calls
     messages.push({ role: 'assistant', content: msg.content, tool_calls: msg.tool_calls })
-
     for (const tc of msg.tool_calls) {
       const args = JSON.parse(tc.function.arguments)
       const result = await executeTool(tc.function.name, args, context)
@@ -337,20 +252,19 @@ async function callOpenAIWithTools(
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, userMessage: string, model?: string): Promise<string> {
-  // Gemini tool calling is more complex — use simple completion for now
   const modelId = model || 'gemini-2.0-flash'
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt + '\n\nIMPORTANT: You do not have tools available in this mode. Only answer questions and provide suggestions. Do NOT claim to have created or modified tasks.' }] },
+      systemInstruction: { parts: [{ text: systemPrompt + '\n\nNote: You do not have API access in this mode. Only answer questions and provide suggestions.' }] },
       contents: [{ parts: [{ text: userMessage }] }],
       generationConfig: { maxOutputTokens: 1024 },
     }),
   })
   if (!res.ok) throw new Error(`Gemini API error: ${res.status}`)
   const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'I encountered an issue processing your request.'
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'I encountered an issue.'
 }
 
 // ─── Context Building ─────────────────────────────────────────────
@@ -366,7 +280,7 @@ async function buildTaskContext(listId: string | null, userId: string): Promise<
 
     const tasks = await prisma.task.findMany({
       where,
-      select: { id: true, title: true, dueDateTime: true, priority: true, assignee: { select: { name: true } } },
+      select: { id: true, title: true, dueDateTime: true, priority: true, assignee: { select: { name: true, email: true } } },
       orderBy: [{ dueDateTime: 'asc' }, { priority: 'desc' }],
       take: 15,
     })
@@ -375,7 +289,8 @@ async function buildTaskContext(listId: string | null, userId: string): Promise<
     return tasks.map(t => {
       const due = t.dueDateTime ? ` (due: ${t.dueDateTime.toLocaleDateString()})` : ''
       const priority = t.priority ? ` [P${t.priority}]` : ''
-      return `- [${t.id}] ${t.title}${priority}${due}`
+      const assignee = t.assignee ? ` → ${t.assignee.name || t.assignee.email}` : ''
+      return `- [${t.id}] ${t.title}${priority}${due}${assignee}`
     }).join('\n')
   } catch {
     return ''
@@ -414,10 +329,8 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const taskContext = await buildTaskContext(listId, userId)
 
     const systemPrompt = buildSystemPrompt({
-      userName,
-      userEmail,
-      listName: listName || undefined,
-      listId,
+      userName, userEmail,
+      listName: listName || undefined, listId,
       taskContext,
     })
 
@@ -426,7 +339,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       .replace(/#\[([^\]]+)\]\([^)]+\)/g, '#$1')
       .replace(/!\[([^\]]+)\]\([^)]+\)/g, '!$1')
 
-    const toolContext = { userId, userEmail, listId }
+    const toolContext = { userId }
 
     let response: string
     switch (service) {
@@ -504,19 +417,18 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
 
     const taskContext = await buildTaskContext(listId, userId)
     const systemPrompt = buildSystemPrompt({
-      userName,
-      userEmail,
+      userName, userEmail,
       listName: listId ? (await prisma.taskList.findUnique({ where: { id: listId }, select: { name: true } }))?.name || undefined : undefined,
       listId,
       taskContext,
-    }) + `\n\n## Current task\nTitle: ${taskTitle}\nTask ID: ${taskId}\n\nThe user commented on this task. Respond helpfully.`
+    }) + `\n\n## Current task\nTitle: ${taskTitle}\nTask ID: ${taskId}\n\nThe user commented on this task. Respond helpfully. If you need to take action, use the api_request tool.`
 
     const cleanComment = commentContent
       .replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
       .replace(/#\[([^\]]+)\]\([^)]+\)/g, '#$1')
       .replace(/!\[([^\]]+)\]\([^)]+\)/g, '!$1')
 
-    const toolContext = { userId, userEmail, listId }
+    const toolContext = { userId }
 
     let response: string
     switch (service) {
@@ -533,6 +445,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
         return
     }
 
+    // Post as a comment from Astrid using the API
     const astridUser = await prisma.user.findFirst({ where: { email: ASTRID_EMAIL }, select: { id: true } })
     if (!astridUser) return
 
@@ -552,7 +465,6 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       if (task.assigneeId) recipientIds.add(task.assigneeId)
       task.lists?.forEach(l => { recipientIds.add(l.ownerId); l.listMembers?.forEach(m => recipientIds.add(m.userId)) })
       recipientIds.delete(astridUser.id)
-
       if (recipientIds.size > 0) {
         await broadcastToUsers([...recipientIds], {
           type: 'comment_created',
