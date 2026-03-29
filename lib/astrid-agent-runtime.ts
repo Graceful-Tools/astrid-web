@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { getCachedApiKey, getPreferredAIService } from '@/lib/api-key-cache'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
+import { astridCreateTask, astridCompleteTask, astridListTasks } from '@/lib/astrid-api-client'
 
 // ─── Tool Definitions ─────────────────────────────────────────────
 
@@ -69,97 +70,63 @@ async function executeTool(
   input: Record<string, unknown>,
   context: { userId: string; userEmail: string; listId: string | null }
 ): Promise<string> {
-  switch (toolName) {
-    case 'create_task': {
-      const title = input.title as string
-      const assigneeEmail = input.assignee_email as string | undefined
-      const listId = (input.list_id as string) || context.listId
-      const priority = (input.priority as number) || 0
-      const dueDate = input.due_date ? new Date(input.due_date as string) : null
+  try {
+    switch (toolName) {
+      case 'create_task': {
+        const title = input.title as string
+        const assigneeEmail = input.assignee_email as string | undefined
+        const listId = (input.list_id as string) || context.listId
+        const priority = (input.priority as number) || 0
+        const dueDate = input.due_date ? new Date(input.due_date as string) : null
 
-      // Resolve assignee
-      let assigneeId: string | null = null
-      if (assigneeEmail) {
-        const assignee = await prisma.user.findFirst({
-          where: { email: assigneeEmail },
-          select: { id: true },
-        })
-        assigneeId = assignee?.id || null
-      }
+        // Resolve assignee by email
+        let assigneeId: string | null = null
+        if (assigneeEmail) {
+          if (assigneeEmail === context.userEmail) {
+            assigneeId = context.userId
+          } else {
+            const assignee = await prisma.user.findFirst({
+              where: { email: assigneeEmail },
+              select: { id: true },
+            })
+            assigneeId = assignee?.id || null
+          }
+        }
 
-      // Create the task
-      const task = await prisma.task.create({
-        data: {
+        const result = await astridCreateTask({
           title,
-          description: '',
-          priority,
           assigneeId,
           creatorId: context.userId,
+          listIds: listId ? [listId] : [],
+          priority,
           dueDateTime: dueDate,
-          completed: false,
-          repeating: 'never',
-          repeatFrom: 'DUE_DATE',
-          isPrivate: false,
-          ...(listId ? { lists: { connect: [{ id: listId }] } } : {}),
-        },
-      })
+        })
 
-      // Broadcast task creation
-      broadcastToUsers([context.userId], {
-        type: 'task_created',
-        timestamp: new Date().toISOString(),
-        data: { task: { ...task, lists: listId ? [{ id: listId }] : [] } },
-      }).catch(() => {})
-
-      return JSON.stringify({ success: true, taskId: task.id, title: task.title })
-    }
-
-    case 'complete_task': {
-      const taskId = input.task_id as string
-      const task = await prisma.task.update({
-        where: { id: taskId },
-        data: { completed: true },
-      })
-
-      broadcastToUsers([context.userId], {
-        type: 'task_updated',
-        timestamp: new Date().toISOString(),
-        data: { task },
-      }).catch(() => {})
-
-      return JSON.stringify({ success: true, taskId: task.id, title: task.title })
-    }
-
-    case 'list_tasks': {
-      const includeCompleted = input.include_completed as boolean || false
-      const limit = (input.limit as number) || 10
-
-      const where: Record<string, unknown> = {}
-      if (!includeCompleted) where.completed = false
-      if (context.listId) {
-        where.lists = { some: { id: context.listId } }
-      } else {
-        where.OR = [{ assigneeId: context.userId }, { creatorId: context.userId }]
+        return JSON.stringify({ success: true, taskId: result.id, title: result.title })
       }
 
-      const tasks = await prisma.task.findMany({
-        where,
-        select: { id: true, title: true, completed: true, priority: true, dueDateTime: true },
-        orderBy: [{ dueDateTime: 'asc' }, { priority: 'desc' }],
-        take: limit,
-      })
+      case 'complete_task': {
+        const taskId = input.task_id as string
+        const result = await astridCompleteTask({ taskId, userId: context.userId })
+        return JSON.stringify({ success: true, taskId: result.id, title: result.title })
+      }
 
-      return JSON.stringify({ tasks: tasks.map(t => ({
-        id: t.id,
-        title: t.title,
-        completed: t.completed,
-        priority: t.priority,
-        dueDate: t.dueDateTime?.toISOString() || null,
-      }))})
+      case 'list_tasks': {
+        const tasks = await astridListTasks({
+          userId: context.userId,
+          listId: context.listId,
+          includeCompleted: input.include_completed as boolean || false,
+          limit: (input.limit as number) || 10,
+        })
+        return JSON.stringify({ tasks })
+      }
+
+      default:
+        return JSON.stringify({ error: `Unknown tool: ${toolName}` })
     }
-
-    default:
-      return JSON.stringify({ error: `Unknown tool: ${toolName}` })
+  } catch (error) {
+    console.error(`[Astrid] Tool ${toolName} failed:`, error)
+    return JSON.stringify({ error: `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}` })
   }
 }
 
