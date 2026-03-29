@@ -203,8 +203,8 @@
   background-color: rgba(243, 244, 246, 0.8);
 }
 
-/* Chat bubble colors — "mine" distinct from "other" on cyan background */
-.ocean .chat-bubble-mine { background-color: rgba(255, 255, 255, 0.55); }
-.ocean .chat-bubble-other { background-color: rgba(255, 255, 255, 0.3); }
+/* Chat bubble colors — visible on both white and cyan backgrounds */
+.ocean .chat-bubble-mine { background-color: rgba(59, 130, 246, 0.15); }
+.ocean .chat-bubble-other { background-color: rgba(59, 130, 246, 0.08); }
 
 /* Ocean theme inherits all component styles from light theme */
