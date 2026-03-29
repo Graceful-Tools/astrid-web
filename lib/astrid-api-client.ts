@@ -32,7 +32,7 @@ async function getAstridToken(): Promise<string> {
 
   let oauthClient = await prisma.oAuthClient.findFirst({
     where: { userId: astridUser.id },
-    select: { clientId: true },
+    select: { id: true, clientId: true },
   })
 
   if (!oauthClient) {
@@ -44,12 +44,18 @@ async function getAstridToken(): Promise<string> {
       scopes: ['tasks:read', 'tasks:write', 'lists:read', 'comments:read', 'comments:write'],
       grantTypes: ['client_credentials'],
     })
-    oauthClient = { clientId: credentials.clientId }
+    // Fetch the created client's database ID
+    const created = await prisma.oAuthClient.findFirst({
+      where: { clientId: credentials.clientId },
+      select: { id: true, clientId: true },
+    })
+    if (!created) throw new Error('Failed to create OAuth client for Astrid')
+    oauthClient = created
   }
 
-  // Generate access token
+  // Generate access token — uses the database `id`, not the `clientId` field
   const tokenResult = await generateAccessToken(
-    oauthClient.clientId,
+    oauthClient.id,
     astridUser.id,
     ['tasks:read', 'tasks:write', 'lists:read', 'comments:read', 'comments:write']
   )

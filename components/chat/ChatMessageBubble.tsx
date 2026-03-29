@@ -39,7 +39,11 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble({
         {/* Author name */}
         {showAuthor && !isOwnMessage && (
           <div className="flex items-center gap-1 mb-0.5 px-1">
-            {isAgent && <Bot className="w-3 h-3 text-purple-500" />}
+            {isAgent && (
+              message.author?.image
+                ? <img src={message.author.image} alt="" className="w-3.5 h-3.5 rounded-full" />
+                : <Bot className="w-3 h-3 text-purple-500" />
+            )}
             <span className={`text-xs font-medium ${isAgent ? 'text-purple-600 dark:text-purple-400' : 'theme-text-muted'}`}>
               {message.author?.name || message.author?.email || 'Unknown'}
             </span>
