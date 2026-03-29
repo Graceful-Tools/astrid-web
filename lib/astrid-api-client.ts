@@ -30,29 +30,41 @@ async function ensureAstridOAuthClient(): Promise<string> {
   })
   if (!astridUser) throw new Error('Astrid agent user not found')
 
+  const REQUIRED_SCOPES = ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write']
+
   let client = await prisma.oAuthClient.findFirst({
     where: { userId: astridUser.id },
-    select: { id: true },
+    select: { id: true, scopes: true },
   })
+
+  // Update scopes if the existing client is missing any
+  if (client && !REQUIRED_SCOPES.every(s => client!.scopes.includes(s))) {
+    await prisma.oAuthClient.update({
+      where: { id: client.id },
+      data: { scopes: REQUIRED_SCOPES },
+    })
+    // Clear token cache so new tokens get updated scopes
+    tokenCache.clear()
+  }
 
   if (!client) {
     const { createOAuthClient } = await import('@/lib/oauth/oauth-client-manager')
     const credentials = await createOAuthClient({
       userId: astridUser.id,
       name: 'Astrid Agent',
-      scopes: ['tasks:read', 'tasks:write', 'lists:read', 'comments:read', 'comments:write'],
+      scopes: ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write'],
       grantTypes: ['client_credentials'],
     })
     const created = await prisma.oAuthClient.findFirst({
       where: { clientId: credentials.clientId },
-      select: { id: true },
+      select: { id: true, scopes: true },
     })
     if (!created) throw new Error('Failed to create OAuth client for Astrid')
     client = created
   }
 
-  oauthClientId = client.id
-  return client.id
+  oauthClientId = client!.id
+  return client!.id
 }
 
 /**
@@ -69,7 +81,7 @@ export async function getTokenForUser(userId: string): Promise<string> {
   const tokenResult = await generateAccessToken(
     clientId,
     userId,
-    ['tasks:read', 'tasks:write', 'lists:read', 'comments:read', 'comments:write']
+    ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write']
   )
 
   tokenCache.set(userId, {
