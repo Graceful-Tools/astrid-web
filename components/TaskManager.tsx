@@ -90,23 +90,60 @@ export function TaskManager({
     enabled: !!controller.effectiveSession?.user?.id,
   })
 
-  // Chat list members for mention system
+  // Fetch the user's configured default agent (Astrid) for mention autocomplete
+  const [defaultAgentUser, setDefaultAgentUser] = React.useState<User | null>(null)
+  React.useEffect(() => {
+    if (!controller.effectiveSession?.user?.id) return
+    // Fetch the user's AI assistant settings to get the default agent
+    fetch('/api/user/ai-assistant-settings')
+      .then(r => r.json())
+      .then(async (settings) => {
+        if (!settings.defaultAgentId) {
+          setDefaultAgentUser(null)
+          return
+        }
+        // Fetch the agent user details
+        const agentsRes = await fetch('/api/user/available-agents')
+        const agentsData = await agentsRes.json()
+        const agent = (agentsData.agents || []).find((a: { id: string }) => a.id === settings.defaultAgentId)
+        if (agent) {
+          setDefaultAgentUser({
+            id: agent.id,
+            name: agent.name,
+            email: agent.email,
+            image: agent.image,
+            createdAt: new Date(),
+            isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [controller.effectiveSession?.user?.id])
+
+  // Chat list members for mention system — includes the configured default agent
   const chatListMembers = React.useMemo((): User[] => {
+    let members: User[]
     if (isVirtualList) {
-      // For virtual lists, use available users from controller
-      return controller.availableUsers || []
+      members = controller.availableUsers || []
+    } else {
+      const list = controller.lists.find(l => l.id === controller.selectedListId)
+      if (!list) return defaultAgentUser ? [defaultAgentUser] : []
+      members = getAllListMembers(list).map(m => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        image: m.image,
+        createdAt: new Date(),
+      }))
     }
-    // For real lists, get list members
-    const list = controller.lists.find(l => l.id === controller.selectedListId)
-    if (!list) return []
-    return getAllListMembers(list).map(m => ({
-      id: m.id,
-      name: m.name,
-      email: m.email,
-      image: m.image,
-      createdAt: new Date(),
-    }))
-  }, [controller.selectedListId, controller.lists, controller.availableUsers, isVirtualList])
+
+    // Inject the default agent if not already in the list
+    if (defaultAgentUser && !members.some(m => m.id === defaultAgentUser.id)) {
+      members = [defaultAgentUser, ...members]
+    }
+
+    return members
+  }, [controller.selectedListId, controller.lists, controller.availableUsers, isVirtualList, defaultAgentUser])
 
   // Modal and dialog management
   const modals = useTaskManagerModals()
