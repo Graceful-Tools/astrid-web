@@ -66,9 +66,20 @@ function AstridAgentSelector() {
     )
   }
 
+  // Filter out Astrid itself — this selector picks the model that powers Astrid
+  const modelOptions = agents.filter(a => a.email !== 'astrid@astrid.cc')
+
+  if (modelOptions.length === 0) {
+    return (
+      <p className="text-sm theme-text-muted">
+        Add an API key or register an OpenClaw agent below to power Astrid.
+      </p>
+    )
+  }
+
   return (
     <div className="space-y-2">
-      {agents.map(agent => (
+      {modelOptions.map(agent => (
         <button
           key={agent.id}
           onClick={() => handleSelect(currentAgentId === agent.id ? null : agent.id)}
