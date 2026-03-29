@@ -145,9 +145,8 @@
 .dark .theme-shadow { box-shadow: var(--theme-shadow); }
 .dark .theme-shadow-lg { box-shadow: var(--theme-shadow-lg); }
 
-/* Chat bubble colors — "mine" uses blue like standard messaging apps */
-.dark .chat-bubble-mine { background-color: #2563eb; color: white; }
-.dark .chat-bubble-mine .theme-text-secondary { color: white; }
+/* Chat bubble colors */
+.dark .chat-bubble-mine { background-color: rgb(var(--theme-bg-secondary)); }
 .dark .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
 
 /* ===== DARK THEME: Solid Dark Backgrounds ===== */

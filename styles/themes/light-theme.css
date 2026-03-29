@@ -318,14 +318,12 @@
 .lite .theme-comment-bg { background-color: rgb(var(--theme-comment-bg)); }
 .lite .theme-count-bg { background-color: rgb(var(--theme-count-bg)); }
 
-/* Chat bubble colors — "mine" uses blue like standard messaging apps */
-.light .chat-bubble-mine { background-color: #3b82f6; color: white; }
-.light .chat-bubble-mine .theme-text-secondary { color: white; }
+/* Chat bubble colors */
+.light .chat-bubble-mine { background-color: rgb(var(--theme-bg-secondary)); }
 .light .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
 
 /* Chat bubble colors - lite theme */
-.lite .chat-bubble-mine { background-color: #3b82f6; color: white; }
-.lite .chat-bubble-mine .theme-text-secondary { color: white; }
+.lite .chat-bubble-mine { background-color: rgb(var(--theme-bg-secondary)); }
 .lite .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
 
 /* ===== LIGHT THEME: Glass/Blur Material Effects ===== */
