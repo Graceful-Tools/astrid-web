@@ -203,9 +203,9 @@
   background-color: rgba(243, 244, 246, 0.8);
 }
 
-/* Chat bubble colors - white bubbles on cyan */
-/* Chat bubbles: translucent cyan to match ocean task cards */
-.ocean .chat-bubble-mine { background-color: rgba(136, 220, 248, 0.25); }
+/* Chat bubble colors — "mine" uses blue, "other" translucent cyan */
+.ocean .chat-bubble-mine { background-color: #2563eb; color: white; }
+.ocean .chat-bubble-mine .theme-text-secondary { color: white; }
 .ocean .chat-bubble-other { background-color: rgba(136, 220, 248, 0.15); }
 
 /* Ocean theme inherits all component styles from light theme */
