@@ -90,23 +90,54 @@ export function TaskManager({
     enabled: !!controller.effectiveSession?.user?.id,
   })
 
-  // Chat list members for mention system
+  // Fetch Astrid agent for mention autocomplete — always available regardless of default setting
+  const [defaultAgentUser, setDefaultAgentUser] = React.useState<User | null>(null)
+  React.useEffect(() => {
+    if (!controller.effectiveSession?.user?.id) return
+    // Fetch available agents — this also ensures astrid@astrid.cc exists in the DB
+    fetch('/api/user/available-agents')
+      .then(r => r.json())
+      .then((data) => {
+        // Find Astrid (always first in the list if user has any API key)
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
+          setDefaultAgentUser({
+            id: astrid.id,
+            name: astrid.name,
+            email: astrid.email,
+            image: astrid.image,
+            createdAt: new Date(),
+            isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [controller.effectiveSession?.user?.id])
+
+  // Chat list members for mention system — includes the configured default agent
   const chatListMembers = React.useMemo((): User[] => {
+    let members: User[]
     if (isVirtualList) {
-      // For virtual lists, use available users from controller
-      return controller.availableUsers || []
+      members = controller.availableUsers || []
+    } else {
+      const list = controller.lists.find(l => l.id === controller.selectedListId)
+      if (!list) return defaultAgentUser ? [defaultAgentUser] : []
+      members = getAllListMembers(list).map(m => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        image: m.image,
+        createdAt: new Date(),
+      }))
     }
-    // For real lists, get list members
-    const list = controller.lists.find(l => l.id === controller.selectedListId)
-    if (!list) return []
-    return getAllListMembers(list).map(m => ({
-      id: m.id,
-      name: m.name,
-      email: m.email,
-      image: m.image,
-      createdAt: new Date(),
-    }))
-  }, [controller.selectedListId, controller.lists, controller.availableUsers, isVirtualList])
+
+    // Inject the default agent if not already in the list
+    if (defaultAgentUser && !members.some(m => m.id === defaultAgentUser.id)) {
+      members = [defaultAgentUser, ...members]
+    }
+
+    return members
+  }, [controller.selectedListId, controller.lists, controller.availableUsers, isVirtualList, defaultAgentUser])
 
   // Modal and dialog management
   const modals = useTaskManagerModals()
@@ -453,6 +484,7 @@ export function TaskManager({
       chatChannelId={chatChannelId}
       chatChannelLoading={chatChannelLoading}
       chatListMembers={chatListMembers}
+      chatListId={isVirtualList ? null : controller.selectedListId}
       />
 
       {/* Image Picker Modal */}

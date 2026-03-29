@@ -70,7 +70,12 @@ describe('CommentSection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    global.fetch = vi.fn()
+    // Default fetch mock returns empty JSON for any unhandled requests
+    // (e.g., /api/user/ai-assistant-settings called in useEffect)
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({})
+    })
   })
 
   describe('Rendering', () => {
@@ -145,7 +150,9 @@ describe('CommentSection', () => {
 
     it('should show Send button when there is content', () => {
       render(<CommentSection {...defaultProps} newComment="Test comment" />)
-      expect(screen.getByTitle('Send comment')).toBeInTheDocument()
+      // RichTextInput renders a send button with a Send icon (no title attribute)
+      const sendButton = document.querySelector('.lucide-send')?.closest('button')
+      expect(sendButton).toBeTruthy()
     })
 
     it('should not add empty comment', async () => {
@@ -206,7 +213,9 @@ describe('CommentSection', () => {
         size: 1024
       }
       render(<CommentSection {...defaultProps} attachedFile={attachedFile} />)
-      expect(screen.getByText('test.png')).toBeInTheDocument()
+      // File preview may appear in both CommentSection and RichTextInput
+      const fileNames = screen.getAllByText('test.png')
+      expect(fileNames.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should remove attachment when X button is clicked', () => {
@@ -244,7 +253,9 @@ describe('CommentSection', () => {
       const setUploadingFile = vi.fn()
       render(<CommentSection {...defaultProps} setAttachedFile={setAttachedFile} setUploadingFile={setUploadingFile} />)
 
-      const fileInput = document.getElementById('comment-file-upload') as HTMLInputElement
+      // RichTextInput renders a hidden file input (no ID) - find it by type
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      expect(fileInput).toBeTruthy()
       const file = new File(['content'], 'test.png', { type: 'image/png' })
 
       Object.defineProperty(fileInput, 'files', {
@@ -254,20 +265,18 @@ describe('CommentSection', () => {
 
       fireEvent.change(fileInput)
 
-      expect(setUploadingFile).toHaveBeenCalledWith(true)
-
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
           '/api/secure-upload/request-upload',
           expect.objectContaining({ method: 'POST' })
         )
+        // RichTextInput handles upload internally and calls onAttachedFileChange
         expect(setAttachedFile).toHaveBeenCalledWith({
           url: '/api/secure-files/file-123',
           name: 'test.png',
           type: 'image/png',
           size: 1024
         })
-        expect(setUploadingFile).toHaveBeenCalledWith(false)
       })
     })
   })
@@ -589,10 +598,11 @@ describe('CommentSection', () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('Upload failed'))
       global.fetch = mockFetch
 
-      const setUploadingFile = vi.fn()
-      render(<CommentSection {...defaultProps} setUploadingFile={setUploadingFile} />)
+      render(<CommentSection {...defaultProps} />)
 
-      const fileInput = document.getElementById('comment-file-upload') as HTMLInputElement
+      // RichTextInput renders a hidden file input (no ID) - find it by type
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      expect(fileInput).toBeTruthy()
       const file = new File(['content'], 'test.png', { type: 'image/png' })
 
       Object.defineProperty(fileInput, 'files', {
@@ -602,8 +612,11 @@ describe('CommentSection', () => {
 
       fireEvent.change(fileInput)
 
+      // RichTextInput handles errors internally via onUploadErrorChange
       await waitFor(() => {
-        expect(setUploadingFile).toHaveBeenCalledWith(false)
+        // Error may appear in both CommentSection and RichTextInput error areas
+        const errorMessages = screen.getAllByText('Upload failed')
+        expect(errorMessages.length).toBeGreaterThanOrEqual(1)
       })
     })
   })
@@ -668,7 +681,9 @@ describe('CommentSection', () => {
         size: 1024
       }
       render(<CommentSection {...defaultProps} attachedFile={attachedFile} />)
-      const fileNameElement = screen.getByText('document.pdf')
+      // File preview may appear in both CommentSection and RichTextInput
+      const fileNameElements = screen.getAllByText('document.pdf')
+      const fileNameElement = fileNameElements[0]
       expect(fileNameElement).toHaveClass('theme-text-primary')
       expect(fileNameElement).not.toHaveClass('text-white')
     })
@@ -681,7 +696,9 @@ describe('CommentSection', () => {
         size: 2048
       }
       render(<CommentSection {...defaultProps} replyingTo="comment-1" replyAttachedFile={replyAttachedFile} />)
-      const fileNameElement = screen.getByText('image.png')
+      // Reply file preview is rendered inline in CommentSection
+      const fileNameElements = screen.getAllByText('image.png')
+      const fileNameElement = fileNameElements[0]
       expect(fileNameElement).toHaveClass('theme-text-primary')
       expect(fileNameElement).not.toHaveClass('text-white')
     })

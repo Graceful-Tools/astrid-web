@@ -5,7 +5,12 @@ import { TaskDetail } from '@/components/task-detail'
 import type { Task, User, TaskList } from '@/types/task'
 
 // Mock fetch for upload tests
-const mockFetch = vi.fn()
+// Default implementation returns empty JSON for any unhandled requests
+// (e.g., /api/user/ai-assistant-settings called by CommentSection useEffect)
+const mockFetch = vi.fn().mockResolvedValue({
+  ok: true,
+  json: () => Promise.resolve({})
+})
 global.fetch = mockFetch
 
 // Mock layout detection
@@ -176,8 +181,8 @@ describe('TaskDetail Upload Functionality', () => {
 
       render(<TaskDetail {...mockProps} />)
 
-      // Find the file input in the floating CommentInputBar
-      const fileInput = document.querySelector('#comment-file-upload-bar')
+      // RichTextInput renders a hidden file input (no ID) - find it by type
+      const fileInput = document.querySelector('input[type="file"]')
       expect(fileInput).toBeTruthy()
 
       const file = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
@@ -193,9 +198,12 @@ describe('TaskDetail Upload Functionality', () => {
         })
       })
 
-      // Verify the FormData contains correct data
-      const uploadCall = mockFetch.mock.calls[0]
-      const formData = uploadCall[1].body as FormData
+      // Find the upload call (may not be calls[0] due to other fetch calls like ai-assistant-settings)
+      const uploadCall = mockFetch.mock.calls.find(
+        (call: any[]) => call[0] === '/api/secure-upload/request-upload'
+      )
+      expect(uploadCall).toBeTruthy()
+      const formData = uploadCall![1].body as FormData
       expect(formData.get('file')).toBe(file)
 
       const context = JSON.parse(formData.get('context') as string)
@@ -244,8 +252,8 @@ describe('TaskDetail Upload Functionality', () => {
       // we verify the comment upload works instead
       render(<TaskDetail {...mockProps} task={mockTaskWithComments} />)
 
-      // Find the comment file input (bar version)
-      const fileInput = document.querySelector('#comment-file-upload-bar')
+      // RichTextInput renders a hidden file input (no ID) - find it by type
+      const fileInput = document.querySelector('input[type="file"]')
       expect(fileInput).toBeTruthy()
 
       const file = new File(['reply content'], 'reply.jpg', { type: 'image/jpeg' })
@@ -261,9 +269,12 @@ describe('TaskDetail Upload Functionality', () => {
         })
       })
 
-      // Verify the FormData contains correct data
-      const uploadCall = mockFetch.mock.calls[0]
-      const formData = uploadCall[1].body as FormData
+      // Find the upload call (may not be calls[0] due to other fetch calls like ai-assistant-settings)
+      const uploadCall = mockFetch.mock.calls.find(
+        (call: any[]) => call[0] === '/api/secure-upload/request-upload'
+      )
+      expect(uploadCall).toBeTruthy()
+      const formData = uploadCall![1].body as FormData
       expect(formData.get('file')).toBe(file)
 
       const context = JSON.parse(formData.get('context') as string)

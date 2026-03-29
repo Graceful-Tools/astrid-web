@@ -11,6 +11,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { PushNotificationService } from '@/lib/push-notification-service'
+import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
+import { processAstridMessage } from '@/lib/astrid-agent-runtime'
+import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -157,37 +161,119 @@ export async function POST(
         })
       }
 
-      // Parse @mentions and notify AI agents
+      // Parse @mentions and notify users
       const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g
       let match
+      const senderName = message.author.name || message.author.email || 'Someone'
+      let agentExplicitlyMentioned = false
+      const senderIsAgent = message.author.isAIAgent
+
       while ((match = mentionPattern.exec(content || '')) !== null) {
         const mentionedUserId = match[2]
-        // Check if mentioned user is an AI agent
+        if (mentionedUserId === session.user.id) continue // Don't notify self
+
         const mentionedUser = await prisma.user.findUnique({
           where: { id: mentionedUserId },
-          select: { id: true, isAIAgent: true },
+          select: { id: true, isAIAgent: true, email: true },
         })
 
-        if (mentionedUser?.isAIAgent) {
-          // Get channel's listId for context
+        if (!mentionedUser) continue
+
+        if (mentionedUser.isAIAgent) {
+          agentExplicitlyMentioned = true
+
           const channel = await prisma.chatChannel.findUnique({
             where: { id: channelId },
             select: { listId: true },
           })
 
-          await broadcastToUsers([mentionedUserId], {
-            type: 'chat_mention',
-            timestamp: new Date().toISOString(),
-            data: {
+          // If this is Astrid, use the built-in runtime to respond directly
+          if (mentionedUser.email === ASTRID_EMAIL) {
+            processAstridMessage({
+              userMessage: content || '',
+              userId: session.user.id,
+              userName: senderName,
               channelId,
               listId: channel?.listId || null,
+            }).catch(err => console.error('[Chat API] Astrid runtime error:', err))
+          } else {
+            // Other AI agents — send chat_mention SSE event for external processing
+            await broadcastToUsers([mentionedUserId], {
+              type: 'chat_mention',
+              timestamp: new Date().toISOString(),
+              data: {
+                channelId,
+                listId: channel?.listId || null,
+                messageId: message.id,
+                content: content,
+                authorId: session.user.id,
+                authorName: senderName,
+                mentionedAgentId: mentionedUserId,
+              },
+            })
+          }
+        } else {
+          // Human user — send push notification
+          try {
+            const pushService = new PushNotificationService()
+            await pushService.sendChatMentionNotification(mentionedUserId, {
+              channelId,
               messageId: message.id,
-              content: content,
-              authorId: session.user.id,
-              authorName: message.author.name || message.author.email,
-              mentionedAgentId: mentionedUserId,
-            },
+              senderName,
+              content: content || '',
+            })
+          } catch (pushError) {
+            console.error('[Chat API] Push notification error:', pushError)
+          }
+        }
+      }
+
+      // If no agent was explicitly @mentioned and sender is not an agent,
+      // check for a default agent assigned to this list/user
+      if (!agentExplicitlyMentioned && !senderIsAgent) {
+        try {
+          const channel = await prisma.chatChannel.findUnique({
+            where: { id: channelId },
+            select: { listId: true },
           })
+
+          const defaultAgentId = await resolveDefaultAgent(channel?.listId || null, session.user.id)
+          if (defaultAgentId) {
+            // Check if the default agent is Astrid
+            const defaultAgent = await prisma.user.findUnique({
+              where: { id: defaultAgentId },
+              select: { email: true },
+            })
+
+            if (defaultAgent?.email === ASTRID_EMAIL) {
+              // Use Astrid runtime to respond directly
+              processAstridMessage({
+                userMessage: content || '',
+                userId: session.user.id,
+                userName: senderName,
+                channelId,
+                listId: channel?.listId || null,
+              }).catch(err => console.error('[Chat API] Astrid default agent error:', err))
+            } else {
+              // External agent — send SSE event
+              await broadcastToUsers([defaultAgentId], {
+                type: 'chat_mention',
+                timestamp: new Date().toISOString(),
+                data: {
+                  channelId,
+                  listId: channel?.listId || null,
+                  messageId: message.id,
+                  content: content,
+                  authorId: session.user.id,
+                  authorName: senderName,
+                  mentionedAgentId: defaultAgentId,
+                  isDefaultAgent: true,
+                },
+              })
+            }
+          }
+        } catch (defaultAgentError) {
+          console.error('[Chat API] Default agent dispatch error:', defaultAgentError)
         }
       }
     } catch (sseError) {

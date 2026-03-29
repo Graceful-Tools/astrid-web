@@ -225,6 +225,7 @@ interface TaskManagerViewProps {
   chatChannelId: string | null
   chatChannelLoading?: boolean
   chatListMembers: User[]
+  chatListId?: string | null
 }
 
 /**
@@ -378,6 +379,7 @@ const TaskManagerView = memo(function TaskManagerView({
   chatChannelId,
   chatChannelLoading,
   chatListMembers,
+  chatListId,
 }: TaskManagerViewProps) {
   const autoOpenedSidebarRef = React.useRef(false)
 
@@ -632,7 +634,7 @@ const TaskManagerView = memo(function TaskManagerView({
           isTaskDragActive={Boolean(activeDragTaskId)}
           onHamburgerDragHover={handleHamburgerDragHover}
           activePanel={activePanel}
-          onToggleActivePanel={setActivePanel}
+          onToggleActivePanel={isMobile ? setActivePanel : undefined}
         />
 
         {/* Main Layout */}
@@ -669,13 +671,17 @@ const TaskManagerView = memo(function TaskManagerView({
           )}
 
         {/* Main Content - show tasks or chat based on activePanel */}
-        {activePanel === 'chat' && !is3Column ? (
-          // 1-column and 2-column: ChatPanel replaces task list
+        {activePanel === 'chat' && isMobile ? (
+          // Mobile only: ChatPanel replaces task list
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
             <ChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession?.user}
               listMembers={chatListMembers}
+              lists={lists}
+              tasks={finalFilteredTasks}
+              selectedListId={selectedListId}
+              listId={chatListId}
               isLoading={chatChannelLoading}
               className="h-full"
             />
@@ -748,6 +754,23 @@ const TaskManagerView = memo(function TaskManagerView({
             handleCopyTask={handleCopyTask}
           />
         )}
+
+        {/* Chat Panel - inline flex column on the right (2-column and 3-column) */}
+        {(is3Column || is2Column) && effectiveSession?.user && (
+          <div className="flex-1 order-last h-full border-l theme-border min-w-[280px]">
+            <ChatPanel
+              channelId={chatChannelId}
+              currentUser={effectiveSession.user}
+              listMembers={chatListMembers}
+              lists={lists}
+              tasks={finalFilteredTasks}
+              selectedListId={selectedListId}
+              listId={chatListId}
+              isLoading={chatChannelLoading}
+              className="h-full"
+            />
+          </div>
+        )}
         </div>
       </div>
 
@@ -757,28 +780,6 @@ const TaskManagerView = memo(function TaskManagerView({
           className="ios-drawer-overlay ios-drawer-overlay-visible"
           onClick={() => setShowMobileSidebar(false)}
         />
-      )}
-
-      {/* 3-Column Chat Panel - always visible as default in 3rd column */}
-      {is3Column && effectiveSession?.user && (
-        <div
-          className="task-panel-desktop scrollbar-hide"
-          style={{
-            left: taskPanePosition.left,
-            // Hide behind task detail when a task is selected
-            zIndex: selectedTask ? 0 : 1,
-            opacity: selectedTask ? 0 : 1,
-            transition: 'opacity 0.2s ease',
-          }}
-        >
-          <ChatPanel
-            channelId={chatChannelId}
-            currentUser={effectiveSession.user}
-            listMembers={chatListMembers}
-            isLoading={chatChannelLoading}
-            className="h-full"
-          />
-        </div>
       )}
 
       {/* Desktop Task Pane - positioned absolutely, slide-out from right */}
@@ -798,6 +799,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 task={selectedTask}
                 currentUser={effectiveSession.user}
                 availableLists={lists}
+                availableTasks={finalFilteredTasks}
                 onUpdate={handleUpdateTask}
                 onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
                 onDelete={handleDeleteTask}
@@ -848,6 +850,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 task={selectedTask}
                 currentUser={effectiveSession.user}
                 availableLists={lists}
+                availableTasks={finalFilteredTasks}
                 onUpdate={handleUpdateTask}
                 onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
                 onDelete={handleDeleteTask}
@@ -873,8 +876,8 @@ const TaskManagerView = memo(function TaskManagerView({
         )
       })()}
 
-      {/* Enhanced Fixed Mobile Add Task at Bottom */}
-      {isMobile && mobileView === 'list' && (() => {
+      {/* Enhanced Fixed Mobile Add Task at Bottom — hidden when chat is active */}
+      {isMobile && mobileView === 'list' && activePanel !== 'chat' && (() => {
         const selectedList = lists.find(list => list.id === selectedListId)
         const isPublicList = selectedList?.privacy === 'PUBLIC'
         const isCollaborative = selectedList?.publicListType === 'collaborative'

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,9 +16,101 @@ import {
   Sparkles,
   Cloud,
   FileText,
-  Bot
+  Bot,
+  Check
 } from "lucide-react"
 import Image from "next/image"
+
+interface AgentOption {
+  id: string
+  name: string
+  email: string
+  image: string | null
+  service: string
+}
+
+function AstridAgentSelector() {
+  const [agents, setAgents] = useState<AgentOption[]>([])
+  const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/user/available-agents').then(r => r.json()),
+      fetch('/api/user/ai-assistant-settings').then(r => r.json()),
+    ]).then(([agentsData, settingsData]) => {
+      setAgents(agentsData.agents || [])
+      setCurrentAgentId(settingsData.defaultAgentId || null)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const handleSelect = async (agentId: string | null) => {
+    setCurrentAgentId(agentId)
+    await fetch('/api/user/ai-assistant-settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ defaultAgentId: agentId }),
+    })
+  }
+
+  if (loading) {
+    return <div className="h-10 bg-gray-800/50 rounded animate-pulse" />
+  }
+
+  if (agents.length === 0) {
+    return (
+      <p className="text-sm theme-text-muted">
+        Add an API key or register an OpenClaw agent below to power Astrid.
+      </p>
+    )
+  }
+
+  // Filter out Astrid itself — this selector picks the model that powers Astrid
+  const modelOptions = agents.filter(a => a.email !== 'astrid@astrid.cc')
+
+  if (modelOptions.length === 0) {
+    return (
+      <p className="text-sm theme-text-muted">
+        Add an API key or register an OpenClaw agent below to power Astrid.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {modelOptions.map(agent => (
+        <button
+          key={agent.id}
+          onClick={() => handleSelect(currentAgentId === agent.id ? null : agent.id)}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
+            currentAgentId === agent.id
+              ? 'border-blue-500 bg-blue-500/10'
+              : 'theme-border hover:border-blue-500/50'
+          }`}
+        >
+          {agent.image ? (
+            <img src={agent.image} alt="" className="w-8 h-8 rounded-full" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-purple-500" />
+            </div>
+          )}
+          <div className="flex-1 text-left">
+            <div className="text-sm font-medium theme-text-primary">{agent.name}</div>
+            <div className="text-xs theme-text-muted">Powered by {agent.service}</div>
+          </div>
+          {currentAgentId === agent.id && (
+            <Check className="w-5 h-5 text-blue-500 flex-shrink-0" />
+          )}
+        </button>
+      ))}
+      <p className="text-xs theme-text-muted pt-1">
+        Choose the model that powers Astrid for My Tasks and your private lists.
+      </p>
+    </div>
+  )
+}
 
 function AgentsSettingsContent() {
   const { data: session, status } = useSession()
@@ -77,6 +169,23 @@ function AgentsSettingsContent() {
               <p className="theme-text-muted">Assign tasks to AI agents and get intelligent help</p>
             </div>
           </div>
+
+          {/* Astrid — default agent for private lists */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
+                <Image src="/icons/icon-96x96.png" alt="Astrid" width={24} height={24} className="rounded-full" />
+                <span>Astrid</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                Choose a model to power Astrid. Mention <strong>@astrid</strong> in any chat or comment to get help.
+                Astrid can read tasks across your lists, respond to messages, and complete tasks before their due dates.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AstridAgentSelector />
+            </CardContent>
+          </Card>
 
           {/* Cloud Agents link */}
           <Card

@@ -382,6 +382,46 @@ export function ListMembership({
         </div>
       )}
 
+      {/* Astrid — set the AI agent for this list */}
+      {canEditSettings && availableAiAgents.length > 0 && (
+        <div className="border-t theme-border pt-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <Bot className="w-4 h-4 text-blue-500" />
+            <Label className="text-sm font-medium theme-text-primary">Astrid Agent</Label>
+          </div>
+          <p className="text-xs theme-text-muted mb-2">
+            Choose a model for Astrid in this list. Astrid reads messages, acts on tasks, and completes tasks by their due dates.
+          </p>
+          <select
+            value={(() => {
+              const config = list.aiAgentsEnabled
+              if (config && typeof config === 'object' && !Array.isArray(config)) {
+                return (config as Record<string, unknown>).defaultAgentId as string || '_account_default'
+              }
+              return '_account_default'
+            })()}
+            onChange={(e) => {
+              const newAgentId = e.target.value === '_account_default' ? null : e.target.value
+              const currentTypes = Array.isArray(list.aiAgentsEnabled)
+                ? list.aiAgentsEnabled
+                : (list.aiAgentsEnabled as Record<string, unknown>)?.enabledTypes || []
+              onUpdate({
+                ...list,
+                aiAgentsEnabled: { enabledTypes: currentTypes, defaultAgentId: newAgentId } as unknown as string[],
+              })
+            }}
+            className="w-full text-sm rounded-md border theme-border theme-bg-tertiary theme-text-primary px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="_account_default">Use account default</option>
+            {availableAiAgents.map(agent => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name || agent.email}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Leave List Button - for non-owners */}
       {!canEditSettings && onLeave && (
         <div className="border-t theme-border pt-4">

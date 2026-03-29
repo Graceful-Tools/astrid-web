@@ -112,8 +112,33 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
             <ShortcutGroup title="Priority" shortcuts={groupedShortcuts.priorities} />
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <ShortcutGroup title="Interface" shortcuts={groupedShortcuts.ui} />
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                Chat & References
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+                Use in chat messages and task comments
+              </p>
+              <div className="space-y-1">
+                {[
+                  { key: '@', desc: 'Mention a person' },
+                  { key: '#', desc: 'Reference a list' },
+                  { key: '!', desc: 'Reference a task' },
+                  { key: 'Tab', desc: 'Select autocomplete suggestion' },
+                  { key: '↑ ↓', desc: 'Navigate suggestions' },
+                  { key: 'Esc', desc: 'Dismiss suggestions' },
+                ].map(({ key, desc }) => (
+                  <div key={key} className="flex items-center justify-between py-1">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{desc}</span>
+                    <kbd className="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded border">
+                      {key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </Card>

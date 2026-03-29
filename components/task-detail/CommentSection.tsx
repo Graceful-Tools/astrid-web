@@ -10,6 +10,8 @@ import { format } from "date-fns"
 import { isMobileDevice } from "@/lib/layout-detection"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
+import { RichTextInput } from "@/components/shared/RichTextInput"
+import { MessageBubble } from "@/components/shared/MessageBubble"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 
@@ -104,6 +106,10 @@ interface CommentSectionProps {
   readOnly?: boolean  // If true, hide comment input
   hideInput?: boolean  // If true, hide the bottom input bar (rendered separately outside scroll area)
   onRefreshComments?: () => Promise<void>  // Callback to refresh comments from API
+  /** Lists for # autocomplete in comments */
+  lists?: import('@/types/task').TaskList[]
+  /** Tasks for ! autocomplete in comments */
+  tasks?: Task[]
   // Comment state from useTaskDetailState
   newComment: string
   setNewComment: (value: string) => void
@@ -134,6 +140,10 @@ export interface CommentInputBarProps {
   onUpdate: (updatedTask: Task) => void
   onLocalUpdate?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
   readOnly?: boolean
+  /** Lists for # autocomplete */
+  lists?: import('@/types/task').TaskList[]
+  /** Tasks for ! autocomplete */
+  tasks?: Task[]
   newComment: string
   setNewComment: (value: string) => void
   uploadingFile: boolean
@@ -171,7 +181,9 @@ export function CommentSection({
   uploadError,
   setUploadError,
   replyUploadError,
-  setReplyUploadError
+  setReplyUploadError,
+  lists: availableLists,
+  tasks: availableTasks,
 }: CommentSectionProps) {
   const [showSystemComments, setShowSystemComments] = useState(false)
   const [localUploadError, setLocalUploadError] = useState<string | null>(null)
@@ -186,12 +198,32 @@ export function CommentSection({
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
   const [isMentioningForReply, setIsMentioningForReply] = useState(false)
 
+  // Fetch Astrid agent for mention autocomplete
+  const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
+  useEffect(() => {
+    fetch('/api/user/available-agents')
+      .then(r => r.json())
+      .then((data) => {
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
+          setDefaultAgent({
+            id: astrid.id, name: astrid.name, email: astrid.email,
+            image: astrid.image, createdAt: new Date(), isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const mentionableUsers = useMemo(() => {
     const users = new Map<string, User>()
-    
+
+    // Add Astrid/default agent first
+    if (defaultAgent) users.set(defaultAgent.id, defaultAgent)
+
     if (task.creator) users.set(task.creator.id, task.creator)
     if (task.assignee) users.set(task.assignee.id, task.assignee)
-    
+
     task.lists?.forEach(list => {
       if (list.owner) users.set(list.owner.id, list.owner)
       list.members?.forEach(member => users.set(member.id, member))
@@ -200,9 +232,9 @@ export function CommentSection({
       })
       list.admins?.forEach(admin => users.set(admin.id, admin))
     })
-    
+
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
-  }, [task, currentUser.id])
+  }, [task, currentUser.id, defaultAgent])
 
   const filteredMentionUsers = useMemo(() => {
     if (!mentionSearch) return mentionableUsers
@@ -781,73 +813,38 @@ export function CommentSection({
     .filter(comment => showSystemComments || comment.authorId !== null)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-  // Inline ChatBubble component for rendering a single comment as a chat bubble
+  // Render a comment using the shared MessageBubble component
   const renderChatBubble = (comment: any, isReply: boolean = false, parentCommentId?: string) => {
     const isCurrentUser = comment.authorId === currentUser.id
     const isSystem = comment.authorId === null
-
-    // System comment: centered muted text, no bubble
-    if (isSystem) {
-      return (
-        <div className="text-xs theme-text-muted text-center py-1">
-          On {format(new Date(comment.createdAt), "MMM d 'at' h:mm a")}, {comment.content}
-        </div>
-      )
-    }
-
     const isActionsVisible = showingActionsFor === comment.id
 
+    // Build attachments from secureFiles
+    const attachments = (comment.secureFiles || []).map((file: any) => ({
+      fileId: file.id,
+      name: file.originalName,
+      type: file.mimeType,
+    }))
+
     return (
-      <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-        {/* Bubble row: avatar + bubble */}
-        <div
-          className={`chat-bubble-row ${isCurrentUser ? 'chat-bubble-row-mine' : ''} cursor-pointer`}
-          onClick={() => setShowingActionsFor(isActionsVisible ? null : comment.id)}
-        >
-          {/* Avatar */}
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarImage src={comment.author?.image || undefined} />
-            <AvatarFallback>{getAuthorInitial(comment.author)}</AvatarFallback>
-          </Avatar>
-
-          {/* Bubble */}
-          <div className={`chat-bubble ${isCurrentUser ? 'chat-bubble-mine' : 'chat-bubble-other'}`}>
-            {/* Attachments first */}
-            {comment.secureFiles && comment.secureFiles.length > 0 && (
-              <div className="flex gap-2 flex-wrap mb-1">
-                {comment.secureFiles.map((file: any) => (
-                  <SecureAttachmentViewer
-                    key={file.id}
-                    fileId={file.id}
-                    fileName={file.originalName}
-                    showFileName={false}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Text content */}
-            {comment.content && !comment.content.startsWith('Attached: ') && (
-              <div
-                className="text-sm theme-text-secondary"
-                dangerouslySetInnerHTML={{
-                  __html: renderMarkdownWithLinks(comment.content, { codeClass: 'theme-bg-tertiary px-1 rounded' })
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Meta: "Author · time" below bubble */}
-        <div className={`chat-bubble-meta theme-text-muted ${isCurrentUser ? 'pr-10' : 'pl-10'}`}>
-          <span>{isCurrentUser ? 'You' : getAuthorDisplay(comment.author)}</span>
-          <span>·</span>
-          <span>{format(new Date(comment.createdAt), "MMM d 'at' h:mm a")}</span>
-        </div>
-
-        {/* Action bar: Copy, Reply, Delete - shown on tap */}
-        {isActionsVisible && (
-          <div className={`flex items-center gap-3 mt-1 ${isCurrentUser ? 'pr-10' : 'pl-10'}`} data-comment-actions>
+      <MessageBubble
+        key={comment.id}
+        id={comment.id}
+        content={comment.content}
+        author={comment.author ? {
+          id: comment.author.id,
+          name: comment.author.name,
+          email: comment.author.email,
+          image: comment.author.image,
+          isAIAgent: comment.author.isAIAgent,
+        } : null}
+        isOwnMessage={isCurrentUser}
+        createdAt={comment.createdAt}
+        attachments={attachments.length > 0 ? attachments : undefined}
+        isSystem={isSystem}
+        onClick={() => setShowingActionsFor(isActionsVisible ? null : comment.id)}
+        actions={isActionsVisible ? (
+          <div className="flex items-center gap-3" data-comment-actions>
             <button
               className="flex items-center gap-1 text-xs theme-text-muted hover:theme-text-secondary transition-colors"
               onClick={(e) => {
@@ -890,8 +887,8 @@ export function CommentSection({
               </button>
             )}
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
     )
   }
 
@@ -1119,7 +1116,7 @@ export function CommentSection({
 
       {/* Messaging-style input bar - hidden when hideInput is true (rendered outside scroll area) */}
       {!hideInput && (
-      <div className="border-t theme-border pt-0 mt-auto">
+      <div className="border-t theme-border mt-auto">
         {/* Upload error */}
         {uploadErrorState && (
           <div className="m-3 mb-0 p-2 bg-red-900/20 border border-red-500/50 rounded-lg">
@@ -1150,70 +1147,25 @@ export function CommentSection({
           </div>
         )}
 
-        {/* Input bar: [paperclip] [textarea] [send] */}
+        {/* Rich text input bar with @mention autocomplete, file upload, and highlight overlay */}
         {!readOnly && (
-          <div className="relative">
-            {renderMentionPopup(false)}
-            <div className="chat-input-bar">
-              {/* Paperclip button */}
-              <button
-                onClick={() => document.getElementById('comment-file-upload')?.click()}
-                disabled={uploadingFile}
-                className="theme-text-muted hover:theme-text-secondary transition-colors flex-shrink-0"
-                title={uploadingFile ? 'Uploading...' : 'Attach file'}
-              >
-                <input
-                  type="file"
-                  id="comment-file-upload"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
-                  disabled={uploadingFile}
-                />
-                {uploadingFile ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Paperclip className="w-5 h-5" />
-                )}
-              </button>
-
-              {/* Expandable textarea */}
-              <textarea
-                ref={commentInputRef}
-                value={newComment}
-                onChange={(e) => handleTextChange(e, false)}
-                placeholder="Add a comment..."
-                className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={1}
-                inputMode="text"
-                enterKeyHint="send"
-                style={{ height: 'auto', minHeight: '36px', maxHeight: '200px' }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement
-                  target.style.height = 'auto'
-                  target.style.height = target.scrollHeight + 'px'
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (e.shiftKey || e.metaKey || e.ctrlKey) return
-                    e.preventDefault()
-                    if (newComment.trim() || attachedFile) {
-                      handleAddComment()
-                    }
-                  }
-                }}
-              />
-
-              {/* Send button */}
-              <button
-                onClick={handleAddComment}
-                disabled={!canSend}
-                className="flex-shrink-0 transition-colors"
-                title="Send comment"
-              >
-                <Send className={`w-5 h-5 ${canSend ? 'text-blue-500' : 'theme-text-muted'}`} />
-              </button>
-            </div>
+          <div className="px-3 py-3">
+            <RichTextInput
+              value={newComment}
+              onChange={setNewComment}
+              onSend={handleAddComment}
+              mentionableUsers={mentionableUsers}
+              currentUserId={currentUser.id}
+              lists={availableLists}
+              tasks={availableTasks}
+              enableAttachments
+              uploadContext={{ taskId: task.id }}
+              attachedFile={attachedFile}
+              onAttachedFileChange={setAttachedFile}
+              uploadError={uploadErrorState}
+              onUploadErrorChange={setUploadErrorState}
+              placeholder="Add a comment..."
+            />
           </div>
         )}
       </div>
@@ -1232,6 +1184,8 @@ export function CommentInputBar({
   onUpdate,
   onLocalUpdate,
   readOnly = false,
+  lists: availableLists,
+  tasks: availableTasks,
   newComment,
   setNewComment,
   uploadingFile,
@@ -1248,8 +1202,26 @@ export function CommentInputBar({
   const [mentionSearch, setMentionSearch] = useState<string | null>(null)
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
 
+  // Fetch Astrid agent for mention autocomplete
+  const [defaultAgentBar, setDefaultAgentBar] = useState<User | null>(null)
+  useEffect(() => {
+    fetch('/api/user/available-agents')
+      .then(r => r.json())
+      .then((data) => {
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
+          setDefaultAgentBar({
+            id: astrid.id, name: astrid.name, email: astrid.email,
+            image: astrid.image, createdAt: new Date(), isAIAgent: true,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const mentionableUsers = useMemo(() => {
     const users = new Map<string, User>()
+    if (defaultAgentBar) users.set(defaultAgentBar.id, defaultAgentBar)
     if (task.creator) users.set(task.creator.id, task.creator)
     if (task.assignee) users.set(task.assignee.id, task.assignee)
     task.lists?.forEach(list => {
@@ -1261,7 +1233,7 @@ export function CommentInputBar({
       list.admins?.forEach(admin => users.set(admin.id, admin))
     })
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
-  }, [task, currentUser.id])
+  }, [task, currentUser.id, defaultAgentBar])
 
   const filteredMentionUsers = useMemo(() => {
     if (!mentionSearch) return mentionableUsers
@@ -1433,123 +1405,23 @@ export function CommentInputBar({
   if (readOnly) return null
 
   return (
-    <div className="border-t theme-border pt-0">
-      {/* Upload error */}
-      {uploadErrorState && (
-        <div className="m-3 mb-0 p-2 bg-red-900/20 border border-red-500/50 rounded-lg">
-          <div className="flex items-start space-x-2">
-            <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-300 flex-1">{uploadErrorState}</p>
-            <button onClick={() => setUploadErrorState(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* File attachment preview */}
-      {attachedFile && (
-        <div className="mx-3 mt-3 p-2 theme-comment-bg rounded theme-border border">
-          <div className="flex items-center space-x-2">
-            {attachedFile.type?.startsWith('image/') ? (
-              <ImageIcon className="w-4 h-4 text-blue-400" />
-            ) : (
-              <FileText className="w-4 h-4 text-green-400" />
-            )}
-            <span className="text-sm theme-text-primary flex-1 truncate">{attachedFile.name}</span>
-            <button onClick={() => setAttachedFile(null)} className="text-red-400 hover:text-red-300">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Input bar: [paperclip] [textarea] [send] */}
-      <div className="relative">
-        {mentionSearch !== null && (
-          <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border rounded-md shadow-lg z-50 overflow-hidden">
-            <div className="p-2 text-xs font-semibold text-muted-foreground border-b bg-muted/50 flex items-center">
-              Mention member
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {filteredMentionUsers.length === 0 ? (
-                <div className="p-2 text-sm text-muted-foreground">No members found</div>
-              ) : (
-                filteredMentionUsers.map(user => (
-                  <button
-                    key={user.id}
-                    className="w-full flex items-center px-3 py-2 text-sm hover:bg-accent text-left transition-colors"
-                    onClick={() => insertMention(user)}
-                  >
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={user.image || undefined} />
-                      <AvatarFallback>{getAuthorInitial(user)}</AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{user.name || user.email}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-        <div className="chat-input-bar">
-          <button
-            onClick={() => document.getElementById('comment-file-upload-bar')?.click()}
-            disabled={uploadingFile}
-            className="theme-text-muted hover:theme-text-secondary transition-colors flex-shrink-0"
-            title={uploadingFile ? 'Uploading...' : 'Attach file'}
-          >
-            <input
-              type="file"
-              id="comment-file-upload-bar"
-              onChange={handleFileUpload}
-              className="hidden"
-              accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
-              disabled={uploadingFile}
-            />
-            {uploadingFile ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Paperclip className="w-5 h-5" />
-            )}
-          </button>
-
-          <textarea
-            ref={commentInputRef}
-            value={newComment}
-            onChange={handleTextChange}
-            placeholder="Add a comment..."
-            className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={1}
-            inputMode="text"
-            enterKeyHint="send"
-            style={{ height: 'auto', minHeight: '36px', maxHeight: '200px' }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement
-              target.style.height = 'auto'
-              target.style.height = target.scrollHeight + 'px'
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (e.shiftKey || e.metaKey || e.ctrlKey) return
-                e.preventDefault()
-                if (newComment.trim() || attachedFile) {
-                  handleAddComment()
-                }
-              }
-            }}
-          />
-
-          <button
-            onClick={handleAddComment}
-            disabled={!canSend}
-            className="flex-shrink-0 transition-colors"
-            title="Send comment"
-          >
-            <Send className={`w-5 h-5 ${canSend ? 'text-blue-500' : 'theme-text-muted'}`} />
-          </button>
-        </div>
-      </div>
+    <div className="border-t theme-border px-3 py-3">
+      <RichTextInput
+        value={newComment}
+        onChange={setNewComment}
+        onSend={handleAddComment}
+        mentionableUsers={mentionableUsers}
+        currentUserId={currentUser.id}
+        lists={availableLists}
+        tasks={availableTasks}
+        enableAttachments
+        uploadContext={{ taskId: task.id }}
+        attachedFile={attachedFile}
+        onAttachedFileChange={setAttachedFile}
+        uploadError={uploadErrorState}
+        onUploadErrorChange={setUploadErrorState}
+        placeholder="Add a comment..."
+      />
     </div>
   )
 }
