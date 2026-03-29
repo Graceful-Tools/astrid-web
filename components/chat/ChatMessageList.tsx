@@ -104,14 +104,16 @@ export const ChatMessageList = React.memo(function ChatMessageList({
       )}
 
       {/* Messages */}
-      {messages.map((message, index) => (
-        <ChatMessageBubble
-          key={message.id}
-          message={message}
-          isOwnMessage={message.authorId === currentUserId}
-          showAuthor={shouldShowAuthor(index)}
-        />
-      ))}
+      <div className="space-y-4">
+        {messages.map((message, index) => (
+          <ChatMessageBubble
+            key={message.id}
+            message={message}
+            isOwnMessage={message.authorId === currentUserId}
+            showAuthor={shouldShowAuthor(index)}
+          />
+        ))}
+      </div>
     </div>
   )
 })
