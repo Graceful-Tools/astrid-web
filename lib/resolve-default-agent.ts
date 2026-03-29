@@ -117,14 +117,22 @@ export async function resolveDefaultAgent(
   try {
     const agent = await prisma.user.findUnique({
       where: { id: agentId },
-      select: { id: true, isAIAgent: true, email: true },
+      select: { id: true, isAIAgent: true, email: true, aiAgentType: true },
     })
     if (!agent?.isAIAgent) return null
 
     // 4. Validate: user must have API key for this agent's service
-    const service = getAgentService(agent.email) as 'claude' | 'openai' | 'gemini' | 'openclaw'
-    const hasKey = await hasValidApiKey(userId, service)
-    if (!hasKey) return null
+    // For Astrid (astrid@astrid.cc), check user's preferred service instead
+    if (agent.email === 'astrid@astrid.cc') {
+      const { getPreferredAIService } = await import('@/lib/api-key-cache')
+      const preferredService = await getPreferredAIService(userId)
+      const hasKey = await hasValidApiKey(userId, preferredService)
+      if (!hasKey) return null
+    } else {
+      const service = getAgentService(agent.email) as 'claude' | 'openai' | 'gemini' | 'openclaw'
+      const hasKey = await hasValidApiKey(userId, service)
+      if (!hasKey) return null
+    }
 
     return agent.id
   } catch (error) {

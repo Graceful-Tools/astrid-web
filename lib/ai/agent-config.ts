@@ -66,6 +66,15 @@ export const DEFAULT_MODELS: Partial<Record<AIService, string>> = {
 }
 
 export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
+  // Astrid is the default agent identity — the underlying model is determined by user settings
+  'astrid@astrid.cc': {
+    service: 'claude', // Default service; overridden by user's configured model at runtime
+    model: 'claude-sonnet-4-20250514',
+    displayName: 'Astrid',
+    agentType: 'astrid_agent',
+    contextFile: 'ASTRID.md',
+    capabilities: ['code_generation', 'code_review', 'planning', 'github_operations'],
+  },
   'claude@astrid.cc': {
     service: 'claude',
     model: 'claude-sonnet-4-20250514',

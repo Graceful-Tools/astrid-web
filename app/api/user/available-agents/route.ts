@@ -14,6 +14,7 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
+import { ensureAstridAgent, ASTRID_EMAIL } from '@/lib/astrid-agent'
 
 interface AvailableAgent {
   id: string       // User ID if exists, or email as fallback identifier
@@ -38,18 +39,20 @@ export async function GET() {
     }
 
     const available: AvailableAgent[] = []
+    let hasAnyKey = false
 
     // 1. Check built-in agents based on API keys
     for (const agent of BUILT_IN_AGENTS) {
       const hasKey = await hasValidApiKey(session.user.id, agent.service)
       if (hasKey) {
+        hasAnyKey = true
         // Try to find the agent's User record for the real ID
         const agentUser = await prisma.user.findFirst({
           where: { email: agent.email, isAIAgent: true },
           select: { id: true },
         })
         available.push({
-          id: agentUser?.id || agent.email, // Use User ID if exists, email as fallback
+          id: agentUser?.id || agent.email,
           name: agent.name,
           email: agent.email,
           image: agent.image,
@@ -78,6 +81,18 @@ export async function GET() {
           service: 'openclaw',
         })
       }
+    }
+
+    // 3. Add Astrid as the first option if user has any agent key configured
+    if (hasAnyKey || available.length > 0) {
+      const astrid = await ensureAstridAgent()
+      available.unshift({
+        id: astrid.id,
+        name: 'Astrid',
+        email: ASTRID_EMAIL,
+        image: astrid.image,
+        service: 'astrid',
+      })
     }
 
     return NextResponse.json({ agents: available })
