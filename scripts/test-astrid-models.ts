@@ -219,20 +219,67 @@ async function callProviderWithToolTracking(
     return { response: 'Max rounds reached', toolCalls }
 
   } else {
-    // Gemini — no tool calling, just check response
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ parts: [{ text: userMessage }] }],
-        generationConfig: { maxOutputTokens: 512 },
-      }),
-    })
-    if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`)
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-    return { response: text, toolCalls }
+    // Gemini — with function calling
+    const geminiTools = [{
+      functionDeclarations: [{
+        name: 'api_request',
+        description: 'Make an authenticated HTTP request to the Astrid API.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            method: { type: 'STRING', enum: ['GET', 'POST', 'PUT', 'DELETE'] },
+            path: { type: 'STRING' },
+            body: { type: 'OBJECT', properties: {} },
+            query: { type: 'OBJECT', properties: {} },
+          },
+          required: ['method', 'path'],
+        },
+      }],
+    }]
+
+    let contents: Array<{ role: string; parts: unknown[] }> = [
+      { role: 'user', parts: [{ text: userMessage }] },
+    ]
+
+    for (let i = 0; i < 3; i++) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          tools: geminiTools,
+          generationConfig: { maxOutputTokens: 512 },
+        }),
+      })
+      if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`)
+      const data = await res.json()
+
+      const parts = data.candidates?.[0]?.content?.parts || []
+      const functionCalls = parts.filter((p: { functionCall?: unknown }) => p.functionCall)
+      const textParts = parts.filter((p: { text?: string }) => p.text)
+
+      if (functionCalls.length === 0) {
+        return { response: textParts.map((p: { text: string }) => p.text).join('\n'), toolCalls }
+      }
+
+      contents.push({ role: 'model', parts })
+
+      const functionResponses = []
+      for (const part of functionCalls) {
+        const fc = part.functionCall
+        const args = fc.args || {}
+        toolCalls.push({ method: args.method, path: args.path })
+        functionResponses.push({
+          functionResponse: {
+            name: fc.name,
+            response: { tasks: [], task: { id: 'test-123', title: 'Test' }, list: { id: 'list-123', name: 'Test' }, success: true },
+          },
+        })
+      }
+      contents.push({ role: 'user', parts: functionResponses })
+    }
+    return { response: 'Max rounds reached', toolCalls }
   }
 }
 
@@ -278,13 +325,6 @@ Always use the api_request tool to take actions. Be concise.`
 
     result.responseSnippet = response.substring(0, 100)
     result.durationMs = Date.now() - start
-
-    if (config.provider === 'gemini') {
-      // Gemini doesn't have tool calling — just check it responded sensibly
-      result.passed = response.length > 10
-      result.toolCalled = false
-      return result
-    }
 
     // Check if the expected tool was called
     result.toolCalled = toolCalls.length > 0

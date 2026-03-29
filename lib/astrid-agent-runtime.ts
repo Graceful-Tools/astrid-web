@@ -252,20 +252,78 @@ async function callOpenAIWithTools(
   return 'I completed the actions requested.'
 }
 
-async function callGemini(apiKey: string, systemPrompt: string, userMessage: string, model?: string): Promise<string> {
+async function callGeminiWithTools(
+  apiKey: string, systemPrompt: string, userMessage: string,
+  context: { userId: string }, model?: string
+): Promise<string> {
   const modelId = model || 'gemini-2.0-flash'
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt + '\n\nNote: You do not have API access in this mode. Only answer questions and provide suggestions.' }] },
-      contents: [{ parts: [{ text: userMessage }] }],
-      generationConfig: { maxOutputTokens: 1024 },
-    }),
-  })
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`)
-  const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'I encountered an issue.'
+
+  // Gemini function declaration format
+  const tools = [{
+    functionDeclarations: [{
+      name: 'api_request',
+      description: 'Make an authenticated HTTP request to the Astrid API. Use this for ALL actions.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          method: { type: 'STRING', enum: ['GET', 'POST', 'PUT', 'DELETE'], description: 'HTTP method' },
+          path: { type: 'STRING', description: 'API path starting with /api/v1/' },
+          body: { type: 'OBJECT', description: 'Request body for POST/PUT', properties: {} },
+          query: { type: 'OBJECT', description: 'Query parameters for GET', properties: {} },
+        },
+        required: ['method', 'path'],
+      },
+    }],
+  }]
+
+  let contents: Array<{ role: string; parts: unknown[] }> = [
+    { role: 'user', parts: [{ text: userMessage }] },
+  ]
+
+  for (let i = 0; i < 5; i++) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        tools,
+        generationConfig: { maxOutputTokens: 1024 },
+      }),
+    })
+    if (!res.ok) throw new Error(`Gemini API error: ${res.status}`)
+    const data = await res.json()
+
+    const candidate = data.candidates?.[0]
+    const parts = candidate?.content?.parts || []
+
+    // Check for function calls
+    const functionCalls = parts.filter((p: { functionCall?: unknown }) => p.functionCall)
+    const textParts = parts.filter((p: { text?: string }) => p.text)
+
+    if (functionCalls.length === 0) {
+      return textParts.map((p: { text: string }) => p.text).join('\n') || 'Done!'
+    }
+
+    // Add assistant response to conversation
+    contents.push({ role: 'model', parts })
+
+    // Execute function calls and add results
+    const functionResponses = []
+    for (const part of functionCalls) {
+      const fc = part.functionCall
+      const result = await executeTool(fc.name, fc.args || {}, context)
+      functionResponses.push({
+        functionResponse: {
+          name: fc.name,
+          response: JSON.parse(result),
+        },
+      })
+    }
+    contents.push({ role: 'user', parts: functionResponses })
+  }
+
+  return 'I completed the actions requested.'
 }
 
 // ─── Context Building ─────────────────────────────────────────────
@@ -351,7 +409,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
         response = await callOpenAIWithTools(apiKey, systemPrompt, cleanMessage, toolContext, model)
         break
       case 'gemini':
-        response = await callGemini(apiKey, systemPrompt, cleanMessage, model)
+        response = await callGeminiWithTools(apiKey, systemPrompt, cleanMessage, toolContext, model)
         break
       default:
         return
@@ -440,7 +498,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
         response = await callOpenAIWithTools(apiKey, systemPrompt, cleanComment, toolContext, model)
         break
       case 'gemini':
-        response = await callGemini(apiKey, systemPrompt, cleanComment, model)
+        response = await callGeminiWithTools(apiKey, systemPrompt, cleanComment, toolContext, model)
         break
       default:
         return
