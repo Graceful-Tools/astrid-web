@@ -200,10 +200,14 @@ const createPrismaClient = () => {
     const client = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
       errorFormat: "pretty",
-      // Configure for better performance in serverless
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL
+        }
+      },
       transactionOptions: {
-        timeout: 10000, // 10 seconds max transaction timeout
-        maxWait: 5000,  // 5 seconds max wait time
+        timeout: 10000,
+        maxWait: 5000,
       },
     })
 
