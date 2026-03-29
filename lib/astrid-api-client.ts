@@ -1,26 +1,93 @@
 /**
- * Astrid Internal API Client
+ * Astrid API Client
  *
- * Makes authenticated API calls on behalf of the Astrid agent.
- * Uses the same v1 API endpoints that mobile apps and external agents use,
- * ensuring consistent business logic, permissions, and side effects.
- *
- * Authentication: Uses a server-side session token approach — since this runs
- * within the same server, we bypass OAuth and use direct Prisma for auth,
- * but call the API logic via the exported handler functions.
- *
- * For scalability: if we move to a separate agent service, switch these
- * to HTTP calls with OAuth credentials.
+ * Makes authenticated API calls to the Astrid v1 API on behalf of Astrid.
+ * Uses the same HTTP endpoints that mobile apps and external agents use.
+ * Authenticates via OAuth client credentials (same as OpenClaw agents).
  */
 
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { getListMemberIds } from '@/lib/list-member-utils'
+import { generateAccessToken } from '@/lib/oauth/oauth-token-manager'
+import { ASTRID_EMAIL } from '@/lib/astrid-agent'
+
+// Cache the OAuth token (valid for 1 hour typically)
+let tokenCache: { token: string; expiresAt: number } | null = null
 
 /**
- * Create a task via the same logic as POST /api/v1/tasks.
- * Returns the created task or throws on error.
+ * Get a valid OAuth access token for Astrid.
+ * Creates the OAuth client if it doesn't exist.
  */
+async function getAstridToken(): Promise<string> {
+  // Return cached token if still valid (with 5 min buffer)
+  if (tokenCache && Date.now() < tokenCache.expiresAt - 5 * 60 * 1000) {
+    return tokenCache.token
+  }
+
+  // Find or create Astrid's OAuth client
+  const astridUser = await prisma.user.findFirst({
+    where: { email: ASTRID_EMAIL, isAIAgent: true },
+    select: { id: true },
+  })
+  if (!astridUser) throw new Error('Astrid agent user not found')
+
+  let oauthClient = await prisma.oAuthClient.findFirst({
+    where: { userId: astridUser.id },
+    select: { clientId: true },
+  })
+
+  if (!oauthClient) {
+    // Create OAuth client for Astrid (one-time setup)
+    const { createOAuthClient } = await import('@/lib/oauth/oauth-client-manager')
+    const credentials = await createOAuthClient({
+      userId: astridUser.id,
+      name: 'Astrid Agent',
+      scopes: ['tasks:read', 'tasks:write', 'lists:read', 'comments:read', 'comments:write'],
+      grantTypes: ['client_credentials'],
+    })
+    oauthClient = { clientId: credentials.clientId }
+  }
+
+  // Generate access token
+  const tokenResult = await generateAccessToken(
+    oauthClient.clientId,
+    astridUser.id,
+    ['tasks:read', 'tasks:write', 'lists:read', 'comments:read', 'comments:write']
+  )
+
+  tokenCache = {
+    token: tokenResult.accessToken,
+    expiresAt: Date.now() + tokenResult.expiresIn * 1000,
+  }
+
+  return tokenResult.accessToken
+}
+
+/**
+ * Get the base URL for internal API calls.
+ */
+function getBaseUrl(): string {
+  return process.env.NEXTAUTH_URL || 'http://localhost:3000'
+}
+
+/**
+ * Make an authenticated API call as Astrid.
+ */
+async function astridFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getAstridToken()
+  const baseUrl = getBaseUrl()
+
+  return fetch(`${baseUrl}${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+}
+
+// ─── Task Operations ──────────────────────────────────────────────
+
 export async function astridCreateTask(params: {
   title: string
   description?: string
@@ -30,120 +97,108 @@ export async function astridCreateTask(params: {
   priority?: number
   dueDateTime?: Date | null
 }): Promise<{ id: string; title: string }> {
-  const task = await prisma.task.create({
-    data: {
+  const res = await astridFetch('/api/v1/tasks', {
+    method: 'POST',
+    body: JSON.stringify({
       title: params.title,
       description: params.description || '',
+      assigneeId: params.assigneeId || undefined,
+      listIds: params.listIds || [],
       priority: params.priority ?? 0,
-      assigneeId: params.assigneeId || null,
-      creatorId: params.creatorId,
-      dueDateTime: params.dueDateTime || null,
-      isAllDay: false,
-      completed: false,
-      repeating: 'never',
-      repeatFrom: 'DUE_DATE',
-      isPrivate: false,
-      lists: params.listIds?.length
-        ? { connect: params.listIds.map(id => ({ id })) }
-        : undefined,
-    },
-    include: {
-      lists: { select: { id: true, name: true, ownerId: true, listMembers: { select: { userId: true } } } },
-      assignee: { select: { id: true, name: true, email: true, image: true } },
-      creator: { select: { id: true, name: true, email: true, image: true } },
-    },
+      dueDateTime: params.dueDateTime?.toISOString() || undefined,
+    }),
   })
 
-  // Broadcast task_created to all relevant users (same as v1 API)
-  const recipientIds = new Set<string>()
-  recipientIds.add(params.creatorId)
-  if (task.assigneeId) recipientIds.add(task.assigneeId)
-  task.lists?.forEach(l => {
-    recipientIds.add(l.ownerId)
-    l.listMembers?.forEach(m => recipientIds.add(m.userId))
-  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Create task failed: ${err.error || res.status}`)
+  }
 
-  await broadcastToUsers([...recipientIds], {
-    type: 'task_created',
-    timestamp: new Date().toISOString(),
-    data: { task },
-  }).catch(err => console.error('[AstridAPI] SSE broadcast error:', err))
-
-  // Invalidate user stats cache
-  try {
-    const { RedisCache, isRedisAvailable } = await import('@/lib/redis')
-    if (await isRedisAvailable()) {
-      await RedisCache.del(`user-stats:${params.creatorId}`)
-    }
-  } catch {}
-
-  return { id: task.id, title: task.title }
+  const data = await res.json()
+  return { id: data.task.id, title: data.task.title }
 }
 
-/**
- * Complete a task via the same logic as PUT /api/v1/tasks/:id.
- */
+export async function astridUpdateTask(params: {
+  taskId: string
+  title?: string
+  description?: string
+  priority?: number
+  dueDateTime?: Date | null
+  assigneeId?: string | null
+  completed?: boolean
+}): Promise<{ id: string; title: string }> {
+  const body: Record<string, unknown> = {}
+  if (params.title !== undefined) body.title = params.title
+  if (params.description !== undefined) body.description = params.description
+  if (params.priority !== undefined) body.priority = params.priority
+  if (params.dueDateTime !== undefined) body.dueDateTime = params.dueDateTime?.toISOString() || null
+  if (params.assigneeId !== undefined) body.assigneeId = params.assigneeId
+  if (params.completed !== undefined) body.completed = params.completed
+
+  const res = await astridFetch(`/api/v1/tasks/${params.taskId}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Update task failed: ${err.error || res.status}`)
+  }
+
+  const data = await res.json()
+  return { id: data.task.id, title: data.task.title }
+}
+
 export async function astridCompleteTask(params: {
   taskId: string
-  userId: string
 }): Promise<{ id: string; title: string }> {
-  const task = await prisma.task.update({
-    where: { id: params.taskId },
-    data: { completed: true },
-    include: {
-      lists: { select: { id: true, ownerId: true, listMembers: { select: { userId: true } } } },
-    },
-  })
-
-  // Broadcast to all stakeholders
-  const recipientIds = new Set<string>()
-  recipientIds.add(params.userId)
-  if (task.assigneeId) recipientIds.add(task.assigneeId)
-  if (task.creatorId) recipientIds.add(task.creatorId)
-  task.lists?.forEach(l => {
-    recipientIds.add(l.ownerId)
-    l.listMembers?.forEach(m => recipientIds.add(m.userId))
-  })
-
-  await broadcastToUsers([...recipientIds], {
-    type: 'task_updated',
-    timestamp: new Date().toISOString(),
-    data: { task },
-  }).catch(err => console.error('[AstridAPI] SSE broadcast error:', err))
-
-  return { id: task.id, title: task.title }
+  return astridUpdateTask({ taskId: params.taskId, completed: true })
 }
 
-/**
- * List tasks — same query as GET /api/v1/tasks.
- */
 export async function astridListTasks(params: {
   userId: string
   listId?: string | null
   includeCompleted?: boolean
   limit?: number
 }): Promise<Array<{ id: string; title: string; completed: boolean; priority: number; dueDate: string | null }>> {
-  const where: Record<string, unknown> = {}
-  if (!params.includeCompleted) where.completed = false
+  const queryParams = new URLSearchParams()
+  if (params.listId) queryParams.set('listId', params.listId)
+  if (params.includeCompleted) queryParams.set('completed', 'true')
+  if (params.limit) queryParams.set('limit', String(params.limit))
 
-  if (params.listId) {
-    where.lists = { some: { id: params.listId } }
-  } else {
-    where.OR = [{ assigneeId: params.userId }, { creatorId: params.userId }]
+  const res = await astridFetch(`/api/v1/tasks?${queryParams}`)
+
+  if (!res.ok) {
+    throw new Error(`List tasks failed: ${res.status}`)
   }
 
-  const tasks = await prisma.task.findMany({
-    where,
-    select: { id: true, title: true, completed: true, priority: true, dueDateTime: true },
-    orderBy: [{ dueDateTime: 'asc' }, { priority: 'desc' }],
-    take: params.limit || 10,
-  })
-
-  return tasks.map(t => ({
+  const data = await res.json()
+  return (data.tasks || []).map((t: { id: string; title: string; completed: boolean; priority: number; dueDateTime?: string }) => ({
     id: t.id,
     title: t.title,
     completed: t.completed,
     priority: t.priority,
-    dueDate: t.dueDateTime?.toISOString() || null,
+    dueDate: t.dueDateTime || null,
   }))
+}
+
+export async function astridAddComment(params: {
+  taskId: string
+  content: string
+}): Promise<{ id: string }> {
+  const res = await astridFetch(`/api/v1/tasks/${params.taskId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({
+      content: params.content,
+      type: 'MARKDOWN',
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Add comment failed: ${err.error || res.status}`)
+  }
+
+  const data = await res.json()
+  return { id: data.comment?.id || data.id }
 }

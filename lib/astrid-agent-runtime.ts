@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { getCachedApiKey, getPreferredAIService } from '@/lib/api-key-cache'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
-import { astridCreateTask, astridCompleteTask, astridListTasks } from '@/lib/astrid-api-client'
+import { astridCreateTask, astridUpdateTask, astridCompleteTask, astridListTasks, astridAddComment } from '@/lib/astrid-api-client'
 
 // ─── Tool Definitions ─────────────────────────────────────────────
 
@@ -21,12 +21,30 @@ const TOOLS_CLAUDE = [
       type: 'object' as const,
       properties: {
         title: { type: 'string', description: 'Task title' },
+        description: { type: 'string', description: 'Task description (markdown supported)' },
         assignee_email: { type: 'string', description: 'Email of the person to assign the task to. Use the current user\'s email if they say "assign to me".' },
         list_id: { type: 'string', description: 'List ID to add the task to. Use the current list ID if available.' },
         priority: { type: 'number', description: 'Priority 0-3 (0=none, 1=low, 2=medium, 3=high)', enum: [0, 1, 2, 3] },
         due_date: { type: 'string', description: 'Due date in ISO 8601 format (e.g. 2026-03-30T17:00:00Z). Optional.' },
       },
       required: ['title'],
+    },
+  },
+  {
+    name: 'update_task',
+    description: 'Update an existing task. Only include fields you want to change.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        task_id: { type: 'string', description: 'The task ID to update' },
+        title: { type: 'string', description: 'New title' },
+        description: { type: 'string', description: 'New description' },
+        priority: { type: 'number', description: 'Priority 0-3 (0=none, 1=low, 2=medium, 3=high)', enum: [0, 1, 2, 3] },
+        due_date: { type: 'string', description: 'New due date in ISO 8601 format. Set to empty string to clear.' },
+        assignee_email: { type: 'string', description: 'Email of new assignee. Set to empty string to unassign.' },
+        completed: { type: 'boolean', description: 'Set to true to complete, false to reopen' },
+      },
+      required: ['task_id'],
     },
   },
   {
@@ -50,6 +68,18 @@ const TOOLS_CLAUDE = [
         limit: { type: 'number', description: 'Max tasks to return (default 10)' },
       },
       required: [],
+    },
+  },
+  {
+    name: 'add_comment',
+    description: 'Add a comment to a task. Use this to provide updates, ask questions, or leave notes on specific tasks.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        task_id: { type: 'string', description: 'The task ID to comment on' },
+        content: { type: 'string', description: 'Comment content (markdown supported)' },
+      },
+      required: ['task_id', 'content'],
     },
   },
 ]
@@ -105,9 +135,36 @@ async function executeTool(
         return JSON.stringify({ success: true, taskId: result.id, title: result.title })
       }
 
+      case 'update_task': {
+        const taskId = input.task_id as string
+        const updates: Record<string, unknown> = { taskId }
+        if (input.title) updates.title = input.title
+        if (input.description !== undefined) updates.description = input.description
+        if (input.priority !== undefined) updates.priority = input.priority
+        if (input.completed !== undefined) updates.completed = input.completed
+        if (input.due_date !== undefined) {
+          updates.dueDateTime = input.due_date ? new Date(input.due_date as string) : null
+        }
+        if (input.assignee_email !== undefined) {
+          if (!input.assignee_email) {
+            updates.assigneeId = null
+          } else if (input.assignee_email === context.userEmail) {
+            updates.assigneeId = context.userId
+          } else {
+            const assignee = await prisma.user.findFirst({
+              where: { email: input.assignee_email as string },
+              select: { id: true },
+            })
+            updates.assigneeId = assignee?.id || null
+          }
+        }
+        const result = await astridUpdateTask(updates as Parameters<typeof astridUpdateTask>[0])
+        return JSON.stringify({ success: true, taskId: result.id, title: result.title })
+      }
+
       case 'complete_task': {
         const taskId = input.task_id as string
-        const result = await astridCompleteTask({ taskId, userId: context.userId })
+        const result = await astridCompleteTask({ taskId })
         return JSON.stringify({ success: true, taskId: result.id, title: result.title })
       }
 
@@ -119,6 +176,14 @@ async function executeTool(
           limit: (input.limit as number) || 10,
         })
         return JSON.stringify({ tasks })
+      }
+
+      case 'add_comment': {
+        const result = await astridAddComment({
+          taskId: input.task_id as string,
+          content: input.content as string,
+        })
+        return JSON.stringify({ success: true, commentId: result.id })
       }
 
       default:
