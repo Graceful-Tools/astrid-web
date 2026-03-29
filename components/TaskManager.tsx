@@ -90,28 +90,22 @@ export function TaskManager({
     enabled: !!controller.effectiveSession?.user?.id,
   })
 
-  // Fetch the user's configured default agent (Astrid) for mention autocomplete
+  // Fetch Astrid agent for mention autocomplete — always available regardless of default setting
   const [defaultAgentUser, setDefaultAgentUser] = React.useState<User | null>(null)
   React.useEffect(() => {
     if (!controller.effectiveSession?.user?.id) return
-    // Fetch the user's AI assistant settings to get the default agent
-    fetch('/api/user/ai-assistant-settings')
+    // Fetch available agents — this also ensures astrid@astrid.cc exists in the DB
+    fetch('/api/user/available-agents')
       .then(r => r.json())
-      .then(async (settings) => {
-        if (!settings.defaultAgentId) {
-          setDefaultAgentUser(null)
-          return
-        }
-        // Fetch the agent user details
-        const agentsRes = await fetch('/api/user/available-agents')
-        const agentsData = await agentsRes.json()
-        const agent = (agentsData.agents || []).find((a: { id: string }) => a.id === settings.defaultAgentId)
-        if (agent) {
+      .then((data) => {
+        // Find Astrid (always first in the list if user has any API key)
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
           setDefaultAgentUser({
-            id: agent.id,
-            name: agent.name,
-            email: agent.email,
-            image: agent.image,
+            id: astrid.id,
+            name: astrid.name,
+            email: astrid.email,
+            image: astrid.image,
             createdAt: new Date(),
             isAIAgent: true,
           })

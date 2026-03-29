@@ -198,20 +198,17 @@ export function CommentSection({
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
   const [isMentioningForReply, setIsMentioningForReply] = useState(false)
 
-  // Fetch the user's default agent (Astrid) for mention autocomplete
+  // Fetch Astrid agent for mention autocomplete
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
-    fetch('/api/user/ai-assistant-settings')
+    fetch('/api/user/available-agents')
       .then(r => r.json())
-      .then(async (settings) => {
-        if (!settings.defaultAgentId) return
-        const agentsRes = await fetch('/api/user/available-agents')
-        const agentsData = await agentsRes.json()
-        const agent = (agentsData.agents || []).find((a: { id: string }) => a.id === settings.defaultAgentId)
-        if (agent) {
+      .then((data) => {
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
           setDefaultAgent({
-            id: agent.id, name: agent.name, email: agent.email,
-            image: agent.image, createdAt: new Date(), isAIAgent: true,
+            id: astrid.id, name: astrid.name, email: astrid.email,
+            image: astrid.image, createdAt: new Date(), isAIAgent: true,
           })
         }
       })
@@ -1205,20 +1202,17 @@ export function CommentInputBar({
   const [mentionSearch, setMentionSearch] = useState<string | null>(null)
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
 
-  // Fetch default agent for mention autocomplete
+  // Fetch Astrid agent for mention autocomplete
   const [defaultAgentBar, setDefaultAgentBar] = useState<User | null>(null)
   useEffect(() => {
-    fetch('/api/user/ai-assistant-settings')
+    fetch('/api/user/available-agents')
       .then(r => r.json())
-      .then(async (settings) => {
-        if (!settings.defaultAgentId) return
-        const agentsRes = await fetch('/api/user/available-agents')
-        const agentsData = await agentsRes.json()
-        const agent = (agentsData.agents || []).find((a: { id: string }) => a.id === settings.defaultAgentId)
-        if (agent) {
+      .then((data) => {
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        if (astrid) {
           setDefaultAgentBar({
-            id: agent.id, name: agent.name, email: agent.email,
-            image: agent.image, createdAt: new Date(), isAIAgent: true,
+            id: astrid.id, name: astrid.name, email: astrid.email,
+            image: astrid.image, createdAt: new Date(), isAIAgent: true,
           })
         }
       })
