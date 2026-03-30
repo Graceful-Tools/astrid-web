@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -30,13 +29,10 @@ export async function GET(
   { params }: { params: Promise<{ channelId: string }> }
 ) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await authenticateAPI(req)
 
     const { channelId } = await params
-    const hasAccess = await canAccessChatChannel(channelId, session.user.id)
+    const hasAccess = await canAccessChatChannel(channelId, auth.userId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -76,7 +72,10 @@ export async function GET(
       hasMore,
       nextCursor,
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'UnauthorizedError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('[Chat API] GET messages error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -87,13 +86,10 @@ export async function POST(
   { params }: { params: Promise<{ channelId: string }> }
 ) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await authenticateAPI(req)
 
     const { channelId } = await params
-    const hasAccess = await canAccessChatChannel(channelId, session.user.id)
+    const hasAccess = await canAccessChatChannel(channelId, auth.userId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -125,7 +121,7 @@ export async function POST(
     const message = await prisma.chatMessage.create({
       data: {
         channelId,
-        authorId: session.user.id,
+        authorId: auth.userId,
         content: content?.trim() || '',
         type: type || 'TEXT',
         attachmentUrl,
@@ -148,7 +144,7 @@ export async function POST(
     try {
       const recipientIds = await getChatChannelRecipients(channelId)
       // Don't broadcast to the sender (they have optimistic update)
-      const otherRecipients = recipientIds.filter(id => id !== session.user.id)
+      const otherRecipients = recipientIds.filter(id => id !== auth.userId)
 
       if (otherRecipients.length > 0) {
         await broadcastToUsers(otherRecipients, {
@@ -170,7 +166,7 @@ export async function POST(
 
       while ((match = mentionPattern.exec(content || '')) !== null) {
         const mentionedUserId = match[2]
-        if (mentionedUserId === session.user.id) continue // Don't notify self
+        if (mentionedUserId === auth.userId) continue // Don't notify self
 
         const mentionedUser = await prisma.user.findUnique({
           where: { id: mentionedUserId },
@@ -191,7 +187,7 @@ export async function POST(
           if (mentionedUser.email === ASTRID_EMAIL) {
             processAstridMessage({
               userMessage: content || '',
-              userId: session.user.id,
+              userId: auth.userId,
               userName: senderName,
               channelId,
               listId: channel?.listId || null,
@@ -206,7 +202,7 @@ export async function POST(
                 listId: channel?.listId || null,
                 messageId: message.id,
                 content: content,
-                authorId: session.user.id,
+                authorId: auth.userId,
                 authorName: senderName,
                 mentionedAgentId: mentionedUserId,
               },
@@ -237,7 +233,7 @@ export async function POST(
             select: { listId: true },
           })
 
-          const defaultAgentId = await resolveDefaultAgent(channel?.listId || null, session.user.id)
+          const defaultAgentId = await resolveDefaultAgent(channel?.listId || null, auth.userId)
           if (defaultAgentId) {
             // Check if the default agent is Astrid
             const defaultAgent = await prisma.user.findUnique({
@@ -249,7 +245,7 @@ export async function POST(
               // Use Astrid runtime to respond directly
               processAstridMessage({
                 userMessage: content || '',
-                userId: session.user.id,
+                userId: auth.userId,
                 userName: senderName,
                 channelId,
                 listId: channel?.listId || null,
@@ -264,7 +260,7 @@ export async function POST(
                   listId: channel?.listId || null,
                   messageId: message.id,
                   content: content,
-                  authorId: session.user.id,
+                  authorId: auth.userId,
                   authorName: senderName,
                   mentionedAgentId: defaultAgentId,
                   isDefaultAgent: true,
@@ -282,7 +278,10 @@ export async function POST(
     }
 
     return NextResponse.json({ message: serializedMessage }, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'UnauthorizedError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('[Chat API] POST message error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -6,19 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await authenticateAPI(req)
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: auth.userId },
       select: { aiAssistantSettings: true },
     })
 
@@ -30,7 +26,10 @@ export async function GET() {
       preferredService: settings.preferredService || null,
       defaultAgentId: settings.defaultAgentId || null,
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'UnauthorizedError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('[AI Assistant Settings] GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -38,10 +37,7 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await authenticateAPI(req)
 
     const body = await req.json()
     const { defaultAgentId, preferredService } = body
@@ -59,7 +55,7 @@ export async function PATCH(req: NextRequest) {
 
     // Merge with existing settings
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: auth.userId },
       select: { aiAssistantSettings: true },
     })
 
@@ -76,7 +72,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: auth.userId },
       data: { aiAssistantSettings: JSON.stringify(updated) },
     })
 
@@ -84,7 +80,10 @@ export async function PATCH(req: NextRequest) {
       preferredService: updated.preferredService || null,
       defaultAgentId: updated.defaultAgentId || null,
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'UnauthorizedError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('[AI Assistant Settings] PATCH error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

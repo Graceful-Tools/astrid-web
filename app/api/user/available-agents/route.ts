@@ -9,9 +9,8 @@
  * 3. Any AI agent users in the database the user has keys for
  */
 
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { NextRequest, NextResponse } from 'next/server'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { ensureAstridAgent, ASTRID_EMAIL } from '@/lib/astrid-agent'
@@ -31,19 +30,16 @@ const BUILT_IN_AGENTS: Array<{ email: string; name: string; service: 'claude' | 
   { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini', image: '/images/ai-agents/gemini.svg' },
 ]
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await authenticateAPI(req)
 
     const available: AvailableAgent[] = []
     let hasAnyKey = false
 
     // 1. Check built-in agents based on API keys
     for (const agent of BUILT_IN_AGENTS) {
-      const hasKey = await hasValidApiKey(session.user.id, agent.service)
+      const hasKey = await hasValidApiKey(auth.userId, agent.service)
       if (hasKey) {
         hasAnyKey = true
         // Try to find the agent's User record for the real ID
@@ -62,13 +58,13 @@ export async function GET() {
     }
 
     // 2. Check OpenClaw agents (registered by this user)
-    const hasOpenClaw = await hasValidApiKey(session.user.id, 'openclaw')
+    const hasOpenClaw = await hasValidApiKey(auth.userId, 'openclaw')
     if (hasOpenClaw) {
       const openclawAgents = await prisma.user.findMany({
         where: {
           isAIAgent: true,
           aiAgentType: 'openclaw_worker',
-          aiAgentConfig: { contains: session.user.id }, // registered by this user
+          aiAgentConfig: { contains: auth.userId }, // registered by this user
         },
         select: { id: true, name: true, email: true, image: true },
       })
@@ -96,7 +92,10 @@ export async function GET() {
     }
 
     return NextResponse.json({ agents: available })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'UnauthorizedError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('[Available Agents] GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

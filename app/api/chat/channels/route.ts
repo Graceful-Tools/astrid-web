@@ -5,16 +5,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await authenticateAPI(req)
 
     const body = await req.json()
     const { listId, virtualKey } = body
@@ -37,9 +33,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'List not found' }, { status: 404 })
       }
 
-      const isOwner = list.ownerId === session.user.id
-      const isMember = list.listMembers?.some(m => m.userId === session.user.id)
-      const isPublicCollaborative = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
+      const isOwner = list.ownerId === auth.userId
+      const isMember = list.listMembers?.some(m => m.userId === auth.userId)
+      const isPublicCollaborative = list.privacy === 'PUBLIC' && (list as any).publicListType === 'collaborative'
 
       if (!isOwner && !isMember && !isPublicCollaborative) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -59,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (virtualKey) {
       // Format: "virtual-chat:{userId}:{type}"
       const parts = virtualKey.split(':')
-      if (parts.length < 3 || parts[1] !== session.user.id) {
+      if (parts.length < 3 || parts[1] !== auth.userId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
@@ -73,7 +69,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'UnauthorizedError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('[Chat API] POST /chat/channels error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
