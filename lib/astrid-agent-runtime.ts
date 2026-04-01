@@ -163,6 +163,13 @@ You have a tool called \`api_request\` that makes authenticated HTTP requests to
 - dueDateTime: ISO 8601 format (e.g. "2026-03-30T17:00:00Z")
 - assigneeId: User ID string. When the user says "assign to me", use their ID: "${context.userId}"
 
+## References in messages
+Users can reference lists, tasks, and people in their messages using special syntax:
+- \`@Name (ID: userId)\` — a user mention. Use the ID for \`assigneeId\` in API calls.
+- \`#ListName (listId: listId)\` — a list reference. Use the listId for \`listIds\` when creating tasks or \`listId\` query param when fetching.
+- \`!TaskName (taskId: taskId)\` — a task reference. Use the taskId to get/update that specific task via \`/api/v1/tasks/:taskId\`.
+When the user references a specific list or task, use the provided ID — don't search for it.
+
 ## Attaching files to tasks
 Files shared in conversation history include a \`fileId\` in their metadata. To attach a file to a task:
 1. Find the \`fileId\` from the conversation history attachment metadata
@@ -428,7 +435,12 @@ async function buildChatHistory(channelId: string): Promise<string> {
       const authorName = m.author.isAIAgent ? 'Astrid' : (m.author.name || m.author.email)
       const time = m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-      let line = `[${time}] ${authorName}: ${m.content}`
+      // Clean mention syntax to show IDs inline for the agent
+      const cleanContent = m.content
+        .replace(/@\[([^\]]+)\]\(([^)]+)\)/g, '@$1 (ID: $2)')
+        .replace(/#\[([^\]]+)\]\(([^)]+)\)/g, '#$1 (listId: $2)')
+        .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '!$1 (taskId: $2)')
+      let line = `[${time}] ${authorName}: ${cleanContent}`
 
       // Include attachment metadata and content
       if (m.secureFiles?.length) {
@@ -587,10 +599,14 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       chatHistory,
     })
 
+    // Preserve IDs in mentions so the agent can use them for API calls
+    // @[Jon Paris](userId) → @Jon Paris (ID: userId)
+    // #[My List](listId) → #My List (listId: listId)
+    // ![Task Name](taskId) → !Task Name (taskId: taskId)
     const cleanMessage = userMessage
-      .replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
-      .replace(/#\[([^\]]+)\]\([^)]+\)/g, '#$1')
-      .replace(/!\[([^\]]+)\]\([^)]+\)/g, '!$1')
+      .replace(/@\[([^\]]+)\]\(([^)]+)\)/g, '@$1 (ID: $2)')
+      .replace(/#\[([^\]]+)\]\(([^)]+)\)/g, '#$1 (listId: $2)')
+      .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '!$1 (taskId: $2)')
 
     const toolContext = { userId }
 
@@ -751,9 +767,9 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     }) + `\n\n## Current task\nTitle: ${taskTitle}\nTask ID: ${taskId}\n\nThe user commented on this task. Respond helpfully. If you need to take action, use the api_request tool.`
 
     const cleanComment = commentContent
-      .replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
-      .replace(/#\[([^\]]+)\]\([^)]+\)/g, '#$1')
-      .replace(/!\[([^\]]+)\]\([^)]+\)/g, '!$1')
+      .replace(/@\[([^\]]+)\]\(([^)]+)\)/g, '@$1 (ID: $2)')
+      .replace(/#\[([^\]]+)\]\(([^)]+)\)/g, '#$1 (listId: $2)')
+      .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '!$1 (taskId: $2)')
 
     const toolContext = { userId }
 
