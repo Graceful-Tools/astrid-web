@@ -505,6 +505,67 @@ POST /api/cron/reminders
   - `POST /api/mcp/tokens`: Create new token
   - `DELETE /api/mcp/tokens/:id`: Revoke token
 
+## Chat Messaging System
+
+### Overview
+
+Per-channel real-time messaging for list collaboration and personal AI assistant conversations. Each TaskList gets a shared channel; each user gets a virtual "My Tasks" channel.
+
+### Architecture
+
+```
+ChatChannel (1:1 with TaskList or virtualKey)
+  └── ChatMessage (text, markdown, or attachment)
+        └── SecureFile[] (file attachments via Vercel Blob)
+```
+
+**API Routes:**
+- `POST /api/chat/channels` — get-or-create channel ([app/api/chat/channels/route.ts](../app/api/chat/channels/route.ts))
+- `GET /api/chat/channels/:id/messages` — paginated messages
+- `POST /api/chat/channels/:id/messages` — send message (supports `fileId` for attachments)
+
+**Client Hooks:**
+- `useChatChannel` ([hooks/use-chat-channel.ts](../hooks/use-chat-channel.ts)) — message loading, sending, optimistic updates
+- `useAgentTyping` ([hooks/use-agent-typing.ts](../hooks/use-agent-typing.ts)) — typing indicator state with 45s timeout safety
+
+### Agent Response Rules
+
+| Context | Auto-responds? | Trigger |
+|---------|---------------|---------|
+| My Tasks (virtual channel) | Yes | Every message |
+| Private list (sole owner, no members) | Yes | Every message |
+| Shared/public list | No | Only when @mentioned |
+| Task comments | No | Only when @mentioned |
+
+Logic: [app/api/chat/channels/[channelId]/messages/route.ts](../app/api/chat/channels/[channelId]/messages/route.ts) (line ~276)
+
+### Astrid Agent Runtime ([lib/astrid-agent-runtime.ts](../lib/astrid-agent-runtime.ts))
+
+When triggered (by @mention or auto-response), `processAstridMessage` provides the AI with:
+- **Chat history** — last 20 messages with file contents for text-based attachments
+- **Task context** — up to 15 uncompleted tasks with priorities and due dates
+- **List defaults** — default assignee, priority from the list config
+- **Reference IDs** — `@user`, `#list`, `!task` mentions include their database IDs
+- **API access** — single `api_request` tool for full CRUD on tasks, comments, and lists
+
+**Prompt injection protection:** file content is sanitized (strips system/instruction patterns) and wrapped in `<file>` tags marked as user data.
+
+**Setup fallback:** if no API key is configured, Astrid posts a helpful message directing the user to `/settings/agents`.
+
+### Typing Indicators
+
+SSE events broadcast when an agent starts/stops processing:
+- `agent_typing_start` — `{ channelId|taskId, agentId, agentName }`
+- `agent_typing_stop` — `{ channelId|taskId, agentId }`
+
+These are ephemeral (excluded from SSE replay cache). Client-side 45-second timeout auto-clears stale indicators. The `chat_message_created` or `comment_created` event from the agent also clears it.
+
+### File Attachments on Messages
+
+Upload flow: `POST /api/secure-upload/request-upload` with `{channelId}` context → returns `fileId` → send message with `fileId` and `type: "ATTACHMENT"`. The `SecureFile` record is linked to the `ChatMessage` via `chatMessageId`.
+
+Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (5-min expiry).
+
 ## Webhooks & External Integrations
 
 ### **GitHub Integration** ([lib/github-client.ts](../lib/github-client.ts))

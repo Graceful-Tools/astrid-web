@@ -9,8 +9,7 @@ This directory contains all technical documentation for the Astrid task manageme
 - **[Authentication System](./AUTHENTICATION.md)** - Authentication implementation and security
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
 - **[MVC Architecture](./MVC_ARCHITECTURE.md)** - Controller-Repository-Service pattern for AI webhooks
-- **[AI Agent Architecture](./AI_AGENT_ARCHITECTURE.md)** - Command/Event pattern for AI agent operations
-- **[Tools-Based AI Architecture](./TOOLS_BASED_AI_ARCHITECTURE.md)** - Direct tool access via MCP for AI agents
+- **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
 
 ### 🚀 Setup & Deployment
 - **[Auth Setup](./setup/AUTH_SETUP.md)** - Authentication configuration
@@ -51,6 +50,10 @@ This directory contains all technical documentation for the Astrid task manageme
 
 ### 🎨 UI & Design
 - **[Layout System](./LAYOUT_SYSTEM.md)** - ⚠️ **Critical**: Mobile vs Column Layout distinction, responsive breakpoints
+
+### 💬 Chat & Messaging
+- **[iOS Chat API Spec](./ios/IOS_CHAT_API_SPEC.md)** - Full chat API integration spec for iOS (channels, messages, attachments, typing indicators)
+- **[API Contract](./API_CONTRACT.md)** - Mobile API contract including chat endpoints and SSE events
 
 ### 📱 Related: iOS App
 The native iOS app is maintained in a separate repository:
@@ -116,13 +119,16 @@ The `archive/` directory contains historical documentation preserved for referen
 ## 📋 System Status
 
 **Current System Features:**
+- ✅ **Chat Messaging** - Per-list and My Tasks channels with real-time SSE, file attachments, @mentions
+- ✅ **Astrid AI Assistant** - Built-in agent with chat history, task context, file reading, and API tool access
+- ✅ **Agent Typing Indicators** - Real-time "thinking..." indicators via SSE for both web and iOS
 - ✅ **Simplified AI Agent System** - Single coding agent (removed Astrid Alpha, Google Gemini)
 - ✅ **Token-Level MCP Permissions** - Simplified access control at token provisioning level
 - ✅ **GitHub Integration** - Full coding agent with PR workflows
 - ✅ **Multi-AI Support** - Claude, OpenAI, and Gemini APIs
 - ✅ **Production Ready** - All migrations deployed and tested
 
-**Documentation Status:** ✅ **Up to Date** (Last updated: 2024-11-21)
+**Documentation Status:** ✅ **Up to Date** (Last updated: 2026-03-31)
 **Documentation Organization:** ✅ **Cleaned and Organized** - Root directory reserved for AI agent contexts only
 **Root Directory:** CLAUDE.md, GPT-5-CODEX.md, ASTRID.md, README.md (AI agent operational contexts)
 
