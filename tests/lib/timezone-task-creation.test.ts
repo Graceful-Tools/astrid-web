@@ -128,7 +128,8 @@ describe('Task Creation Timezone Bugs (Critical Regression)', () => {
       const offsetHours = Math.abs(now.getTimezoneOffset() / 60)
       if (now.getTimezoneOffset() > 0 && now.getHours() >= (24 - offsetHours)) {
         // Late evening hours when behind UTC - UTC is ahead by a day
-        expect(currentUTCDate).toBeGreaterThan(currentLocalDate)
+        // Note: can't use greaterThan because at month boundaries (e.g. local=31, UTC=1)
+        expect(currentUTCDate).not.toBe(currentLocalDate)
       }
     })
 
