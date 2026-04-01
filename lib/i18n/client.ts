@@ -1,49 +1,23 @@
 // Client-side i18n utilities
+// Uses next-intl's provider (messages loaded server-side, no async flash)
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLocale as useNextIntlLocale, useMessages } from 'next-intl'
 
-// Get current locale from URL or localStorage
+// Get current locale from next-intl (synchronous, no flash)
 export function useLocale() {
-  const [locale, setLocale] = useState('en')
-
-  useEffect(() => {
-    // Try to get locale from pathname
-    const pathLocale = window.location.pathname.split('/')[1]
-    const validLocales = ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ru', 'ja', 'ko', 'zh-CN', 'zh-TW']
-
-    if (validLocales.includes(pathLocale)) {
-      setLocale(pathLocale)
-    } else {
-      // Fallback to browser language or English
-      const browserLang = navigator.language.split('-')[0]
-      setLocale(validLocales.includes(browserLang) ? browserLang : 'en')
-    }
-  }, [])
-
-  return locale
+  return useNextIntlLocale()
 }
 
-// Simple translation hook for client components
+// Translation hook that reads from NextIntlClientProvider (synchronous)
 export function useTranslations() {
-  const locale = useLocale()
-  const [messages, setMessages] = useState<any>(null)
+  const locale = useNextIntlLocale()
+  const messages = useMessages()
 
-  useEffect(() => {
-    // Dynamically import locale file
-    import(`./locales/${locale}.json`)
-      .then(module => setMessages(module.default))
-      .catch(() => {
-        // Fallback to English
-        import('./locales/en.json').then(module => setMessages(module.default))
-      })
-  }, [locale])
-
-  // Return translation function
+  // Navigate nested keys (e.g., "reminders.general")
   const t = (key: string, replacements?: Record<string, string>): string => {
     if (!messages) return key
 
-    // Navigate nested keys (e.g., "reminders.general")
     const keys = key.split('.')
     let value: any = messages
 
@@ -51,7 +25,7 @@ export function useTranslations() {
       if (value && typeof value === 'object' && k in value) {
         value = value[k]
       } else {
-        return key // Return key if path not found
+        return key
       }
     }
 
@@ -63,7 +37,7 @@ export function useTranslations() {
       )
     }
 
-    return value || key
+    return typeof value === 'string' ? value : key
   }
 
   // Get array of translations
