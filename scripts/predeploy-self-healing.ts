@@ -31,7 +31,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
 // Configuration - customize for your project
 const CONFIG = {
   maxRetries: 3,
-  astridListId: process.env.ASTRID_BUGS_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba', // Bugs & Polish list
+  astridListId: process.env.ASTRID_OAUTH_LIST_ID || process.env.ASTRID_BUGS_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba',
   createTasks: true,
   verboseOutput: true,
 }
@@ -473,7 +473,7 @@ ${
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          listId: CONFIG.astridListId,
+          listIds: [CONFIG.astridListId],
           title,
           description,
           priority: 3, // High priority for build failures
