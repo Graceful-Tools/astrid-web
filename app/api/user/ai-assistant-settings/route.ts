@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
+import { ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,8 +43,8 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { defaultAgentId, preferredService } = body
 
-    // Validate agent if provided
-    if (defaultAgentId) {
+    // Validate agent if provided (skip for on-device models handled client-side)
+    if (defaultAgentId && !(ON_DEVICE_MODEL_IDS as readonly string[]).includes(defaultAgentId)) {
       const agent = await prisma.user.findUnique({
         where: { id: defaultAgentId },
         select: { id: true, isAIAgent: true },

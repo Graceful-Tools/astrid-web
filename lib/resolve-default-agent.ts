@@ -7,7 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
-import { getAgentService } from '@/lib/ai/agent-config'
+import { getAgentService, ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
 
 // ─── aiAgentsEnabled normalization ────────────────────────────────
 
@@ -113,6 +113,12 @@ export async function resolveDefaultAgent(
 
   if (!agentId) {
     console.log(`[resolveDefaultAgent] No agentId found for listId=${listId}, userId=${userId}`)
+    return null
+  }
+
+  // 2b. On-device models (e.g. Apple Foundation Models) are handled client-side — no server processing
+  if ((ON_DEVICE_MODEL_IDS as readonly string[]).includes(agentId)) {
+    console.log(`[resolveDefaultAgent] On-device model selected for userId=${userId}, skipping server resolution`)
     return null
   }
 

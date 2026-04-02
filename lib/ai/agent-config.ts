@@ -10,6 +10,10 @@
 
 export type AIService = 'claude' | 'openai' | 'gemini' | 'openclaw'
 
+/** On-device model sentinel IDs — handled client-side, never processed by the server */
+export const ON_DEVICE_MODEL_IDS = ['apple-foundation-model'] as const
+export type OnDeviceModelId = typeof ON_DEVICE_MODEL_IDS[number]
+
 export interface AIAgentConfig {
   /** The AI service provider */
   service: AIService
