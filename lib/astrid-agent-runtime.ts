@@ -541,25 +541,9 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const isOnDeviceModel = userSettings.defaultAgentId && (ON_DEVICE_MODEL_IDS as readonly string[]).includes(userSettings.defaultAgentId)
 
     if (isOnDeviceModel) {
-      console.log(`[Astrid] User ${userId} has on-device model selected, skipping server-side processing`)
-      const onDeviceMessage = await prisma.chatMessage.create({
-        data: {
-          channelId,
-          authorId: astridUser.id,
-          content: "I'm set up to run on-device via Apple Intelligence! On-device chat responses are coming soon. For now, I can help you create and organize tasks — just type your task in the quick-add bar and I'll parse it automatically.",
-          type: 'MARKDOWN',
-        },
-        include: {
-          author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } },
-        },
-      })
+      console.log(`[Astrid] User ${userId} has on-device model selected — iOS handles response on-device`)
+      // Stop typing indicator — iOS will process on-device and post via /agent-response
       if (recipients.length > 0) {
-        const serialized = { ...onDeviceMessage, createdAt: onDeviceMessage.createdAt.toISOString(), updatedAt: onDeviceMessage.updatedAt.toISOString() }
-        await broadcastToUsers(recipients, {
-          type: 'chat_message_created',
-          timestamp: new Date().toISOString(),
-          data: { channelId, message: serialized },
-        })
         broadcastToUsers(recipients, {
           type: 'agent_typing_stop',
           timestamp: new Date().toISOString(),
