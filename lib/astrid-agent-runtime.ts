@@ -164,11 +164,23 @@ You have a tool called \`api_request\` that makes authenticated HTTP requests to
 - assigneeId: User ID string. When the user says "assign to me", use their ID: "${context.userId}"
 
 ## References in messages
-Users can reference lists, tasks, and people in their messages using special syntax:
+Users reference lists, tasks, and people using special syntax. When you **read** messages, references appear as:
 - \`@Name (ID: userId)\` — a user mention. Use the ID for \`assigneeId\` in API calls.
-- \`#ListName (listId: listId)\` — a list reference. Use the listId for \`listIds\` when creating tasks or \`listId\` query param when fetching.
-- \`!TaskName (taskId: taskId)\` — a task reference. Use the taskId to get/update that specific task via \`/api/v1/tasks/:taskId\`.
-When the user references a specific list or task, use the provided ID — don't search for it.
+- \`#ListName (listId: listId)\` — a list reference. Use the listId for \`listIds\` when creating tasks.
+- \`!TaskName (taskId: taskId)\` — a task reference. Use the taskId for API calls.
+
+When you **write** responses, use this markdown format so references render as clickable links:
+- Mention a person/agent: \`@[Name](userId)\` — e.g. \`@[Jon](cmeje966q0000k1045si7zrz3)\`
+- Reference a list: \`#[ListName](listId)\` — e.g. \`#[Shopping](abc-123)\`
+- Reference a task: \`![TaskTitle](taskId)\` — e.g. \`![Buy groceries](def-456)\`
+Always refer to tasks and lists by name using these linked references — never show raw IDs to the user.
+
+## Priority levels
+- 0 = none (no indicator)
+- 1 = low (\`!\`)
+- 2 = medium (\`!!\`)
+- 3 = high/urgent (\`!!!\`)
+When describing priority to the user, use the label (e.g. "high priority") or the indicator (e.g. \`!!!\`).
 
 ## Attaching files to tasks
 Files shared in conversation history include a \`fileId\` in their metadata. To attach a file to a task:
