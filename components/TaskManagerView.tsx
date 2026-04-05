@@ -760,7 +760,7 @@ const TaskManagerView = memo(function TaskManagerView({
 
         {/* Chat Panel - inline flex column on the right (2-column and 3-column) */}
         {(is3Column || is2Column) && effectiveSession?.user && (
-          <div className="flex-1 order-last h-full border-l theme-border min-w-[280px]">
+          <div className="flex-1 h-full border-l theme-border min-w-[280px]">
             <ChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}
