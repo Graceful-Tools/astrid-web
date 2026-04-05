@@ -38,24 +38,48 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-async function createTask(title: string, listId: string, description?: string) {
+interface CreateTaskOptions {
+  title: string;
+  listId: string;
+  description?: string;
+  priority?: number;
+  assigneeEmail?: string;
+}
+
+async function createTask({ title, listId, description, priority = 1, assigneeEmail }: CreateTaskOptions) {
   console.log('🔐 Obtaining OAuth access token...');
   const accessToken = await getAccessToken();
   console.log('✅ Access token obtained');
 
-  console.log(`📝 Creating task: "${title}"`);
+  // If assignee email provided, look up the user
+  let assigneeId: string | undefined;
+  if (assigneeEmail) {
+    const usersRes = await fetch(`${ASTRID_API_BASE}/api/v1/tasks?listId=${listId}&limit=1`, {
+      headers: { 'X-OAuth-Token': accessToken },
+    });
+    // We can't look up users directly, so we skip assignee for now
+    // The task can be assigned later via the UI
+    console.log(`ℹ️  Assignee "${assigneeEmail}" noted (assign via Astrid UI)`);
+  }
+
+  console.log(`📝 Creating task: "${title}" (priority: ${priority})`);
+  const body: Record<string, unknown> = {
+    title,
+    description,
+    listIds: [listId],
+    priority,
+  };
+  if (assigneeId) {
+    body.assigneeId = assigneeId;
+  }
+
   const response = await fetch(`${ASTRID_API_BASE}/api/v1/tasks`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-OAuth-Token': accessToken,
     },
-    body: JSON.stringify({
-      title,
-      description,
-      listIds: [listId],
-      priority: 1,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -67,7 +91,30 @@ async function createTask(title: string, listId: string, description?: string) {
   console.log('✅ Task created successfully!');
   console.log(`📋 Task ID: ${data.task.id}`);
   console.log(`📋 Title: ${data.task.title}`);
+  console.log(`📋 Priority: ${data.task.priority}`);
   return data.task;
+}
+
+// Parse CLI args
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let priority = 1;
+  let title = '';
+  let description = '';
+
+  // Check for --priority or -p flag
+  for (let i = 0; i < args.length; i++) {
+    if ((args[i] === '--priority' || args[i] === '-p') && args[i + 1]) {
+      priority = parseInt(args[i + 1], 10);
+      args.splice(i, 2);
+      i--;
+    }
+  }
+
+  title = args[0] || '';
+  description = args[1] || '';
+
+  return { title, description, priority };
 }
 
 // Main
@@ -77,15 +124,14 @@ if (!listId) {
   process.exit(1);
 }
 
-const title = process.argv[2];
-const description = process.argv[3];
+const { title, description, priority } = parseArgs();
 
 if (!title) {
-  console.error('Usage: npx tsx scripts/create-task.ts "Task title" "Optional description"');
+  console.error('Usage: npx tsx scripts/create-task.ts "Task title" ["Description"] [-p priority]');
   process.exit(1);
 }
 
-createTask(title, listId, description).catch((error) => {
+createTask({ title, listId, description: description || undefined, priority }).catch((error) => {
   console.error('❌ Error:', error.message);
   process.exit(1);
 });

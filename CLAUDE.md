@@ -235,21 +235,20 @@ npx tsx scripts/complete-task-with-workflow.ts <taskId>
 
 ## Workflow Trigger: "Let's Fix Stuff"
 
-When user says "let's fix stuff", "just fix stuff", or similar:
+When user says "let's fix stuff", "just fix stuff", or similar (or use `/fixstuff`):
 
 ```bash
 # 1. Validate permissions
 npm run validate:settings:fix
 
-# 2. Establish baseline
-npm run predeploy:full
-
-# 3. Check deployment (may fail if Vercel not configured - OK)
+# 2. Check deployment (may fail if Vercel not configured - OK)
 npm run monitor:vercel
 
-# 4. Pull tasks
+# 3. Pull tasks
 npx tsx scripts/get-astrid-tasks.ts
 ```
+
+Present tasks to the user and ask which to work on. Run `npm run predeploy` **after** implementation, not before.
 
 **See [ASTRID.md](./ASTRID.md) > "Coding Workflow"** for the full required workflow including:
 - Strategy comment posting (Step 3)

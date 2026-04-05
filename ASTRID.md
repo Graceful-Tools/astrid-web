@@ -252,34 +252,13 @@ Agents deploy feature branches to preview subdomains for review before merging:
 
 **CRITICAL**: This workflow is MANDATORY for all AI agents when implementing code changes.
 
-### Step 1: Baseline Testing (Before Starting Work)
-
-**ALWAYS run the full test suite before making ANY code changes:**
-
-```bash
-npm run predeploy:full
-```
-
-This establishes:
-- Current test pass rates
-- Known failing tests (document these)
-- Baseline to compare against after implementation
-
-**Record the baseline in your task comment:**
-```
-📊 Test Baseline:
-- Vitest: X/Y tests passing
-- Playwright E2E: X/Y tests passing
-- Known failures: [list any pre-existing failures]
-```
-
-### Step 2: Analysis & Planning
+### Step 1: Analysis & Planning
 
 1. Understand the task requirements
 2. Explore relevant codebase areas
 3. Create implementation plan
 
-### Step 3: Post Strategy Comment
+### Step 2: Post Strategy Comment
 
 **Before implementing, post your strategy to the task:**
 
@@ -299,27 +278,26 @@ This affects lines 71-104 in LoginView.swift. Will also add a regression test.
 
 Wait for user feedback if needed before proceeding.
 
-### Step 4: Implementation
+### Step 3: Implementation
 
 Write code following established patterns (see Architecture Patterns section).
 
-### Step 5: Post-Implementation Verification
+### Step 4: Post-Implementation Verification
 
-**IMMEDIATELY after completing implementation, run tests:**
+**After completing implementation, run predeploy:**
 
 ```bash
-# Run full test suite
-npm run predeploy:full
+npm run predeploy
 ```
 
-**If any tests fail that were passing in baseline:**
+**If any tests fail:**
 
 1. **DO NOT skip or ignore failures** - Fix them immediately
 2. Analyze the failure to understand what broke
 3. Fix the code (prefer fixing your new code over modifying tests)
-4. Re-run tests until all baseline tests pass again
+4. Re-run until all tests pass
 
-### Step 6: Regression Testing (Required)
+### Step 5: Regression Testing (Required)
 
 **ALWAYS create regression tests for new functionality:**
 
@@ -365,7 +343,7 @@ npm run test:run
 
 > **Note:** For iOS changes, see the [astrid-ios repository](https://github.com/Graceful-Tools/astrid-ios).
 
-### Step 7: Final Quality Gate
+### Step 6: Final Quality Gate
 
 Before marking task complete:
 
@@ -374,7 +352,7 @@ Before marking task complete:
 npm run predeploy:full
 ```
 
-### Step 8: Post Fix Summary Comment
+### Step 7: Post Fix Summary Comment
 
 **After verification passes, post a summary to the task:**
 
@@ -507,15 +485,7 @@ private getChecks() {
 
 When triggered by "let's fix stuff", "just fix stuff", or similar:
 
-### 1. Run Baseline Tests
-
-```bash
-npm run predeploy:full
-```
-
-Document current state before making any changes.
-
-### 2. Pull and Analyze Tasks
+### 1. Pull and Analyze Tasks
 
 ```bash
 # For web tasks (default)
@@ -534,17 +504,16 @@ npx tsx scripts/get-astrid-tasks.ts all
 
 Review assigned tasks and prioritize.
 
-### 3. For Each Task/Fix
+### 2. For Each Task/Fix
 
 Follow the full **Coding Workflow** above:
-1. Baseline (already done in step 1)
-2. Analyze the specific issue
-3. Implement the fix
-4. Run tests, fix any regressions
+1. Analyze the specific issue
+2. Implement the fix
+3. Run `npm run predeploy` to verify
+4. Fix any regressions
 5. Add regression tests for the fix
-6. Verify all tests pass
 
-### 4. Ship When Ready
+### 3. Ship When Ready
 
 After all fixes pass quality gates:
 - Commit changes
