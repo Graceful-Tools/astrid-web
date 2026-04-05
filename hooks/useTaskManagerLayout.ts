@@ -19,12 +19,12 @@ interface UseTaskManagerLayoutProps {
 }
 
 export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManagerLayoutProps) {
-  // Layout state
-  const [layoutType, setLayoutType] = useState<LayoutType>('computer-2-column')
-  const [isMobile, setIsMobile] = useState(false)
+  // Layout state — initialize from actual window size to avoid hydration mismatch
+  const [layoutType, setLayoutType] = useState<LayoutType>(() => getLayoutType())
+  const [isMobile, setIsMobile] = useState(() => is1ColumnView(getLayoutType()))
   const [mobileView, setMobileView] = useState<'list' | 'task' | 'chat'>('list')
   const [activePanel, setActivePanel] = useState<'tasks' | 'chat'>('tasks')
-  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false)
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState(() => shouldShowHamburgerMenu(getLayoutType()))
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [mobileSearchMode, setMobileSearchMode] = useState(false)
   const [justReturnedFromTaskDetail, setJustReturnedFromTaskDetail] = useState(false)
