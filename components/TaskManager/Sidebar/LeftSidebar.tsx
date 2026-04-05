@@ -38,6 +38,7 @@ interface LeftSidebarProps {
   setShowMobileSidebar: (show: boolean) => void
   setShowAddListModal: (show: boolean) => void
   setShowPublicBrowser: (show: boolean) => void
+  setShowSettingsPopover?: (listId: string | null) => void
 
   // Swipe handlers (optional for backward compatibility)
   sidebarSwipeToDismiss?: {
@@ -74,6 +75,7 @@ export function LeftSidebar({
   setShowMobileSidebar,
   setShowAddListModal,
   setShowPublicBrowser,
+  setShowSettingsPopover,
   sidebarSwipeToDismiss,
   isTaskDragActive,
   dragOverListId,
@@ -311,6 +313,7 @@ export function LeftSidebar({
                   isMobile={isMobile}
                   taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
                   onClick={handleListClick}
+                  onSettingsClick={setShowSettingsPopover || undefined}
                   droppable={canDropOnList(list)}
                   isDragActive={isTaskDragActive}
                   isDropTarget={dragOverListId === list.id}
@@ -363,6 +366,7 @@ export function LeftSidebar({
                   isMobile={isMobile}
                   taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
                   onClick={handleListClick}
+                  onSettingsClick={setShowSettingsPopover || undefined}
                   droppable={canDropOnList(list)}
                   isDragActive={isTaskDragActive}
                   isDropTarget={dragOverListId === list.id}
@@ -400,6 +404,7 @@ export function LeftSidebar({
                   isMobile={isMobile}
                   taskCount={(list as any)._count?.tasks || 0}
                   onClick={(listId) => handleListClick(listId, true)}
+                  onSettingsClick={setShowSettingsPopover || undefined}
                 />
               ))}
             </div>
@@ -440,6 +445,7 @@ export function LeftSidebar({
                   isMobile={isMobile}
                   taskCount={(list as any)._count?.tasks || 0}
                   onClick={(listId) => handleListClick(listId, true)}
+                  onSettingsClick={setShowSettingsPopover || undefined}
                 />
               ))}
             </div>

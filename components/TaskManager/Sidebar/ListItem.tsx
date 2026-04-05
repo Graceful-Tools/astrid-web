@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Button } from "@/components/ui/button"
-import { Globe, Users } from "lucide-react"
+import { Globe, Users, Settings } from "lucide-react"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import type { TaskList } from "@/types/task"
@@ -17,6 +17,7 @@ interface ListItemProps {
   onTaskDragEnter?: (shiftKey: boolean) => void
   onTaskDragLeave?: () => void
   onTaskDragOver?: (shiftKey: boolean, listId: string) => void
+  onSettingsClick?: (listId: string) => void
   droppable?: boolean
   isDragActive?: boolean
   isDropTarget?: boolean
@@ -33,6 +34,7 @@ export function ListItem({
   onTaskDragEnter,
   onTaskDragLeave,
   onTaskDragOver,
+  onSettingsClick,
   droppable = false,
   isDragActive = false,
   isDropTarget = false,
@@ -135,6 +137,18 @@ export function ListItem({
             <span className="text-xs theme-count-bg theme-text-primary px-2 py-1 rounded">
               {taskCount}
             </span>
+            {isMobile && onSettingsClick && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSettingsClick(list.id)
+                }}
+                className="p-1 rounded hover:bg-white/20 transition-colors"
+                aria-label={`Settings for ${list.name}`}
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </Button>

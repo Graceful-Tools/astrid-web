@@ -106,6 +106,10 @@ export function TaskManagerHeader({
     if (selectedList.admins?.some(a => a.id === userId)) {
       return true
     }
+    // Member check - members need access to view membership and leave
+    if (selectedList.listMembers?.some(m => m.user?.id === userId)) {
+      return true
+    }
     return false
   })()
 
