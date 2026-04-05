@@ -1028,10 +1028,40 @@ export function useTaskManagerController({
     const list = listState.lists.find(l => l.id === listId)
     if (!list) return
 
+    const newFavorite = !list.isFavorite
+
+    // Optimistic update
+    listState.setLists((prev: TaskList[]) =>
+      prev.map((l: TaskList) =>
+        l.id === listId ? { ...l, isFavorite: newFavorite, favoriteOrder: newFavorite ? 1 : null } : l
+      )
+    )
+
     try {
-      const updatedList = { ...list, isFavorite: !list.isFavorite }
-      await handleUpdateList(updatedList)
+      // Use the dedicated favorite endpoint — allows any list member, not just owner/admin
+      const res = await fetch(`/api/lists/${listId}/favorite`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: newFavorite }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed: ${res.status}`)
+      }
+
+      const data = await res.json()
+      if (data.list) {
+        listState.setLists((prev: TaskList[]) =>
+          prev.map((l: TaskList) => l.id === listId ? { ...l, ...data.list } : l)
+        )
+      }
     } catch (error) {
+      // Rollback optimistic update
+      listState.setLists((prev: TaskList[]) =>
+        prev.map((l: TaskList) =>
+          l.id === listId ? { ...l, isFavorite: list.isFavorite, favoriteOrder: list.favoriteOrder } : l
+        )
+      )
       console.error('Error toggling list favorite:', error)
       toast({
         title: "Error",
@@ -1040,7 +1070,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
     }
-  }, [listState.lists, handleUpdateList, effectiveSession, toast])
+  }, [listState.lists, listState.setLists, effectiveSession, toast])
 
   const handleSaveListFilters = useCallback(async (listId: string, filters: Partial<TaskList>) => {
     if (!effectiveSession?.user) return

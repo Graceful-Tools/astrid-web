@@ -1,5 +1,6 @@
 import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
+import { toggleFavorite } from "./favorites"
 
 /**
  * Creates default filter lists for a new user
@@ -16,8 +17,6 @@ export async function createDefaultListsForUser(userId: string) {
         description: "tasks due today",
         ownerId: userId,
         isVirtual: true,
-        isFavorite: true,
-        favoriteOrder: 1,
         virtualListType: "today",
         defaultAssigneeId: userId,
         defaultDueDate: "today",
@@ -34,8 +33,6 @@ export async function createDefaultListsForUser(userId: string) {
         description: "tasks without a list",
         ownerId: userId,
         isVirtual: true,
-        isFavorite: true,
-        favoriteOrder: 2,
         virtualListType: "not-in-list",
         defaultAssigneeId: userId,
         defaultDueDate: "none",
@@ -52,8 +49,6 @@ export async function createDefaultListsForUser(userId: string) {
         description: "tasks you've assigned to others",
         ownerId: userId,
         isVirtual: true,
-        isFavorite: true,
-        favoriteOrder: 3,
         virtualListType: "assigned",
         defaultAssigneeId: null,
         defaultDueDate: "none",
@@ -81,6 +76,9 @@ export async function createDefaultListsForUser(userId: string) {
         where: { id: list.id },
         data: { imageUrl: consistentImage.filename }
       })
+
+      // Favorite this default list for the user
+      await toggleFavorite(userId, list.id, true)
 
       createdLists.push(list)
       console.log(`[DefaultLists] Created default list "${list.name}" with image ${consistentImage.filename}`)

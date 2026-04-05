@@ -14,12 +14,14 @@ interface ListSortAndFiltersProps {
   list: TaskList
   currentUser: User
   onUpdate: (list: TaskList) => void
+  onFavoriteToggle?: (listId: string) => void
 }
 
 export function ListSortAndFilters({
   list,
   currentUser,
-  onUpdate
+  onUpdate,
+  onFavoriteToggle
 }: ListSortAndFiltersProps) {
 
   // Filter states loaded from list settings
@@ -88,6 +90,11 @@ export function ListSortAndFilters({
   }
 
   const handleToggleFavorite = async () => {
+    if (onFavoriteToggle) {
+      // Use dedicated handler that calls PATCH endpoint (works for all members)
+      onFavoriteToggle(list.id)
+      return
+    }
     setIsToggleFavorite(true)
     try {
       const response = await fetch(`/api/lists/${list.id}/favorite`, {

@@ -96,10 +96,11 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     const broadcastIds = getListMemberIds(updatedList)
     await Promise.all(broadcastIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
 
-    // Broadcast update so other clients refresh
+    // Broadcast update so other clients refresh — strip per-user favorite fields
+    const { isFavorite: _isFav, favoriteOrder: _favOrd, ...broadcastData } = updatedList
     await broadcastToUsers(broadcastIds, {
       type: "list_updated",
-      data: updatedList
+      data: broadcastData
     })
 
     return NextResponse.json(updatedList)

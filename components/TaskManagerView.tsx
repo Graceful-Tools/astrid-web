@@ -160,6 +160,7 @@ interface TaskManagerViewProps {
   handleCopyTask: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   handleDeleteList: (listId: string) => Promise<void>
   handleUpdateList: (updatedList: TaskList) => Promise<void>
+  handleToggleListFavorite: (listId: string) => void
   handleLeaveList: (list: TaskList, isOwnerLeaving?: boolean) => Promise<void>
 
   // Drag and drop
@@ -321,6 +322,7 @@ const TaskManagerView = memo(function TaskManagerView({
   handleCopyTask,
   handleDeleteList,
   handleUpdateList,
+  handleToggleListFavorite,
   handleLeaveList,
   handleTaskDragStart,
   handleTaskDragHover,
@@ -749,6 +751,7 @@ const TaskManagerView = memo(function TaskManagerView({
             taskManagerRef={taskManagerRef}
             isKeyboardScrollingRef={isKeyboardScrollingRef}
             onListUpdate={handleUpdateList}
+            onFavoriteToggle={handleToggleListFavorite}
             onListDelete={handleDeleteList}
             handleCopyList={handleCopyList}
             handleCopyTask={handleCopyTask}

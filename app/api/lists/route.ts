@@ -7,6 +7,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import { hydrateListFavorites } from "@/lib/favorites"
 
 // Only select the user fields needed for display (excludes sensitive data like passwords, API keys)
 const safeUserSelect = {
@@ -68,10 +69,6 @@ export async function GET(request: NextRequest) {
               },
             },
             orderBy: [
-              // Favorites first, ordered by favoriteOrder
-              { isFavorite: "desc" },
-              { favoriteOrder: "asc" },
-              // Then regular lists by creation date
               { createdAt: "desc" },
             ],
           })
@@ -102,6 +99,17 @@ export async function GET(request: NextRequest) {
       })
       console.log(`✅ Incremental sync returned ${lists.length} updated lists`)
     }
+
+    // Hydrate per-user favorite state
+    await hydrateListFavorites(lists, session.user.id)
+
+    // Sort: favorites first by order, then non-favorites by createdAt desc
+    lists.sort((a: any, b: any) => {
+      if (a.isFavorite && !b.isFavorite) return -1
+      if (!a.isFavorite && b.isFavorite) return 1
+      if (a.isFavorite && b.isFavorite) return (a.favoriteOrder || 0) - (b.favoriteOrder || 0)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
 
     // Manually fetch defaultAssignee users for lists that have valid user IDs
     const listsWithDefaultAssignees = await Promise.all(

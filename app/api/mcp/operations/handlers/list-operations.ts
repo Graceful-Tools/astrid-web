@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { getErrorMessage } from "@/lib/error-utils"
+import { hydrateListFavorites, hydrateSingleListFavorite, toggleFavorite } from "@/lib/favorites"
 import {
   validateMCPToken,
   getListMemberIdsByListId,
@@ -53,6 +54,9 @@ export async function getSharedLists(accessToken: string, userId: string) {
     console.log('  - ListMembers:', firstList.listMembers?.length || 0)
     console.log('  - Invitations:', firstList.listInvites?.length || 0)
   }
+
+  // Hydrate per-user favorite state
+  await hydrateListFavorites(lists, mcpToken.userId)
 
   return {
     lists: lists.map((list) => ({
@@ -260,6 +264,11 @@ export async function updateList(accessToken: string, listId: string, updates: a
     throw new Error('List not found or insufficient permissions')
   }
 
+  // Handle isFavorite via per-user table
+  if (updates.isFavorite !== undefined) {
+    await toggleFavorite(mcpToken.userId, listId, updates.isFavorite)
+  }
+
   const updatedList = await prisma.taskList.update({
     where: { id: listId },
     data: {
@@ -267,8 +276,6 @@ export async function updateList(accessToken: string, listId: string, updates: a
       ...(updates.description !== undefined && { description: updates.description }),
       ...(updates.color && { color: updates.color }),
       ...(updates.privacy && { privacy: updates.privacy }),
-      ...(updates.isFavorite !== undefined && { isFavorite: updates.isFavorite }),
-      ...(updates.favoriteOrder !== undefined && { favoriteOrder: updates.favoriteOrder }),
       // Virtual list (saved filter) settings
       ...(updates.isVirtual !== undefined && { isVirtual: updates.isVirtual }),
       ...(updates.virtualListType !== undefined && { virtualListType: updates.virtualListType }),
@@ -313,6 +320,9 @@ export async function updateList(accessToken: string, listId: string, updates: a
       }
     }
   })
+
+  // Hydrate per-user favorite state
+  await hydrateSingleListFavorite(updatedList, mcpToken.userId)
 
   return {
     success: true,

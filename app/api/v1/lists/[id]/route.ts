@@ -10,6 +10,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { hydrateSingleListFavorite, toggleFavorite } from '@/lib/favorites'
 
 /**
  * GET /api/v1/lists/:id
@@ -57,6 +58,9 @@ export async function GET(
         { status: 404 }
       )
     }
+
+    // Hydrate per-user favorite state
+    await hydrateSingleListFavorite(list, auth.userId)
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -210,8 +214,12 @@ export async function PUT(
       if (body.preferredAiProvider !== undefined) updateData.preferredAiProvider = body.preferredAiProvider
     }
 
+    // Handle isFavorite via per-user table (not on TaskList)
+    if (body.isFavorite !== undefined) {
+      await toggleFavorite(auth.userId, id, body.isFavorite)
+    }
+
     // Filter fields - allowed for all members
-    if (body.isFavorite !== undefined) updateData.isFavorite = body.isFavorite
     if (body.sortBy !== undefined) updateData.sortBy = body.sortBy
     if (body.manualSortOrder !== undefined) updateData.manualSortOrder = body.manualSortOrder
     if (body.filterPriority !== undefined) updateData.filterPriority = body.filterPriority
@@ -240,6 +248,9 @@ export async function PUT(
         }
       },
     })
+
+    // Hydrate per-user favorite state
+    await hydrateSingleListFavorite(list, auth.userId)
 
     // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_EDITED, { listId: id })

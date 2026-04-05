@@ -17,6 +17,7 @@ interface ListSettingsPopoverProps {
   availableUsers: User[]
   canEditSettings: boolean
   onUpdate: (list: TaskList) => void
+  onFavoriteToggle?: (listId: string) => void
   onDelete: (listId: string) => void
   onLeave?: (list: TaskList, isOwnerLeaving?: boolean) => void
   onEditName?: () => void
@@ -33,6 +34,7 @@ export function ListSettingsPopover({
   availableUsers,
   canEditSettings,
   onUpdate,
+  onFavoriteToggle,
   onDelete,
   onLeave,
   onEditName,
@@ -124,6 +126,7 @@ export function ListSettingsPopover({
                     list={list}
                     currentUser={currentUser}
                     onUpdate={onUpdate}
+                    onFavoriteToggle={onFavoriteToggle}
                   />
                 </TabsContent>
 

@@ -358,10 +358,6 @@ describe('/api/lists - List Defaults', () => {
           },
         },
         orderBy: [
-          // Favorites first, ordered by favoriteOrder
-          { isFavorite: "desc" },
-          { favoriteOrder: "asc" },
-          // Then regular lists by creation date
           { createdAt: "desc" },
         ],
       })
@@ -375,6 +371,8 @@ describe('/api/lists - List Defaults', () => {
           defaultRepeating: 'weekly',
           defaultIsPrivate: false,
           defaultDueDate: 'tomorrow',
+          isFavorite: false,
+          favoriteOrder: null,
           owner: mockSession.user,
           // Removed legacy admins
           defaultAssigneeId: 'assignee-1',
@@ -395,6 +393,8 @@ describe('/api/lists - List Defaults', () => {
           defaultRepeating: 'never',
           defaultIsPrivate: true,
           defaultDueDate: 'none',
+          isFavorite: false,
+          favoriteOrder: null,
           owner: mockSession.user,
           // Removed legacy admins
           defaultAssigneeId: null,

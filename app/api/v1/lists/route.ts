@@ -11,6 +11,7 @@ import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedErro
 import { prisma } from '@/lib/prisma'
 import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { hydrateListFavorites } from '@/lib/favorites'
 
 /**
  * GET /api/v1/lists
@@ -48,6 +49,9 @@ export async function GET(req: NextRequest) {
         ...getTaskCountInclude({ includeCompleted: false })
       }
     })
+
+    // Hydrate per-user favorite state
+    await hydrateListFavorites(lists, auth.userId)
 
     // Get accurate incomplete task counts for all lists
     const listIds = lists.map(list => list.id)

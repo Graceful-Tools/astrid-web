@@ -101,6 +101,13 @@ export const mockPrisma = {
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     count: vi.fn().mockResolvedValue(0),
   },
+  userListFavorite: {
+    findFirst: vi.fn().mockResolvedValue(null),
+    findMany: vi.fn().mockResolvedValue([]),
+    findUnique: vi.fn().mockResolvedValue(null),
+    upsert: vi.fn().mockResolvedValue({}),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
   listInvite: {
     findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),

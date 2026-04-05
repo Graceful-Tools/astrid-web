@@ -153,6 +153,7 @@ interface MainContentProps {
   // List update handler for popovers
   onListUpdate: (updatedList: TaskList) => Promise<void>
   onListDelete: (listId: string) => void
+  onFavoriteToggle?: (listId: string) => void
 }
 
 export function MainContent({
@@ -219,7 +220,8 @@ export function MainContent({
   taskManagerRef,
   isKeyboardScrollingRef,
   onListUpdate,
-  onListDelete
+  onListDelete,
+  onFavoriteToggle
 }: MainContentProps) {
   // Detect current layout type for enhanced task creation
   const layoutType = useLayoutType()
@@ -639,6 +641,7 @@ export function MainContent({
                   onEditImage={() => handleListImageClick(currentList.id)}
                   onLeave={(list, isOwnerLeaving) => handleLeaveList(list, isOwnerLeaving)}
                   onUpdate={onListUpdate}
+                  onFavoriteToggle={onFavoriteToggle}
                   onDelete={(listId) => {
                     onListDelete(listId)
                     setShowSettingsPopover(null)
@@ -1238,6 +1241,7 @@ export function MainContent({
               onEditImage={() => handleListImageClick(currentList.id)}
               onLeave={(list, isOwnerLeaving) => handleLeaveList(list, isOwnerLeaving)}
               onUpdate={onListUpdate}
+              onFavoriteToggle={onFavoriteToggle}
               onDelete={(listId) => {
                 onListDelete(listId)
                 setShowSettingsPopover(null)

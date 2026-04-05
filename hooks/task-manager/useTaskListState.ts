@@ -414,9 +414,13 @@ export function useTaskListState({
         if (process.env.NODE_ENV === 'development') {
           console.log('[useTaskListState] SSE: List updated', event.data)
         }
-        setLists(prev => prev.map(list =>
-          list.id === event.data.id ? { ...list, ...event.data } : list
-        ))
+        setLists(prev => prev.map(list => {
+          if (list.id !== event.data.id) return list
+          // Preserve per-user favorite state — SSE broadcasts shared list
+          // properties only; isFavorite/favoriteOrder are per-user
+          const { isFavorite, favoriteOrder, ...sharedData } = event.data
+          return { ...list, ...sharedData }
+        }))
         break
 
       case 'list_deleted':

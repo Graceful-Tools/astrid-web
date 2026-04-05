@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
+import { toggleFavorite } from "@/lib/favorites"
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,8 +39,6 @@ export async function POST(request: NextRequest) {
         description: "tasks due today",
         ownerId: userId,
         isVirtual: true,
-        isFavorite: true,
-        favoriteOrder: 1,
         virtualListType: "today",
         defaultAssigneeId: userId, // Task Creator = current user
         defaultDueDate: "today",
@@ -56,8 +55,6 @@ export async function POST(request: NextRequest) {
         description: "tasks without a list",
         ownerId: userId,
         isVirtual: true,
-        isFavorite: true,
-        favoriteOrder: 2,
         virtualListType: "not-in-list",
         defaultAssigneeId: userId, // current user
         defaultDueDate: "none",
@@ -74,8 +71,6 @@ export async function POST(request: NextRequest) {
         description: "tasks you've assigned to others",
         ownerId: userId,
         isVirtual: true,
-        isFavorite: true,
-        favoriteOrder: 3,
         virtualListType: "assigned",
         defaultAssigneeId: null, // unassigned
         defaultDueDate: "none",
@@ -92,7 +87,7 @@ export async function POST(request: NextRequest) {
       // which wasn't useful for personal task management
     ]
 
-    // Create the default lists and assign consistent images
+    // Create the default lists, assign images, and favorite them for the user
     const createdLists = []
     for (const listData of defaultLists) {
       const list = await prisma.taskList.create({
@@ -105,6 +100,9 @@ export async function POST(request: NextRequest) {
         where: { id: list.id },
         data: { imageUrl: consistentImage.filename }
       })
+
+      // Favorite this default list for the user
+      await toggleFavorite(userId, list.id, true)
 
       createdLists.push(list)
       console.log(`[RestoreDefaults] Created list "${list.name}" with image ${consistentImage.filename}`)

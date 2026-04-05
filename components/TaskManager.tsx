@@ -12,6 +12,7 @@ import { TaskManagerView } from "./TaskManagerView"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useToast } from "@/hooks/use-toast"
 import { useListChatChannel } from "@/hooks/use-list-chat-channel"
+import { userCanRequestListChatChannel } from "@/lib/chat-channel-eligibility"
 import type { TaskList, User } from "@/types/task"
 
 interface TaskManagerProps {
@@ -81,13 +82,28 @@ export function TaskManager({
     searchClearRef.current = () => controller.setSearchValue("")
   }, [controller])
 
-  // Chat channel resolution
+  // Chat channel resolution — skip API when client knows list has no chat (e.g. copy-only public browse)
   const isVirtualList = ['my-tasks', 'today', 'not-in-list', 'public', 'assigned'].includes(controller.selectedListId)
+  const selectedListForChat = React.useMemo(() => {
+    const id = controller.selectedListId
+    if (!id || isVirtualList) return null
+    return (
+      controller.lists.find((l) => l.id === id) ??
+      controller.publicLists?.find((l) => l.id === id) ??
+      (listMetadata && (listMetadata as { id?: string }).id === id ? (listMetadata as TaskList) : null)
+    )
+  }, [controller.selectedListId, controller.lists, controller.publicLists, listMetadata, isVirtualList])
+
+  const uid = controller.effectiveSession?.user?.id
+  const chatChannelEnabled =
+    !!uid &&
+    (isVirtualList || userCanRequestListChatChannel(selectedListForChat, uid))
+
   const { channelId: chatChannelId, isLoading: chatChannelLoading } = useListChatChannel({
     listId: isVirtualList ? null : controller.selectedListId,
     virtualListType: isVirtualList ? controller.selectedListId : null,
-    userId: controller.effectiveSession?.user?.id,
-    enabled: !!controller.effectiveSession?.user?.id,
+    userId: uid,
+    enabled: chatChannelEnabled,
   })
 
   // Fetch Astrid agent for mention autocomplete — always available regardless of default setting
@@ -425,6 +441,7 @@ export function TaskManager({
       handleCopyTask={controller.handleCopyTask}
       handleDeleteList={controller.handleDeleteList}
       handleUpdateList={controller.handleUpdateList}
+      handleToggleListFavorite={controller.handleToggleListFavorite}
       handleLeaveList={handleLeaveListWithDialog}
       handleQuickTaskKeyDown={handleQuickTaskKeyDown}
       handleAddTaskButtonClick={handleAddTaskButtonClick}

@@ -93,6 +93,7 @@ model User {
   adminUser                    AdminUser?           @relation("AdminUsers")
   chatMessages                 ChatMessage[]
   addressBookContacts          AddressBookContact[] @relation("AddressBookContacts")
+  userListFavorites            UserListFavorite[]   @relation("UserFavorites")
 
   @@index([email])
   @@index([emailVerified])
@@ -186,6 +187,7 @@ model TaskList {
   mcpTokens           MCPToken[]
   secureFiles         SecureFile[]
   chatChannel         ChatChannel?
+  userListFavorites   UserListFavorite[] @relation("ListFavorites")
   owner               User            @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   tasks               Task[]          @relation("TaskToTaskList")
 
@@ -393,6 +395,21 @@ model ListMember {
   @@index([listId])
   @@index([userId])
   @@index([listId, role])
+}
+
+model UserListFavorite {
+  id            String   @id @default(cuid())
+  userId        String
+  listId        String
+  favoriteOrder Int
+  createdAt     DateTime @default(now())
+
+  user User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+  list TaskList @relation("ListFavorites", fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listId])
+  @@index([userId, favoriteOrder])
+  @@index([listId])
 }
 
 model ListInvite {

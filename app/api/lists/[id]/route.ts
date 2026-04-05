@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
+import { hydrateSingleListFavorite } from "@/lib/favorites"
 import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 
@@ -341,18 +342,24 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       const userIdsFiltered = userIdsToNotify.filter(userId => userId !== session.user.id)
 
       if (userIdsFiltered.length > 0) {
+        // Strip per-user favorite fields — these are user-specific and must not
+        // overwrite other users' favorite state via SSE
+        const { isFavorite: _isFav, favoriteOrder: _favOrd, ...broadcastData } = updatedListWithDefaultAssignee
         console.log(`[SSE] Broadcasting list update to ${userIdsFiltered.length} users`)
         const { broadcastToUsers } = await import("@/lib/sse-utils")
         broadcastToUsers(userIdsFiltered, {
           type: 'list_updated',
           timestamp: new Date().toISOString(),
-          data: updatedListWithDefaultAssignee
+          data: broadcastData
         })
       }
     } catch (sseError) {
       console.error("Failed to send list update SSE notifications:", sseError)
       // Continue - list was still updated
     }
+
+    // Hydrate per-user favorite state for the calling user's response
+    await hydrateSingleListFavorite(updatedListWithDefaultAssignee, session.user.id)
 
     // Track analytics event (fire-and-forget)
     trackEventFromRequest(request, session.user.id, AnalyticsEventType.LIST_EDITED, { listId })
