@@ -2,6 +2,7 @@
  * Chat channel access control utilities
  */
 
+import { parseVirtualChatKey } from '@/lib/chat-channel-eligibility'
 import { prisma } from '@/lib/prisma'
 
 /**
@@ -28,9 +29,8 @@ export async function canAccessChatChannel(
 
   // Virtual channel: only the user whose ID is in the virtualKey
   if (channel.virtualKey) {
-    // Format: "virtual-chat:{userId}:{type}"
-    const parts = channel.virtualKey.split(':')
-    return parts[1] === userId
+    const parsed = parseVirtualChatKey(channel.virtualKey)
+    return parsed?.userId === userId
   }
 
   // Real list channel: check list membership
@@ -64,8 +64,8 @@ export async function getChatChannelRecipients(channelId: string): Promise<strin
 
   // Virtual channel: just the owner
   if (channel.virtualKey) {
-    const parts = channel.virtualKey.split(':')
-    return [parts[1]]
+    const parsed = parseVirtualChatKey(channel.virtualKey)
+    return parsed ? [parsed.userId] : []
   }
 
   // Real list channel: all list members + owner

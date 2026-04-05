@@ -340,7 +340,7 @@ export function TaskManagerHeader({
               height={36}
               className="rounded"
             />
-            <span className="text-xl font-semibold">astrid</span>
+            <span className="text-xl font-bold theme-text-primary">astrid</span>
           </div>
 
           {/* Desktop Search Bar */}

@@ -31,7 +31,13 @@ export function useListChatChannel({
   const lastKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) {
+      setChannelId(null)
+      setError(null)
+      setIsLoading(false)
+      lastKeyRef.current = null
+      return
+    }
 
     // Determine the key for this channel
     let key: string
@@ -62,9 +68,15 @@ export function useListChatChannel({
         const res = await fetch('/api/chat/channels', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(body),
         })
         if (!res.ok) {
+          if (res.status === 403 || res.status === 404) {
+            setChannelId(null)
+            setError(null)
+            return
+          }
           throw new Error(`Failed to resolve channel: ${res.status}`)
         }
         const data = await res.json()

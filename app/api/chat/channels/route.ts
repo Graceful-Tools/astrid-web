@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
+import { parseVirtualChatKey } from '@/lib/chat-channel-eligibility'
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,10 +36,11 @@ export async function POST(req: NextRequest) {
 
       const isOwner = list.ownerId === auth.userId
       const isMember = list.listMembers?.some(m => m.userId === auth.userId)
-      const isPublicCollaborative = list.privacy === 'PUBLIC' && (list as any).publicListType === 'collaborative'
+      const publicType = String((list as { publicListType?: string | null }).publicListType || '').toLowerCase()
+      const isPublicCollaborative = list.privacy === 'PUBLIC' && publicType === 'collaborative'
 
       if (!isOwner && !isMember && !isPublicCollaborative) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden', code: 'LIST_ACCESS' }, { status: 403 })
       }
 
       // Get or create channel for this list
@@ -53,15 +55,14 @@ export async function POST(req: NextRequest) {
 
     // For virtual channels, verify the user owns the virtualKey
     if (virtualKey) {
-      // Format: "virtual-chat:{userId}:{type}"
-      const parts = virtualKey.split(':')
-      if (parts.length < 3 || parts[1] !== auth.userId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const parsed = parseVirtualChatKey(virtualKey)
+      if (!parsed || parsed.userId !== auth.userId) {
+        return NextResponse.json({ error: 'Forbidden', code: 'VIRTUAL_KEY' }, { status: 403 })
       }
 
       const channel = await prisma.chatChannel.upsert({
         where: { virtualKey },
-        create: { virtualKey, name: parts[2] || 'Chat' },
+        create: { virtualKey, name: parsed.type || 'Chat' },
         update: {},
       })
 
