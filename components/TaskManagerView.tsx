@@ -20,6 +20,8 @@ import { MobileQuickAdd } from "./mobile-quick-add"
 import { KeyboardShortcutsMenu } from "./keyboard-shortcuts-menu"
 import { ChatPanel } from "./chat/ChatPanel"
 import { ChatToggle } from "./chat/ChatToggle"
+import SettingsPanel from "./Settings/SettingsPanel"
+import SettingsDetailPanel from "./Settings/SettingsDetailPanel"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
@@ -43,6 +45,18 @@ interface TaskManagerViewProps {
   effectiveSession: any
   newFilterState: any
   isViewingFromFeatured: boolean
+
+  // Unified navigation
+  activeView: 'list' | 'settings' | 'search'
+  settingsPage: string | null
+  isSettingsActive: boolean
+  settingsSubPage: string | null
+  isSearchActive: boolean
+  onNavigateSettings: (page: string) => void
+  onExitSettings: () => void
+  onCloseSettingsSubPage: () => void
+  onSelectSearch: () => void
+  onExitSearch: () => void
 
   // Task panel animation state
   isTaskPaneClosing: boolean
@@ -252,6 +266,16 @@ const TaskManagerView = memo(function TaskManagerView({
   finalFilteredTasks,
   availableUsers,
   isViewingFromFeatured,
+  activeView,
+  settingsPage,
+  isSettingsActive,
+  settingsSubPage,
+  isSearchActive,
+  onNavigateSettings,
+  onExitSettings,
+  onCloseSettingsSubPage,
+  onSelectSearch,
+  onExitSearch,
   getTaskCountForListMemo,
   getSavedFilterTaskCountMemo,
   getFixedListTaskCountMemo,
@@ -413,7 +437,7 @@ const TaskManagerView = memo(function TaskManagerView({
   // Calculate task pane position based on layout type and component widths
   React.useEffect(() => {
     const calculatePosition = () => {
-      if (sidebarRef.current && taskManagerRef.current && selectedTaskId && !is1Column) {
+      if (sidebarRef.current && taskManagerRef.current && (selectedTaskId || settingsSubPage) && !is1Column) {
         const sidebarRect = sidebarRef.current.getBoundingClientRect()
         const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
 
@@ -447,7 +471,7 @@ const TaskManagerView = memo(function TaskManagerView({
     return () => {
       window.removeEventListener('resize', calculatePosition)
     }
-  }, [selectedTaskId, is1Column, is2Column, is3Column, showHamburgerMenu, setTaskPanePosition, sidebarRef, taskManagerRef])
+  }, [selectedTaskId, settingsSubPage, is1Column, is2Column, is3Column, showHamburgerMenu, setTaskPanePosition, sidebarRef, taskManagerRef])
 
   // Keyboard shortcuts setup
   const keyboardShortcutHandlers: KeyboardShortcutHandlers = {
@@ -597,6 +621,9 @@ const TaskManagerView = memo(function TaskManagerView({
           setShowAddListModal={setShowAddListModal}
           setShowPublicBrowser={setShowPublicBrowser}
           setShowSettingsPopover={setShowSettingsPopover}
+          onNavigateSettings={onNavigateSettings}
+          activeView={activeView}
+          onSelectSearch={onSelectSearch}
           sidebarSwipeToDismiss={sidebarSwipeToDismiss}
           isTaskDragActive={Boolean(activeDragTaskId)}
           dragOverListId={dragOverListId}
@@ -638,6 +665,12 @@ const TaskManagerView = memo(function TaskManagerView({
           onHamburgerDragHover={handleHamburgerDragHover}
           activePanel={activePanel}
           onToggleActivePanel={isMobile ? setActivePanel : undefined}
+          activeView={activeView}
+          settingsPage={settingsPage}
+          isSearchActive={isSearchActive}
+          onExitSettings={onExitSettings}
+          onNavigateSettings={onNavigateSettings}
+          onExitSearch={onExitSearch}
         />
 
         {/* Main Layout */}
@@ -663,6 +696,9 @@ const TaskManagerView = memo(function TaskManagerView({
               setShowAddListModal={setShowAddListModal}
               setShowPublicBrowser={setShowPublicBrowser}
               setShowSettingsPopover={setShowSettingsPopover}
+              onNavigateSettings={onNavigateSettings}
+              activeView={activeView}
+              onSelectSearch={onSelectSearch}
               sidebarSwipeToDismiss={sidebarSwipeToDismiss}
               isTaskDragActive={Boolean(activeDragTaskId)}
               dragOverListId={dragOverListId}
@@ -674,8 +710,12 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {/* Main Content - show tasks or chat based on activePanel */}
-        {activePanel === 'chat' && isMobile ? (
+        {/* Main Content - show settings, chat, or tasks */}
+        {isSettingsActive ? (
+          <div className="flex-1 min-h-0 overflow-hidden" ref={taskManagerRef}>
+            <SettingsPanel onNavigate={onNavigateSettings} onExit={onExitSettings} />
+          </div>
+        ) : activePanel === 'chat' && isMobile && !isSearchActive ? (
           // Mobile only: ChatPanel replaces task list
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
             <ChatPanel
@@ -704,6 +744,9 @@ const TaskManagerView = memo(function TaskManagerView({
             effectiveSession={effectiveSession}
             availableUsers={availableUsers}
             newFilterState={newFilterState}
+            isSearchActive={isSearchActive}
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
             selectedTaskId={selectedTaskId}
             isViewingFromFeatured={isViewingFromFeatured}
             showSettingsPopover={showSettingsPopover}
@@ -787,8 +830,22 @@ const TaskManagerView = memo(function TaskManagerView({
         />
       )}
 
+      {/* Desktop Settings Detail Pane - same bubble as task detail */}
+      {!is1Column && settingsSubPage && isSettingsActive && (
+        <div
+          className="task-panel-desktop scrollbar-hide task-panel-animate"
+          style={{ left: taskPanePosition.left - 15, right: 10, width: 'auto' }}
+        >
+          <SettingsDetailPanel
+            page={settingsSubPage}
+            onNavigate={onNavigateSettings}
+            onClose={onCloseSettingsSubPage}
+          />
+        </div>
+      )}
+
       {/* Desktop Task Pane - positioned absolutely, slide-out from right */}
-      {!is1Column && selectedTask && effectiveSession?.user && (() => {
+      {!is1Column && !isSettingsActive && selectedTask && effectiveSession?.user && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
@@ -796,7 +853,7 @@ const TaskManagerView = memo(function TaskManagerView({
         return (
           <div
             className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
-            style={{ left: taskPanePosition.left }}
+            style={{ left: taskPanePosition.left - 15, right: 10, width: 'auto' }}
             data-task-panel-desktop
           >
             {canEdit ? (
@@ -828,8 +885,19 @@ const TaskManagerView = memo(function TaskManagerView({
         )
       })()}
 
+      {/* Mobile Settings Detail Pane - full screen */}
+      {isMobile && settingsSubPage && isSettingsActive && (
+        <div className="task-panel-mobile task-panel-mobile-open">
+          <SettingsDetailPanel
+            page={settingsSubPage}
+            onNavigate={onNavigateSettings}
+            onClose={onCloseSettingsSubPage}
+          />
+        </div>
+      )}
+
       {/* Mobile Task Pane - takes over mobile view */}
-      {isMobile && selectedTask && effectiveSession?.user && (mobileView === 'task' || isMobileTaskDetailClosing) && (() => {
+      {isMobile && !isSettingsActive && selectedTask && effectiveSession?.user && (mobileView === 'task' || isMobileTaskDetailClosing) && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true

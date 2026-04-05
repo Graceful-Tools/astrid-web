@@ -138,16 +138,21 @@ export function ListItem({
               {taskCount}
             </span>
             {isMobile && onSettingsClick && (
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation()
                   onSettingsClick(list.id)
                 }}
-                className="p-1 rounded hover:bg-white/20 transition-colors"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.stopPropagation(); onSettingsClick(list.id) }
+                }}
+                className="p-1 rounded hover:bg-white/20 transition-colors cursor-pointer"
                 aria-label={`Settings for ${list.name}`}
               >
                 <Settings className="w-3.5 h-3.5" />
-              </button>
+              </div>
             )}
           </div>
         </div>

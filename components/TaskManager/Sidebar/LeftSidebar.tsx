@@ -1,12 +1,10 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Plus, ExternalLink, Settings, LogOut, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { Plus, ExternalLink, Settings, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
 import { isListAdminOrOwner } from "@/lib/list-member-utils"
@@ -39,6 +37,9 @@ interface LeftSidebarProps {
   setShowAddListModal: (show: boolean) => void
   setShowPublicBrowser: (show: boolean) => void
   setShowSettingsPopover?: (listId: string | null) => void
+  onNavigateSettings?: (page: string) => void
+  activeView?: 'list' | 'settings' | 'search'
+  onSelectSearch?: () => void
 
   // Swipe handlers (optional for backward compatibility)
   sidebarSwipeToDismiss?: {
@@ -76,6 +77,9 @@ export function LeftSidebar({
   setShowAddListModal,
   setShowPublicBrowser,
   setShowSettingsPopover,
+  onNavigateSettings,
+  activeView = 'list',
+  onSelectSearch,
   sidebarSwipeToDismiss,
   isTaskDragActive,
   dragOverListId,
@@ -86,13 +90,11 @@ export function LeftSidebar({
   onTaskDragOver
 }: LeftSidebarProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const { t } = useTranslations()
   const navigationRef = useRef<HTMLDivElement>(null)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const [isSigningOut, setIsSigningOut] = useState(false)
-  const [refreshingData, setRefreshingData] = useState(false)
   const currentUser = effectiveSession?.user
+  // When not in list view, don't highlight any list
+  const effectiveSelectedListId = activeView === 'list' ? selectedListId : ''
 
   const handleListClick = (listId: string, fromFeatured?: boolean) => {
     // Always update state immediately for smooth UX
@@ -127,72 +129,21 @@ export function LeftSidebar({
     }
   }
 
-  const handleUserMenuToggle = () => {
-    setShowUserMenu(!showUserMenu)
-  }
-
   const handleSettingsClick = () => {
-    router.push('/settings')
-    setShowUserMenu(false)
+    if (onNavigateSettings) {
+      onNavigateSettings('hub')
+    } else {
+      router.push('/settings')
+    }
     if (showHamburgerMenu) {
       setShowMobileSidebar(false)
     }
   }
 
-  const handleRefreshData = async () => {
-    setRefreshingData(true)
-    try {
-      // Clear Redis cache
-      const response = await fetch("/api/cache/clear", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-
-      if (response.ok) {
-        toast({
-          title: t("messages.success"),
-          description: t("messages.dataRefreshed"),
-          duration: 3000,
-        })
-        // Reload the page to get fresh data
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-      } else {
-        toast({
-          title: t("messages.cacheCleared"),
-          description: t("messages.dataRefreshed"),
-          duration: 3000,
-        })
-        // Even if API fails, reload to get fresh data
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-      }
-    } catch (error) {
-      console.error("Error refreshing data:", error)
-      toast({
-        title: t("messages.cacheCleared"),
-        description: t("messages.dataRefreshed"),
-        duration: 3000,
-      })
-      // Even if there's an error, reload to get fresh data
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
-    } finally {
-      setRefreshingData(false)
-    }
-  }
-
-  const handleSignOut = async () => {
-    try {
-      setIsSigningOut(true)
-      await signOut({ callbackUrl: "/auth/signin" })
-    } catch (error) {
-      console.error("Error signing out:", error)
-    } finally {
-      setIsSigningOut(false)
+  const handleSearchClick = () => {
+    onSelectSearch?.()
+    if (showHamburgerMenu) {
+      setShowMobileSidebar(false)
     }
   }
 
@@ -217,73 +168,35 @@ export function LeftSidebar({
         onTouchEnd: sidebarSwipeToDismiss.onTouchEnd,
       })}
     >
-      {/* User Profile */}
-      <div className="border-b border-gray-700">
-        <Button
-          variant="ghost"
-          onClick={handleUserMenuToggle}
-          className="w-full p-4 h-auto justify-start hover:bg-opacity-10"
-        >
-          <div className="flex items-center space-x-3 w-full">
-            <Avatar className="w-8 h-8 rounded-lg">
-              <AvatarImage src={effectiveSession.user.image || "/placeholder.svg"} />
-              <AvatarFallback>{effectiveSession.user.name?.charAt(0) || "U"}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 text-left">
-              <div className="font-medium">{effectiveSession.user.name}</div>
-              <div className="text-sm theme-text-muted">{effectiveSession.user.email}</div>
-            </div>
-            {showUserMenu ? (
-              <ChevronUp className="w-4 h-4 theme-text-muted" />
-            ) : (
-              <ChevronDown className="w-4 h-4 theme-text-muted" />
-            )}
-          </div>
-        </Button>
-
-        {/* User Menu Options */}
-        {showUserMenu && (
-          <div className="border-t border-gray-700 bg-opacity-50">
-            <Button
-              variant="ghost"
-              onClick={handleSettingsClick}
-              className="w-full justify-start px-4 py-3 h-auto"
-            >
-              <Settings className="w-4 h-4 mr-3" />
-              {t("userMenu.settings")}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleRefreshData}
-              disabled={refreshingData}
-              className="w-full justify-start px-4 py-3 h-auto"
-            >
-              <RefreshCw className={`w-4 h-4 mr-3 ${refreshingData ? 'animate-spin' : ''}`} />
-              {refreshingData ? t("userMenu.refreshing") : t("userMenu.refreshData")}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="w-full justify-start px-4 py-3 h-auto"
-            >
-              <LogOut className="w-4 h-4 mr-3" />
-              {isSigningOut ? t("userMenu.signingOut") : t("userMenu.signOut")}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div ref={navigationRef} className="overflow-y-auto scrollbar-hide sidebar-navigation" style={{height: 'calc(100vh - 120px)'}}>
+      {/* Scrollable Navigation */}
+      <div ref={navigationRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide sidebar-navigation">
         <div className="p-2">
           <div className="space-y-1">
+            {/* Search */}
             <Button
               variant="ghost"
               className={`w-full justify-start ${
                 isMobile ? 'mobile-list-item text-left' : ''
               } ${
-                selectedListId === "my-tasks"
+                activeView === 'search'
+                  ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
+                  : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
+              }`}
+              onClick={handleSearchClick}
+            >
+              <div className="flex items-center w-full">
+                <Search className="w-4 h-4 mr-2" />
+                <span>{t("search.placeholder") || "Search"}</span>
+              </div>
+            </Button>
+
+            {/* My Tasks */}
+            <Button
+              variant="ghost"
+              className={`w-full justify-start ${
+                isMobile ? 'mobile-list-item text-left' : ''
+              } ${
+                activeView === 'list' && selectedListId === "my-tasks"
                   ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
                   : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
               }`}
@@ -309,7 +222,7 @@ export function LeftSidebar({
                 <ListItem
                   key={list.id}
                   list={list}
-                  selectedListId={selectedListId}
+                  selectedListId={effectiveSelectedListId}
                   isMobile={isMobile}
                   taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
                   onClick={handleListClick}
@@ -362,7 +275,7 @@ export function LeftSidebar({
                 <ListItem
                   key={list.id}
                   list={list}
-                  selectedListId={selectedListId}
+                  selectedListId={effectiveSelectedListId}
                   isMobile={isMobile}
                   taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
                   onClick={handleListClick}
@@ -400,7 +313,7 @@ export function LeftSidebar({
                 <ListItem
                   key={list.id}
                   list={list}
-                  selectedListId={selectedListId}
+                  selectedListId={effectiveSelectedListId}
                   isMobile={isMobile}
                   taskCount={(list as any)._count?.tasks || 0}
                   onClick={(listId) => handleListClick(listId, true)}
@@ -441,7 +354,7 @@ export function LeftSidebar({
                 <ListItem
                   key={list.id}
                   list={list}
-                  selectedListId={selectedListId}
+                  selectedListId={effectiveSelectedListId}
                   isMobile={isMobile}
                   taskCount={(list as any)._count?.tasks || 0}
                   onClick={(listId) => handleListClick(listId, true)}
@@ -460,9 +373,31 @@ export function LeftSidebar({
               </button>
             )}
 
-            <div className="pb-60"></div>
+            <div className="pb-16"></div>
           </div>
         )}
+      </div>
+
+      {/* Fixed Footer — Settings with user avatar */}
+      <div className="border-t border-gray-700 flex-shrink-0">
+        <Button
+          variant="ghost"
+          onClick={handleSettingsClick}
+          className={`w-full p-3 h-auto justify-start ${
+            activeView === 'settings'
+              ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
+              : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
+          }`}
+        >
+          <div className="flex items-center space-x-3 w-full">
+            <Avatar className="w-7 h-7 rounded-lg flex-shrink-0">
+              <AvatarImage src={effectiveSession.user.image || "/placeholder.svg"} />
+              <AvatarFallback className="text-xs">{effectiveSession.user.name?.charAt(0) || "U"}</AvatarFallback>
+            </Avatar>
+            <span className="truncate text-sm font-medium flex-1 text-left">{effectiveSession.user.name}</span>
+            <Settings className="w-4 h-4 flex-shrink-0 opacity-60" />
+          </div>
+        </Button>
       </div>
     </div>
   )

@@ -49,6 +49,14 @@ interface TaskManagerHeaderProps {
   // Chat toggle
   activePanel?: 'tasks' | 'chat'
   onToggleActivePanel?: (panel: 'tasks' | 'chat') => void
+
+  // Unified navigation
+  activeView?: 'list' | 'settings' | 'search'
+  settingsPage?: string | null
+  isSearchActive?: boolean
+  onExitSettings?: () => void
+  onNavigateSettings?: (page: string) => void
+  onExitSearch?: () => void
 }
 
 export function TaskManagerHeader({
@@ -77,7 +85,13 @@ export function TaskManagerHeader({
   isTaskDragActive = false,
   onHamburgerDragHover,
   activePanel = 'tasks',
-  onToggleActivePanel
+  onToggleActivePanel,
+  activeView = 'list',
+  settingsPage,
+  isSearchActive = false,
+  onExitSettings,
+  onNavigateSettings,
+  onExitSearch
 }: TaskManagerHeaderProps) {
   const { t } = useTranslations()
   const { filters } = useMyTasksPreferences()
@@ -193,6 +207,45 @@ export function TaskManagerHeader({
     isMobile && showHamburgerMenu ? "app-header-mobile-floating" : "theme-border"
   ].filter(Boolean).join(" ")
 
+  // Settings page title mapping for breadcrumb
+  const settingsSubPageTitle: Record<string, string> = {
+    'account': t("settingsPages.accountAccess.title"),
+    'appearance': t("settingsPages.appearance.title"),
+    'reminders': t("settingsPages.remindersNotifications.title"),
+    'agents': t("settingsPages.aiAgents.title"),
+    'api-access': t("settingsPages.apiAccess.title"),
+    'contacts': t("settingsPages.contacts.title"),
+    'debug': t("settingsPages.debug.title"),
+    'coding-integration': 'Coding Integration',
+    'coding-agents': 'Cloud Agents',
+    'tasks': 'Task Settings',
+    'api-testing': 'API Testing',
+    'agents/github-setup': 'GitHub Setup',
+    'help': 'Help & Support',
+    'privacy': 'Privacy Policy',
+    'terms': 'Terms of Service',
+  }
+
+  // Render settings breadcrumb title
+  const renderSettingsTitle = () => {
+    if (!settingsPage || settingsPage === 'hub') {
+      return <span className="text-lg font-semibold truncate">{t("settings.settings")}</span>
+    }
+    const subTitle = settingsSubPageTitle[settingsPage] || settingsPage
+    return (
+      <span className="text-lg font-semibold truncate">
+        <button
+          onClick={() => onNavigateSettings?.('hub')}
+          className="hover:underline opacity-70"
+        >
+          {t("settings.settings")}
+        </button>
+        <span className="mx-1.5 opacity-40">/</span>
+        {subTitle}
+      </span>
+    )
+  }
+
   return (
     <div className={headerClasses}>
       {showHamburgerMenu && mobileView === 'list' ? (
@@ -226,66 +279,50 @@ export function TaskManagerHeader({
             </Button>
           </div>
 
-          {/* Center: List name or Search input - vertically centered */}
+          {/* Center: List name, Settings title, or Search input */}
           <div className="flex-1 min-w-0 overflow-hidden flex items-center">
-            {(mobileSearchMode || searchValue.trim()) ? (
-              // Search mode: Full search input
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
-                <Input
-                  placeholder={t("search.placeholder")}
-                  value={searchValue}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  onKeyDown={handleMobileSearchKeyDown}
-                  onBlur={() => {
-                    // Only close search mode if there's no search query
-                    if (!searchValue.trim()) {
-                      handleMobileSearchEnd()
-                    }
-                  }}
-                  className="theme-input theme-text-primary pl-10 pr-10 w-full"
-                  autoComplete="off"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMobileSearchClear}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1"
-                  aria-label="Clear search"
-                  data-testid="search-clear-button"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+            {activeView === 'settings' ? (
+              // Settings mode: Show "Settings" title
+              <div className="flex items-center justify-start overflow-hidden w-full h-full">
+                <span className="text-lg font-semibold truncate">{t("settings.settings")}</span>
               </div>
+            ) : isSearchActive ? (
+              // Search mode: search input in header for mobile, title for desktop
+              showHamburgerMenu ? (
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
+                  <Input
+                    placeholder={t("search.placeholder") || "Search"}
+                    value={searchValue}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    className="theme-input theme-text-primary pl-10 w-full"
+                    autoComplete="off"
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-start overflow-hidden w-full h-full">
+                  <span className="text-lg font-semibold truncate">{t("search.placeholder") || "Search"}</span>
+                </div>
+              )
             ) : (
-              // Normal mode: Show list name (left aligned, vertically centered)
+              // Normal mode: Show list name
               <div className="flex items-center justify-start overflow-hidden w-full h-full">
                 {renderListNameWithColors()}
               </div>
             )}
           </div>
 
-          {/* Right: Chat toggle + Search icon + Settings icon (always visible) */}
+          {/* Right: Chat toggle + Settings icon (context-dependent) */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {onToggleActivePanel && !(mobileSearchMode || searchValue.trim()) && (
+            {onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
               <ChatToggle
                 activePanel={activePanel}
                 onToggle={onToggleActivePanel}
               />
             )}
 
-            {!(mobileSearchMode || searchValue.trim()) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMobileSearchStart}
-                className="p-2"
-              >
-                <Search className="w-5 h-5" />
-              </Button>
-            )}
-
-            {selectedListId && canAccessSettings && (
+            {activeView === 'list' && selectedListId && canAccessSettings && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -347,18 +384,6 @@ export function TaskManagerHeader({
             <span className="text-xl font-bold theme-text-primary">astrid</span>
           </div>
 
-          {/* Desktop Search Bar */}
-          <div className="absolute left-80 top-1/2 transform -translate-y-1/2 ml-10 max-w-xl">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
-              <Input
-                placeholder={t("search.placeholder")}
-                value={searchValue}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="theme-input theme-text-primary pl-10 h-9 w-full"
-              />
-            </div>
-          </div>
         </div>
       )}
     </div>

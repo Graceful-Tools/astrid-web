@@ -18,6 +18,7 @@ import type { TaskList, User } from "@/types/task"
 interface TaskManagerProps {
   initialSelectedListId?: string
   initialSelectedTaskId?: string
+  initialSettingsPage?: string
   listMetadata?: any
   taskMetadata?: any
 }
@@ -40,6 +41,7 @@ interface TaskManagerProps {
 export function TaskManager({
   initialSelectedListId,
   initialSelectedTaskId,
+  initialSettingsPage,
   listMetadata,
   taskMetadata
 }: TaskManagerProps) {
@@ -68,6 +70,7 @@ export function TaskManager({
   const controller = useTaskManagerController({
     initialSelectedListId,
     initialSelectedTaskId,
+    initialSettingsPage,
     listMetadata,
     taskMetadata,
     isMobile: layout.isMobile,
@@ -347,6 +350,16 @@ export function TaskManager({
       effectiveSession={controller.effectiveSession}
       newFilterState={controller.newFilterState}
       isViewingFromFeatured={controller.isViewingFromFeatured}
+      activeView={controller.activeView}
+      settingsPage={controller.settingsPage}
+      isSettingsActive={controller.isSettingsActive}
+      settingsSubPage={controller.settingsSubPage}
+      isSearchActive={controller.isSearchActive}
+      onNavigateSettings={controller.navigateToSettings}
+      onExitSettings={controller.exitSettings}
+      onCloseSettingsSubPage={controller.closeSettingsSubPage}
+      onSelectSearch={controller.selectSearch}
+      onExitSearch={controller.exitSearch}
 
       // Task panel animation state
       isTaskPaneClosing={controller.isTaskPaneClosing}

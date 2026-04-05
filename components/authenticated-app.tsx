@@ -9,6 +9,7 @@ import { offlineDB } from "@/lib/offline-db"
 interface AuthenticatedAppProps {
   initialSelectedListId?: string
   initialSelectedTaskId?: string
+  initialSettingsPage?: string
   listMetadata?: any
   taskMetadata?: any
 }
@@ -16,6 +17,7 @@ interface AuthenticatedAppProps {
 export function AuthenticatedApp({
   initialSelectedListId,
   initialSelectedTaskId,
+  initialSettingsPage,
   listMetadata,
   taskMetadata
 }: AuthenticatedAppProps = {}) {
@@ -73,6 +75,7 @@ export function AuthenticatedApp({
     <TaskManager
       initialSelectedListId={initialSelectedListId}
       initialSelectedTaskId={initialSelectedTaskId}
+      initialSettingsPage={initialSettingsPage}
       listMetadata={listMetadata}
       taskMetadata={taskMetadata}
     />

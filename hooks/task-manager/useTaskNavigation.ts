@@ -3,6 +3,7 @@ import type { Task, TaskList } from "@/types/task"
 
 export interface UseTaskNavigationProps {
   initialSelectedListId?: string
+  initialSettingsPage?: string
   isMobile: boolean
   setMobileView?: (view: 'list' | 'task' | 'chat') => void
   initialSelectedTaskId?: string
@@ -18,6 +19,18 @@ export interface UseTaskNavigationReturn {
   isViewingFromFeatured: boolean
   recentlyChangedList: boolean
 
+  // Unified view state
+  activeView: 'list' | 'settings' | 'search'
+  settingsPage: string | null
+  isSettingsActive: boolean
+  settingsSubPage: string | null
+  isSearchActive: boolean
+  navigateToSettings: (page: string) => void
+  exitSettings: () => void
+  closeSettingsSubPage: () => void
+  selectSearch: () => void
+  exitSearch: () => void
+
   // List selection setters and handlers
   setSelectedListId: (listId: string, fromFeatured?: boolean) => void
   setRecentlyChangedList: React.Dispatch<React.SetStateAction<boolean>>
@@ -28,6 +41,7 @@ export interface UseTaskNavigationReturn {
 
 export function useTaskNavigation({
   initialSelectedListId,
+  initialSettingsPage,
   isMobile,
   setMobileView,
   initialSelectedTaskId,
@@ -41,11 +55,76 @@ export function useTaskNavigation({
   const [isViewingFromFeatured, setIsViewingFromFeatured] = useState(false)
   const [recentlyChangedList, setRecentlyChangedList] = useState(false)
 
-  // Enhanced setSelectedListId that tracks navigation source
+  // Settings and search navigation state
+  const [settingsPage, setSettingsPage] = useState<string | null>(initialSettingsPage || null)
+  const [isSearchActive, setIsSearchActive] = useState(false)
+
+  // Derived unified view
+  const activeView: 'list' | 'settings' | 'search' = settingsPage
+    ? 'settings'
+    : isSearchActive
+      ? 'search'
+      : 'list'
+  const isSettingsActive = settingsPage !== null
+  const settingsSubPage = (settingsPage && settingsPage !== 'hub') ? settingsPage : null
+
+  const navigateToSettings = useCallback((page: string) => {
+    setSettingsPage(page)
+    setIsSearchActive(false)
+    setSelectedTaskId("")
+    const url = page === 'hub' ? '/settings' : `/settings/${page}`
+    window.history.pushState(null, '', url)
+  }, [setSelectedTaskId])
+
+  const exitSettings = useCallback(() => {
+    setSettingsPage(null)
+    const url = selectedListId === 'my-tasks' ? '/' : `/lists/${selectedListId}`
+    window.history.pushState(null, '', url)
+  }, [selectedListId])
+
+  const closeSettingsSubPage = useCallback(() => {
+    setSettingsPage('hub')
+    window.history.pushState(null, '', '/settings')
+  }, [])
+
+  const selectSearch = useCallback(() => {
+    setIsSearchActive(true)
+    setSettingsPage(null)
+    setSelectedTaskId("")
+    // Ensure we're on my-tasks so MainContent renders the full task list for searching
+    setSelectedListIdState("my-tasks")
+  }, [setSelectedTaskId])
+
+  const exitSearch = useCallback(() => {
+    setIsSearchActive(false)
+  }, [])
+
+  // Handle browser back/forward for settings and search
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname
+      const cleanPath = path.replace(/^\/[a-z]{2}(?=\/)/, '')
+      if (cleanPath === '/settings') {
+        setSettingsPage('hub')
+        setIsSearchActive(false)
+      } else if (cleanPath.startsWith('/settings/')) {
+        setSettingsPage(cleanPath.replace('/settings/', ''))
+        setIsSearchActive(false)
+      } else {
+        setSettingsPage(null)
+        setIsSearchActive(false)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  // Enhanced setSelectedListId that tracks navigation source and clears other views
   const setSelectedListId = useCallback((listId: string, fromFeatured?: boolean) => {
     setSelectedListIdState(listId)
-    // If explicitly set, use that value. Otherwise, reset to false when changing lists
     setIsViewingFromFeatured(fromFeatured ?? false)
+    setSettingsPage(null)
+    setIsSearchActive(false)
   }, [])
 
   // Safe mobile view setter
@@ -111,6 +190,18 @@ export function useTaskNavigation({
     selectedListId,
     isViewingFromFeatured,
     recentlyChangedList,
+
+    // Unified view state
+    activeView,
+    settingsPage,
+    isSettingsActive,
+    settingsSubPage,
+    isSearchActive,
+    navigateToSettings,
+    exitSettings,
+    closeSettingsSubPage,
+    selectSearch,
+    exitSearch,
 
     // List selection setters and handlers
     setSelectedListId,

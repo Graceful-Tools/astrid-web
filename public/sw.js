@@ -1,6 +1,6 @@
-const CACHE_NAME = 'astrid-v1.0.6';
-const STATIC_CACHE_NAME = 'astrid-static-v1.0.6';
-const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.6';
+const CACHE_NAME = 'astrid-v1.0.7';
+const STATIC_CACHE_NAME = 'astrid-static-v1.0.7';
+const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.7';
 
 // Import Dexie for IndexedDB access in service worker
 // Note: Using CDN version for service worker context
@@ -20,6 +20,9 @@ const STATIC_ASSETS = [
   '/icons/icon-384x384.png',
   '/icons/icon-512x512.png',
   '/icons/maskable-icon-512x512.png',
+  '/help',
+  '/privacy',
+  '/terms',
 ];
 
 // API routes that should be cached

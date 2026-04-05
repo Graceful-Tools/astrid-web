@@ -32,7 +32,8 @@ import {
   Eye,
   Edit3,
   FileText,
-  Bot
+  Bot,
+  Search
 } from "lucide-react"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
 import { format } from "date-fns"
@@ -79,6 +80,11 @@ interface MainContentProps {
     hasActiveFilters: boolean
     clearAllFilters: () => void
   }
+
+  // Search
+  isSearchActive?: boolean
+  searchValue?: string
+  onSearchChange?: (value: string) => void
 
   // UI state
   selectedTaskId: string
@@ -170,6 +176,9 @@ export function MainContent({
   availableUsers,
   isViewingFromFeatured,
   newFilterState,
+  isSearchActive = false,
+  searchValue = '',
+  onSearchChange,
   selectedTaskId,
   showSettingsPopover,
   setShowSettingsPopover,
@@ -436,6 +445,15 @@ export function MainContent({
         }),
       }}>
         <div className="p-6 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
+          {isSearchActive ? (
+            <div className="flex items-center justify-start space-x-4 mb-4 px-4">
+              <div className="text-left flex-1 max-w-md">
+                <h1 className="text-3xl font-bold theme-text-primary mb-1">Search</h1>
+                <p className="theme-text-muted text-sm">Find tasks and users across all lists</p>
+              </div>
+            </div>
+          ) : (
+          <>
           {/* Centered List Header with Image and Editable Name */}
           <div className="text-center mb-6">
             {selectedListId && !["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
@@ -678,10 +696,28 @@ export function MainContent({
               clearAllFilters={newFilterState.clearAllFilters}
             />
           )}
+          </>
+          )}
 
+          {/* Search Input - shown when search is active */}
+          {isSearchActive && onSearchChange && (
+            <div className="px-4 py-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
+                <Input
+                  placeholder="Search tasks and users..."
+                  value={searchValue}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="theme-input theme-text-primary pl-10 w-full"
+                  autoComplete="off"
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
 
           {/* Enhanced Task Input - Desktop only (mobile version is fixed at bottom) */}
-          {!isMobile && (() => {
+          {!isSearchActive && !isMobile && (() => {
             const selectedList = lists.find(list => list.id === selectedListId)
             const isPublicList = selectedList?.privacy === 'PUBLIC'
             const isCollaborative = selectedList?.publicListType === 'collaborative'

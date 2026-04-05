@@ -37,6 +37,7 @@ import {
 interface UseTaskManagerControllerProps {
   initialSelectedListId?: string
   initialSelectedTaskId?: string
+  initialSettingsPage?: string
   listMetadata?: any
   taskMetadata?: any
   isMobile?: boolean
@@ -64,6 +65,7 @@ if (typeof window !== "undefined" && (window as any).__TEST_USE_SESSION__) {
 export function useTaskManagerController({
   initialSelectedListId,
   initialSelectedTaskId,
+  initialSettingsPage,
   listMetadata,
   taskMetadata,
   isMobile: externalIsMobile,
@@ -120,6 +122,7 @@ export function useTaskManagerController({
   // Navigation state (list selection, mobile view, etc.)
   const navigationState = useTaskNavigation({
     initialSelectedListId,
+    initialSettingsPage,
     isMobile,
     setMobileView: externalSetMobileView,
     initialSelectedTaskId,
@@ -1426,6 +1429,16 @@ export function useTaskManagerController({
     isSessionReady,
     effectiveSession,
     isViewingFromFeatured: navigationState.isViewingFromFeatured,
+    activeView: navigationState.activeView,
+    settingsPage: navigationState.settingsPage,
+    isSettingsActive: navigationState.isSettingsActive,
+    settingsSubPage: navigationState.settingsSubPage,
+    isSearchActive: navigationState.isSearchActive,
+    navigateToSettings: navigationState.navigateToSettings,
+    exitSettings: navigationState.exitSettings,
+    closeSettingsSubPage: navigationState.closeSettingsSubPage,
+    selectSearch: navigationState.selectSearch,
+    exitSearch: navigationState.exitSearch,
     manualSortPreviewActive: dragDropState.manualSortPreviewActive,
     manualSortActive,
 
@@ -1439,7 +1452,10 @@ export function useTaskManagerController({
     canEditListSettingsMemo: canEditListSettingsById,
 
     // State setters
-    setSelectedListId: navigationState.setSelectedListId,
+    setSelectedListId: useCallback((listId: string, fromFeatured?: boolean) => {
+      navigationState.setSelectedListId(listId, fromFeatured)
+      newFilterState.setSearch('')
+    }, [navigationState.setSelectedListId, newFilterState.setSearch]),
     setTasks: listState.setTasks,
     setLists: listState.setLists,
     setPublicTasks: listState.setPublicTasks,
