@@ -25,9 +25,9 @@ interface AvailableAgent {
 
 // Built-in agents — always available if user has the API key
 const BUILT_IN_AGENTS: Array<{ email: string; name: string; service: 'claude' | 'openai' | 'gemini'; image: string | null }> = [
-  { email: 'claude@astrid.cc', name: 'Claude', service: 'claude', image: '/images/ai-agents/claude.svg' },
-  { email: 'openai@astrid.cc', name: 'OpenAI', service: 'openai', image: '/images/ai-agents/openai.svg' },
-  { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini', image: '/images/ai-agents/gemini.svg' },
+  { email: 'claude@astrid.cc', name: 'Claude', service: 'claude', image: '/api/v1/agent-icon/claude' },
+  { email: 'openai@astrid.cc', name: 'OpenAI', service: 'openai', image: '/api/v1/agent-icon/openai' },
+  { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini', image: '/api/v1/agent-icon/gemini' },
 ]
 
 export async function GET(req: NextRequest) {
