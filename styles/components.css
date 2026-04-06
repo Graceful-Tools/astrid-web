@@ -16,7 +16,9 @@
 
 /* Layout Components */
 .app-container {
-  @apply h-[100dvh] md:h-screen flex flex-col;
+  @apply flex flex-col;
+  height: 100vh;
+  height: 100dvh;
   /* CSS custom properties for responsive layout calculations */
   --sidebar-width: 320px;
   --task-list-width: 450px; /* Wider task list for better readability */
@@ -374,6 +376,7 @@
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   max-height: 100vh;
+  max-height: 100dvh;
   min-height: 0;
 }
 
