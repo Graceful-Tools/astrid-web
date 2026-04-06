@@ -157,7 +157,7 @@ export function LeftSidebar({
   return (
     <div
       ref={sidebarRef}
-      className={`theme-sidebar theme-border overflow-hidden ${
+      className={`theme-sidebar theme-border overflow-hidden flex flex-col ${
         showHamburgerMenu
           ? `app-sidebar-mobile ${showMobileSidebar ? 'app-sidebar-mobile-open' : ''}`
           : 'app-sidebar'

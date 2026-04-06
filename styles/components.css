@@ -488,9 +488,11 @@
 
 /* iOS-style drawer: sidebar is fixed underneath, content slides to reveal it */
 .app-sidebar-mobile {
-  @apply fixed left-0 top-0 h-full z-10;
+  @apply fixed left-0 top-0 z-10 flex flex-col;
   width: 85vw;
   max-width: 320px;
+  height: 100vh;
+  height: 100dvh;
   /* Sidebar starts slightly offset/scaled and animates to full */
   transform: translateY(20px) scale(0.95);
   opacity: 0.8;
