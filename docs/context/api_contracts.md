@@ -32,6 +32,27 @@ if (!session?.user?.id) {
 - **POST**: Create invitation for task assignment or list sharing (`app/api/invitations/route.ts:20`)
 - **Body**: `{ email: string, type: "TASK_ASSIGNMENT" | "LIST_SHARING" | "WORKSPACE_INVITE", taskId?: string, listId?: string, message?: string }`
 
+## v1 API Endpoints (OAuth / iOS)
+
+### List Members (`/api/v1/lists/:id/members`)
+- **GET**: Get all members + pending invitations for a list (requires `lists:read`)
+  - Returns `{ members: [{ id, name, email, image, role, isOwner, isAdmin, type }] }`
+  - `type` is `"member"` for active members or `"invite"` for pending invitations
+  - Invite entries have `id` prefixed with `invite_`, `name: null`, `image: null`
+- **POST**: Add a member or send invitation (requires `lists:write`)
+  - Body: `{ email: string, role?: "admin" | "member" }`
+
+### Individual Member (`/api/v1/lists/:id/members/:userId`)
+- **PUT**: Update member role (requires `lists:write`)
+  - Body: `{ role: "admin" | "member" }`
+- **DELETE**: Remove member from list (requires `lists:write`)
+
+### List Invitations (`/api/v1/lists/:id/invitations`)
+- **GET**: Get pending invitations for a list (requires `lists:read`)
+  - Returns `{ invitations: [{ id, email, role, createdAt, createdBy: { id, name, email } | null }] }`
+- **DELETE**: Cancel a pending invitation (requires `lists:write`)
+  - Body: `{ email: string }`
+
 ### User Search (`/api/users/search`)
 - **GET**: Search users by query parameter (`app/api/users/search/route.ts:15`)
 - **Query**: `?q=<search_term>` (min 2 chars)

@@ -60,6 +60,26 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       )
     }
 
+    // Get pending invitations (exclude emails that are already members)
+    const memberEmails = new Set(
+      list.listMembers.map(m => m.user.email).filter(Boolean) as string[]
+    )
+    if (list.owner.email) {
+      memberEmails.add(list.owner.email)
+    }
+
+    const pendingInvites = await prisma.listInvite.findMany({
+      where: {
+        listId: id,
+        NOT: {
+          email: {
+            in: Array.from(memberEmails)
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
     // Format members
     const members = [
       // Owner
@@ -71,6 +91,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
         role: 'owner' as const,
         isOwner: true,
         isAdmin: false,
+        type: 'member' as const,
       },
       // Other members
       ...list.listMembers.map(member => ({
@@ -81,6 +102,18 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
         role: member.role === 'admin' ? 'admin' as const : 'member' as const,
         isOwner: false,
         isAdmin: member.role === 'admin',
+        type: 'member' as const,
+      })),
+      // Pending invitations
+      ...pendingInvites.map(invite => ({
+        id: `invite_${invite.id}`,
+        name: null,
+        email: invite.email,
+        image: null,
+        role: invite.role as 'admin' | 'member',
+        isOwner: false,
+        isAdmin: invite.role === 'admin',
+        type: 'invite' as const,
       }))
     ]
 
