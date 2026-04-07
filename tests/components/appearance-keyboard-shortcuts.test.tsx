@@ -1,16 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import AppearanceSettingsPage from '@/app/[locale]/settings/appearance/page'
-
-// Mock next-auth
-vi.mock('next-auth/react')
-const mockUseSession = vi.mocked(useSession)
-
-// Mock next/navigation
-vi.mock('next/navigation')
-const mockUseRouter = vi.mocked(useRouter)
+import AppearanceSettings from '@/components/Settings/AppearanceSettings'
 
 // Mock theme context
 vi.mock('@/contexts/theme-context', () => ({
@@ -31,27 +21,19 @@ vi.mock('@/components/keyboard-shortcuts-menu', () => ({
 }))
 
 describe('Appearance Settings - Keyboard Shortcuts', () => {
-  const mockSession = {
-    user: { id: 'test-user', email: 'test@example.com' },
-    expires: '2024-01-01'
-  }
-
-  const mockRouter = {
-    push: vi.fn(),
-    replace: vi.fn()
-  }
+  const mockOnNavigate = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseSession.mockReturnValue({
-      data: mockSession,
-      status: 'authenticated'
+    // Mock fetch for user settings API call
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ smartTaskCreationEnabled: true })
     })
-    mockUseRouter.mockReturnValue(mockRouter)
   })
 
   it('should display keyboard shortcuts section in appearance settings', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Check that keyboard shortcuts section is present
     expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument()
@@ -59,7 +41,7 @@ describe('Appearance Settings - Keyboard Shortcuts', () => {
   })
 
   it('should show view shortcuts button', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Check for the view shortcuts button
     const viewButton = screen.getByRole('button', { name: /view shortcuts/i })
@@ -67,7 +49,7 @@ describe('Appearance Settings - Keyboard Shortcuts', () => {
   })
 
   it('should display quick access tip about ? key', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Check for the tip about pressing ? key
     expect(screen.getByText('💡 Quick Access')).toBeInTheDocument()
@@ -76,7 +58,7 @@ describe('Appearance Settings - Keyboard Shortcuts', () => {
   })
 
   it('should open keyboard shortcuts modal when view button is clicked', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Modal should not be visible initially
     const modal = screen.getByTestId('keyboard-shortcuts-modal')
@@ -92,7 +74,7 @@ describe('Appearance Settings - Keyboard Shortcuts', () => {
   })
 
   it('should close keyboard shortcuts modal when close button is clicked', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Open the modal
     const viewButton = screen.getByRole('button', { name: /view shortcuts/i })
@@ -111,7 +93,7 @@ describe('Appearance Settings - Keyboard Shortcuts', () => {
   })
 
   it('should have proper accessibility attributes for keyboard shortcuts section', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Check for proper heading structure
     const keyboardShortcutsHeading = screen.getByText('Keyboard Shortcuts')
@@ -123,7 +105,7 @@ describe('Appearance Settings - Keyboard Shortcuts', () => {
   })
 
   it('should maintain modal state independently from other settings', () => {
-    render(<AppearanceSettingsPage />)
+    render(<AppearanceSettings onNavigate={mockOnNavigate} />)
 
     // Open keyboard shortcuts modal
     const viewButton = screen.getByRole('button', { name: /view shortcuts/i })

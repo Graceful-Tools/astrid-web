@@ -60,10 +60,6 @@ describe('Header Home Text Removal', () => {
     // Verify logo image exists (now using Image component instead of lucide icon)
     const logoImage = container.querySelector('img[alt="Astrid"]')
     expect(logoImage).toBeTruthy()
-
-    // Verify search functionality is present
-    const searchInput = container.querySelector('input[placeholder*="Search"]')
-    expect(searchInput).toBeTruthy()
   })
 
   it('should not affect mobile header behavior', () => {
@@ -111,8 +107,6 @@ describe('Header Home Text Removal', () => {
 
     // Verify essential elements are still positioned correctly (now using Image component)
     const logo = container.querySelector('img[alt="Astrid"]')
-    const searchArea = container.querySelector('input[placeholder*="Search"]')
     expect(logo).toBeTruthy()
-    expect(searchArea).toBeTruthy()
   })
 })

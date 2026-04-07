@@ -140,7 +140,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
   })
 
   it('should hide list name when in mobile search mode and show settings icon', () => {
-    render(<TaskManagerHeader {...defaultProps} mobileSearchMode={true} selectedListId="short-list" />)
+    render(<TaskManagerHeader {...defaultProps} mobileSearchMode={true} isSearchActive={true} selectedListId="short-list" />)
 
     // List name should not be visible when in search mode
     expect(screen.queryByText('Short')).not.toBeInTheDocument()
@@ -154,7 +154,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
   })
 
   it('should hide list name when search value is active and show settings icon', () => {
-    render(<TaskManagerHeader {...defaultProps} searchValue="test query" selectedListId="short-list" />)
+    render(<TaskManagerHeader {...defaultProps} searchValue="test query" isSearchActive={true} selectedListId="short-list" />)
 
     // List name should not be visible when search is active
     expect(screen.queryByText('Short')).not.toBeInTheDocument()

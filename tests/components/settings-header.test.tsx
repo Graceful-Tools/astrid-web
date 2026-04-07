@@ -60,6 +60,15 @@ vi.mock('@/hooks/use-toast', () => ({
   }))
 }))
 
+// Mock AuthenticatedApp to avoid deep component tree that requires full session context
+vi.mock('@/components/authenticated-app', () => ({
+  AuthenticatedApp: ({ initialSettingsPage }: { initialSettingsPage?: string }) => (
+    <div data-testid="authenticated-app" data-settings-page={initialSettingsPage}>
+      <h1>Settings: {initialSettingsPage}</h1>
+    </div>
+  )
+}))
+
 // Mock complex components that have their own data dependencies
 vi.mock('@/components/ai-api-key-manager', () => ({
   AIAPIKeyManager: () => <div data-testid="ai-api-key-manager">AI API Key Manager Mock</div>
