@@ -56,14 +56,14 @@ jobs:
       - name: Setup test environment
         run: |
           # Create .env.local with test values
-          cat > .env.local << EOF
+          cat > .env.local << 'ENVEOF'
           DATABASE_URL=postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT=postgresql://postgres:postgres@localhost:5432/astrid_test
           NEXTAUTH_SECRET=test-secret-at-least-32-characters-long-for-ci
+          NEXTAUTH_URL=http://localhost:3000
           NEXT_AUTH_PUBLIC_URL=http://localhost:3000
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
-          NODE_ENV=test
-          EOF
+          ENVEOF
 
           # Generate Prisma client and push schema to test database
           npm run db:generate
@@ -72,12 +72,20 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
 
+      - name: Build application
+        run: npx next build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+          NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
+          NEXTAUTH_URL: http://localhost:3000
+
       - name: Run E2E tests - ${{ matrix.browser }}
         run: npm run test:e2e -- --project=${{ matrix.browser }}
         env:
           CI: true
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
+          NEXTAUTH_URL: http://localhost:3000
           NEXT_AUTH_PUBLIC_URL: http://localhost:3000
 
       - name: Upload test results
@@ -134,14 +142,14 @@ jobs:
       - name: Setup test environment
         run: |
           # Create .env.local with test values
-          cat > .env.local << EOF
+          cat > .env.local << 'ENVEOF'
           DATABASE_URL=postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT=postgresql://postgres:postgres@localhost:5432/astrid_test
           NEXTAUTH_SECRET=test-secret-at-least-32-characters-long-for-ci
+          NEXTAUTH_URL=http://localhost:3000
           NEXT_AUTH_PUBLIC_URL=http://localhost:3000
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
-          NODE_ENV=test
-          EOF
+          ENVEOF
 
           # Generate Prisma client and push schema to test database
           npm run db:generate
@@ -150,12 +158,20 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
 
+      - name: Build application
+        run: npx next build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+          NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
+          NEXTAUTH_URL: http://localhost:3000
+
       - name: Run Mobile E2E tests
         run: npm run test:e2e:mobile
         env:
           CI: true
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
+          NEXTAUTH_URL: http://localhost:3000
           NEXT_AUTH_PUBLIC_URL: http://localhost:3000
 
       - name: Upload mobile test results
