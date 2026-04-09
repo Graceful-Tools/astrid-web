@@ -259,23 +259,6 @@ test.describe('Shortcode Navigation', () => {
       await expect(taskDetailPane).toBeVisible({ timeout: 5000 })
     })
 
-    test.skip('should fallback to /?task=<taskId> if list access is denied', async ({ page }) => {
-      // This test would simulate:
-      // 1. User gets shortcode to task in List A
-      // 2. User loses access to List A
-      // 3. User still has access to task (e.g., via another list or direct ownership)
-      // 4. Should redirect to /?task=<taskId> instead of showing error
-
-      // For E2E testing, this is complex to set up (requires multi-user scenario)
-      // The logic is implemented in app/lists/[listId]/page.tsx lines 29-42
-      // Skipped: Requires multi-user test setup
-    })
-
-    test.skip('should handle task with no lists (orphaned task)', async ({ page }) => {
-      // Create a task without any list association
-      // This would require API manipulation or special test setup
-      // Skipped: Requires special test setup for orphaned tasks
-    })
   })
 
   test.describe('Shortcode Analytics', () => {

@@ -151,16 +151,6 @@ test.describe('Example Test Suite', () => {
     const element4 = page.getByRole('listitem').filter({ hasText: 'Active' })
   })
 
-  // Skip test if not applicable
-  test.skip('should test feature in development', async ({ page }) => {
-    // This test is skipped
-  })
-
-  // Run only this test (for debugging)
-  // test.only('should debug this specific test', async ({ page }) => {
-  //   // Remove .only before committing!
-  // })
-
   // Test with custom timeout
   test('should handle slow operation', async ({ page }) => {
     test.setTimeout(60000) // 60 seconds

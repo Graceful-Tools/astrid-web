@@ -45,11 +45,7 @@ test.describe('Authentication Flow', () => {
     await expect(legacyLink).toBeVisible()
   })
 
-  // SKIP: This test is flaky because OAuth provider loading (getProviders) can hang
-  // indefinitely when Google OAuth is not configured in the test environment.
-  // The button click works but state change timing is unpredictable.
-  // Core auth UI is tested by 'should show modern auth options' test above.
-  test.skip('should show legacy email/password option when clicking legacy link', async ({ page }) => {
+  test('should show legacy email/password option when clicking legacy link', async ({ page }) => {
     await page.goto('/auth/signin')
     await expect(page.getByText('Sign in to get started!')).toBeVisible()
     const legacyLink = page.getByRole('button', { name: /legacy email\/password/i })
@@ -186,16 +182,4 @@ test.describe('Authentication Flow', () => {
     await expect(page.getByText(/account.*already exists/i)).toBeVisible({ timeout: 10000 })
   })
 
-  // SKIP: Email verification page test is inherently flaky due to:
-  // 1. React Suspense + useSearchParams requires full client-side hydration
-  // 2. Hydration timing varies significantly across browsers and CI environments
-  // 3. This is an edge case (visiting /verify-email without token) not a critical flow
-  // The functionality is tested by the verify-email component unit tests instead.
-  test.skip('should handle email verification page without token', async ({ page }) => {
-    await page.goto('/auth/verify-email')
-    await expect(page.getByText('Verification Failed')).toBeVisible()
-    await expect(page.getByText(/no verification token/i)).toBeVisible()
-    const backButton = page.getByRole('button', { name: /back to app/i })
-    await expect(backButton).toBeVisible()
-  })
 })
