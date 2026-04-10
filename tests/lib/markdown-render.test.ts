@@ -126,6 +126,27 @@ describe('renderMarkdown — full markdown support', () => {
     })
   })
 
+  describe('links', () => {
+    it('renders markdown links', () => {
+      const html = renderMarkdown('Visit [the docs](https://example.com) for info')
+      expect(html).toContain('<a href="https://example.com"')
+      expect(html).toContain('the docs</a>')
+    })
+
+    it('renders links inside list items', () => {
+      const html = renderMarkdown('- See [guide](https://example.com)')
+      expect(html).toContain('<a href="https://example.com"')
+    })
+  })
+
+  describe('leading whitespace tolerance', () => {
+    it('renders headings with leading spaces', () => {
+      const html = renderMarkdown(' ### Step 4: Deploy')
+      expect(html).toContain('<h3')
+      expect(html).toContain('Step 4: Deploy')
+    })
+  })
+
   describe('mixed content', () => {
     it('renders headings followed by lists', () => {
       const md = '## Steps\n- step one\n- step two'

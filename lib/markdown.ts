@@ -101,13 +101,22 @@ function convertTable(lines: string[]): string {
 }
 
 /**
- * Convert inline markdown (bold, italic, code) without block-level processing
+ * Convert inline markdown (bold, italic, code, links) without block-level processing
  */
 function convertInlineMarkdown(text: string): string {
-  return escapeHtml(text)
+  let html = escapeHtml(text)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/`(.*?)`/g, '<code class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-sm">$1</code>')
+
+  // Markdown links [text](url) — escapeHtml encoded the brackets, so match on encoded forms
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, linkText, url) => {
+    const href = url.startsWith('http') ? url : `https://${url}`
+    if (!isSafeUrl(href)) return linkText
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${linkText}</a>`
+  })
+
+  return html
 }
 
 /**
@@ -150,8 +159,8 @@ export function renderMarkdown(text: string): string {
       continue
     }
 
-    // Headings
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    // Headings (allow optional leading whitespace)
+    const headingMatch = line.match(/^\s*(#{1,6})\s+(.+)$/)
     if (headingMatch) {
       const level = headingMatch[1].length
       const sizes = ['text-xl font-bold', 'text-lg font-bold', 'text-base font-semibold', 'text-sm font-semibold', 'text-sm font-medium', 'text-xs font-medium']
@@ -233,8 +242,8 @@ export function renderMarkdown(text: string): string {
   // Sanitize the HTML to prevent XSS
   if (typeof window !== 'undefined') {
     return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-      ALLOWED_ATTR: ['class']
+      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+      ALLOWED_ATTR: ['class', 'href', 'target', 'rel']
     })
   }
 
