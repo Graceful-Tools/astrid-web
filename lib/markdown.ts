@@ -89,11 +89,10 @@ export function renderMarkdown(text: string): string {
   const html = marked.parse(text, { async: false }) as string
 
   // Sanitize the HTML to prevent XSS
+  // DOMPurify's defaults already block scripts, event handlers, and iframes
+  // while allowing standard HTML elements (headings, lists, tables, links, etc.)
   if (typeof window !== 'undefined') {
-    return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'hr', 'del', 'span'],
-      ALLOWED_ATTR: ['class', 'href', 'target', 'rel']
-    })
+    return DOMPurify.sanitize(html)
   }
 
   // For server-side rendering, strip dangerous content
