@@ -45,12 +45,14 @@ test.describe('Authentication Flow', () => {
     await expect(legacyLink).toBeVisible()
   })
 
-  test('should show legacy email/password option when clicking legacy link', async ({ page }) => {
+  test('should show legacy email/password option when clicking legacy link', async ({ page, browserName }) => {
     await page.goto('/auth/signin')
     await expect(page.getByText('Sign in to get started!')).toBeVisible()
     const legacyLink = page.getByRole('button', { name: /legacy email\/password/i })
+    await expect(legacyLink).toBeVisible()
     await legacyLink.click()
-    await expect(page.getByText('Welcome back')).toBeVisible()
+    // Webkit needs extra time for React state transition after click
+    await expect(page.getByText('Welcome back')).toBeVisible({ timeout: 10000 })
     await expect(page.getByLabel(/^email$/i)).toBeVisible()
     await expect(page.getByLabel(/^password$/i)).toBeVisible()
   })
