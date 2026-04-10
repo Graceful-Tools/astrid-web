@@ -14,19 +14,19 @@ import path from 'path'
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
 
-// Cache for the Claude agent ID
-let claudeAgentId: string | null = null
-
 /**
- * Look up the Claude agent user ID by email
+ * Get the Claude agent user ID from env or by looking up assigned tasks
  */
 async function getClaudeAgentId(accessToken: string): Promise<string | null> {
-  if (claudeAgentId) return claudeAgentId
+  // Prefer env var — avoids API lookup entirely
+  if (process.env.CLAUDE_AGENT_ID) {
+    return process.env.CLAUDE_AGENT_ID
+  }
 
   const agentEmail = process.env.CLAUDE_AGENT_EMAIL || 'claude@astrid.cc'
 
   try {
-    // Find a task assigned to the Claude agent to get the agent's user ID
+    // Fallback: find a task assigned to the Claude agent to get the agent's user ID
     const response = await fetch(
       `https://astrid.cc/api/v1/tasks?assigneeEmail=${encodeURIComponent(agentEmail)}&limit=1`,
       {
@@ -42,13 +42,12 @@ async function getClaudeAgentId(accessToken: string): Promise<string | null> {
       const tasks = data.tasks || [data.task].filter(Boolean)
 
       if (tasks.length > 0 && tasks[0].assignee?.id) {
-        claudeAgentId = tasks[0].assignee.id
-        console.log(`✅ Found Claude agent ID: ${claudeAgentId}`)
-        return claudeAgentId
+        return tasks[0].assignee.id
       }
     }
 
     console.warn(`⚠️ Could not find Claude agent ID for ${agentEmail}`)
+    console.warn(`   Set CLAUDE_AGENT_ID in .env.local to fix this`)
     return null
   } catch (error) {
     console.warn(`⚠️ Error looking up Claude agent:`, error)

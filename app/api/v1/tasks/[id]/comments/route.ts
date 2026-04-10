@@ -252,7 +252,9 @@ export async function POST(
         )
       }
 
-      if (!aiAgent.isAIAgent) {
+      // Accept users flagged as AI agents OR system agent emails (@astrid.cc)
+      const isSystemAgent = aiAgent.email?.endsWith('@astrid.cc')
+      if (!aiAgent.isAIAgent && !isSystemAgent) {
         return NextResponse.json(
           { error: 'Invalid aiAgentId - specified user is not an AI agent' },
           { status: 400 }
