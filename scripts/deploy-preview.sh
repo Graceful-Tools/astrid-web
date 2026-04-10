@@ -100,7 +100,7 @@ else
   PREVIEW_DOMAIN="${SUBDOMAIN}.astrid.cc"
 
   echo -e "${BOLD}Aliasing to ${PREVIEW_DOMAIN}...${NC}"
-  npx vercel alias "$DEPLOY_URL" "$PREVIEW_DOMAIN" --token="$VERCEL_TOKEN" --scope jon-paris-projects 2>&1
+  npx vercel alias "$DEPLOY_URL" "$PREVIEW_DOMAIN" --token="$VERCEL_TOKEN" --scope gracefultools 2>&1
 
   echo ""
   info "Preview deployed: $DEPLOY_URL"
