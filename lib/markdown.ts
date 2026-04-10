@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 
 // Allowed URL protocols for links
 const SAFE_URL_PROTOCOLS = ['http:', 'https:', 'mailto:']
@@ -71,178 +72,26 @@ function safeLinkify(text: string): string {
   return result
 }
 
-/**
- * Convert markdown table to HTML table
- */
-function convertTable(lines: string[]): string {
-  if (lines.length < 2) return lines.map(l => escapeHtml(l)).join('<br>')
-
-  const parseRow = (line: string): string[] =>
-    line.split('|').map(cell => cell.trim()).filter((_, i, arr) => i > 0 && i < arr.length)
-
-  const headerCells = parseRow(lines[0])
-  const rows = lines.slice(2) // skip header and separator
-
-  let html = '<table class="border-collapse text-sm w-full my-2"><thead><tr>'
-  for (const cell of headerCells) {
-    html += `<th class="border border-gray-300 dark:border-gray-600 px-2 py-1 text-left font-semibold">${convertInlineMarkdown(cell)}</th>`
-  }
-  html += '</tr></thead><tbody>'
-  for (const row of rows) {
-    const cells = parseRow(row)
-    html += '<tr>'
-    for (const cell of cells) {
-      html += `<td class="border border-gray-300 dark:border-gray-600 px-2 py-1">${convertInlineMarkdown(cell)}</td>`
-    }
-    html += '</tr>'
-  }
-  html += '</tbody></table>'
-  return html
-}
+// Configure marked for secure rendering
+marked.setOptions({
+  gfm: true,       // GitHub Flavored Markdown (tables, strikethrough, etc.)
+  breaks: true,    // Convert \n to <br>
+})
 
 /**
- * Convert inline markdown (bold, italic, code, links) without block-level processing
- */
-function convertInlineMarkdown(text: string): string {
-  let html = escapeHtml(text)
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-sm">$1</code>')
-
-  // Markdown links [text](url) — escapeHtml encoded the brackets, so match on encoded forms
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, linkText, url) => {
-    const href = url.startsWith('http') ? url : `https://${url}`
-    if (!isSafeUrl(href)) return linkText
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${linkText}</a>`
-  })
-
-  return html
-}
-
-/**
- * Securely render markdown text to HTML
- * Supports: headings, bold, italic, inline code, code blocks, lists, tables, and line breaks
+ * Securely render markdown text to HTML using the `marked` library
+ * Supports all standard markdown: headings, lists, tables, code blocks, links, etc.
  * Uses DOMPurify to prevent XSS attacks
  */
 export function renderMarkdown(text: string): string {
   if (!text) return ""
 
-  const lines = text.split('\n')
-  const outputLines: string[] = []
-  let i = 0
-
-  while (i < lines.length) {
-    const line = lines[i]
-
-    // Fenced code blocks
-    if (line.trimStart().startsWith('```')) {
-      const codeLines: string[] = []
-      i++
-      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
-        codeLines.push(escapeHtml(lines[i]))
-        i++
-      }
-      i++ // skip closing ```
-      outputLines.push(`<pre class="bg-gray-100 dark:bg-gray-800 rounded p-2 my-1 overflow-x-auto text-sm"><code>${codeLines.join('\n')}</code></pre>`)
-      continue
-    }
-
-    // Tables (line starts with |, next line is separator)
-    if (line.trim().startsWith('|') && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
-      const tableLines: string[] = [line]
-      i++
-      while (i < lines.length && lines[i].trim().startsWith('|')) {
-        tableLines.push(lines[i])
-        i++
-      }
-      outputLines.push(convertTable(tableLines))
-      continue
-    }
-
-    // Headings (allow optional leading whitespace)
-    const headingMatch = line.match(/^\s*(#{1,6})\s+(.+)$/)
-    if (headingMatch) {
-      const level = headingMatch[1].length
-      const sizes = ['text-xl font-bold', 'text-lg font-bold', 'text-base font-semibold', 'text-sm font-semibold', 'text-sm font-medium', 'text-xs font-medium']
-      outputLines.push(`<h${level} class="${sizes[level - 1]} mt-3 mb-1">${convertInlineMarkdown(headingMatch[2])}</h${level}>`)
-      i++
-      continue
-    }
-
-    // Unordered list items (with continuation line support)
-    if (/^\s*[-*]\s+/.test(line)) {
-      const listItems: string[] = []
-      while (i < lines.length) {
-        if (/^\s*[-*]\s+/.test(lines[i])) {
-          listItems.push(lines[i].replace(/^\s*[-*]\s+/, ''))
-          i++
-        } else if (/^\s+\S/.test(lines[i]) && listItems.length > 0 && lines[i].trim() !== '') {
-          // Continuation line (indented, non-empty) — append to last item
-          listItems[listItems.length - 1] += ' ' + lines[i].trim()
-          i++
-        } else {
-          break
-        }
-      }
-      outputLines.push(`<ul class="list-disc pl-5 my-1 space-y-0.5">${listItems.map(item => `<li>${convertInlineMarkdown(item)}</li>`).join('')}</ul>`)
-      continue
-    }
-
-    // Ordered list items (with continuation line support)
-    if (/^\s*\d+\.\s+/.test(line)) {
-      const listItems: string[] = []
-      while (i < lines.length) {
-        if (/^\s*\d+\.\s+/.test(lines[i])) {
-          listItems.push(lines[i].replace(/^\s*\d+\.\s+/, ''))
-          i++
-        } else if (/^\s+\S/.test(lines[i]) && listItems.length > 0 && lines[i].trim() !== '') {
-          // Continuation line — append to last item
-          listItems[listItems.length - 1] += ' ' + lines[i].trim()
-          i++
-        } else {
-          break
-        }
-      }
-      outputLines.push(`<ol class="list-decimal pl-5 my-1 space-y-0.5">${listItems.map(item => `<li>${convertInlineMarkdown(item)}</li>`).join('')}</ol>`)
-      continue
-    }
-
-    // Empty lines
-    if (line.trim() === '') {
-      outputLines.push('')
-      i++
-      continue
-    }
-
-    // Regular paragraph with inline markdown
-    outputLines.push(convertInlineMarkdown(line))
-    i++
-  }
-
-  // Join with <br> for non-empty adjacent lines, preserve spacing for empty lines
-  let html = ''
-  for (let j = 0; j < outputLines.length; j++) {
-    const curr = outputLines[j]
-    if (curr === '') {
-      html += '<br>'
-    } else {
-      html += curr
-      // Add <br> between consecutive inline text lines (not after block elements)
-      if (j + 1 < outputLines.length && outputLines[j + 1] !== '' &&
-          !curr.startsWith('<h') && !curr.startsWith('<ul') && !curr.startsWith('<ol') &&
-          !curr.startsWith('<pre') && !curr.startsWith('<table') &&
-          !outputLines[j + 1].startsWith('<h') && !outputLines[j + 1].startsWith('<ul') &&
-          !outputLines[j + 1].startsWith('<ol') && !outputLines[j + 1].startsWith('<pre') &&
-          !outputLines[j + 1].startsWith('<table')) {
-        html += '<br>'
-      }
-    }
-  }
+  const html = marked.parse(text, { async: false }) as string
 
   // Sanitize the HTML to prevent XSS
   if (typeof window !== 'undefined') {
     return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'hr', 'del', 'span'],
       ALLOWED_ATTR: ['class', 'href', 'target', 'rel']
     })
   }

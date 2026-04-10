@@ -182,6 +182,7 @@
     "js-yaml": "^4.1.1",
     "lru-cache": "^11.1.0",
     "lucide-react": "^0.454.0",
+    "marked": "^18.0.0",
     "nanoid": "^5.1.6",
     "next": "^15.5.12",
     "next-auth": "^4.24.13",
