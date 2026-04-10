@@ -138,13 +138,11 @@ const mockProps = {
   selectedTaskElement: null
 }
 
-// File attachment tests removed — attachments removed from task comment UI
-// File attachments are now available in chat messages only
 describe('TaskDetail Upload Functionality', () => {
-  it('should not render file upload input in comment section', () => {
+  it('should render file upload input in comment section', () => {
     render(<TaskDetail {...mockProps} />)
-    // No file input should be present since attachments are disabled in comments
+    // File input should be present for attachment uploads
     const fileInput = document.querySelector('input[type="file"]')
-    expect(fileInput).toBeFalsy()
+    expect(fileInput).toBeTruthy()
   })
 })

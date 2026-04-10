@@ -1092,6 +1092,12 @@ export function CommentSection({
               lists={availableLists}
               tasks={availableTasks}
               placeholder="Add a comment..."
+              enableAttachments
+              uploadContext={{ taskId: task.id }}
+              attachedFile={attachedFile}
+              onAttachedFileChange={setAttachedFile}
+              uploadError={uploadError}
+              onUploadErrorChange={setUploadError}
             />
           </div>
         )}
@@ -1342,6 +1348,12 @@ export function CommentInputBar({
         lists={availableLists}
         tasks={availableTasks}
         placeholder="Add a comment..."
+        enableAttachments
+        uploadContext={{ taskId: task.id }}
+        attachedFile={attachedFile}
+        onAttachedFileChange={setAttachedFile}
+        uploadError={uploadError}
+        onUploadErrorChange={setUploadError}
       />
     </div>
   )
