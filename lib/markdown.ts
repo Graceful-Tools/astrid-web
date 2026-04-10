@@ -160,25 +160,41 @@ export function renderMarkdown(text: string): string {
       continue
     }
 
-    // Unordered list items
+    // Unordered list items (with continuation line support)
     if (/^\s*[-*]\s+/.test(line)) {
       const listItems: string[] = []
-      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
-        listItems.push(`<li>${convertInlineMarkdown(lines[i].replace(/^\s*[-*]\s+/, ''))}</li>`)
-        i++
+      while (i < lines.length) {
+        if (/^\s*[-*]\s+/.test(lines[i])) {
+          listItems.push(lines[i].replace(/^\s*[-*]\s+/, ''))
+          i++
+        } else if (/^\s+\S/.test(lines[i]) && listItems.length > 0 && lines[i].trim() !== '') {
+          // Continuation line (indented, non-empty) — append to last item
+          listItems[listItems.length - 1] += ' ' + lines[i].trim()
+          i++
+        } else {
+          break
+        }
       }
-      outputLines.push(`<ul class="list-disc pl-5 my-1 space-y-0.5">${listItems.join('')}</ul>`)
+      outputLines.push(`<ul class="list-disc pl-5 my-1 space-y-0.5">${listItems.map(item => `<li>${convertInlineMarkdown(item)}</li>`).join('')}</ul>`)
       continue
     }
 
-    // Ordered list items
+    // Ordered list items (with continuation line support)
     if (/^\s*\d+\.\s+/.test(line)) {
       const listItems: string[] = []
-      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-        listItems.push(`<li>${convertInlineMarkdown(lines[i].replace(/^\s*\d+\.\s+/, ''))}</li>`)
-        i++
+      while (i < lines.length) {
+        if (/^\s*\d+\.\s+/.test(lines[i])) {
+          listItems.push(lines[i].replace(/^\s*\d+\.\s+/, ''))
+          i++
+        } else if (/^\s+\S/.test(lines[i]) && listItems.length > 0 && lines[i].trim() !== '') {
+          // Continuation line — append to last item
+          listItems[listItems.length - 1] += ' ' + lines[i].trim()
+          i++
+        } else {
+          break
+        }
       }
-      outputLines.push(`<ol class="list-decimal pl-5 my-1 space-y-0.5">${listItems.join('')}</ol>`)
+      outputLines.push(`<ol class="list-decimal pl-5 my-1 space-y-0.5">${listItems.map(item => `<li>${convertInlineMarkdown(item)}</li>`).join('')}</ol>`)
       continue
     }
 

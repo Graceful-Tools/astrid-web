@@ -71,6 +71,20 @@ describe('renderMarkdown — full markdown support', () => {
       expect(html).toContain('<strong>bold</strong>')
       expect(html).toContain('<code')
     })
+
+    it('joins continuation lines into list items', () => {
+      const html = renderMarkdown('- First item that wraps\n across two lines\n- Second item')
+      expect(html).toContain('<ul')
+      expect(html).toContain('First item that wraps across two lines')
+      expect(html).toContain('<li>Second item</li>')
+    })
+
+    it('joins continuation lines in ordered lists', () => {
+      const html = renderMarkdown('1. Read the task title and all\n comments for context\n2. Explore the code')
+      expect(html).toContain('<ol')
+      expect(html).toContain('Read the task title and all comments for context')
+      expect(html).toContain('Explore the code')
+    })
   })
 
   describe('code blocks', () => {
