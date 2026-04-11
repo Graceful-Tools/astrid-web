@@ -899,7 +899,6 @@ const TaskManagerView = memo(function TaskManagerView({
               page={settingsSubPage}
               onNavigate={onNavigateSettings}
               onClose={closeSettingsSubPageAnimated}
-              onExpandFullPage={onExpandSettingsFullPage}
             />
           )}
         </div>

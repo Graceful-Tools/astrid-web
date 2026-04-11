@@ -42,11 +42,10 @@ interface SettingsDetailPanelProps {
   page: string
   onNavigate: (page: string) => void
   onClose: () => void
-  onExpandFullPage?: (page: string) => void
   fullPage?: boolean
 }
 
-export default function SettingsDetailPanel({ page, onNavigate, onClose, onExpandFullPage, fullPage }: SettingsDetailPanelProps) {
+export default function SettingsDetailPanel({ page, onNavigate, onClose, fullPage }: SettingsDetailPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [arrowTop, setArrowTop] = useState(80)
 
@@ -141,12 +140,10 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose, onExpan
         <div className="flex items-center justify-end px-3 pt-2 flex-shrink-0">
           <button
             onClick={() => {
-              if (onExpandFullPage) {
-                onExpandFullPage(page)
-              }
+              window.open(`/settings/${page}?fullpage=1`, '_blank')
             }}
             className="p-1.5 rounded-lg theme-text-muted hover:theme-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-            title="Open in full page"
+            title="Open in new tab"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
