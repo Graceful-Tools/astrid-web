@@ -3,7 +3,7 @@
 import React, { Suspense, lazy, useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { LoadingScreen } from "@/components/loading-screen"
-import { ArrowLeft, X } from "lucide-react"
+import { X } from "lucide-react"
 
 const AccountSettings = lazy(() => import("./AccountSettings"))
 const AppearanceSettings = lazy(() => import("./AppearanceSettings"))
@@ -46,7 +46,6 @@ interface SettingsDetailPanelProps {
 }
 
 export default function SettingsDetailPanel({ page, onNavigate, onClose }: SettingsDetailPanelProps) {
-  const title = PAGE_TITLES[page] || page
   const panelRef = useRef<HTMLDivElement>(null)
   const [arrowTop, setArrowTop] = useState(80)
 
@@ -127,21 +126,15 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose }: Setti
         style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
       ></div>
       <div ref={panelRef} className="w-full theme-panel flex flex-col h-full relative" data-task-detail-panel>
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b theme-border flex-shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <Button variant="ghost" size="sm" onClick={onClose} className="p-1.5 flex-shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <span className="font-semibold theme-text-primary truncate">{title}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="p-1.5 flex-shrink-0">
+        {/* Close button */}
+        <div className="flex items-center justify-end p-2 flex-shrink-0">
+          <Button variant="ghost" size="sm" onClick={onClose} className="p-1.5 flex-shrink-0 theme-text-muted hover:theme-text-primary">
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
           <Suspense fallback={<LoadingScreen />}>
             {renderPage()}
           </Suspense>
