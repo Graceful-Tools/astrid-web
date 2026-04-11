@@ -444,9 +444,9 @@ export function MainContent({
           transformOrigin: 'left center',
         }),
       }}>
-        <div className="p-6 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
+        <div className="px-4 py-5 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
           {isSearchActive ? (
-            <div className="flex items-center justify-start space-x-4 mb-4 px-4">
+            <div className="flex items-center justify-start space-x-4 mb-4">
               <div className="text-left flex-1">
                 <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">Search</h1>
                 <p className="theme-text-muted text-sm">Find tasks and users across all lists</p>
@@ -462,7 +462,7 @@ export function MainContent({
                 if (!currentList) return null
 
                 return (
-                  <div className="flex items-center justify-start space-x-4 mb-4 px-4">
+                  <div className="flex items-center justify-start space-x-4 mb-4">
                     {/* List Image */}
                     <img
                       src={getListImageUrl(currentList)}
@@ -615,7 +615,7 @@ export function MainContent({
 
             {/* Default view titles for system lists */}
             {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
-              <div className="flex items-center justify-start space-x-4 mb-4 px-4">
+              <div className="flex items-center justify-start space-x-4 mb-4">
                 <div className="text-left flex-1">
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
@@ -701,7 +701,7 @@ export function MainContent({
 
           {/* Search Input - shown when search is active */}
           {isSearchActive && onSearchChange && (
-            <div className="px-4 py-3">
+            <div className="py-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
                 <Input
@@ -727,7 +727,7 @@ export function MainContent({
             // For collaborative lists, always show task creation (even when viewing from featured)
             if (isCollaborative || isUserOwnerOrAdmin) {
               return (
-                <div className="px-4">
+                <div>
                   <EnhancedTaskCreation
                     layoutType={layoutType}
                     selectedListId={selectedListId}
@@ -747,7 +747,7 @@ export function MainContent({
             // For featured lists OR copy-only public lists (not owner/admin), show Copy List button
             if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
               return (
-                <div className="px-4">
+                <div>
                   <Button
                     onClick={() => selectedList && handleCopyList(selectedList.id)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -761,7 +761,7 @@ export function MainContent({
 
             // Default: show task creation
             return (
-              <div className="px-4">
+              <div>
                 <EnhancedTaskCreation
                   layoutType={layoutType}
                   selectedListId={selectedListId}
