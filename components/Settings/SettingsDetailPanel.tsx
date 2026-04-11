@@ -1,9 +1,7 @@
 "use client"
 
 import React, { Suspense, lazy, useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
 import { LoadingScreen } from "@/components/loading-screen"
-import { X } from "lucide-react"
 
 const AccountSettings = lazy(() => import("./AccountSettings"))
 const AppearanceSettings = lazy(() => import("./AppearanceSettings"))
@@ -126,13 +124,6 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose }: Setti
         style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
       ></div>
       <div ref={panelRef} className="w-full theme-panel flex flex-col h-full relative" data-task-detail-panel>
-        {/* Close button */}
-        <div className="flex items-center justify-end p-2 flex-shrink-0">
-          <Button variant="ghost" size="sm" onClick={onClose} className="p-1.5 flex-shrink-0 theme-text-muted hover:theme-text-primary">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-
         {/* Content */}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           <Suspense fallback={<LoadingScreen />}>
