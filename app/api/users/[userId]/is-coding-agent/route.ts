@@ -5,11 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import type { RouteContextParams } from '@/types/next'
-
-const prisma = new PrismaClient()
 
 export async function GET(
   request: NextRequest,
@@ -54,7 +52,5 @@ export async function GET(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

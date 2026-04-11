@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import type { RouteContextParams } from '@/types/next'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const prisma = new PrismaClient()
 
 /**
  * GET /api/coding-workflow/progress/[taskId]
@@ -152,8 +150,6 @@ export async function GET(
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

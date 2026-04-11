@@ -5,10 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhooks, createNodeMiddleware } from '@octokit/webhooks'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
-
-const prisma = new PrismaClient()
 
 // Initialize webhooks only if secret is available
 const webhooks = process.env.GITHUB_WEBHOOK_SECRET ? new Webhooks({
@@ -440,8 +438,6 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

@@ -399,18 +399,28 @@ export class RedisCache {
 
   // Cache invalidation patterns
   static invalidate = {
-    userTasks: async (userId: string) => {
+    userTasks: async (userId: string, listIds?: string[]) => {
       await this.delPattern(`tasks:user:${userId}*`)
-      await this.delPattern(`tasks:list:*`) // Tasks might be in multiple lists
+      // Only invalidate specific list caches if known, otherwise fall back to all
+      if (listIds && listIds.length > 0) {
+        await Promise.all(listIds.map(id => this.del(this.keys.listTasks(id))))
+      } else {
+        await this.delPattern(`tasks:list:*`)
+      }
       await this.del(this.keys.publicTasks())
     },
     userLists: async (userId: string) => {
       await this.delPattern(`lists:user:${userId}*`)
       await this.delPattern(`members:list:*`)
     },
-    taskUpdate: async (taskId: string, userId: string) => {
+    taskUpdate: async (taskId: string, userId: string, listIds?: string[]) => {
       await this.delPattern(`tasks:user:${userId}*`)
-      await this.delPattern(`tasks:list:*`)
+      // Only invalidate specific list caches if known, otherwise fall back to all
+      if (listIds && listIds.length > 0) {
+        await Promise.all(listIds.map(id => this.del(this.keys.listTasks(id))))
+      } else {
+        await this.delPattern(`tasks:list:*`)
+      }
       await this.delPattern(`comments:task:${taskId}*`)
       await this.del(this.keys.publicTasks())
     },

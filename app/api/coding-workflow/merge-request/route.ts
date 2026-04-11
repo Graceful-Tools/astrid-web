@@ -5,10 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { GitHubClient } from '@/lib/github-client'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -153,7 +151,5 @@ Thank you for using Astrid Agent! 🤖`,
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

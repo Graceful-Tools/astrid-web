@@ -9,6 +9,7 @@ import type { RouteContextParams } from "@/types/next"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { canUserEditTask } from "@/lib/list-permissions"
+import { invalidateUserStats } from "@/lib/user-stats"
 import {
   TASK_FULL_INCLUDE,
   type TaskWithFullRelations,
@@ -502,7 +503,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       const assignmentChanged = existingTask.assigneeId !== updatedTask.assigneeId
 
       if (completionChanged || assignmentChanged) {
-        const { invalidateUserStats } = await import("@/lib/user-stats")
+        // invalidateUserStats imported at top level
         const statsUserIds = new Set<string>()
 
         // Invalidate assignee's stats (completed tasks count changed)
@@ -553,7 +554,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
         // Add all list members from all associated lists
         for (const list of updatedTask.lists) {
-          const { getListMemberIds } = await import("@/lib/list-member-utils")
+          // getListMemberIds imported at top level
           const memberIds = getListMemberIds(list)
           memberIds.forEach(id => affectedUserIds.add(id))
         }
@@ -589,7 +590,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       
       // Add all list members from all associated lists using comprehensive member utils
       for (const list of updatedTask.lists) {
-        const { getListMemberIds } = await import("@/lib/list-member-utils")
+        // getListMemberIds imported at top level
         const memberIds = getListMemberIds(list)
         memberIds.forEach(id => userIds.add(id))
       }
@@ -603,7 +604,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       // Broadcast to all relevant users
       if (userIds.size > 0) {
         console.log(`[SSE] Broadcasting task update to ${userIds.size} users`)
-        const { broadcastToUsers } = await import("@/lib/sse-utils")
+        // broadcastToUsers imported at top level
         broadcastToUsers(Array.from(userIds), {
           type: 'task_updated',
           timestamp: new Date().toISOString(),
@@ -920,7 +921,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
         // Add all list members from all associated lists
         for (const list of existingTask.lists) {
-          const { getListMemberIds } = await import("@/lib/list-member-utils")
+          // getListMemberIds imported at top level
           const memberIds = getListMemberIds(list)
           memberIds.forEach(id => affectedUserIds.add(id))
         }
@@ -956,7 +957,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
       // Add all list members from all associated lists using comprehensive member utils
       for (const list of existingTask.lists) {
-        const { getListMemberIds } = await import("@/lib/list-member-utils")
+        // getListMemberIds imported at top level
         const memberIds = getListMemberIds(list)
         memberIds.forEach(id => userIds.add(id))
       }
@@ -970,7 +971,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       // Broadcast to all relevant users
       if (userIds.size > 0) {
         console.log(`[SSE] Broadcasting task deletion to ${userIds.size} users`)
-        const { broadcastToUsers } = await import("@/lib/sse-utils")
+        // broadcastToUsers imported at top level
         broadcastToUsers(Array.from(userIds), {
           type: 'task_deleted',
           timestamp: new Date().toISOString(),

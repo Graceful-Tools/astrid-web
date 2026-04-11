@@ -7,6 +7,8 @@ import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
 import { getAgentService } from "@/lib/ai/agent-config"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import { invalidateUserStats } from "@/lib/user-stats"
+import { broadcastCommentCreatedNotification, broadcastToUsers } from "@/lib/sse-utils"
 
 // Helper function to safely check list access with any list-like object
 function canAccessList(list: any, userId: string): boolean {
@@ -79,6 +81,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
           orderBy: {
             createdAt: "asc",
           },
+          take: 50,
         },
       },
       orderBy: {
@@ -231,7 +234,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     try {
       // Only invalidate if commenting on a task created by someone else
       if (task.creatorId !== session.user.id) {
-        const { invalidateUserStats } = await import("@/lib/user-stats")
+        // invalidateUserStats imported at top level
         // Invalidate comment author's stats (supported tasks count increased)
         await invalidateUserStats(session.user.id)
         console.log(`📊 Invalidated user stats for comment author ${session.user.id}`)
@@ -243,7 +246,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
 
     // Broadcast real-time updates to relevant users
     try {
-      const { broadcastCommentCreatedNotification, broadcastToUsers } = await import("@/lib/sse-utils")
+      // broadcastCommentCreatedNotification, broadcastToUsers imported at top level
       await broadcastCommentCreatedNotification(task, comment, session.user.id)
 
       // Broadcast agent_task_comment if task is assigned to an OpenClaw agent
@@ -456,9 +459,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
                     console.error(`❌ [COMMENT] AIOrchestrator workflow failed:`, error)
                     // Update workflow status to FAILED to prevent stuck workflows
                     try {
-                      const { PrismaClient } = await import('@prisma/client')
-                      const prismaClient = new PrismaClient()
-                      await prismaClient.codingTaskWorkflow.update({
+                      await prisma.codingTaskWorkflow.update({
                         where: { id: workflowId },
                         data: {
                           status: 'FAILED',
@@ -468,7 +469,6 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
                           }
                         }
                       })
-                      await prismaClient.$disconnect()
                     } catch (e) {
                       console.error('❌ [COMMENT] Failed to update workflow status:', e)
                     }

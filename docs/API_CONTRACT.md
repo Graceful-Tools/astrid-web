@@ -32,6 +32,15 @@ X-API-Version: 1
 - Adding new endpoints
 - Deprecating (but not removing) fields
 
+### Route Structure
+
+The API has two route layers:
+
+- **`/api/v1/*`** — Versioned endpoints for external clients (mobile, SDK, OAuth). These are the stable contract.
+- **`/api/*`** — Internal/legacy endpoints used by the web app directly (auth, SSE, cron jobs, health checks).
+
+When building mobile or external integrations, always use `/api/v1/` routes. The non-versioned routes may change without notice.
+
 ---
 
 ## Authentication Endpoints

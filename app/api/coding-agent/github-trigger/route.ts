@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { getAgentService } from '@/lib/ai/agent-config'
@@ -7,8 +7,6 @@ import { getAgentService } from '@/lib/ai/agent-config'
 
 // Force dynamic rendering for webhook endpoints
 export const dynamic = 'force-dynamic'
-
-const prisma = new PrismaClient()
 
 interface GitHubTriggerRequest {
   taskId: string

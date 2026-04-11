@@ -799,7 +799,7 @@ export async function POST(request: NextRequest) {
     try {
       const redisAvailable = await isRedisAvailable()
       if (redisAvailable) {
-        await RedisCache.invalidate.userTasks(session.user.id)
+        await RedisCache.invalidate.userTasks(session.user.id, nonVirtualListIds)
         console.log(`🗑️ Invalidated task caches after task creation`)
       } else {
         console.log(`ℹ️ Redis not available, skipping cache invalidation`)

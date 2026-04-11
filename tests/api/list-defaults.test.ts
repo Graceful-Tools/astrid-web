@@ -313,17 +313,16 @@ describe('/api/lists - List Defaults', () => {
 
       mockPrisma.taskList.findMany.mockResolvedValue(mockLists)
       
-      // Mock user lookup for defaultAssignee
-      mockPrisma.user.findUnique.mockImplementation(({ where }) => {
-        if (where.id === 'assignee-1') {
-          return Promise.resolve({
-            id: 'assignee-1',
-            name: 'Default Assignee',
-            email: 'assignee@example.com',
-          })
-        }
-        return Promise.resolve(null)
-      })
+      // Mock batch user lookup for defaultAssignee (uses findMany with id: { in: [...] })
+      mockPrisma.user.findMany.mockResolvedValue([
+        {
+          id: 'assignee-1',
+          name: 'Default Assignee',
+          email: 'assignee@example.com',
+          image: null,
+          isAIAgent: false,
+        },
+      ])
 
       const request = createMockRequest('GET')
       const response = await GET(request)
@@ -380,6 +379,8 @@ describe('/api/lists - List Defaults', () => {
             id: 'assignee-1',
             name: 'Default Assignee',
             email: 'assignee@example.com',
+            image: null,
+            isAIAgent: false,
           },
           // Removed legacy members
           listMembers: [],

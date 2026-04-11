@@ -11,10 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -123,9 +121,7 @@ export async function POST(request: NextRequest) {
 
         // Update workflow status to FAILED to prevent stuck workflows
         try {
-          const { PrismaClient } = await import('@prisma/client')
-          const prismaClient = new PrismaClient()
-          await prismaClient.codingTaskWorkflow.update({
+          await prisma.codingTaskWorkflow.update({
             where: { id: workflowId },
             data: {
               status: 'FAILED',
@@ -135,7 +131,6 @@ export async function POST(request: NextRequest) {
               }
             }
           })
-          await prismaClient.$disconnect()
         } catch (e) {
           console.error('❌ [Workflow] Failed to update workflow status:', e)
         }
@@ -168,7 +163,5 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

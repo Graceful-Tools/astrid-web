@@ -158,6 +158,9 @@ iOSInjectionProject/
 # macOS
 .DS_Store
 
+# Generated reports
+logs/
+
 # Temporary build fixes documentation (clean these up periodically)
 BUILD_*.md
 FINAL_*.md

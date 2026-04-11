@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const { searchParams } = new URL(request.url)
+    const take = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200)
+    const skip = parseInt(searchParams.get('offset') || '0', 10)
+
     const publicTasks = await prisma.task.findMany({
       where: {
         isPrivate: false,
@@ -47,6 +51,8 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: "desc",
       },
+      take,
+      skip,
     })
 
     return NextResponse.json(publicTasks, {

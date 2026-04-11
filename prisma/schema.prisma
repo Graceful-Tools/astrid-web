@@ -250,6 +250,7 @@ model Task {
   @@index([dueDateTime, completed])
   @@index([reminderTime, reminderSent])
   @@index([repeating])
+  @@index([creatorId, createdAt])
 }
 
 model Comment {
@@ -275,6 +276,7 @@ model Comment {
   @@index([authorId])
   @@index([createdAt])
   @@index([taskId, createdAt])
+  @@index([parentCommentId, createdAt])
 }
 
 model Attachment {

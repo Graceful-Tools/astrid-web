@@ -5,11 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,7 +86,5 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

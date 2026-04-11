@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     const internalSecret = request.headers.get('X-Internal-Secret')
     const expectedSecret = process.env.INTERNAL_API_SECRET
 
-    // Allow if secret matches OR if not configured (development mode)
-    if (expectedSecret && internalSecret !== expectedSecret) {
+    // Require secret to be configured and matching
+    if (!expectedSecret || internalSecret !== expectedSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

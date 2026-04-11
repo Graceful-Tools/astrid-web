@@ -186,35 +186,18 @@ All powered by the `*.astrid.cc` wildcard domain on one Vercel project.
 
 ## Handling "Ship It" on Astrid Tasks
 
-**AUTOMATED:** The Claude agent worker automatically detects "ship it" comments and triggers deployment!
+When user says "ship it" on an Astrid task (where an AI agent has been working), Claude Code executes the deployment workflow:
 
-When you comment "ship it" on an Astrid task (where an AI agent has been working), the worker automatically:
-
-1. ✅ Detects the "ship it" comment (polls every 30 seconds)
-2. ✅ Extracts PR number from task comments
-3. ✅ Merges PR to main via GitHub API
-4. ✅ Vercel auto-deploys via GitHub webhook
-5. ✅ Marks task as complete
-6. ✅ Posts deployment confirmation to task
-
-### How It Works
-
-The `claude-agent-worker.ts` polls Astrid tasks and checks for "ship it" comments after completion markers:
-
-**Automatic workflow:**
+**Workflow:**
 ```
 1. AI agent creates PR and posts link to task
 2. User reviews PR preview and comments "ship it" on task
-3. Worker detects comment on next poll (≤30s)
-4. Worker merges PR #X to main
-5. GitHub webhook triggers Vercel production deploy
-6. Worker posts "🎉 Deployment Complete!" to task
-7. Task marked as complete
+3. Claude Code merges PR to main
+4. Deploy to production via Vercel CLI
+5. Mark task as complete
 ```
 
-### Manual Ship It (Fallback)
-
-If automation fails or for manual deployment:
+### Manual Ship It
 
 ```bash
 # Pull tasks and identify ship it comment
@@ -420,22 +403,22 @@ These commands run without asking (configured in settings):
 
 ## Multi-Agent Setup
 
-The AI agent worker supports multiple AI providers. Users can assign tasks to different AI agents:
+AI agent execution is handled by the **Astrid SDK** (see below), not by scripts in this repo. The SDK supports multiple AI providers and routes tasks based on the assigned agent email.
 
 ### Supported Agents
 
-| Agent | Provider | Model | Capabilities |
-|-------|----------|-------|--------------|
-| Claude | Claude | Claude Agent SDK | Best coding experience, native tool use |
-| OpenAI Codex | OpenAI | GPT-4o | Function calling for file operations |
-| Gemini | Gemini | Gemini 1.5 Pro | Function calling for file operations |
+| Agent | Email | Provider | Default Model |
+|-------|-------|----------|---------------|
+| Claude | `claude@astrid.cc` | Claude Code CLI | opus |
+| OpenAI | `openai@astrid.cc` | OpenAI API | o4-mini |
+| Gemini | `gemini@astrid.cc` | Gemini API | gemini-2.5-flash |
 
 ### API Keys Required
 
 Add to `.env.local` for each provider you want to use:
 
 ```bash
-# Claude - Recommended
+# Claude - Recommended (uses local CLI, no API key needed for terminal mode)
 ANTHROPIC_API_KEY=sk-ant-...
 
 # OpenAI
@@ -444,23 +427,6 @@ OPENAI_API_KEY=sk-...
 # Google Gemini
 GEMINI_API_KEY=...
 ```
-
-**Get API Keys:**
-- Claude: https://console.anthropic.com/settings/keys
-- OpenAI: https://platform.openai.com/api-keys
-- Gemini: https://aistudio.google.com/apikey
-
-### Running the Worker
-
-```bash
-# Run the multi-agent worker (monitors all configured agents)
-npx tsx scripts/ai-agent-worker.ts
-
-# Process a specific task
-npx tsx scripts/ai-agent-worker.ts <taskId>
-```
-
-The worker automatically routes tasks to the correct AI service based on which agent the task is assigned to.
 
 ---
 

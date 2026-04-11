@@ -8,7 +8,6 @@ This directory contains all technical documentation for the Astrid task manageme
 - **[Architecture Overview](./ARCHITECTURE.md)** - System architecture and design patterns
 - **[Authentication System](./AUTHENTICATION.md)** - Authentication implementation and security
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
-- **[MVC Architecture](./MVC_ARCHITECTURE.md)** - Controller-Repository-Service pattern for AI webhooks
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
 
 ### 🚀 Setup & Deployment
@@ -23,7 +22,7 @@ This directory contains all technical documentation for the Astrid task manageme
 
 ### 🤖 AI Agents & Automation
 - **[CLAUDE.md](../CLAUDE.md)** - ⭐ **Essential**: Claude Code operational context (root)
-- **[GPT-5-CODEX.md](../GPT-5-CODEX.md)** - ⭐ **Essential**: GPT-5 Codex operational context (root)
+- **[CODEX.md](../CODEX.md)** - OpenAI Codex operational context (root)
 - **[ASTRID.md Template](./templates/ASTRID.md)** - ⭐ **Essential**: Configure AI agent behavior for your project
 - **[AI Agents Overview](./ai-agents/README.md)** - Getting started with AI coding agents
 - **[Quick Start Guide](./ai-agents/quick-start.md)** - Fast setup for AI agents
@@ -128,20 +127,16 @@ The `archive/` directory contains historical documentation preserved for referen
 - ✅ **Multi-AI Support** - Claude, OpenAI, and Gemini APIs
 - ✅ **Production Ready** - All migrations deployed and tested
 
-**Documentation Status:** ✅ **Up to Date** (Last updated: 2026-03-31)
+**Documentation Status:** ✅ **Up to Date** (Last reviewed: 2026-04-11)
 **Documentation Organization:** ✅ **Cleaned and Organized** - Root directory reserved for AI agent contexts only
-**Root Directory:** CLAUDE.md, GPT-5-CODEX.md, ASTRID.md, README.md (AI agent operational contexts)
+**Root Directory:** CLAUDE.md, CODEX.md, GEMINI.md, ASTRID.md, README.md (AI agent operational contexts)
 
-**Recent Updates (2024-11-21 - Documentation Audit & Cleanup):**
-- 🧹 **Removed obsolete documentation** - Deleted 4 files describing non-existent infrastructure (Depot.dev, aspirational staging setup, port detection details)
-- 🗂️ **Reorganized historical docs** - Moved 8 implementation summaries from ai-agents/ to archive/implementations/, 4 analysis docs to archive/analysis/
-- 📅 **Fixed incorrect dates** - Corrected 20+ files with future dates (2025-09/10 → 2024-09/10)
-- 📁 **Improved archive organization** - Created archive/analysis/ subdirectory, updated archive documentation
-- 🔍 **Removed phantom file references** - Removed references to ARCHITECTURE_AUDIT_2025.md and IMPLEMENTATION_PLAN_2025.md which don't exist
-- ✅ **ARCHITECTURE.md** - Comprehensive system documentation with offline mode, caching, real-time updates, push notifications, email services, cron jobs, webhooks, and infrastructure
-- ✅ **AUTH_SETUP.md** - Updated to reflect dual authentication (Google OAuth + Credentials)
-- ✅ **stack.md** - Updated to Next.js 15, React 19, Prisma 6.14+, added Redis, Dexie, Playwright, email services, and AI integrations
-- ✅ **quick-reference.md** - Updated versions and added comprehensive environment variable documentation
+**Recent Updates (2026-04-11 - Documentation Audit & Cleanup):**
+- Archived `MVC_ARCHITECTURE.md` (described unimplemented pattern) and `LOCAL_FIRST_PATTERN.md` (iOS-only, belongs in astrid-ios repo)
+- Archived 4 OpenClaw spec docs (superseded by Agent Architecture Simplification)
+- Fixed stale GPT-5-CODEX.md reference (now CODEX.md)
+- Removed `claude-agent-worker.ts` references from CLAUDE.md (replaced by Astrid SDK)
+- Verified: ARCHITECTURE.md, AUTHENTICATION.md, LAYOUT_SYSTEM.md, OFFLINE_MODE.md, DATE_HANDLING_SPECIFICATION.md all match implementation
 
 ---
 

@@ -28,6 +28,7 @@
     "tests/**/*",
     "tools/**/*",
     "archived/**/*",
+    "scripts/archive/**/*",
     "packages/**/*",
     "mcp/mcp-server-v2.ts",
     "mcp/mcp-server-v2.js"

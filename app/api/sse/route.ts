@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
         } catch (e) {
           // Controller might already be closed
         }
-      }, 300000) // Close after 5 minutes for periodic refresh
+      }, 1500000) // Close after 25 minutes (reduces reconnect overhead)
       
       // Cleanup on connection close
       const cleanup = () => {

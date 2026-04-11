@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
-import { getAllListMembers } from "@/lib/list-member-utils"
+import { getAllListMembers, hasListAccess } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
 import { hydrateSingleListFavorite } from "@/lib/favorites"
 import type { RouteContextParams } from "@/types/next"
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
 
 
     // Check if user has access to this list using comprehensive member utils
-    const { hasListAccess } = await import("@/lib/list-member-utils")
+    // hasListAccess imported at top level
     const hasAccess = (session.user.id && hasListAccess(listWithDefaultAssignee as any, session.user.id)) || listWithDefaultAssignee.privacy === "PUBLIC"
 
     if (!hasAccess) {

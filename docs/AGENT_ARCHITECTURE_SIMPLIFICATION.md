@@ -2,7 +2,7 @@
 
 **Author:** Astrid Claw  
 **Date:** 2026-02-16  
-**Status:** Proposal  
+**Status:** Phase 1 Complete (executor removal done, Astrid SDK is the runtime)  
 
 ## The Problem
 

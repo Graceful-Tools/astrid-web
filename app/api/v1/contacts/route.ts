@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
     const dedupedContacts = Array.from(contactMap.values())
 
-    // Perform upsert in a transaction
+    // Perform batch upsert in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // If replaceAll, delete existing contacts first
       if (replaceAll) {
@@ -102,40 +102,42 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      // Upsert each contact
-      let created = 0
-      let updated = 0
+      // Batch-fetch existing contacts in one query (instead of N individual lookups)
+      const existingContacts = replaceAll ? [] : await tx.addressBookContact.findMany({
+        where: {
+          userId: auth.userId,
+          email: { in: dedupedContacts.map(c => c.email) },
+        },
+        select: { id: true, email: true },
+      })
+      const existingMap = new Map(existingContacts.map(c => [c.email, c.id]))
 
-      for (const contact of dedupedContacts) {
-        const existing = await tx.addressBookContact.findUnique({
-          where: {
-            userId_email: {
-              userId: auth.userId,
-              email: contact.email,
-            }
-          }
+      // Split into creates and updates
+      const toCreate = dedupedContacts.filter(c => !existingMap.has(c.email))
+      const toUpdate = dedupedContacts.filter(c => existingMap.has(c.email))
+
+      // Batch create new contacts
+      if (toCreate.length > 0) {
+        await tx.addressBookContact.createMany({
+          data: toCreate.map(c => ({
+            userId: auth.userId,
+            email: c.email,
+            name: c.name,
+            phoneNumber: c.phoneNumber,
+          })),
+          skipDuplicates: true,
         })
+      }
 
-        if (existing) {
-          await tx.addressBookContact.update({
-            where: { id: existing.id },
-            data: {
-              name: contact.name,
-              phoneNumber: contact.phoneNumber,
-            }
+      // Batch update existing contacts (Prisma doesn't support updateMany with different values,
+      // so we use Promise.all for parallel execution within the transaction)
+      if (toUpdate.length > 0) {
+        await Promise.all(toUpdate.map(c =>
+          tx.addressBookContact.update({
+            where: { id: existingMap.get(c.email)! },
+            data: { name: c.name, phoneNumber: c.phoneNumber },
           })
-          updated++
-        } else {
-          await tx.addressBookContact.create({
-            data: {
-              userId: auth.userId,
-              email: contact.email,
-              name: contact.name,
-              phoneNumber: contact.phoneNumber,
-            }
-          })
-          created++
-        }
+        ))
       }
 
       // Get total count
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest) {
         where: { userId: auth.userId }
       })
 
-      return { created, updated, total }
+      return { created: toCreate.length, updated: toUpdate.length, total }
     })
 
     const headers: Record<string, string> = {}

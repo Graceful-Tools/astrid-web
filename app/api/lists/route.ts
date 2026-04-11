@@ -111,25 +111,28 @@ export async function GET(request: NextRequest) {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
 
-    // Manually fetch defaultAssignee users for lists that have valid user IDs
-    const listsWithDefaultAssignees = await Promise.all(
-      lists.map(async (list) => {
-        let defaultAssignee = null
-        if (list.defaultAssigneeId && list.defaultAssigneeId !== "unassigned") {
-          defaultAssignee = await prisma.user.findUnique({
-            where: { id: list.defaultAssigneeId },
-            select: safeUserSelect
-          })
-        }
-
-        const listWithAssignee = {
-          ...list,
-          defaultAssignee
-        }
-
-        return listWithAssignee
+    // Batch-fetch defaultAssignee users (avoids N+1 per-list query)
+    const assigneeIds = [...new Set(
+      lists
+        .map((list) => list.defaultAssigneeId)
+        .filter((id): id is string => !!id && id !== "unassigned")
+    )]
+    const assigneeMap = new Map<string, Record<string, unknown>>()
+    if (assigneeIds.length > 0) {
+      const assignees = await prisma.user.findMany({
+        where: { id: { in: assigneeIds } },
+        select: safeUserSelect,
       })
-    )
+      for (const a of assignees) {
+        assigneeMap.set(a.id, a)
+      }
+    }
+    const listsWithDefaultAssignees = lists.map((list) => ({
+      ...list,
+      defaultAssignee: (list.defaultAssigneeId && list.defaultAssigneeId !== "unassigned")
+        ? assigneeMap.get(list.defaultAssigneeId) ?? null
+        : null,
+    }))
 
     // Return response with timestamp for next incremental sync
     const response = {
