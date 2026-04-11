@@ -86,7 +86,7 @@ export function ListItem({
           isMobile ? 'mobile-list-item text-left' : ''
         } ${
           selectedListId === list.id
-          ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
+          ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 font-medium"
           : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
         } ${
           isDropTarget
@@ -112,7 +112,7 @@ export function ListItem({
             <img
               src={getListImageUrl(list)}
               alt={list.name}
-              className="w-4 h-4 rounded-full object-cover flex-shrink-0"
+              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement
                 const defaultImage = getConsistentDefaultImage(list.id).filename
@@ -134,7 +134,7 @@ export function ListItem({
                 ) : null}
               </div>
             )}
-            <span className="text-xs theme-count-bg theme-text-primary px-2 py-1 rounded">
+            <span className="text-[0.6875rem] theme-count-bg theme-text-primary px-2 py-1 rounded">
               {taskCount}
             </span>
             {isMobile && onSettingsClick && (

@@ -356,8 +356,8 @@ interface FileAttachment {
   }
 
   return (
-    <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
-      {/* Arrow pointing to the selected task */}
+    <>
+      {/* Arrow rendered outside the panel div so it escapes overflow:hidden */}
       {!onClose ? (
         <div
           className="task-panel-arrow theme-panel-arrow"
@@ -369,6 +369,7 @@ interface FileAttachment {
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
       )}
+    <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
 
       <div className="border-b border-gray-200 dark:border-gray-700">
         {/* Mobile/Tablet Back Navigation */}
@@ -724,5 +725,6 @@ interface FileAttachment {
         </div>
       )}
     </div>
+    </>
   )
 }

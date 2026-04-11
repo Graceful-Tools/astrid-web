@@ -426,7 +426,7 @@ export function MainContent({
         className={`theme-bg-primary flex flex-col relative z-10 ${
         isMobile
           ? 'absolute inset-x-0 bottom-0 transition-all duration-300 ease-in-out'
-          : 'w-[450px] flex-shrink-0 flex-grow-0'
+          : 'flex-1 min-w-0'
       }`}
       style={{
         // Mobile: offset for floating header (header height + margin)
@@ -444,11 +444,11 @@ export function MainContent({
           transformOrigin: 'left center',
         }),
       }}>
-        <div className="p-6 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
+        <div className="px-4 py-5 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
           {isSearchActive ? (
-            <div className="flex items-center justify-start space-x-4 mb-4 px-4">
-              <div className="text-left flex-1 max-w-md">
-                <h1 className="text-3xl font-bold theme-text-primary mb-1">Search</h1>
+            <div className="flex items-center justify-start space-x-4 mb-4">
+              <div className="text-left flex-1">
+                <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">Search</h1>
                 <p className="theme-text-muted text-sm">Find tasks and users across all lists</p>
               </div>
             </div>
@@ -462,7 +462,7 @@ export function MainContent({
                 if (!currentList) return null
 
                 return (
-                  <div className="flex items-center justify-start space-x-4 mb-4 px-4">
+                  <div className="flex items-center justify-start space-x-4 mb-4">
                     {/* List Image */}
                     <img
                       src={getListImageUrl(currentList)}
@@ -481,7 +481,7 @@ export function MainContent({
                     />
 
                     {/* Editable List Name and Description */}
-                    <div className="text-left flex-1 max-w-md">
+                    <div className="text-left flex-1">
                       {editingListName ? (
                         <div className="flex items-center justify-start space-x-2">
                           <Input
@@ -491,7 +491,7 @@ export function MainContent({
                               if (e.key === "Enter") handleSaveListName()
                               if (e.key === "Escape") setEditingListName(false)
                             }}
-                            className="theme-input theme-text-primary text-3xl font-bold text-left max-w-md"
+                            className="theme-input theme-text-primary text-2xl font-semibold tracking-tight text-left max-w-md"
                             autoFocus
                           />
                           <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">
@@ -503,7 +503,7 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-3xl font-bold theme-text-primary mb-1 text-left ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
                           {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
@@ -615,9 +615,9 @@ export function MainContent({
 
             {/* Default view titles for system lists */}
             {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
-              <div className="flex items-center justify-start space-x-4 mb-4 px-4">
-                <div className="text-left flex-1 max-w-md">
-                  <h1 className="text-3xl font-bold theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
+              <div className="flex items-center justify-start space-x-4 mb-4">
+                <div className="text-left flex-1">
+                  <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -701,7 +701,7 @@ export function MainContent({
 
           {/* Search Input - shown when search is active */}
           {isSearchActive && onSearchChange && (
-            <div className="px-4 py-3">
+            <div className="py-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
                 <Input
@@ -727,7 +727,7 @@ export function MainContent({
             // For collaborative lists, always show task creation (even when viewing from featured)
             if (isCollaborative || isUserOwnerOrAdmin) {
               return (
-                <div className="px-4">
+                <div>
                   <EnhancedTaskCreation
                     layoutType={layoutType}
                     selectedListId={selectedListId}
@@ -747,7 +747,7 @@ export function MainContent({
             // For featured lists OR copy-only public lists (not owner/admin), show Copy List button
             if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
               return (
-                <div className="px-4">
+                <div>
                   <Button
                     onClick={() => selectedList && handleCopyList(selectedList.id)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -761,7 +761,7 @@ export function MainContent({
 
             // Default: show task creation
             return (
-              <div className="px-4">
+              <div>
                 <EnhancedTaskCreation
                   layoutType={layoutType}
                   selectedListId={selectedListId}
@@ -900,7 +900,7 @@ export function MainContent({
             >
               <div
                 ref={taskListContainerRef}
-                className={isMobile ? "space-y-2" : "space-y-2"}
+                className={isMobile ? "space-y-2.5" : "space-y-2.5"}
               >
                 {finalFilteredTasks.map((task) => {
                   const isDragging = activeDragTaskId === task.id
@@ -1144,7 +1144,8 @@ export function MainContent({
                                 {task.lists.filter(list => list != null).slice(0, isMobile ? 2 : undefined).map((list) => (
                                   <div
                                     key={list.id}
-                                    className="flex items-center space-x-1 theme-bg-secondary rounded-full px-2 py-0.5 text-xs theme-border border"
+                                    className="flex items-center space-x-1 rounded px-1.5 py-0 text-xs"
+                                    style={{ backgroundColor: `${list.color}15` }}
                                   >
                                     {(() => {
                                       const privacy = list?.privacy

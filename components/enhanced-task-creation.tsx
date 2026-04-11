@@ -58,14 +58,14 @@ export function EnhancedTaskCreation({
     switch (layoutType) {
       case '3-column':
         return {
-          width: 'w-full max-w-md',
+          width: 'w-full',
           placeholder: 'Add task to current list...',
           buttonText: isMobile ? '' : 'Add Task',
           showKeyboardHint: false
         }
       case '2-column':
         return {
-          width: 'w-full max-w-sm',
+          width: 'w-full',
           placeholder: 'Add task...',
           buttonText: isMobile ? '' : 'Add Task',
           showKeyboardHint: false
@@ -208,16 +208,7 @@ export function EnhancedTaskCreation({
   const getContainerClasses = () => {
     const baseClasses = "flex items-center gap-2 transition-all duration-200"
 
-    switch (layoutType) {
-      case '3-column':
-        return `${baseClasses} flex-col sm:flex-row ${inputConfig.width}`
-      case '2-column':
-        return `${baseClasses} ${inputConfig.width}`
-      case '1-column':
-        return `${baseClasses} ${inputConfig.width}`
-      default:
-        return baseClasses
-    }
+    return `${baseClasses} ${inputConfig.width}`
   }
 
   // Input styling based on layout

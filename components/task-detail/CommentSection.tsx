@@ -1024,15 +1024,14 @@ export function CommentSection({
                 {/* Reply input bar: [textarea] [send] */}
                 <div className="relative">
                   {renderMentionPopup(true)}
-                  <div className="chat-input-bar" style={{ boxShadow: 'none', padding: 0 }}>
+                  <div className="chat-input-bar shadow-none p-0">
                     <textarea
                       ref={replyInputRef}
                       value={replyContent}
                       onChange={(e) => handleTextChange(e, true)}
                       placeholder="Write a reply..."
-                      className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-auto min-h-9 max-h-[200px]"
                       rows={1}
-                      style={{ height: 'auto', minHeight: '36px', maxHeight: '200px' }}
                       onInput={(e) => {
                         const target = e.target as HTMLTextAreaElement
                         target.style.height = 'auto'

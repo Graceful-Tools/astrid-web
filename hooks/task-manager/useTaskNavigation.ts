@@ -24,10 +24,12 @@ export interface UseTaskNavigationReturn {
   settingsPage: string | null
   isSettingsActive: boolean
   settingsSubPage: string | null
+
   isSearchActive: boolean
   navigateToSettings: (page: string) => void
   exitSettings: () => void
   closeSettingsSubPage: () => void
+
   selectSearch: () => void
   exitSearch: () => void
 

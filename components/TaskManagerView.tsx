@@ -409,6 +409,40 @@ const TaskManagerView = memo(function TaskManagerView({
 }: TaskManagerViewProps) {
   const autoOpenedSidebarRef = React.useRef(false)
 
+  // Animated settings panel close (mirrors task pane closing behavior)
+  const [isSettingsPaneClosing, setIsSettingsPaneClosing] = React.useState(false)
+  const closeSettingsSubPageAnimated = React.useCallback(() => {
+    if (is1Column) {
+      onCloseSettingsSubPage()
+      return
+    }
+    setIsSettingsPaneClosing(true)
+    setTimeout(() => {
+      onCloseSettingsSubPage()
+      setIsSettingsPaneClosing(false)
+    }, 300)
+  }, [is1Column, onCloseSettingsSubPage])
+
+  // Wrapped settings navigation: toggle-close uses animation, open is instant
+  const navigateSettingsWithAnimation = React.useCallback((page: string) => {
+    // If tapping the same page that's already open, animate it closed
+    if (page === settingsSubPage) {
+      closeSettingsSubPageAnimated()
+      return
+    }
+    // If a different sub-page is open, close it animated then open the new one
+    if (settingsSubPage && page !== 'hub') {
+      setIsSettingsPaneClosing(true)
+      setTimeout(() => {
+        setIsSettingsPaneClosing(false)
+        onNavigateSettings(page)
+      }, 200) // Slightly shorter for switch transitions
+      return
+    }
+    // Otherwise just navigate normally (slide in)
+    onNavigateSettings(page)
+  }, [settingsSubPage, closeSettingsSubPageAnimated, onNavigateSettings])
+
   const handleHamburgerDragHover = React.useCallback(() => {
     if (!activeDragTaskId || showMobileSidebar) {
       return
@@ -710,10 +744,38 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {/* Main Content - show settings, chat, or tasks */}
+        {/* Main Content - show settings hub, chat, or tasks */}
         {isSettingsActive ? (
-          <div className="flex-1 min-h-0 overflow-hidden" ref={taskManagerRef}>
-            <SettingsPanel onNavigate={onNavigateSettings} onExit={onExitSettings} />
+          <div className="flex-1 min-h-0 overflow-hidden flex">
+            {/* Settings hub - fills available space like task list */}
+            <div className="flex-1 min-w-0 overflow-y-auto scrollbar-hide" ref={taskManagerRef}>
+              <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
+            </div>
+
+            {/* Astrid character - fills remaining space on desktop */}
+            {(is3Column || is2Column) && (
+              <div className="flex-1 min-w-[280px] border-l theme-border flex items-center justify-center p-8">
+                <div className="flex flex-col items-center max-w-xs">
+                  <div className="flex items-start space-x-4 w-full">
+                    <div className="flex-shrink-0 w-24">
+                      <img
+                        src="/icons/icon-512x512.png"
+                        alt="Astrid"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="relative theme-bg-secondary rounded-2xl p-4 border theme-border">
+                        <div className="absolute -left-[14px] top-6 w-0 h-0 border-t-[10px] border-t-transparent border-r-[14px] border-b-[10px] border-b-transparent border-l-0 z-10 speech-bubble-arrow-fill"></div>
+                        <p className="text-sm font-medium theme-text-primary leading-relaxed">
+                          Help me help you become super productive!!!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : activePanel === 'chat' && isMobile && !isSearchActive ? (
           // Mobile only: ChatPanel replaces task list
@@ -803,9 +865,18 @@ const TaskManagerView = memo(function TaskManagerView({
           />
         )}
 
-        {/* Chat Panel - inline flex column on the right (2-column and 3-column) */}
-        {(is3Column || is2Column) && effectiveSession?.user && (
-          <div className="flex-1 order-last h-full border-l theme-border min-w-[280px]">
+        {/* Chat Panel - inline flex column on the right (2-column and 3-column), hidden in settings, dimmed when task detail is open */}
+        {(is3Column || is2Column) && effectiveSession?.user && !isSettingsActive && (
+          <div className={`flex-1 order-last h-full border-l theme-border min-w-[280px] relative ${(selectedTask || settingsSubPage) ? 'pointer-events-none' : ''}`}>
+            {(selectedTask || settingsSubPage) && (
+              <div
+                className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200 pointer-events-auto cursor-pointer"
+                onClick={() => {
+                  if (selectedTask) closeTaskDetail()
+                  if (settingsSubPage) closeSettingsSubPageAnimated()
+                }}
+              />
+            )}
             <ChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}
@@ -830,17 +901,19 @@ const TaskManagerView = memo(function TaskManagerView({
         />
       )}
 
-      {/* Desktop Settings Detail Pane - same bubble as task detail */}
-      {!is1Column && settingsSubPage && isSettingsActive && (
+      {/* Desktop Settings Detail Pane - floating panel like task detail, positioned at settings panel right edge */}
+      {!is1Column && (settingsSubPage || isSettingsPaneClosing) && isSettingsActive && (
         <div
-          className="task-panel-desktop scrollbar-hide task-panel-animate"
-          style={{ left: taskPanePosition.left - 15, right: 10, width: 'auto' }}
+          className={`task-panel-desktop scrollbar-hide ${isSettingsPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
+          style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
         >
-          <SettingsDetailPanel
-            page={settingsSubPage}
-            onNavigate={onNavigateSettings}
-            onClose={onCloseSettingsSubPage}
-          />
+          {settingsSubPage && (
+            <SettingsDetailPanel
+              page={settingsSubPage}
+              onNavigate={onNavigateSettings}
+              onClose={closeSettingsSubPageAnimated}
+            />
+          )}
         </div>
       )}
 
@@ -853,7 +926,7 @@ const TaskManagerView = memo(function TaskManagerView({
         return (
           <div
             className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
-            style={{ left: taskPanePosition.left - 15, right: 10, width: 'auto' }}
+            style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
             data-task-panel-desktop
           >
             {canEdit ? (
@@ -949,8 +1022,8 @@ const TaskManagerView = memo(function TaskManagerView({
         )
       })()}
 
-      {/* Enhanced Fixed Mobile Add Task at Bottom — hidden when chat is active */}
-      {isMobile && mobileView === 'list' && activePanel !== 'chat' && (() => {
+      {/* Enhanced Fixed Mobile Add Task at Bottom — hidden when chat is active or sidebar is open */}
+      {isMobile && mobileView === 'list' && activePanel !== 'chat' && !showMobileSidebar && (() => {
         const selectedList = lists.find(list => list.id === selectedListId)
         const isPublicList = selectedList?.privacy === 'PUBLIC'
         const isCollaborative = selectedList?.publicListType === 'collaborative'

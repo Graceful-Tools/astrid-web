@@ -65,6 +65,14 @@ const config: Config = {
   				ring: 'hsl(var(--sidebar-ring))'
   			}
   		},
+  		fontSize: {
+  			'display': ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.01em', fontWeight: '600' }],
+  			'title': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em', fontWeight: '600' }],
+  			'subtitle': ['1.125rem', { lineHeight: '1.5rem', fontWeight: '500' }],
+  			'body': ['0.9375rem', { lineHeight: '1.5rem', fontWeight: '400' }],
+  			'caption': ['0.8125rem', { lineHeight: '1.25rem', fontWeight: '400' }],
+  			'micro': ['0.6875rem', { lineHeight: '1rem', fontWeight: '500' }],
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

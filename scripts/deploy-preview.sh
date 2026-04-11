@@ -76,7 +76,7 @@ fi
 if [[ "$PRODUCTION" == "true" ]]; then
   echo -e "${BOLD}Deploying to production (astrid.cc)...${NC}"
   DEPLOY_OUTPUT=$(npx vercel --prod --yes --token="$VERCEL_TOKEN" --scope gracefultools 2>&1)
-  DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
+  DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE 'https://[a-z0-9-]+\.vercel\.app' | tail -1)
 
   echo ""
   info "Production deployed: $DEPLOY_URL"
@@ -84,7 +84,7 @@ if [[ "$PRODUCTION" == "true" ]]; then
 else
   echo -e "${BOLD}Deploying branch: ${BRANCH}${NC}"
   DEPLOY_OUTPUT=$(npx vercel --yes --token="$VERCEL_TOKEN" --scope gracefultools 2>&1)
-  DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
+  DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE 'https://[a-z0-9-]+\.vercel\.app' | tail -1)
 
   if [[ -z "$DEPLOY_URL" ]]; then
     echo "$DEPLOY_OUTPUT"

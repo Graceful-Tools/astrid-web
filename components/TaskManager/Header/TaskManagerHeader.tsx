@@ -174,7 +174,7 @@ export function TaskManagerHeader({
         const parts = fullText.split(/(!!!|!!|!|○)/)
 
         return (
-          <span className="text-lg font-semibold truncate inline-block max-w-full">
+          <span className="text-base font-medium tracking-tight truncate inline-block max-w-full">
             {parts.map((part, index) => {
               // Check if this part is priority marks
               if (part === '!!!') {
@@ -195,7 +195,7 @@ export function TaskManagerHeader({
 
     // Default rendering without colors
     return (
-      <span className="text-lg font-semibold truncate inline-block max-w-full">
+      <span className="text-base font-medium tracking-tight truncate inline-block max-w-full">
         {fullText}
       </span>
     )
@@ -229,11 +229,11 @@ export function TaskManagerHeader({
   // Render settings breadcrumb title
   const renderSettingsTitle = () => {
     if (!settingsPage || settingsPage === 'hub') {
-      return <span className="text-lg font-semibold truncate">{t("settings.settings")}</span>
+      return <span className="text-base font-medium tracking-tight truncate">{t("settings.settings")}</span>
     }
     const subTitle = settingsSubPageTitle[settingsPage] || settingsPage
     return (
-      <span className="text-lg font-semibold truncate">
+      <span className="text-base font-medium tracking-tight truncate">
         <button
           onClick={() => onNavigateSettings?.('hub')}
           className="hover:underline opacity-70"
@@ -284,7 +284,7 @@ export function TaskManagerHeader({
             {activeView === 'settings' ? (
               // Settings mode: Show "Settings" title
               <div className="flex items-center justify-start overflow-hidden w-full h-full">
-                <span className="text-lg font-semibold truncate">{t("settings.settings")}</span>
+                <span className="text-base font-medium tracking-tight truncate">{t("settings.settings")}</span>
               </div>
             ) : isSearchActive ? (
               // Search mode: search input in header for mobile, title for desktop
@@ -302,7 +302,7 @@ export function TaskManagerHeader({
                 </div>
               ) : (
                 <div className="flex items-center justify-start overflow-hidden w-full h-full">
-                  <span className="text-lg font-semibold truncate">{t("search.placeholder") || "Search"}</span>
+                  <span className="text-base font-medium tracking-tight truncate">{t("search.placeholder") || "Search"}</span>
                 </div>
               )
             ) : (
@@ -377,11 +377,11 @@ export function TaskManagerHeader({
             <Image
               src="/icons/icon-96x96.png"
               alt="Astrid"
-              width={36}
-              height={36}
-              className="rounded"
+              width={28}
+              height={28}
+              className="rounded-sm"
             />
-            <span className="text-xl font-bold theme-text-primary">astrid</span>
+            <span className="text-lg font-semibold tracking-tight theme-text-primary">astrid</span>
           </div>
 
         </div>
