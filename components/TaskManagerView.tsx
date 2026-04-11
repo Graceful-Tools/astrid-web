@@ -51,12 +51,10 @@ interface TaskManagerViewProps {
   settingsPage: string | null
   isSettingsActive: boolean
   settingsSubPage: string | null
-  settingsFullPage: string | null
   isSearchActive: boolean
   onNavigateSettings: (page: string) => void
   onExitSettings: () => void
   onCloseSettingsSubPage: () => void
-  onExpandSettingsFullPage: (page: string) => void
   onSelectSearch: () => void
   onExitSearch: () => void
 
@@ -272,12 +270,10 @@ const TaskManagerView = memo(function TaskManagerView({
   settingsPage,
   isSettingsActive,
   settingsSubPage,
-  settingsFullPage,
   isSearchActive,
   onNavigateSettings,
   onExitSettings,
   onCloseSettingsSubPage,
-  onExpandSettingsFullPage,
   onSelectSearch,
   onExitSearch,
   getTaskCountForListMemo,
@@ -636,24 +632,6 @@ const TaskManagerView = memo(function TaskManagerView({
   // Works on mobile AND 2-column view (anywhere hamburger menu is shown)
   const isIOSDrawer = showHamburgerMenu
 
-  // Full-page settings: render just the settings content, no sidebar/header/chat
-  if (settingsFullPage) {
-    return (
-      <div className="app-container theme-bg-primary theme-text-primary" data-testid="settings-fullpage">
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="max-w-3xl mx-auto px-6 py-8">
-            <SettingsDetailPanel
-              page={settingsFullPage}
-              onNavigate={onNavigateSettings}
-              onClose={onCloseSettingsSubPage}
-              fullPage
-            />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="app-container theme-bg-primary theme-text-primary">
       {/* Mobile Sidebar - rendered outside content wrapper for iOS drawer effect */}
@@ -766,19 +744,8 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {/* Main Content - show settings (fullpage or hub), chat, or tasks */}
-        {isSettingsActive && settingsFullPage ? (
-          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide" ref={taskManagerRef}>
-            <div className="max-w-3xl mx-auto">
-              <SettingsDetailPanel
-                page={settingsFullPage}
-                onNavigate={onNavigateSettings}
-                onClose={onCloseSettingsSubPage}
-                fullPage
-              />
-            </div>
-          </div>
-        ) : isSettingsActive ? (
+        {/* Main Content - show settings hub, chat, or tasks */}
+        {isSettingsActive ? (
           <div className="flex-1 min-h-0 overflow-hidden" ref={taskManagerRef}>
             <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
           </div>

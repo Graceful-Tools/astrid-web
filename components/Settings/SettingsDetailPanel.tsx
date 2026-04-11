@@ -42,10 +42,9 @@ interface SettingsDetailPanelProps {
   page: string
   onNavigate: (page: string) => void
   onClose: () => void
-  fullPage?: boolean
 }
 
-export default function SettingsDetailPanel({ page, onNavigate, onClose, fullPage }: SettingsDetailPanelProps) {
+export default function SettingsDetailPanel({ page, onNavigate, onClose }: SettingsDetailPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [arrowTop, setArrowTop] = useState(80)
 
@@ -119,16 +118,6 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose, fullPag
     }
   }
 
-  if (fullPage) {
-    return (
-      <div className="py-6">
-        <Suspense fallback={<LoadingScreen />}>
-          {renderPage()}
-        </Suspense>
-      </div>
-    )
-  }
-
   return (
     <>
       <div
@@ -136,12 +125,10 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose, fullPag
         style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
       ></div>
       <div ref={panelRef} className="w-full theme-panel flex flex-col h-full relative" data-task-detail-panel>
-        {/* Expand to full page button */}
+        {/* Open in new tab button */}
         <div className="flex items-center justify-end px-3 pt-2 flex-shrink-0">
           <button
-            onClick={() => {
-              window.open(`/settings/${page}?fullpage=1`, '_blank')
-            }}
+            onClick={() => window.open(`/settings/fullpage/${page}`, '_blank')}
             className="p-1.5 rounded-lg theme-text-muted hover:theme-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             title="Open in new tab"
           >

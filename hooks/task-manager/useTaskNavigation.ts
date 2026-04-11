@@ -24,12 +24,12 @@ export interface UseTaskNavigationReturn {
   settingsPage: string | null
   isSettingsActive: boolean
   settingsSubPage: string | null
-  settingsFullPage: string | null
+
   isSearchActive: boolean
   navigateToSettings: (page: string) => void
   exitSettings: () => void
   closeSettingsSubPage: () => void
-  expandSettingsFullPage: (page: string) => void
+
   selectSearch: () => void
   exitSearch: () => void
 
@@ -60,20 +60,6 @@ export function useTaskNavigation({
   // Settings and search navigation state
   const [settingsPage, setSettingsPage] = useState<string | null>(initialSettingsPage || null)
   const [isSearchActive, setIsSearchActive] = useState(false)
-  const [isSettingsFullPage, setIsSettingsFullPage] = useState(false)
-
-  // Detect ?fullpage=1 on mount and URL changes
-  useEffect(() => {
-    const checkFullPage = () => {
-      const search = typeof window !== 'undefined' ? window.location.search : ''
-      const hasFullPage = new URLSearchParams(search).has('fullpage')
-      console.log('[Settings] fullpage check:', { search, hasFullPage, settingsPage })
-      setIsSettingsFullPage(hasFullPage)
-    }
-    checkFullPage()
-    window.addEventListener('popstate', checkFullPage)
-    return () => window.removeEventListener('popstate', checkFullPage)
-  }, [settingsPage]) // Re-check when settings page changes
 
   // Derived unified view
   const activeView: 'list' | 'settings' | 'search' = settingsPage
@@ -82,8 +68,7 @@ export function useTaskNavigation({
       ? 'search'
       : 'list'
   const isSettingsActive = settingsPage !== null
-  const settingsSubPage = (settingsPage && settingsPage !== 'hub' && !isSettingsFullPage) ? settingsPage : null
-  const settingsFullPage = (settingsPage && settingsPage !== 'hub' && isSettingsFullPage) ? settingsPage : null
+  const settingsSubPage = (settingsPage && settingsPage !== 'hub') ? settingsPage : null
 
   const navigateToSettings = useCallback((page: string) => {
     setSettingsPage(page)
@@ -101,14 +86,7 @@ export function useTaskNavigation({
 
   const closeSettingsSubPage = useCallback(() => {
     setSettingsPage('hub')
-    setIsSettingsFullPage(false)
     window.history.pushState(null, '', '/settings')
-  }, [])
-
-  const expandSettingsFullPage = useCallback((page: string) => {
-    setSettingsPage(page)
-    setIsSettingsFullPage(true)
-    window.history.pushState(null, '', `/settings/${page}?fullpage=1`)
   }, [])
 
   const selectSearch = useCallback(() => {
@@ -128,8 +106,6 @@ export function useTaskNavigation({
     const handlePopState = () => {
       const path = window.location.pathname
       const cleanPath = path.replace(/^\/[a-z]{2}(?=\/)/, '')
-      const isFullPage = new URLSearchParams(window.location.search).has('fullpage')
-      setIsSettingsFullPage(isFullPage)
       if (cleanPath === '/settings') {
         setSettingsPage('hub')
         setIsSearchActive(false)
@@ -222,12 +198,10 @@ export function useTaskNavigation({
     settingsPage,
     isSettingsActive,
     settingsSubPage,
-    settingsFullPage,
     isSearchActive,
     navigateToSettings,
     exitSettings,
     closeSettingsSubPage,
-    expandSettingsFullPage,
     selectSearch,
     exitSearch,
 
