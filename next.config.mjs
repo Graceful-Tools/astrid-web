@@ -8,7 +8,7 @@ const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
 const isProduction = process.env.NODE_ENV === 'production'
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://vercel.live https://us-assets.i.posthog.com https://*.posthog.com https://static.cloudflareinsights.com https://unpkg.com;
+  script-src 'self' 'unsafe-inline' ${isProduction ? '' : "'unsafe-eval'"} https://va.vercel-scripts.com https://vercel.live https://us-assets.i.posthog.com https://*.posthog.com https://static.cloudflareinsights.com https://unpkg.com;
   worker-src 'self' blob:;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com;
