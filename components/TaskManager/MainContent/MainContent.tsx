@@ -900,7 +900,7 @@ export function MainContent({
             >
               <div
                 ref={taskListContainerRef}
-                className={isMobile ? "space-y-1.5" : "space-y-1.5"}
+                className={isMobile ? "space-y-2.5" : "space-y-2.5"}
               >
                 {finalFilteredTasks.map((task) => {
                   const isDragging = activeDragTaskId === task.id
