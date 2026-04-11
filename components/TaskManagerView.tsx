@@ -636,6 +636,24 @@ const TaskManagerView = memo(function TaskManagerView({
   // Works on mobile AND 2-column view (anywhere hamburger menu is shown)
   const isIOSDrawer = showHamburgerMenu
 
+  // Full-page settings: render just the settings content, no sidebar/header/chat
+  if (settingsFullPage) {
+    return (
+      <div className="app-container theme-bg-primary theme-text-primary">
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
+          <div className="max-w-3xl mx-auto px-6 py-8">
+            <SettingsDetailPanel
+              page={settingsFullPage}
+              onNavigate={onNavigateSettings}
+              onClose={onCloseSettingsSubPage}
+              fullPage
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app-container theme-bg-primary theme-text-primary">
       {/* Mobile Sidebar - rendered outside content wrapper for iOS drawer effect */}
