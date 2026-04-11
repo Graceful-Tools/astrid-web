@@ -129,8 +129,8 @@
 }
 
 .task-panel-arrow {
-  @apply absolute w-6 h-6 transform rotate-45 transition-all duration-75;
-  left: -13px;
+  @apply absolute w-4 h-4 transform rotate-45 transition-all duration-75;
+  left: -9px;
   z-index: 10;
   border-left: 1px solid rgb(var(--theme-border));
   border-bottom: 1px solid rgb(var(--theme-border));
