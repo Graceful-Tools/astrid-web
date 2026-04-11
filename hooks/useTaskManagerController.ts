@@ -1433,6 +1433,7 @@ export function useTaskManagerController({
     settingsPage: navigationState.settingsPage,
     isSettingsActive: navigationState.isSettingsActive,
     settingsSubPage: navigationState.settingsSubPage,
+    settingsFullPage: navigationState.settingsFullPage,
     isSearchActive: navigationState.isSearchActive,
     navigateToSettings: navigationState.navigateToSettings,
     exitSettings: navigationState.exitSettings,

@@ -354,6 +354,7 @@ export function TaskManager({
       settingsPage={controller.settingsPage}
       isSettingsActive={controller.isSettingsActive}
       settingsSubPage={controller.settingsSubPage}
+      settingsFullPage={controller.settingsFullPage}
       isSearchActive={controller.isSearchActive}
       onNavigateSettings={controller.navigateToSettings}
       onExitSettings={controller.exitSettings}

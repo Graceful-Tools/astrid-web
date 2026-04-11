@@ -51,6 +51,7 @@ interface TaskManagerViewProps {
   settingsPage: string | null
   isSettingsActive: boolean
   settingsSubPage: string | null
+  settingsFullPage: string | null
   isSearchActive: boolean
   onNavigateSettings: (page: string) => void
   onExitSettings: () => void
@@ -270,6 +271,7 @@ const TaskManagerView = memo(function TaskManagerView({
   settingsPage,
   isSettingsActive,
   settingsSubPage,
+  settingsFullPage,
   isSearchActive,
   onNavigateSettings,
   onExitSettings,
@@ -744,8 +746,19 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {/* Main Content - show settings, chat, or tasks */}
-        {isSettingsActive ? (
+        {/* Main Content - show settings (fullpage or hub), chat, or tasks */}
+        {isSettingsActive && settingsFullPage ? (
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide" ref={taskManagerRef}>
+            <div className="max-w-3xl mx-auto">
+              <SettingsDetailPanel
+                page={settingsFullPage}
+                onNavigate={onNavigateSettings}
+                onClose={onCloseSettingsSubPage}
+                fullPage
+              />
+            </div>
+          </div>
+        ) : isSettingsActive ? (
           <div className="flex-1 min-h-0 overflow-hidden" ref={taskManagerRef}>
             <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
           </div>

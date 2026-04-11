@@ -2,6 +2,7 @@
 
 import React, { Suspense, lazy, useState, useEffect, useRef } from "react"
 import { LoadingScreen } from "@/components/loading-screen"
+import { Maximize2 } from "lucide-react"
 
 const AccountSettings = lazy(() => import("./AccountSettings"))
 const AppearanceSettings = lazy(() => import("./AppearanceSettings"))
@@ -41,9 +42,10 @@ interface SettingsDetailPanelProps {
   page: string
   onNavigate: (page: string) => void
   onClose: () => void
+  fullPage?: boolean
 }
 
-export default function SettingsDetailPanel({ page, onNavigate, onClose }: SettingsDetailPanelProps) {
+export default function SettingsDetailPanel({ page, onNavigate, onClose, fullPage }: SettingsDetailPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [arrowTop, setArrowTop] = useState(80)
 
@@ -117,6 +119,16 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose }: Setti
     }
   }
 
+  if (fullPage) {
+    return (
+      <div className="py-6">
+        <Suspense fallback={<LoadingScreen />}>
+          {renderPage()}
+        </Suspense>
+      </div>
+    )
+  }
+
   return (
     <>
       <div
@@ -124,6 +136,23 @@ export default function SettingsDetailPanel({ page, onNavigate, onClose }: Setti
         style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
       ></div>
       <div ref={panelRef} className="w-full theme-panel flex flex-col h-full relative" data-task-detail-panel>
+        {/* Expand to full page button */}
+        <div className="flex items-center justify-end px-3 pt-2 flex-shrink-0">
+          <button
+            onClick={() => {
+              const url = `/settings/${page}?fullpage=1`
+              window.history.pushState(null, '', url)
+              onNavigate(page)
+              // Dispatch popstate to trigger fullpage detection
+              window.dispatchEvent(new PopStateEvent('popstate'))
+            }}
+            className="p-1.5 rounded-lg theme-text-muted hover:theme-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            title="Open in full page"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           <Suspense fallback={<LoadingScreen />}>
