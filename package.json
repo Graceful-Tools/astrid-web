@@ -206,7 +206,7 @@
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.1",
     "vaul": "^1.1.2",
-    "vite": "^7.2.6",
+    "vite": "^8.0.8",
     "web-push": "^3.6.7",
     "zod": "^3.25.76"
   },
