@@ -423,6 +423,26 @@ const TaskManagerView = memo(function TaskManagerView({
     }, 300)
   }, [is1Column, onCloseSettingsSubPage])
 
+  // Wrapped settings navigation: toggle-close uses animation, open is instant
+  const navigateSettingsWithAnimation = React.useCallback((page: string) => {
+    // If tapping the same page that's already open, animate it closed
+    if (page === settingsSubPage) {
+      closeSettingsSubPageAnimated()
+      return
+    }
+    // If a different sub-page is open, close it animated then open the new one
+    if (settingsSubPage && page !== 'hub') {
+      setIsSettingsPaneClosing(true)
+      setTimeout(() => {
+        setIsSettingsPaneClosing(false)
+        onNavigateSettings(page)
+      }, 200) // Slightly shorter for switch transitions
+      return
+    }
+    // Otherwise just navigate normally (slide in)
+    onNavigateSettings(page)
+  }, [settingsSubPage, closeSettingsSubPageAnimated, onNavigateSettings])
+
   const handleHamburgerDragHover = React.useCallback(() => {
     if (!activeDragTaskId || showMobileSidebar) {
       return
@@ -727,7 +747,7 @@ const TaskManagerView = memo(function TaskManagerView({
         {/* Main Content - show settings, chat, or tasks */}
         {isSettingsActive ? (
           <div className="flex-1 min-h-0 overflow-hidden" ref={taskManagerRef}>
-            <SettingsPanel onNavigate={onNavigateSettings} onExit={onExitSettings} />
+            <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
           </div>
         ) : activePanel === 'chat' && isMobile && !isSearchActive ? (
           // Mobile only: ChatPanel replaces task list

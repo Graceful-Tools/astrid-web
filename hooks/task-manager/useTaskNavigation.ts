@@ -69,18 +69,12 @@ export function useTaskNavigation({
   const settingsSubPage = (settingsPage && settingsPage !== 'hub') ? settingsPage : null
 
   const navigateToSettings = useCallback((page: string) => {
-    // Toggle: if tapping the same settings page that's already open, close the sub-panel
-    if (page === settingsPage && page !== 'hub') {
-      setSettingsPage('hub')
-      window.history.pushState(null, '', '/settings')
-      return
-    }
     setSettingsPage(page)
     setIsSearchActive(false)
     setSelectedTaskId("")
     const url = page === 'hub' ? '/settings' : `/settings/${page}`
     window.history.pushState(null, '', url)
-  }, [setSelectedTaskId, settingsPage])
+  }, [setSelectedTaskId])
 
   const exitSettings = useCallback(() => {
     setSettingsPage(null)
