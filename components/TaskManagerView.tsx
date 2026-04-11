@@ -746,8 +746,36 @@ const TaskManagerView = memo(function TaskManagerView({
 
         {/* Main Content - show settings hub, chat, or tasks */}
         {isSettingsActive ? (
-          <div className="flex-1 min-h-0 overflow-hidden" ref={taskManagerRef}>
-            <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
+          <div className="flex-1 min-h-0 overflow-hidden flex" ref={taskManagerRef}>
+            {/* Settings hub - fills available space like task list */}
+            <div className="flex-1 min-w-0 overflow-y-auto scrollbar-hide">
+              <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
+            </div>
+
+            {/* Astrid character - fills remaining space on desktop */}
+            {(is3Column || is2Column) && (
+              <div className="flex-1 min-w-[280px] border-l theme-border flex items-center justify-center p-8">
+                <div className="flex flex-col items-center max-w-xs">
+                  <div className="flex items-start space-x-4 w-full">
+                    <div className="flex-shrink-0 w-24">
+                      <img
+                        src="/icons/icon-512x512.png"
+                        alt="Astrid"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="relative theme-bg-secondary rounded-2xl p-4 border theme-border">
+                        <div className="absolute -left-[14px] top-6 w-0 h-0 border-t-[10px] border-t-transparent border-r-[14px] border-b-[10px] border-b-transparent border-l-0 z-10 speech-bubble-arrow-fill"></div>
+                        <p className="text-sm font-medium theme-text-primary leading-relaxed">
+                          Help me help you become super productive
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : activePanel === 'chat' && isMobile && !isSearchActive ? (
           // Mobile only: ChatPanel replaces task list
