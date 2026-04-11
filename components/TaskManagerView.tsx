@@ -639,7 +639,7 @@ const TaskManagerView = memo(function TaskManagerView({
   // Full-page settings: render just the settings content, no sidebar/header/chat
   if (settingsFullPage) {
     return (
-      <div className="app-container theme-bg-primary theme-text-primary">
+      <div className="app-container theme-bg-primary theme-text-primary" data-testid="settings-fullpage">
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           <div className="max-w-3xl mx-auto px-6 py-8">
             <SettingsDetailPanel

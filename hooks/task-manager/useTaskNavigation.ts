@@ -62,12 +62,18 @@ export function useTaskNavigation({
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [isSettingsFullPage, setIsSettingsFullPage] = useState(false)
 
-  // Detect ?fullpage=1 on mount (client-side only to avoid hydration mismatch)
+  // Detect ?fullpage=1 on mount and URL changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('fullpage')) {
-      setIsSettingsFullPage(true)
+    const checkFullPage = () => {
+      const search = typeof window !== 'undefined' ? window.location.search : ''
+      const hasFullPage = new URLSearchParams(search).has('fullpage')
+      console.log('[Settings] fullpage check:', { search, hasFullPage, settingsPage })
+      setIsSettingsFullPage(hasFullPage)
     }
-  }, [])
+    checkFullPage()
+    window.addEventListener('popstate', checkFullPage)
+    return () => window.removeEventListener('popstate', checkFullPage)
+  }, [settingsPage]) // Re-check when settings page changes
 
   // Derived unified view
   const activeView: 'list' | 'settings' | 'search' = settingsPage
