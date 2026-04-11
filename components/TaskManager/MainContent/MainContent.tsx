@@ -1144,7 +1144,8 @@ export function MainContent({
                                 {task.lists.filter(list => list != null).slice(0, isMobile ? 2 : undefined).map((list) => (
                                   <div
                                     key={list.id}
-                                    className="flex items-center space-x-1 theme-bg-secondary rounded-full px-2 py-0.5 text-xs theme-border border"
+                                    className="flex items-center space-x-1 rounded px-1.5 py-0 text-xs"
+                                    style={{ backgroundColor: `${list.color}15` }}
                                   >
                                     {(() => {
                                       const privacy = list?.privacy
