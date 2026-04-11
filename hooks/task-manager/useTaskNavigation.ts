@@ -60,12 +60,14 @@ export function useTaskNavigation({
   // Settings and search navigation state
   const [settingsPage, setSettingsPage] = useState<string | null>(initialSettingsPage || null)
   const [isSearchActive, setIsSearchActive] = useState(false)
-  const [isSettingsFullPage, setIsSettingsFullPage] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).has('fullpage')
+  const [isSettingsFullPage, setIsSettingsFullPage] = useState(false)
+
+  // Detect ?fullpage=1 on mount (client-side only to avoid hydration mismatch)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('fullpage')) {
+      setIsSettingsFullPage(true)
     }
-    return false
-  })
+  }, [])
 
   // Derived unified view
   const activeView: 'list' | 'settings' | 'search' = settingsPage
