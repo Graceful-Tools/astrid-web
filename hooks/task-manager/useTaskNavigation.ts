@@ -29,6 +29,7 @@ export interface UseTaskNavigationReturn {
   navigateToSettings: (page: string) => void
   exitSettings: () => void
   closeSettingsSubPage: () => void
+  expandSettingsFullPage: (page: string) => void
   selectSearch: () => void
   exitSearch: () => void
 
@@ -94,6 +95,12 @@ export function useTaskNavigation({
     setSettingsPage('hub')
     setIsSettingsFullPage(false)
     window.history.pushState(null, '', '/settings')
+  }, [])
+
+  const expandSettingsFullPage = useCallback((page: string) => {
+    setSettingsPage(page)
+    setIsSettingsFullPage(true)
+    window.history.pushState(null, '', `/settings/${page}?fullpage=1`)
   }, [])
 
   const selectSearch = useCallback(() => {
@@ -212,6 +219,7 @@ export function useTaskNavigation({
     navigateToSettings,
     exitSettings,
     closeSettingsSubPage,
+    expandSettingsFullPage,
     selectSearch,
     exitSearch,
 

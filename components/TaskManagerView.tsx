@@ -56,6 +56,7 @@ interface TaskManagerViewProps {
   onNavigateSettings: (page: string) => void
   onExitSettings: () => void
   onCloseSettingsSubPage: () => void
+  onExpandSettingsFullPage: (page: string) => void
   onSelectSearch: () => void
   onExitSearch: () => void
 
@@ -276,6 +277,7 @@ const TaskManagerView = memo(function TaskManagerView({
   onNavigateSettings,
   onExitSettings,
   onCloseSettingsSubPage,
+  onExpandSettingsFullPage,
   onSelectSearch,
   onExitSearch,
   getTaskCountForListMemo,
@@ -897,6 +899,7 @@ const TaskManagerView = memo(function TaskManagerView({
               page={settingsSubPage}
               onNavigate={onNavigateSettings}
               onClose={closeSettingsSubPageAnimated}
+              onExpandFullPage={onExpandSettingsFullPage}
             />
           )}
         </div>

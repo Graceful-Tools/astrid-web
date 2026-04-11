@@ -359,6 +359,7 @@ export function TaskManager({
       onNavigateSettings={controller.navigateToSettings}
       onExitSettings={controller.exitSettings}
       onCloseSettingsSubPage={controller.closeSettingsSubPage}
+      onExpandSettingsFullPage={controller.expandSettingsFullPage}
       onSelectSearch={controller.selectSearch}
       onExitSearch={controller.exitSearch}
 

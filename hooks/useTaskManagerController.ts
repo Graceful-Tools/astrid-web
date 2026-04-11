@@ -1438,6 +1438,7 @@ export function useTaskManagerController({
     navigateToSettings: navigationState.navigateToSettings,
     exitSettings: navigationState.exitSettings,
     closeSettingsSubPage: navigationState.closeSettingsSubPage,
+    expandSettingsFullPage: navigationState.expandSettingsFullPage,
     selectSearch: navigationState.selectSearch,
     exitSearch: navigationState.exitSearch,
     manualSortPreviewActive: dragDropState.manualSortPreviewActive,
