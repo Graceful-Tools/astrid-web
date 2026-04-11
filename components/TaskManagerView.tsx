@@ -409,6 +409,20 @@ const TaskManagerView = memo(function TaskManagerView({
 }: TaskManagerViewProps) {
   const autoOpenedSidebarRef = React.useRef(false)
 
+  // Animated settings panel close (mirrors task pane closing behavior)
+  const [isSettingsPaneClosing, setIsSettingsPaneClosing] = React.useState(false)
+  const closeSettingsSubPageAnimated = React.useCallback(() => {
+    if (is1Column) {
+      onCloseSettingsSubPage()
+      return
+    }
+    setIsSettingsPaneClosing(true)
+    setTimeout(() => {
+      onCloseSettingsSubPage()
+      setIsSettingsPaneClosing(false)
+    }, 300)
+  }, [is1Column, onCloseSettingsSubPage])
+
   const handleHamburgerDragHover = React.useCallback(() => {
     if (!activeDragTaskId || showMobileSidebar) {
       return
@@ -811,7 +825,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200 pointer-events-auto cursor-pointer"
                 onClick={() => {
                   if (selectedTask) closeTaskDetail()
-                  if (settingsSubPage) onCloseSettingsSubPage()
+                  if (settingsSubPage) closeSettingsSubPageAnimated()
                 }}
               />
             )}
@@ -840,16 +854,18 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {/* Desktop Settings Detail Pane - same bubble as task detail */}
-      {!is1Column && settingsSubPage && isSettingsActive && (
+      {!is1Column && (settingsSubPage || isSettingsPaneClosing) && isSettingsActive && (
         <div
-          className="task-panel-desktop scrollbar-hide task-panel-animate"
+          className={`task-panel-desktop scrollbar-hide ${isSettingsPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
           style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
         >
-          <SettingsDetailPanel
-            page={settingsSubPage}
-            onNavigate={onNavigateSettings}
-            onClose={onCloseSettingsSubPage}
-          />
+          {settingsSubPage && (
+            <SettingsDetailPanel
+              page={settingsSubPage}
+              onNavigate={onNavigateSettings}
+              onClose={closeSettingsSubPageAnimated}
+            />
+          )}
         </div>
       )}
 
