@@ -435,8 +435,8 @@ export function useTaskManagerController({
 
   // Close task detail
   const closeTaskDetail = useCallback(() => {
-    setSelectedTaskId("")
-    setSelectedTaskElement(null)
+    // Use animated close on desktop, instant on mobile
+    taskPaneState.closeTaskPaneAnimated()
 
     if (selectedTaskId) {
       const task = listState.finalTasks.find(t => t.id === selectedTaskId)
@@ -449,7 +449,7 @@ export function useTaskManagerController({
         window.history.replaceState(null, '', '/')
       }
     }
-  }, [setSelectedTaskId, setSelectedTaskElement, selectedTaskId, listState.finalTasks, navigationState.selectedListId])
+  }, [taskPaneState, selectedTaskId, listState.finalTasks, navigationState.selectedListId])
 
   // Task click handler
   const handleTaskClick = useCallback((taskId: string, taskElement?: HTMLElement) => {
