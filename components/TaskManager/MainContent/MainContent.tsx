@@ -426,7 +426,7 @@ export function MainContent({
         className={`theme-bg-primary flex flex-col relative z-10 ${
         isMobile
           ? 'absolute inset-x-0 bottom-0 transition-all duration-300 ease-in-out'
-          : 'w-[450px] flex-shrink-0 flex-grow-0'
+          : 'flex-1 min-w-0'
       }`}
       style={{
         // Mobile: offset for floating header (header height + margin)
@@ -447,7 +447,7 @@ export function MainContent({
         <div className="p-6 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4 px-4">
-              <div className="text-left flex-1 max-w-md">
+              <div className="text-left flex-1">
                 <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">Search</h1>
                 <p className="theme-text-muted text-sm">Find tasks and users across all lists</p>
               </div>
@@ -481,7 +481,7 @@ export function MainContent({
                     />
 
                     {/* Editable List Name and Description */}
-                    <div className="text-left flex-1 max-w-md">
+                    <div className="text-left flex-1">
                       {editingListName ? (
                         <div className="flex items-center justify-start space-x-2">
                           <Input
@@ -616,7 +616,7 @@ export function MainContent({
             {/* Default view titles for system lists */}
             {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
               <div className="flex items-center justify-start space-x-4 mb-4 px-4">
-                <div className="text-left flex-1 max-w-md">
+                <div className="text-left flex-1">
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
                 </div>
