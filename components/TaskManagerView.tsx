@@ -834,7 +834,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {!is1Column && settingsSubPage && isSettingsActive && (
         <div
           className="task-panel-desktop scrollbar-hide task-panel-animate"
-          style={{ left: taskPanePosition.left - 20, right: 10, width: 'auto' }}
+          style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
         >
           <SettingsDetailPanel
             page={settingsSubPage}
@@ -853,7 +853,7 @@ const TaskManagerView = memo(function TaskManagerView({
         return (
           <div
             className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
-            style={{ left: taskPanePosition.left - 20, right: 10, width: 'auto' }}
+            style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
             data-task-panel-desktop
           >
             {canEdit ? (
