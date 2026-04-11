@@ -170,7 +170,7 @@ export function LeftSidebar({
     >
       {/* Scrollable Navigation */}
       <div ref={navigationRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide sidebar-navigation">
-        <div className="p-2">
+        <div className="p-3">
           <div className="space-y-1">
             {/* Search */}
             <Button
@@ -241,8 +241,8 @@ export function LeftSidebar({
         </div>
 
         {/* Lists */}
-        <div className="p-2 mt-4">
-          <div className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-2">
+        <div className="p-3 mt-4">
+          <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
             {t("navigation.lists")}
           </div>
           <div className="space-y-1">
@@ -295,8 +295,8 @@ export function LeftSidebar({
 
         {/* Public Shared Lists */}
         {collaborativePublicLists && collaborativePublicLists.length > 0 && (
-          <div className="p-2 mt-4">
-            <div className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-2">
+          <div className="p-3 mt-4">
+            <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
               {t("navigation.publicSharedLists")}
             </div>
             <div className="space-y-1">
@@ -326,7 +326,7 @@ export function LeftSidebar({
             {collaborativePublicLists.length > 2 && (
               <button
                 onClick={() => setShowPublicBrowser(true)}
-                className="w-full mt-2 px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                className="w-full mt-2 px-4 py-2 text-sm text-[rgb(var(--theme-accent))] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
               >
                 {t("navigation.seeAllCollaborative")}
               </button>
@@ -336,8 +336,8 @@ export function LeftSidebar({
 
         {/* Public Lists */}
         {suggestedPublicLists && suggestedPublicLists.length > 0 && (
-          <div className="p-2 mt-4">
-            <div className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-2">
+          <div className="p-3 mt-4">
+            <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
               {t("navigation.publicLists")}
             </div>
             <div className="space-y-1">
@@ -367,7 +367,7 @@ export function LeftSidebar({
             {suggestedPublicLists.length > 2 && (
               <button
                 onClick={() => setShowPublicBrowser(true)}
-                className="w-full mt-2 px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                className="w-full mt-2 px-4 py-2 text-sm text-[rgb(var(--theme-accent))] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
               >
                 {t("navigation.seeAllSuggested")}
               </button>
@@ -379,7 +379,7 @@ export function LeftSidebar({
       </div>
 
       {/* Fixed Footer — Settings with user avatar */}
-      <div className="border-t border-gray-700 flex-shrink-0">
+      <div className="border-t border-[rgb(var(--theme-border))] flex-shrink-0">
         <Button
           variant="ghost"
           onClick={handleSettingsClick}

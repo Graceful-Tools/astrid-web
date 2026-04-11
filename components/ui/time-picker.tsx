@@ -258,17 +258,16 @@ export function TimePicker({
           `}</style>
           <div className="flex">
             {/* Hours */}
-            <div className="border-r" style={{ width: '48px' }}>
+            <div className="border-r w-12">
               <div className="h-32 overflow-y-auto time-picker-scroll">
-                <div style={{ padding: '4px 8px' }}>
+                <div className="px-2 py-1">
                   {HOUR_OPTIONS.map((hour) => (
                     <button
                       key={hour}
                       onClick={() => updateTimeSelection(hour, undefined, undefined)}
-                      className={`w-full text-sm hover:bg-accent hover:text-accent-foreground rounded ${
+                      className={`w-full text-sm hover:bg-accent hover:text-accent-foreground rounded px-1 py-0.5 min-h-6 ${
                         hours === hour ? "bg-accent text-accent-foreground" : ""
                       }`}
-                      style={{ padding: '2px 4px', minHeight: '24px' }}
                     >
                       {hour}
                     </button>
@@ -278,17 +277,16 @@ export function TimePicker({
             </div>
 
             {/* Minutes */}
-            <div className="border-r" style={{ width: '48px' }}>
+            <div className="border-r w-12">
               <div className="h-32 overflow-y-auto time-picker-scroll">
-                <div style={{ padding: '4px 8px' }}>
+                <div className="px-2 py-1">
                   {MINUTE_OPTIONS.map((minute) => (
                     <button
                       key={minute}
                       onClick={() => updateTimeSelection(undefined, minute, undefined)}
-                      className={`w-full text-sm hover:bg-accent hover:text-accent-foreground rounded ${
+                      className={`w-full text-sm hover:bg-accent hover:text-accent-foreground rounded px-1 py-0.5 min-h-6 ${
                         minutes === minute ? "bg-accent text-accent-foreground" : ""
                       }`}
-                      style={{ padding: '2px 4px', minHeight: '24px' }}
                     >
                       {minute.toString().padStart(2, "0")}
                     </button>
@@ -298,16 +296,15 @@ export function TimePicker({
             </div>
 
             {/* AM/PM */}
-            <div style={{ width: '40px' }}>
-              <div style={{ padding: '4px' }}>
+            <div className="w-10">
+              <div className="p-1">
                 {["AM", "PM"].map((p) => (
                   <button
                     key={p}
                     onClick={() => updateTimeSelection(undefined, undefined, p as "AM" | "PM")}
-                    className={`w-full text-sm hover:bg-accent hover:text-accent-foreground rounded ${
+                    className={`w-full text-sm hover:bg-accent hover:text-accent-foreground rounded px-1 py-0.5 min-h-6 mb-0.5 ${
                       period === p ? "bg-accent text-accent-foreground" : ""
                     }`}
-                    style={{ padding: '2px 4px', minHeight: '24px', marginBottom: '2px' }}
                   >
                     {p}
                   </button>

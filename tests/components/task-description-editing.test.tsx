@@ -232,8 +232,8 @@ describe('Task Description Editing', () => {
       // Find the description display div
       const descriptionDisplay = screen.getByText('Short description').parentElement
 
-      // Should have minHeight: auto (height matches content)
-      expect(descriptionDisplay).toHaveStyle({ minHeight: 'auto' })
+      // Should have min-h-0 class (height matches content, via Tailwind)
+      expect(descriptionDisplay?.className).toContain('min-h-0')
     })
 
     it('should render line breaks correctly in display mode', () => {
@@ -302,8 +302,8 @@ describe('Task Description Editing', () => {
 
       const textarea = screen.getByPlaceholderText('Add a description...') as HTMLTextAreaElement
 
-      // Should have minHeight for mobile
-      expect(textarea.style.minHeight).toBe('80px')
+      // Should have minHeight for mobile (via Tailwind class)
+      expect(textarea.className).toContain('min-h-[80px]')
     })
 
     it('should use 16px font size to prevent zoom on iOS', () => {
@@ -311,8 +311,8 @@ describe('Task Description Editing', () => {
 
       const textarea = screen.getByPlaceholderText('Add a description...') as HTMLTextAreaElement
 
-      // Should have 16px font to prevent iOS zoom
-      expect(textarea.style.fontSize).toBe('16px')
+      // Should have 16px font to prevent iOS zoom (via Tailwind class)
+      expect(textarea.className).toContain('text-base')
     })
   })
 

@@ -941,8 +941,7 @@ export function TaskFieldEditors({
               value={tempDescription}
               onChange={(e) => setTempDescription(e.target.value)}
               placeholder="Add a description..."
-              className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              style={{ fontSize: '16px', minHeight: '80px', overflow: 'hidden' }}
+              className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[80px] overflow-hidden"
               autoComplete="off"
               spellCheck={true}
               autoCapitalize="sentences"
@@ -981,8 +980,7 @@ export function TaskFieldEditors({
           </div>
         ) : (
           <div
-            className={`px-3 py-2 rounded border border-transparent flex items-start ${!readOnly ? 'cursor-pointer theme-surface-hover hover:theme-border' : ''}`}
-            style={{ minHeight: 'auto' }}
+            className={`px-3 py-2 rounded border border-transparent flex items-start !min-h-0 ${!readOnly ? 'cursor-pointer theme-surface-hover hover:theme-border' : ''}`}
             onClick={() => !readOnly && setEditingDescription(true)}
           >
             {task.description ? (

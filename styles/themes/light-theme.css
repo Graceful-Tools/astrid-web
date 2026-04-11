@@ -6,8 +6,8 @@
   --theme-bg-tertiary: 243, 244, 246;
   --theme-bg-hover: 255, 255, 255;
   --theme-bg-active: 229, 231, 235;
-  --theme-bg-selected: 239, 246, 255;
-  --theme-bg-selected-border: 191, 219, 254;
+  --theme-bg-selected: 243, 248, 255;
+  --theme-bg-selected-border: 200, 224, 255;
   
   /* Surface colors */
   --theme-surface: 255, 255, 255;
@@ -15,8 +15,8 @@
   --theme-surface-raised: 255, 255, 255;
   
   /* Border colors */
-  --theme-border: 229, 231, 235;
-  --theme-border-hover: 209, 213, 219;
+  --theme-border: 235, 237, 240;
+  --theme-border-hover: 215, 218, 224;
   --theme-border-focus: 59, 130, 246;
   --theme-border-input: 209, 213, 219;
   
@@ -39,9 +39,9 @@
   --theme-info: 6, 182, 212;
   
   /* Sidebar colors */
-  --theme-sidebar-bg: 243, 244, 246;
-  --theme-sidebar-border: 229, 231, 235;
-  --theme-sidebar-hover: 229, 231, 235;
+  --theme-sidebar-bg: 248, 249, 251;
+  --theme-sidebar-border: 235, 237, 240;
+  --theme-sidebar-hover: 235, 237, 240;
   --theme-sidebar-active: 219, 234, 254;
   
   /* Task panel colors */
@@ -50,8 +50,8 @@
   --theme-panel-arrow: 255, 255, 255;
   
   /* Header colors */
-  --theme-header-bg: 249, 250, 251;
-  --theme-header-border: 229, 231, 235;
+  --theme-header-bg: 252, 253, 254;
+  --theme-header-border: 235, 237, 240;
   
   /* Input colors */
   --theme-input-bg: 255, 255, 255;
@@ -69,9 +69,9 @@
   --theme-count-bg: 239, 239, 239;
   
   /* Component shadows */
-  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --theme-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.035);
+  --theme-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.035);
 }
 
 /* Light Theme Component Styles */

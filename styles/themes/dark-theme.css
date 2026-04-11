@@ -1,7 +1,7 @@
 /* Dark Theme Variables */
 .dark {
   /* Background colors */
-  --theme-bg-primary: 17, 24, 39;
+  --theme-bg-primary: 22, 28, 42;
   --theme-bg-secondary: 31, 41, 55;
   --theme-bg-tertiary: 55, 65, 81;
   --theme-bg-hover: 55, 65, 81;
@@ -15,10 +15,10 @@
   --theme-surface-raised: 31, 41, 55;
   
   /* Border colors */
-  --theme-border: 75, 85, 99;
-  --theme-border-hover: 107, 114, 128;
+  --theme-border: 55, 65, 78;
+  --theme-border-hover: 90, 100, 114;
   --theme-border-focus: 59, 130, 246;
-  --theme-border-input: 75, 85, 99;
+  --theme-border-input: 55, 65, 78;
   
   /* Text colors */
   --theme-text-primary: 255, 255, 255;
@@ -40,7 +40,7 @@
   
   /* Sidebar colors */
   --theme-sidebar-bg: 31, 41, 55;
-  --theme-sidebar-border: 75, 85, 99;
+  --theme-sidebar-border: 55, 65, 78;
   --theme-sidebar-hover: 55, 65, 81;
   --theme-sidebar-active: 30, 58, 138;
   

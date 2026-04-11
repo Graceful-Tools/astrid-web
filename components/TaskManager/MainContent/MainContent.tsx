@@ -448,7 +448,7 @@ export function MainContent({
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4 px-4">
               <div className="text-left flex-1 max-w-md">
-                <h1 className="text-3xl font-bold theme-text-primary mb-1">Search</h1>
+                <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">Search</h1>
                 <p className="theme-text-muted text-sm">Find tasks and users across all lists</p>
               </div>
             </div>
@@ -491,7 +491,7 @@ export function MainContent({
                               if (e.key === "Enter") handleSaveListName()
                               if (e.key === "Escape") setEditingListName(false)
                             }}
-                            className="theme-input theme-text-primary text-3xl font-bold text-left max-w-md"
+                            className="theme-input theme-text-primary text-2xl font-semibold tracking-tight text-left max-w-md"
                             autoFocus
                           />
                           <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">
@@ -503,7 +503,7 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-3xl font-bold theme-text-primary mb-1 text-left ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
                           {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
@@ -617,7 +617,7 @@ export function MainContent({
             {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
               <div className="flex items-center justify-start space-x-4 mb-4 px-4">
                 <div className="text-left flex-1 max-w-md">
-                  <h1 className="text-3xl font-bold theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
                 </div>
                 <div className="flex items-center space-x-2">

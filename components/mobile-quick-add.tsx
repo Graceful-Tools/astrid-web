@@ -176,10 +176,7 @@ export function MobileQuickAdd({
         }}
       >
         <div
-          className="mobile-quick-add bg-white dark:bg-gray-800 rounded-xl px-4 py-3"
-          style={{
-            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
-          }}
+          className="mobile-quick-add bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.15)]"
         >
           <div className="flex items-center gap-3">
             {/* Priority/Assignee Button - uses same checkbox icons as task rows */}
@@ -240,9 +237,8 @@ export function MobileQuickAdd({
                   text-gray-900 dark:text-white
                   placeholder-gray-500 dark:placeholder-gray-400
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-600
-                  transition-all duration-200"
+                  transition-all duration-200 min-h-9"
                 style={{
-                  minHeight: '36px',
                   maxHeight: '120px',
                   lineHeight: '1.4',
                 }}
