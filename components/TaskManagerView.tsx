@@ -803,9 +803,12 @@ const TaskManagerView = memo(function TaskManagerView({
           />
         )}
 
-        {/* Chat Panel - inline flex column on the right (2-column and 3-column), hidden when task detail is open */}
-        {(is3Column || is2Column) && effectiveSession?.user && !selectedTask && (
-          <div className="flex-1 order-last h-full border-l theme-border min-w-[280px]">
+        {/* Chat Panel - inline flex column on the right (2-column and 3-column), dimmed when task detail is open */}
+        {(is3Column || is2Column) && effectiveSession?.user && (
+          <div className={`flex-1 order-last h-full border-l theme-border min-w-[280px] relative ${selectedTask ? 'pointer-events-none' : ''}`}>
+            {selectedTask && (
+              <div className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200" />
+            )}
             <ChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}
