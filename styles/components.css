@@ -132,16 +132,16 @@
   @apply absolute w-6 h-6 transform rotate-45 transition-all duration-75;
   left: -13px;
   z-index: 10;
-  border-left: 1px solid rgb(var(--theme-bg-selected-border));
-  border-bottom: 1px solid rgb(var(--theme-bg-selected-border));
+  border-left: 1px solid rgb(var(--theme-border));
+  border-bottom: 1px solid rgb(var(--theme-border));
   border-right: none;
   border-top: none;
 }
 
-/* Desktop arrow: blue border matching the panel box-shadow border (overrides theme border-color) */
+/* Desktop arrow: match the panel border */
 .task-panel-desktop > .task-panel-arrow {
-  border-left-color: rgb(var(--theme-bg-selected-border));
-  border-bottom-color: rgb(var(--theme-bg-selected-border));
+  border-left-color: rgb(var(--theme-border));
+  border-bottom-color: rgb(var(--theme-border));
 }
 
 .panel-header {
