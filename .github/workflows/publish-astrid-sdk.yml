@@ -107,7 +107,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.changes.outputs.has_changes == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: astrid-sdk-v${{ env.NEW_VERSION }}
           name: "@gracefultools/astrid-sdk v${{ env.NEW_VERSION }}"
