@@ -908,8 +908,10 @@ const TaskManagerView = memo(function TaskManagerView({
         </div>
       )}
 
-      {/* Desktop Task Pane - positioned absolutely, slide-out from right */}
-      {!is1Column && !isSettingsActive && selectedTask && effectiveSession?.user && (() => {
+      {/* Desktop Task Pane - positioned absolutely, slide-out from right.
+          Kept mounted during close animation even when settings activates,
+          so the slide-out can play instead of popping. */}
+      {!is1Column && selectedTask && effectiveSession?.user && (!isSettingsActive || isTaskPaneClosing) && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true

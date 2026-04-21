@@ -71,10 +71,11 @@ export function useTaskNavigation({
   const navigateToSettings = useCallback((page: string) => {
     setSettingsPage(page)
     setIsSearchActive(false)
-    setSelectedTaskId("")
+    // Task pane clearing is now handled by the controller's wrapper so the
+    // close animation can play before the ID is cleared.
     const url = page === 'hub' ? '/settings' : `/settings/${page}`
     window.history.pushState(null, '', url)
-  }, [setSelectedTaskId])
+  }, [])
 
   const exitSettings = useCallback(() => {
     setSettingsPage(null)

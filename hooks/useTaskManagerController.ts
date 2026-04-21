@@ -433,6 +433,15 @@ export function useTaskManagerController({
 
   const getSelectedListInfo = useCallback(() => currentListInfo, [currentListInfo])
 
+  // Navigate to settings: first animate the task pane closed (if open) so the
+  // detail panel doesn't pop out abruptly when settings slides in.
+  const navigateToSettingsWithClose = useCallback((page: string) => {
+    if (selectedTaskId) {
+      taskPaneState.closeTaskPaneAnimated()
+    }
+    navigationState.navigateToSettings(page)
+  }, [selectedTaskId, taskPaneState, navigationState])
+
   // Close task detail
   const closeTaskDetail = useCallback(() => {
     // Use animated close on desktop, instant on mobile
@@ -1434,7 +1443,7 @@ export function useTaskManagerController({
     isSettingsActive: navigationState.isSettingsActive,
     settingsSubPage: navigationState.settingsSubPage,
     isSearchActive: navigationState.isSearchActive,
-    navigateToSettings: navigationState.navigateToSettings,
+    navigateToSettings: navigateToSettingsWithClose,
     exitSettings: navigationState.exitSettings,
     closeSettingsSubPage: navigationState.closeSettingsSubPage,
     selectSearch: navigationState.selectSearch,
