@@ -106,11 +106,6 @@ export interface TaskDetailState {
     setTempCompleted: React.Dispatch<React.SetStateAction<boolean>>
   }
 
-  // Arrow positioning
-  arrow: {
-    top: number
-    setArrowTop: (value: number) => void
-  }
 }
 
 /**
@@ -170,9 +165,6 @@ export function useTaskDetailState(task: Task): TaskDetailState {
 
   // Track last local update to repeating data to prevent SSE overwrites
   const [lastRepeatingUpdate, setLastRepeatingUpdate] = useState<number>(0)
-
-  // Arrow positioning
-  const [arrowTop, setArrowTop] = useState(60)
 
   // Sync temp values when task changes (but not while editing)
   useEffect(() => {
@@ -293,10 +285,6 @@ export function useTaskDetailState(task: Task): TaskDetailState {
       setLastRepeatingUpdate,
       completed: tempCompleted,
       setTempCompleted
-    },
-    arrow: {
-      top: arrowTop,
-      setArrowTop
     }
   }
 }

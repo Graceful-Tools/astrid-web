@@ -365,7 +365,7 @@ interface FileAttachment {
         ></div>
       ) : (
         <div
-          className="task-panel-arrow theme-panel-arrow hidden lg:block"
+          className="task-panel-arrow theme-panel-arrow hidden cols2:block"
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
       )}
@@ -374,7 +374,7 @@ interface FileAttachment {
       <div className="border-b border-gray-200 dark:border-gray-700">
         {/* Mobile/Tablet Back Navigation */}
         {onClose && (
-          <div className="lg:hidden app-header theme-header theme-border relative">
+          <div className="cols2:hidden app-header theme-header theme-border relative">
             <Button
               variant="ghost"
               onClick={onClose}

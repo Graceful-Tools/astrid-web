@@ -26,6 +26,7 @@ import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { canUserEditTask } from "@/lib/list-permissions"
+import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 
 interface TaskManagerViewProps {
   // Data from controller
@@ -409,39 +410,35 @@ const TaskManagerView = memo(function TaskManagerView({
 }: TaskManagerViewProps) {
   const autoOpenedSidebarRef = React.useRef(false)
 
-  // Animated settings panel close (mirrors task pane closing behavior)
-  const [isSettingsPaneClosing, setIsSettingsPaneClosing] = React.useState(false)
-  const closeSettingsSubPageAnimated = React.useCallback(() => {
-    if (is1Column) {
-      onCloseSettingsSubPage()
-      return
-    }
-    setIsSettingsPaneClosing(true)
-    setTimeout(() => {
-      onCloseSettingsSubPage()
-      setIsSettingsPaneClosing(false)
-    }, 300)
-  }, [is1Column, onCloseSettingsSubPage])
+  const settingsCloseAnimation = useSlideCloseAnimation({
+    bypassAnimation: is1Column,
+    duration: 300,
+  })
+  const isSettingsPaneClosing = settingsCloseAnimation.isClosing
 
-  // Wrapped settings navigation: toggle-close uses animation, open is instant
+  const closeSettingsSubPageAnimated = React.useCallback(() => {
+    settingsCloseAnimation.runAnimatedClose(onCloseSettingsSubPage)
+  }, [settingsCloseAnimation, onCloseSettingsSubPage])
+
   const navigateSettingsWithAnimation = React.useCallback((page: string) => {
-    // If tapping the same page that's already open, animate it closed
     if (page === settingsSubPage) {
       closeSettingsSubPageAnimated()
       return
     }
-    // If a different sub-page is open, close it animated then open the new one
     if (settingsSubPage && page !== 'hub') {
-      setIsSettingsPaneClosing(true)
-      setTimeout(() => {
-        setIsSettingsPaneClosing(false)
-        onNavigateSettings(page)
-      }, 200) // Slightly shorter for switch transitions
+      settingsCloseAnimation.runAnimatedClose(() => onNavigateSettings(page), 200)
       return
     }
-    // Otherwise just navigate normally (slide in)
     onNavigateSettings(page)
-  }, [settingsSubPage, closeSettingsSubPageAnimated, onNavigateSettings])
+  }, [settingsSubPage, closeSettingsSubPageAnimated, onNavigateSettings, settingsCloseAnimation])
+
+  const dismissActiveOverlay = React.useCallback(() => {
+    if (selectedTask) {
+      closeTaskDetail()
+    } else if (settingsSubPage) {
+      closeSettingsSubPageAnimated()
+    }
+  }, [selectedTask, settingsSubPage, closeTaskDetail, closeSettingsSubPageAnimated])
 
   const handleHamburgerDragHover = React.useCallback(() => {
     if (!activeDragTaskId || showMobileSidebar) {
@@ -744,15 +741,12 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {/* Main Content - show settings hub, chat, or tasks */}
         {isSettingsActive ? (
           <div className="flex-1 min-h-0 overflow-hidden flex">
-            {/* Settings hub - fills available space like task list */}
             <div className="flex-1 min-w-0 overflow-y-auto scrollbar-hide" ref={taskManagerRef}>
               <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
             </div>
 
-            {/* Astrid character - fills remaining space on desktop */}
             {(is3Column || is2Column) && (
               <div className="flex-1 min-w-[280px] border-l theme-border flex items-center justify-center p-8">
                 <div className="flex flex-col items-center max-w-xs">
@@ -871,10 +865,7 @@ const TaskManagerView = memo(function TaskManagerView({
             {(selectedTask || settingsSubPage) && (
               <div
                 className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200 pointer-events-auto cursor-pointer"
-                onClick={() => {
-                  if (selectedTask) closeTaskDetail()
-                  if (settingsSubPage) closeSettingsSubPageAnimated()
-                }}
+                onClick={dismissActiveOverlay}
               />
             )}
             <ChatPanel
@@ -917,8 +908,10 @@ const TaskManagerView = memo(function TaskManagerView({
         </div>
       )}
 
-      {/* Desktop Task Pane - positioned absolutely, slide-out from right */}
-      {!is1Column && !isSettingsActive && selectedTask && effectiveSession?.user && (() => {
+      {/* Desktop Task Pane - positioned absolutely, slide-out from right.
+          Kept mounted during close animation even when settings activates,
+          so the slide-out can play instead of popping. */}
+      {!is1Column && selectedTask && effectiveSession?.user && (!isSettingsActive || isTaskPaneClosing) && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true

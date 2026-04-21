@@ -35,6 +35,7 @@ import { useSSESubscription } from "@/hooks/use-sse-subscription"
 import { useSettings } from "@/contexts/settings-context"
 import { useReminders } from "@/lib/reminder-manager"
 import { useCodingAssignmentDetector } from "@/hooks/use-coding-assignment-detector"
+import { usePanelArrowPosition } from "@/hooks/usePanelArrowPosition"
 import {
   isIPadDevice,
   shouldPreventAutoFocus,
@@ -156,8 +157,13 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const prevCommentCountRef = useRef((task.comments || []).length)
 
-  // Arrow positioning state
-  const { top: arrowTop, setArrowTop } = state.arrow
+  const arrowTop = usePanelArrowPosition({
+    sourceSelector: `[data-task-id="${task.id}"]`,
+    getPanelElement: () =>
+      (document.querySelector('[data-task-panel-desktop]') as HTMLElement | null)
+        ?? (document.querySelector('[data-task-detail-panel]') as HTMLElement | null),
+    initialTop: 60,
+  })
 
   // Inline editing states (from consolidated state)
   const { title: editingTitle, setEditingTitle, description: editingDescription, setEditingDescription,
@@ -503,87 +509,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     descriptionTextareaRef
   ])
 
-  // Check if this is a new task (has temporary ID)
   const isNewTask = task.id.startsWith('new-')
-  
-  // Simple arrow positioning based on selected task
-  useEffect(() => {
-    // Use the desktop wrapper if available (arrow renders outside overflow:hidden),
-    // otherwise fall back to the panel element itself
-    const panelElement = document.querySelector('[data-task-panel-desktop]') as HTMLElement
-      || document.querySelector('[data-task-detail-panel]') as HTMLElement
-
-    const updateArrowPosition = () => {
-      try {
-        // Query for the current task element by ID to always get the latest
-        const currentTaskElement = document.querySelector(`[data-task-id="${task.id}"]`) as HTMLElement
-
-        if (!currentTaskElement || !panelElement) {
-          return
-        }
-
-        const taskRect = currentTaskElement.getBoundingClientRect()
-
-        if (taskRect.height > 0) {
-          const panelRect = panelElement.getBoundingClientRect()
-
-          // Calculate the vertical center of the task row
-          const taskCenter = taskRect.top + taskRect.height / 2
-          const panelTop = panelRect.top
-          const relativePosition = taskCenter - panelTop
-
-          // Adjust for arrow size and ensure reasonable bounds
-          const arrowOffset = 10
-          const minTop = 20
-          const maxTop = panelRect.height - 40
-          const finalTop = Math.max(minTop, Math.min(maxTop, relativePosition - arrowOffset))
-
-          setArrowTop(finalTop)
-        }
-      } catch (error) {
-        // Silently handle errors
-      }
-    }
-
-    // Update position immediately
-    updateArrowPosition()
-
-    // Also update on next frame to catch any async DOM updates
-    const rafId = requestAnimationFrame(updateArrowPosition)
-
-    // Listen for scroll on task container
-    const currentTaskElement = document.querySelector(`[data-task-id="${task.id}"]`) as HTMLElement
-    const taskContainer = currentTaskElement?.closest('.overflow-y-auto')
-    if (taskContainer) {
-      taskContainer.addEventListener('scroll', updateArrowPosition, { passive: true })
-    }
-
-    // Listen for window resize to handle layout changes (2-col, 3-col views)
-    window.addEventListener('resize', updateArrowPosition, { passive: true })
-
-    // Use ResizeObserver to detect when the panel or task element size changes (if available)
-    let resizeObserver: ResizeObserver | null = null
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(updateArrowPosition)
-      if (panelElement) {
-        resizeObserver.observe(panelElement)
-      }
-      if (currentTaskElement) {
-        resizeObserver.observe(currentTaskElement)
-      }
-    }
-
-    return () => {
-      cancelAnimationFrame(rafId)
-      if (taskContainer) {
-        taskContainer.removeEventListener('scroll', updateArrowPosition)
-      }
-      window.removeEventListener('resize', updateArrowPosition)
-      if (resizeObserver) {
-        resizeObserver.disconnect()
-      }
-    }
-  }, [task.id, setArrowTop])
 
   // Subscribe to SSE events for real-time comment and task updates using centralized SSE Manager
   // Uses taskRef.current to always access the latest task state and avoid stale closure issues
@@ -1346,7 +1272,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         ></div>
       ) : (
         <div
-          className="task-panel-arrow theme-panel-arrow hidden lg:block"
+          className="task-panel-arrow theme-panel-arrow hidden cols2:block"
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
       )}
@@ -1355,7 +1281,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       <div className="border-b border-gray-200 dark:border-gray-700">
         {/* Mobile/Tablet Back Navigation - Full Width */}
         {onClose && (
-          <div className="lg:hidden app-header theme-header theme-border relative">
+          <div className="cols2:hidden app-header theme-header theme-border relative">
             <Button
               variant="ghost"
               onClick={onClose}

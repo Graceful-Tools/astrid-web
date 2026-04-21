@@ -13,6 +13,9 @@ const config: Config = {
   ],
   theme: {
   	extend: {
+  		screens: {
+  			'cols2': '910px',
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
