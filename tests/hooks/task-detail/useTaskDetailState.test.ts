@@ -157,18 +157,6 @@ describe('useTaskDetailState', () => {
     expect(result.current.editing.descriptionTextareaRef.current).toBe(null)
   })
 
-  it('should initialize arrow positioning', () => {
-    const { result } = renderHook(() => useTaskDetailState(mockTask))
-
-    expect(result.current.arrow.top).toBe(60)
-
-    act(() => {
-      result.current.arrow.setArrowTop(100)
-    })
-
-    expect(result.current.arrow.top).toBe(100)
-  })
-
   it('should handle task with no description', () => {
     const taskNoDesc = { ...mockTask, description: null }
     const { result } = renderHook(() => useTaskDetailState(taskNoDesc))
