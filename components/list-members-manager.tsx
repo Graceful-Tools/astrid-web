@@ -501,7 +501,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
                 <SelectTrigger className="theme-input theme-border-input border theme-text-primary">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10100]">
                   <SelectItem value="admin">Admin - Can manage list settings and members</SelectItem>
                   <SelectItem value="member">Member - Can add, edit, and manage tasks</SelectItem>
                 </SelectContent>
