@@ -750,7 +750,8 @@ export function useTaskManagerController({
   }, [handleCreateTask])
 
   const handleCreateNewTask = useCallback(() => {
-    console.log('handleCreateNewTask called')
+    // Stub: keyboard shortcut "n" hook; real new-task creation happens through
+    // the inline task creation UI. Kept to preserve the shortcut wiring.
   }, [])
 
   // === LIST MANAGEMENT METHODS ===
@@ -1082,6 +1083,10 @@ export function useTaskManagerController({
         duration: 2000,
       })
     }
+    // Why: depend on specific listState properties rather than the whole
+    // listState object so this callback isn't re-created on every parent
+    // render (listState is returned fresh from useTaskListState each render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.lists, listState.setLists, effectiveSession, toast])
 
   const handleSaveListFilters = useCallback(async (listId: string, filters: Partial<TaskList>) => {
@@ -1464,6 +1469,10 @@ export function useTaskManagerController({
     setSelectedListId: useCallback((listId: string, fromFeatured?: boolean) => {
       navigationState.setSelectedListId(listId, fromFeatured)
       newFilterState.setSearch('')
+      // Why: depending on the specific setter identities (which are stable
+      // from useState/useCallback) avoids re-creating this callback on every
+      // parent render, which would cascade into every component receiving it.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigationState.setSelectedListId, newFilterState.setSearch]),
     setTasks: listState.setTasks,
     setLists: listState.setLists,

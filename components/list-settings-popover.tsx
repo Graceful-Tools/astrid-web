@@ -72,6 +72,8 @@ export function ListSettingsPopover({
       onKeyDown={handleKeyDown}
       onClick={() => onOpenChange(false)}
       tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
     >
           <Card
             className="theme-bg-primary theme-border w-full h-full md:h-auto md:max-w-2xl md:mx-4 md:rounded-lg p-0 shadow-lg rounded-none md:shadow-lg flex flex-col"

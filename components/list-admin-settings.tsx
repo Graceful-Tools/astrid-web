@@ -526,7 +526,7 @@ export function ListAdminSettings({
             <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary">
               <SelectValue placeholder="Use account default" />
             </SelectTrigger>
-            <SelectContent className="theme-bg-primary theme-border">
+            <SelectContent className="theme-bg-primary theme-border z-[10100]">
               <SelectItem value="_account_default" className="theme-text-primary">
                 Use account default
               </SelectItem>

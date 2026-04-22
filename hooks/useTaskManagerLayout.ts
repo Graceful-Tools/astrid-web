@@ -39,6 +39,11 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
   // Refs
   const taskManagerRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
+  // Why: we need the previous layoutType to detect a desktop→mobile transition
+  // inside the resize handler, but including `layoutType` in the effect's deps
+  // would re-attach the resize listener on every layout change. A ref holds
+  // the latest value without re-triggering the effect.
+  const prevLayoutTypeRef = useRef<LayoutType>(layoutType)
 
   // Layout detection
   useEffect(() => {
@@ -50,12 +55,13 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
       // Reset activePanel when transitioning to mobile — in 2-column and
       // 3-column, chat is always visible as a right column, but in mobile
       // activePanel='chat' replaces the task list entirely
-      const wasDesktop = !is1ColumnView(layoutType)
+      const wasDesktop = !is1ColumnView(prevLayoutTypeRef.current)
       const nowMobile = is1ColumnView(currentLayoutType)
       if (wasDesktop && nowMobile) {
         setActivePanel('tasks')
       }
 
+      prevLayoutTypeRef.current = currentLayoutType
       setLayoutType(currentLayoutType)
       setIsMobile(mobile)
       setShowHamburgerMenu(hamburgerMenu)

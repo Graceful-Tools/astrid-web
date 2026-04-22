@@ -334,4 +334,50 @@ describe('useKeyboardShortcuts', () => {
       expect(shortcutKeys).toContain('3')
     })
   })
+
+  describe('dialog / modal focus guard', () => {
+    const dispatchKey = (key: string) => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
+    }
+
+    it('does NOT fire shortcuts when focus is on a button inside a [role="dialog"]', () => {
+      renderHook(() => useKeyboardShortcuts({ handlers: mockHandlers, isEnabled: true }))
+
+      const dialog = document.createElement('div')
+      dialog.setAttribute('role', 'dialog')
+      const button = document.createElement('button')
+      dialog.appendChild(button)
+      document.body.appendChild(dialog)
+      button.focus()
+
+      try {
+        dispatchKey('d')
+        expect(mockHandlers.onJumpToDate).not.toHaveBeenCalled()
+
+        dispatchKey('n')
+        expect(mockHandlers.onNewTask).not.toHaveBeenCalled()
+      } finally {
+        document.body.removeChild(dialog)
+      }
+    })
+
+    it('does NOT fire shortcuts when focus is on the focused element of a [role="dialog"] (e.g., the email input in a list-members invite form)', () => {
+      renderHook(() => useKeyboardShortcuts({ handlers: mockHandlers, isEnabled: true }))
+
+      const dialog = document.createElement('div')
+      dialog.setAttribute('role', 'dialog')
+      const input = document.createElement('input')
+      input.type = 'email'
+      dialog.appendChild(input)
+      document.body.appendChild(dialog)
+      input.focus()
+
+      try {
+        dispatchKey('d')
+        expect(mockHandlers.onJumpToDate).not.toHaveBeenCalled()
+      } finally {
+        document.body.removeChild(dialog)
+      }
+    })
+  })
 })
