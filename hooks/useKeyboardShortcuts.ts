@@ -77,12 +77,16 @@ export function useKeyboardShortcuts({
     // Don't handle shortcuts if disabled or if user is typing in an input
     if (!isEnabled || isInputFocused) return
 
-    // Don't handle shortcuts if user is typing in an input/textarea/contenteditable
-    const activeElement = document.activeElement
+    // Don't handle shortcuts if user is typing in an input/textarea/contenteditable,
+    // or if focus is inside an open modal/dialog — otherwise keys like "d" or "n"
+    // pressed while interacting with a modal (even on a focused Button) would fire
+    // the global shortcut and navigate away from the user's current context.
+    const activeElement = document.activeElement as HTMLElement | null
     if (
       activeElement?.tagName === 'INPUT' ||
       activeElement?.tagName === 'TEXTAREA' ||
-      activeElement?.getAttribute('contenteditable') === 'true'
+      activeElement?.getAttribute('contenteditable') === 'true' ||
+      activeElement?.closest('[role="dialog"]')
     ) {
       return
     }

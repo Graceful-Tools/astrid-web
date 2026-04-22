@@ -492,6 +492,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="Enter email address"
                 className="theme-input theme-border-input border theme-text-primary"
+                autoFocus
               />
             </div>
             <div>

@@ -750,7 +750,8 @@ export function useTaskManagerController({
   }, [handleCreateTask])
 
   const handleCreateNewTask = useCallback(() => {
-    console.log('handleCreateNewTask called')
+    // Stub: keyboard shortcut "n" hook; real new-task creation happens through
+    // the inline task creation UI. Kept to preserve the shortcut wiring.
   }, [])
 
   // === LIST MANAGEMENT METHODS ===
