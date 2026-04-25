@@ -9,17 +9,18 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   audit-fix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: 'npm'
@@ -62,6 +63,10 @@ jobs:
           git add package-lock.json package.json
           git commit -m "fix: auto-resolve npm audit vulnerabilities ($(date +%Y-%m-%d))"
           git push origin "$BRANCH"
+
+          # Ensure labels exist (idempotent - won't fail if already present)
+          gh label create dependencies --color 0366d6 --description "Pull requests that update a dependency file" --force
+          gh label create security --color d73a4a --description "Security-related fix or update" --force
 
           # Count fixed vulnerabilities
           BEFORE=$(npm audit --json 2>/dev/null | jq '.metadata.vulnerabilities | to_entries | map(.value) | add' || echo "?")
