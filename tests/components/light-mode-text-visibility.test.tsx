@@ -19,51 +19,56 @@ describe('Light Mode Text Visibility Regression Test', () => {
     expect(colorValue).not.toBe('156, 163, 175')
   })
 
-  it('should not use hard-coded gray classes in task-detail.tsx', () => {
-    // Read the task detail component file
-    const componentPath = path.join(process.cwd(), 'components/task-detail.tsx')
-    const componentContent = fs.readFileSync(componentPath, 'utf-8')
+  it('should not use hard-coded gray classes in task-detail tree', () => {
+    // task-detail UI has been split across task-detail.tsx + task-detail/*.tsx
+    // (TaskActionMenu, TaskHeader, TaskFieldEditors, TaskModals, CommentSection).
+    // Scan the whole tree so the regression rule keeps holding as more pieces
+    // are extracted.
+    const root = process.cwd()
+    const files = [
+      path.join(root, 'components/task-detail.tsx'),
+      ...fs.readdirSync(path.join(root, 'components/task-detail'))
+        .filter(f => f.endsWith('.tsx') || f.endsWith('.ts'))
+        .map(f => path.join(root, 'components/task-detail', f)),
+    ]
+    const combined = files.map(f => fs.readFileSync(f, 'utf-8')).join('\n')
 
-    // Check for problematic hardcoded gray classes that were replaced
     const problematicPatterns = [
-      /text-gray-300(?!\w)/, // text-gray-300 but not text-gray-300-something
-      /text-gray-400(?!\w)/, // text-gray-400 but not text-gray-400-something
-      /text-gray-500(?!\w)/, // text-gray-500 but not text-gray-500-something
+      /text-gray-300(?!\w)/g,
+      /text-gray-400(?!\w)/g,
+      /text-gray-500(?!\w)/g,
     ]
 
-    problematicPatterns.forEach((pattern) => {
-      const matches = componentContent.match(new RegExp(pattern.source, 'g'))
-      if (matches) {
-        expect(matches.length).toBe(0,
-          `Found ${matches.length} instances of problematic gray text classes. Should use theme classes instead.`
-        )
-      }
-    })
+    for (const pattern of problematicPatterns) {
+      const matches = combined.match(pattern)
+      expect(matches?.length ?? 0).toBe(0)
+    }
 
-    // Ensure we're using theme classes instead
-    expect(componentContent).toContain('theme-text-muted')
-    expect(componentContent).toContain('theme-text-secondary')
-    expect(componentContent).toContain('theme-text-primary')
+    // Theme classes must still appear somewhere in the tree
+    expect(combined).toContain('theme-text-muted')
+    expect(combined).toContain('theme-text-secondary')
+    expect(combined).toContain('theme-text-primary')
   })
 
   it('should verify theme classes are properly used for key UI elements', () => {
-    const componentPath = path.join(process.cwd(), 'components/task-detail.tsx')
-    const componentContent = fs.readFileSync(componentPath, 'utf-8')
-    const commentSectionPath = path.join(process.cwd(), 'components/task-detail/CommentSection.tsx')
-    const commentSectionContent = fs.readFileSync(commentSectionPath, 'utf-8')
+    const root = process.cwd()
+    const taskDetailFiles = [
+      fs.readFileSync(path.join(root, 'components/task-detail.tsx'), 'utf-8'),
+      ...fs.readdirSync(path.join(root, 'components/task-detail'))
+        .filter(f => f.endsWith('.tsx'))
+        .map(f => fs.readFileSync(path.join(root, 'components/task-detail', f), 'utf-8')),
+    ].join('\n')
 
-    // Check specific fixes were applied:
+    // 1. Comments section should use theme-text-muted (lives in CommentSection now)
+    expect(taskDetailFiles).toMatch(/className="text-sm theme-text-muted">Comments/)
 
-    // 1. Comments section should use theme-text-muted (now in CommentSection component)
-    expect(commentSectionContent).toMatch(/className="text-sm theme-text-muted">Comments/)
-
-    // 2. Chat bubble meta should use theme-text-muted (now in shared MessageBubble component)
-    const messageBubblePath = path.join(process.cwd(), 'components/shared/MessageBubble.tsx')
+    // 2. Chat bubble meta should use theme-text-muted (in shared MessageBubble)
+    const messageBubblePath = path.join(root, 'components/shared/MessageBubble.tsx')
     const messageBubbleContent = fs.readFileSync(messageBubblePath, 'utf-8')
     expect(messageBubbleContent).toMatch(/chat-bubble-meta theme-text-muted/)
 
-    // 3. Task title when completed should use theme-text-muted
-    expect(componentContent).toMatch(/line-through theme-text-muted/)
+    // 3. Task title when completed should use theme-text-muted (now in TaskHeader)
+    expect(taskDetailFiles).toMatch(/line-through theme-text-muted/)
   })
 
   it('should verify CSS classes are semantically correct', () => {

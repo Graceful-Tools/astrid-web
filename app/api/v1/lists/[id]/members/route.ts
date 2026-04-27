@@ -12,6 +12,9 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
 import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.lists.members')
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -140,7 +143,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] GET /lists/:id/members error:', error)
+    log.error({ err: error }, 'GET /lists/:id/members error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -264,7 +267,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
           invitationUrl: `${process.env.NEXTAUTH_URL}/invite/${token}`,
         })
       } catch (emailError) {
-        console.error('[API v1] Failed to send invitation email:', emailError)
+        log.error({ err: emailError }, 'Failed to send invitation email')
         // Continue - invitation was still created
       }
 
@@ -333,7 +336,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         }
       })
     } catch (sseError) {
-      console.error('[API v1] Failed to broadcast list member added event:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast list member added event')
     }
 
     const headers: Record<string, string> = {}
@@ -368,7 +371,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] POST /lists/:id/members error:', error)
+    log.error({ err: error }, 'POST /lists/:id/members error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
