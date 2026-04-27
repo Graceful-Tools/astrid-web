@@ -12,6 +12,9 @@ import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.agent.tasks.id')
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: (error as Error).message }, { status: 403 })
     }
-    console.error('[Agent API] GET /agent/tasks/:id error:', error)
+    log.error({ err: error }, 'GET /agent/tasks/:id error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -112,7 +115,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         })
       }
     } catch (sseError) {
-      console.error('[Agent API] SSE broadcast error:', sseError)
+      log.error({ err: sseError }, 'SSE broadcast error')
     }
 
     return addRateLimitHeaders(
@@ -126,7 +129,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: (error as Error).message }, { status: 403 })
     }
-    console.error('[Agent API] PATCH /agent/tasks/:id error:', error)
+    log.error({ err: error }, 'PATCH /agent/tasks/:id error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

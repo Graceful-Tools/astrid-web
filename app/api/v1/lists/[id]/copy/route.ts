@@ -8,6 +8,9 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { copyListWithTasks } from '@/lib/copy-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.lists.copy')
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -117,7 +120,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] POST /lists/:id/copy error:', error)
+    log.error({ err: error }, 'POST /lists/:id/copy error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

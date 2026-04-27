@@ -11,6 +11,9 @@ import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedErro
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateSingleListFavorite, toggleFavorite } from '@/lib/favorites'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.lists.id')
 
 /**
  * GET /api/v1/lists/:id
@@ -129,7 +132,7 @@ export async function GET(
         { status: 403 }
       )
     }
-    console.error('[API v1] GET /lists/:id error:', error)
+    log.error({ err: error }, 'GET /lists/:id error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -322,7 +325,7 @@ export async function PUT(
         { status: 403 }
       )
     }
-    console.error('[API v1] PUT /lists/:id error:', error)
+    log.error({ err: error }, 'PUT /lists/:id error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -396,7 +399,7 @@ export async function DELETE(
         { status: 403 }
       )
     }
-    console.error('[API v1] DELETE /lists/:id error:', error)
+    log.error({ err: error }, 'DELETE /lists/:id error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

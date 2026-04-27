@@ -13,6 +13,9 @@ import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateListFavorites } from '@/lib/favorites'
 import { RedisCache } from '@/lib/redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.lists')
 
 const LISTS_CACHE_TTL_SECONDS = 300 // 5 minutes — matches the legacy /api/lists cache
 
@@ -161,7 +164,7 @@ export async function GET(req: NextRequest) {
         { status: 403 }
       )
     }
-    console.error('[API v1] GET /lists error:', error)
+    log.error({ err: error }, 'GET /lists error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -256,7 +259,7 @@ export async function POST(req: NextRequest) {
       const userIdsToInvalidate = Array.from(new Set([auth.userId, ...memberIds]))
       await Promise.all(userIdsToInvalidate.map(uid => RedisCache.invalidate.userLists(uid)))
     } catch (invalidateError) {
-      console.error('[API v1] Failed to invalidate user-lists cache after POST:', invalidateError)
+      log.error({ err: invalidateError }, 'Failed to invalidate user-lists cache after POST')
     }
 
     // Track analytics
@@ -294,7 +297,7 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       )
     }
-    console.error('[API v1] POST /lists error:', error)
+    log.error({ err: error }, 'POST /lists error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -10,6 +10,9 @@ import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedErro
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.lists.members.id')
 
 type RouteContext = {
   params: Promise<{ id: string; userId: string }>
@@ -113,7 +116,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         }
       })
     } catch (sseError) {
-      console.error('[API v1] Failed to broadcast list member updated event:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast list member updated event')
     }
 
     const headers: Record<string, string> = {}
@@ -148,7 +151,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] PUT /lists/:id/members/:userId error:', error)
+    log.error({ err: error }, 'PUT /lists/:id/members/:userId error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -237,7 +240,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
         }
       })
     } catch (sseError) {
-      console.error('[API v1] Failed to broadcast list member removed event:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast list member removed event')
     }
 
     const headers: Record<string, string> = {}
@@ -263,7 +266,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] DELETE /lists/:id/members/:userId error:', error)
+    log.error({ err: error }, 'DELETE /lists/:id/members/:userId error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -18,6 +18,9 @@ import { authenticateAgentRequest, transformEventForAgent, mapEventType } from '
 import { registerConnection, removeConnection, getMissedEvents } from '@/lib/sse-utils'
 import { AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { createRateLimitHeaders } from '@/lib/rate-limiter'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.agent.events')
 
 export const runtime = 'nodejs'
 
@@ -119,7 +122,7 @@ export async function GET(request: NextRequest) {
                 } catch { /* stream closed */ }
               }
             }).catch(err => {
-              console.error('[Agent SSE] Transform error during direct push:', err)
+              log.error({ err }, 'Transform error during direct push')
             })
           } catch { /* malformed JSON */ }
         },
@@ -147,12 +150,12 @@ export async function GET(request: NextRequest) {
                   )
                 }
               } catch (err) {
-                console.error('[Agent SSE] Transform error during replay:', err)
+                log.error({ err }, 'Transform error during replay')
               }
             }
             lastCheckTime = Date.now()
           })
-          .catch(err => console.error('[Agent SSE] Replay error:', err))
+          .catch(err => log.error({ err }, 'Replay error'))
       }
 
       // ── Safety-net poll (5s) ─────────────────────────────────────────
@@ -176,7 +179,7 @@ export async function GET(request: NextRequest) {
                 )
               }
             } catch (err) {
-              console.error('[Agent SSE] Transform error during poll:', err)
+              log.error({ err }, 'Transform error during poll')
             }
           }
 
