@@ -5,11 +5,15 @@
  * POST /api/v1/chat/channels/:channelId/messages — send a message
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { withAuth } from '@/lib/api-auth-wrapper'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.chat.channels.messages')
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -28,6 +32,8 @@ const SECURE_FILE_SELECT = {
   createdAt: true,
 }
 
+type RouteContext = { params: Promise<{ channelId: string }> }
+
 /**
  * GET /api/v1/chat/channels/:channelId/messages
  * Get paginated messages for a chat channel
@@ -36,14 +42,9 @@ const SECURE_FILE_SELECT = {
  *   before?: string (ISO date cursor for pagination)
  *   limit?: number (default 50, max 100)
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ channelId: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['chat:read'])
-
+export const GET = withAuth<RouteContext>(
+  { scopes: ['chat:read'], tag: 'v1.chat.channels.messages' },
+  async (req, auth, { params }) => {
     const { channelId } = await params
     const hasAccess = await canAccessChatChannel(channelId, auth.userId)
     if (!hasAccess) {
@@ -72,7 +73,6 @@ export async function GET(
     const hasMore = messages.length > limit
     if (hasMore) messages.pop()
 
-    // Reverse to chronological order for the client
     messages.reverse()
 
     const nextCursor = hasMore && messages.length > 0
@@ -94,24 +94,12 @@ export async function GET(
         })),
         hasMore,
         nextCursor,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    console.error('[API v1] GET /chat/channels/:id/messages error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * POST /api/v1/chat/channels/:channelId/messages
@@ -126,14 +114,9 @@ export async function GET(
  *   clientRequestId?: string (for idempotency)
  * }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ channelId: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['chat:write'])
-
+export const POST = withAuth<RouteContext>(
+  { scopes: ['chat:write'], tag: 'v1.chat.channels.messages' },
+  async (req, auth, { params }) => {
     const { channelId } = await params
     const hasAccess = await canAccessChatChannel(channelId, auth.userId)
     if (!hasAccess) {
@@ -147,7 +130,6 @@ export async function POST(
       return NextResponse.json({ error: 'Content or file attachment is required' }, { status: 400 })
     }
 
-    // Idempotency check
     if (clientRequestId) {
       const existing = await prisma.chatMessage.findUnique({
         where: { clientRequestId },
@@ -182,7 +164,6 @@ export async function POST(
       },
     })
 
-    // Associate secure file if provided
     if (fileId) {
       try {
         await prisma.secureFile.update({
@@ -195,7 +176,6 @@ export async function POST(
           },
         })
 
-        // Refetch to include the associated file
         const updatedMessage = await prisma.chatMessage.findUnique({
           where: { id: message.id },
           include: {
@@ -208,7 +188,7 @@ export async function POST(
           message = updatedMessage
         }
       } catch (error) {
-        console.error('[API v1] Failed to associate file with message:', error)
+        log.error({ err: error, fileId }, 'Failed to associate file with chat message')
       }
     }
 
@@ -218,7 +198,6 @@ export async function POST(
       updatedAt: message.updatedAt.toISOString(),
     }
 
-    // Broadcast to all channel members
     try {
       const recipientIds = await getChatChannelRecipients(channelId)
       const otherRecipients = recipientIds.filter(id => id !== auth.userId)
@@ -227,14 +206,11 @@ export async function POST(
         await broadcastToUsers(otherRecipients, {
           type: 'chat_message_created',
           timestamp: new Date().toISOString(),
-          data: {
-            channelId,
-            message: serializedMessage,
-          },
+          data: { channelId, message: serializedMessage },
         })
       }
     } catch (sseError) {
-      console.error('[API v1] SSE broadcast error:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast chat_message_created')
     }
 
     const headers: Record<string, string> = {}
@@ -246,21 +222,9 @@ export async function POST(
     return NextResponse.json(
       {
         message: serializedMessage,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { status: 201, headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    console.error('[API v1] POST /chat/channels/:id/messages error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
