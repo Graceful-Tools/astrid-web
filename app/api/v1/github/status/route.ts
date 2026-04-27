@@ -2,20 +2,17 @@
  * GitHub Connection Status API (v1 - Mobile Compatible)
  * Checks if user has complete GitHub + AI setup
  *
- * Uses authenticateAPI middleware to support both OAuth and session cookies
+ * Uses withAuth wrapper for session/OAuth + scope check + standardized errors.
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { MCPSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 
-export async function GET(req: NextRequest) {
-  try {
-    // Use API authentication (supports both OAuth and session cookies)
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['user:read'])
-
+export const GET = withAuth(
+  { scopes: ['user:read'], tag: 'v1.github.status' },
+  async (_req, auth) => {
     const userId = auth.userId
 
     // Fetch ALL GitHub integrations — users may have connected multiple orgs.
@@ -65,11 +62,6 @@ export async function GET(req: NextRequest) {
       ? ['claude', 'openai', 'gemini'] // Worker has all provider keys
       : configuredProviders // User's personal API keys
 
-    console.log('🔍 [GitHub Status v1] Checking status for user:', userId)
-    console.log('  - GitHub connected:', isGitHubConnected, `(${connectedInstallationIds.length} installations)`)
-    console.log('  - User API keys:', configuredProviders)
-    console.log('  - Available providers:', availableProviders)
-
     return NextResponse.json({
       isGitHubConnected,
       hasAIKeys,
@@ -89,12 +81,5 @@ export async function GET(req: NextRequest) {
       aiProviders: availableProviders,
       userApiKeys: configuredProviders // User's own configured keys (for non-coding)
     })
-
-  } catch (error) {
-    console.error('[GitHub Status v1] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
