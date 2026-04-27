@@ -689,7 +689,7 @@ Core markdown files in root:
 Additional root files:
 - `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` - Community files
 - `CHANGELOG.md` - Version history
-- `ASTRID_WORKFLOW.md`, `MIGRATION_NOTES.md` - Development notes
+- `ASTRID_WORKFLOW.md` - "Let's fix stuff" workflow for any AI coding assistant
 
 ### Packages Directory
 

@@ -80,8 +80,9 @@ Before marking tasks complete:
 ```bash
 npm run predeploy        # TypeScript + ESLint + tests
 npm run test:e2e         # E2E tests (if UI changes)
-npm run test:ios:unit    # iOS tests (if iOS changes)
 ```
+
+iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
 
 ---
 
