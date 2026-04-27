@@ -513,54 +513,55 @@ export async function POST(request: NextRequest) {
     }
 
     if (nonVirtualListIds.length > 0) {
-      for (const manualList of nonVirtualListIds) {
-        try {
-          const listRecord = await prisma.taskList.findUnique({
-            where: { id: manualList },
-            include: {
-              owner: true,
-              listMembers: {
-                include: {
-                  user: true
-                }
-              }
-            }
-          })
+      // Batch-fetch all candidate lists in one round-trip instead of N findUniques.
+      // Filter to manual-sort lists in memory, then run updates in parallel.
+      try {
+        const candidateLists = await prisma.taskList.findMany({
+          where: { id: { in: nonVirtualListIds }, sortBy: 'manual' },
+          include: {
+            owner: true,
+            listMembers: { include: { user: true } },
+          },
+        })
 
-          if (!listRecord || listRecord.sortBy !== "manual") {
-            continue
-          }
-
+        const listsNeedingUpdate = candidateLists.filter(listRecord => {
           const existingOrder = Array.isArray((listRecord as any).manualSortOrder)
             ? (listRecord.manualSortOrder as string[])
             : []
+          return !existingOrder.includes(task.id)
+        })
 
-          if (!existingOrder.includes(task.id)) {
-            const updatedList = await prisma.taskList.update({
-              where: { id: listRecord.id },
-              data: {
-                manualSortOrder: [...existingOrder, task.id] as Prisma.JsonArray
-              },
-              include: {
-                owner: true,
-                listMembers: {
-                  include: {
-                    user: true
-                  }
+        await Promise.all(
+          listsNeedingUpdate.map(async listRecord => {
+            try {
+              const existingOrder = Array.isArray((listRecord as any).manualSortOrder)
+                ? (listRecord.manualSortOrder as string[])
+                : []
+
+              const updatedList = await prisma.taskList.update({
+                where: { id: listRecord.id },
+                data: {
+                  manualSortOrder: [...existingOrder, task.id] as Prisma.JsonArray
+                },
+                include: {
+                  owner: true,
+                  listMembers: { include: { user: true } },
                 }
-              }
-            })
+              })
 
-            const memberIds = getListMemberIds(updatedList as any)
-            await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
-            await broadcastToUsers(memberIds, {
-              type: 'list_updated',
-              data: updatedList
-            })
-          }
-        } catch (error) {
-          console.error('Failed to append task to manual sort order:', error)
-        }
+              const memberIds = getListMemberIds(updatedList as any)
+              await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+              await broadcastToUsers(memberIds, {
+                type: 'list_updated',
+                data: updatedList
+              })
+            } catch (error) {
+              console.error(`Failed to append task to manual sort order for list ${listRecord.id}:`, error)
+            }
+          })
+        )
+      } catch (error) {
+        console.error('Failed to fetch candidate manual-sort lists:', error)
       }
     }
 
