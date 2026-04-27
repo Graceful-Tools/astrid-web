@@ -17,8 +17,11 @@ export async function GET(req: NextRequest) {
 
     const userId = auth.userId
 
-    // Check GitHub integration (get first one for backward compatibility)
-    const githubIntegration = await prisma.gitHubIntegration.findFirst({
+    // Fetch ALL GitHub integrations — users may have connected multiple orgs.
+    // Previously we used findFirst, which silently hid additional installations
+    // from iOS clients (the legacy /api/github/status endpoint already
+    // aggregated correctly, so this matches that behavior).
+    const githubIntegrations = await prisma.gitHubIntegration.findMany({
       where: { userId }
     })
 
@@ -39,11 +42,21 @@ export async function GET(req: NextRequest) {
       where: { userId }
     })
 
-    const isGitHubConnected = !!githubIntegration?.installationId
+    // Aggregate data from all integrations (parity with /api/github/status).
+    const connectedInstallationIds: number[] = []
+    const allRepositories: any[] = []
+    for (const integration of githubIntegrations) {
+      if (integration.installationId) {
+        connectedInstallationIds.push(integration.installationId)
+      }
+      const repos = (integration.repositories as any[]) || []
+      allRepositories.push(...repos)
+    }
+
+    const isGitHubConnected = connectedInstallationIds.length > 0
     const hasAIKeys = configuredProviders.length > 0
     const hasMCPToken = mcpTokens.length > 0
-    const repositoryCount = githubIntegration?.repositories ?
-      (Array.isArray(githubIntegration.repositories) ? githubIntegration.repositories.length : 0) : 0
+    const repositoryCount = allRepositories.length
 
     // For coding workflows (GitHub connected), all agents are available via worker's API keys
     // For non-coding workflows (no GitHub), only user's configured API keys work
@@ -52,7 +65,7 @@ export async function GET(req: NextRequest) {
       : configuredProviders // User's personal API keys
 
     console.log('🔍 [GitHub Status v1] Checking status for user:', userId)
-    console.log('  - GitHub connected:', isGitHubConnected)
+    console.log('  - GitHub connected:', isGitHubConnected, `(${connectedInstallationIds.length} installations)`)
     console.log('  - User API keys:', configuredProviders)
     console.log('  - Available providers:', availableProviders)
 
@@ -64,9 +77,14 @@ export async function GET(req: NextRequest) {
       mcpTokenCount: mcpTokens.length,
       isFullyConfigured: isGitHubConnected && hasMCPToken,
       githubIntegration: isGitHubConnected ? {
-        installationId: githubIntegration.installationId,
-        repositoryCount
+        // Primary installation kept for backward compatibility with existing clients.
+        installationId: connectedInstallationIds[0],
+        repositoryCount,
+        // Additive: full repo + installation list (parity with /api/github/status).
+        repositories: allRepositories,
+        connectedInstallationIds,
       } : null,
+      installationCount: connectedInstallationIds.length,
       aiProviders: availableProviders,
       userApiKeys: configuredProviders // User's own configured keys (for non-coding)
     })
