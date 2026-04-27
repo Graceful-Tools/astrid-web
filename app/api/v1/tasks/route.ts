@@ -151,6 +151,20 @@ export async function GET(req: NextRequest) {
               isAIAgent: true,
             },
           },
+          // Attachments — included so list views can show file badges/previews.
+          // The single-task GET and POST already return attachments; this brings
+          // the list endpoint to parity. iOS clients listing tasks need this to
+          // surface attachment counts without a per-task roundtrip.
+          attachments: {
+            select: {
+              id: true,
+              name: true,
+              url: true,
+              type: true,
+              size: true,
+              createdAt: true,
+            },
+          },
           ...(includeComments && {
             comments: {
               select: {
