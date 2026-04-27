@@ -5,13 +5,14 @@
  * POST /api/v1/tasks/:id/comments - Create a new comment on a task
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.tasks.comments')
@@ -25,33 +26,19 @@ const listSelection = {
   createdAt: true,
   updatedAt: true,
   owner: {
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      image: true,
-    },
+    select: { id: true, email: true, name: true, image: true },
   },
   listMembers: {
     select: {
       userId: true,
       role: true,
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          image: true,
-        },
-      },
+      user: { select: { id: true, email: true, name: true, image: true } },
     },
   },
 } as const
 
 const taskAccessInclude = {
-  lists: {
-    select: listSelection,
-  },
+  lists: { select: listSelection },
 } as const
 
 function userHasStandardTaskAccess(task: any, userId: string): boolean {
@@ -77,20 +64,17 @@ function taskIsInCollaborativePublicList(task: any): boolean {
   )
 }
 
+type RouteContext = { params: Promise<{ id: string }> }
+
 /**
  * GET /api/v1/tasks/:id/comments
  * Get all comments for a task
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
+export const GET = withAuth<RouteContext>(
+  { scopes: ['comments:read'], tag: 'v1.tasks.comments' },
+  async (_req, auth, { params }) => {
     const { id: taskId } = await params
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['comments:read'])
 
-    // Verify task access - allow collaborators and all public list viewers
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: taskAccessInclude,
@@ -113,7 +97,6 @@ export async function GET(
       )
     }
 
-    // Fetch comments
     const comments = await prisma.comment.findMany({
       where: { taskId },
       include: {
@@ -151,53 +134,22 @@ export async function GET(
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'GET /tasks/:id/comments error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
 
 /**
  * POST /api/v1/tasks/:id/comments
  * Create a new comment on a task
  *
- * Body:
- * {
- *   content: string (required)
- *   type?: 'TEXT' | 'IMAGE' | 'FILE' | 'CODE' | 'AUDIO' | 'VIDEO'
- *   fileId?: string (for attaching uploaded files)
- *   parentCommentId?: string (for threaded replies)
- *   aiAgentId?: string (optional, allows posting as an AI agent - must be a valid AI agent user)
- * }
+ * Body: { content, type?, fileId?, parentCommentId?, aiAgentId?, createdAt? }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['comments:write'])
-
+export const POST = withAuth<RouteContext>(
+  { scopes: ['comments:write'], tag: 'v1.tasks.comments' },
+  async (req, auth, { params }) => {
     const { id: taskId } = await params
     const body = await req.json()
 
-    // Validate required fields - content is required unless there's a fileId
-    // This matches the internal API behavior for consistency
+    // content must be a string; trim+fileId together cover the no-content case
     if (typeof body.content !== 'string') {
       return NextResponse.json(
         { error: 'content must be a string' },
@@ -212,10 +164,8 @@ export async function POST(
       )
     }
 
-    // Verify task access and write permission (allow collaborative public list viewers).
-    // We also fetch the assignee's aiAgentType and the lists' githubRepositoryId /
-    // aiAgentConfiguredBy so the post-comment side-effects helper can route AI
-    // agent triggers correctly. These extra fields aren't returned in the response.
+    // Extra fields beyond standard taskAccessInclude — needed by the post-comment
+    // side-effects helper to route AI agent triggers and workflow detection.
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -249,10 +199,8 @@ export async function POST(
       )
     }
 
-    // Determine the author ID - allow posting as AI agent if specified
     let authorId = auth.userId
     if (body.aiAgentId) {
-      // Validate that the specified user is an AI agent
       const aiAgent = await prisma.user.findUnique({
         where: { id: body.aiAgentId },
         select: { id: true, isAIAgent: true, email: true }
@@ -265,7 +213,7 @@ export async function POST(
         )
       }
 
-      // Accept users flagged as AI agents OR system agent emails (@astrid.cc)
+      // Allow either explicitly-flagged AI agents or system @astrid.cc agents
       const isSystemAgent = aiAgent.email?.endsWith('@astrid.cc')
       if (!aiAgent.isAIAgent && !isSystemAgent) {
         return NextResponse.json(
@@ -278,10 +226,8 @@ export async function POST(
       log.info({ agentEmail: aiAgent.email }, 'Posting comment as AI agent')
     }
 
-    // Create comment
-    // Accept client-provided createdAt for offline-first ordering
-    // This ensures comments appear in the order the user submitted them,
-    // even if uploads complete out of order
+    // Accept client-provided createdAt for offline-first ordering — comments
+    // appear in the order the user submitted, even if uploads finish out of order.
     const createdAt = body.createdAt ? new Date(body.createdAt) : undefined
 
     const comment = await prisma.comment.create({
@@ -309,10 +255,9 @@ export async function POST(
       }
     })
 
-    // Associate secure file if provided
     if (body.fileId) {
       try {
-        // Find the file — allow if user uploaded it OR if it's in a chat channel they have access to
+        // Allow linking a file the user uploaded OR one in a chat channel they can read
         const secureFile = await prisma.secureFile.findUnique({
           where: { id: body.fileId },
           select: {
@@ -328,7 +273,6 @@ export async function POST(
           if (secureFile.uploadedBy === auth.userId) {
             canLink = true
           } else if (secureFile.chatMessage?.channelId) {
-            // User can link files from channels they have access to
             const { canAccessChatChannel } = await import('@/lib/chat-access')
             canLink = await canAccessChatChannel(secureFile.chatMessage.channelId, auth.userId)
           }
@@ -341,7 +285,6 @@ export async function POST(
           })
         }
 
-        // Refetch comment to include the associated file
         const updatedComment = await prisma.comment.findUnique({
           where: { id: comment.id },
           include: {
@@ -365,29 +308,25 @@ export async function POST(
         }
       } catch (error) {
         log.error({ err: error }, 'Failed to associate file with comment')
-        // Don't fail the comment creation if file association fails
       }
     }
 
-    // Broadcast SSE event for real-time updates
     try {
       const userIds = new Set<string>()
 
-      // Get all members from all lists this task belongs to
       for (const list of task.lists) {
         const listMemberIds = getListMemberIds(list as any)
         listMemberIds.forEach(id => userIds.add(id))
       }
 
-      // Add task assignee and creator
       if (task.assigneeId) userIds.add(task.assigneeId)
       if (task.creatorId) userIds.add(task.creatorId)
 
-      // Remove the comment author from notifications (don't notify yourself)
+      // Don't notify the comment author about their own comment
       userIds.delete(authorId)
 
       if (userIds.size > 0) {
-        // Build AgentComment-compatible object for SDK consumers
+        // AgentComment-shaped object for SDK consumers
         const agentComment = {
           id: comment.id,
           content: comment.content,
@@ -409,10 +348,10 @@ export async function POST(
       }
     } catch (error) {
       log.error({ err: error }, 'Failed to broadcast comment_created')
-      // Don't fail the comment creation if SSE broadcast fails
     }
 
-    // Broadcast agent_task_comment event if task is assigned to an OpenClaw agent
+    // Direct ping to OpenClaw assignees so the agent picks the work up
+    // without having to subscribe to the broader comment_created channel.
     try {
       if (task.assigneeId && task.assignee?.email &&
           (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
@@ -439,9 +378,8 @@ export async function POST(
       log.error({ err: error }, 'Failed to broadcast agent_task_comment')
     }
 
-    // Fire shared post-comment side effects: AI agent triggers on @-mentions,
-    // workflow command detection, AI assignee wake-up, stats invalidation.
-    // This is identical to the legacy /api/tasks/[id]/comments behavior.
+    // Shared with /api/tasks/[id]/comments: AI mention triggers, workflow command
+    // detection, AI assignee wake-up, and stats invalidation.
     try {
       const commenterUser = await prisma.user.findUnique({
         where: { id: auth.userId },
@@ -482,7 +420,6 @@ export async function POST(
       log.error({ err: sideEffectError }, 'post-comment side effects failed')
     }
 
-    // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.COMMENT_ADDED, {
       taskId,
       commentId: comment.id
@@ -497,30 +434,9 @@ export async function POST(
     return NextResponse.json(
       {
         comment,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { status: 201, headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'POST /tasks/:id/comments error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
