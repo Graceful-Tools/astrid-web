@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
+import { AIAssistantSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,9 +20,11 @@ export async function GET(req: NextRequest) {
       select: { aiAssistantSettings: true },
     })
 
-    const settings = user?.aiAssistantSettings
-      ? JSON.parse(user.aiAssistantSettings)
-      : {}
+    const settings = parseUserAIConfig(
+      user?.aiAssistantSettings,
+      AIAssistantSettingsSchema,
+      'GET ai-assistant-settings'
+    )
 
     return NextResponse.json({
       preferredService: settings.preferredService || null,
@@ -60,11 +63,13 @@ export async function PATCH(req: NextRequest) {
       select: { aiAssistantSettings: true },
     })
 
-    const existing = user?.aiAssistantSettings
-      ? JSON.parse(user.aiAssistantSettings)
-      : {}
+    const existing = parseUserAIConfig(
+      user?.aiAssistantSettings,
+      AIAssistantSettingsSchema,
+      'PATCH ai-assistant-settings'
+    )
 
-    const updated = { ...existing }
+    const updated: Record<string, unknown> = { ...existing }
     if ('defaultAgentId' in body) {
       updated.defaultAgentId = defaultAgentId || null
     }
