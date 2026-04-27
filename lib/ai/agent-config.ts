@@ -43,9 +43,11 @@ export interface AIAgentConfig {
  */
 export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
   claude: [
-    'claude-sonnet-4-20250514',
+    'claude-opus-4-7',
+    'claude-sonnet-4-6',
+    'claude-haiku-4-5-20251001',
+    'claude-sonnet-4-6',
     'claude-opus-4-20250514',
-    'claude-3-5-sonnet-20241022',
   ],
   openai: [
     'gpt-4o',
@@ -54,8 +56,8 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
     'o1-mini',
   ],
   gemini: [
-    'gemini-2.0-flash',
     'gemini-2.5-flash',
+    'gemini-2.0-flash',
     'gemini-1.5-pro',
   ],
 }
@@ -64,16 +66,16 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
  * Default models for each service (first in the suggestions list)
  */
 export const DEFAULT_MODELS: Partial<Record<AIService, string>> = {
-  claude: 'claude-sonnet-4-20250514',
-  openai: 'gpt-4o', // Reliable default for OpenAI
-  gemini: 'gemini-2.0-flash',
+  claude: 'claude-sonnet-4-6',
+  openai: 'gpt-4o',
+  gemini: 'gemini-2.5-flash',
 }
 
 export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
   // Astrid is the default agent identity — the underlying model is determined by user settings
   'astrid@astrid.cc': {
     service: 'claude', // Default service; overridden by user's configured model at runtime
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     displayName: 'Astrid',
     agentType: 'astrid_agent',
     contextFile: 'ASTRID.md',
@@ -81,7 +83,7 @@ export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
   },
   'claude@astrid.cc': {
     service: 'claude',
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     displayName: 'Claude Agent',
     agentType: 'claude_agent',
     contextFile: 'ASTRID.md',
@@ -97,7 +99,7 @@ export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
   },
   'gemini@astrid.cc': {
     service: 'gemini',
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     displayName: 'Gemini Agent',
     agentType: 'gemini_agent',
     contextFile: 'ASTRID.md',
@@ -142,7 +144,7 @@ export function getAgentService(email: string): AIService {
  * Get the model for an agent email
  */
 export function getAgentModel(email: string): string {
-  return getAgentConfig(email)?.model || 'claude-sonnet-4-20250514'
+  return getAgentConfig(email)?.model || 'claude-sonnet-4-6'
 }
 
 /**
