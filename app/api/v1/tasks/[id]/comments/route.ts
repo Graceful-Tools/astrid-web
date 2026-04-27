@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
 
 const listSelection = {
   id: true,
@@ -208,13 +209,22 @@ export async function POST(
       )
     }
 
-    // Verify task access and write permission (allow collaborative public list viewers)
+    // Verify task access and write permission (allow collaborative public list viewers).
+    // We also fetch the assignee's aiAgentType and the lists' githubRepositoryId /
+    // aiAgentConfiguredBy so the post-comment side-effects helper can route AI
+    // agent triggers correctly. These extra fields aren't returned in the response.
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        ...taskAccessInclude,
+        lists: {
+          select: {
+            ...listSelection,
+            githubRepositoryId: true,
+            aiAgentConfiguredBy: true,
+          },
+        },
         assignee: {
-          select: { id: true, email: true, name: true, isAIAgent: true }
+          select: { id: true, email: true, name: true, isAIAgent: true, aiAgentType: true }
         },
       },
     })
@@ -424,6 +434,49 @@ export async function POST(
       }
     } catch (error) {
       console.error('[API v1] Failed to broadcast agent_task_comment:', error)
+    }
+
+    // Fire shared post-comment side effects: AI agent triggers on @-mentions,
+    // workflow command detection, AI assignee wake-up, stats invalidation.
+    // This is identical to the legacy /api/tasks/[id]/comments behavior.
+    try {
+      const commenterUser = await prisma.user.findUnique({
+        where: { id: auth.userId },
+        select: { id: true, name: true, email: true, isAIAgent: true },
+      })
+      if (commenterUser) {
+        await dispatchPostCommentSideEffects({
+          comment: { id: comment.id, content: comment.content },
+          task: {
+            id: task.id,
+            title: task.title,
+            creatorId: task.creatorId,
+            assigneeId: task.assigneeId,
+            assignee: task.assignee
+              ? {
+                  id: task.assignee.id,
+                  email: task.assignee.email,
+                  name: task.assignee.name,
+                  isAIAgent: task.assignee.isAIAgent,
+                  aiAgentType: (task.assignee as any).aiAgentType ?? null,
+                }
+              : null,
+            lists: task.lists.map(l => ({
+              id: l.id,
+              githubRepositoryId: (l as any).githubRepositoryId ?? null,
+              aiAgentConfiguredBy: (l as any).aiAgentConfiguredBy ?? null,
+            })),
+          },
+          commenter: {
+            id: commenterUser.id,
+            name: commenterUser.name,
+            email: commenterUser.email,
+            isAIAgent: commenterUser.isAIAgent,
+          },
+        })
+      }
+    } catch (sideEffectError) {
+      console.error('[API v1] post-comment side effects failed:', sideEffectError)
     }
 
     // Track analytics
