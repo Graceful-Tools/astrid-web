@@ -9,11 +9,14 @@
  * Returns: { agent, oauth, config }
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
+import { withAuth } from '@/lib/api-auth-wrapper'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.openclaw.register')
 
 // Reserved names that cannot be used for agent registration
 const RESERVED_NAMES = ['admin', 'system', 'test', 'api', 'support', 'root', 'openclaw']
@@ -21,10 +24,9 @@ const RESERVED_NAMES = ['admin', 'system', 'test', 'api', 'support', 'root', 'op
 // Name validation: lowercase alphanumeric + dots/hyphens/underscores, 2-32 chars
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,30}[a-z0-9]$/
 
-export async function POST(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-
+export const POST = withAuth(
+  { tag: 'v1.openclaw.register' },
+  async (req, auth) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.REGISTRATION)
     if (rateCheck.response) return rateCheck.response
 
@@ -42,7 +44,6 @@ export async function POST(req: NextRequest) {
 
     const name = agentName.toLowerCase().trim()
 
-    // Validate name format
     if (!NAME_PATTERN.test(name)) {
       return NextResponse.json(
         { error: 'Invalid agent name. Must be 2-32 characters, lowercase alphanumeric with dots, hyphens, or underscores. Must start and end with alphanumeric.' },
@@ -50,7 +51,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check reserved names
     if (RESERVED_NAMES.includes(name)) {
       return NextResponse.json(
         { error: `The name "${name}" is reserved and cannot be used.` },
@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
 
     const agentEmail = `${name}.oc@astrid.cc`
 
-    // Check if agent already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: agentEmail }
     })
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Create agent user record with default OpenClaw profile photo
     const agentUser = await prisma.user.create({
       data: {
         email: agentEmail,
@@ -90,7 +88,6 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Create OAuth client for the agent
     const oauthClient = await createOAuthClient({
       userId: agentUser.id,
       name: `OpenClaw Agent: ${name}`,
@@ -99,7 +96,6 @@ export async function POST(req: NextRequest) {
       grantTypes: ['client_credentials'],
     })
 
-    // Optionally add agent as member to specified lists
     if (listIds && Array.isArray(listIds)) {
       for (const listId of listIds) {
         try {
@@ -111,13 +107,16 @@ export async function POST(req: NextRequest) {
             }
           })
         } catch (error) {
-          console.error(`[OpenClaw Register] Failed to add agent to list ${listId}:`, error)
+          log.error({ err: error, listId }, 'Failed to add agent to list')
           // Don't fail registration if list membership fails
         }
       }
     }
 
-    console.log(`[OpenClaw Register] Created agent ${agentEmail} (registered by ${auth.user.email})`)
+    log.info(
+      { agentEmail, registeredBy: auth.user.email },
+      'Created OpenClaw agent'
+    )
 
     return addRateLimitHeaders(
       NextResponse.json({
@@ -140,18 +139,5 @@ export async function POST(req: NextRequest) {
       }, { status: 201 }),
       rateCheck.headers
     )
-
-  } catch (error) {
-    if (error instanceof UnauthorizedError || (error as any)?.name === 'UnauthorizedError') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError || (error as any)?.name === 'ForbiddenError') {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    console.error('[OpenClaw Register] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
