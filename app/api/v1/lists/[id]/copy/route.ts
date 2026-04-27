@@ -4,10 +4,11 @@
  * POST /api/v1/lists/:id/copy - Copy a public list to your account
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { copyListWithTasks } from '@/lib/copy-utils'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -23,11 +24,9 @@ type RouteContext = {
  *   newName?: string (optional - defaults to "Copy of [Original Name]")
  * }
  */
-export async function POST(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const POST = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.copy' },
+  async (req, auth, { params }) => {
     const { id } = await params
     const body = await req.json().catch(() => ({}))
 
@@ -110,14 +109,5 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    console.error('[API v1] POST /lists/:id/copy error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

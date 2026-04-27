@@ -4,10 +4,11 @@
  * GET /api/v1/public/lists - Browse public lists
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
 /**
  * GET /api/v1/public/lists
@@ -17,11 +18,9 @@ import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count
  * - sortBy: 'popular' | 'recent' | 'name' (default: 'popular')
  * - limit: number (default: 50, max: 100)
  */
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:read'])
-
+export const GET = withAuth(
+  { scopes: ['lists:read'], tag: 'v1.public.lists' },
+  async (req, auth) => {
     const { searchParams } = new URL(req.url)
     const sortBy = searchParams.get('sortBy') || 'popular'
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
@@ -134,14 +133,5 @@ export async function GET(req: NextRequest) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    console.error('[API v1] GET /public/lists error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

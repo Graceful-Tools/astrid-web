@@ -4,15 +4,14 @@
  * List the current user's registered OpenClaw agents.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-
+export const GET = withAuth(
+  { tag: 'v1.openclaw.agents' },
+  async (_req, auth) => {
     const agentUsers = await prisma.user.findMany({
       where: {
         isAIAgent: true,
@@ -70,11 +69,5 @@ export async function GET(req: NextRequest) {
     )
 
     return NextResponse.json({ agents })
-  } catch (error) {
-    if (error instanceof UnauthorizedError || (error as any)?.name === 'UnauthorizedError') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.error('[OpenClaw Agents] GET error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

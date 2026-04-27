@@ -11,10 +11,11 @@
  * signal that the person would be a good collaborator.
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
 /**
  * GET /api/v1/contacts/recommended
@@ -24,11 +25,9 @@ import { decryptField } from '@/lib/field-encryption'
  * - limit: number (default: 20, max: 100)
  * - excludeListId: optional list ID to exclude existing members
  */
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['contacts:read'])
-
+export const GET = withAuth(
+  { scopes: ['contacts:read'], tag: 'v1.contacts.recommended' },
+  async (req, auth) => {
     const { searchParams } = new URL(req.url)
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
     const excludeListId = searchParams.get('excludeListId')
@@ -175,14 +174,5 @@ export async function GET(req: NextRequest) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    console.error('[API v1] GET /contacts/recommended error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
