@@ -5,36 +5,29 @@
  * DELETE /api/v1/lists/:id/members/:userId - Remove member
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.lists.members.id')
 
-type RouteContext = {
-  params: Promise<{ id: string; userId: string }>
-}
+type RouteContext = { params: Promise<{ id: string; userId: string }> }
 
 /**
  * PUT /api/v1/lists/:id/members/:userId
  * Update member role
  *
- * Body:
- * {
- *   role: 'admin' | 'member'
- * }
+ * Body: { role: 'admin' | 'member' }
  */
-export async function PUT(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const PUT = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.members.id' },
+  async (req, auth, { params }) => {
     const { id, userId } = await params
     const body = await req.json()
-
     const { role } = body
 
     if (!role || (role !== 'admin' && role !== 'member')) {
@@ -44,7 +37,6 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Fetch list
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
@@ -62,13 +54,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    // Check permissions: only owner and admins can update roles
     if (!isListAdminOrOwner(list as any, auth.userId)) {
       return NextResponse.json(
         { error: 'Only list admins and owners can update member roles' },
@@ -76,7 +64,6 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Cannot change owner role
     if (list.ownerId === userId) {
       return NextResponse.json(
         { error: 'Cannot change the owner\'s role' },
@@ -84,7 +71,6 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Find member
     const member = list.listMembers.find(m => m.userId === userId)
     if (!member) {
       return NextResponse.json(
@@ -93,27 +79,18 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Update role
     await prisma.listMember.update({
       where: {
-        listId_userId: {
-          listId: id,
-          userId,
-        }
+        listId_userId: { listId: id, userId },
       },
       data: { role }
     })
 
-    // Broadcast SSE event
     try {
       const memberIds = getListMemberIds(list as any)
       broadcastToUsers(memberIds, {
         type: 'list_member_updated',
-        data: {
-          listId: id,
-          userId,
-          role,
-        }
+        data: { listId: id, userId, role }
       })
     } catch (sseError) {
       log.error({ err: sseError }, 'Failed to broadcast list member updated event')
@@ -144,30 +121,18 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'PUT /lists/:id/members/:userId error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * DELETE /api/v1/lists/:id/members/:userId
  * Remove member from list
  */
-export async function DELETE(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const DELETE = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.members.id' },
+  async (_req, auth, { params }) => {
     const { id, userId } = await params
 
-    // Fetch list
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
@@ -185,13 +150,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    // Check permissions: owner/admins can remove anyone, members can remove themselves
     const isAdminOrOwner = isListAdminOrOwner(list as any, auth.userId)
     const isRemovingSelf = userId === auth.userId
 
@@ -202,7 +163,6 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Cannot remove owner
     if (list.ownerId === userId) {
       return NextResponse.json(
         { error: 'Cannot remove the list owner' },
@@ -210,7 +170,6 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Find member
     const member = list.listMembers.find(m => m.userId === userId)
     if (!member) {
       return NextResponse.json(
@@ -219,25 +178,17 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Remove member
     await prisma.listMember.delete({
       where: {
-        listId_userId: {
-          listId: id,
-          userId,
-        }
+        listId_userId: { listId: id, userId },
       }
     })
 
-    // Broadcast SSE event
     try {
       const memberIds = getListMemberIds(list as any)
       broadcastToUsers(memberIds, {
         type: 'list_member_removed',
-        data: {
-          listId: id,
-          userId,
-        }
+        data: { listId: id, userId }
       })
     } catch (sseError) {
       log.error({ err: sseError }, 'Failed to broadcast list member removed event')
@@ -259,14 +210,5 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'DELETE /lists/:id/members/:userId error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

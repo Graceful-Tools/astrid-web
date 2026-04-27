@@ -5,19 +5,20 @@
  * Auth: session (owner only)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
+import { withAuth } from '@/lib/api-auth-wrapper'
+import { createLogger } from '@/lib/logger'
 
-interface RouteContext {
-  params: Promise<{ id: string }>
-}
+const log = createLogger('v1.openclaw.agents.id')
 
-export async function PATCH(req: NextRequest, context: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    const { id } = await context.params
+type RouteContext = { params: Promise<{ id: string }> }
+
+export const PATCH = withAuth<RouteContext>(
+  { tag: 'v1.openclaw.agents.id' },
+  async (req, auth, { params }) => {
+    const { id } = await params
 
     const agent = await prisma.user.findUnique({
       where: { id },
@@ -28,7 +29,6 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
     }
 
-    // Verify ownership
     const config = parseUserAIConfig(
       agent.aiAgentConfig as string | null | undefined,
       AIAgentConfigSchema,
@@ -43,32 +43,28 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const { image } = body
 
     if (image !== undefined) {
-      // Allow setting image to a URL or null (reset to default)
       const newImage = image || '/images/ai-agents/openclaw.svg'
       await prisma.user.update({
         where: { id },
         data: { image: newImage },
       })
 
-      console.log(`[OpenClaw Agents] Updated profile photo for ${agent.email} (by ${auth.user.email})`)
+      log.info(
+        { agentEmail: agent.email, updatedBy: auth.user.email },
+        'Updated agent profile photo'
+      )
 
       return NextResponse.json({ success: true, image: newImage })
     }
 
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
-  } catch (error) {
-    if (error instanceof UnauthorizedError || (error as any)?.name === 'UnauthorizedError') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.error('[OpenClaw Agents] PATCH error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
-export async function DELETE(req: NextRequest, context: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    const { id } = await context.params
+export const DELETE = withAuth<RouteContext>(
+  { tag: 'v1.openclaw.agents.id' },
+  async (_req, auth, { params }) => {
+    const { id } = await params
 
     const agent = await prisma.user.findUnique({
       where: { id },
@@ -79,7 +75,6 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
     }
 
-    // Verify ownership
     const config = parseUserAIConfig(
       agent.aiAgentConfig as string | null | undefined,
       AIAgentConfigSchema,
@@ -93,14 +88,11 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     // Delete user — cascades to OAuthClient and OAuthToken
     await prisma.user.delete({ where: { id } })
 
-    console.log(`[OpenClaw Agents] Deleted agent ${agent.email} (by ${auth.user.email})`)
+    log.info(
+      { agentEmail: agent.email, deletedBy: auth.user.email },
+      'Deleted OpenClaw agent'
+    )
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    if (error instanceof UnauthorizedError || (error as any)?.name === 'UnauthorizedError') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.error('[OpenClaw Agents] DELETE error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
