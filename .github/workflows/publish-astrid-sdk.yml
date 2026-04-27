@@ -32,7 +32,7 @@ jobs:
         working-directory: packages/astrid-sdk
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 2  # Need history to check for changes
