@@ -9,6 +9,9 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { isListAdminOrOwner } from '@/lib/list-member-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.lists.invitations')
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -134,7 +137,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] GET /lists/:id/invitations error:', error)
+    log.error({ err: error }, 'GET /lists/:id/invitations error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -234,7 +237,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] DELETE /lists/:id/invitations error:', error)
+    log.error({ err: error }, 'DELETE /lists/:id/invitations error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -9,6 +9,9 @@ import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude } from '
 import { prisma } from '@/lib/prisma'
 import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.agent.tasks')
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,7 +54,7 @@ export async function GET(req: NextRequest) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: (error as Error).message }, { status: 403 })
     }
-    console.error('[Agent API] GET /agent/tasks error:', error)
+    log.error({ err: error }, 'GET /agent/tasks error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

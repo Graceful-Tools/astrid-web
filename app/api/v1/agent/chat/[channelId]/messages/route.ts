@@ -10,6 +10,9 @@ import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.agent.chat.messages')
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -90,7 +93,7 @@ export async function POST(
         })
       }
     } catch (sseError) {
-      console.error('[Agent Chat API] SSE broadcast error:', sseError)
+      log.error({ err: sseError }, 'SSE broadcast error')
     }
 
     return NextResponse.json({ message: serializedMessage }, { status: 201 })
@@ -101,7 +104,7 @@ export async function POST(
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: (error as Error).message }, { status: 403 })
     }
-    console.error('[Agent Chat API] POST error:', error)
+    log.error({ err: error }, 'POST /agent/chat/:channelId/messages error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

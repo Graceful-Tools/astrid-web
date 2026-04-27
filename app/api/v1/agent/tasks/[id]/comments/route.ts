@@ -12,6 +12,9 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.agent.tasks.comments')
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -71,7 +74,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: (error as Error).message }, { status: 403 })
     }
-    console.error('[Agent API] GET /agent/tasks/:id/comments error:', error)
+    log.error({ err: error }, 'GET /agent/tasks/:id/comments error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -174,7 +177,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         })
       }
     } catch (err) {
-      console.error('[Agent API] SSE broadcast error:', err)
+      log.error({ err }, 'SSE broadcast error')
     }
 
     return addRateLimitHeaders(
@@ -200,7 +203,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: (error as Error).message }, { status: 403 })
     }
-    console.error('[Agent API] POST /agent/tasks/:id/comments error:', error)
+    log.error({ err: error }, 'POST /agent/tasks/:id/comments error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
