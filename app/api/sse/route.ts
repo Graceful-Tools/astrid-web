@@ -4,6 +4,9 @@ import { authConfig } from "@/lib/auth-config"
 import { authenticateAPI, type AuthContext } from "@/lib/api-auth-middleware"
 import { hasRequiredScopes } from "@/lib/oauth/oauth-scopes"
 import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from "@/lib/sse-utils"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger('SSE')
 
 // Explicitly use Node.js runtime for SSE compatibility in production
 export const runtime = 'nodejs'
@@ -11,18 +14,18 @@ export const runtime = 'nodejs'
 type SSESession = { user: { id: string; email?: string | null; name?: string | null; image?: string | null }; expires?: string } | null
 
 export async function GET(request: NextRequest) {
-  console.log('[SSE] GET request received')
+  log.debug('GET request received')
 
-  // Debug: Log all cookies from the request
+  // Inspect cookies from the request
   const cookieHeader = request.headers.get('cookie')
-  console.log('[SSE] Cookie header:', cookieHeader ? `${cookieHeader.substring(0, 100)}...` : 'NONE')
+  log.debug({ cookiePrefix: cookieHeader ? `${cookieHeader.substring(0, 100)}...` : 'NONE' }, 'Cookie header')
 
-  // Debug: Log all headers
-  console.log('[SSE] Request headers:', {
-    'user-agent': request.headers.get('user-agent'),
-    'accept': request.headers.get('accept'),
-    'origin': request.headers.get('origin'),
-  })
+  // Inspect headers
+  log.debug({
+    userAgent: request.headers.get('user-agent'),
+    accept: request.headers.get('accept'),
+    origin: request.headers.get('origin'),
+  }, 'Request headers')
 
   let session: SSESession = null
 
@@ -34,10 +37,10 @@ export async function GET(request: NextRequest) {
         const auth: AuthContext = await authenticateAPI(request)
         // Check for sse:connect or tasks:read scope
         if (!hasRequiredScopes(auth.scopes, ['sse:connect']) && !hasRequiredScopes(auth.scopes, ['tasks:read']) && !hasRequiredScopes(auth.scopes, ['*'])) {
-          console.log('[SSE] OAuth token missing required scope (sse:connect or tasks:read)')
+          log.warn({ scopes: auth.scopes }, 'OAuth token missing required scope (sse:connect or tasks:read)')
           return new Response('Forbidden - Missing required scope: sse:connect or tasks:read', { status: 403 })
         }
-        console.log(`[SSE] Authenticated via OAuth: ${auth.user.email} (source: ${auth.source})`)
+        log.info({ email: auth.user.email, source: auth.source }, 'Authenticated via OAuth')
         session = {
           user: {
             id: auth.userId,
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (oauthError) {
-        console.log('[SSE] OAuth authentication failed:', oauthError)
+        log.warn({ err: oauthError }, 'OAuth authentication failed')
         return new Response('Unauthorized - Invalid Bearer token', { status: 401 })
       }
     }
@@ -54,17 +57,17 @@ export async function GET(request: NextRequest) {
     // Priority 2: Session-based auth (existing web UI flow)
     if (!session) {
       session = await getServerSession(authConfig) as SSESession
-      console.log('[SSE] Session result:', session ? `User: ${session.user?.email}` : 'NO SESSION')
+      log.debug({ email: session?.user?.email ?? null }, 'Session result')
 
       // If JWT session validation failed, try database session (for mobile apps)
       if (!session?.user && cookieHeader) {
-        console.log('[SSE] JWT validation failed, trying database session...')
+        log.debug('JWT validation failed, trying database session...')
 
         // Extract session token from cookie header
         const sessionTokenMatch = cookieHeader.match(/next-auth\.session-token=([^;]+)/)
         if (sessionTokenMatch) {
           const sessionToken = sessionTokenMatch[1]
-          console.log('[SSE] Found session token, checking database...')
+          log.debug('Found session token, checking database...')
 
           // Check database for valid session
           const { prisma } = await import("@/lib/prisma")
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest) {
           })
 
           if (dbSession && dbSession.expires > new Date()) {
-            console.log('[SSE] Valid database session found for:', dbSession.user.email)
+            log.debug({ email: dbSession.user.email }, 'Valid database session found')
             session = {
               user: {
                 id: dbSession.user.id,
@@ -85,20 +88,18 @@ export async function GET(request: NextRequest) {
               expires: dbSession.expires.toISOString()
             }
           } else {
-            console.log('[SSE] Database session expired or not found')
+            log.debug('Database session expired or not found')
           }
         }
       }
     }
 
     if (!session?.user) {
-      console.log('[SSE] Unauthorized - no valid session found')
+      log.warn('Unauthorized - no valid session found')
       return new Response('Unauthorized', { status: 401 })
     }
-
-    // Debug: Setting up SSE connection for user
   } catch (authError) {
-    console.error('[SSE] Authentication error:', authError)
+    log.error({ err: authError }, 'Authentication error')
     return new Response('Authentication Error', { status: 500 })
   }
 
@@ -129,25 +130,25 @@ export async function GET(request: NextRequest) {
 
       // If client provided a 'since' timestamp, send any missed events
       if (sinceTimestamp && !isNaN(sinceTimestamp)) {
-        console.log(`[SSE] Client reconnecting with since=${new Date(sinceTimestamp).toISOString()}`)
+        log.debug({ since: new Date(sinceTimestamp).toISOString() }, 'Client reconnecting')
         // getMissedEvents is now async (checks Redis in production)
         getMissedEvents(userId, sinceTimestamp).then(missedEvents => {
           if (missedEvents.length > 0) {
-            console.log(`[SSE] Sending ${missedEvents.length} missed events to user ${userId}`)
+            log.info({ userId, count: missedEvents.length }, 'Sending missed events')
             missedEvents.forEach((event, index) => {
               try {
                 const eventData = JSON.stringify(event)
                 controller.enqueue(encoder.encode(`data: ${eventData}\n\n`))
-                console.log(`[SSE] ✅ Sent missed event ${index + 1}/${missedEvents.length}: ${event.type}`)
+                log.debug({ index: index + 1, total: missedEvents.length, type: event.type }, 'Sent missed event')
               } catch (error) {
-                console.error(`[SSE] ❌ Failed to send missed event:`, error)
+                log.error({ err: error }, 'Failed to send missed event')
               }
             })
           } else {
-            console.log(`[SSE] No missed events for user ${userId}`)
+            log.debug({ userId }, 'No missed events')
           }
         }).catch(err => {
-          console.error(`[SSE] Error fetching missed events:`, err)
+          log.error({ err }, 'Error fetching missed events')
         })
       }
 
@@ -184,7 +185,7 @@ export async function GET(request: NextRequest) {
           updateConnectionPing(userId)
         } catch (error) {
           // Controller is closed or errored — clean up and stop pinging.
-          console.error(`[SSE] Ping failed for user ${userId}, connection likely closed:`, error)
+          log.warn({ userId, err: error }, 'Ping failed, connection likely closed')
           cleanup()
         }
       }, 15000)
@@ -194,7 +195,7 @@ export async function GET(request: NextRequest) {
       // we refresh every ~25 minutes to keep connections healthy without aggressive reconnect loops.
       const connectionTimeout = setTimeout(() => {
         if (cleanedUp) return
-        console.log(`[SSE] Proactively closing connection for user ${userId} for periodic refresh`)
+        log.debug({ userId }, 'Proactively closing connection for periodic refresh')
 
         try {
           const closeData = JSON.stringify({
