@@ -154,10 +154,9 @@ describe('POST /api/v1/openclaw/register', () => {
   })
 
   it('returns 401 for unauthenticated requests', async () => {
-    // Create an error that matches the pattern checked in the route
-    const err = new Error('Unauthorized')
-    err.name = 'UnauthorizedError'
-    mockAuthenticateAPI.mockRejectedValue(err)
+    // withAuth checks `instanceof UnauthorizedError`, so use the mocked class
+    const { UnauthorizedError } = await import('@/lib/api-auth-middleware')
+    mockAuthenticateAPI.mockRejectedValue(new UnauthorizedError('Unauthorized'))
 
     const res = await POST(makeRequest({ agentName: 'test-agent' }))
     expect(res.status).toBe(401)

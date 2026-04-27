@@ -5,132 +5,98 @@
  * PUT /api/v1/users/me/settings - Update current user's settings
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { withAuth } from '@/lib/api-auth-wrapper'
+
+const DEFAULT_REMINDER_SETTINGS = {
+  enablePushReminders: false,
+  enableEmailReminders: true,
+  defaultReminderTime: 15,
+  enableDailyDigest: false,
+  dailyDigestTime: '09:00',
+  dailyDigestTimezone: 'America/Los_Angeles',
+  quietHoursStart: null,
+  quietHoursEnd: null,
+}
+
+const reminderSettingsSelect = {
+  enablePushReminders: true,
+  enableEmailReminders: true,
+  defaultReminderTime: true,
+  enableDailyDigest: true,
+  dailyDigestTime: true,
+  dailyDigestTimezone: true,
+  quietHoursStart: true,
+  quietHoursEnd: true,
+} as const
+
+function buildSettingsResponse(
+  reminderSettings: Record<string, unknown> | null | undefined,
+  authSource: string
+) {
+  const s = reminderSettings ?? DEFAULT_REMINDER_SETTINGS
+  return {
+    settings: {
+      reminderSettings: {
+        enablePushReminders: s.enablePushReminders ?? false,
+        enableEmailReminders: s.enableEmailReminders ?? true,
+        defaultReminderTime: s.defaultReminderTime ?? 15,
+        enableDailyDigest: s.enableDailyDigest ?? false,
+        dailyDigestTime: s.dailyDigestTime ?? '09:00',
+        dailyDigestTimezone: s.dailyDigestTimezone ?? 'America/Los_Angeles',
+        quietHoursStart: s.quietHoursStart ?? null,
+        quietHoursEnd: s.quietHoursEnd ?? null,
+      },
+    },
+    meta: {
+      apiVersion: 'v1',
+      authSource,
+    },
+  }
+}
 
 /**
  * GET /api/v1/users/me/settings
  * Get current user's settings
  */
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['user:read'])
-
-    // Fetch user with settings
+export const GET = withAuth(
+  { scopes: ['user:read'], tag: 'v1.users.me.settings' },
+  async (_req, auth) => {
     const user = await prisma.user.findUnique({
       where: { id: auth.userId },
       select: {
         id: true,
         email: true,
         name: true,
-        reminderSettings: {
-          select: {
-            enablePushReminders: true,
-            enableEmailReminders: true,
-            defaultReminderTime: true,
-            enableDailyDigest: true,
-            dailyDigestTime: true,
-            dailyDigestTimezone: true,
-            quietHoursStart: true,
-            quietHoursEnd: true,
-          }
-        }
-      }
+        reminderSettings: { select: reminderSettingsSelect },
+      },
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
-    if (deprecationWarning) {
-      headers['X-Deprecation-Warning'] = deprecationWarning
-    }
-
-    // Use reminderSettings if exists, otherwise use defaults
-    const settings = user.reminderSettings || {
-      enablePushReminders: false,
-      enableEmailReminders: true,
-      defaultReminderTime: 15,
-      enableDailyDigest: false,
-      dailyDigestTime: '09:00',
-      dailyDigestTimezone: 'America/Los_Angeles',
-      quietHoursStart: null,
-      quietHoursEnd: null,
-    }
+    if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
 
     return NextResponse.json(
-      {
-        settings: {
-          reminderSettings: {
-            enablePushReminders: settings.enablePushReminders ?? false,
-            enableEmailReminders: settings.enableEmailReminders ?? true,
-            defaultReminderTime: settings.defaultReminderTime ?? 15,
-            enableDailyDigest: settings.enableDailyDigest ?? false,
-            dailyDigestTime: settings.dailyDigestTime ?? '09:00',
-            dailyDigestTimezone: settings.dailyDigestTimezone ?? 'America/Los_Angeles',
-            quietHoursStart: settings.quietHoursStart,
-            quietHoursEnd: settings.quietHoursEnd,
-          }
-        },
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
-      },
+      buildSettingsResponse(user.reminderSettings, auth.source),
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    console.error('[API v1] GET /users/me/settings error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
 
 /**
  * PUT /api/v1/users/me/settings
  * Update current user's settings
- *
- * Body:
- * {
- *   reminderSettings?: {
- *     enablePushReminders?: boolean
- *     enableEmailReminders?: boolean
- *     defaultReminderTime?: number
- *     enableDailyDigest?: boolean
- *     dailyDigestTime?: string
- *     dailyDigestTimezone?: string
- *     quietHoursStart?: string | null
- *     quietHoursEnd?: string | null
- *   }
- * }
  */
-export async function PUT(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['user:write'])
-
+export const PUT = withAuth(
+  { scopes: ['user:write'], tag: 'v1.users.me.settings' },
+  async (req, auth) => {
     const body = await req.json()
 
     // Validate and prepare update data
@@ -165,99 +131,35 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Upsert reminder settings (create if doesn't exist, update if it does)
+    // Upsert reminder settings
     await prisma.reminderSettings.upsert({
       where: { userId: auth.userId },
-      create: {
-        userId: auth.userId,
-        ...updateData
-      },
-      update: updateData
+      create: { userId: auth.userId, ...updateData },
+      update: updateData,
     })
 
-    // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.SETTINGS_UPDATED, {
-      settingsType: 'reminderSettings'
+      settingsType: 'reminderSettings',
     })
 
-    // Fetch updated user with settings
+    // Fetch updated user
     const user = await prisma.user.findUnique({
       where: { id: auth.userId },
       select: {
         id: true,
         email: true,
         name: true,
-        reminderSettings: {
-          select: {
-            enablePushReminders: true,
-            enableEmailReminders: true,
-            defaultReminderTime: true,
-            enableDailyDigest: true,
-            dailyDigestTime: true,
-            dailyDigestTimezone: true,
-            quietHoursStart: true,
-            quietHoursEnd: true,
-          }
-        }
-      }
+        reminderSettings: { select: reminderSettingsSelect },
+      },
     })
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
-    if (deprecationWarning) {
-      headers['X-Deprecation-Warning'] = deprecationWarning
-    }
-
-    // Use reminderSettings if exists, otherwise use defaults
-    const settings = user?.reminderSettings || {
-      enablePushReminders: false,
-      enableEmailReminders: true,
-      defaultReminderTime: 15,
-      enableDailyDigest: false,
-      dailyDigestTime: '09:00',
-      dailyDigestTimezone: 'America/Los_Angeles',
-      quietHoursStart: null,
-      quietHoursEnd: null,
-    }
+    if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
 
     return NextResponse.json(
-      {
-        settings: {
-          reminderSettings: {
-            enablePushReminders: settings.enablePushReminders ?? false,
-            enableEmailReminders: settings.enableEmailReminders ?? true,
-            defaultReminderTime: settings.defaultReminderTime ?? 15,
-            enableDailyDigest: settings.enableDailyDigest ?? false,
-            dailyDigestTime: settings.dailyDigestTime ?? '09:00',
-            dailyDigestTimezone: settings.dailyDigestTimezone ?? 'America/Los_Angeles',
-            quietHoursStart: settings.quietHoursStart,
-            quietHoursEnd: settings.quietHoursEnd,
-          }
-        },
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
-      },
+      buildSettingsResponse(user?.reminderSettings, auth.source),
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    console.error('[API v1] PUT /users/me/settings error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
