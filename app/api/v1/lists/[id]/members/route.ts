@@ -5,33 +5,29 @@
  * POST /api/v1/lists/:id/members - Add a member to a list
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
 import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.lists.members')
 
-type RouteContext = {
-  params: Promise<{ id: string }>
-}
+type RouteContext = { params: Promise<{ id: string }> }
 
 /**
  * GET /api/v1/lists/:id/members
  * Get all members of a list
  */
-export async function GET(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:read'])
-
+export const GET = withAuth<RouteContext>(
+  { scopes: ['lists:read'], tag: 'v1.lists.members' },
+  async (_req, auth, { params }) => {
     const { id } = await params
 
-    // Fetch list with members
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
@@ -49,13 +45,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    // Check access
     if (!isListAdminOrOwner(list as any, auth.userId)) {
       return NextResponse.json(
         { error: 'Only list admins and owners can view members' },
@@ -63,7 +55,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Get pending invitations (exclude emails that are already members)
     const memberEmails = new Set(
       list.listMembers.map(m => m.user.email).filter(Boolean) as string[]
     )
@@ -75,17 +66,13 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       where: {
         listId: id,
         NOT: {
-          email: {
-            in: Array.from(memberEmails)
-          }
+          email: { in: Array.from(memberEmails) }
         }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    // Format members
     const members = [
-      // Owner
       {
         id: list.owner.id,
         name: list.owner.name,
@@ -96,7 +83,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
         isAdmin: false,
         type: 'member' as const,
       },
-      // Other members
       ...list.listMembers.map(member => ({
         id: member.user.id,
         name: member.user.name,
@@ -107,7 +93,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
         isAdmin: member.role === 'admin',
         type: 'member' as const,
       })),
-      // Pending invitations
       ...pendingInvites.map(invite => ({
         id: `invite_${invite.id}`,
         name: null,
@@ -129,50 +114,28 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json(
       {
         members,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'GET /lists/:id/members error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * POST /api/v1/lists/:id/members
  * Add a member to a list
  *
- * Body:
- * {
- *   email: string
- *   role?: 'admin' | 'member' (default: 'member')
- * }
+ * Body: { email: string, role?: 'admin' | 'member' }
  */
-export async function POST(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const POST = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.members' },
+  async (req, auth, { params }) => {
     const { id } = await params
     const body = await req.json()
-
     const { email, role = 'member' } = body
 
     if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
     if (role !== 'admin' && role !== 'member') {
@@ -182,7 +145,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Fetch list
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
@@ -200,13 +162,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    // Check permissions: only owner and admins can add members
     if (!isListAdminOrOwner(list as any, auth.userId)) {
       return NextResponse.json(
         { error: 'Only list admins and owners can add members' },
@@ -214,29 +172,22 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       select: { id: true, name: true, email: true, image: true }
     })
 
-    // If user doesn't exist, create an invitation
+    // No existing user → create an invitation instead
     if (!user) {
-      // Get the inviter's name for the email
       const inviter = await prisma.user.findUnique({
         where: { id: auth.userId },
         select: { name: true, email: true }
       })
 
-      // Create invitation token
       const token = randomBytes(32).toString('hex')
 
-      // Check if invitation already exists
       const existingInvitation = await prisma.listInvite.findFirst({
-        where: {
-          listId: id,
-          email: email.toLowerCase()
-        }
+        where: { listId: id, email: email.toLowerCase() }
       })
 
       if (existingInvitation) {
@@ -246,7 +197,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         )
       }
 
-      // Create invitation record
       await prisma.listInvite.create({
         data: {
           listId: id,
@@ -257,7 +207,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         }
       })
 
-      // Send invitation email
       try {
         await sendListInvitationEmail({
           to: email.toLowerCase(),
@@ -267,8 +216,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
           invitationUrl: `${process.env.NEXTAUTH_URL}/invite/${token}`,
         })
       } catch (emailError) {
+        // Invitation row is created either way; the email is best-effort
         log.error({ err: emailError }, 'Failed to send invitation email')
-        // Continue - invitation was still created
       }
 
       const headers: Record<string, string> = {}
@@ -285,16 +234,12 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
             role,
             status: 'pending',
           },
-          meta: {
-            apiVersion: 'v1',
-            authSource: auth.source,
-          },
+          meta: { apiVersion: 'v1', authSource: auth.source },
         },
         { headers }
       )
     }
 
-    // Check if already a member or owner
     if (list.ownerId === user.id) {
       return NextResponse.json(
         { error: 'User is already the owner of this list' },
@@ -310,16 +255,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Add member
     await prisma.listMember.create({
-      data: {
-        listId: id,
-        userId: user.id,
-        role,
-      }
+      data: { listId: id, userId: user.id, role }
     })
 
-    // Broadcast SSE event
     try {
       const memberIds = getListMemberIds(list as any)
       broadcastToUsers(memberIds, {
@@ -357,21 +296,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
           isOwner: false,
           isAdmin: role === 'admin',
         },
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'POST /lists/:id/members error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
