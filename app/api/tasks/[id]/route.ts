@@ -856,51 +856,58 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       where: { id: taskId },
     })
 
-    for (const list of existingTask.lists) {
-      try {
-        const listRecord = await prisma.taskList.findUnique({
-          where: { id: list.id },
-          select: {
-            id: true, sortBy: true, manualSortOrder: true, ownerId: true,
-            owner: { select: { id: true, name: true, email: true, image: true } },
-            listMembers: { select: { userId: true, role: true } },
-          },
-        })
+    // Batch-fetch the candidate lists in one query (only manual-sort ones)
+    // and process updates in parallel — replaces the prior N+1 findUnique loop.
+    try {
+      const listIds = existingTask.lists.map(l => l.id)
+      const candidateLists = listIds.length > 0
+        ? await prisma.taskList.findMany({
+            where: { id: { in: listIds }, sortBy: 'manual' },
+            select: {
+              id: true, sortBy: true, manualSortOrder: true, ownerId: true,
+              owner: { select: { id: true, name: true, email: true, image: true } },
+              listMembers: { select: { userId: true, role: true } },
+            },
+          })
+        : []
 
-        if (!listRecord || listRecord.sortBy !== "manual") {
-          continue
-        }
-
+      const listsNeedingUpdate = candidateLists.filter(listRecord => {
         const existingOrder = Array.isArray((listRecord as any).manualSortOrder)
           ? (listRecord.manualSortOrder as string[])
           : []
+        return existingOrder.includes(taskId)
+      })
 
-        if (!existingOrder.includes(taskId)) {
-          continue
-        }
+      await Promise.all(
+        listsNeedingUpdate.map(async listRecord => {
+          try {
+            const existingOrder = (listRecord.manualSortOrder as string[])
+            const nextOrder = existingOrder.filter(id => id !== taskId)
 
-        const nextOrder = existingOrder.filter(id => id !== taskId)
+            const updatedList = await prisma.taskList.update({
+              where: { id: listRecord.id },
+              data: {
+                manualSortOrder: nextOrder as Prisma.JsonArray
+              },
+              include: {
+                owner: { select: { id: true, name: true, email: true, image: true } },
+                listMembers: { select: { userId: true, role: true } },
+              },
+            })
 
-        const updatedList = await prisma.taskList.update({
-          where: { id: listRecord.id },
-          data: {
-            manualSortOrder: nextOrder as Prisma.JsonArray
-          },
-          include: {
-            owner: { select: { id: true, name: true, email: true, image: true } },
-            listMembers: { select: { userId: true, role: true } },
-          },
+            const memberIds = getListMemberIds(updatedList)
+            await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+            await broadcastToUsers(memberIds, {
+              type: 'list_updated',
+              data: updatedList
+            })
+          } catch (error) {
+            console.error(`Failed to update manual sort order after deletion for list ${listRecord.id}:`, error)
+          }
         })
-
-        const memberIds = getListMemberIds(updatedList)
-        await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
-        await broadcastToUsers(memberIds, {
-          type: 'list_updated',
-          data: updatedList
-        })
-      } catch (error) {
-        console.error('Failed to update manual sort order after deletion for list', list.id, error)
-      }
+      )
+    } catch (error) {
+      console.error('Failed to fetch candidate manual-sort lists for deletion:', error)
     }
 
     // Invalidate cache for all affected users BEFORE broadcasting SSE
