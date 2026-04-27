@@ -390,6 +390,7 @@ export class RedisCache {
     user: (userId: string) => `user:${userId}`,
     userTasks: (userId: string) => `tasks:user:${userId}`,
     userLists: (userId: string) => `lists:user:${userId}`,
+    userListsV1: (userId: string) => `lists:user:${userId}:v1`,
     listTasks: (listId: string) => `tasks:list:${listId}`,
     listMembers: (listId: string) => `members:list:${listId}`,
     publicTasks: () => 'tasks:public',
