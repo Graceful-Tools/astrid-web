@@ -6,11 +6,15 @@
  * DELETE /api/v1/chat/messages/:id — delete a message
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { withAuth } from '@/lib/api-auth-wrapper'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.chat.messages.id')
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -29,18 +33,15 @@ const SECURE_FILE_SELECT = {
   createdAt: true,
 }
 
+type RouteContext = { params: Promise<{ id: string }> }
+
 /**
  * GET /api/v1/chat/messages/:id
  * Get a single chat message by ID
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['chat:read'])
-
+export const GET = withAuth<RouteContext>(
+  { scopes: ['chat:read'], tag: 'v1.chat.messages.id' },
+  async (_req, auth, { params }) => {
     const { id } = await params
 
     const message = await prisma.chatMessage.findUnique({
@@ -55,7 +56,6 @@ export async function GET(
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    // Verify channel access
     const hasAccess = await canAccessChatChannel(message.channelId, auth.userId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
@@ -74,42 +74,22 @@ export async function GET(
           createdAt: message.createdAt.toISOString(),
           updatedAt: message.updatedAt.toISOString(),
         },
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    console.error('[API v1] GET /chat/messages/:id error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * PUT /api/v1/chat/messages/:id
  * Update a chat message (only the author can update)
  *
- * Body:
- * {
- *   content: string (required)
- * }
+ * Body: { content: string }
  */
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['chat:write'])
-
+export const PUT = withAuth<RouteContext>(
+  { scopes: ['chat:write'], tag: 'v1.chat.messages.id' },
+  async (req, auth, { params }) => {
     const { id } = await params
     const body = await req.json()
 
@@ -129,13 +109,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    // Verify channel access
     const hasAccess = await canAccessChatChannel(existingMessage.channelId, auth.userId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    // Only author can update their own message
     if (existingMessage.authorId !== auth.userId) {
       return NextResponse.json(
         { error: 'You can only edit your own messages' },
@@ -161,7 +139,6 @@ export async function PUT(
       updatedAt: message.updatedAt.toISOString(),
     }
 
-    // Broadcast update
     try {
       const recipientIds = await getChatChannelRecipients(existingMessage.channelId)
       const otherRecipients = recipientIds.filter(rid => rid !== auth.userId)
@@ -177,7 +154,7 @@ export async function PUT(
         })
       }
     } catch (sseError) {
-      console.error('[API v1] SSE broadcast error:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast chat_message_updated')
     }
 
     const headers: Record<string, string> = {}
@@ -189,37 +166,20 @@ export async function PUT(
     return NextResponse.json(
       {
         message: serializedMessage,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    console.error('[API v1] PUT /chat/messages/:id error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * DELETE /api/v1/chat/messages/:id
  * Delete a chat message (author or list owner/admin can delete)
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['chat:write'])
-
+export const DELETE = withAuth<RouteContext>(
+  { scopes: ['chat:write'], tag: 'v1.chat.messages.id' },
+  async (_req, auth, { params }) => {
     const { id } = await params
 
     const existingMessage = await prisma.chatMessage.findUnique({
@@ -243,13 +203,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    // Verify channel access
     const hasAccess = await canAccessChatChannel(existingMessage.channelId, auth.userId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    // Check permissions: message author, list owner, or list admin can delete
     const isAuthor = existingMessage.authorId === auth.userId
     const isListOwner = existingMessage.channel.list?.ownerId === auth.userId
     const isListAdmin = existingMessage.channel.list?.listMembers?.some(
@@ -263,11 +221,8 @@ export async function DELETE(
       )
     }
 
-    await prisma.chatMessage.delete({
-      where: { id },
-    })
+    await prisma.chatMessage.delete({ where: { id } })
 
-    // Broadcast deletion
     try {
       const recipientIds = await getChatChannelRecipients(existingMessage.channelId)
       const otherRecipients = recipientIds.filter(rid => rid !== auth.userId)
@@ -283,7 +238,7 @@ export async function DELETE(
         })
       }
     } catch (sseError) {
-      console.error('[API v1] SSE broadcast error:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast chat_message_deleted')
     }
 
     const headers: Record<string, string> = {}
@@ -296,21 +251,9 @@ export async function DELETE(
       {
         success: true,
         message: 'Message deleted successfully',
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    console.error('[API v1] DELETE /chat/messages/:id error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
