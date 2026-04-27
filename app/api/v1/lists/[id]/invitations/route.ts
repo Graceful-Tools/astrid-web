@@ -5,43 +5,23 @@
  * DELETE /api/v1/lists/:id/invitations - Cancel a pending invitation by email
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { isListAdminOrOwner } from '@/lib/list-member-utils'
-import { createLogger } from '@/lib/logger'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
-const log = createLogger('v1.lists.invitations')
-
-type RouteContext = {
-  params: Promise<{ id: string }>
-}
+type RouteContext = { params: Promise<{ id: string }> }
 
 /**
  * GET /api/v1/lists/:id/invitations
  * Get pending invitations for a list
- *
- * Response:
- * {
- *   invitations: [
- *     {
- *       id: string,
- *       email: string,
- *       role: string,
- *       createdAt: string,
- *       createdBy: { id, name, email } | null
- *     }
- *   ]
- * }
  */
-export async function GET(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:read'])
-
+export const GET = withAuth<RouteContext>(
+  { scopes: ['lists:read'], tag: 'v1.lists.invitations' },
+  async (_req, auth, { params }) => {
     const { id } = await params
 
-    // Fetch list to check permissions
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
@@ -59,10 +39,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
     if (!isListAdminOrOwner(list as any, auth.userId)) {
@@ -72,7 +49,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Get emails of users who are already members (to exclude accepted invites)
     const memberEmails = new Set(
       await prisma.listMember.findMany({
         where: { listId: id },
@@ -80,7 +56,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       }).then(members => members.map(m => m.user.email).filter(Boolean) as string[])
     )
 
-    // Get pending invitations
     const invites = await prisma.listInvite.findMany({
       where: {
         listId: id,
@@ -130,45 +105,26 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'GET /lists/:id/invitations error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * DELETE /api/v1/lists/:id/invitations
  * Cancel a pending invitation
  *
- * Body:
- * {
- *   email: string - The email of the invitation to cancel
- * }
+ * Body: { email: string }
  */
-export async function DELETE(req: NextRequest, { params }: RouteContext) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const DELETE = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.invitations' },
+  async (req, auth, { params }) => {
     const { id } = await params
     const body = await req.json()
-
     const { email } = body
 
     if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    // Fetch list to check permissions
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
@@ -186,10 +142,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
     if (!isListAdminOrOwner(list as any, auth.userId)) {
@@ -199,7 +152,6 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    // Delete the invitation
     const deleteResult = await prisma.listInvite.deleteMany({
       where: {
         listId: id,
@@ -208,10 +160,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     })
 
     if (deleteResult.count === 0) {
-      return NextResponse.json(
-        { error: 'Invitation not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Invitation not found' }, { status: 404 })
     }
 
     const headers: Record<string, string> = {}
@@ -230,14 +179,5 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'DELETE /lists/:id/invitations error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
