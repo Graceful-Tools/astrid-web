@@ -2,19 +2,19 @@
  * GitHub Repositories API (v1 - Mobile Compatible)
  * Returns user's accessible GitHub repositories
  *
- * Uses authenticateAPI middleware to support both OAuth and session cookies
+ * Uses withAuth wrapper for session/OAuth + scope check + standardized errors.
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withAuth } from '@/lib/api-auth-wrapper'
+import { createLogger } from '@/lib/logger'
 
-export async function GET(req: NextRequest) {
-  try {
-    // Use API authentication (supports both OAuth and session cookies)
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['user:read'])
+const log = createLogger('v1.github.repositories')
 
+export const GET = withAuth(
+  { scopes: ['user:read'], tag: 'v1.github.repositories' },
+  async (req, auth) => {
     const userId = auth.userId
 
     const { searchParams } = new URL(req.url)
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     // If refresh is requested and we have an installation, fetch from GitHub API
     if (refresh && githubIntegration.installationId) {
       try {
-        console.log('🔄 [GitHub Repositories v1] Refreshing repositories from GitHub API...')
+        log.debug('Refreshing repositories from GitHub API')
 
         // Import GitHub client and fetch fresh repositories
         const { GitHubClient } = await import('@/lib/github-client')
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
           private: repo.private || false
         }))
 
-        console.log(`✅ [GitHub Repositories v1] Found ${repositories.length} repositories from GitHub API`)
+        log.info({ count: repositories.length }, 'Found repositories from GitHub API')
 
         // Update the cached repositories in database
         if (githubIntegration) {
@@ -66,9 +66,9 @@ export async function GET(req: NextRequest) {
           })
         }
 
-        console.log('✅ [GitHub Repositories v1] Updated cached repositories in database')
+        log.debug('Updated cached repositories in database')
       } catch (error) {
-        console.error('[GitHub Repositories v1] Error refreshing repositories from GitHub:', error)
+        log.error({ err: error }, 'Error refreshing repositories from GitHub')
         // Fall back to cached repositories if refresh fails
         repositories = Array.isArray(githubIntegration.repositories)
           ? githubIntegration.repositories
@@ -92,12 +92,5 @@ export async function GET(req: NextRequest) {
       cached: !refresh,
       lastRefreshed: refresh ? new Date().toISOString() : githubIntegration.updatedAt
     })
-
-  } catch (error) {
-    console.error('[GitHub Repositories v1] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)

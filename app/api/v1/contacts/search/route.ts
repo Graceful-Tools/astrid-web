@@ -4,10 +4,11 @@
  * GET /api/v1/contacts/search - Search contacts for autocomplete when adding members
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
 /**
  * GET /api/v1/contacts/search
@@ -18,11 +19,9 @@ import { decryptField } from '@/lib/field-encryption'
  * - limit: number (default: 10, max: 50)
  * - excludeListId: optional list ID to exclude existing members
  */
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['contacts:read'])
-
+export const GET = withAuth(
+  { scopes: ['contacts:read'], tag: 'v1.contacts.search' },
+  async (req, auth) => {
     const { searchParams } = new URL(req.url)
     const query = searchParams.get('q')?.trim().toLowerCase()
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
@@ -136,14 +135,5 @@ export async function GET(req: NextRequest) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    console.error('[API v1] GET /contacts/search error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
