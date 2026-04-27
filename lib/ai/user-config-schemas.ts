@@ -21,17 +21,14 @@ export const AIAssistantSettingsSchema = z
 
 export type AIAssistantSettings = z.infer<typeof AIAssistantSettingsSchema>
 
+// Per-key entry shape varies: some callsites use `encrypted: boolean` as a
+// flag, others store `{ encrypted: <ciphertext>, iv: <iv>, isGateway, isValid,
+// lastTested, ... }`. Treating the inner record as `unknown` reflects this and
+// keeps the schema useful at the read boundary without locking down the
+// concrete shape — that lives in the encryption util.
 export const MCPSettingsSchema = z
   .object({
-    apiKeys: z
-      .record(
-        z
-          .object({
-            encrypted: z.boolean().optional(),
-          })
-          .passthrough()
-      )
-      .optional(),
+    apiKeys: z.record(z.record(z.unknown())).optional(),
     modelPreferences: z.record(z.string()).optional(),
   })
   .passthrough()

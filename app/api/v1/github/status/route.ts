@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { MCPSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.github.status' },
@@ -28,7 +29,7 @@ export const GET = withAuth(
       select: { mcpSettings: true }
     })
 
-    const mcpSettings = user?.mcpSettings ? (typeof user.mcpSettings === 'string' ? JSON.parse(user.mcpSettings) : user.mcpSettings) : {}
+    const mcpSettings = parseUserAIConfig(user?.mcpSettings, MCPSettingsSchema, 'v1/github/status')
     const apiKeys = mcpSettings.apiKeys || {}
     const configuredProviders = Object.keys(apiKeys).filter(provider =>
       apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini'].includes(provider)

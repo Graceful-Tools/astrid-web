@@ -13,6 +13,7 @@ import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
+import { AIAssistantSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
 
 export async function POST(
@@ -33,7 +34,11 @@ export async function POST(
       where: { id: auth.userId },
       select: { aiAssistantSettings: true },
     })
-    const settings = user?.aiAssistantSettings ? JSON.parse(user.aiAssistantSettings) : {}
+    const settings = parseUserAIConfig(
+      user?.aiAssistantSettings,
+      AIAssistantSettingsSchema,
+      'chat/channels/agent-response'
+    )
     if (!settings.defaultAgentId || !(ON_DEVICE_MODEL_IDS as readonly string[]).includes(settings.defaultAgentId)) {
       return NextResponse.json({ error: 'On-device model not configured' }, { status: 403 })
     }
