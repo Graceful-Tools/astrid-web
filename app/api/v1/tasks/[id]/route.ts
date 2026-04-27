@@ -90,10 +90,30 @@ export async function GET(
                 isAIAgent: true,
               },
             },
+            secureFiles: {
+              select: {
+                id: true,
+                originalName: true,
+                mimeType: true,
+                fileSize: true,
+                createdAt: true,
+              },
+            },
           },
           orderBy: { createdAt: 'asc' },
         },
         attachments: true,
+        // SecureFiles attached directly to the task (parity with /api/tasks/[id]).
+        // Comment-attached files are also returned via comments.secureFiles above.
+        secureFiles: {
+          select: {
+            id: true,
+            originalName: true,
+            mimeType: true,
+            fileSize: true,
+            createdAt: true,
+          },
+        },
       },
     })
 
