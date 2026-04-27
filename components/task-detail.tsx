@@ -12,7 +12,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MarkdownEditor } from "./markdown-editor"
 import { SecureAttachmentViewer } from "./secure-attachment-viewer"
 import { UserPicker } from "./user-picker"
@@ -23,8 +22,9 @@ import { TimePicker, formatConciseTime } from "./ui/time-picker"
 import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { TaskModals } from "./task-detail/TaskModals"
+import { TaskActionMenu } from "./task-detail/TaskActionMenu"
 import type { Task, Comment, User, TaskList } from "../types/task"
-import { Calendar as CalendarIcon, Trash2, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Bug, Globe, Users, Copy, MoreVertical, Share2, Link as LinkIcon, Timer } from "lucide-react"
+import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Globe, Users, Copy, Link as LinkIcon, Timer } from "lucide-react"
 import { apiPost } from "@/lib/api"
 import { TaskTimer } from "./task-timer"
 import { getAllListMembers } from "@/lib/list-member-utils"
@@ -1339,49 +1339,15 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
               </span>
             )}
           </div>
-          {/* Action menu (... button) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex-shrink-0 theme-text-muted hover:theme-text-secondary">
-                <MoreVertical className="w-5 h-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={handleCopyClick}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copy
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleShareClick}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </DropdownMenuItem>
-              {(() => {
-                const taskList = task.lists?.[0]
-                const isPublicListTask = taskList?.privacy === 'PUBLIC'
-                const isUserOwnerOrAdmin = taskList?.ownerId === currentUser.id ||
-                                          taskList?.admins?.some(admin => admin.id === currentUser.id)
-                if (isPublicListTask && !isUserOwnerOrAdmin) return null
-                return (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleDeleteClick} className="text-red-600 focus:text-red-600">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </>
-                )
-              })()}
-              {reminderDebugMode && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleTestReminder} className="text-orange-500 focus:text-orange-500">
-                    <Bug className="w-4 h-4 mr-2" />
-                    Test Reminder
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <TaskActionMenu
+            task={task}
+            currentUser={currentUser}
+            reminderDebugMode={reminderDebugMode}
+            onCopy={handleCopyClick}
+            onShare={handleShareClick}
+            onDelete={handleDeleteClick}
+            onTestReminder={handleTestReminder}
+          />
         </div>
         </div>
       </div>
