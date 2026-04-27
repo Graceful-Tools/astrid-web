@@ -16,9 +16,11 @@ export type { AIService, AIAgentConfig }
  */
 export const SUGGESTED_MODELS: Record<AIService, string[]> = {
   claude: [
-    'claude-sonnet-4-20250514',
+    'claude-opus-4-7',
+    'claude-sonnet-4-6',
+    'claude-haiku-4-5-20251001',
+    'claude-sonnet-4-6',
     'claude-opus-4-20250514',
-    'claude-3-5-sonnet-20241022',
   ],
   openai: [
     'o4-mini',
@@ -41,7 +43,7 @@ export const SUGGESTED_MODELS: Record<AIService, string[]> = {
  * Default models for each service
  */
 export const DEFAULT_MODELS: Record<AIService, string> = {
-  claude: 'claude-sonnet-4-20250514',
+  claude: 'claude-sonnet-4-6',
   openai: 'o4-mini',
   gemini: 'gemini-2.5-flash',
   openclaw: 'anthropic/claude-opus-4-5',
@@ -56,7 +58,7 @@ export const DEFAULT_MODELS: Record<AIService, string> = {
 export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
   'claude@astrid.cc': {
     service: 'claude',
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     displayName: 'Claude Agent',
     agentType: 'claude_agent',
     contextFile: 'ASTRID.md',
@@ -107,7 +109,7 @@ export function getAgentService(email: string): AIService {
  * Get the model for an agent email
  */
 export function getAgentModel(email: string): string {
-  return AI_AGENT_CONFIG[email]?.model || 'claude-sonnet-4-20250514'
+  return AI_AGENT_CONFIG[email]?.model || 'claude-sonnet-4-6'
 }
 
 /**

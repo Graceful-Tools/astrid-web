@@ -78,7 +78,7 @@ export interface GeminiProviderOptions extends AIProviderCallOptions {
   executeToolCallback?: ToolExecutionCallback
   /** Whether the repository is available for tool use */
   hasRepository?: boolean
-  /** Model to use (defaults to gemini-2.0-flash) */
+  /** Model to use (defaults to gemini-2.5-flash) */
   model?: string
 }
 
@@ -113,7 +113,7 @@ export async function callGemini(options: GeminiProviderOptions): Promise<AIProv
     executeToolCallback,
     hasRepository = false,
     logger = defaultLogger,
-    model = 'gemini-2.0-flash',
+    model = 'gemini-2.5-flash',
   } = options
 
   const useTools = hasRepository && !jsonOnly && !!executeToolCallback

@@ -12,9 +12,9 @@ import { getAgentService } from './agent-config'
 
 // Hardcoded default models - these are reliable fallbacks
 const FALLBACK_MODELS: Record<AIService, string> = {
-  claude: 'claude-sonnet-4-20250514',
+  claude: 'claude-sonnet-4-6',
   openai: 'gpt-4o',  // Use gpt-4o as reliable default
-  gemini: 'gemini-2.0-flash',
+  gemini: 'gemini-2.5-flash',
   openclaw: 'anthropic/claude-opus-4-5',
 }
 

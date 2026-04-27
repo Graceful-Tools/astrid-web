@@ -6,6 +6,7 @@
  */
 
 import type { workflowQueue as WorkflowQueueType } from '../../workflow-queue'
+import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
 
 export interface ClaudeToolDefinition {
   name: string
@@ -33,7 +34,7 @@ export interface ClaudeClientOptions {
   userId: string // For rate limiting tracking
   executeToolCallback?: (toolName: string, input: any) => Promise<any>
   logger?: (level: 'info' | 'warn' | 'error', message: string, meta?: any) => void
-  /** Model to use (default: claude-sonnet-4-20250514) */
+  /** Model to use (default: claude-sonnet-4-6) */
   model?: string
 }
 
@@ -102,7 +103,7 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     userId,
     executeToolCallback,
     logger = defaultLogger,
-    model = 'claude-sonnet-4-20250514'
+    model = 'claude-sonnet-4-6'
   } = options
 
   // Import WorkflowQueue for global token tracking
@@ -137,22 +138,27 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     // Make API request
     let response
     try {
-      response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'prompt-caching-2024-07-31'
+      response = await fetchWithTimeout(
+        'https://api.anthropic.com/v1/messages',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'prompt-caching-2024-07-31'
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: maxTokens,
+            system: systemBlocks,
+            messages,
+            tools: jsonOnly ? undefined : (tools.length > 0 ? tools : undefined)
+          })
         },
-        body: JSON.stringify({
-          model,
-          max_tokens: maxTokens,
-          system: systemBlocks,
-          messages,
-          tools: jsonOnly ? undefined : (tools.length > 0 ? tools : undefined)
-        })
-      })
+        AI_REQUEST_TIMEOUT_MS,
+        'Claude'
+      )
     } catch (fetchError) {
       logger('error', 'Claude API fetch failed', {
         error: fetchError instanceof Error ? fetchError.message : String(fetchError),
@@ -356,7 +362,7 @@ async function requestFinalResponse(
   messages: Array<{ role: string; content: string | any[] }>,
   maxTokens: number,
   logger: (level: 'info' | 'warn' | 'error', message: string, meta?: any) => void,
-  model: string = 'claude-sonnet-4-20250514'
+  model: string = 'claude-sonnet-4-6'
 ): Promise<ClaudeResponse> {
   // Add a final message asking Claude to provide its best answer
   messages.push({
@@ -366,21 +372,26 @@ async function requestFinalResponse(
       'Follow the format specified in the original instructions (SUMMARY, APPROACH, FILES TO MODIFY, etc.).'
   })
 
-  const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'prompt-caching-2024-07-31'
+  const finalResponse = await fetchWithTimeout(
+    'https://api.anthropic.com/v1/messages',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: systemBlocks,
+        messages
+      })
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      system: systemBlocks,
-      messages
-    })
-  })
+    AI_REQUEST_TIMEOUT_MS,
+    'Claude'
+  )
 
   if (!finalResponse.ok) {
     logger('error', 'Final response request failed', {

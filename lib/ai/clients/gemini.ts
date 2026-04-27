@@ -3,6 +3,8 @@
  * Handles communication with Google's Gemini API for code generation
  */
 
+import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
+
 export interface GeminiClientOptions {
   apiKey: string
   prompt: string
@@ -72,7 +74,7 @@ export async function callGemini(
     prompt,
     jsonOnly = false,
     maxTokens = 8192,
-    model = 'gemini-2.0-flash',
+    model = 'gemini-2.5-flash',
     temperature = 0.7
   } = options
 
@@ -80,7 +82,7 @@ export async function callGemini(
     ? 'You are a code generation system. You MUST respond with ONLY valid JSON. Do not include any explanatory text, markdown formatting, or code blocks. Output pure JSON only.'
     : 'You are an expert software developer analyzing tasks for implementation in Next.js/React/TypeScript applications.'
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
@@ -103,7 +105,9 @@ export async function callGemini(
           ...(jsonOnly ? { responseMimeType: 'application/json' } : {})
         }
       })
-    }
+    },
+    AI_REQUEST_TIMEOUT_MS,
+    'Gemini'
   )
 
   if (!response.ok) {

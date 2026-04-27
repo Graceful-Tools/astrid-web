@@ -8,9 +8,9 @@ export const maxDuration = 60
 
 // Default models when user hasn't configured preferences
 const DEFAULT_MODELS = {
-  claude: 'claude-sonnet-4-20250514',
+  claude: 'claude-sonnet-4-6',
   openai: 'gpt-4o',
-  gemini: 'gemini-2.0-flash',
+  gemini: 'gemini-2.5-flash',
 } as const
 
 interface AssistantWorkflowRequest {
