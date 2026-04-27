@@ -202,7 +202,7 @@ jobs:
 
       - name: Update PR with Preview URL
         if: success()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const previewUrl = '${{ steps.deploy.outputs.preview-url }}';
