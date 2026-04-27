@@ -12,6 +12,9 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.tasks.comments')
 
 const listSelection = {
   id: true,
@@ -161,7 +164,7 @@ export async function GET(
         { status: 403 }
       )
     }
-    console.error('[API v1] GET /tasks/:id/comments error:', error)
+    log.error({ err: error }, 'GET /tasks/:id/comments error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -272,7 +275,7 @@ export async function POST(
       }
 
       authorId = aiAgent.id
-      console.log(`[v1 API] Posting comment as AI agent: ${aiAgent.email}`)
+      log.info({ agentEmail: aiAgent.email }, 'Posting comment as AI agent')
     }
 
     // Create comment
@@ -361,7 +364,7 @@ export async function POST(
           Object.assign(comment, updatedComment)
         }
       } catch (error) {
-        console.error('Failed to associate file with comment:', error)
+        log.error({ err: error }, 'Failed to associate file with comment')
         // Don't fail the comment creation if file association fails
       }
     }
@@ -405,7 +408,7 @@ export async function POST(
         })
       }
     } catch (error) {
-      console.error('[API v1] Failed to broadcast comment_created:', error)
+      log.error({ err: error }, 'Failed to broadcast comment_created')
       // Don't fail the comment creation if SSE broadcast fails
     }
 
@@ -430,10 +433,10 @@ export async function POST(
             }
           }
         })
-        console.log(`[API v1] Sent agent_task_comment to OpenClaw agent ${task.assignee.email}`)
+        log.info({ agentEmail: task.assignee.email }, 'Sent agent_task_comment to OpenClaw agent')
       }
     } catch (error) {
-      console.error('[API v1] Failed to broadcast agent_task_comment:', error)
+      log.error({ err: error }, 'Failed to broadcast agent_task_comment')
     }
 
     // Fire shared post-comment side effects: AI agent triggers on @-mentions,
@@ -476,7 +479,7 @@ export async function POST(
         })
       }
     } catch (sideEffectError) {
-      console.error('[API v1] post-comment side effects failed:', sideEffectError)
+      log.error({ err: sideEffectError }, 'post-comment side effects failed')
     }
 
     // Track analytics
@@ -514,7 +517,7 @@ export async function POST(
         { status: 403 }
       )
     }
-    console.error('[API v1] POST /tasks/:id/comments error:', error)
+    log.error({ err: error }, 'POST /tasks/:id/comments error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

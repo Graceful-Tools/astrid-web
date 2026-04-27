@@ -15,6 +15,9 @@ import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.tasks')
 
 /**
  * GET /api/v1/tasks
@@ -222,7 +225,7 @@ export async function GET(req: NextRequest) {
         { status: 403 }
       )
     }
-    console.error('[API v1] GET /tasks error:', error)
+    log.error({ err: error }, 'GET /tasks error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -387,7 +390,7 @@ export async function POST(req: NextRequest) {
         include: taskInclude,
       })
       if (existing) {
-        console.log(`[v1 API] Idempotency (clientRequestId): returning existing task ${existing.id}`)
+        log.info({ taskId: existing.id }, 'Idempotency hit (clientRequestId): returning existing task')
         const headers: Record<string, string> = {}
         const deprecationWarning = getDeprecationWarning(auth)
         if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
@@ -429,7 +432,7 @@ export async function POST(req: NextRequest) {
             include: taskInclude,
           })
           if (raceExisting && raceExisting.creatorId === auth.userId) {
-            console.log(`[v1 API] Idempotency (P2002 fallback): returning existing task ${raceExisting.id}`)
+            log.info({ taskId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing task')
             const headers: Record<string, string> = {}
             const deprecationWarning = getDeprecationWarning(auth)
             if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
@@ -462,7 +465,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (recentDuplicate) {
-      console.log(`[v1 API] Idempotency (time-based): returning existing task ${recentDuplicate.id} (created ${Date.now() - recentDuplicate.createdAt.getTime()}ms ago)`)
+      log.info({ taskId: recentDuplicate.id, ageMs: Date.now() - recentDuplicate.createdAt.getTime() }, 'Idempotency hit (time-based): returning existing task')
       const headers: Record<string, string> = {}
       const deprecationWarning = getDeprecationWarning(auth)
       if (deprecationWarning) {
@@ -518,7 +521,7 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       )
     }
-    console.error('[API v1] POST /tasks error:', error)
+    log.error({ err: error }, 'POST /tasks error')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -559,7 +562,7 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
         }
       })
     } catch (sseError) {
-      console.error("[v1 API] Failed to send task_assigned SSE notification:", sseError)
+      log.error({ err: sseError }, 'Failed to send task_assigned SSE notification')
     }
   }
 
@@ -596,7 +599,7 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
         })
       }
     } catch (sseError) {
-      console.error("[v1 API] Failed to send task_created SSE notifications:", sseError)
+      log.error({ err: sseError }, 'Failed to send task_created SSE notifications')
     }
   }
 
@@ -606,7 +609,7 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
       const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
       await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
     } catch (aiNotificationError) {
-      console.error("[v1 API] Failed to notify AI agent about task assignment:", aiNotificationError)
+      log.error({ err: aiNotificationError }, 'Failed to notify AI agent about task assignment')
     }
   }
 
@@ -626,10 +629,10 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
           RedisCache.del(RedisCache.keys.userTasks(userId))
         )
       )
-      console.log(`🗄️ [API v1] Invalidated task cache for ${affectedUserIds.size} users after creation`)
+      log.debug({ users: affectedUserIds.size }, 'Invalidated task cache after creation')
     }
   } catch (cacheError) {
-    console.error('❌ [API v1] Failed to invalidate task cache (create):', cacheError)
+    log.error({ err: cacheError }, 'Failed to invalidate task cache (create)')
   }
 
   const headers: Record<string, string> = {}
