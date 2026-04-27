@@ -6,27 +6,28 @@
  * DELETE /api/v1/lists/:id - Delete list
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateSingleListFavorite, toggleFavorite } from '@/lib/favorites'
-import { createLogger } from '@/lib/logger'
+import { withAuth } from '@/lib/api-auth-wrapper'
 
-const log = createLogger('v1.lists.id')
+type RouteContext = { params: Promise<{ id: string }> }
+
+const FILTER_FIELDS = [
+  'sortBy', 'manualSortOrder', 'filterPriority', 'filterAssignee',
+  'filterDueDate', 'filterCompletion', 'filterRepeating',
+  'filterAssignedBy', 'filterInLists', 'isFavorite'
+] as const
 
 /**
  * GET /api/v1/lists/:id
  * Get a single list by ID
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:read'])
-
+export const GET = withAuth<RouteContext>(
+  { scopes: ['lists:read'], tag: 'v1.lists.id' },
+  async (_req, auth, { params }) => {
     const { id } = await params
 
     const list = await prisma.taskList.findFirst({
@@ -49,20 +50,14 @@ export async function GET(
         listInvites: {
           select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
         },
-        _count: {
-          select: { tasks: true }
-        }
+        _count: { select: { tasks: true } }
       }
     })
 
     if (!list) {
-      return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    // Hydrate per-user favorite state
     await hydrateSingleListFavorite(list, auth.userId)
 
     const headers: Record<string, string> = {}
@@ -86,10 +81,8 @@ export async function GET(
           listMembers: list.listMembers,
           invitations: list.listInvites,
           taskCount: list._count.tasks,
-          // Virtual list settings
           isVirtual: list.isVirtual,
           virtualListType: list.virtualListType,
-          // Sort and filter settings
           sortBy: list.sortBy,
           manualSortOrder: list.manualSortOrder,
           filterPriority: list.filterPriority,
@@ -99,77 +92,45 @@ export async function GET(
           filterRepeating: list.filterRepeating,
           filterAssignedBy: list.filterAssignedBy,
           filterInLists: list.filterInLists,
-          // List defaults
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
           defaultAssigneeId: list.defaultAssigneeId,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
-          // Coding agent configuration
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
-          // Timestamps
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         },
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'GET /lists/:id error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
 
 /**
  * PUT /api/v1/lists/:id
  * Update a list
  */
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const PUT = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.id' },
+  async (req, auth, { params }) => {
     const { id } = await params
     const body = await req.json()
 
-    // Check what kind of update this is
     const isFilterOnlyUpdate = Object.keys(body).every(key =>
-      ['sortBy', 'manualSortOrder', 'filterPriority', 'filterAssignee',
-       'filterDueDate', 'filterCompletion', 'filterRepeating',
-       'filterAssignedBy', 'filterInLists', 'isFavorite'].includes(key)
+      (FILTER_FIELDS as readonly string[]).includes(key)
     )
 
-    // For filter-only updates, allow any member. For other updates, require owner/admin.
+    // Filter-only updates: any member. Other updates: owner/admin only.
     const existingList = await prisma.taskList.findFirst({
       where: {
         id,
         OR: isFilterOnlyUpdate
           ? [
               { ownerId: auth.userId },
-              { listMembers: { some: { userId: auth.userId } } }  // Any member can update filters
+              { listMembers: { some: { userId: auth.userId } } }
             ]
           : [
               { ownerId: auth.userId },
@@ -185,21 +146,14 @@ export async function PUT(
       )
     }
 
-    // If not owner/admin, only allow filter updates
     const isOwnerOrAdmin = existingList.ownerId === auth.userId ||
       await prisma.listMember.findFirst({
         where: { listId: id, userId: auth.userId, role: 'ADMIN' }
       })
 
-    // Build update data - restrict non-admin members to filter fields only
-    const filterFields = ['sortBy', 'manualSortOrder', 'filterPriority', 'filterAssignee',
-      'filterDueDate', 'filterCompletion', 'filterRepeating', 'filterAssignedBy',
-      'filterInLists', 'isFavorite']
-
     const updateData: any = {}
 
     if (isOwnerOrAdmin) {
-      // Owner/admin can update everything
       if (body.name !== undefined) updateData.name = body.name
       if (body.description !== undefined) updateData.description = body.description
       if (body.color !== undefined) updateData.color = body.color
@@ -217,12 +171,12 @@ export async function PUT(
       if (body.preferredAiProvider !== undefined) updateData.preferredAiProvider = body.preferredAiProvider
     }
 
-    // Handle isFavorite via per-user table (not on TaskList)
+    // isFavorite lives in a per-user table, not on TaskList
     if (body.isFavorite !== undefined) {
       await toggleFavorite(auth.userId, id, body.isFavorite)
     }
 
-    // Filter fields - allowed for all members
+    // Filter fields — allowed for any member
     if (body.sortBy !== undefined) updateData.sortBy = body.sortBy
     if (body.manualSortOrder !== undefined) updateData.manualSortOrder = body.manualSortOrder
     if (body.filterPriority !== undefined) updateData.filterPriority = body.filterPriority
@@ -233,7 +187,6 @@ export async function PUT(
     if (body.filterAssignedBy !== undefined) updateData.filterAssignedBy = body.filterAssignedBy
     if (body.filterInLists !== undefined) updateData.filterInLists = body.filterInLists
 
-    // Update list
     const list = await prisma.taskList.update({
       where: { id },
       data: updateData,
@@ -246,16 +199,12 @@ export async function PUT(
             user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
           }
         },
-        _count: {
-          select: { tasks: true }
-        }
+        _count: { select: { tasks: true } }
       },
     })
 
-    // Hydrate per-user favorite state
     await hydrateSingleListFavorite(list, auth.userId)
 
-    // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_EDITED, { listId: id })
 
     const headers: Record<string, string> = {}
@@ -278,10 +227,8 @@ export async function PUT(
           owner: list.owner,
           listMembers: list.listMembers,
           taskCount: list._count.tasks,
-          // Virtual list settings
           isVirtual: list.isVirtual,
           virtualListType: list.virtualListType,
-          // Sort and filter settings
           sortBy: list.sortBy,
           manualSortOrder: list.manualSortOrder,
           filterPriority: list.filterPriority,
@@ -291,68 +238,35 @@ export async function PUT(
           filterRepeating: list.filterRepeating,
           filterAssignedBy: list.filterAssignedBy,
           filterInLists: list.filterInLists,
-          // List defaults
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
           defaultAssigneeId: list.defaultAssigneeId,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
           defaultDueTime: list.defaultDueTime,
-          // Coding agent configuration
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
-          // Timestamps
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         },
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'PUT /lists/:id error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
 
 /**
  * DELETE /api/v1/lists/:id
  * Delete a list (owner only)
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const DELETE = withAuth<RouteContext>(
+  { scopes: ['lists:write'], tag: 'v1.lists.id' },
+  async (req, auth, { params }) => {
     const { id } = await params
 
-    // Check if user is the owner
     const existingList = await prisma.taskList.findFirst({
-      where: {
-        id,
-        ownerId: auth.userId
-      }
+      where: { id, ownerId: auth.userId }
     })
 
     if (!existingList) {
@@ -362,12 +276,8 @@ export async function DELETE(
       )
     }
 
-    // Delete list
-    await prisma.taskList.delete({
-      where: { id }
-    })
+    await prisma.taskList.delete({ where: { id } })
 
-    // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_DELETED, { listId: id })
 
     const headers: Record<string, string> = {}
@@ -379,30 +289,9 @@ export async function DELETE(
     return NextResponse.json(
       {
         message: 'List deleted successfully',
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'DELETE /lists/:id error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)

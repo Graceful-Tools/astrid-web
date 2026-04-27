@@ -6,26 +6,23 @@
  * POST /api/v1/lists - Create list
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateListFavorites } from '@/lib/favorites'
 import { RedisCache } from '@/lib/redis'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.lists')
 
-const LISTS_CACHE_TTL_SECONDS = 300 // 5 minutes — matches the legacy /api/lists cache
+const LISTS_CACHE_TTL_SECONDS = 300 // matches the legacy /api/lists cache
 
 /**
  * GET /api/v1/lists
  * Get all lists accessible to the authenticated user.
- *
- * Returns lists where user is:
- * - Owner
- * - Member
  *
  * Query params:
  * - updatedSince (ISO 8601): if set, return only lists updated after this
@@ -34,11 +31,9 @@ const LISTS_CACHE_TTL_SECONDS = 300 // 5 minutes — matches the legacy /api/lis
  *   via RedisCache.invalidate.userLists which wipes both this and the
  *   legacy cache key (pattern: `lists:user:${userId}*`).
  */
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:read'])
-
+export const GET = withAuth(
+  { scopes: ['lists:read'], tag: 'v1.lists' },
+  async (req, auth) => {
     const { searchParams } = new URL(req.url)
     const updatedSince = searchParams.get('updatedSince')
 
@@ -83,10 +78,8 @@ export async function GET(req: NextRequest) {
           LISTS_CACHE_TTL_SECONDS
         )
 
-    // Hydrate per-user favorite state
     await hydrateListFavorites(lists, auth.userId)
 
-    // Get accurate incomplete task counts for all lists
     const listIds = lists.map(list => list.id)
     const taskCounts = await getMultipleListTaskCounts(listIds, { includeCompleted: false })
 
@@ -113,10 +106,8 @@ export async function GET(req: NextRequest) {
           listMembers: list.listMembers,
           invitations: list.listInvites,
           taskCount: taskCounts[list.id] || 0,
-          // Virtual list (saved filter) settings
           isVirtual: list.isVirtual,
           virtualListType: list.virtualListType,
-          // Sort and filter settings
           sortBy: list.sortBy,
           manualSortOrder: list.manualSortOrder,
           filterPriority: list.filterPriority,
@@ -126,16 +117,13 @@ export async function GET(req: NextRequest) {
           filterRepeating: list.filterRepeating,
           filterAssignedBy: list.filterAssignedBy,
           filterInLists: list.filterInLists,
-          // List default task settings
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
           defaultAssigneeId: list.defaultAssigneeId,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
-          // Coding agent configuration
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
-          // Timestamps
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         })),
@@ -143,64 +131,26 @@ export async function GET(req: NextRequest) {
           total: lists.length,
           apiVersion: 'v1',
           authSource: auth.source,
-          // Incremental-sync metadata. Clients should pass `timestamp` back
-          // as `updatedSince` on the next poll to fetch only changed lists.
+          // Incremental-sync metadata: clients pass `timestamp` back as
+          // `updatedSince` on the next poll to fetch only changed lists.
           timestamp: responseTimestamp,
           isIncremental: !!updatedSince,
         },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'GET /lists error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
 
 /**
  * POST /api/v1/lists
  * Create a new list
- *
- * Body:
- * {
- *   name: string (required)
- *   description?: string
- *   color?: string
- *   imageUrl?: string
- *   privacy?: 'PRIVATE' | 'SHARED'
- *   adminIds?: string[]
- *   memberIds?: string[]
- *   memberEmails?: string[]
- *   defaultAssigneeId?: string
- *   defaultPriority?: number
- *   defaultRepeating?: string
- *   defaultIsPrivate?: boolean
- *   defaultDueDate?: ISO datetime string
- * }
  */
-export async function POST(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['lists:write'])
-
+export const POST = withAuth(
+  { scopes: ['lists:write'], tag: 'v1.lists' },
+  async (req, auth) => {
     const body = await req.json()
 
-    // Validate required fields
     if (!body.name || typeof body.name !== 'string') {
       return NextResponse.json(
         { error: 'name is required and must be a string' },
@@ -208,7 +158,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Create list
     const list = await prisma.taskList.create({
       data: {
         name: body.name,
@@ -222,10 +171,8 @@ export async function POST(req: NextRequest) {
         defaultRepeating: body.defaultRepeating,
         defaultIsPrivate: body.defaultIsPrivate,
         defaultDueDate: body.defaultDueDate,
-        // Coding agent configuration
         githubRepositoryId: body.githubRepositoryId,
         preferredAiProvider: body.preferredAiProvider,
-        // Add members if provided
         listMembers: body.memberIds?.length
           ? {
               create: body.memberIds.map((userId: string) => ({
@@ -248,7 +195,6 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Get accurate incomplete task count
     const taskCount = await getMultipleListTaskCounts([list.id], { includeCompleted: false })
 
     // Invalidate user-lists cache for everyone who can see the new list.
@@ -262,7 +208,6 @@ export async function POST(req: NextRequest) {
       log.error({ err: invalidateError }, 'Failed to invalidate user-lists cache after POST')
     }
 
-    // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_ADDED, { listId: list.id })
 
     const headers: Record<string, string> = {}
@@ -284,23 +229,5 @@ export async function POST(req: NextRequest) {
       },
       { status: 201, headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'POST /lists error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
