@@ -4,6 +4,7 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import crypto from "crypto"
+import { MCPSettingsSchema, parseUserAIConfig } from "@/lib/ai/user-config-schemas"
 
 function getEncryptionKey(): string {
   const key = process.env.ENCRYPTION_KEY
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const mcpSettings = user.mcpSettings ? JSON.parse(user.mcpSettings) : {}
+    const mcpSettings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'user/ai-api-keys')
     const apiKeys = mcpSettings.apiKeys || {}
 
     // Return key status without decrypting the actual keys
@@ -185,7 +186,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const mcpSettings = user.mcpSettings ? JSON.parse(user.mcpSettings) : {}
+    const mcpSettings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'user/ai-api-keys')
     const apiKeys = mcpSettings.apiKeys || {}
 
     // Encrypt and store based on service type
@@ -288,7 +289,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const mcpSettings = user.mcpSettings ? JSON.parse(user.mcpSettings) : {}
+    const mcpSettings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'user/ai-api-keys')
     const apiKeys = mcpSettings.apiKeys || {}
 
     // Remove the API key
