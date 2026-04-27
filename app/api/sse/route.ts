@@ -152,69 +152,69 @@ export async function GET(request: NextRequest) {
       }
 
       // Send keep-alive ping every 15 seconds and check Redis for new events
+      // Single source of truth for whether this connection has been torn down.
+      // Without this, the ping interval and the abort handler could each call
+      // removeConnection() once, and an in-flight ping that started before
+      // cleanup ran could still try to enqueue() against a closed controller.
+      let cleanedUp = false
+      const cleanup = () => {
+        if (cleanedUp) return
+        cleanedUp = true
+        clearInterval(pingInterval)
+        clearTimeout(connectionTimeout)
+        removeConnection(userId, connectionId)
+      }
+
       const pingInterval = setInterval(async () => {
+        if (cleanedUp) return
         try {
           // First, check Redis for any new events from other instances
           await checkAndDeliverNewEvents(userId, connectionId)
+
+          // Re-check after the await — the connection could have been torn
+          // down while we were waiting on Redis.
+          if (cleanedUp) return
 
           const pingData = JSON.stringify({
             type: 'ping',
             timestamp: new Date().toISOString()
           })
 
-          // Try to send ping - if controller is closed/errored, this will throw
           controller.enqueue(encoder.encode(`data: ${pingData}\n\n`))
-
-          // Update last ping time only after successful send
           updateConnectionPing(userId)
         } catch (error) {
-          // Controller is closed or errored - clean up and stop pinging
+          // Controller is closed or errored — clean up and stop pinging.
           console.error(`[SSE] Ping failed for user ${userId}, connection likely closed:`, error)
-          removeConnection(userId, connectionId)
-          clearInterval(pingInterval)
+          cleanup()
         }
       }, 15000)
 
-      // Graceful connection refresh to maintain SSE reliability
-      // Vercel streaming responses support much longer connections than serverless function timeouts
-      // We refresh every 5 minutes to keep connections healthy without aggressive reconnection loops
+      // Graceful connection refresh to maintain SSE reliability.
+      // Vercel streaming responses support much longer connections than serverless function timeouts;
+      // we refresh every ~25 minutes to keep connections healthy without aggressive reconnect loops.
       const connectionTimeout = setTimeout(() => {
+        if (cleanedUp) return
         console.log(`[SSE] Proactively closing connection for user ${userId} for periodic refresh`)
 
-        // Send close event to client
         try {
           const closeData = JSON.stringify({
             type: 'reconnect',
             timestamp: new Date().toISOString(),
-            data: {
-              reason: 'Periodic connection refresh'
-            }
+            data: { reason: 'Periodic connection refresh' }
           })
           controller.enqueue(encoder.encode(`data: ${closeData}\n\n`))
-        } catch (e) {
-          // Ignore errors if controller already closed
+        } catch {
+          // Controller already closed.
         }
 
-        // Clean up
-        removeConnection(userId, connectionId)
-        clearInterval(pingInterval)
+        cleanup()
 
-        // Close the stream gracefully
         try {
           controller.close()
-        } catch (e) {
-          // Controller might already be closed
+        } catch {
+          // Controller might already be closed.
         }
-      }, 1500000) // Close after 25 minutes (reduces reconnect overhead)
-      
-      // Cleanup on connection close
-      const cleanup = () => {
-        // Debug: Cleaning up SSE connection
-        removeConnection(userId, connectionId)
-        clearInterval(pingInterval)
-        clearTimeout(connectionTimeout)
-        // Don't try to close controller - it's handled by the removeConnection function
-      }
+      }, 1500000) // 25 minutes
 
       request.signal.addEventListener('abort', cleanup)
     }
