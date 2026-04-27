@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { DEFAULT_MODELS, type AIService } from "@/lib/ai/agent-config"
+import { MCPSettingsSchema, parseUserAIConfig } from "@/lib/ai/user-config-schemas"
 
 const RequestSchema = z.object({
   userId: z.string(),
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const mcpSettings = user.mcpSettings ? JSON.parse(user.mcpSettings) : {}
+    const mcpSettings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'internal/user-model-preferences')
     const modelPreferences = mcpSettings.modelPreferences || {}
     const userModel = modelPreferences[validatedData.service]
 

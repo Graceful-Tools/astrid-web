@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
+import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -28,12 +29,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     // Verify ownership
-    let config: any = {}
-    try {
-      config = typeof agent.aiAgentConfig === 'string'
-        ? JSON.parse(agent.aiAgentConfig as string)
-        : agent.aiAgentConfig || {}
-    } catch { /* ignore */ }
+    const config = parseUserAIConfig(
+      agent.aiAgentConfig as string | null | undefined,
+      AIAgentConfigSchema,
+      'v1/openclaw/agents/[id] PATCH ownership'
+    )
 
     if (config.registeredBy !== auth.userId) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
@@ -80,12 +80,11 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     }
 
     // Verify ownership
-    let config: any = {}
-    try {
-      config = typeof agent.aiAgentConfig === 'string'
-        ? JSON.parse(agent.aiAgentConfig as string)
-        : agent.aiAgentConfig || {}
-    } catch { /* ignore */ }
+    const config = parseUserAIConfig(
+      agent.aiAgentConfig as string | null | undefined,
+      AIAgentConfigSchema,
+      'v1/openclaw/agents/[id] DELETE ownership'
+    )
 
     if (config.registeredBy !== auth.userId) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 })

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
+import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,14 +30,12 @@ export async function GET(req: NextRequest) {
 
     // Filter to agents registered by this user
     const myAgents = agentUsers.filter(agent => {
-      try {
-        const config = typeof agent.aiAgentConfig === 'string'
-          ? JSON.parse(agent.aiAgentConfig)
-          : agent.aiAgentConfig
-        return config?.registeredBy === auth.userId
-      } catch {
-        return false
-      }
+      const config = parseUserAIConfig(
+        agent.aiAgentConfig as string | null | undefined,
+        AIAgentConfigSchema,
+        'v1/openclaw/agents GET filter'
+      )
+      return config.registeredBy === auth.userId
     })
 
     // Fetch OAuth client status for each agent
@@ -47,12 +46,11 @@ export async function GET(req: NextRequest) {
           select: { clientId: true, lastUsedAt: true, createdAt: true },
         })
 
-        let config: any = {}
-        try {
-          config = typeof agent.aiAgentConfig === 'string'
-            ? JSON.parse(agent.aiAgentConfig)
-            : agent.aiAgentConfig || {}
-        } catch { /* ignore */ }
+        const config = parseUserAIConfig(
+          agent.aiAgentConfig as string | null | undefined,
+          AIAgentConfigSchema,
+          'v1/openclaw/agents GET map'
+        )
 
         const lastActiveAt = oauthClient?.lastUsedAt
         const isActive = lastActiveAt && (Date.now() - new Date(lastActiveAt).getTime()) < 24 * 60 * 60 * 1000
