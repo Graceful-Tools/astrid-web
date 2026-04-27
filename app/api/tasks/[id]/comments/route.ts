@@ -5,10 +5,9 @@ import { prisma } from "@/lib/prisma"
 import type { CreateCommentData } from "@/types/api"
 import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
-import { getAgentService } from "@/lib/ai/agent-config"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
-import { invalidateUserStats } from "@/lib/user-stats"
 import { broadcastCommentCreatedNotification, broadcastToUsers } from "@/lib/sse-utils"
+import { dispatchPostCommentSideEffects } from "@/lib/comments/post-comment-side-effects"
 
 // Helper function to safely check list access with any list-like object
 function canAccessList(list: any, userId: string): boolean {
@@ -230,26 +229,11 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       }
     }
 
-    // Invalidate user statistics if commenting on someone else's task
+    // Broadcast SSE updates to relevant users (route-specific: this also pings
+    // OpenClaw agents on assigned tasks).
     try {
-      // Only invalidate if commenting on a task created by someone else
-      if (task.creatorId !== session.user.id) {
-        // invalidateUserStats imported at top level
-        // Invalidate comment author's stats (supported tasks count increased)
-        await invalidateUserStats(session.user.id)
-        console.log(`📊 Invalidated user stats for comment author ${session.user.id}`)
-      }
-    } catch (statsError) {
-      console.error("❌ Failed to invalidate user stats:", statsError)
-      // Continue - comment was still created
-    }
-
-    // Broadcast real-time updates to relevant users
-    try {
-      // broadcastCommentCreatedNotification, broadcastToUsers imported at top level
       await broadcastCommentCreatedNotification(task, comment, session.user.id)
 
-      // Broadcast agent_task_comment if task is assigned to an OpenClaw agent
       if (task.assigneeId && task.assignee?.email &&
           (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
           session.user.id !== task.assigneeId) {
@@ -270,241 +254,52 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
           }
         })
       }
-
-      // Handle @mentions and assignee notifications
-      const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
-      const mentionedUserIds = new Set<string>()
-      let match
-      while ((match = mentionRegex.exec(data.content || '')) !== null) {
-        mentionedUserIds.add(match[2])
-      }
-
-      const { PushNotificationService } = await import("@/lib/push-notification-service")
-      const pushService = new PushNotificationService()
-      const commenterName = session.user.name || session.user.email || "Someone"
-
-      // 1. Notify mentioned users (and trigger AI agents)
-      for (const mentionedUserId of mentionedUserIds) {
-        if (mentionedUserId === session.user.id) continue
-
-        // Check if mentioned user is an AI agent
-        const mentionedUser = await prisma.user.findUnique({
-          where: { id: mentionedUserId },
-          select: { id: true, isAIAgent: true, email: true },
-        })
-
-        if (mentionedUser?.isAIAgent) {
-          // Trigger AI agent response
-          const { ASTRID_EMAIL } = await import('@/lib/astrid-agent')
-          if (mentionedUser.email === ASTRID_EMAIL) {
-            const { processAstridComment } = await import('@/lib/astrid-agent-runtime')
-            const listId = task.lists?.[0]?.id || null
-            processAstridComment({
-              commentContent: comment.content,
-              userId: session.user.id,
-              userName: commenterName,
-              taskId: task.id,
-              taskTitle: task.title,
-              listId,
-            }).catch(err => console.error('[Comments API] Astrid @mention comment error:', err))
-          }
-        } else {
-          // Human user — send push notification
-          await pushService.sendCommentNotification(mentionedUserId, {
-            taskId: task.id,
-            commentId: comment.id,
-            taskTitle: task.title,
-            commenterName,
-            content: comment.content,
-            type: 'mention'
-          })
-        }
-      }
-
-      // 2. Notify assignee if not mentioned and not the commenter
-      if (task.assigneeId && 
-          task.assigneeId !== session.user.id && 
-          !mentionedUserIds.has(task.assigneeId)) {
-        await pushService.sendCommentNotification(task.assigneeId, {
-          taskId: task.id,
-          commentId: comment.id,
-          taskTitle: task.title,
-          commenterName,
-          content: comment.content,
-          type: 'assignment'
-        })
-      }
     } catch (sseError) {
-      console.error("Failed to send comment notifications:", sseError)
-      // Continue - comment was still created
+      console.error("Failed to broadcast comment SSE:", sseError)
     }
 
-    // Check for workflow actions in the comment (for coding workflows)
-    // But skip workflow processing for AI agent comments to prevent infinite loops
-    const commenterUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { isAIAgent: true }
-    })
-    const isCommenterAIAgent = commenterUser?.isAIAgent === true
-
-    if (data.content?.trim() && !isCommenterAIAgent) {
-      try {
-        const { processCommentForWorkflowAction } = await import('@/lib/comment-approval-detector')
-
-        // Process comment for any workflow action (approve, merge, changes)
-        await processCommentForWorkflowAction(taskId, comment.id, data.content, session.user.id)
-      } catch (workflowError) {
-        console.error('Error processing comment for workflow action:', workflowError)
-        // Don't fail the comment creation if workflow processing fails
-      }
-    } else if (isCommenterAIAgent) {
-      console.log(`🤖 Skipped workflow action processing - comment by AI agent`)
-    }
-
-    // Notify AI agent if task is assigned to one (but don't notify AI agents about their own comments)
-    // (commenterUser and isCommenterAIAgent already determined above)
-
-    // Check if this is a system-generated comment that should not trigger notifications
-    const isSystemGenerated = comment.content.includes('<!-- SYSTEM_GENERATED_COMMENT -->')
-
-    // Skip AI agent notifications for:
-    // 1. Comments by AI agents themselves (prevent self-notification)
-    // 2. System-generated comments (prevent automation loops)
-    if (task.assigneeId && task.assignee?.isAIAgent && !isCommenterAIAgent && !isSystemGenerated) {
-      try {
-        console.log(`🔔 User commented on AI agent task - triggering workflow resume`)
-        console.log(`   Comment: "${data.content.substring(0, 100)}..."`)
-
-        // Check if this is a coding agent (new tools-based workflow)
-        const isCodingAgent = task.assignee.aiAgentType === 'coding_agent' ||
-                             task.assignee.email?.includes('claude@') ||
-                             task.assignee.name?.includes('Claude')
-
-        if (isCodingAgent) {
-          // ✅ Consolidated: Use AIOrchestrator for all workflows (including comments)
-          // Find first list with a repository (task may be in multiple lists)
-          const listWithRepo = task.lists?.find(l => l.githubRepositoryId)
-          const repository = listWithRepo?.githubRepositoryId
-
-          if (repository) {
-            console.log(`🚀 Resuming workflow with user comment via AIOrchestrator`)
-
-            // Import AIOrchestrator (unified system with Phase 1-3 improvements)
-            import('@/lib/ai-orchestrator').then(async ({ AIOrchestrator }) => {
-              try {
-                const configuredByUserId = listWithRepo?.aiAgentConfiguredBy || task.creatorId || session.user.id
-
-                // Find or create workflow record
-                let workflow = await prisma.codingTaskWorkflow.findUnique({
-                  where: { taskId }
-                })
-
-                // Check if workflow already has a PR or has progressed beyond planning
-                // If so, don't restart - let processCommentForWorkflowAction handle via handleChangeRequest
-                const workflowAlreadyProcessed = workflow && (
-                  workflow.pullRequestNumber !== null ||
-                  workflow.status === 'TESTING' ||
-                  workflow.status === 'COMPLETED' ||
-                  workflow.status === 'READY_TO_MERGE'
-                )
-
-                if (workflowAlreadyProcessed) {
-                  console.log(`📝 [COMMENT] Workflow already processed (status: ${workflow?.status}, PR: ${workflow?.pullRequestNumber})`)
-                  console.log(`   Skipping executeCompleteWorkflow - processCommentForWorkflowAction will handle via handleChangeRequest`)
-                  return // Don't restart workflow - feedback is handled by processCommentForWorkflowAction
+    // Shared post-comment side effects: stats invalidation, @-mention push +
+    // AI agent triggering, workflow command detection, AI assignee wake-up.
+    // Identical logic runs from /api/v1/tasks/[id]/comments — keep them in sync
+    // by editing lib/comments/post-comment-side-effects.ts.
+    try {
+      const commenterUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, name: true, email: true, isAIAgent: true },
+      })
+      if (commenterUser) {
+        await dispatchPostCommentSideEffects({
+          comment: { id: comment.id, content: comment.content },
+          task: {
+            id: task.id,
+            title: task.title,
+            creatorId: task.creatorId,
+            assigneeId: task.assigneeId,
+            assignee: task.assignee
+              ? {
+                  id: task.assignee.id,
+                  email: task.assignee.email,
+                  name: task.assignee.name,
+                  isAIAgent: task.assignee.isAIAgent,
+                  aiAgentType: (task.assignee as any).aiAgentType ?? null,
                 }
-
-                if (!workflow) {
-                  // Determine AI service from the assigned agent's email
-                  const aiService = task.assignee?.email ? getAgentService(task.assignee.email) : 'claude'
-
-                  // OpenClaw tasks use the channel plugin (SSE), not the orchestrator workflow
-                  if (aiService === 'openclaw') {
-                    console.log(`🔌 [COMMENT] Skipping workflow creation — OpenClaw tasks are handled via channel plugin (SSE)`)
-                    return
-                  }
-
-                  workflow = await prisma.codingTaskWorkflow.create({
-                    data: {
-                      taskId,
-                      status: 'PENDING',
-                      aiService,
-                      repositoryId: repository,
-                      metadata: {
-                        triggeredBy: 'user_comment',
-                        userComment: data.content,
-                        timestamp: new Date().toISOString()
-                      }
-                    }
-                  })
-                }
-
-                console.log(`🚀 [COMMENT] Starting AIOrchestrator workflow`)
-                console.log(`   Workflow ID: ${workflow.id}`)
-                console.log(`   User comment: ${data.content?.substring(0, 100)}...`)
-
-                // Create orchestrator and execute workflow
-                const orchestrator = await AIOrchestrator.createForTask(
-                  taskId,
-                  configuredByUserId!
-                )
-
-                // Execute asynchronously
-                const workflowId = workflow.id
-                orchestrator.executeCompleteWorkflow(workflowId, taskId)
-                  .then(() => {
-                    console.log(`✅ [COMMENT] AIOrchestrator workflow completed`)
-                  })
-                  .catch(async (error) => {
-                    console.error(`❌ [COMMENT] AIOrchestrator workflow failed:`, error)
-                    // Update workflow status to FAILED to prevent stuck workflows
-                    try {
-                      await prisma.codingTaskWorkflow.update({
-                        where: { id: workflowId },
-                        data: {
-                          status: 'FAILED',
-                          metadata: {
-                            error: error.message,
-                            failedAt: new Date().toISOString()
-                          }
-                        }
-                      })
-                    } catch (e) {
-                      console.error('❌ [COMMENT] Failed to update workflow status:', e)
-                    }
-                  })
-
-                console.log(`✅ AIOrchestrator workflow started for new task`)
-              } catch (error) {
-                console.error(`❌ Failed to resume AIOrchestrator workflow:`, error)
-              }
-            }).catch(err => console.error('❌ Failed to import AIOrchestrator:', err))
-          } else {
-            console.log(`⚠️ No repository configured, cannot resume workflow`)
-          }
-        } else {
-          // Fall back to old webhook system for other AI agents
-          const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
-          await aiAgentWebhookService.notifyCommentOnAssignedTask(
-            taskId,
-            comment.id,
-            data.content,
-            session.user.name || session.user.email || 'Someone'
-          )
-        }
-
-        console.log(`🔔 Notified AI agent about human comment from ${session.user.name}`)
-      } catch (agentError) {
-        console.error('Error notifying AI agent about comment:', agentError)
-        // Don't fail the comment creation if AI agent notification fails
+              : null,
+            lists: task.lists.map((l: any) => ({
+              id: l.id,
+              githubRepositoryId: l.githubRepositoryId ?? null,
+              aiAgentConfiguredBy: l.aiAgentConfiguredBy ?? null,
+            })),
+          },
+          commenter: {
+            id: commenterUser.id,
+            name: commenterUser.name,
+            email: commenterUser.email,
+            isAIAgent: commenterUser.isAIAgent,
+          },
+        })
       }
-    } else if (isCommenterAIAgent) {
-      console.log(`🤖 Skipped AI agent notification - comment by AI agent itself`)
-    } else if (isSystemGenerated) {
-      console.log(`🔧 Skipped AI agent notification - system-generated comment`)
-    } else if (!task.assignee?.isAIAgent && !isCommenterAIAgent && !isSystemGenerated) {
-      // No AI agent assigned — agents only respond to task comments when @mentioned.
-      // The @mention handling above already covers this case.
+    } catch (sideEffectError) {
+      console.error("post-comment side effects failed:", sideEffectError)
     }
 
     // Track analytics event (fire-and-forget)
