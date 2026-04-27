@@ -16,13 +16,12 @@ import { MarkdownEditor } from "./markdown-editor"
 import { SecureAttachmentViewer } from "./secure-attachment-viewer"
 import { UserPicker } from "./user-picker"
 import { CustomRepeatingEditor } from "./custom-repeating-editor"
-import { TaskCheckbox } from "./task-checkbox"
 import { PriorityPicker } from "./ui/priority-picker"
 import { TimePicker, formatConciseTime } from "./ui/time-picker"
 import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { TaskModals } from "./task-detail/TaskModals"
-import { TaskActionMenu } from "./task-detail/TaskActionMenu"
+import { TaskHeader } from "./task-detail/TaskHeader"
 import type { Task, Comment, User, TaskList } from "../types/task"
 import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Globe, Users, Copy, Link as LinkIcon, Timer } from "lucide-react"
 import { apiPost } from "@/lib/api"
@@ -1278,79 +1277,24 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       )}
       <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
 
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        {/* Mobile/Tablet Back Navigation - Full Width */}
-        {onClose && (
-          <div className="cols2:hidden app-header theme-header theme-border relative">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              className="w-full flex items-center justify-start theme-text-primary hover:theme-text-secondary rounded-none hover:theme-bg-hover"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                <polyline points="15,18 9,12 15,6"></polyline>
-              </svg>
-              <span className="text-lg font-semibold">Back to List</span>
-            </Button>
-          </div>
-        )}
-        
-        {/* Task Content Row */}
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-            <TaskCheckbox
-              checked={tempCompleted}
-              onToggle={handleToggleComplete}
-              priority={task.priority}
-              repeating={task.repeating !== 'never'}
-            />
-            {editingTitle ? (
-              <textarea
-                value={tempTitle}
-                onChange={(e) => {
-                  setTempTitle(e.target.value)
-                  e.target.style.height = 'auto'
-                  e.target.style.height = e.target.scrollHeight + 'px'
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSaveTitle() }
-                  if (e.key === "Escape") handleCancelTitle()
-                }}
-                onBlur={handleSaveTitle}
-                ref={(el) => {
-                  if (el) {
-                    el.focus()
-                    el.style.height = 'auto'
-                    el.style.height = el.scrollHeight + 'px'
-                  }
-                }}
-                className="text-lg px-2 py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary"
-                rows={1}
-              />
-            ) : (
-              <span
-                className={`text-lg cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 ${
-                  task.completed ? "line-through theme-text-muted" : "theme-text-primary"
-                }`}
-                onClick={() => setEditingTitle(true)}
-              >
-                {task.title}
-              </span>
-            )}
-          </div>
-          <TaskActionMenu
-            task={task}
-            currentUser={currentUser}
-            reminderDebugMode={reminderDebugMode}
-            onCopy={handleCopyClick}
-            onShare={handleShareClick}
-            onDelete={handleDeleteClick}
-            onTestReminder={handleTestReminder}
-          />
-        </div>
-        </div>
-      </div>
+      <TaskHeader
+        task={task}
+        currentUser={currentUser}
+        onClose={onClose}
+        tempCompleted={tempCompleted}
+        tempTitle={tempTitle}
+        editingTitle={editingTitle}
+        setTempTitle={setTempTitle}
+        setEditingTitle={setEditingTitle}
+        onToggleComplete={handleToggleComplete}
+        onSaveTitle={handleSaveTitle}
+        onCancelTitle={handleCancelTitle}
+        reminderDebugMode={reminderDebugMode}
+        onCopy={handleCopyClick}
+        onShare={handleShareClick}
+        onDelete={handleDeleteClick}
+        onTestReminder={handleTestReminder}
+      />
 
       <div
         className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 relative"
