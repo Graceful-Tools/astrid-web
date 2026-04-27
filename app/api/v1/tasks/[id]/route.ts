@@ -14,6 +14,9 @@ import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-event
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.tasks.id')
 
 interface RouteContext {
   params: Promise<{
@@ -133,7 +136,7 @@ export async function GET(
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] GET /tasks/:id error:', error)
+    log.error({ err: error }, 'GET /tasks/:id error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -388,7 +391,7 @@ export async function PUT(
         )
       }
 
-      console.log(`✅ [API v1] Task ${taskId} ${repeatingTaskResult.shouldRollForward ? 'rolled forward to next occurrence' : 'series terminated'}`)
+      log.info({ taskId, rolledForward: repeatingTaskResult.shouldRollForward }, 'Repeating task processed')
 
       // Track analytics - task was edited and completed (repeating task roll-forward)
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
@@ -423,7 +426,7 @@ export async function PUT(
           })
         }
       } catch (sseError) {
-        console.error('[API v1] Failed to broadcast repeating task SSE:', sseError)
+        log.error({ err: sseError }, 'Failed to broadcast repeating task SSE')
       }
 
       // Invalidate Redis cache for all affected users (repeating task path)
@@ -448,10 +451,10 @@ export async function PUT(
               RedisCache.del(RedisCache.keys.userTasks(userId))
             )
           )
-          console.log(`🗄️ [API v1] Invalidated task cache for ${affectedUserIds.size} users (repeating task)`)
+          log.debug({ users: affectedUserIds.size }, 'Invalidated task cache (repeating task)')
         }
       } catch (cacheError) {
-        console.error('❌ [API v1] Failed to invalidate task cache (repeating):', cacheError)
+        log.error({ err: cacheError }, 'Failed to invalidate task cache (repeating)')
       }
 
       const headers: Record<string, string> = {}
@@ -541,7 +544,7 @@ export async function PUT(
 
       // Only track changes if we have the old task state
       if (!existingTask) {
-        console.log('⚠️ [API v1] Cannot track state changes - existing task not found')
+        log.warn('Cannot track state changes - existing task not found')
       } else {
         // Fetch updater's name
         const updater = await prisma.user.findUnique({
@@ -565,11 +568,11 @@ export async function PUT(
           },
         })
 
-        console.log(`📝 [API v1] Created state change comment for task ${task.id}: ${commentContent}`)
+        log.debug({ taskId: task.id, comment: commentContent }, 'Created state change comment')
       }
       }
     } catch (stateChangeError) {
-      console.error('❌ [API v1] Failed to create state change comment:', stateChangeError)
+      log.error({ err: stateChangeError }, 'Failed to create state change comment')
       // Don't fail the task update if state change tracking fails
     }
 
@@ -633,7 +636,7 @@ export async function PUT(
         })
       }
     } catch (sseError) {
-      console.error('[API v1] Failed to broadcast task update SSE:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast task update SSE')
     }
 
     // Invalidate user stats if completion status or assignment changed
@@ -657,11 +660,11 @@ export async function PUT(
 
         if (statsUserIds.size > 0) {
           await invalidateUserStats(Array.from(statsUserIds))
-          console.log(`📊 [API v1] Invalidated user stats for ${statsUserIds.size} users`)
+          log.debug({ users: statsUserIds.size }, 'Invalidated user stats')
         }
       }
     } catch (statsError) {
-      console.error('❌ [API v1] Failed to invalidate user stats:', statsError)
+      log.error({ err: statsError }, 'Failed to invalidate user stats')
     }
 
     // Invalidate Redis cache for all affected users
@@ -689,10 +692,10 @@ export async function PUT(
             RedisCache.del(RedisCache.keys.userTasks(userId))
           )
         )
-        console.log(`🗄️ [API v1] Invalidated task cache for ${affectedUserIds.size} users after update`)
+        log.debug({ users: affectedUserIds.size }, 'Invalidated task cache after update')
       }
     } catch (cacheError) {
-      console.error('❌ [API v1] Failed to invalidate task cache:', cacheError)
+      log.error({ err: cacheError }, 'Failed to invalidate task cache')
     }
 
     const headers: Record<string, string> = {}
@@ -730,7 +733,7 @@ export async function PUT(
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] PUT /tasks/:id error:', error)
+    log.error({ err: error }, 'PUT /tasks/:id error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -808,10 +811,10 @@ export async function DELETE(
             RedisCache.del(RedisCache.keys.userTasks(userId))
           )
         )
-        console.log(`🗄️ [API v1] Invalidated task cache for ${cacheUserIds.size} users after deletion`)
+        log.debug({ users: cacheUserIds.size }, 'Invalidated task cache after deletion')
       }
     } catch (cacheError) {
-      console.error('❌ [API v1] Failed to invalidate task cache (delete):', cacheError)
+      log.error({ err: cacheError }, 'Failed to invalidate task cache (delete)')
     }
 
     // Broadcast task_deleted to all relevant users
@@ -825,7 +828,7 @@ export async function DELETE(
           },
         })
       } catch (sseError) {
-        console.error('[API v1] Failed to broadcast task_deleted SSE:', sseError)
+        log.error({ err: sseError }, 'Failed to broadcast task_deleted SSE')
       }
     }
 
@@ -856,7 +859,7 @@ export async function DELETE(
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
-    console.error('[API v1] DELETE /tasks/:id error:', error)
+    log.error({ err: error }, 'DELETE /tasks/:id error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
