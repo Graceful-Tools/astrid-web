@@ -2,6 +2,10 @@ import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('events.poll')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -174,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(events.slice(0, 20))
   } catch (error) {
-    console.error('Error in polling endpoint:', error)
+    log.error({ err: error }, 'Error in polling endpoint:')
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -5,6 +5,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.install-url')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ installUrl })
 
   } catch (error) {
-    console.error('Error generating install URL:', error)
+    log.error({ err: error }, 'Error generating install URL:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

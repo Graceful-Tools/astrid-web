@@ -4,6 +4,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import type { RouteContextParams } from '@/types/next'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('reminders.[id].snooze')
+
 
 const SnoozeSchema = z.object({
   minutes: z.number().min(1).max(10080), // 1 minute to 1 week
@@ -88,7 +92,7 @@ export async function POST(
       )
     }
 
-    console.error('Error snoozing reminder:', error)
+    log.error({ err: error }, 'Error snoozing reminder:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { CopyTaskData } from "@/types/api"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('tasks.copy')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(copiedTask)
   } catch (error) {
-    console.error("Error copying task:", error)
+    log.error({ err: error }, "Error copying task:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

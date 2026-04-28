@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { uploadFileToBlob } from "@/lib/secure-storage"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-upload.request-upload')
+
 
 // Allowed MIME types for file uploads
 const ALLOWED_MIME_TYPES = new Set([
@@ -322,7 +326,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error generating upload URL:", error)
+    log.error({ err: error }, "Error generating upload URL:")
     return NextResponse.json({
       error: "Failed to generate upload URL"
     }, { status: 500 })

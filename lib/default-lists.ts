@@ -1,6 +1,10 @@
 import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
 import { toggleFavorite } from "./favorites"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('default-lists')
+
 
 /**
  * Creates default filter lists for a new user
@@ -8,7 +12,7 @@ import { toggleFavorite } from "./favorites"
  */
 export async function createDefaultListsForUser(userId: string) {
   try {
-    console.log("[DefaultLists] Creating default lists for new user:", userId)
+    log.info({ userId }, "[DefaultLists] Creating default lists for new user:")
 
     // Define the default lists with consistent images
     const defaultLists = [
@@ -81,14 +85,14 @@ export async function createDefaultListsForUser(userId: string) {
       await toggleFavorite(userId, list.id, true)
 
       createdLists.push(list)
-      console.log(`[DefaultLists] Created default list "${list.name}" with image ${consistentImage.filename}`)
+      log.info(`[DefaultLists] Created default list "${list.name}" with image ${consistentImage.filename}`)
     }
 
-    console.log(`[DefaultLists] Successfully created ${createdLists.length} default lists for user ${userId}`)
+    log.info(`[DefaultLists] Successfully created ${createdLists.length} default lists for user ${userId}`)
     return createdLists
 
   } catch (error) {
-    console.error("[DefaultLists] Error creating default lists for user:", userId, error)
+    log.error({ userId: userId, error }, '[DefaultLists] Error creating default lists for user')
     // Don't fail the user creation process if default lists fail
     throw error
   }

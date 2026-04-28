@@ -6,6 +6,10 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('tasks.[id].copy')
+
 
 export async function POST(
   request: NextRequest,
@@ -53,7 +57,7 @@ export async function POST(
       }
     }
 
-    console.log(`📝 Copying task ${taskId} for user ${session.user.id}`)
+    log.info(`📝 Copying task ${taskId} for user ${session.user.id}`)
 
     const result = await copyTask(taskId, {
       newOwnerId: session.user.id,
@@ -70,7 +74,7 @@ export async function POST(
       )
     }
 
-    console.log(`✅ Task copied successfully: ${result.copiedTask?.id}`)
+    log.info(`✅ Task copied successfully: ${result.copiedTask?.id}`)
 
     // Invalidate original task creator's stats (inspired tasks count increased)
     if (result.copiedTask?.originalTaskId) {
@@ -83,10 +87,10 @@ export async function POST(
         if (originalTask?.creatorId) {
           const { invalidateUserStats } = await import("@/lib/user-stats")
           await invalidateUserStats(originalTask.creatorId)
-          console.log(`📊 Invalidated user stats for original task creator ${originalTask.creatorId}`)
+          log.info(`📊 Invalidated user stats for original task creator ${originalTask.creatorId}`)
         }
       } catch (statsError) {
-        console.error("❌ Failed to invalidate original creator's stats:", statsError)
+        log.error({ err: statsError }, "❌ Failed to invalidate original creator's stats:")
         // Continue - task was still copied
       }
     }
@@ -110,9 +114,9 @@ export async function POST(
           }
         })
 
-        console.log(`📦 Fetched complete task with ${copiedTaskWithRelations?.lists?.length || 0} list associations`)
+        log.info(`📦 Fetched complete task with ${copiedTaskWithRelations?.lists?.length || 0} list associations`)
       } catch (fetchError) {
-        console.error("Failed to fetch complete task data:", fetchError)
+        log.error({ err: fetchError }, "Failed to fetch complete task data:")
         // Fall back to basic task data
         copiedTaskWithRelations = result.copiedTask
       }
@@ -134,7 +138,7 @@ export async function POST(
         userIds.delete(session.user.id)
 
         if (userIds.size > 0) {
-          console.log(`[SSE] Broadcasting task copy to ${userIds.size} users:`, Array.from(userIds))
+          log.info(Array.from(userIds), `[SSE] Broadcasting task copy to ${userIds.size} users:`)
           broadcastToUsers(Array.from(userIds), {
             type: 'task_created',
             timestamp: new Date().toISOString(),
@@ -162,7 +166,7 @@ export async function POST(
           })
         }
       } catch (sseError) {
-        console.error("Failed to send task copy SSE notifications:", sseError)
+        log.error({ err: sseError }, "Failed to send task copy SSE notifications:")
         // Continue - task was still copied successfully
       }
     }
@@ -175,7 +179,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error("Error in copy task API:", error)
+    log.error({ err: error }, "Error in copy task API:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

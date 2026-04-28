@@ -9,6 +9,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import crypto from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('contacts.google.authorize')
+
 
 export async function GET(request: NextRequest) {
   // Require authentication
@@ -20,7 +24,7 @@ export async function GET(request: NextRequest) {
   // Google OAuth configuration
   const clientId = process.env.GOOGLE_CLIENT_ID
   if (!clientId) {
-    console.error('[Google Contacts] GOOGLE_CLIENT_ID not configured')
+    log.error('[Google Contacts] GOOGLE_CLIENT_ID not configured')
     return NextResponse.redirect(new URL('/settings/contacts?google=error', request.url))
   }
 

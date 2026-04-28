@@ -18,6 +18,10 @@
  */
 
 import * as crypto from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('app-store-connect-client')
+
 
 // =============================================================================
 // Types
@@ -413,7 +417,7 @@ export class AppStoreConnectClient {
         publicLinkStatus: groupWithLink.attributes.publicLinkEnabled ? 'ENABLED' : 'DISABLED',
       }
     } catch (error) {
-      console.error('Error fetching TestFlight public link:', error)
+      log.error({ err: error }, 'Error fetching TestFlight public link:')
       return null
     }
   }
@@ -523,7 +527,7 @@ export async function getIOSBuildInfo(): Promise<{
       publicLink: status.publicLink,
     }
   } catch (error) {
-    console.error('Error getting iOS build info:', error)
+    log.error({ err: error }, 'Error getting iOS build info:')
 
     // Fall back to static link
     if (staticLink) {

@@ -1,5 +1,9 @@
 import { isOfflineMode, OfflineSyncManager } from './offline-sync'
 import { OfflineTaskOperations } from './offline-db'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api')
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
@@ -26,7 +30,7 @@ const triggerCacheInvalidation = (endpoint: string, error: Error) => {
     try {
       callback()
     } catch (err) {
-      console.error('Error in cache invalidation listener:', err)
+      log.error({ err: err }, 'Error in cache invalidation listener:')
     }
   })
 }

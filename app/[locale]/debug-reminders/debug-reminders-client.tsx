@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].debug-reminders.debug-reminders-client.tsx')
+
 
 interface Reminder {
   id: string
@@ -35,7 +39,7 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
       const data = await response.json()
       setReminders(data.reminders || [])
     } catch (error) {
-      console.error('Failed to fetch reminders:', error)
+      log.error({ err: error }, 'Failed to fetch reminders:')
     } finally {
       setLoading(false)
     }
@@ -47,11 +51,11 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
     try {
       const response = await fetch('/api/cron/reminders', { method: 'POST' })
       const data = await response.json()
-      console.log('Cron job result:', data)
+      log.info({ data }, 'Cron job result:')
       alert(`Cron job completed in ${data.duration || 'unknown time'}`)
       fetchReminders()
     } catch (error) {
-      console.error('Failed to trigger cron job:', error)
+      log.error({ err: error }, 'Failed to trigger cron job:')
       alert('Failed to trigger cron job')
     } finally {
       setLoading(false)
@@ -86,7 +90,7 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
         throw new Error(`Failed to create task: ${response.status}`)
       }
     } catch (error) {
-      console.error('Failed to create test task:', error)
+      log.error({ err: error }, 'Failed to create test task:')
       alert('Failed to create test task')
     } finally {
       setLoading(false)
@@ -113,7 +117,7 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
 
         alert('Test message sent to Service Worker. Check console and expect notification in 30 seconds.')
       } catch (error) {
-        console.error('Service Worker test failed:', error)
+        log.error({ err: error }, 'Service Worker test failed:')
         alert('Service Worker test failed')
       }
     } else {
@@ -171,7 +175,7 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
         throw new Error(error.message || 'Failed to save subscription')
       }
     } catch (error) {
-      console.error('Push subscription setup failed:', error)
+      log.error({ err: error }, 'Push subscription setup failed:')
       alert(`Push subscription setup failed: ${(error as Error).message}`)
     }
   }
@@ -195,7 +199,7 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
         throw new Error(data.message || data.error || 'Unknown error')
       }
     } catch (error) {
-      console.error('Push notification test failed:', error)
+      log.error({ err: error }, 'Push notification test failed:')
       alert(`Push notification test failed: ${(error as Error).message}`)
     }
   }

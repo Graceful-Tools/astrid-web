@@ -9,6 +9,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.settings')
+
 
 export async function GET() {
   try {
@@ -34,7 +38,7 @@ export async function GET() {
 
     return NextResponse.json(user)
   } catch (error) {
-    console.error('Error fetching user settings:', error)
+    log.error({ err: error }, 'Error fetching user settings:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -119,7 +123,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedUser)
   } catch (error) {
-    console.error('Error updating user settings:', error)
+    log.error({ err: error }, 'Error updating user settings:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

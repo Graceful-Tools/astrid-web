@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('tasks.[id].share-to-claude')
+
 
 /**
  * Get OAuth access token for astrid.cc API
@@ -12,7 +16,7 @@ async function getAstridOAuthToken(): Promise<string | null> {
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
 
   if (!clientId || !clientSecret) {
-    console.error('❌ OAuth credentials not configured')
+    log.error('❌ OAuth credentials not configured')
     return null
   }
 
@@ -28,14 +32,14 @@ async function getAstridOAuthToken(): Promise<string | null> {
     })
 
     if (!tokenResponse.ok) {
-      console.error('❌ Failed to obtain OAuth token:', await tokenResponse.text())
+      log.error({ body: await tokenResponse.text() }, '❌ Failed to obtain OAuth token')
       return null
     }
 
     const { access_token } = await tokenResponse.json()
     return access_token
   } catch (error) {
-    console.error('❌ OAuth token error:', error)
+    log.error({ err: error }, '❌ OAuth token error:')
     return null
   }
 }
@@ -70,7 +74,7 @@ export async function POST(
     const body = await request.json().catch(() => ({}))
     const { shareReason, additionalNotes, targetListId } = body
 
-    console.log(`🤖 [ShareToClaude] User ${session.user.email} sharing task ${taskId}`)
+    log.info(`🤖 [ShareToClaude] User ${session.user.email} sharing task ${taskId}`)
 
     // Get OAuth token
     const accessToken = await getAstridOAuthToken()
@@ -163,7 +167,7 @@ export async function POST(
 
     if (!createTaskResponse.ok) {
       const error = await createTaskResponse.text()
-      console.error('❌ Failed to create task on astrid.cc:', error)
+      log.error({ err: error }, '❌ Failed to create task on astrid.cc:')
       return NextResponse.json(
         { error: 'Failed to create task on ASTRID.cc' },
         { status: 500 }
@@ -189,11 +193,11 @@ export async function POST(
         }
       })
     } catch (commentError) {
-      console.warn('⚠️ Failed to add share comment to local task:', commentError)
+      log.warn({ commentError }, '⚠️ Failed to add share comment to local task:')
       // Don't fail the request if comment creation fails
     }
 
-    console.log('✅ [ShareToClaude] Task successfully shared:', astridCCTaskId)
+    log.info({ astridCCTaskId }, '✅ [ShareToClaude] Task successfully shared:')
 
     return NextResponse.json({
       success: true,
@@ -206,7 +210,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('❌ [ShareToClaude] Unexpected error:', error)
+    log.error({ err: error }, '❌ [ShareToClaude] Unexpected error:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -228,7 +232,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log(`🔍 [ShareToClaude] Testing ASTRID.cc OAuth connection for user ${session.user.email}`)
+    log.info(`🔍 [ShareToClaude] Testing ASTRID.cc OAuth connection for user ${session.user.email}`)
 
     const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
     const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -269,7 +273,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [ShareToClaude] Connection test error:', error)
+    log.error({ err: error }, '❌ [ShareToClaude] Connection test error:')
     return NextResponse.json({
       configured: !!process.env.ASTRID_OAUTH_CLIENT_ID && !!process.env.ASTRID_OAUTH_CLIENT_SECRET,
       connected: false,

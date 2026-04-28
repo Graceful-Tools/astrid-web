@@ -1,4 +1,8 @@
 import { getDaysDifference } from "./date-comparison"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('date-utils')
+
 
 /**
  * Convert relative date strings to actual Date objects
@@ -77,7 +81,7 @@ export function parseRelativeDate(dateString: string | null | undefined): Date |
         return parsedDate
       }
       
-      console.warn(`Unknown relative date format: ${dateString}`)
+      log.warn(`Unknown relative date format: ${dateString}`)
       return null
   }
 }

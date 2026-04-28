@@ -69,11 +69,14 @@ import {
   executeMCPTool,
   type MCPToolDependencies,
 } from './ai/mcp-tool-executor'
+import { createLogger } from '@/lib/logger'
 import type {
   CodeGenerationRequest,
   GeneratedCode,
   ImplementationPlan,
 } from './ai/types'
+
+const log = createLogger('ai-orchestrator')
 
 // Re-export types for backwards compatibility
 export type { CodeGenerationRequest, GeneratedCode, ImplementationPlan }
@@ -141,7 +144,7 @@ export class AIOrchestrator {
       phase: this.currentPhase,
       ...meta
     }
-    console.log(JSON.stringify(logEntry))
+    log.info(JSON.stringify(logEntry))
   }
 
   /**
@@ -419,7 +422,7 @@ export class AIOrchestrator {
           ? JSON.parse(user.mcpSettings)
           : user.mcpSettings as Record<string, unknown>
       } catch (error) {
-        console.error('Failed to parse mcpSettings JSON:', error)
+        log.error({ err: error }, 'Failed to parse mcpSettings JSON:')
         mcpSettings = {}
       }
     }
@@ -436,7 +439,7 @@ export class AIOrchestrator {
     // First: Check if task is assigned to an AI agent and use their service
     if (task.assignee?.isAIAgent && task.assignee.email) {
       selectedProvider = getAgentService(task.assignee.email)
-      console.log(`[AIOrchestrator] Using assigned agent's service: ${selectedProvider} (${task.assignee.email})`)
+      log.info(`[AIOrchestrator] Using assigned agent's service: ${selectedProvider} (${task.assignee.email})`)
 
       // OpenClaw tasks use the channel plugin (SSE), not the orchestrator
       if (selectedProvider === 'openclaw') {

@@ -8,6 +8,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.start-ai-orchestration')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,29 +30,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🧠 [AI Orchestration] Starting workflow for:', { workflowId, taskId, userId })
+    log.info({ workflowId, taskId, userId }, '🧠 [AI Orchestration] Starting workflow for:')
 
     // Create AI orchestrator instance with optimal configuration based on task's list
     let orchestrator
     try {
-      console.log('🔧 [AI Orchestration] Creating orchestrator instance...')
+      log.info('🔧 [AI Orchestration] Creating orchestrator instance...')
       orchestrator = await AIOrchestrator.createForTask(taskId, userId)
-      console.log('✅ [AI Orchestration] Orchestrator created successfully')
+      log.info('✅ [AI Orchestration] Orchestrator created successfully')
     } catch (createError) {
-      console.error('❌ [AI Orchestration] Failed to create orchestrator:', createError)
+      log.error({ err: createError }, '❌ [AI Orchestration] Failed to create orchestrator:')
       throw createError // Re-throw to be caught by outer try-catch
     }
 
     // Start the complete workflow asynchronously
     // We don't await this to avoid timeout issues - it runs in the background
-    console.log('🚀 [AI Orchestration] Starting executeCompleteWorkflow...')
+    log.info('🚀 [AI Orchestration] Starting executeCompleteWorkflow...')
     orchestrator.executeCompleteWorkflow(workflowId, taskId)
       .then(() => {
-        console.log('✅ [AI Orchestration] Workflow completed successfully')
+        log.info('✅ [AI Orchestration] Workflow completed successfully')
       })
       .catch((error) => {
-        console.error('❌ [AI Orchestration] Workflow failed:', error)
-        console.error('❌ [AI Orchestration] Error stack:', error.stack)
+        log.error({ err: error }, '❌ [AI Orchestration] Workflow failed:')
+        log.error(error.stack, '❌ [AI Orchestration] Error stack:')
 
         // Update workflow status to FAILED to prevent stuck workflows
         prisma.codingTaskWorkflow.update({
@@ -60,7 +64,7 @@ export async function POST(request: NextRequest) {
               failedAt: new Date().toISOString()
             }
           }
-        }).catch(e => console.error('❌ [AI Orchestration] Failed to update workflow status:', e))
+        }).catch(e => log.error({ err: e }, '❌ [AI Orchestration] Failed to update workflow status:'))
       })
 
     // Return immediately to avoid request timeout
@@ -71,11 +75,11 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [AI Orchestration] Error starting orchestration:', error)
-    console.error('❌ [AI Orchestration] Error type:', error instanceof Error ? error.constructor.name : typeof error)
+    log.error({ err: error }, '❌ [AI Orchestration] Error starting orchestration:')
+    log.error({ type: error instanceof Error ? error.constructor.name : typeof error }, '❌ [AI Orchestration] Error type')
     if (error instanceof Error) {
-      console.error('❌ [AI Orchestration] Error message:', error.message)
-      console.error('❌ [AI Orchestration] Error stack:', error.stack)
+      log.error({ message: error.message }, '❌ [AI Orchestration] Error message')
+      log.error(error.stack, '❌ [AI Orchestration] Error stack:')
     }
 
     return NextResponse.json(

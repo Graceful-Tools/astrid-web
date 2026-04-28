@@ -15,6 +15,10 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { AIAssistantSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('chat.channels.[channelId].agent-response')
+
 
 export async function POST(
   req: NextRequest,
@@ -98,7 +102,7 @@ export async function POST(
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[Agent Response] POST error:', error)
+    log.error({ err: error }, '[Agent Response] POST error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('safe-parse')
+
 /**
  * Safe JSON Parsing Utilities
  *
@@ -32,10 +36,10 @@ export function safeJsonParse<T>(text: string | null | undefined, fallback: T): 
   try {
     return JSON.parse(text) as T
   } catch (error) {
-    console.error('❌ [SafeParse] Failed to parse JSON:', {
+    log.error({
       error: error instanceof Error ? error.message : String(error),
       textPreview: text.substring(0, 100)
-    })
+    }, '❌ [SafeParse] Failed to parse JSON:')
     return fallback
   }
 }
@@ -60,13 +64,13 @@ export async function safeResponseJson<T>(response: Response, fallback: T | null
   // Check content-length header
   const contentLength = response.headers.get('content-length')
   if (contentLength === '0') {
-    console.warn('⚠️ [SafeParse] Response has content-length: 0, returning fallback')
+    log.warn('⚠️ [SafeParse] Response has content-length: 0, returning fallback')
     return fallback
   }
 
   // Check if response body is already consumed
   if (response.bodyUsed) {
-    console.warn('⚠️ [SafeParse] Response body already consumed, returning fallback')
+    log.warn('⚠️ [SafeParse] Response body already consumed, returning fallback')
     return fallback
   }
 
@@ -78,19 +82,19 @@ export async function safeResponseJson<T>(response: Response, fallback: T | null
     const text = await clonedResponse.text()
 
     if (!text || text.trim() === '') {
-      console.warn('⚠️ [SafeParse] Response body is empty, returning fallback')
+      log.warn('⚠️ [SafeParse] Response body is empty, returning fallback')
       return fallback
     }
 
     // Parse the text
     return JSON.parse(text) as T
   } catch (error) {
-    console.error('❌ [SafeParse] Failed to parse Response JSON:', {
+    log.error({
       error: error instanceof Error ? error.message : String(error),
       status: response.status,
       statusText: response.statusText,
       url: response.url
-    })
+    }, '❌ [SafeParse] Failed to parse Response JSON:')
     return fallback
   }
 }
@@ -110,17 +114,17 @@ export async function safeResponseJson<T>(response: Response, fallback: T | null
  */
 export function safeEventParse<T>(eventData: string | null | undefined, fallback: T): T {
   if (!eventData || eventData.trim() === '') {
-    console.warn('⚠️ [SafeParse] SSE event data is empty, returning fallback')
+    log.warn('⚠️ [SafeParse] SSE event data is empty, returning fallback')
     return fallback
   }
 
   try {
     return JSON.parse(eventData) as T
   } catch (error) {
-    console.error('❌ [SafeParse] Failed to parse SSE event data:', {
+    log.error({
       error: error instanceof Error ? error.message : String(error),
       eventDataPreview: eventData.substring(0, 100)
-    })
+    }, '❌ [SafeParse] Failed to parse SSE event data:')
     return fallback
   }
 }

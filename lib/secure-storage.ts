@@ -14,6 +14,10 @@
 
 import { put, del, getDownloadUrl } from "@vercel/blob"
 import { randomUUID } from "crypto"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-storage')
+
 
 export interface FileUploadRequest {
   fileName: string
@@ -100,7 +104,7 @@ export async function uploadFileToBlob(
       fileId
     }
   } catch (error) {
-    console.error('Failed to upload to Vercel Blob:', error)
+    log.error({ err: error }, 'Failed to upload to Vercel Blob:')
     throw new Error('Failed to upload file to blob storage')
   }
 }
@@ -117,7 +121,7 @@ export async function generateSignedDownloadUrl(
     // If using public access, we control security via our API endpoint
     return blobUrl
   } catch (error) {
-    console.error('Failed to generate signed download URL:', error)
+    log.error({ err: error }, 'Failed to generate signed download URL:')
     throw new Error('Failed to generate download URL')
   }
 }
@@ -129,7 +133,7 @@ export async function deleteFile(blobUrl: string): Promise<void> {
   try {
     await del(blobUrl)
   } catch (error) {
-    console.error('Failed to delete from Vercel Blob:', error)
+    log.error({ err: error }, 'Failed to delete from Vercel Blob:')
     throw new Error('Failed to delete file from blob storage')
   }
 }

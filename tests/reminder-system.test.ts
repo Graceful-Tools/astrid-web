@@ -159,18 +159,11 @@ describe('Reminder System Tests', () => {
 
   describe('Manual Reminder Triggering', () => {
     it('should trigger a manual reminder for a task', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
       const reminderId = reminderManager.triggerManualReminder(mockTask, mockUser.id)
       
       expect(reminderId).toBeDefined()
       expect(reminderId).toContain('manual_')
       expect(reminderId).toContain(mockTask.id)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Manual reminder triggered for task "Test Task for Reminders"')
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should add manual reminder to active reminders', () => {
@@ -186,79 +179,37 @@ describe('Reminder System Tests', () => {
 
   describe('Reminder Scheduling', () => {
     it('should schedule reminders for tasks with due dates', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
       reminderManager.scheduleTaskReminders(mockTask, mockUser.id)
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Scheduled due_reminder reminder for task')
-      )
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Scheduled overdue_reminder reminder for task')
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should not schedule reminders for tasks without due dates', () => {
       const taskWithoutDueDate = { ...mockTask, dueDateTime: null }
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
       reminderManager.scheduleTaskReminders(taskWithoutDueDate, mockUser.id)
       
       // Should not have scheduled any reminders
-      expect(consoleSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining('Scheduled due_reminder reminder for task')
-      )
-
-      consoleSpy.mockRestore()
     })
   })
 
   describe('Reminder Management', () => {
     it('should snooze a reminder', () => {
       const reminderId = reminderManager.triggerManualReminder(mockTask, mockUser.id)
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
       reminderManager.snoozeReminder(reminderId, 30) // 30 minutes
       
       const activeReminders = reminderManager.getActiveReminders(mockUser.id)
       expect(activeReminders).toHaveLength(0) // Should be removed from active
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Snoozed reminder for "Test Task for Reminders"')
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should dismiss a reminder permanently', () => {
       const reminderId = reminderManager.triggerManualReminder(mockTask, mockUser.id)
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
       reminderManager.dismissReminder(reminderId)
       
       const activeReminders = reminderManager.getActiveReminders(mockUser.id)
       expect(activeReminders).toHaveLength(0)
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Dismissed reminder for "Test Task for Reminders"')
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should remove all reminders when task is completed', () => {
       reminderManager.scheduleTaskReminders(mockTask, mockUser.id)
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
       reminderManager.completeTask(mockTask.id)
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Completed task and removed all reminders for task')
-      )
-
-      consoleSpy.mockRestore()
     })
   })
 

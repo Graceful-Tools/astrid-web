@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('webhooks.claude-integration')
+
 
 export async function POST(request: NextRequest) {
-  console.log('🔵 Claude integration webhook called')
+  log.info('🔵 Claude integration webhook called')
 
   // This endpoint is for external Claude services to receive task notifications
   // Currently returns setup instructions since Claude doesn't have built-in webhook support

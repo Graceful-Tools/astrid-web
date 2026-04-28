@@ -8,6 +8,10 @@
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { getAgentService, ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('resolve-default-agent')
+
 
 // ─── aiAgentsEnabled normalization ────────────────────────────────
 
@@ -89,7 +93,7 @@ export async function resolveDefaultAgent(
         }
       }
     } catch (error) {
-      console.error('[resolveDefaultAgent] Error reading list config:', error)
+      log.error({ err: error }, '[resolveDefaultAgent] Error reading list config:')
     }
   }
 
@@ -107,18 +111,18 @@ export async function resolveDefaultAgent(
         }
       }
     } catch (error) {
-      console.error('[resolveDefaultAgent] Error reading user settings:', error)
+      log.error({ err: error }, '[resolveDefaultAgent] Error reading user settings:')
     }
   }
 
   if (!agentId) {
-    console.log(`[resolveDefaultAgent] No agentId found for listId=${listId}, userId=${userId}`)
+    log.info(`[resolveDefaultAgent] No agentId found for listId=${listId}, userId=${userId}`)
     return null
   }
 
   // 2b. On-device models (e.g. Apple Foundation Models) are handled client-side — no server processing
   if ((ON_DEVICE_MODEL_IDS as readonly string[]).includes(agentId)) {
-    console.log(`[resolveDefaultAgent] On-device model selected for userId=${userId}, skipping server resolution`)
+    log.info(`[resolveDefaultAgent] On-device model selected for userId=${userId}, skipping server resolution`)
     return null
   }
 
@@ -129,7 +133,7 @@ export async function resolveDefaultAgent(
       select: { id: true, isAIAgent: true, email: true, aiAgentType: true },
     })
     if (!agent?.isAIAgent) {
-      console.log(`[resolveDefaultAgent] Agent ${agentId} not found or not AI agent`)
+      log.info(`[resolveDefaultAgent] Agent ${agentId} not found or not AI agent`)
       return null
     }
 
@@ -140,7 +144,7 @@ export async function resolveDefaultAgent(
       const preferredService = await getPreferredAIService(userId)
       const hasKey = await hasValidApiKey(userId, preferredService)
       if (!hasKey) {
-        console.log(`[resolveDefaultAgent] No valid ${preferredService} API key for user ${userId}`)
+        log.info(`[resolveDefaultAgent] No valid ${preferredService} API key for user ${userId}`)
         return null
       }
     } else {
@@ -151,7 +155,7 @@ export async function resolveDefaultAgent(
 
     return agent.id
   } catch (error) {
-    console.error('[resolveDefaultAgent] Error validating agent:', error)
+    log.error({ err: error }, '[resolveDefaultAgent] Error validating agent:')
     return null
   }
 }

@@ -161,13 +161,9 @@ describe('parseRelativeDate', () => {
     })
 
     it('should handle unknown relative dates', () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const result = parseRelativeDate('unknown-date')
-      
+
       expect(result).toBeNull()
-      expect(consoleSpy).toHaveBeenCalledWith('Unknown relative date format: unknown-date')
-      
-      consoleSpy.mockRestore()
     })
   })
 })

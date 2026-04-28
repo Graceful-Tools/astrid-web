@@ -13,6 +13,10 @@ import { prisma } from '@/lib/prisma'
 import { placeholderUserService } from '@/lib/placeholder-user-service'
 import type { User, Task, TaskList } from '@prisma/client'
 import TurndownService from 'turndown'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('email-to-task-service')
+
 
 const REMINDME_EMAIL = 'remindme@astrid.cc'
 
@@ -59,13 +63,13 @@ export class EmailToTaskService {
     // Find the sender user
     const sender = await this.findOrCreateUserFromEmail(email.from)
     if (!sender) {
-      console.error('Could not find or create sender:', email.from)
+      log.error({ from: email.from }, 'Could not find or create sender')
       return null
     }
 
     // Check if user has email-to-task enabled
     if (!sender.emailToTaskEnabled) {
-      console.log('Email-to-task disabled for user:', sender.email)
+      log.info({ email: sender.email }, 'Email-to-task disabled for user')
       return null
     }
 
@@ -83,7 +87,7 @@ export class EmailToTaskService {
         return await this.createGroupTask(sender, email)
 
       default:
-        console.error('Unknown routing type:', routing)
+        log.error({ err: routing }, 'Unknown routing type:')
         return null
     }
   }
@@ -397,7 +401,7 @@ export class EmailToTaskService {
       try {
         return this.turndownService.turndown(body)
       } catch (error) {
-        console.error('Error converting HTML to markdown:', error)
+        log.error({ err: error }, 'Error converting HTML to markdown:')
         return body
       }
     }

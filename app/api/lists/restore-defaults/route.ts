@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
 import { toggleFavorite } from "@/lib/favorites"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.restore-defaults')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,7 +109,7 @@ export async function POST(request: NextRequest) {
       await toggleFavorite(userId, list.id, true)
 
       createdLists.push(list)
-      console.log(`[RestoreDefaults] Created list "${list.name}" with image ${consistentImage.filename}`)
+      log.info(`[RestoreDefaults] Created list "${list.name}" with image ${consistentImage.filename}`)
     }
 
     return NextResponse.json({
@@ -115,7 +119,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error restoring default lists:", error)
+    log.error({ err: error }, "Error restoring default lists:")
     return NextResponse.json(
       { error: "Failed to restore default saved filters" },
       { status: 500 }

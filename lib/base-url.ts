@@ -4,6 +4,10 @@
  */
 
 import { getDevBaseUrl, isLocalDevelopment } from './port-detection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('base-url')
+
 
 /**
  * Get the base URL for the current environment
@@ -40,7 +44,7 @@ export function getBaseUrl(): string {
       : 'http://localhost:3000'
 
     if (process.env.NODE_ENV === 'production') {
-      console.warn(
+      log.warn(
         '⚠️  BASE URL WARNING: No environment variables set for production deployment.\n' +
         'Please set NEXTAUTH_URL or NEXT_PUBLIC_BASE_URL to avoid incorrect URLs.\n' +
         `Falling back to: ${fallbackUrl}`

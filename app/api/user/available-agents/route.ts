@@ -14,6 +14,10 @@ import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { ensureAstridAgent, ASTRID_EMAIL } from '@/lib/astrid-agent'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.available-agents')
+
 
 interface AvailableAgent {
   id: string       // User ID if exists, or email as fallback identifier
@@ -96,7 +100,7 @@ export async function GET(req: NextRequest) {
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[Available Agents] GET error:', error)
+    log.error({ err: error }, '[Available Agents] GET error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

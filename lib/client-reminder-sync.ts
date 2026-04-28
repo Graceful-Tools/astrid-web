@@ -27,9 +27,9 @@ class ClientReminderSync {
         } else {
           this.serviceWorkerRegistration = registration
         }
-        console.log('Client Reminder Sync: Service Worker ready')
+        log.info('Client Reminder Sync: Service Worker ready')
       } catch (error) {
-        console.error('Client Reminder Sync: Failed to initialize Service Worker:', error)
+        log.error({ err: error }, 'Client Reminder Sync: Failed to initialize Service Worker:')
       }
     }
   }
@@ -37,7 +37,7 @@ class ClientReminderSync {
   // Send message to Service Worker
   private async sendMessageToSW(type: string, data?: any) {
     if (!this.serviceWorkerRegistration?.active) {
-      console.warn('Client Reminder Sync: Service Worker not active, message not sent:', type)
+      log.warn({ type }, 'Client Reminder Sync: Service Worker not active, message not sent:')
       return
     }
 
@@ -46,9 +46,9 @@ class ClientReminderSync {
         type,
         data
       })
-      console.log(`Client Reminder Sync: Sent message to SW: ${type}`)
+      log.info(`Client Reminder Sync: Sent message to SW: ${type}`)
     } catch (error) {
-      console.error('Client Reminder Sync: Failed to send message to Service Worker:', error)
+      log.error({ err: error }, 'Client Reminder Sync: Failed to send message to Service Worker:')
     }
   }
 
@@ -90,14 +90,14 @@ class ClientReminderSync {
         status: r.status
       })) || []
 
-      console.log(`Client Reminder Sync: Fetched ${reminders.length} reminders from server`)
+      log.info(`Client Reminder Sync: Fetched ${reminders.length} reminders from server`)
       
       // Sync with Service Worker
       await this.syncAllReminders(reminders)
       
       return reminders
     } catch (error) {
-      console.error('Client Reminder Sync: Failed to fetch and sync reminders:', error)
+      log.error({ err: error }, 'Client Reminder Sync: Failed to fetch and sync reminders:')
       return []
     }
   }
@@ -105,7 +105,7 @@ class ClientReminderSync {
   // Schedule reminders for a task based on its due date
   async scheduleTaskReminders(task: any, userId: string) {
     if (!task.dueDateTime) {
-      console.log('Client Reminder Sync: No due date, skipping reminder scheduling')
+      log.info('Client Reminder Sync: No due date, skipping reminder scheduling')
       return
     }
 
@@ -113,7 +113,7 @@ class ClientReminderSync {
     const now = new Date()
     
     if (dueDate <= now) {
-      console.log('Client Reminder Sync: Due date is in the past, skipping reminder scheduling')
+      log.info('Client Reminder Sync: Due date is in the past, skipping reminder scheduling')
       return
     }
 
@@ -158,13 +158,13 @@ class ClientReminderSync {
       await this.scheduleReminder(reminder)
     }
 
-    console.log(`Client Reminder Sync: Scheduled ${reminders.length} client-side reminders for task ${task.id}`)
+    log.info(`Client Reminder Sync: Scheduled ${reminders.length} client-side reminders for task ${task.id}`)
   }
 
   // Cancel all reminders for a task
   async cancelTaskReminders(taskId: string) {
     await this.cancelReminder(taskId)
-    console.log(`Client Reminder Sync: Cancelled client-side reminders for task ${taskId}`)
+    log.info(`Client Reminder Sync: Cancelled client-side reminders for task ${taskId}`)
   }
 
   // Update reminders when a task changes
@@ -184,6 +184,10 @@ export const clientReminderSync = new ClientReminderSync()
 
 // Hook for React components
 import { useEffect } from 'react'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('client-reminder-sync')
+
 
 export function useClientReminderSync(userId: string) {
   useEffect(() => {

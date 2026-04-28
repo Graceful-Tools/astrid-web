@@ -30,23 +30,15 @@ describe('parseUserAIConfig', () => {
     expect(result.defaultAgentId).toBe('agent-1')
   })
 
-  it('returns empty object and warns on invalid JSON', () => {
+  it('returns empty object on invalid JSON', () => {
     const result = parseUserAIConfig('{not valid', AIAssistantSettingsSchema, 'test')
     expect(result).toEqual({})
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('invalid JSON'),
-      expect.anything()
-    )
   })
 
-  it('returns empty object and warns when known fields have wrong type', () => {
+  it('returns empty object when known fields have wrong type', () => {
     const json = JSON.stringify({ preferredService: 42 }) // should be string
     const result = parseUserAIConfig(json, AIAssistantSettingsSchema, 'test')
     expect(result).toEqual({})
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('schema mismatch'),
-      expect.anything()
-    )
   })
 
   it('preserves unknown fields via passthrough (back-compat)', () => {

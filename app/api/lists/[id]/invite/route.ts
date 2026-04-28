@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma"
 import { canUserManageMembers, canAssignRole, prismaToTaskList } from "@/lib/list-permissions"
 import { sendListInvitationEmail } from "@/lib/email"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].invite')
+
 
 // Generate cryptographically secure invitation token
 function generateInvitationToken(): string {
@@ -127,7 +131,7 @@ export async function POST(
         message,
       })
     } catch (emailError) {
-      console.error("Failed to send invitation email:", emailError)
+      log.error({ err: emailError }, "Failed to send invitation email:")
       // Continue even if email fails - invitation is still created
     }
 
@@ -142,7 +146,7 @@ export async function POST(
       }
     })
   } catch (error) {
-    console.error("Error sending list invitation:", error)
+    log.error({ err: error }, "Error sending list invitation:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -4,6 +4,10 @@ import { EmailReminderService } from '@/lib/email-reminder-service'
 import { PushNotificationService } from '@/lib/push-notification-service'
 import { processAgentTasksDueSoon } from '@/lib/agent-task-scheduler'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('cron.reminders')
+
 
 // Initialize services
 const emailService = new EmailReminderService()
@@ -13,7 +17,7 @@ const reminderService = new ReminderService(prisma, emailService, pushService)
 // Vercel Cron job endpoint - runs every minute
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔄 Processing reminders...')
+    log.info('🔄 Processing reminders...')
 
     // Verify the request is from Vercel cron
     const authHeader = request.headers.get('authorization')
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime
-    console.log(`✅ Reminder processing completed in ${duration}ms`)
+    log.info(`✅ Reminder processing completed in ${duration}ms`)
 
     return NextResponse.json({
       success: true,
@@ -48,7 +52,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('❌ Error in reminder cron job:', error)
+    log.error({ err: error }, '❌ Error in reminder cron job:')
     return NextResponse.json(
       { error: 'Reminder processing failed', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     const { type } = await request.json().catch(() => ({ type: 'all' }))
 
-    console.log(`🔄 Manually processing reminders (type: ${type})...`)
+    log.info(`🔄 Manually processing reminders (type: ${type})...`)
 
     const startTime = Date.now()
 
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('❌ Error in manual reminder processing:', error)
+    log.error({ err: error }, '❌ Error in manual reminder processing:')
     return NextResponse.json(
       { error: 'Manual reminder processing failed', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

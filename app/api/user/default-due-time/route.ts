@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.default-due-time')
+
 
 const UpdateDefaultDueTimeSchema = z.object({
   defaultDueTime: z.string().nullable()
@@ -27,7 +31,7 @@ export async function GET() {
 
     return NextResponse.json({ defaultDueTime: user.defaultDueTime })
   } catch (error) {
-    console.error("Error fetching user default due time:", error)
+    log.error({ err: error }, "Error fetching user default due time:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -54,7 +58,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 })
     }
     
-    console.error("Error updating user default due time:", error)
+    log.error({ err: error }, "Error updating user default due time:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

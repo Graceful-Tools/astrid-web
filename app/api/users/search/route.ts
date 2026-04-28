@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { hasValidApiKey } from "@/lib/api-key-cache"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('users.search')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -75,17 +79,17 @@ export async function GET(request: NextRequest) {
             lists: { select: { id: true } }
           }
         })
-        console.log("Task found:", task)
+        log.info({ task }, "Task found:")
         if (task) {
           relevantListIds = task.lists.map(list => list.id)
         }
       }
       
-      console.log("Relevant list IDs:", relevantListIds)
+      log.info({ relevantListIds }, "Relevant list IDs:")
 
       if (relevantListIds.length > 0) {
         // Get all users who have access to these lists (owners, admins, members)
-        console.log("About to query users for list IDs:", relevantListIds)
+        log.info({ relevantListIds }, "About to query users for list IDs:")
         try {
           const listAccessCondition = {
             OR: [
@@ -117,9 +121,9 @@ export async function GET(request: NextRequest) {
           },
           take: 10
         });
-        console.log("Found list members:", listMembers);
+        log.info({ listMembers }, "Found list members:");
         } catch (error) {
-          console.error("Error querying list members:", error);
+          log.error({ err: error }, "Error querying list members:");
           listMembers = [];
         }
       }
@@ -304,7 +308,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ users: usersWithMetadata, listMemberCount: listMembers.length })
   } catch (error) {
-    console.error("Error searching users:", error)
+    log.error({ err: error }, "Error searching users:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

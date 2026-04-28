@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { generateMCPToken } from "@/lib/mcp-token-utils"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.mobile-mcp-token')
+
 
 // Mobile token expires after 90 days
 const MOBILE_TOKEN_EXPIRY_DAYS = 90
@@ -17,7 +21,7 @@ export async function POST(request: NextRequest) {
     const sessionCookie = cookies.get("next-auth.session-token") || cookies.get("__Secure-next-auth.session-token")
 
     if (!sessionCookie) {
-      console.error("[mobile-mcp-token] Authentication failed: no session cookie")
+      log.error("[mobile-mcp-token] Authentication failed: no session cookie")
       return NextResponse.json(
         { error: "Unauthorized - No session" },
         { status: 401 }
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!session) {
-      console.error("[mobile-mcp-token] Invalid session token")
+      log.error("[mobile-mcp-token] Invalid session token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid session" },
         { status: 401 }
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Check if session is expired
     if (session.expires < new Date()) {
-      console.error("[mobile-mcp-token] Session expired")
+      log.error("[mobile-mcp-token] Session expired")
       await prisma.session.delete({
         where: { id: session.id },
       })
@@ -93,7 +97,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error generating mobile MCP token:", error)
+    log.error({ err: error }, "Error generating mobile MCP token:")
     return NextResponse.json(
       { error: "Failed to generate token" },
       { status: 500 }
@@ -147,7 +151,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error("Error revoking mobile MCP token:", error)
+    log.error({ err: error }, "Error revoking mobile MCP token:")
     return NextResponse.json(
       { error: "Failed to revoke token" },
       { status: 500 }

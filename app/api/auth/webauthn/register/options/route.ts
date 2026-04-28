@@ -3,6 +3,10 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { getRegistrationOptions, storeChallenge } from "@/lib/webauthn"
 import { prisma } from "@/lib/prisma"
 import { v4 as uuid } from "uuid"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.webauthn.register.options')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,7 +82,7 @@ export async function POST(request: NextRequest) {
       sessionId,
     })
   } catch (error) {
-    console.error("[WebAuthn] Registration options error:", error)
+    log.error({ err: error }, "[WebAuthn] Registration options error:")
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
       { error: `Failed to generate registration options: ${errorMessage}` },

@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { sendEmailVerification, checkEmailVerificationStatus } from "@/lib/email-verification"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('account')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,7 +83,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error("Error fetching account:", error)
+    log.error({ err: error }, "Error fetching account:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -177,7 +181,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error("Error updating account:", error)
+    log.error({ err: error }, "Error updating account:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

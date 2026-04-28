@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('test-orchestrator')
+
 
 export async function POST(request: Request) {
   try {
     const { userId, taskId, workflowId } = await request.json()
 
-    console.log('🧪 Testing AI Orchestrator...')
-    console.log('   User ID:', userId)
-    console.log('   Task ID:', taskId)
-    console.log('   Workflow ID:', workflowId)
+    log.info('🧪 Testing AI Orchestrator...')
+    log.info({ userId }, '   User ID:')
+    log.info({ taskId }, '   Task ID:')
+    log.info({ workflowId }, '   Workflow ID:')
 
     // Try to create orchestrator
     const orchestrator = await AIOrchestrator.createForTask(taskId, userId)
-    console.log('✅ Orchestrator created successfully')
+    log.info('✅ Orchestrator created successfully')
 
     // Return success
     return NextResponse.json({
@@ -21,7 +25,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('❌ Orchestrator test failed:', error)
+    log.error({ err: error }, '❌ Orchestrator test failed:')
     
     return NextResponse.json({
       success: false,

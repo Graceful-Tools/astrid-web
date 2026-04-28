@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { withRateLimitHandler, authRateLimiter } from "@/lib/rate-limiter"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.mobile-signin')
+
 
 // Generate cryptographically secure token
 function generateSecureToken(prefix: string): string {
@@ -92,7 +96,7 @@ async function mobileSignInHandler(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error("Sign in error:", error)
+    log.error({ err: error }, "Sign in error:")
     return NextResponse.json(
       { error: "Sign in failed" },
       { status: 500 }

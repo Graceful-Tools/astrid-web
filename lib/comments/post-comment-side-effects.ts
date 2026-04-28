@@ -15,6 +15,10 @@
 import { prisma } from '@/lib/prisma'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { getAgentService } from '@/lib/ai/agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('comments.post-comment-side-effects')
+
 
 interface CommenterInfo {
   id: string
@@ -91,7 +95,7 @@ async function invalidateStatsForOthersTask(
   try {
     await invalidateUserStats(commenterId)
   } catch (err) {
-    console.error('[comments] Failed to invalidate user stats:', err)
+    log.error({ err: err }, '[comments] Failed to invalidate user stats:')
   }
 }
 
@@ -129,7 +133,7 @@ async function notifyMentionsAndTriggerAgents(
             taskTitle: task.title,
             listId,
           }).catch(err =>
-            console.error('[comments] Astrid @mention processing error:', err)
+            log.error({ err: err }, '[comments] Astrid @mention processing error:')
           )
         }
       } else {
@@ -147,7 +151,7 @@ async function notifyMentionsAndTriggerAgents(
         })
       }
     } catch (err) {
-      console.error(`[comments] mention handling failed for user ${mentionedUserId}:`, err)
+      log.error({ err: err }, `[comments] mention handling failed for user ${mentionedUserId}:`)
     }
   }
 
@@ -172,7 +176,7 @@ async function notifyMentionsAndTriggerAgents(
         type: 'assignment',
       })
     } catch (err) {
-      console.error('[comments] assignee push notification failed:', err)
+      log.error({ err: err }, '[comments] assignee push notification failed:')
     }
   }
 }
@@ -190,7 +194,7 @@ async function detectWorkflowAction(
     const { processCommentForWorkflowAction } = await import('@/lib/comment-approval-detector')
     await processCommentForWorkflowAction(taskId, comment.id, comment.content, commenter.id)
   } catch (err) {
-    console.error('[comments] workflow action detection failed:', err)
+    log.error({ err: err }, '[comments] workflow action detection failed:')
   }
 }
 
@@ -226,7 +230,7 @@ async function notifyAssigneeAgent(
       )
     }
   } catch (err) {
-    console.error('[comments] notifying assignee agent failed:', err)
+    log.error({ err: err }, '[comments] notifying assignee agent failed:')
   }
 }
 
@@ -283,7 +287,7 @@ async function resumeCodingAgentWorkflow(
   orchestrator
     .executeCompleteWorkflow(workflowId, task.id)
     .catch(async err => {
-      console.error('[comments] AIOrchestrator workflow failed:', err)
+      log.error({ err: err }, '[comments] AIOrchestrator workflow failed:')
       try {
         await prisma.codingTaskWorkflow.update({
           where: { id: workflowId },
@@ -296,7 +300,7 @@ async function resumeCodingAgentWorkflow(
           },
         })
       } catch (e) {
-        console.error('[comments] Failed to update workflow status to FAILED:', e)
+        log.error({ err: e }, '[comments] Failed to update workflow status to FAILED:')
       }
     })
 }

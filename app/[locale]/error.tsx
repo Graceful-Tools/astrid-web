@@ -4,6 +4,10 @@ import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, RefreshCw, Home } from "lucide-react"
 import Link from "next/link"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].error.tsx')
+
 
 interface ErrorProps {
   error: Error & { digest?: string }
@@ -18,7 +22,7 @@ export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log error to console in development
     if (process.env.NODE_ENV === "development") {
-      console.error("Route error:", error)
+      log.error({ err: error }, "Route error:")
     }
   }, [error])
 

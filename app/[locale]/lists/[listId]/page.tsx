@@ -7,6 +7,10 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { AuthenticatedApp } from "@/components/authenticated-app"
 import { LoadingScreen } from "@/components/loading-screen"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].lists.[listId].page.tsx')
+
 
 export default function ListsPage() {
   const { data: session, status } = useSession()
@@ -30,7 +34,7 @@ export default function ListsPage() {
           if (response.status === 404) {
             // List not found - if we have a taskId, try to fall back to My Tasks view
             if (taskId) {
-              console.log('List not found, falling back to My Tasks view with task:', taskId)
+              log.info({ taskId }, 'List not found, falling back to My Tasks view with task:')
               router.replace(`/?task=${taskId}`)
               return
             }
@@ -39,7 +43,7 @@ export default function ListsPage() {
             // Access denied to list - if we have a taskId, try to fall back to My Tasks view
             // The task might still be accessible if it was shared directly or exists in other lists
             if (taskId) {
-              console.log('Access denied to list, falling back to My Tasks view with task:', taskId)
+              log.info({ taskId }, 'Access denied to list, falling back to My Tasks view with task:')
               router.replace(`/?task=${taskId}`)
               return
             }
@@ -54,7 +58,7 @@ export default function ListsPage() {
         setListData(data)
       } catch (err) {
         setError("Failed to load list")
-        console.error("Error fetching list:", err)
+        log.error({ err: err }, "Error fetching list:")
       } finally {
         setLoading(false)
       }

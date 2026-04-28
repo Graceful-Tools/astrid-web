@@ -10,6 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aggregateDailyStats } from '@/lib/analytics-events'
 import { ensureInitialAdmin } from '@/lib/admin-auth'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('cron.analytics')
+
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
     yesterday.setUTCDate(yesterday.getUTCDate() - 1)
     yesterday.setUTCHours(0, 0, 0, 0)
 
-    console.log(`[Analytics Cron] Aggregating stats for ${yesterday.toISOString().split('T')[0]}`)
+    log.info(`[Analytics Cron] Aggregating stats for ${yesterday.toISOString().split('T')[0]}`)
 
     // Aggregate yesterday's stats
     await aggregateDailyStats(yesterday)
@@ -46,7 +50,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('[Analytics Cron] Error:', error)
+    log.error({ err: error }, '[Analytics Cron] Error:')
     return NextResponse.json(
       {
         success: false,

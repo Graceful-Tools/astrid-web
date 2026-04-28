@@ -7,6 +7,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.create')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -128,7 +132,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log(`🤖 [CodingWorkflow] Created workflow ${workflow.id} for task ${taskId}`)
+    log.info(`🤖 [CodingWorkflow] Created workflow ${workflow.id} for task ${taskId}`)
 
     // ✅ CRITICAL: Send webhook to user's Claude Code Remote server
     // This is the primary path for triggering AI coding agents
@@ -180,7 +184,7 @@ export async function POST(request: NextRequest) {
         },
       }
 
-      console.log(`🚀 [CodingWorkflow] Sending webhook for task ${taskId} to creator ${task.creatorId}`)
+      log.info(`🚀 [CodingWorkflow] Sending webhook for task ${taskId} to creator ${task.creatorId}`)
       const webhookResult = await aiAgentWebhookService.sendToUserWebhook(
         task.creatorId || session.user.id,
         'task.assigned',
@@ -188,12 +192,12 @@ export async function POST(request: NextRequest) {
       )
 
       if (webhookResult.sent) {
-        console.log(`✅ [CodingWorkflow] Webhook sent successfully to Claude Code Remote`)
+        log.info(`✅ [CodingWorkflow] Webhook sent successfully to Claude Code Remote`)
       } else {
-        console.log(`📋 [CodingWorkflow] No webhook configured, using cloud processing`)
+        log.info(`📋 [CodingWorkflow] No webhook configured, using cloud processing`)
       }
     } catch (webhookError) {
-      console.error(`❌ [CodingWorkflow] Webhook error (non-fatal):`, webhookError)
+      log.error({ err: webhookError }, `❌ [CodingWorkflow] Webhook error (non-fatal):`)
       // Don't fail the request if webhook fails - workflow was created successfully
     }
 
@@ -203,7 +207,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creating coding workflow:', error)
+    log.error({ err: error }, 'Error creating coding workflow:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

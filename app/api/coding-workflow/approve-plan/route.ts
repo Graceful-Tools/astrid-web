@@ -8,6 +8,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.approve-plan')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ [Plan Approval] Processing approval for workflow:', workflowId)
+    log.info({ workflowId }, '✅ [Plan Approval] Processing approval for workflow:')
 
     // Verify the workflow exists and is in the right state
     const workflow = await prisma.codingTaskWorkflow.findUnique({
@@ -65,10 +69,10 @@ export async function POST(request: NextRequest) {
     // Handle the plan approval asynchronously
     orchestrator.handlePlanApproval(workflowId, commentId)
       .then(() => {
-        console.log('✅ [Plan Approval] Implementation started successfully')
+        log.info('✅ [Plan Approval] Implementation started successfully')
       })
       .catch((error) => {
-        console.error('❌ [Plan Approval] Implementation failed:', error)
+        log.error({ err: error }, '❌ [Plan Approval] Implementation failed:')
       })
 
     // Mark workflow as plan approved
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [Plan Approval] Error processing approval:', error)
+    log.error({ err: error }, '❌ [Plan Approval] Error processing approval:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

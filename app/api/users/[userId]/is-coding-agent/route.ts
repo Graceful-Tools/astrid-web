@@ -8,6 +8,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import type { RouteContextParams } from '@/types/next'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('users.[userId].is-coding-agent')
+
 
 export async function GET(
   request: NextRequest,
@@ -47,7 +51,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error checking if user is coding agent:', error)
+    log.error({ err: error }, 'Error checking if user is coding agent:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

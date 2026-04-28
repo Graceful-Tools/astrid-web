@@ -6,6 +6,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-agent.info')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error getting coding agent info:', error)
+    log.error({ err: error }, 'Error getting coding agent info:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

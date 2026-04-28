@@ -6,6 +6,10 @@
 
 import { prisma } from './prisma'
 import { broadcastToUsers } from './sse-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai-agent-comment-service')
+
 
 export interface AIAgentCommentData {
   content: string
@@ -137,14 +141,14 @@ export async function createAIAgentComment(
 
           if (agentByEmail?.isAIAgent) {
             agentUser = agentByEmail
-            console.log(`[AI Agent Comment] Found agent from workflow: ${targetEmail}`)
+            log.info(`[AI Agent Comment] Found agent from workflow: ${targetEmail}`)
           }
         }
       }
     }
 
     if (!agentUser) {
-      console.error(`[AI Agent Comment] Unable to resolve AI agent user for task ${taskId}`)
+      log.error(`[AI Agent Comment] Unable to resolve AI agent user for task ${taskId}`)
       return { success: false, error: 'AI agent user not found for task' }
     }
 
@@ -206,7 +210,7 @@ export async function createAIAgentComment(
 
       // Broadcast to all relevant users (same format as comment controller)
       if (userIds.size > 0) {
-        console.log('🤖 Broadcasting AI agent comment to users:', Array.from(userIds))
+        log.info(Array.from(userIds), '🤖 Broadcasting AI agent comment to users:')
         broadcastToUsers(Array.from(userIds), {
           type: 'comment_created',
           timestamp: new Date().toISOString(),
@@ -230,19 +234,19 @@ export async function createAIAgentComment(
         })
       }
     } catch (sseError) {
-      console.error("Failed to send AI agent comment SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send AI agent comment SSE notifications:")
       // Continue - comment was still created
     }
 
     // Note: We skip workflow action processing for AI agent comments to prevent infinite loops
     // The isCommenterAIAgent check in the comment controller would prevent this anyway
 
-    console.log('✅ AI agent comment created successfully with SSE broadcasting')
+    log.info('✅ AI agent comment created successfully with SSE broadcasting')
     return { success: true, comment }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    console.error('❌ AI agent comment service error:', errorMessage)
+    log.error({ err: errorMessage }, '❌ AI agent comment service error:')
     return { success: false, error: errorMessage }
   }
 }

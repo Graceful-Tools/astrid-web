@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createVerifyEmailTasksForUnverifiedUsers } from "@/lib/system-tasks"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('cron.system-tasks')
+
 
 /**
  * System Tasks Cron Job
@@ -10,7 +14,7 @@ import { createVerifyEmailTasksForUnverifiedUsers } from "@/lib/system-tasks"
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log("🔄 Processing system tasks...")
+    log.info("🔄 Processing system tasks...")
 
     // Verify the request is from Vercel cron
     const authHeader = request.headers.get("authorization")
@@ -24,7 +28,7 @@ export async function GET(request: NextRequest) {
     const verifyEmailStats = await createVerifyEmailTasksForUnverifiedUsers()
 
     const duration = Date.now() - startTime
-    console.log(`✅ System tasks processing completed in ${duration}ms`)
+    log.info(`✅ System tasks processing completed in ${duration}ms`)
 
     return NextResponse.json({
       success: true,
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
       verifyEmailTasks: verifyEmailStats,
     })
   } catch (error) {
-    console.error("❌ Error in system tasks cron job:", error)
+    log.error({ err: error }, "❌ Error in system tasks cron job:")
     return NextResponse.json(
       {
         error: "System tasks processing failed",

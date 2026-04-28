@@ -7,6 +7,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.status.[taskId]')
+
 
 export async function GET(
   request: NextRequest,
@@ -102,7 +106,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error getting workflow status:', error)
+    log.error({ err: error }, 'Error getting workflow status:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

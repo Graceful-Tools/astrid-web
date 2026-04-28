@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.push-subscription')
+
 
 const PushSubscriptionSchema = z.object({
   endpoint: z.string().url(),
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Error creating push subscription:', error)
+    log.error({ err: error }, 'Error creating push subscription:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -112,7 +116,7 @@ export async function DELETE(request: NextRequest) {
       deactivated: updatedSubscription.count 
     })
   } catch (error) {
-    console.error('Error deactivating push subscription:', error)
+    log.error({ err: error }, 'Error deactivating push subscription:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -151,7 +155,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(subscriptions)
   } catch (error) {
-    console.error('Error fetching push subscriptions:', error)
+    log.error({ err: error }, 'Error fetching push subscriptions:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

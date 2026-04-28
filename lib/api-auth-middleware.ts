@@ -13,6 +13,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { validateAccessToken } from './oauth/oauth-token-manager'
 import { hasRequiredScopes } from './oauth/oauth-scopes'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api-auth-middleware')
+
 
 export type AuthSource = 'oauth' | 'session' | 'legacy_mcp'
 
@@ -221,7 +225,7 @@ export async function authenticateAPI(
   if (mcpToken) {
     const validated = await validateMCPToken(mcpToken)
     if (validated) {
-      console.warn('[API Auth] ⚠️ Legacy MCP token used - please migrate to OAuth')
+      log.warn('[API Auth] ⚠️ Legacy MCP token used - please migrate to OAuth')
       return {
         userId: validated.userId,
         source: 'legacy_mcp',

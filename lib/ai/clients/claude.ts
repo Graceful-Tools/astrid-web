@@ -7,6 +7,10 @@
 
 import type { workflowQueue as WorkflowQueueType } from '../../workflow-queue'
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.clients.claude')
+
 
 export interface ClaudeToolDefinition {
   name: string
@@ -59,7 +63,7 @@ function defaultLogger(level: 'info' | 'warn' | 'error', message: string, meta: 
     message,
     ...meta
   }
-  console.log(JSON.stringify(logEntry))
+  log.info(JSON.stringify(logEntry))
 }
 
 /**
@@ -240,9 +244,9 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
       throw new Error(`Tool use requested (${toolUseBlock.name}) but no executeToolCallback provided`)
     }
 
-    console.log(`🔧 [Claude] Tool use requested: ${toolUseBlock.name}`, toolUseBlock.input)
+    log.info(toolUseBlock.input, `🔧 [Claude] Tool use requested: ${toolUseBlock.name}`)
     const toolResult = await executeToolCallback(toolUseBlock.name, toolUseBlock.input)
-    console.log(`✅ [Claude] Tool result:`, toolResult)
+    log.info({ toolResult }, `✅ [Claude] Tool result:`)
 
     // Add assistant message with tool use
     messages.push({
@@ -262,7 +266,7 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     // Mark for caching every 3rd tool result to build up cached context
     if (iteration % 3 === 0) {
       toolResultContent[0].cache_control = { type: 'ephemeral' }
-      console.log(`💾 [Cache] Marking iteration ${iteration} for caching`)
+      log.info(`💾 [Cache] Marking iteration ${iteration} for caching`)
     }
 
     messages.push({
@@ -348,7 +352,7 @@ function pruneContextIfNeeded(
 
   const prunedMessages = [firstMessage, ...recentMessages]
 
-  console.log(`🔧 [Context] Pruned to ${prunedMessages.length} messages to stay under rate limits`)
+  log.info(`🔧 [Context] Pruned to ${prunedMessages.length} messages to stay under rate limits`)
 
   return prunedMessages
 }

@@ -7,6 +7,10 @@
 
 import type { TaskList, User, ListMember } from "@/types/task"
 import type { ListWithMembers } from "@/lib/task-query-utils"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('list-member-utils')
+
 
 export interface ListMemberDefinition {
   id: string
@@ -94,10 +98,10 @@ export function getAllListMembers(list: ListLike): ListMemberDefinition[] {
 
         // Log in development for debugging
         if (process.env.NODE_ENV === 'development') {
-          console.log('[ListMembers] Added member without user relation:', {
+          log.info({
             userId: member.userId,
             role: memberRole
-          })
+          }, '[ListMembers] Added member without user relation:')
         }
       }
     })

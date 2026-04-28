@@ -13,6 +13,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Bell, Calendar, Clock, Play, RefreshCw, TestTube } from 'lucide-react'
 import { PushNotificationSettings } from '@/components/push-notification-settings'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].debug-reminders-enhanced.page.tsx')
+
 
 interface ReminderQueueItem {
   id: string
@@ -58,7 +62,7 @@ export default function EnhancedReminderDebugPage() {
         setReminderQueue(data.reminders || [])
       }
     } catch (error) {
-      console.error('Failed to load reminder queue:', error)
+      log.error({ err: error }, 'Failed to load reminder queue:')
       addTestResult('❌ Failed to load reminder queue')
     }
   }, [addTestResult])

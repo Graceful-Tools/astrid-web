@@ -9,6 +9,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.my-tasks-preferences')
+
 
 export interface MyTasksPreferences {
   filterPriority?: number[]
@@ -79,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(preferences)
   } catch (error) {
-    console.error('Error fetching My Tasks preferences:', error)
+    log.error({ err: error }, 'Error fetching My Tasks preferences:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -194,7 +198,7 @@ export async function PATCH(request: NextRequest) {
         data: updatedPreferences,
       })
     } catch (sseError) {
-      console.error('[MyTasksPrefs] Failed to send SSE notification:', sseError)
+      log.error({ err: sseError }, '[MyTasksPrefs] Failed to send SSE notification:')
     }
 
     const parsedPreferences = updatedUser.myTasksPreferences
@@ -203,7 +207,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(parsedPreferences)
   } catch (error) {
-    console.error('Error updating My Tasks preferences:', error)
+    log.error({ err: error }, 'Error updating My Tasks preferences:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

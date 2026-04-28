@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { SSEManager } from '@/lib/sse-manager'
 import { useSSESubscription, useSSEConnectionStatus, useTaskSSEEvents } from '@/hooks/use-sse-subscription'
 import { useSession } from 'next-auth/react'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].sse-test.page.tsx')
+
 
 export default function SSETestPage() {
   const { data: session } = useSession()
@@ -20,7 +24,7 @@ export default function SSETestPage() {
 
   // Test general SSE subscription
   useSSESubscription(['*'], (event) => {
-    console.log('🔔 [SSE Test] Received event:', event)
+    log.info({ event }, '🔔 [SSE Test] Received event:')
     setEvents(prev => [...prev.slice(-9), { ...event, timestamp: new Date().toISOString() }])
   }, {
     componentName: 'SSETestPage'
@@ -29,15 +33,15 @@ export default function SSETestPage() {
   // Test task-specific SSE events
   useTaskSSEEvents({
     onTaskCreated: (task) => {
-      console.log('🔔 [SSE Test] Task created:', task)
+      log.info({ task }, '🔔 [SSE Test] Task created:')
       setEvents(prev => [...prev.slice(-9), { type: 'task_created', data: task, timestamp: new Date().toISOString() }])
     },
     onTaskUpdated: (task) => {
-      console.log('🔔 [SSE Test] Task updated:', task)
+      log.info({ task }, '🔔 [SSE Test] Task updated:')
       setEvents(prev => [...prev.slice(-9), { type: 'task_updated', data: task, timestamp: new Date().toISOString() }])
     },
     onTaskDeleted: (taskId) => {
-      console.log('🔔 [SSE Test] Task deleted:', taskId)
+      log.info({ taskId }, '🔔 [SSE Test] Task deleted:')
       setEvents(prev => [...prev.slice(-9), { type: 'task_deleted', data: { id: taskId }, timestamp: new Date().toISOString() }])
     }
   }, {
@@ -70,9 +74,9 @@ export default function SSETestPage() {
         throw new Error(`Failed to trigger test event: ${response.statusText}`)
       }
 
-      console.log('✅ Test event triggered successfully')
+      log.info('✅ Test event triggered successfully')
     } catch (error) {
-      console.error('❌ Failed to trigger test event:', error)
+      log.error({ err: error }, '❌ Failed to trigger test event:')
     }
   }
 

@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { deleteFile } from "@/lib/secure-storage"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-files.[fileId].confirm-upload')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -81,13 +85,13 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     if (urlToDelete && urlToDelete !== blobUrl) {
       try {
         await deleteFile(urlToDelete)
-        console.log(`🗑️ [SecureFiles] Deleted old blob: ${urlToDelete}`)
+        log.info(`🗑️ [SecureFiles] Deleted old blob: ${urlToDelete}`)
       } catch (deleteError) {
-        console.warn(`⚠️ [SecureFiles] Failed to delete old blob: ${urlToDelete}`, deleteError)
+        log.warn({ deleteError }, `⚠️ [SecureFiles] Failed to delete old blob: ${urlToDelete}`)
       }
     }
 
-    console.log(`✅ [SecureFiles] Confirmed upload for ${fileId}: ${blobUrl}`)
+    log.info(`✅ [SecureFiles] Confirmed upload for ${fileId}: ${blobUrl}`)
 
     return NextResponse.json({
       id: updatedFile.id,
@@ -99,7 +103,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     })
 
   } catch (error) {
-    console.error("Error confirming upload:", error)
+    log.error({ err: error }, "Error confirming upload:")
     return NextResponse.json({
       error: "Failed to confirm upload"
     }, { status: 500 })

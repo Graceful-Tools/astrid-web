@@ -12,6 +12,10 @@ import { format } from "date-fns"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { shouldHideTaskWhen } from "@/lib/public-list-utils"
 import type { Task } from "@/types/task"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].u.[userId].page.tsx')
+
 
 interface UserProfile {
   user: {
@@ -49,7 +53,7 @@ export default function UserProfilePage() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-          console.error("[User Profile Page] API error:", response.status, errorData)
+          log.error({ status: response.status, errorData }, '[User Profile Page] API error')
 
           if (response.status === 404) {
             setError("User not found")
@@ -64,7 +68,7 @@ export default function UserProfilePage() {
         const data = await response.json()
         setProfile(data)
       } catch (err) {
-        console.error("Error fetching user profile:", err)
+        log.error({ err: err }, "Error fetching user profile:")
         setError("Failed to load user profile")
       } finally {
         setLoading(false)

@@ -8,6 +8,10 @@ import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { broadcastCommentCreatedNotification, broadcastToUsers } from "@/lib/sse-utils"
 import { dispatchPostCommentSideEffects } from "@/lib/comments/post-comment-side-effects"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('tasks.[id].comments')
+
 
 // Helper function to safely check list access with any list-like object
 function canAccessList(list: any, userId: string): boolean {
@@ -90,7 +94,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
 
     return NextResponse.json(comments)
   } catch (error) {
-    console.error("Error fetching comments:", error)
+    log.error({ err: error }, "Error fetching comments:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -146,22 +150,25 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     }
 
     // Debug: Log permission check details for POST
-    console.log('🔍 Comment permission check POST:', {
+    log.info({
       taskId: task.id,
       userId: session.user.id,
       isAssignee: task.assigneeId === session.user.id,
       isCreator: task.creatorId === session.user.id,
       listCount: task.lists.length,
       listIds: task.lists.map(l => l.id)
-    })
+    }, '🔍 Comment permission check POST:')
 
     // Check each list's access individually for debugging
     task.lists.forEach((list, index) => {
       const listAccess = canAccessList(list, session.user.id)
-      console.log(`🔍 List ${index} (${list.id}) access:`, listAccess, {
+      log.info({
+        index,
+        listId: list.id,
+        access: listAccess,
         isOwner: list.ownerId === session.user.id,
-        listMemberCount: list.listMembers?.length || 0
-      })
+        listMemberCount: list.listMembers?.length || 0,
+      }, '🔍 List access')
     })
 
     // Create the comment
@@ -224,7 +231,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
           Object.assign(comment, updatedComment)
         }
       } catch (error) {
-        console.error('Failed to associate file with comment:', error)
+        log.error({ err: error }, 'Failed to associate file with comment:')
         // Don't fail the comment creation if file association fails
       }
     }
@@ -255,7 +262,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
         })
       }
     } catch (sseError) {
-      console.error("Failed to broadcast comment SSE:", sseError)
+      log.error({ err: sseError }, "Failed to broadcast comment SSE:")
     }
 
     // Shared post-comment side effects: stats invalidation, @-mention push +
@@ -299,7 +306,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
         })
       }
     } catch (sideEffectError) {
-      console.error("post-comment side effects failed:", sideEffectError)
+      log.error({ err: sideEffectError }, "post-comment side effects failed:")
     }
 
     // Track analytics event (fire-and-forget)
@@ -310,7 +317,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
 
     return NextResponse.json(comment)
   } catch (error) {
-    console.error("Error creating comment:", error)
+    log.error({ err: error }, "Error creating comment:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

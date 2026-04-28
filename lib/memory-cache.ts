@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('memory-cache')
+
 /**
  * In-Memory LRU Cache with TTL
  * Provides O(1) access for frequently used data
@@ -226,7 +230,7 @@ export class MemoryCache<T> {
       this.cache.delete(oldestKey)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🗑️ [${this.name}] Evicted LRU item: ${oldestKey}`)
+        log.info(`🗑️ [${this.name}] Evicted LRU item: ${oldestKey}`)
       }
     }
   }

@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.types.logger')
+
 /**
  * Shared Logger Type for AI Services
  *
@@ -49,13 +53,13 @@ export function createConsoleLogger(prefix: string): AILogger {
 
     switch (level) {
       case 'error':
-        console.error(`[${timestamp}] [${prefix}] ERROR: ${message}${metaStr}`)
+        log.error(`[${timestamp}] [${prefix}] ERROR: ${message}${metaStr}`)
         break
       case 'warn':
-        console.warn(`[${timestamp}] [${prefix}] WARN: ${message}${metaStr}`)
+        log.warn(`[${timestamp}] [${prefix}] WARN: ${message}${metaStr}`)
         break
       default:
-        console.log(`[${timestamp}] [${prefix}] INFO: ${message}${metaStr}`)
+        log.info(`[${timestamp}] [${prefix}] INFO: ${message}${metaStr}`)
     }
   }
 }

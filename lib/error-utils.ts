@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('error-utils')
+
 /**
  * Error Handling Utilities
  *
@@ -68,10 +72,10 @@ export function getPrismaErrorCode(error: unknown): string | undefined {
  * Safely log an error with consistent formatting.
  */
 export function logError(context: string, error: unknown): void {
-  console.error(`❌ ${context}:`, getErrorMessage(error))
+  log.error({ message: getErrorMessage(error) }, `❌ ${context}`)
   const stack = getErrorStack(error)
   if (stack) {
-    console.error('Stack:', stack)
+    log.error({ err: stack }, 'Stack:')
   }
 }
 

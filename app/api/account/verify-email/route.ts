@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { verifyEmailToken, sendEmailVerification, resendVerificationEmail, cancelEmailChange } from "@/lib/email-verification"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('account.verify-email')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
     }
   } catch (error) {
-    console.error("Error in email verification:", error)
+    log.error({ err: error }, "Error in email verification:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

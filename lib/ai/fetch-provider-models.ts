@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.fetch-provider-models')
+
 /**
  * Fetch Available Models from AI Provider APIs
  *
@@ -43,7 +47,7 @@ export async function fetchProviderModels(
     modelCache.set(cacheKey, { models, fetchedAt: Date.now() })
     return models
   } catch (error) {
-    console.error(`[fetchProviderModels] Error fetching ${service} models:`, error)
+    log.error({ err: error }, `[fetchProviderModels] Error fetching ${service} models:`)
     return []
   }
 }

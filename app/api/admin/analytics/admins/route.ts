@@ -9,6 +9,10 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { isAdmin, listAdmins, addAdminByEmail, AdminAuthError } from '@/lib/admin-auth'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('admin.analytics.admins')
+
 
 /**
  * GET /api/admin/analytics/admins
@@ -37,7 +41,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('[Admin Management] GET error:', error)
+    log.error({ err: error }, '[Admin Management] GET error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
     if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
-    console.error('[Admin Management] POST error:', error)
+    log.error({ err: error }, '[Admin Management] POST error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

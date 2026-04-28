@@ -9,6 +9,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { generateWebhookSignature } from './webhook-signature'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('webhook-delivery')
+
 
 // ============================================================================
 // TYPES
@@ -81,7 +85,7 @@ async function createDeliveryLog(entry: DeliveryLogEntry): Promise<string> {
     return log?.id || `local-${Date.now()}`
   } catch {
     // Model doesn't exist yet, just log to console
-    console.log(`[WebhookDelivery] ${entry.status}: ${entry.event} to ${entry.webhookUrl}`)
+    log.info(`[WebhookDelivery] ${entry.status}: ${entry.event} to ${entry.webhookUrl}`)
     return `local-${Date.now()}`
   }
 }
@@ -178,7 +182,7 @@ export async function deliverWebhook(
           responseTimeMs: lastResponseTime,
         })
 
-        console.log(`[WebhookDelivery] Success: ${event} delivered to ${url} (${lastResponseTime}ms)`)
+        log.info(`[WebhookDelivery] Success: ${event} delivered to ${url} (${lastResponseTime}ms)`)
 
         return {
           success: true,
@@ -195,7 +199,7 @@ export async function deliverWebhook(
 
       // Don't retry for client errors (4xx) except 429 (rate limit)
       if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-        console.warn(`[WebhookDelivery] Client error, not retrying: ${lastError}`)
+        log.warn(`[WebhookDelivery] Client error, not retrying: ${lastError}`)
         break
       }
 
@@ -214,12 +218,12 @@ export async function deliverWebhook(
     }
 
     // Log the failed attempt
-    console.warn(`[WebhookDelivery] Attempt ${attempt}/${maxRetries} failed: ${lastError}`)
+    log.warn(`[WebhookDelivery] Attempt ${attempt}/${maxRetries} failed: ${lastError}`)
 
     // Exponential backoff before retry (unless this was the last attempt)
     if (attempt < maxRetries) {
       const backoffMs = initialBackoffMs * Math.pow(2, attempt - 1)
-      console.log(`[WebhookDelivery] Waiting ${backoffMs}ms before retry...`)
+      log.info(`[WebhookDelivery] Waiting ${backoffMs}ms before retry...`)
       await new Promise(resolve => setTimeout(resolve, backoffMs))
     }
   }
@@ -233,7 +237,7 @@ export async function deliverWebhook(
     errorMessage: lastError,
   })
 
-  console.error(`[WebhookDelivery] Failed after ${maxRetries} attempts: ${lastError}`)
+  log.error(`[WebhookDelivery] Failed after ${maxRetries} attempts: ${lastError}`)
 
   return {
     success: false,

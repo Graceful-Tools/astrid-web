@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { withRateLimitHandler, authRateLimiter } from "@/lib/rate-limiter"
 import { safeResponseJson } from "@/lib/safe-parse"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.google')
+
 
 // Generate cryptographically secure token
 function generateSecureToken(prefix: string): string {
@@ -35,10 +39,10 @@ async function googleSignInHandler(request: NextRequest) {
       clearTimeout(timeoutId)
 
       if (!googleResponse.ok) {
-        console.error('❌ [GoogleAuth] Token verification failed:', {
+        log.error({
           status: googleResponse.status,
           statusText: googleResponse.statusText
-        })
+        }, '❌ [GoogleAuth] Token verification failed:')
         return NextResponse.json({ error: "Invalid Google ID token" }, { status: 400 })
       }
 
@@ -50,14 +54,14 @@ async function googleSignInHandler(request: NextRequest) {
       }>(googleResponse, null)
 
       if (!googleData) {
-        console.error('❌ [GoogleAuth] Empty response from Google tokeninfo endpoint')
+        log.error('❌ [GoogleAuth] Empty response from Google tokeninfo endpoint')
         return NextResponse.json({ error: "Invalid response from Google" }, { status: 500 })
       }
     } catch (error) {
-      console.error('❌ [GoogleAuth] Network error verifying token:', {
+      log.error({
         error: error instanceof Error ? error.message : String(error),
         isAbortError: error instanceof Error && error.name === 'AbortError'
-      })
+      }, '❌ [GoogleAuth] Network error verifying token:')
       return NextResponse.json(
         { error: "Failed to verify Google ID token" },
         { status: 500 }
@@ -65,12 +69,12 @@ async function googleSignInHandler(request: NextRequest) {
     }
 
     if (!googleData.email) {
-      console.error('❌ [GoogleAuth] Email not provided by Google')
+      log.error('❌ [GoogleAuth] Email not provided by Google')
       return NextResponse.json({ error: "Email not provided by Google" }, { status: 400 })
     }
 
     if (!googleData.sub) {
-      console.error('❌ [GoogleAuth] User ID (sub) not provided by Google')
+      log.error('❌ [GoogleAuth] User ID (sub) not provided by Google')
       return NextResponse.json({ error: "Invalid Google user data" }, { status: 400 })
     }
 
@@ -183,7 +187,7 @@ async function googleSignInHandler(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error("Google Sign In error:", error)
+    log.error({ err: error }, "Google Sign In error:")
     return NextResponse.json(
       { error: "Google Sign In failed" },
       { status: 500 }

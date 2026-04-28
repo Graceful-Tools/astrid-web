@@ -1,5 +1,9 @@
 import Dexie, { Table } from 'dexie'
 import type { Task, TaskList, Comment } from '@/types/task'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('offline-db')
+
 
 // Track if IndexedDB is available and working
 let indexedDBAvailable = true
@@ -138,7 +142,7 @@ class OfflineDatabase extends Dexie {
 
     // Handle database open errors
     this.on('blocked', () => {
-      console.warn('⚠️ IndexedDB: Database upgrade blocked by other tabs')
+      log.warn('⚠️ IndexedDB: Database upgrade blocked by other tabs')
     })
   }
 
@@ -178,16 +182,16 @@ class OfflineDatabase extends Dexie {
         errorMessage.includes('Database has been closed') ||
         errorMessage.includes('backing store')
       ) {
-        console.warn('⚠️ IndexedDB: Database error, disabling IndexedDB for this session', error)
+        log.warn({ error }, '⚠️ IndexedDB: Database error, disabling IndexedDB for this session')
         indexedDBAvailable = false
         indexedDBError = error as Error
 
         // Try to delete the corrupted database for next session
         try {
           await Dexie.delete('AstridOfflineDB')
-          console.log('🗑️ IndexedDB: Deleted corrupted database, will recreate on next page load')
+          log.info('🗑️ IndexedDB: Deleted corrupted database, will recreate on next page load')
         } catch (deleteError) {
-          console.warn('⚠️ IndexedDB: Could not delete corrupted database', deleteError)
+          log.warn({ deleteError }, '⚠️ IndexedDB: Could not delete corrupted database')
         }
       }
 
@@ -200,7 +204,7 @@ class OfflineDatabase extends Dexie {
    */
   async clearAll() {
     if (!indexedDBAvailable) {
-      console.log('⚠️ IndexedDB: Skipping clear - database unavailable')
+      log.info('⚠️ IndexedDB: Skipping clear - database unavailable')
       return
     }
 
@@ -218,7 +222,7 @@ class OfflineDatabase extends Dexie {
         this.syncCursors.clear()
       ])
       if (process.env.NODE_ENV === 'development') {
-        console.log('🗑️ IndexedDB: All data cleared')
+        log.info('🗑️ IndexedDB: All data cleared')
       }
     } catch (error) {
       const errorName = (error as Error)?.name || ''
@@ -231,20 +235,20 @@ class OfflineDatabase extends Dexie {
         errorMessage.includes('Database has been closed') ||
         errorMessage.includes('backing store')
       ) {
-        console.warn('⚠️ IndexedDB: Database corrupted, disabling for this session')
+        log.warn('⚠️ IndexedDB: Database corrupted, disabling for this session')
         indexedDBAvailable = false
         indexedDBError = error as Error
       }
 
-      console.error('❌ IndexedDB: Error clearing data', error)
+      log.error({ err: error }, '❌ IndexedDB: Error clearing data')
       // If clearing fails, try to delete and recreate the database
       try {
         await Dexie.delete('AstridOfflineDB')
         if (process.env.NODE_ENV === 'development') {
-          console.log('🗑️ IndexedDB: Database deleted and will be recreated')
+          log.info('🗑️ IndexedDB: Database deleted and will be recreated')
         }
       } catch (deleteError) {
-        console.error('❌ IndexedDB: Error deleting database', deleteError)
+        log.error({ err: deleteError }, '❌ IndexedDB: Error deleting database')
         // Mark as unavailable to prevent further errors
         indexedDBAvailable = false
       }
@@ -823,7 +827,7 @@ export class OfflineAttachmentOperations {
         currentSize -= blobSize
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🗑️ Evicted attachment blob: ${attachment.name} (${blobSize} bytes)`)
+          log.info(`🗑️ Evicted attachment blob: ${attachment.name} (${blobSize} bytes)`)
         }
       }
     }

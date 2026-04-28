@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-agent.workflow-complete')
+
 
 interface WorkflowCompleteRequest {
   taskId: string
@@ -21,7 +25,7 @@ interface WorkflowCompleteRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('📊 [Workflow Complete] Received completion notification from GitHub Actions')
+    log.info('📊 [Workflow Complete] Received completion notification from GitHub Actions')
 
     // Parse request
     const body: WorkflowCompleteRequest = await request.json()
@@ -31,8 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'taskId and workflowStatus are required' }, { status: 400 })
     }
 
-    console.log(`📋 [Workflow Complete] Task: ${taskId}`)
-    console.log(`📊 [Workflow Complete] Status: ${workflowStatus}`)
+    log.info(`📋 [Workflow Complete] Task: ${taskId}`)
+    log.info(`📊 [Workflow Complete] Status: ${workflowStatus}`)
 
     // Validate MCP token authentication
     const authHeader = request.headers.get('authorization')
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only coding agents can access this endpoint' }, { status: 403 })
     }
 
-    console.log(`✅ [Workflow Complete] Authenticated as coding agent: ${mcpToken.user.name}`)
+    log.info(`✅ [Workflow Complete] Authenticated as coding agent: ${mcpToken.user.name}`)
 
     // Get the task and workflow
     const task = await prisma.task.findUnique({
@@ -89,8 +93,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Workflow not found' }, { status: 404 })
     }
 
-    console.log(`📋 [Workflow Complete] Task: "${task.title}"`)
-    console.log(`🔧 [Workflow Complete] Current workflow status: ${workflow.status}`)
+    log.info(`📋 [Workflow Complete] Task: "${task.title}"`)
+    log.info(`🔧 [Workflow Complete] Current workflow status: ${workflow.status}`)
 
     // Update workflow with GitHub Actions completion data
     const updatedWorkflow = await prisma.codingTaskWorkflow.update({
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log(`✅ [Workflow Complete] Updated workflow metadata`)
+    log.info(`✅ [Workflow Complete] Updated workflow metadata`)
 
     // Determine the appropriate status message and emoji
     let statusEmoji: string
@@ -171,9 +175,9 @@ ${actionRequired}
         }
       })
 
-      console.log('✅ [Workflow Complete] Added completion comment to task')
+      log.info('✅ [Workflow Complete] Added completion comment to task')
     } catch (commentError) {
-      console.error('⚠️ [Workflow Complete] Failed to add completion comment:', commentError)
+      log.error({ err: commentError }, '⚠️ [Workflow Complete] Failed to add completion comment:')
     }
 
     // If the workflow was successful and we have PR/preview URLs, we can consider updating the task status
@@ -193,10 +197,10 @@ ${actionRequired}
             }
           })
 
-          console.log('✅ [Workflow Complete] Updated workflow status to TESTING')
+          log.info('✅ [Workflow Complete] Updated workflow status to TESTING')
         }
       } catch (statusError) {
-        console.error('⚠️ [Workflow Complete] Failed to update workflow status:', statusError)
+        log.error({ err: statusError }, '⚠️ [Workflow Complete] Failed to update workflow status:')
       }
     }
 
@@ -214,7 +218,7 @@ ${actionRequired}
     }, { status: 200 })
 
   } catch (error) {
-    console.error('❌ [Workflow Complete] Error:', error)
+    log.error({ err: error }, '❌ [Workflow Complete] Error:')
 
     return NextResponse.json({
       error: 'Internal server error',

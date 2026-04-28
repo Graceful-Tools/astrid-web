@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].leave')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -103,17 +107,17 @@ export async function POST(
     })
 
     // Invalidate cache for the user who left
-    console.log("🗄️ Invalidating cache for user who left list:", session.user.id)
+    log.info({ userId: session.user.id }, "🗄️ Invalidating cache for user who left list")
     try {
       await RedisCache.del(RedisCache.keys.userLists(session.user.id))
-      console.log(`✅ Cache invalidated for leaving user: ${session.user.id}`)
+      log.info(`✅ Cache invalidated for leaving user: ${session.user.id}`)
     } catch (error) {
-      console.error(`❌ Failed to invalidate cache for user ${session.user.id}:`, error)
+      log.error({ err: error }, `❌ Failed to invalidate cache for user ${session.user.id}:`)
     }
 
     return NextResponse.json({ message: "Successfully left the list" })
   } catch (error) {
-    console.error("Error leaving list:", error)
+    log.error({ err: error }, "Error leaving list:")
     return NextResponse.json({ error: "Failed to leave list" }, { status: 500 })
   }
 }

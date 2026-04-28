@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { del } from "@vercel/blob"
 import bcrypt from "bcryptjs"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('account.delete')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -106,14 +110,14 @@ export async function POST(request: NextRequest) {
       // Log any failures but continue with account deletion
       const failedDeletions = deletionResults.filter(r => r.status === 'rejected')
       if (failedDeletions.length > 0) {
-        console.error(`Failed to delete ${failedDeletions.length} files during account deletion:`, {
+        log.error({
           total: user.secureFiles.length,
           failed: failedDeletions.length,
           errors: failedDeletions.map((r, i) => ({
             file: user.secureFiles[i]?.blobUrl,
             error: r.status === 'rejected' ? r.reason : null
           }))
-        })
+        }, `Failed to delete ${failedDeletions.length} files during account deletion:`)
       }
     }
 
@@ -144,7 +148,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Account deletion error:", error)
+    log.error({ err: error }, "Account deletion error:")
     return NextResponse.json(
       { error: "Failed to delete account. Please try again or contact support." },
       { status: 500 }

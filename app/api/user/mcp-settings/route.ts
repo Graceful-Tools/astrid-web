@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.mcp-settings')
+
 
 const UpdateUserMCPSettingsSchema = z.object({
   mcpEnabled: z.boolean().optional(),
@@ -37,7 +41,7 @@ export async function GET() {
       defaultNewListMcpAccessLevel: user.defaultNewListMcpAccessLevel
     })
   } catch (error) {
-    console.error("Error fetching user MCP settings:", error)
+    log.error({ err: error }, "Error fetching user MCP settings:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -89,7 +93,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error("Error updating user MCP settings:", error)
+    log.error({ err: error }, "Error updating user MCP settings:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

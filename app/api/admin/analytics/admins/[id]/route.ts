@@ -8,6 +8,10 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { isAdmin, removeAdmin, AdminAuthError } from '@/lib/admin-auth'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('admin.analytics.admins.[id]')
+
 
 /**
  * DELETE /api/admin/analytics/admins/:id
@@ -42,7 +46,7 @@ export async function DELETE(
     if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
-    console.error('[Admin Management] DELETE error:', error)
+    log.error({ err: error }, '[Admin Management] DELETE error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -4,6 +4,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import type { RouteContextParams } from '@/types/next'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('reminders.[id].dismiss')
+
 
 const DismissSchema = z.object({
   dismissAll: z.boolean().optional().default(false),
@@ -115,7 +119,7 @@ export async function POST(
       )
     }
 
-    console.error('Error dismissing reminder:', error)
+    log.error({ err: error }, 'Error dismissing reminder:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

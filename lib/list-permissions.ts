@@ -1,4 +1,8 @@
 import type { TaskList, User } from "@/types/task"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('list-permissions')
+
 
 /**
  * Minimal user interface for permission checks.
@@ -123,7 +127,7 @@ export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike):
 
   // Only log in development mode and when debugging permissions
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_PERMISSIONS === 'true') {
-    console.log('🔐 canUserEditTask:', {
+    log.info({
       userId: user.id,
       userEmail: user.email,
       taskId: task.id,
@@ -133,7 +137,7 @@ export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike):
       role: role,
       hasListMembers: !!list.listMembers?.length,
       listMembersUserIds: list.listMembers?.map((lm) => lm.userId)
-    })
+    }, '🔐 canUserEditTask:')
   }
 
   // List owner and admins can always edit

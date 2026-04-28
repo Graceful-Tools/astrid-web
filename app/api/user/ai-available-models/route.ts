@@ -13,6 +13,10 @@ import { authConfig } from '@/lib/auth-config'
 import { getCachedApiKey } from '@/lib/api-key-cache'
 import { fetchProviderModels } from '@/lib/ai/fetch-provider-models'
 import { SUGGESTED_MODELS, type AIService } from '@/lib/ai/agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.ai-available-models')
+
 
 const VALID_SERVICES = ['claude', 'openai', 'gemini'] as const
 
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
       source: 'static',
     })
   } catch (error) {
-    console.error('[AI Available Models] GET error:', error)
+    log.error({ err: error }, '[AI Available Models] GET error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

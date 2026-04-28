@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { DEFAULT_MODELS, type AIService } from "@/lib/ai/agent-config"
 import { MCPSettingsSchema, parseUserAIConfig } from "@/lib/ai/user-config-schemas"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('internal.user-model-preferences')
+
 
 const RequestSchema = z.object({
   userId: z.string(),
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error("Error fetching user model preference:", error)
+    log.error({ err: error }, "Error fetching user model preference:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

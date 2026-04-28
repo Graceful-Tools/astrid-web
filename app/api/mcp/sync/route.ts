@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('mcp.sync')
+
 
 /**
  * Incremental Sync Endpoint for Mobile Clients
@@ -205,12 +209,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`🔄 [Sync] User ${userId}: ${response.stats.listsCreated} lists, ${response.stats.tasksCreated} tasks created; ${response.stats.listsUpdated} lists, ${response.stats.tasksUpdated} tasks updated since ${syncDate.toISOString()}`)
+    log.info(`🔄 [Sync] User ${userId}: ${response.stats.listsCreated} lists, ${response.stats.tasksCreated} tasks created; ${response.stats.listsUpdated} lists, ${response.stats.tasksUpdated} tasks updated since ${syncDate.toISOString()}`)
 
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error("Error in sync endpoint:", error)
+    log.error({ err: error }, "Error in sync endpoint:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

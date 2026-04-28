@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { resolveShortcode } from "@/lib/shortcode"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('shortcodes.[code]')
+
 
 /**
  * GET /api/shortcodes/[code]
@@ -28,7 +32,7 @@ export async function GET(
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Error resolving shortcode:", error)
+    log.error({ err: error }, "Error resolving shortcode:")
     return NextResponse.json(
       { error: "Failed to resolve shortcode" },
       { status: 500 }

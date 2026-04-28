@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthenticationOptions, storeChallenge } from "@/lib/webauthn"
 import { v4 as uuid } from "uuid"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.webauthn.authenticate.options')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
       sessionId,
     })
   } catch (error) {
-    console.error("[WebAuthn] Authentication options error:", error)
+    log.error({ err: error }, "[WebAuthn] Authentication options error:")
     return NextResponse.json(
       { error: "Failed to generate authentication options" },
       { status: 500 }

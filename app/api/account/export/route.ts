@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('account.export')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -315,7 +319,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Export error:", error)
+    log.error({ err: error }, "Export error:")
     return new NextResponse("Internal Server Error", { status: 500 })
   }
 }

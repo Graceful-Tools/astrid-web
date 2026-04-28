@@ -11,6 +11,10 @@ import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature, extractWebhookHeaders } from '@/lib/webhook-signature'
 import { decryptField } from '@/lib/field-encryption'
 import { createAIAgentComment } from '@/lib/ai-agent-comment-service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('remote-servers.callback')
+
 
 // Callback payload schema
 const CallbackPayloadSchema = z.object({
@@ -116,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!secret) {
-      console.error(`❌ No webhook secret available (user config: ${!!task.creator?.webhookConfig}, env: ${!!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET})`)
+      log.error(`❌ No webhook secret available (user config: ${!!task.creator?.webhookConfig}, env: ${!!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET})`)
       return NextResponse.json(
         { error: 'No webhook secret configuration found' },
         { status: 404 }
@@ -135,28 +139,28 @@ export async function POST(request: NextRequest) {
           timestamp
         )
         if (envVerification.valid) {
-          console.log(`✅ Callback signature verified via env secret (user config secret didn't match)`)
+          log.info(`✅ Callback signature verified via env secret (user config secret didn't match)`)
           // Continue with processing
         } else {
-          console.error(`❌ Webhook signature verification failed with both user config and env secret: ${verification.error}`)
+          log.error(`❌ Webhook signature verification failed with both user config and env secret: ${verification.error}`)
           return NextResponse.json(
             { error: verification.error || 'Invalid signature' },
             { status: 401 }
           )
         }
       } else {
-        console.error(`❌ Webhook signature verification failed (source: ${secretSource}): ${verification.error}`)
+        log.error(`❌ Webhook signature verification failed (source: ${secretSource}): ${verification.error}`)
         return NextResponse.json(
           { error: verification.error || 'Invalid signature' },
           { status: 401 }
         )
       }
     } else {
-      console.log(`✅ Callback signature verified via ${secretSource}`)
+      log.info(`✅ Callback signature verified via ${secretSource}`)
     }
 
     // 6. Process the event
-    console.log(`📥 Received callback from Claude Code Remote: ${payload.event} for task ${payload.taskId}`)
+    log.info(`📥 Received callback from Claude Code Remote: ${payload.event} for task ${payload.taskId}`)
     await processRemoteServerEvent(task, payload)
 
     return NextResponse.json({
@@ -168,7 +172,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Remote server callback error:', error)
+    log.error({ err: error }, '❌ Remote server callback error:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { withRateLimitHandler, passwordChangeRateLimiter } from "@/lib/rate-limiter"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('account.add-password')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -89,7 +93,7 @@ async function addPasswordHandler(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error adding password:", error)
+    log.error({ err: error }, "Error adding password:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { getUserPasskeys, deletePasskey, renamePasskey } from "@/lib/webauthn"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.webauthn.passkeys')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ passkeys })
   } catch (error) {
-    console.error("[WebAuthn] Get passkeys error:", error)
+    log.error({ err: error }, "[WebAuthn] Get passkeys error:")
     return NextResponse.json(
       { error: "Failed to get passkeys" },
       { status: 500 }
@@ -57,7 +61,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("[WebAuthn] Delete passkey error:", error)
+    log.error({ err: error }, "[WebAuthn] Delete passkey error:")
     return NextResponse.json(
       { error: "Failed to delete passkey" },
       { status: 500 }
@@ -97,7 +101,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("[WebAuthn] Rename passkey error:", error)
+    log.error({ err: error }, "[WebAuthn] Rename passkey error:")
     return NextResponse.json(
       { error: "Failed to rename passkey" },
       { status: 500 }

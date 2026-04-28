@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.disconnect')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error disconnecting GitHub installation:', error)
+    log.error({ err: error }, 'Error disconnecting GitHub installation:')
 
     // Check if the error is because no integration exists
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {

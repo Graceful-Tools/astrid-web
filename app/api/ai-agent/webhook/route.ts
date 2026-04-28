@@ -9,6 +9,10 @@ import { aiAgentWebhookService, type TaskAssignmentWebhookPayload } from '@/lib/
 import { RATE_LIMITS, withRateLimit } from '@/lib/rate-limiter'
 import { z } from 'zod'
 import { detectPortFromRequest } from '@/lib/runtime-port-detection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai-agent.webhook')
+
 
 // Force dynamic rendering for webhook endpoints
 export const dynamic = 'force-dynamic'
@@ -68,13 +72,13 @@ export async function POST(request: NextRequest) {
   // Detect current port from request for dynamic URL generation
   const detectedPort = detectPortFromRequest(request)
   if (detectedPort) {
-    console.log(`[Port Detection] Detected server running on port ${detectedPort}`)
+    log.info(`[Port Detection] Detected server running on port ${detectedPort}`)
   }
 
   // Apply rate limiting
   const rateLimitCheck = withRateLimit(RATE_LIMITS.WEBHOOK)(request)
   if (!rateLimitCheck.allowed) {
-    console.log('[AI Agent] Webhook rate limited:', rateLimitCheck.error)
+    log.info(rateLimitCheck.error, '[AI Agent] Webhook rate limited:')
     return NextResponse.json(
       rateLimitCheck.error,
       {
@@ -85,15 +89,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('[AI Agent] Received task assignment notification')
+    log.info('[AI Agent] Received task assignment notification')
 
     // Parse and validate request body
     const body = await request.json()
     const payload: TaskAssignmentWebhookPayload = TaskAssignmentSchema.parse(body)
 
-    console.log(`[AI Agent] Event: ${payload.event}`)
-    console.log(`[AI Agent] Task: "${payload.task.title}"`)
-    console.log(`[AI Agent] Agent: ${payload.aiAgent.name} (${payload.aiAgent.type})`)
+    log.info(`[AI Agent] Event: ${payload.event}`)
+    log.info(`[AI Agent] Task: "${payload.task.title}"`)
+    log.info(`[AI Agent] Agent: ${payload.aiAgent.name} (${payload.aiAgent.type})`)
 
     // Delegate to webhook service
     await aiAgentWebhookService.notifyTaskAssignment(
@@ -113,14 +117,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.log('[AI Agent] Invalid payload:', error.errors)
+      log.info(error.errors, '[AI Agent] Invalid payload:')
       return NextResponse.json({
         error: 'Invalid payload format',
         details: error.errors
       }, { status: 400 })
     }
 
-    console.error('[AI Agent] Error processing webhook:', error)
+    log.error({ err: error }, '[AI Agent] Error processing webhook:')
     return NextResponse.json({
       error: 'Internal server error',
       details: process.env.NODE_ENV === 'development' ?

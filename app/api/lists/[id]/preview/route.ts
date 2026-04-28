@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { getPublicListPreview } from "@/lib/copy-utils"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].preview')
+
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +24,7 @@ export async function GET(
 
     const { id: listId } = await context.params
 
-    console.log(`👀 Previewing public list ${listId} for user ${session.user.id}`)
+    log.info(`👀 Previewing public list ${listId} for user ${session.user.id}`)
 
     const listPreview = await getPublicListPreview(listId)
 
@@ -37,7 +41,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error("Error previewing public list:", error)
+    log.error({ err: error }, "Error previewing public list:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

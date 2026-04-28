@@ -20,6 +20,10 @@ import { OfflineSyncManager } from './offline-sync'
 import { CrossTabSync } from './cross-tab-sync'
 import type { Task, TaskList, Comment } from '@/types/task'
 import { safeResponseJson } from './safe-parse'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('data-sync')
+
 
 /**
  * Fetch with timeout to prevent hanging requests
@@ -103,7 +107,7 @@ class DataSyncManagerClass {
     // Sync on visibility change (tab becomes active)
     this.visibilityHandler = () => {
       if (!document.hidden && navigator.onLine) {
-        this.performIncrementalSync().catch(console.error)
+        this.performIncrementalSync().catch(err => log.error({ err }, 'performIncrementalSync failed'))
       }
     }
     document.addEventListener('visibilitychange', this.visibilityHandler)
@@ -111,9 +115,9 @@ class DataSyncManagerClass {
     // Sync on reconnection
     this.onlineHandler = () => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('📡 [DataSync] Online - triggering sync')
+        log.info('📡 [DataSync] Online - triggering sync')
       }
-      this.performIncrementalSync().catch(console.error)
+      this.performIncrementalSync().catch(err => log.error({ err }, 'performIncrementalSync failed'))
     }
     window.addEventListener('online', this.onlineHandler)
   }
@@ -128,7 +132,7 @@ class DataSyncManagerClass {
 
     this.syncIntervalId = setInterval(() => {
       if (navigator.onLine && !document.hidden) {
-        this.performIncrementalSync().catch(console.error)
+        this.performIncrementalSync().catch(err => log.error({ err }, 'performIncrementalSync failed'))
       }
     }, this.SYNC_INTERVAL)
   }
@@ -216,7 +220,7 @@ class DataSyncManagerClass {
 
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 [DataSync] Starting full sync...')
+        log.info('🔄 [DataSync] Starting full sync...')
       }
 
       // First, sync pending mutations
@@ -281,7 +285,7 @@ class DataSyncManagerClass {
       this.notifyListeners(result)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ [DataSync] Full sync complete in ${duration}ms:`, result)
+        log.info({ result }, `✅ [DataSync] Full sync complete in ${duration}ms:`)
       }
 
       return result
@@ -300,7 +304,7 @@ class DataSyncManagerClass {
       this.lastSyncResult = result
       this.notifyListeners(result)
 
-      console.error('❌ [DataSync] Full sync failed:', error)
+      log.error({ err: error }, '❌ [DataSync] Full sync failed:')
       return result
     } finally {
       this.syncInProgress = false
@@ -339,7 +343,7 @@ class DataSyncManagerClass {
 
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 [DataSync] Starting incremental sync...')
+        log.info('🔄 [DataSync] Starting incremental sync...')
       }
 
       // First, sync pending mutations
@@ -439,7 +443,7 @@ class DataSyncManagerClass {
       this.notifyListeners(result)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ [DataSync] Incremental sync complete in ${duration}ms:`, result)
+        log.info({ result }, `✅ [DataSync] Incremental sync complete in ${duration}ms:`)
       }
 
       return result
@@ -458,7 +462,7 @@ class DataSyncManagerClass {
       this.lastSyncResult = result
       this.notifyListeners(result)
 
-      console.error('❌ [DataSync] Incremental sync failed:', error)
+      log.error({ err: error }, '❌ [DataSync] Incremental sync failed:')
       return result
     } finally {
       this.syncInProgress = false
@@ -496,7 +500,7 @@ class DataSyncManagerClass {
         return comments
       }
     } catch (error) {
-      console.error(`❌ [DataSync] Failed to sync comments for task ${taskId}:`, error)
+      log.error({ err: error }, `❌ [DataSync] Failed to sync comments for task ${taskId}:`)
     }
 
     // Return cached on error
@@ -512,7 +516,7 @@ class DataSyncManagerClass {
     CacheManager.clearAll()
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 [DataSync] Cursors reset - next sync will be full sync')
+      log.info('🔄 [DataSync] Cursors reset - next sync will be full sync')
     }
   }
 
@@ -565,7 +569,7 @@ class DataSyncManagerClass {
       try {
         callback(result)
       } catch (error) {
-        console.error('❌ [DataSync] Error in sync listener:', error)
+        log.error({ err: error }, '❌ [DataSync] Error in sync listener:')
       }
     })
   }

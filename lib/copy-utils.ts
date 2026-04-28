@@ -3,6 +3,10 @@ import { getConsistentDefaultImage } from "@/lib/default-images"
 import { getTaskCountInclude, getMultipleListTaskCounts } from "@/lib/task-count-utils"
 import { canAccessList } from "@/lib/list-member-utils"
 import type { TaskList, Task } from "@/types/task"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('copy-utils')
+
 
 export interface CopyTaskOptions {
   /** User ID who will own the copied task */
@@ -142,7 +146,7 @@ export async function copyTask(
     }
 
   } catch (error) {
-    console.error("Error copying task:", error)
+    log.error({ err: error }, "Error copying task:")
     return {
       success: false,
       error: "Failed to copy task"
@@ -255,10 +259,10 @@ export async function copyListWithTasks(
     // Copy tasks if requested
     if (options.includeTasks && originalList.tasks.length > 0) {
       const copiedTasks = []
-      console.log(`📝 Copying ${originalList.tasks.length} tasks from original list`)
+      log.info(`📝 Copying ${originalList.tasks.length} tasks from original list`)
 
       for (const originalTask of originalList.tasks) {
-        console.log(`📝 Copying task: ${originalTask.title} (ID: ${originalTask.id})`)
+        log.info(`📝 Copying task: ${originalTask.title} (ID: ${originalTask.id})`)
 
         const taskCopyResult = await copyTask(originalTask.id, {
           newOwnerId: options.newOwnerId,
@@ -271,15 +275,15 @@ export async function copyListWithTasks(
         if (taskCopyResult.success && taskCopyResult.copiedTask) {
           copiedTasks.push(taskCopyResult.copiedTask)
           copiedTasksCount++
-          console.log(`✅ Task copied successfully: ${taskCopyResult.copiedTask.title} (ID: ${taskCopyResult.copiedTask.id})`)
+          log.info(`✅ Task copied successfully: ${taskCopyResult.copiedTask.title} (ID: ${taskCopyResult.copiedTask.id})`)
         } else {
-          console.error(`❌ Failed to copy task: ${originalTask.title} - ${taskCopyResult.error}`)
+          log.error(`❌ Failed to copy task: ${originalTask.title} - ${taskCopyResult.error}`)
         }
       }
 
-      console.log(`📝 Total tasks copied: ${copiedTasksCount}`)
+      log.info(`📝 Total tasks copied: ${copiedTasksCount}`)
     } else {
-      console.log(`📝 No tasks to copy (includeTasks: ${options.includeTasks}, task count: ${originalList.tasks.length})`)
+      log.info(`📝 No tasks to copy (includeTasks: ${options.includeTasks}, task count: ${originalList.tasks.length})`)
     }
 
     // Fetch the final list with all its tasks and their list associations
@@ -309,7 +313,7 @@ export async function copyListWithTasks(
     }
 
   } catch (error) {
-    console.error("Error copying list:", error)
+    log.error({ err: error }, "Error copying list:")
     return {
       success: false,
       error: "Failed to copy list"
@@ -376,7 +380,7 @@ export async function getPopularPublicLists(
 
     return listsWithAccurateCounts
   } catch (error) {
-    console.error("Error fetching popular public lists:", error)
+    log.error({ err: error }, "Error fetching popular public lists:")
     return []
   }
 }
@@ -437,7 +441,7 @@ export async function getRecentPublicLists(
 
     return listsWithAccurateCounts
   } catch (error) {
-    console.error("Error fetching recent public lists:", error)
+    log.error({ err: error }, "Error fetching recent public lists:")
     return []
   }
 }
@@ -536,7 +540,7 @@ export async function searchPublicLists(
 
     return listsWithAccurateCounts
   } catch (error) {
-    console.error("Error searching public lists:", error)
+    log.error({ err: error }, "Error searching public lists:")
     return []
   }
 }
@@ -584,7 +588,7 @@ export async function getPublicListPreview(listId: string) {
 
     return list
   } catch (error) {
-    console.error("Error fetching public list preview:", error)
+    log.error({ err: error }, "Error fetching public list preview:")
     return null
   }
 }

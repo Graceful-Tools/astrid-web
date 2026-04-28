@@ -3,6 +3,10 @@ import { sendVerificationEmail, getFromEmail } from '@/lib/email'
 import { Resend } from 'resend'
 import { getRandomReminderString } from '@/lib/reminder-constants'
 import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/base-url'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('email-reminder-service')
+
 
 const resend = typeof window === 'undefined' && process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -72,10 +76,10 @@ export class EmailReminderService {
 
     // In development, just log the email
     if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
-      console.log("📧 Reminder Email (Development Mode)")
-      console.log("To:", to)
-      console.log("Subject:", subject)
-      console.log("Text:", text.substring(0, 200) + "...")
+      log.info("📧 Reminder Email (Development Mode)")
+      log.info({ to }, "To:")
+      log.info({ subject }, "Subject:")
+      log.info({ snippet: text.substring(0, 200) + "..." }, "Text")
       return
     }
 
@@ -89,13 +93,13 @@ export class EmailReminderService {
       })
 
       if (error) {
-        console.error('Resend error:', error)
+        log.error({ err: error }, 'Resend error:')
         throw new Error(`Email sending failed: ${error.message}`)
       }
 
-      console.log('📧 Reminder email sent successfully:', { id: emailData?.id, to })
+      log.info({ id: emailData?.id, to }, '📧 Reminder email sent successfully:')
     } catch (error) {
-      console.error('Error sending reminder email:', error)
+      log.error({ err: error }, 'Error sending reminder email:')
       throw error
     }
   }

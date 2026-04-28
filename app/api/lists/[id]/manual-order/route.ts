@@ -7,6 +7,10 @@ import type { RouteContextParams } from "@/types/next"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
 import { broadcastToUsers } from "@/lib/sse-utils"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].manual-order')
+
 
 export async function POST(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
@@ -105,7 +109,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
 
     return NextResponse.json(updatedList)
   } catch (error) {
-    console.error("Error updating manual task order:", error)
+    log.error({ err: error }, "Error updating manual task order:")
     return NextResponse.json({ error: "Failed to update manual order" }, { status: 500 })
   }
 }

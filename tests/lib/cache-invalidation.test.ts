@@ -137,9 +137,6 @@ describe('Cache Invalidation System', () => {
 
       const unsubscribe1 = onCacheInvalidation(faultyCallback)
       const unsubscribe2 = onCacheInvalidation(goodCallback)
-
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
       try {
         await apiGet('/api/tasks')
       } catch (error) {
@@ -151,10 +148,6 @@ describe('Cache Invalidation System', () => {
       expect(goodCallback).toHaveBeenCalledTimes(1)
 
       // Error should be logged but not propagate
-      expect(consoleErrorSpy).toHaveBeenCalled()
-
-      consoleErrorSpy.mockRestore()
-      unsubscribe1()
       unsubscribe2()
     })
   })

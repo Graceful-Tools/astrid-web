@@ -2,6 +2,10 @@ import { prisma } from "./prisma"
 import { sendVerificationEmail } from "./email"
 import { completeVerifyEmailTask } from "./system-tasks"
 import crypto from "crypto"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('email-verification')
+
 
 export interface EmailVerificationResult {
   success: boolean
@@ -65,7 +69,7 @@ export async function sendEmailVerification(
       requiresVerification: true
     }
   } catch (error) {
-    console.error("Error sending email verification:", error)
+    log.error({ err: error }, "Error sending email verification:")
     return { success: false, message: "Failed to send verification email" }
   }
 }
@@ -115,7 +119,7 @@ export async function verifyEmailToken(token: string): Promise<EmailVerification
         : "Email verified successfully"
     }
   } catch (error) {
-    console.error("Error verifying email token:", error)
+    log.error({ err: error }, "Error verifying email token:")
     return { success: false, message: "Email verification failed" }
   }
 }
@@ -180,7 +184,7 @@ export async function cancelEmailChange(userId: string): Promise<EmailVerificati
 
     return { success: true, message: "Email change cancelled" }
   } catch (error) {
-    console.error("Error cancelling email change:", error)
+    log.error({ err: error }, "Error cancelling email change:")
     return { success: false, message: "Failed to cancel email change" }
   }
 }

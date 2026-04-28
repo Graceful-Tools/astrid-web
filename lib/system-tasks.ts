@@ -1,4 +1,8 @@
 import { prisma } from "./prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('system-tasks')
+
 
 /**
  * System Tasks Service
@@ -30,7 +34,7 @@ export async function createVerifyEmailTask(userId: string): Promise<{ created: 
     })
 
     if (existingTask) {
-      console.log(`[SystemTasks] User ${userId} already has verify email task`)
+      log.info(`[SystemTasks] User ${userId} already has verify email task`)
       return { created: false, taskId: existingTask.id }
     }
 
@@ -44,7 +48,7 @@ export async function createVerifyEmailTask(userId: string): Promise<{ created: 
     })
 
     if (!user) {
-      console.log(`[SystemTasks] User ${userId} not found`)
+      log.info(`[SystemTasks] User ${userId} not found`)
       return { created: false }
     }
 
@@ -52,7 +56,7 @@ export async function createVerifyEmailTask(userId: string): Promise<{ created: 
     const isVerified = hasOAuth || !!user.emailVerified
 
     if (isVerified) {
-      console.log(`[SystemTasks] User ${userId} is already verified, skipping task creation`)
+      log.info(`[SystemTasks] User ${userId} is already verified, skipping task creation`)
       return { created: false }
     }
 
@@ -77,10 +81,10 @@ export async function createVerifyEmailTask(userId: string): Promise<{ created: 
       },
     })
 
-    console.log(`[SystemTasks] Created verify email task ${task.id} for user ${userId}`)
+    log.info(`[SystemTasks] Created verify email task ${task.id} for user ${userId}`)
     return { created: true, taskId: task.id }
   } catch (error) {
-    console.error(`[SystemTasks] Error creating verify email task for user ${userId}:`, error)
+    log.error({ err: error }, `[SystemTasks] Error creating verify email task for user ${userId}:`)
     return { created: false }
   }
 }
@@ -100,7 +104,7 @@ export async function completeVerifyEmailTask(userId: string): Promise<{ complet
     })
 
     if (!task) {
-      console.log(`[SystemTasks] No incomplete verify email task found for user ${userId}`)
+      log.info(`[SystemTasks] No incomplete verify email task found for user ${userId}`)
       return { completed: false }
     }
 
@@ -110,10 +114,10 @@ export async function completeVerifyEmailTask(userId: string): Promise<{ complet
       data: { completed: true },
     })
 
-    console.log(`[SystemTasks] Completed verify email task ${task.id} for user ${userId}`)
+    log.info(`[SystemTasks] Completed verify email task ${task.id} for user ${userId}`)
     return { completed: true }
   } catch (error) {
-    console.error(`[SystemTasks] Error completing verify email task for user ${userId}:`, error)
+    log.error({ err: error }, `[SystemTasks] Error completing verify email task for user ${userId}:`)
     return { completed: false }
   }
 }
@@ -142,7 +146,7 @@ export async function createVerifyEmailTasksForUnverifiedUsers(): Promise<{
       select: { id: true, email: true },
     })
 
-    console.log(`[SystemTasks] Found ${unverifiedUsers.length} unverified users`)
+    log.info(`[SystemTasks] Found ${unverifiedUsers.length} unverified users`)
 
     for (const user of unverifiedUsers) {
       stats.processed++
@@ -154,15 +158,15 @@ export async function createVerifyEmailTasksForUnverifiedUsers(): Promise<{
           stats.skipped++
         }
       } catch (error) {
-        console.error(`[SystemTasks] Error processing user ${user.id}:`, error)
+        log.error({ err: error }, `[SystemTasks] Error processing user ${user.id}:`)
         stats.errors++
       }
     }
 
-    console.log(`[SystemTasks] Batch complete:`, stats)
+    log.info({ stats }, `[SystemTasks] Batch complete:`)
     return stats
   } catch (error) {
-    console.error(`[SystemTasks] Error in batch processing:`, error)
+    log.error({ err: error }, `[SystemTasks] Error in batch processing:`)
     throw error
   }
 }

@@ -12,6 +12,10 @@ import { getCachedApiKey, getPreferredAIService } from '@/lib/api-key-cache'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { getTokenForUser, getBaseUrl } from '@/lib/astrid-api-client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('astrid-agent-runtime')
+
 
 // ─── Single Tool: API Request ─────────────────────────────────────
 
@@ -108,7 +112,7 @@ async function executeTool(
 
     return JSON.stringify(responseBody)
   } catch (error) {
-    console.error('[Astrid] api_request failed:', error)
+    log.error({ err: error }, '[Astrid] api_request failed:')
     return JSON.stringify({ error: error instanceof Error ? error.message : 'Request failed' })
   }
 }
@@ -553,7 +557,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const isOnDeviceModel = userSettings.defaultAgentId && (ON_DEVICE_MODEL_IDS as readonly string[]).includes(userSettings.defaultAgentId)
 
     if (isOnDeviceModel) {
-      console.log(`[Astrid] User ${userId} has on-device model selected — iOS handles response on-device`)
+      log.info(`[Astrid] User ${userId} has on-device model selected — iOS handles response on-device`)
       // Stop typing indicator — iOS will process on-device and post via /agent-response
       if (recipients.length > 0) {
         broadcastToUsers(recipients, {
@@ -568,7 +572,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const service = await getPreferredAIService(userId)
     const apiKey = await getCachedApiKey(userId, service)
     if (!apiKey) {
-      console.log(`[Astrid] No ${service} API key for user ${userId}, sending setup prompt`)
+      log.info(`[Astrid] No ${service} API key for user ${userId}, sending setup prompt`)
       // Post a helpful setup message instead of silently failing
       const setupMessage = await prisma.chatMessage.create({
         data: {
@@ -683,9 +687,9 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       }).catch(() => {})
     }
 
-    console.log(`[Astrid] Responded in channel ${channelId} using ${service}/${model || 'default'}`)
+    log.info(`[Astrid] Responded in channel ${channelId} using ${service}/${model || 'default'}`)
   } catch (error) {
-    console.error('[Astrid] Error processing message:', error)
+    log.error({ err: error }, '[Astrid] Error processing message:')
     // Stop typing indicator (error path)
     if (recipients.length > 0 && astridUser) {
       broadcastToUsers(recipients, {
@@ -842,9 +846,9 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       }).catch(() => {})
     }
 
-    console.log(`[Astrid] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
+    log.info(`[Astrid] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
   } catch (error) {
-    console.error('[Astrid] Error processing comment:', error)
+    log.error({ err: error }, '[Astrid] Error processing comment:')
     // Stop typing indicator on error
     if (recipients.length > 0 && astridUser) {
       broadcastToUsers(recipients, {

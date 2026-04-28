@@ -63,7 +63,7 @@ class ReminderManager {
     }
 
     this.reminders.set(reminderId, config)
-    console.log(`📅 Scheduled ${type} reminder for task "${task.title}" at ${scheduledFor.toLocaleString()}`)
+    log.info(`📅 Scheduled ${type} reminder for task "${task.title}" at ${scheduledFor.toLocaleString()}`)
   }
 
   // Schedule reminders based on task due date
@@ -120,7 +120,7 @@ class ReminderManager {
     this.activeReminders.delete(reminderId)
     this.notifyListeners()
 
-    console.log(`😴 Snoozed reminder for "${reminder.task.title}" until ${snoozeUntil.toLocaleString()}`)
+    log.info(`😴 Snoozed reminder for "${reminder.task.title}" until ${snoozeUntil.toLocaleString()}`)
   }
 
   // Dismiss a reminder permanently
@@ -132,13 +132,13 @@ class ReminderManager {
     this.activeReminders.delete(reminderId)
     this.notifyListeners()
 
-    console.log(`❌ Dismissed reminder for "${reminder.task.title}"`)
+    log.info(`❌ Dismissed reminder for "${reminder.task.title}"`)
   }
 
   // Mark task as complete and remove all reminders
   completeTask(taskId: string) {
     this.removeTaskReminders(taskId)
-    console.log(`✅ Completed task and removed all reminders for task ${taskId}`)
+    log.info(`✅ Completed task and removed all reminders for task ${taskId}`)
   }
 
   // Get all active reminders for a user
@@ -164,7 +164,7 @@ class ReminderManager {
         // In a real implementation, you'd fetch this from your task store/database
         // For now, we'll skip creating the active reminder since we don't have the full task
         // This will be handled by the triggerManualReminder function instead
-        console.log(`🔔 Triggered ${config.type} reminder for task ${config.taskId} (task data needed)`)
+        log.info(`🔔 Triggered ${config.type} reminder for task ${config.taskId} (task data needed)`)
       }
     }
 
@@ -233,7 +233,7 @@ class ReminderManager {
     this.activeReminders.set(reminderId, activeReminder)
     this.notifyListeners()
 
-    console.log(`🔔 [DEBUG] Manual reminder triggered for task "${task.title}"`)
+    log.info(`🔔 [DEBUG] Manual reminder triggered for task "${task.title}"`)
     
     return reminderId
   }
@@ -244,6 +244,10 @@ export const reminderManager = new ReminderManager()
 
 // Import React for the hook
 import { useState, useEffect } from "react"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('reminder-manager')
+
 
 // Hook for React components to use reminders
 export function useReminders(userId: string) {

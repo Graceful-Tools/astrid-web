@@ -6,6 +6,10 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { LoadingScreen } from "@/components/loading-screen"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].s.[code].page.tsx')
+
 
 export default function ShortcodePage() {
   const params = useParams<{ code?: string }>()
@@ -81,7 +85,7 @@ export default function ShortcodePage() {
               router.replace(`/?task=${targetId}`)
             }
           } catch (taskErr) {
-            console.error("Error fetching task details:", taskErr)
+            log.error({ err: taskErr }, "Error fetching task details:")
             // Network error or other issue - try falling back to My Tasks
             router.replace(`/?task=${targetId}`)
           }
@@ -91,7 +95,7 @@ export default function ShortcodePage() {
           setError("Invalid link type")
         }
       } catch (err) {
-        console.error("Error resolving shortcode:", err)
+        log.error({ err: err }, "Error resolving shortcode:")
         setError("Failed to resolve link")
       }
     }

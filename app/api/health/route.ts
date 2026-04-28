@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { safeHealthCheck, ensureMigrations } from "@/lib/runtime-migrations"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('health')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
       status: healthCheck.healthy ? 200 : 503 
     })
   } catch (error) {
-    console.error('Health check failed:', error)
+    log.error({ err: error }, 'Health check failed:')
     
     return NextResponse.json({
       status: 'unhealthy',

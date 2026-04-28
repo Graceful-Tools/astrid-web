@@ -14,6 +14,10 @@
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('agent-task-scheduler')
+
 
 // In-memory set of recently dispatched task IDs to avoid duplicate notifications
 // (reset on server restart, which is fine — the DB check is the source of truth)
@@ -101,12 +105,12 @@ export async function processAgentTasksDueSoon(): Promise<number> {
       recentlyDispatched.add(task.id)
       dispatched++
 
-      console.log(`🤖 Dispatched task "${task.title}" to agent ${agentId} (due ${task.dueDateTime?.toISOString()})`)
+      log.info(`🤖 Dispatched task "${task.title}" to agent ${agentId} (due ${task.dueDateTime?.toISOString()})`)
     }
 
     return dispatched
   } catch (error) {
-    console.error('[AgentTaskScheduler] Error processing due tasks:', error)
+    log.error({ err: error }, '[AgentTaskScheduler] Error processing due tasks:')
     return 0
   }
 }

@@ -11,6 +11,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { encryptField } from '@/lib/field-encryption'
 import { safeResponseJson } from '@/lib/safe-parse'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('contacts.google.callback')
+
 
 interface GoogleTokenResponse {
   access_token: string
@@ -47,19 +51,19 @@ export async function GET(request: NextRequest) {
 
   // Check for OAuth errors
   if (error) {
-    console.error('[Google Contacts] OAuth error:', error)
+    log.error({ err: error }, '[Google Contacts] OAuth error:')
     return NextResponse.redirect(new URL('/settings/contacts?google=error', request.url))
   }
 
   if (!code || !state) {
-    console.error('[Google Contacts] Missing code or state')
+    log.error('[Google Contacts] Missing code or state')
     return NextResponse.redirect(new URL('/settings/contacts?google=error', request.url))
   }
 
   // Verify state
   const storedState = request.cookies.get('google_contacts_state')?.value
   if (!storedState || storedState !== state) {
-    console.error('[Google Contacts] State mismatch')
+    log.error('[Google Contacts] State mismatch')
     return NextResponse.redirect(new URL('/settings/contacts?google=error', request.url))
   }
 
@@ -82,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text()
-      console.error('[Google Contacts] Token exchange failed:', errorText)
+      log.error({ err: errorText }, '[Google Contacts] Token exchange failed:')
       return NextResponse.redirect(new URL('/settings/contacts?google=error', request.url))
     }
 
@@ -99,7 +103,7 @@ export async function GET(request: NextRequest) {
     // Store contacts in database
     const importedCount = await storeContacts(session.user.id, contactsWithEmail)
 
-    console.log(`[Google Contacts] Imported ${importedCount} contacts for user ${session.user.id}`)
+    log.info(`[Google Contacts] Imported ${importedCount} contacts for user ${session.user.id}`)
 
     // Clear state cookie and redirect
     const response = NextResponse.redirect(
@@ -109,7 +113,7 @@ export async function GET(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('[Google Contacts] Error:', error)
+    log.error({ err: error }, '[Google Contacts] Error:')
     return NextResponse.redirect(new URL('/settings/contacts?google=error', request.url))
   }
 }
@@ -149,7 +153,7 @@ async function fetchAllGoogleContacts(accessToken: string): Promise<GoogleContac
         if (!response.ok) {
           if (response.status >= 500 || response.status === 429) {
             const errorText = await response.text()
-            console.warn(`⚠️ [Google Contacts] Retryable error (${response.status}), attempt ${retryCount + 1}/${maxRetries}:`, errorText)
+            log.warn({ errorText }, `⚠️ [Google Contacts] Retryable error (${response.status}), attempt ${retryCount + 1}/${maxRetries}:`)
 
             // Exponential backoff: 1s, 2s, 4s
             const delay = baseDelay * Math.pow(2, retryCount)
@@ -160,10 +164,10 @@ async function fetchAllGoogleContacts(accessToken: string): Promise<GoogleContac
           } else {
             // 4xx errors (except 429) should not be retried
             const errorText = await response.text()
-            console.error('❌ [Google Contacts] Non-retryable error:', {
+            log.error({
               status: response.status,
               error: errorText
-            })
+            }, '❌ [Google Contacts] Non-retryable error:')
             break
           }
         }
@@ -171,7 +175,7 @@ async function fetchAllGoogleContacts(accessToken: string): Promise<GoogleContac
         const data = await safeResponseJson<GooglePeopleResponse>(response, null)
 
         if (!data) {
-          console.error('❌ [Google Contacts] Empty response from People API')
+          log.error('❌ [Google Contacts] Empty response from People API')
           break
         }
 
@@ -184,10 +188,10 @@ async function fetchAllGoogleContacts(accessToken: string): Promise<GoogleContac
         break
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
-        console.warn(`⚠️ [Google Contacts] Network error, attempt ${retryCount + 1}/${maxRetries}:`, {
+        log.warn({
           error: lastError.message,
           isAbortError: lastError.name === 'AbortError'
-        })
+        }, `⚠️ [Google Contacts] Network error, attempt ${retryCount + 1}/${maxRetries}:`)
 
         if (retryCount < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, retryCount)
@@ -200,7 +204,7 @@ async function fetchAllGoogleContacts(accessToken: string): Promise<GoogleContac
 
     // If all retries failed, log and break
     if (retryCount >= maxRetries && lastError) {
-      console.error('❌ [Google Contacts] All retry attempts failed:', lastError.message)
+      log.error({ message: lastError.message }, '❌ [Google Contacts] All retry attempts failed')
       break
     }
   } while (pageToken)

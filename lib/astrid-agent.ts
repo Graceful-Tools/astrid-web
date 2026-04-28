@@ -6,6 +6,10 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('astrid-agent')
+
 
 export const ASTRID_EMAIL = 'astrid@astrid.cc'
 export const ASTRID_NAME = 'Astrid'
@@ -32,7 +36,7 @@ export async function ensureAstridAgent() {
       },
       select: { id: true, name: true, email: true, image: true, isAIAgent: true },
     })
-    console.log(`[Astrid] Created astrid@astrid.cc agent user: ${agent.id}`)
+    log.info(`[Astrid] Created astrid@astrid.cc agent user: ${agent.id}`)
   }
 
   return agent

@@ -14,6 +14,10 @@ import { PushNotificationService } from '@/lib/push-notification-service'
 import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
 import { processAstridMessage } from '@/lib/astrid-agent-runtime'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('chat.channels.[channelId].messages')
+
 
 const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -87,7 +91,7 @@ export async function GET(
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[Chat API] GET messages error:', error)
+    log.error({ err: error }, '[Chat API] GET messages error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -177,7 +181,7 @@ export async function POST(
           message = updatedMessage
         }
       } catch (error) {
-        console.error('[Chat API] Failed to associate file with message:', error)
+        log.error({ err: error }, '[Chat API] Failed to associate file with message:')
       }
     }
 
@@ -238,7 +242,7 @@ export async function POST(
               userName: senderName,
               channelId,
               listId: channel?.listId || null,
-            }).catch(err => console.error('[Chat API] Astrid runtime error:', err))
+            }).catch(err => log.error({ err: err }, '[Chat API] Astrid runtime error:'))
           } else {
             // Other AI agents — send chat_mention SSE event for external processing
             await broadcastToUsers([mentionedUserId], {
@@ -266,7 +270,7 @@ export async function POST(
               content: content || '',
             })
           } catch (pushError) {
-            console.error('[Chat API] Push notification error:', pushError)
+            log.error({ err: pushError }, '[Chat API] Push notification error:')
           }
         }
       }
@@ -309,7 +313,7 @@ export async function POST(
             // Shared channel — skip auto-response, require @mention
           } else {
           const defaultAgentId = await resolveDefaultAgent(channel?.listId || null, auth.userId)
-          console.log(`[Chat API] Default agent resolution: listId=${channel?.listId || 'null'}, userId=${auth.userId}, agentId=${defaultAgentId || 'null'}`)
+          log.info(`[Chat API] Default agent resolution: listId=${channel?.listId || 'null'}, userId=${auth.userId}, agentId=${defaultAgentId || 'null'}`)
           if (defaultAgentId) {
             // Check if the default agent is Astrid
             const defaultAgent = await prisma.user.findUnique({
@@ -325,7 +329,7 @@ export async function POST(
                 userName: senderName,
                 channelId,
                 listId: channel?.listId || null,
-              }).catch(err => console.error('[Chat API] Astrid default agent error:', err))
+              }).catch(err => log.error({ err: err }, '[Chat API] Astrid default agent error:'))
             } else {
               // External agent — send SSE event
               await broadcastToUsers([defaultAgentId], {
@@ -346,11 +350,11 @@ export async function POST(
           }
           } // close isPersonalChannel else
         } catch (defaultAgentError) {
-          console.error('[Chat API] Default agent dispatch error:', defaultAgentError)
+          log.error({ err: defaultAgentError }, '[Chat API] Default agent dispatch error:')
         }
       }
     } catch (sseError) {
-      console.error('[Chat API] SSE broadcast error:', sseError)
+      log.error({ err: sseError }, '[Chat API] SSE broadcast error:')
       // Don't fail the request if SSE broadcast fails
     }
 
@@ -359,7 +363,7 @@ export async function POST(
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[Chat API] POST message error:', error)
+    log.error({ err: error }, '[Chat API] POST message error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

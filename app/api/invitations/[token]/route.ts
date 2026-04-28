@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('invitations.[token]')
+
 
 export async function GET(request: NextRequest, context: RouteContextParams<{ token: string }>) {
   try {
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ to
       expiresAt: invitation.expiresAt
     }})
   } catch (error) {
-    console.error("Error fetching invitation:", error)
+    log.error({ err: error }, "Error fetching invitation:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -170,7 +174,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
     })
 
   } catch (error) {
-    console.error("Error accepting invitation:", error)
+    log.error({ err: error }, "Error accepting invitation:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -198,7 +202,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     return NextResponse.json({ success: true, message: "Invitation declined" })
   } catch (error) {
-    console.error("Error declining invitation:", error)
+    log.error({ err: error }, "Error declining invitation:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

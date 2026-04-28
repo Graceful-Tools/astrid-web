@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('logging.error-sanitizer')
+
 /**
  * Error sanitization utilities for production logging
  *
@@ -108,16 +112,16 @@ export function sanitizeError(error: unknown): {
 export function logError(context: string, error: unknown): void {
   const sanitized = sanitizeError(error)
 
-  console.error(`[${context}] ${sanitized.name}: ${sanitized.message}`)
+  log.error(`[${context}] ${sanitized.name}: ${sanitized.message}`)
 
   if (sanitized.stack && isProduction) {
-    console.error(`[${context}] Stack (sanitized): ${sanitized.stack}`)
+    log.error(`[${context}] Stack (sanitized): ${sanitized.stack}`)
   } else if (sanitized.stack) {
-    console.error(`[${context}] Stack: ${sanitized.stack}`)
+    log.error(`[${context}] Stack: ${sanitized.stack}`)
   }
 
   if (sanitized.code) {
-    console.error(`[${context}] Code: ${sanitized.code}`)
+    log.error(`[${context}] Code: ${sanitized.code}`)
   }
 }
 

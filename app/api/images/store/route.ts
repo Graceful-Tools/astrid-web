@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import fs from 'fs/promises'
 import path from 'path'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('images.store')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Download the image
-    console.log('Downloading image from:', imageUrl)
+    log.info({ imageUrl }, 'Downloading image from:')
     const imageResponse = await fetch(imageUrl)
     if (!imageResponse.ok) {
-      console.error('Failed to download image:', imageResponse.statusText)
+      log.error({ statusText: imageResponse.statusText }, 'Failed to download image')
       return NextResponse.json({ error: "Failed to download image" }, { status: 500 })
     }
 
@@ -41,12 +45,12 @@ export async function POST(request: NextRequest) {
     await fs.writeFile(filePath, Buffer.from(imageBuffer))
     
     const localUrl = `/uploads/${filename}`
-    console.log('Image stored locally at:', localUrl)
+    log.info({ localUrl }, 'Image stored locally at:')
     
     return NextResponse.json({ url: localUrl })
     
   } catch (error) {
-    console.error("Error storing image:", error)
+    log.error({ err: error }, "Error storing image:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
