@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Webhooks, createNodeMiddleware } from '@octokit/webhooks'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.github.webhooks')
+
 
 // Initialize webhooks only if secret is available
 const webhooks = process.env.GITHUB_WEBHOOK_SECRET ? new Webhooks({
@@ -43,7 +47,7 @@ async function sendSSENotification(userId: string, event: any) {
     const { sendEventToUser } = await import('@/lib/sse-utils')
     await sendEventToUser(userId, event)
   } catch (error) {
-    console.error('Failed to send SSE notification:', error)
+    log.error({ err: error }, 'Failed to send SSE notification:')
   }
 }
 
@@ -51,23 +55,23 @@ async function sendSSENotification(userId: string, event: any) {
  * Handle GitHub App installation events
  */
 webhooks?.on('installation', async ({ payload }) => {
-  console.log('🔧 GitHub App installation event:', payload.action)
+  log.info({ action: payload.action }, '🔧 GitHub App installation event:')
 
   if (payload.action === 'created') {
     const account = payload.installation.account
-    console.log('📦 New installation:', {
+    log.info({
       installationId: payload.installation.id,
       account: account && 'login' in account ? account.login : 'unknown',
       repositories: payload.repositories?.length || 0
-    })
+    }, '📦 New installation:')
 
     // Store installation info (we'll need to associate with user later)
     // For now, just log it
-    console.log('ℹ️ Installation will be associated when user connects their GitHub')
+    log.info('ℹ️ Installation will be associated when user connects their GitHub')
   }
 
   if (payload.action === 'deleted') {
-    console.log('🗑️ Installation removed:', payload.installation.id)
+    log.info(payload.installation.id, '🗑️ Installation removed:')
 
     // Clean up any GitHub integrations using this installation
     await prisma.gitHubIntegration.deleteMany({
@@ -80,7 +84,7 @@ webhooks?.on('installation', async ({ payload }) => {
  * Handle repository access changes
  */
 webhooks?.on('installation_repositories', async ({ payload }) => {
-  console.log('📚 Repository access changed:', payload.action)
+  log.info({ action: payload.action }, '📚 Repository access changed:')
 
   // Update repository lists for affected integrations
   const integrations = await prisma.gitHubIntegration.findMany({
@@ -107,7 +111,7 @@ webhooks?.on('installation_repositories', async ({ payload }) => {
         }
       })
 
-      console.log(`✅ Added ${newRepos.length} repositories to integration ${integration.id}`)
+      log.info(`✅ Added ${newRepos.length} repositories to integration ${integration.id}`)
     }
 
     if (payload.action === 'removed') {
@@ -125,7 +129,7 @@ webhooks?.on('installation_repositories', async ({ payload }) => {
         }
       })
 
-      console.log(`🗑️ Removed ${removedRepoIds.length} repositories from integration ${integration.id}`)
+      log.info(`🗑️ Removed ${removedRepoIds.length} repositories from integration ${integration.id}`)
     }
   }
 })
@@ -134,7 +138,7 @@ webhooks?.on('installation_repositories', async ({ payload }) => {
  * Handle pull request events
  */
 webhooks?.on('pull_request', async ({ payload }) => {
-  console.log('🔀 Pull request event:', payload.action, `#${payload.pull_request.number}`)
+  log.info({ action: payload.action, prNumber: payload.pull_request.number }, '🔀 Pull request event')
 
   if (payload.action === 'opened' || payload.action === 'synchronize') {
     // Find any coding workflows that might be associated with this PR
@@ -181,7 +185,7 @@ webhooks?.on('pull_request', async ({ payload }) => {
           })
         }
 
-        console.log(`📋 Updated workflow ${workflow.id} for PR #${payload.pull_request.number}`)
+        log.info(`📋 Updated workflow ${workflow.id} for PR #${payload.pull_request.number}`)
       }
     }
   }
@@ -234,7 +238,7 @@ webhooks?.on('pull_request', async ({ payload }) => {
         })
       }
 
-      console.log(`✅ Completed workflow ${workflow.id} - PR #${payload.pull_request.number} merged`)
+      log.info(`✅ Completed workflow ${workflow.id} - PR #${payload.pull_request.number} merged`)
     }
   }
 })
@@ -245,7 +249,7 @@ webhooks?.on('pull_request', async ({ payload }) => {
 webhooks?.on('issue_comment', async ({ payload }) => {
   if (payload.action !== 'created') return
 
-  console.log('💬 New comment on issue/PR:', payload.issue.number)
+  log.info(payload.issue.number, '💬 New comment on issue/PR:')
 
   const comment = payload.comment.body?.toLowerCase() || ''
 
@@ -312,7 +316,7 @@ webhooks?.on('issue_comment', async ({ payload }) => {
           })
         }
 
-        console.log(`✅ Plan approved for workflow ${workflow.id}`)
+        log.info(`✅ Plan approved for workflow ${workflow.id}`)
       }
 
       if (isMergeRequest && workflow.status === 'TESTING') {
@@ -329,7 +333,7 @@ webhooks?.on('issue_comment', async ({ payload }) => {
           })
         }
 
-        console.log(`🔀 Merge requested for workflow ${workflow.id}`)
+        log.info(`🔀 Merge requested for workflow ${workflow.id}`)
       }
     }
   }
@@ -340,7 +344,7 @@ webhooks?.on('issue_comment', async ({ payload }) => {
  */
 webhooks?.on('push', async ({ payload }) => {
   if (payload.ref === `refs/heads/${payload.repository.default_branch}`) {
-    console.log('🚀 Push to main branch:', payload.repository.full_name)
+    log.info({ repository: payload.repository.full_name }, '🚀 Push to main branch')
 
     // Find any recently completed workflows for this repository
     const recentWorkflows = await prisma.codingTaskWorkflow.findMany({
@@ -382,7 +386,7 @@ webhooks?.on('push', async ({ payload }) => {
  * Error handler
  */
 webhooks?.onError((error) => {
-  console.error('❌ GitHub webhook error:', error)
+  log.error({ err: error }, '❌ GitHub webhook error:')
 })
 
 /**
@@ -392,7 +396,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check if webhooks are configured
     if (!webhooks || !process.env.GITHUB_WEBHOOK_SECRET) {
-      console.log('⚠️ GitHub webhook received but GITHUB_WEBHOOK_SECRET not configured')
+      log.info('⚠️ GitHub webhook received but GITHUB_WEBHOOK_SECRET not configured')
       return NextResponse.json({
         error: 'GitHub webhooks not configured'
       }, { status: 503 })
@@ -402,23 +406,23 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-hub-signature-256')
 
     if (!signature) {
-      console.error('❌ No signature provided')
+      log.error('❌ No signature provided')
       return NextResponse.json({ error: 'No signature provided' }, { status: 401 })
     }
 
     // Verify webhook signature
     if (!verifySignature(body, signature)) {
-      console.error('❌ Invalid webhook signature')
+      log.error('❌ Invalid webhook signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     const event = request.headers.get('x-github-event')
     if (!event) {
-      console.error('❌ No event type provided')
+      log.error('❌ No event type provided')
       return NextResponse.json({ error: 'No event type provided' }, { status: 400 })
     }
 
-    console.log(`📡 Received GitHub webhook: ${event}`)
+    log.info(`📡 Received GitHub webhook: ${event}`)
 
     // Parse the payload
     const payload = JSON.parse(body)
@@ -433,7 +437,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('❌ Error processing webhook:', error)
+    log.error({ err: error }, '❌ Error processing webhook:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

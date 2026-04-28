@@ -4,6 +4,10 @@ import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { z } from "zod"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.webhooks.ai-agents')
+
 
 // Webhook payload schema for incoming requests
 const IncomingWebhookSchema = z.object({
@@ -37,12 +41,12 @@ async function ensureAIAgentExists(aiAgent: { id: string, type: string }): Promi
     })
 
     if (existingAgent) {
-      console.log(`✅ [AI Agent] Found existing agent: ${aiAgent.id}`)
+      log.info(`✅ [AI Agent] Found existing agent: ${aiAgent.id}`)
       return aiAgent.id
     }
 
     // Create new AI agent user if not found
-    console.log(`🔧 [AI Agent] Creating new agent user: ${aiAgent.id}`)
+    log.info(`🔧 [AI Agent] Creating new agent user: ${aiAgent.id}`)
     const newAgent = await prisma.user.create({
       data: {
         id: aiAgent.id,
@@ -55,11 +59,11 @@ async function ensureAIAgentExists(aiAgent: { id: string, type: string }): Promi
       }
     })
 
-    console.log(`✅ [AI Agent] Created new agent: ${newAgent.id}`)
+    log.info(`✅ [AI Agent] Created new agent: ${newAgent.id}`)
     return newAgent.id
 
   } catch (error) {
-    console.error('⚠️ [AI Agent] Failed to ensure agent exists:', error)
+    log.error({ err: error }, '⚠️ [AI Agent] Failed to ensure agent exists:')
 
     // Fallback: try to find any AI agent user to use as author
     const fallbackAgent = await prisma.user.findFirst({
@@ -68,7 +72,7 @@ async function ensureAIAgentExists(aiAgent: { id: string, type: string }): Promi
     })
 
     if (fallbackAgent) {
-      console.log(`🔄 [AI Agent] Using fallback agent: ${fallbackAgent.id}`)
+      log.info(`🔄 [AI Agent] Using fallback agent: ${fallbackAgent.id}`)
       return fallbackAgent.id
     }
 
@@ -133,17 +137,17 @@ async function sendAIAgentActivitySSE(task: any, payload: any, aiAgent: any) {
         }
       })
 
-      console.log(`📡 Sent SSE notification about AI agent activity to ${userIdsArray.length} users`)
+      log.info(`📡 Sent SSE notification about AI agent activity to ${userIdsArray.length} users`)
     }
   } catch (error) {
-    console.error('❌ Failed to send AI agent activity SSE:', {
+    log.error({
       taskId: payload.task.id,
       aiAgentId: aiAgent?.id,
       aiAgentType: aiAgent?.aiAgentType,
       event: payload.event,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
-    })
+    }, '❌ Failed to send AI agent activity SSE:')
   }
 }
 
@@ -152,7 +156,7 @@ export async function POST(request: NextRequest) {
   const rateLimitCheck = withRateLimit(RATE_LIMITS.WEBHOOK)(request)
 
   if (!rateLimitCheck.allowed) {
-    console.log('🚫 Webhook rate limited:', rateLimitCheck.error)
+    log.info(rateLimitCheck.error, '🚫 Webhook rate limited:')
     return NextResponse.json(
       rateLimitCheck.error,
       {
@@ -163,7 +167,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('🔔 Received AI agent webhook')
+    log.info('🔔 Received AI agent webhook')
 
     const body = await request.json()
     const payload = IncomingWebhookSchema.parse(body)
@@ -184,7 +188,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!mcpToken) {
-      console.log('❌ Invalid access token or AI agent')
+      log.info('❌ Invalid access token or AI agent')
       return NextResponse.json({ error: 'Invalid access token' }, { status: 401 })
     }
 
@@ -197,11 +201,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (!task) {
-      console.log('❌ Task not found or not assigned to this AI agent')
+      log.info('❌ Task not found or not assigned to this AI agent')
       return NextResponse.json({ error: 'Task not found or access denied' }, { status: 404 })
     }
 
-    console.log(`📝 Processing ${payload.event} for task ${task.title} from ${mcpToken.user.name}`)
+    log.info(`📝 Processing ${payload.event} for task ${task.title} from ${mcpToken.user.name}`)
 
     // Handle different event types
     switch (payload.event) {
@@ -211,7 +215,7 @@ export async function POST(request: NextRequest) {
             where: { id: task.id },
             data: { completed: true }
           })
-          console.log(`✅ Task marked as completed: ${task.title}`)
+          log.info(`✅ Task marked as completed: ${task.title}`)
         }
         break
 
@@ -232,7 +236,7 @@ export async function POST(request: NextRequest) {
               taskId: task.id
             }
           })
-          console.log(`💬 Comment added to task: ${task.title}`)
+          log.info(`💬 Comment added to task: ${task.title}`)
         }
         break
 
@@ -248,7 +252,7 @@ export async function POST(request: NextRequest) {
               taskId: task.id
             }
           })
-          console.log(`⚠️ Error logged for task: ${task.title}`)
+          log.info(`⚠️ Error logged for task: ${task.title}`)
         }
         break
     }
@@ -263,14 +267,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.log('❌ Invalid webhook payload:', error.errors)
+      log.info(error.errors, '❌ Invalid webhook payload:')
       return NextResponse.json({
         error: 'Invalid payload',
         details: error.errors
       }, { status: 400 })
     }
 
-    console.error('❌ Error processing AI agent webhook:', error)
+    log.error({ err: error }, '❌ Error processing AI agent webhook:')
     return NextResponse.json({
       error: 'Internal server error'
     }, { status: 500 })

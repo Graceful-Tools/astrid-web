@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { getAgentService } from '@/lib/ai/agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.coding-agent.github-trigger')
+
 // GitHub trigger uses MCP authentication, not sessions
 
 // Force dynamic rendering for webhook endpoints
@@ -27,7 +31,7 @@ interface GitHubTriggerRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('🤖 [GitHub Trigger] Received AI orchestration request from GitHub Actions')
+    log.info('🤖 [GitHub Trigger] Received AI orchestration request from GitHub Actions')
 
     // Parse request
     const body: GitHubTriggerRequest = await request.json()
@@ -37,8 +41,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
     }
 
-    console.log(`📋 [GitHub Trigger] Processing task: ${taskId}`)
-    console.log(`🔧 [GitHub Trigger] GitHub context:`, githubContext)
+    log.info(`📋 [GitHub Trigger] Processing task: ${taskId}`)
+    log.info({ githubContext }, `🔧 [GitHub Trigger] GitHub context:`)
 
     // Validate MCP token authentication
     const authHeader = request.headers.get('authorization')
@@ -72,7 +76,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only coding agents can trigger this endpoint' }, { status: 403 })
     }
 
-    console.log(`✅ [GitHub Trigger] Authenticated as coding agent: ${mcpToken.user.name}`)
+    log.info(`✅ [GitHub Trigger] Authenticated as coding agent: ${mcpToken.user.name}`)
 
     // Get the task details
     const task = await prisma.task.findUnique({
@@ -99,8 +103,8 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    console.log(`📋 [GitHub Trigger] Task verified: "${task.title}"`)
-    console.log(`👤 [GitHub Trigger] Task creator: ${task.creator?.name || 'Deleted User'}`)
+    log.info(`📋 [GitHub Trigger] Task verified: "${task.title}"`)
+    log.info(`👤 [GitHub Trigger] Task creator: ${task.creator?.name || 'Deleted User'}`)
 
     // Check if workflow already exists
     let workflow = await prisma.codingTaskWorkflow.findUnique({
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
 
       // OpenClaw tasks use the channel plugin (SSE), not the orchestrator workflow
       if (aiService === 'openclaw') {
-        console.log(`🔌 [GitHub Trigger] Skipping workflow creation — OpenClaw tasks use the channel plugin`)
+        log.info(`🔌 [GitHub Trigger] Skipping workflow creation — OpenClaw tasks use the channel plugin`)
         return NextResponse.json({
           success: false,
           message: 'OpenClaw tasks are handled via the channel plugin (SSE), not the orchestrator workflow.',
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest) {
         }, { status: 200 })
       }
 
-      console.log(`🚀 [GitHub Trigger] Creating new coding workflow with aiService: ${aiService}`)
+      log.info(`🚀 [GitHub Trigger] Creating new coding workflow with aiService: ${aiService}`)
       workflow = await prisma.codingTaskWorkflow.create({
         data: {
           taskId,
@@ -134,10 +138,10 @@ export async function POST(request: NextRequest) {
           }
         }
       })
-      console.log(`✅ [GitHub Trigger] Created workflow: ${workflow.id}`)
+      log.info(`✅ [GitHub Trigger] Created workflow: ${workflow.id}`)
     } else {
       // Update existing workflow
-      console.log(`🔄 [GitHub Trigger] Updating existing workflow: ${workflow.id}`)
+      log.info(`🔄 [GitHub Trigger] Updating existing workflow: ${workflow.id}`)
       workflow = await prisma.codingTaskWorkflow.update({
         where: { id: workflow.id },
         data: {
@@ -153,7 +157,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize AI orchestrator for the task creator (who has the AI API keys)
-    console.log('🤖 [GitHub Trigger] Initializing AI orchestrator...')
+    log.info('🤖 [GitHub Trigger] Initializing AI orchestrator...')
     if (!task.creatorId) {
       return NextResponse.json({
         error: 'Task creator no longer exists (deleted account)'
@@ -162,11 +166,11 @@ export async function POST(request: NextRequest) {
     const orchestrator = await AIOrchestrator.createForTask(taskId, task.creatorId)
 
     // Start the AI workflow asynchronously
-    console.log('🚀 [GitHub Trigger] Starting AI orchestration workflow...')
+    log.info('🚀 [GitHub Trigger] Starting AI orchestration workflow...')
 
     // Don't await this - let it run in the background
     orchestrator.executeCompleteWorkflow(workflow.id, taskId).catch((error) => {
-      console.error('❌ [GitHub Trigger] AI orchestration failed:', error)
+      log.error({ err: error }, '❌ [GitHub Trigger] AI orchestration failed:')
 
       // Update workflow status to failed
       prisma.codingTaskWorkflow.update({
@@ -179,7 +183,7 @@ export async function POST(request: NextRequest) {
             failedAt: new Date().toISOString()
           }
         }
-      }).catch(console.error)
+      }).catch(err => log.error({ err }, 'workflow update failed'))
     })
 
     // Add a comment to the task indicating GitHub Actions triggered the workflow
@@ -207,9 +211,9 @@ The AI will post the implementation plan here for review once ready! 🤖✨`,
         }
       })
 
-      console.log('✅ [GitHub Trigger] Added status comment to task')
+      log.info('✅ [GitHub Trigger] Added status comment to task')
     } catch (commentError) {
-      console.error('⚠️ [GitHub Trigger] Failed to add status comment:', commentError)
+      log.error({ err: commentError }, '⚠️ [GitHub Trigger] Failed to add status comment:')
     }
 
     // Return success response
@@ -223,7 +227,7 @@ The AI will post the implementation plan here for review once ready! 🤖✨`,
     }, { status: 200 })
 
   } catch (error) {
-    console.error('❌ [GitHub Trigger] Error:', error)
+    log.error({ err: error }, '❌ [GitHub Trigger] Error:')
 
     return NextResponse.json({
       error: 'Internal server error',
