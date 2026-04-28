@@ -17,9 +17,8 @@
 
 ## Authentication & Security
 - **Provider**: NextAuth.js (latest)
-- **Strategies**: Google OAuth + Credentials (email/password)
+- **Strategies**: Google OAuth + WebAuthn passkeys; Apple Sign-In on iOS
 - **Adapter**: @next-auth/prisma-adapter
-- **Password Hashing**: bcryptjs 2.4.3
 - **Encryption**: Node.js crypto (AES-256-CBC)
 - **Rate Limiting**: Custom implementation with IP/user tracking
 

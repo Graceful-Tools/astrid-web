@@ -225,9 +225,6 @@
     "signOut": "Esci",
     "signInWith": "Accedi con {provider}",
     "email": "Email",
-    "password": "Password",
-    "forgotPassword": "Password dimenticata?",
-    "resetPassword": "Reimposta password",
     "createAccount": "Crea account",
     "alreadyHaveAccount": "Hai già un account?",
     "dontHaveAccount": "Non hai un account?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Account e Accesso",
-      "description": "Profilo, verifica email e impostazioni password"
+      "description": "Profilo, verifica email e impostazioni di accesso"
     },
     "remindersNotifications": {
       "title": "Promemoria e Notifiche",
@@ -596,26 +593,13 @@
       "pendingChange": "Cambio email in sospeso",
       "waitingVerification": "In attesa di verifica"
     },
-    "passwordSection": {
-      "title": "Cambia Password",
-      "description": "Aggiorna la tua password per l'autenticazione email/password",
-      "currentPassword": "Password Attuale",
-      "newPassword": "Nuova Password",
-      "confirmPassword": "Conferma Nuova Password",
-      "changePassword": "Cambia Password",
-      "passwordsDoNotMatch": "Le nuove password non corrispondono.",
-      "passwordTooShort": "La nuova password deve essere di almeno 6 caratteri."
-    },
     "passkeys": {
       "title": "Passkey",
       "description": "Usa le passkey per un accesso più veloce e sicuro senza password",
       "addPasskey": "Aggiungi Passkey",
       "addingPasskey": "Aggiunta passkey...",
       "noPasskeys": "Nessuna passkey registrata ancora",
-      "addPasskeyHint": "Aggiungi una passkey per un accesso più veloce senza password",
-      "goPasswordless": "Vai senza password",
-      "removePassword": "Rimuovi Password",
-      "removePasswordHint": "Rimuovi la tua password e accedi solo con passkey"
+      "addPasskeyHint": "Aggiungi una passkey per un accesso più veloce senza password"
     },
     "accountInfo": {
       "title": "Informazioni Account",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Elimina Il Mio Account",
       "confirmTitle": "Conferma Eliminazione Account",
       "confirmDescription": "Questa azione è permanente e non può essere annullata.",
-      "enterPassword": "Inserisci la tua password per confermare",
       "typeToConfirm": "Digita ELIMINA IL MIO ACCOUNT per confermare",
       "permanentlyDelete": "Elimina Permanentemente Account",
       "deleting": "Eliminazione..."

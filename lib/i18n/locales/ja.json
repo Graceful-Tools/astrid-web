@@ -225,9 +225,6 @@
     "signOut": "ログアウト",
     "signInWith": "{provider}でログイン",
     "email": "メール",
-    "password": "パスワード",
-    "forgotPassword": "パスワードをお忘れですか？",
-    "resetPassword": "パスワードをリセット",
     "createAccount": "アカウントを作成",
     "alreadyHaveAccount": "すでにアカウントをお持ちですか？",
     "dontHaveAccount": "アカウントをお持ちでないですか？",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "アカウントとアクセス",
-      "description": "プロフィール、メール確認、パスワード設定"
+      "description": "プロフィール、メール認証、アクセス設定"
     },
     "remindersNotifications": {
       "title": "リマインダーと通知",
@@ -596,26 +593,13 @@
       "pendingChange": "メール変更保留中",
       "waitingVerification": "確認待ち"
     },
-    "passwordSection": {
-      "title": "パスワードを変更",
-      "description": "メール/パスワード認証用のパスワードを更新",
-      "currentPassword": "現在のパスワード",
-      "newPassword": "新しいパスワード",
-      "confirmPassword": "新しいパスワードを確認",
-      "changePassword": "パスワードを変更",
-      "passwordsDoNotMatch": "新しいパスワードが一致しません。",
-      "passwordTooShort": "新しいパスワードは6文字以上である必要があります。"
-    },
     "passkeys": {
       "title": "パスキー",
       "description": "パスキーを使用してパスワードなしでより速く安全にログイン",
       "addPasskey": "パスキーを追加",
       "addingPasskey": "パスキーを追加中...",
       "noPasskeys": "まだパスキーが登録されていません",
-      "addPasskeyHint": "パスワードなしで素早くログインするためにパスキーを追加",
-      "goPasswordless": "パスワードレスにする",
-      "removePassword": "パスワードを削除",
-      "removePasswordHint": "パスワードを削除してパスキーのみでログイン"
+      "addPasskeyHint": "パスワードなしで素早くログインするためにパスキーを追加"
     },
     "accountInfo": {
       "title": "アカウント情報",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "マイアカウントを削除",
       "confirmTitle": "アカウント削除の確認",
       "confirmDescription": "この操作は永続的で元に戻せません。",
-      "enterPassword": "確認のためにパスワードを入力",
       "typeToConfirm": "確認のためにアカウントを削除と入力",
       "permanentlyDelete": "アカウントを完全に削除",
       "deleting": "削除中..."

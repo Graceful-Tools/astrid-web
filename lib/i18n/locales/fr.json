@@ -225,9 +225,6 @@
     "signOut": "Déconnexion",
     "signInWith": "Se connecter avec {provider}",
     "email": "E-mail",
-    "password": "Mot de passe",
-    "forgotPassword": "Mot de passe oublié ?",
-    "resetPassword": "Réinitialiser le mot de passe",
     "createAccount": "Créer un compte",
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "dontHaveAccount": "Vous n'avez pas de compte ?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Compte et Accès",
-      "description": "Profil, vérification d'email et paramètres de mot de passe"
+      "description": "Profil, vérification de l'email et paramètres d'accès"
     },
     "remindersNotifications": {
       "title": "Rappels et Notifications",
@@ -596,26 +593,13 @@
       "pendingChange": "Changement d'e-mail en attente",
       "waitingVerification": "En attente de vérification"
     },
-    "passwordSection": {
-      "title": "Changer le mot de passe",
-      "description": "Mettre à jour votre mot de passe pour l'authentification e-mail/mot de passe",
-      "currentPassword": "Mot de passe actuel",
-      "newPassword": "Nouveau mot de passe",
-      "confirmPassword": "Confirmer le nouveau mot de passe",
-      "changePassword": "Changer le mot de passe",
-      "passwordsDoNotMatch": "Les nouveaux mots de passe ne correspondent pas.",
-      "passwordTooShort": "Le nouveau mot de passe doit contenir au moins 6 caractères."
-    },
     "passkeys": {
       "title": "Passkeys",
       "description": "Utilisez les passkeys pour une connexion plus rapide et plus sécurisée sans mot de passe",
       "addPasskey": "Ajouter une passkey",
       "addingPasskey": "Ajout de la passkey...",
       "noPasskeys": "Aucune passkey enregistrée",
-      "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe",
-      "goPasswordless": "Passer sans mot de passe",
-      "removePassword": "Supprimer le mot de passe",
-      "removePasswordHint": "Supprimez votre mot de passe et connectez-vous uniquement avec une passkey"
+      "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe"
     },
     "accountInfo": {
       "title": "Informations du compte",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Supprimer mon compte",
       "confirmTitle": "Confirmer la suppression du compte",
       "confirmDescription": "Cette action est permanente et irréversible.",
-      "enterPassword": "Entrez votre mot de passe pour confirmer",
       "typeToConfirm": "Tapez SUPPRIMER MON COMPTE pour confirmer",
       "permanentlyDelete": "Supprimer définitivement le compte",
       "deleting": "Suppression..."

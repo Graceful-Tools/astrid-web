@@ -45,25 +45,6 @@ When building mobile or external integrations, always use `/api/v1/` routes. The
 
 ## Authentication Endpoints
 
-### POST `/api/auth/mobile-signup`
-Create a new account with passwordless authentication.
-
-**Request:**
-```json
-{
-  "email": "user@example.com",
-  "name": "User Name"  // optional
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Check your email for sign-in link"
-}
-```
-
 ### POST `/api/auth/apple`
 Sign in with Apple.
 

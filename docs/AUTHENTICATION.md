@@ -1,23 +1,27 @@
 # Authentication System
 
-This document outlines the authentication setup and important configuration details to prevent regressions.
+This document describes the authentication setup and important configuration details to prevent regressions.
 
 ## Overview
 
-The application uses **NextAuth.js** with **JWT sessions** supporting two authentication methods:
-- **Google OAuth** - Social login with Google accounts
-- **Credentials** - Email/password authentication
+The application uses **NextAuth.js** with **JWT sessions**. Three sign-in surfaces are supported:
+
+- **Web** — Google OAuth and WebAuthn passkeys (via NextAuth on the server)
+- **iOS** — Apple Sign-In (custom endpoint at `/api/auth/apple`) and Google OAuth
+- **API/automation** — OAuth client_credentials grant (`/api/v1/oauth/token`) and legacy MCP tokens
+
+Email/password authentication was removed in 2026-04. There is no `User.password` column, no `CredentialsProvider`, no `/api/auth/signup` endpoint, and no `bcryptjs` dependency.
 
 ## Critical Configuration
 
-### ⚠️ **MUST USE JWT SESSIONS**
+### MUST USE JWT SESSIONS
 
-The system **MUST** use JWT sessions (`strategy: "jwt"`), not database sessions. This is critical for credentials authentication to work properly.
+The system uses JWT sessions (`strategy: "jwt"`), not database sessions:
 
 ```typescript
 // lib/auth-config.ts
 session: {
-  strategy: "jwt",  // ← CRITICAL: Must be "jwt", not "database"
+  strategy: "jwt",
   maxAge: 30 * 24 * 60 * 60, // 30 days
 }
 ```
@@ -29,7 +33,6 @@ Both JWT and session callbacks are required:
 ```typescript
 callbacks: {
   jwt: ({ token, user, account }) => {
-    // Store user data in JWT token on first signin
     if (user && account) {
       token.id = user.id
       token.provider = account.provider
@@ -40,7 +43,6 @@ callbacks: {
     return token
   },
   session: ({ session, token }) => {
-    // Pass JWT data to session object
     if (session?.user && token) {
       session.user.id = token.id as string
       session.user.email = token.email as string
@@ -52,29 +54,7 @@ callbacks: {
 }
 ```
 
-### React Signin Form
-
-The signin form **MUST NOT** use `redirect: false` with credentials. Let NextAuth handle redirects:
-
-```typescript
-// ✅ CORRECT
-const result = await signIn("credentials", {
-  email,
-  password,
-  callbackUrl: "/",
-})
-
-// ❌ WRONG - Breaks with JWT sessions
-const result = await signIn("credentials", {
-  email,
-  password,
-  redirect: false,  // ← Don't use this
-})
-```
-
 ## Environment Variables
-
-Required environment variables:
 
 ```bash
 NEXTAUTH_URL=http://localhost:3000  # Must match actual port
@@ -84,9 +64,10 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 DATABASE_URL=postgresql://...
 ```
 
-## Provider Configuration
+## Providers
 
-### Google OAuth Provider
+### Google OAuth (web + iOS)
+
 ```typescript
 GoogleProvider({
   clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -101,93 +82,64 @@ GoogleProvider({
 })
 ```
 
-### Credentials Provider
-```typescript
-CredentialsProvider({
-  name: "credentials",
-  credentials: {
-    email: { label: "Email", type: "email" },
-    password: { label: "Password", type: "password" }
-  },
-  async authorize(credentials) {
-    // Validate email/password against database
-    // Return user object or null
-  }
-})
-```
+### Apple Sign-In (iOS only)
+
+iOS apps post their Apple identity token to `/api/auth/apple`. The endpoint verifies the token against Apple's JWKS at `https://appleid.apple.com/auth/keys` and creates or links the user account directly via Prisma. This route does **not** go through NextAuth — it issues its own session cookie.
+
+### WebAuthn / Passkeys (web)
+
+Registration: `/api/auth/webauthn/register/begin` → `/api/auth/webauthn/register/verify`. Authentication: `/api/auth/webauthn/authenticate/begin` → `/api/auth/webauthn/authenticate/verify`. See `lib/webauthn.ts`.
 
 ## Custom Adapter
 
 The system uses a custom Prisma adapter that:
 - Prevents duplicate user creation for OAuth
-- Handles email case normalization
-- **Note:** Database session creation in custom adapter is not needed with JWT strategy
+- Normalizes email case
+- Links a Google account to an existing user with the same email
 
-## Testing
+Database session creation is not needed with the JWT strategy.
 
-### Smoke Test
-Run the authentication smoke test to verify the system is working:
+## Account Deletion
 
-```bash
-DATABASE_URL="postgresql://..." npx tsx scripts/test-auth-smoke.ts
-```
+`POST /api/account/delete` requires:
+1. An active session (cookie or JWT)
+2. The literal confirmation text `DELETE MY ACCOUNT`
+3. The user has at least one authentication method linked (OAuth account or passkey)
 
-### Unit Tests
-```bash
-npm test tests/auth.test.ts
-npm test tests/auth-api.test.ts
-```
-
-## Common Issues & Solutions
-
-### Issue: "Invalid CSRF token" or redirect loops
-**Cause:** Usually port mismatch between `NEXTAUTH_URL` and actual server port  
-**Solution:** Ensure `NEXTAUTH_URL` matches the actual development server port
-
-### Issue: Credentials authentication not working
-**Cause:** Using database sessions instead of JWT sessions  
-**Solution:** Verify `session.strategy` is set to `"jwt"` in auth config
-
-### Issue: Session not persisting after credentials login  
-**Cause:** Missing or incorrect JWT/session callbacks  
-**Solution:** Ensure both JWT and session callbacks are properly implemented
-
-### Issue: "User already exists" but can't sign in
-**Cause:** Password not properly stored or validated  
-**Solution:** Check bcrypt hashing/comparison in credentials provider
+The session itself is the proof of identity; the confirmation text is the user-facing acknowledgement.
 
 ## Database Schema
 
-Users table must include:
+The `User` model includes:
 - `id` (string, primary key)
-- `email` (string, unique)  
-- `password` (string, optional - for credentials auth)
+- `email` (string, unique)
 - `name` (string, optional)
 - `image` (string, optional)
 - Standard NextAuth fields for OAuth support
+- WebAuthn `Authenticator` rows for passkeys
+
+There is no `password` column.
 
 ## Security Notes
 
-- Passwords are hashed with bcrypt (12 rounds)
 - Email addresses are normalized to lowercase
-- JWT tokens are encrypted with NEXTAUTH_SECRET
+- JWT tokens are encrypted with `NEXTAUTH_SECRET`
 - CSRF protection is enabled by default
-- Rate limiting is applied to signup endpoint
+- Apple identity tokens are verified against Apple's JWKS (issuer + signature checks)
+- WebAuthn challenges are signed and time-bound
 
 ## Debugging
 
 Enable debug mode in development:
+
 ```typescript
 debug: process.env.NODE_ENV === "development"
 ```
 
-Check console logs for:
-- `[Auth] JWT callback:` - JWT token creation
-- `[Auth] Session callback (JWT):` - Session object creation  
-- `[Auth] Authentication successful for:` - Credentials validation
-- `[Auth] SignIn event:` - Successful signin events
+Check structured logs (pino) for `[Auth]`-prefixed messages: JWT/session callback events, Google OAuth account linking, sign-in events.
 
 ## Version History
 
-- **v2.0** - Switched to JWT sessions (CURRENT)
-- **v1.0** - Database sessions (DEPRECATED - caused credentials auth issues)
+- **v3.0** (2026-04) — Removed email/password authentication entirely. Web uses Google OAuth + passkeys; iOS uses Apple Sign-In + Google OAuth.
+- **v2.0** — Switched to JWT sessions
+- **v1.0** — Database sessions (deprecated)

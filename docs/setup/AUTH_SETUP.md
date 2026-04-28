@@ -4,12 +4,14 @@ This guide covers setting up authentication for both development and production 
 
 ## Current Authentication Flow
 
-The app uses **NextAuth.js** with **two authentication methods**:
+The app uses **NextAuth.js** with the following authentication methods:
 
 1. **Google OAuth**: Sign in with Google account (automatic email verification)
-2. **Credentials**: Email/password authentication with email verification
-3. **Direct Signup**: Users can self-register with email/password at `/auth/signin`
+2. **WebAuthn passkeys**: Passwordless sign-in/sign-up with platform authenticator
+3. **Apple Sign-In** (iOS only): Custom endpoint at `/api/auth/apple` that verifies Apple identity tokens
 4. **Invitations**: Users can be invited to lists via email (creates placeholder users if email not registered)
+
+Email/password authentication was removed in 2026-04. See `docs/AUTHENTICATION.md` for the full architecture.
 
 ## Environment Variables Required
 
@@ -106,33 +108,20 @@ Copy the generated Client ID and Client Secret to your environment variables.
 
 1. Start the development server: `npm run dev`
 2. Visit `http://localhost:3000/auth/signin`
-3. Test both authentication methods:
+3. Test the available authentication methods:
    - Google OAuth sign-in
-   - Email/password sign-up and sign-in
-4. Verify email verification flow works (check console logs in dev mode)
+   - Passkey registration + sign-in (requires a platform authenticator)
+4. Verify email change verification flow works (check structured logs in dev mode)
 
 ### Production Testing
 
 1. Deploy to Vercel
 2. Visit `https://your-domain.vercel.app/auth/signin`
-3. Test both authentication methods:
+3. Test sign-in:
    - Google OAuth sign-in
-   - Email/password sign-up and sign-in
-4. Verify email verification emails are sent
+   - Passkey sign-in
+4. On iOS, test Apple Sign-In via the iOS app
 5. Check Vercel function logs for any errors
-
-### Testing Scripts
-
-```bash
-# Smoke test authentication
-DATABASE_URL="postgresql://..." npx tsx scripts/test-auth-smoke.ts
-
-# Test credentials authentication
-npx tsx scripts/test-credentials.ts
-
-# Test account linking (OAuth + credentials for same email)
-npx tsx scripts/test-account-linking.ts
-```
 
 ## Security Best Practices
 

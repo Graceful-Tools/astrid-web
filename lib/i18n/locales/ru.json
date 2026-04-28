@@ -225,9 +225,6 @@
     "signOut": "Выйти",
     "signInWith": "Войти через {provider}",
     "email": "Email",
-    "password": "Пароль",
-    "forgotPassword": "Забыли пароль?",
-    "resetPassword": "Сбросить пароль",
     "createAccount": "Создать аккаунт",
     "alreadyHaveAccount": "Уже есть аккаунт?",
     "dontHaveAccount": "Нет аккаунта?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Аккаунт и доступ",
-      "description": "Профиль, подтверждение email и настройки пароля"
+      "description": "Профиль, подтверждение email и настройки доступа"
     },
     "remindersNotifications": {
       "title": "Напоминания и уведомления",
@@ -596,26 +593,13 @@
       "pendingChange": "Ожидается смена email",
       "waitingVerification": "Ожидание подтверждения"
     },
-    "passwordSection": {
-      "title": "Изменить пароль",
-      "description": "Обновите пароль для входа по email",
-      "currentPassword": "Текущий пароль",
-      "newPassword": "Новый пароль",
-      "confirmPassword": "Подтвердите новый пароль",
-      "changePassword": "Изменить пароль",
-      "passwordsDoNotMatch": "Новые пароли не совпадают.",
-      "passwordTooShort": "Новый пароль должен быть не менее 6 символов."
-    },
     "passkeys": {
       "title": "Ключи доступа",
       "description": "Используйте ключи доступа для быстрого и безопасного входа без пароля",
       "addPasskey": "Добавить ключ",
       "addingPasskey": "Добавление ключа...",
       "noPasskeys": "Ключей пока нет",
-      "addPasskeyHint": "Добавьте ключ для быстрого входа без пароля",
-      "goPasswordless": "Без пароля",
-      "removePassword": "Удалить пароль",
-      "removePasswordHint": "Удалите пароль и входите только с ключом"
+      "addPasskeyHint": "Добавьте ключ для быстрого входа без пароля"
     },
     "accountInfo": {
       "title": "Информация об аккаунте",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Удалить мой аккаунт",
       "confirmTitle": "Подтвердите удаление аккаунта",
       "confirmDescription": "Это действие необратимо.",
-      "enterPassword": "Введите пароль для подтверждения",
       "typeToConfirm": "Введите УДАЛИТЬ МОЙ АККАУНТ для подтверждения",
       "permanentlyDelete": "Удалить аккаунт навсегда",
       "deleting": "Удаление..."

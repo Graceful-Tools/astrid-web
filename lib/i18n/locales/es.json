@@ -225,9 +225,6 @@
     "signOut": "Cerrar sesión",
     "signInWith": "Iniciar sesión con {provider}",
     "email": "Correo electrónico",
-    "password": "Contraseña",
-    "forgotPassword": "¿Olvidaste tu contraseña?",
-    "resetPassword": "Restablecer contraseña",
     "createAccount": "Crear cuenta",
     "alreadyHaveAccount": "¿Ya tienes una cuenta?",
     "dontHaveAccount": "¿No tienes una cuenta?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Cuenta y Acceso",
-      "description": "Perfil, verificación de correo y configuración de contraseña"
+      "description": "Perfil, verificación de correo y configuración de acceso"
     },
     "remindersNotifications": {
       "title": "Recordatorios y Notificaciones",
@@ -596,26 +593,13 @@
       "pendingChange": "Cambio de correo pendiente",
       "waitingVerification": "Esperando verificación"
     },
-    "passwordSection": {
-      "title": "Cambiar Contraseña",
-      "description": "Actualiza tu contraseña para autenticación por correo/contraseña",
-      "currentPassword": "Contraseña Actual",
-      "newPassword": "Nueva Contraseña",
-      "confirmPassword": "Confirmar Nueva Contraseña",
-      "changePassword": "Cambiar Contraseña",
-      "passwordsDoNotMatch": "Las nuevas contraseñas no coinciden.",
-      "passwordTooShort": "La nueva contraseña debe tener al menos 6 caracteres."
-    },
     "passkeys": {
       "title": "Passkeys",
       "description": "Usa passkeys para iniciar sesión más rápido y seguro sin contraseñas",
       "addPasskey": "Agregar Passkey",
       "addingPasskey": "Agregando passkey...",
       "noPasskeys": "No hay passkeys registradas aún",
-      "addPasskeyHint": "Agrega una passkey para iniciar sesión más rápido sin contraseña",
-      "goPasswordless": "Ir sin contraseña",
-      "removePassword": "Eliminar Contraseña",
-      "removePasswordHint": "Elimina tu contraseña e inicia sesión solo con passkey"
+      "addPasskeyHint": "Agrega una passkey para iniciar sesión más rápido sin contraseña"
     },
     "accountInfo": {
       "title": "Información de la Cuenta",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Eliminar Mi Cuenta",
       "confirmTitle": "Confirmar Eliminación de Cuenta",
       "confirmDescription": "Esta acción es permanente y no se puede revertir.",
-      "enterPassword": "Ingresa tu contraseña para confirmar",
       "typeToConfirm": "Escribe ELIMINAR MI CUENTA para confirmar",
       "permanentlyDelete": "Eliminar Cuenta Permanentemente",
       "deleting": "Eliminando..."

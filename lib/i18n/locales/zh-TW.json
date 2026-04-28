@@ -225,9 +225,6 @@
     "signOut": "登出",
     "signInWith": "使用{provider}登入",
     "email": "電子郵件",
-    "password": "密碼",
-    "forgotPassword": "忘記密碼？",
-    "resetPassword": "重設密碼",
     "createAccount": "建立帳戶",
     "alreadyHaveAccount": "已有帳戶？",
     "dontHaveAccount": "沒有帳戶？",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "帳戶與存取",
-      "description": "個人資料、電子郵件驗證和密碼設定"
+      "description": "個人檔案、電子郵件驗證和存取設定"
     },
     "remindersNotifications": {
       "title": "提醒與通知",
@@ -596,26 +593,13 @@
       "pendingChange": "電子郵件變更待處理",
       "waitingVerification": "等待驗證"
     },
-    "passwordSection": {
-      "title": "變更密碼",
-      "description": "更新你的電子郵件/密碼認證密碼",
-      "currentPassword": "目前密碼",
-      "newPassword": "新密碼",
-      "confirmPassword": "確認新密碼",
-      "changePassword": "變更密碼",
-      "passwordsDoNotMatch": "新密碼不相符。",
-      "passwordTooShort": "新密碼必須至少6個字元。"
-    },
     "passkeys": {
       "title": "通行金鑰",
       "description": "使用通行金鑰更快更安全地登入，無需密碼",
       "addPasskey": "新增通行金鑰",
       "addingPasskey": "新增通行金鑰中...",
       "noPasskeys": "還沒有註冊通行金鑰",
-      "addPasskeyHint": "新增通行金鑰以更快地無密碼登入",
-      "goPasswordless": "無密碼登入",
-      "removePassword": "移除密碼",
-      "removePasswordHint": "移除密碼，僅使用通行金鑰登入"
+      "addPasskeyHint": "新增通行金鑰以更快地無密碼登入"
     },
     "accountInfo": {
       "title": "帳戶資訊",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "刪除我的帳戶",
       "confirmTitle": "確認刪除帳戶",
       "confirmDescription": "此操作是永久的，無法復原。",
-      "enterPassword": "輸入密碼以確認",
       "typeToConfirm": "輸入「刪除我的帳戶」以確認",
       "permanentlyDelete": "永久刪除帳戶",
       "deleting": "刪除中..."
