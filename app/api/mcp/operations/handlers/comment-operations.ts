@@ -5,14 +5,18 @@
 import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { validateMCPToken, getListMemberIdsByListId } from "./shared"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('mcp.comment-operations')
+
 
 export async function addComment(accessToken: string, taskId: string, commentData: any, userId: string, aiAgentId?: string) {
-  console.log('[MCP addComment] Called with:', {
+  log.info({
     taskId,
     commentData: typeof commentData === 'string' ? `STRING: "${commentData.substring(0, 50)}..."` : commentData,
     userId,
     aiAgentId
-  })
+  }, '[MCP addComment] Called with:')
 
   // Note: Authentication already done by middleware, userId is the authenticated user
 
@@ -55,7 +59,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
   })
 
   if (!task) {
-    console.error(`[MCP addComment] Task not found or access denied. TaskId: ${taskId}, UserId: ${userId}`)
+    log.error(`[MCP addComment] Task not found or access denied. TaskId: ${taskId}, UserId: ${userId}`)
     throw new Error('Task not found or access denied')
   }
 
@@ -106,7 +110,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
         Object.assign(comment, updatedComment)
       }
     } catch (error) {
-      console.error('Failed to associate file with comment:', error)
+      log.error({ err: error }, 'Failed to associate file with comment:')
       // Don't fail the comment creation if file association fails
     }
   }
@@ -129,7 +133,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
     userIds.delete(userId)
 
     if (userIds.size > 0) {
-      console.log(`[MCP SSE] Broadcasting comment_created to ${userIds.size} users`)
+      log.info(`[MCP SSE] Broadcasting comment_created to ${userIds.size} users`)
       broadcastToUsers(Array.from(userIds), {
         type: 'comment_created',
         timestamp: new Date().toISOString(),
@@ -152,7 +156,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
       })
     }
   } catch (error) {
-    console.error('[MCP SSE] Failed to broadcast comment_created:', error)
+    log.error({ err: error }, '[MCP SSE] Failed to broadcast comment_created:')
     // Don't fail the operation if SSE fails
   }
 
@@ -241,7 +245,7 @@ export async function getTaskComments(accessToken: string, taskId: string, userI
 export async function deleteComment(accessToken: string, commentId: string, userId: string) {
   const mcpToken = await validateMCPToken(accessToken)
 
-  console.log(`[MCP deleteComment] Attempting to delete comment ${commentId} for user ${mcpToken.userId}`)
+  log.info(`[MCP deleteComment] Attempting to delete comment ${commentId} for user ${mcpToken.userId}`)
 
   // Find the existing comment with task and permission info
   const existingComment = await prisma.comment.findUnique({
@@ -262,7 +266,7 @@ export async function deleteComment(accessToken: string, commentId: string, user
   })
 
   if (!existingComment) {
-    console.log(`[MCP deleteComment] Comment ${commentId} not found`)
+    log.info(`[MCP deleteComment] Comment ${commentId} not found`)
     throw new Error('Comment not found')
   }
 
@@ -279,11 +283,11 @@ export async function deleteComment(accessToken: string, commentId: string, user
   })
 
   if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
-    console.log(`[MCP deleteComment] Access denied for user ${mcpToken.userId} to delete comment ${commentId}`)
+    log.info(`[MCP deleteComment] Access denied for user ${mcpToken.userId} to delete comment ${commentId}`)
     throw new Error('You can only delete your own comments or comments on tasks you manage')
   }
 
-  console.log(`[MCP deleteComment] Access granted. Deleting comment ${commentId}`)
+  log.info(`[MCP deleteComment] Access granted. Deleting comment ${commentId}`)
 
   // Delete the comment
   await prisma.comment.delete({
@@ -321,11 +325,11 @@ export async function deleteComment(accessToken: string, commentId: string, user
       })
     }
   } catch (sseError) {
-    console.error("[MCP deleteComment] Failed to send SSE notifications:", sseError)
+    log.error({ err: sseError }, "[MCP deleteComment] Failed to send SSE notifications:")
     // Continue - comment was still deleted
   }
 
-  console.log(`[MCP deleteComment] Comment ${commentId} deleted successfully`)
+  log.info(`[MCP deleteComment] Comment ${commentId} deleted successfully`)
 
   return { success: true, message: 'Comment deleted successfully' }
 }

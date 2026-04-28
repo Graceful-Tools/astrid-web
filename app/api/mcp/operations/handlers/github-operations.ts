@@ -5,6 +5,10 @@
 import { prisma } from "@/lib/prisma"
 import { getErrorMessage, getErrorStack } from "@/lib/error-utils"
 import { validateMCPToken } from "./shared"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('mcp.github-operations')
+
 
 /**
  * Find the appropriate user for GitHub operations
@@ -14,10 +18,10 @@ export async function getGitHubUserForRepository(
   authenticatedUserId: string,
   repository: string
 ): Promise<string> {
-  console.log(`[MCP] getGitHubUserForRepository called:`, {
+  log.info({
     authenticatedUserId,
     repository
-  })
+  }, `[MCP] getGitHubUserForRepository called:`)
 
   // Check if authenticated user is an AI agent
   const authenticatedUser = await prisma.user.findUnique({
@@ -25,14 +29,14 @@ export async function getGitHubUserForRepository(
     select: { isAIAgent: true, aiAgentType: true }
   })
 
-  console.log(`[MCP] Authenticated user check:`, {
+  log.info({
     isAIAgent: authenticatedUser?.isAIAgent,
     aiAgentType: authenticatedUser?.aiAgentType
-  })
+  }, `[MCP] Authenticated user check:`)
 
   // If not an AI agent, use the authenticated user's GitHub integration
   if (!authenticatedUser?.isAIAgent) {
-    console.log(`[MCP] User is not an AI agent, using authenticated user ID: ${authenticatedUserId}`)
+    log.info(`[MCP] User is not an AI agent, using authenticated user ID: ${authenticatedUserId}`)
     return authenticatedUserId
   }
 
@@ -48,20 +52,20 @@ export async function getGitHubUserForRepository(
     }
   })
 
-  console.log(`[MCP] List with repository check:`, {
+  log.info({
     found: !!listWithRepo,
     aiAgentConfiguredBy: listWithRepo?.aiAgentConfiguredBy,
     ownerId: listWithRepo?.owner?.id
-  })
+  }, `[MCP] List with repository check:`)
 
   if (listWithRepo?.aiAgentConfiguredBy) {
-    console.log(`[MCP] Using GitHub integration from user who configured AI agent: ${listWithRepo.aiAgentConfiguredBy}`)
+    log.info(`[MCP] Using GitHub integration from user who configured AI agent: ${listWithRepo.aiAgentConfiguredBy}`)
     return listWithRepo.aiAgentConfiguredBy
   }
 
   // Fallback: use list owner
   if (listWithRepo?.owner?.id) {
-    console.log(`[MCP] Using GitHub integration from list owner: ${listWithRepo.owner.id}`)
+    log.info(`[MCP] Using GitHub integration from list owner: ${listWithRepo.owner.id}`)
     return listWithRepo.owner.id
   }
 
@@ -71,7 +75,7 @@ export async function getGitHubUserForRepository(
     select: { userId: true, repositories: true }
   })
 
-  console.log(`[MCP] Checking ${allIntegrations.length} GitHub integrations for repository access`)
+  log.info(`[MCP] Checking ${allIntegrations.length} GitHub integrations for repository access`)
 
   const integration = allIntegrations.find(int => {
     const repos = int.repositories as any[]
@@ -79,16 +83,16 @@ export async function getGitHubUserForRepository(
   })
 
   if (integration) {
-    console.log(`[MCP] Using GitHub integration from user with repository access: ${integration.userId}`)
+    log.info(`[MCP] Using GitHub integration from user with repository access: ${integration.userId}`)
     return integration.userId
   }
 
   // If all else fails, return the authenticated user ID (will likely fail with helpful error)
-  console.warn(`[MCP] Could not find appropriate GitHub user for repository ${repository}, using authenticated user: ${authenticatedUserId}`)
-  console.warn(`[MCP] This will likely fail when trying to access GitHub. Check:`)
-  console.warn(`[MCP] 1. List has githubRepositoryId set to: ${repository}`)
-  console.warn(`[MCP] 2. List has aiAgentConfiguredBy set to a valid user ID`)
-  console.warn(`[MCP] 3. That user has GitHub integration configured`)
+  log.warn(`[MCP] Could not find appropriate GitHub user for repository ${repository}, using authenticated user: ${authenticatedUserId}`)
+  log.warn(`[MCP] This will likely fail when trying to access GitHub. Check:`)
+  log.warn(`[MCP] 1. List has githubRepositoryId set to: ${repository}`)
+  log.warn(`[MCP] 2. List has aiAgentConfiguredBy set to a valid user ID`)
+  log.warn(`[MCP] 3. That user has GitHub integration configured`)
   return authenticatedUserId
 }
 
@@ -122,7 +126,7 @@ export async function getRepositoryFile(
       ref: ref || 'default'
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to get repository file ${repository}/${path}:`, error)
+    log.error({ err: error }, `[MCP] Failed to get repository file ${repository}/${path}:`)
 
     // Check if it's a GitHub integration issue
     const errorMsg = getErrorMessage(error)
@@ -161,7 +165,7 @@ export async function listRepositoryFiles(
       ref: ref || 'default'
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to list repository files ${repository}/${path}:`, error)
+    log.error({ err: error }, `[MCP] Failed to list repository files ${repository}/${path}:`)
 
     // Check if it's a GitHub integration issue
     if (getErrorMessage(error).includes('No GitHub integration found')) {
@@ -200,7 +204,7 @@ export async function createBranch(
       message: `Branch ${newBranch} created successfully from ${baseBranch}`
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to create branch ${newBranch} in ${repository}:`, error)
+    log.error({ err: error }, `[MCP] Failed to create branch ${newBranch} in ${repository}:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)
@@ -240,7 +244,7 @@ export async function commitChanges(
       message: `Committed ${changes.length} file(s) to ${branch}`
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to commit changes to ${repository}/${branch}:`, error)
+    log.error({ err: error }, `[MCP] Failed to commit changes to ${repository}/${branch}:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)
@@ -265,24 +269,24 @@ export async function createPullRequest(
   const { GitHubClient } = await import('@/lib/github-client')
 
   try {
-    console.log(`[MCP] Creating pull request:`, {
+    log.info({
       repository,
       headBranch,
       baseBranch,
       title: title?.substring(0, 50),
       userId
-    })
+    }, `[MCP] Creating pull request:`)
 
     // Create GitHub client for the user
     const githubUserId = await getGitHubUserForRepository(userId, repository)
-    console.log(`[MCP] Using GitHub integration from user: ${githubUserId}`)
+    log.info(`[MCP] Using GitHub integration from user: ${githubUserId}`)
 
     const githubClient = await GitHubClient.forUser(githubUserId)
 
     // Create the pull request
     const prInfo = await githubClient.createPullRequest(repository, headBranch, baseBranch, title, body)
 
-    console.log(`[MCP] Pull request created successfully: #${prInfo.number}`)
+    log.info(`[MCP] Pull request created successfully: #${prInfo.number}`)
 
     return {
       success: true,
@@ -297,11 +301,11 @@ export async function createPullRequest(
       message: `Pull request #${prInfo.number} created successfully`
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to create pull request in ${repository}:`, error)
-    console.error(`   Head branch: ${headBranch}`)
-    console.error(`   Base branch: ${baseBranch}`)
-    console.error(`   User ID: ${userId}`)
-    console.error(`   Error stack:`, getErrorStack(error))
+    log.error({ err: error }, `[MCP] Failed to create pull request in ${repository}:`)
+    log.error(`   Head branch: ${headBranch}`)
+    log.error(`   Base branch: ${baseBranch}`)
+    log.error(`   User ID: ${userId}`)
+    log.error(getErrorStack(error), `   Error stack:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)
@@ -340,7 +344,7 @@ export async function mergePullRequest(
       message: `Pull request #${prNumber} merged successfully using ${mergeMethod} method`
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to merge pull request #${prNumber} in ${repository}:`, error)
+    log.error({ err: error }, `[MCP] Failed to merge pull request #${prNumber} in ${repository}:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)
@@ -377,7 +381,7 @@ export async function addPullRequestComment(
       message: `Comment added to pull request #${prNumber} successfully`
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to add comment to pull request #${prNumber} in ${repository}:`, error)
+    log.error({ err: error }, `[MCP] Failed to add comment to pull request #${prNumber} in ${repository}:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)
@@ -424,7 +428,7 @@ export async function getPullRequestComments(
       }))
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to get comments from PR #${prNumber} in ${repository}:`, error)
+    log.error({ err: error }, `[MCP] Failed to get comments from PR #${prNumber} in ${repository}:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)
@@ -457,7 +461,7 @@ export async function getRepositoryInfo(
       repository: repoInfo
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to get repository info for ${repository}:`, error)
+    log.error({ err: error }, `[MCP] Failed to get repository info for ${repository}:`)
 
     if (getErrorMessage(error).includes('No GitHub integration found')) {
       throw new Error(`GitHub integration not configured. Please connect your GitHub account in Settings -> Coding Integration.`)

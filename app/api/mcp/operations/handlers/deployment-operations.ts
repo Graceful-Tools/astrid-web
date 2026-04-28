@@ -4,6 +4,10 @@
 
 import { getErrorMessage } from "@/lib/error-utils"
 import { validateMCPToken } from "./shared"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('mcp.deployment-operations')
+
 
 export async function deployToStaging(
   accessToken: string,
@@ -39,7 +43,7 @@ export async function deployToStaging(
       message: `Deployment created for ${branch} branch`
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to deploy to staging:`, error)
+    log.error({ err: error }, `[MCP] Failed to deploy to staging:`)
     throw new Error(`Failed to deploy to staging: ${getErrorMessage(error)}`)
   }
 }
@@ -72,7 +76,7 @@ export async function getDeploymentStatus(
       }
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to get deployment status:`, error)
+    log.error({ err: error }, `[MCP] Failed to get deployment status:`)
     throw new Error(`Failed to get deployment status: ${getErrorMessage(error)}`)
   }
 }
@@ -96,7 +100,7 @@ export async function getDeploymentLogs(
       logs: logs || 'No logs available'
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to get deployment logs:`, error)
+    log.error({ err: error }, `[MCP] Failed to get deployment logs:`)
     throw new Error(`Failed to get deployment logs: ${getErrorMessage(error)}`)
   }
 }
@@ -122,7 +126,7 @@ export async function getDeploymentErrors(
       buildLogs: errorInfo.buildLogs
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to get deployment errors:`, error)
+    log.error({ err: error }, `[MCP] Failed to get deployment errors:`)
     throw new Error(`Failed to get deployment errors: ${getErrorMessage(error)}`)
   }
 }
@@ -138,7 +142,7 @@ export async function listDeployments(
 
   // Check if Vercel API token is configured (support both env var names)
   if (!process.env.VERCEL_TOKEN && !process.env.VERCEL_API_TOKEN) {
-    console.log('[MCP] Vercel API token not configured, returning empty deployments list')
+    log.info('[MCP] Vercel API token not configured, returning empty deployments list')
     return {
       success: false,
       error: 'Vercel API not configured',
@@ -176,7 +180,7 @@ export async function listDeployments(
       throw new Error(`No Vercel projects found for repository: ${repository}`)
     }
 
-    console.log(`[MCP] Found ${matchingProjects.length} Vercel projects for ${repository}:`, matchingProjects.map((p: any) => p.name))
+    log.info(matchingProjects.map((p: any) => p.name), `[MCP] Found ${matchingProjects.length} Vercel projects for ${repository}:`)
 
     // Get deployments from ALL matching projects
     const allDeployments: any[] = []
@@ -217,7 +221,7 @@ export async function listDeployments(
       }))
     }
   } catch (error: unknown) {
-    console.error(`[MCP] Failed to list deployments:`, error)
+    log.error({ err: error }, `[MCP] Failed to list deployments:`)
     throw new Error(`Failed to list deployments: ${getErrorMessage(error)}`)
   }
 }

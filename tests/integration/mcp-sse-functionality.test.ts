@@ -133,13 +133,13 @@ describe('MCP SSE Integration - Core Functionality', () => {
 
     // Verify SSE error handlers log errors without re-throwing
     // Each SSE error should have:
-    // 1. console.error with "Failed to broadcast"
+    // 1. log.error with "Failed to broadcast"
     // 2. A comment "Don't fail the operation if SSE fails"
-    expect(allContent).toContain("console.error('[MCP SSE] Failed to broadcast")
+    expect(allContent).toContain("log.error({ err: error }, '[MCP SSE] Failed to broadcast")
     expect(allContent).toContain("// Don't fail the operation if SSE fails")
 
     // Verify we have at least 4 SSE error handlers (create, update, comment, delete)
-    const sseErrorHandlers = (allContent.match(/console\.error\('\[MCP SSE\] Failed to broadcast/g) || []).length
+    const sseErrorHandlers = (allContent.match(/log\.error\(\{ err: error \}, '\[MCP SSE\] Failed to broadcast/g) || []).length
     expect(sseErrorHandlers).toBeGreaterThanOrEqual(4)
   })
 })

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { hydrateListFavorites, hydrateSingleListFavorite, toggleFavorite } from "@/lib/favorites"
+import { createLogger } from '@/lib/logger'
 import {
   validateMCPToken,
   getListMemberIdsByListId,
@@ -14,10 +15,12 @@ import {
   maskToken
 } from "./shared"
 
+const log = createLogger('mcp.list-operations')
+
 export async function getSharedLists(accessToken: string, userId: string) {
-  console.log('MCP [getSharedLists] called with token:', maskToken(accessToken))
+  log.info({ token: maskToken(accessToken) }, 'MCP [getSharedLists] called')
   const mcpToken = await validateMCPToken(accessToken)
-  console.log('MCP [getSharedLists] MCP token validated, userId:', mcpToken.userId)
+  log.info({ userId: mcpToken.userId }, 'MCP [getSharedLists] MCP token validated')
 
   // Get all lists accessible to the token owner (token-level permissions control access)
   const lists = await prisma.taskList.findMany({
@@ -44,15 +47,16 @@ export async function getSharedLists(accessToken: string, userId: string) {
       }
     }
   })
-  console.log('MCP [getSharedLists] Accessible lists:', lists.length)
+  log.info(lists.length, 'MCP [getSharedLists] Accessible lists:')
 
   // Debug: Log member information for first list
   if (lists.length > 0) {
     const firstList = lists[0]
-    console.log('MCP [getSharedLists] First list member data:')
-    console.log('  - Owner:', firstList.owner?.name || 'null')
-    console.log('  - ListMembers:', firstList.listMembers?.length || 0)
-    console.log('  - Invitations:', firstList.listInvites?.length || 0)
+    log.info({
+      owner: firstList.owner?.name || 'null',
+      listMembers: firstList.listMembers?.length || 0,
+      invitations: firstList.listInvites?.length || 0,
+    }, 'MCP [getSharedLists] First list member data')
   }
 
   // Hydrate per-user favorite state
@@ -132,7 +136,7 @@ export async function getPublicLists(
       count: publicLists.length
     }
   } catch (error: unknown) {
-    console.error('[MCP] Failed to get public lists:', error)
+    log.error({ err: error }, '[MCP] Failed to get public lists:')
     throw new Error(`Failed to get public lists: ${getErrorMessage(error)}`)
   }
 }
@@ -168,7 +172,7 @@ export async function copyPublicList(
       message: `List copied successfully with ${result.copiedTasksCount} tasks`
     }
   } catch (error: unknown) {
-    console.error('[MCP] Failed to copy list:', error)
+    log.error({ err: error }, '[MCP] Failed to copy list:')
     throw new Error(`Failed to copy list: ${getErrorMessage(error)}`)
   }
 }
@@ -402,7 +406,7 @@ export async function deleteList(accessToken: string, listId: string, userId: st
     const userIds = await getListMemberIdsByListId(listId)
 
     if (userIds.length > 0) {
-      console.log(`[MCP SSE] Broadcasting list_deleted to ${userIds.length} users`)
+      log.info(`[MCP SSE] Broadcasting list_deleted to ${userIds.length} users`)
       await broadcastToUsers(userIds, {
         type: 'list_deleted',
         timestamp: new Date().toISOString(),
@@ -415,7 +419,7 @@ export async function deleteList(accessToken: string, listId: string, userId: st
       })
     }
   } catch (error) {
-    console.error('[MCP SSE] Failed to broadcast list_deleted:', error)
+    log.error({ err: error }, '[MCP SSE] Failed to broadcast list_deleted:')
     // Don't fail the operation if SSE fails
   }
 
