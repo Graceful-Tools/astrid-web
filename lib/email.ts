@@ -1,6 +1,10 @@
 // Email service implementation using Resend
 import { Resend } from 'resend'
 import { getBaseUrl } from './base-url'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('email')
+
 
 // Initialize Resend (only in server environment)
 const resend = typeof window === 'undefined' && process.env.RESEND_API_KEY 
@@ -12,23 +16,23 @@ export function getFromEmail(): string {
   const configuredEmail = process.env.FROM_EMAIL
   const environment = process.env.NODE_ENV
   
-  console.log(`📧 Email Configuration - Environment: ${environment}, Configured: ${configuredEmail}`)
+  log.info(`📧 Email Configuration - Environment: ${environment}, Configured: ${configuredEmail}`)
   
   // In development, use configured email or fallback
   if (environment === "development") {
     const email = configuredEmail || 'noreply@yourdomain.com'
-    console.log(`📧 Using development email: ${email}`)
+    log.info(`📧 Using development email: ${email}`)
     return email
   }
   
   // In production, if we have a configured email, use it (assuming domain is verified)
   if (configuredEmail) {
-    console.log(`📧 Using configured email: ${configuredEmail}`)
+    log.info(`📧 Using configured email: ${configuredEmail}`)
     return configuredEmail
   }
   
   // If no configured email, fallback to Resend's verified test domain
-  console.log(`📧 No FROM_EMAIL configured, falling back to: onboarding@resend.dev`)
+  log.info(`📧 No FROM_EMAIL configured, falling back to: onboarding@resend.dev`)
   return 'onboarding@resend.dev'
 }
 
@@ -58,13 +62,14 @@ export async function sendInvitationEmail(invitation: Invitation) {
 
   // In development, just log the invitation
   if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
-    console.log("📧 Invitation Email (Development Mode)")
-    console.log("To:", invitation.email)
-    console.log("From:", invitation.sender?.name || invitation.sender?.email)
-    console.log("Type:", invitation.type)
-    console.log("Invitation Link:", inviteUrl)
-    console.log("Message:", invitation.message || "No message")
-    console.log("Expires:", invitation.expiresAt.toLocaleString())
+    log.info({
+      to: invitation.email,
+      from: invitation.sender?.name || invitation.sender?.email,
+      type: invitation.type,
+      inviteUrl,
+      message: invitation.message || "No message",
+      expires: invitation.expiresAt.toLocaleString(),
+    }, "📧 Invitation Email (Development Mode)")
     return
   }
 
@@ -78,14 +83,14 @@ export async function sendInvitationEmail(invitation: Invitation) {
     })
 
     if (error) {
-      console.error('Resend error:', error)
+      log.error({ err: error }, 'Resend error:')
       throw new Error(`Email sending failed: ${error.message}`)
     }
 
-    console.log('📧 Email sent successfully:', { id: data?.id, to: invitation.email })
+    log.info({ id: data?.id, to: invitation.email }, '📧 Email sent successfully:')
     return data
   } catch (error) {
-    console.error('Error sending invitation email:', error)
+    log.error({ err: error }, 'Error sending invitation email:')
     throw error
   }
 }
@@ -113,11 +118,12 @@ export async function sendVerificationEmail(data: EmailVerificationData) {
 
   // In development, just log the verification email
   if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
-    console.log("📧 Email Verification (Development Mode)")
-    console.log("To:", data.email)
-    console.log("Subject:", subject)
-    console.log("Verification Link:", verifyUrl)
-    console.log("Is Email Change:", data.isEmailChange)
+    log.info({
+      to: data.email,
+      subject,
+      verifyUrl,
+      isEmailChange: data.isEmailChange,
+    }, "📧 Email Verification (Development Mode)")
     return
   }
 
@@ -131,14 +137,14 @@ export async function sendVerificationEmail(data: EmailVerificationData) {
     })
 
     if (error) {
-      console.error('Resend error:', error)
+      log.error({ err: error }, 'Resend error:')
       throw new Error(`Email sending failed: ${error.message}`)
     }
 
-    console.log('📧 Verification email sent successfully:', { id: emailData?.id, to: data.email })
+    log.info({ id: emailData?.id, to: data.email }, '📧 Verification email sent successfully:')
     return emailData
   } catch (error) {
-    console.error('Error sending verification email:', error)
+    log.error({ err: error }, 'Error sending verification email:')
     throw error
   }
 }
@@ -226,13 +232,14 @@ export async function sendListInvitationEmail(data: ListInvitationData) {
 
   // In development, just log the invitation
   if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
-    console.log("📧 List Invitation Email (Development Mode)")
-    console.log("To:", data.to)
-    console.log("From:", data.inviterName)
-    console.log("List:", data.listName)
-    console.log("Role:", data.role)
-    console.log("Invitation Link:", data.invitationUrl)
-    console.log("Message:", data.message || "No message")
+    log.info({
+      to: data.to,
+      from: data.inviterName,
+      list: data.listName,
+      role: data.role,
+      invitationUrl: data.invitationUrl,
+      message: data.message || "No message",
+    }, "📧 List Invitation Email (Development Mode)")
     return
   }
 
@@ -246,14 +253,14 @@ export async function sendListInvitationEmail(data: ListInvitationData) {
     })
 
     if (error) {
-      console.error('Resend error:', error)
+      log.error({ err: error }, 'Resend error:')
       throw new Error(`Email sending failed: ${error.message}`)
     }
 
-    console.log('📧 List invitation email sent successfully:', { id: emailData?.id, to: data.to })
+    log.info({ id: emailData?.id, to: data.to }, '📧 List invitation email sent successfully:')
     return emailData
   } catch (error) {
-    console.error('Error sending list invitation email:', error)
+    log.error({ err: error }, 'Error sending list invitation email:')
     throw error
   }
 }

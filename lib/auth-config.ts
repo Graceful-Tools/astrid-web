@@ -8,19 +8,23 @@ import { getConsistentDefaultImage } from "./default-images"
 import { getDevBaseUrl, isLocalDevelopment } from "./port-detection"
 import { getBaseUrl } from "./base-url"
 import { createDefaultListsForUser } from "./default-lists"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth-config')
+
 
 // Set default NEXTAUTH_URL for development using dynamic port detection
 if (!process.env.NEXTAUTH_URL) {
   if (process.env.NODE_ENV === "development" && isLocalDevelopment()) {
     // Use development URL with dynamic port detection
     process.env.NEXTAUTH_URL = getDevBaseUrl()
-    console.log("[Auth] 🔧 Using dynamic NEXTAUTH_URL:", process.env.NEXTAUTH_URL)
-    console.log("[Auth] 💡 To override, set NEXTAUTH_URL in .env.local")
+    log.info({ url: process.env.NEXTAUTH_URL }, "[Auth] 🔧 Using dynamic NEXTAUTH_URL")
+    log.info("[Auth] 💡 To override, set NEXTAUTH_URL in .env.local")
   } else {
     // Use centralized base URL utility - ensures HTTPS in production
     process.env.NEXTAUTH_URL = getBaseUrl()
     if (process.env.NODE_ENV === "production") {
-      console.warn(
+      log.warn(
         "[Auth] ⚠️  NEXTAUTH_URL not set - using fallback. " +
         "Set NEXTAUTH_URL in production environment variables for correct authentication URLs."
       )
@@ -30,12 +34,12 @@ if (!process.env.NEXTAUTH_URL) {
 
 // Debug environment variables (development only)
 if (process.env.NODE_ENV === "development") {
-  console.log("[Auth] Environment check:", {
+  log.info({
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? "SET" : "NOT SET",
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? "SET" : "NOT SET",
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "SET" : "NOT SET"
-  })
+  }, "[Auth] Environment check:")
 }
 
 // Note: Default list creation is now handled by shared utility in lib/default-lists.ts
@@ -45,7 +49,7 @@ const customAdapter = {
   ...PrismaAdapter(prisma),
   async createUser(user: any) {
     if (process.env.NODE_ENV === "development") {
-      console.log("[Auth] CreateUser called:", user.email)
+      log.info(user.email, "[Auth] CreateUser called:")
     }
     
     // Check if a user with this email already exists
@@ -55,14 +59,14 @@ const customAdapter = {
     
     if (existingUser) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] User already exists, returning existing user:", existingUser.email)
+        log.info({ email: existingUser.email }, "[Auth] User already exists, returning existing user")
       }
       return existingUser
     }
     
     // Create new user if none exists
     if (process.env.NODE_ENV === "development") {
-      console.log("[Auth] Creating new user:", user.email)
+      log.info(user.email, "[Auth] Creating new user:")
     }
     return await prisma.user.create({
       data: {
@@ -73,11 +77,11 @@ const customAdapter = {
   },
   async linkAccount(account: any): Promise<void> {
     if (process.env.NODE_ENV === "development") {
-      console.log("[Auth] LinkAccount called:", {
+      log.info({
         userId: account.userId,
         provider: account.provider,
         providerAccountId: account.providerAccountId
-      })
+      }, "[Auth] LinkAccount called:")
     }
     
     // Check if account already exists
@@ -92,7 +96,7 @@ const customAdapter = {
     
     if (existingAccount) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] Account already exists, updating userId if needed")
+        log.info("[Auth] Account already exists, updating userId if needed")
       }
       // Update the userId in case it changed
       if (existingAccount.userId !== account.userId) {
@@ -111,11 +115,11 @@ const customAdapter = {
   },
   async createSession(session: any) {
     if (process.env.NODE_ENV === "development") {
-      console.log("[Auth] CreateSession called:", {
+      log.info({
         userId: session.userId,
         sessionToken: session.sessionToken?.substring(0, 10) + "...",
         expires: session.expires
-      })
+      }, "[Auth] CreateSession called:")
     }
     
     return await prisma.session.create({
@@ -148,14 +152,14 @@ const authConfig: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           if (process.env.NODE_ENV === "development") {
-            console.log("[Auth] Missing credentials")
+            log.info("[Auth] Missing credentials")
           }
           return null
         }
 
         try {
           if (process.env.NODE_ENV === "development") {
-            console.log("[Auth] Attempting to authenticate:", credentials.email)
+            log.info({ email: credentials.email }, "[Auth] Attempting to authenticate")
           }
           
           const user = await prisma.user.findUnique({
@@ -163,12 +167,12 @@ const authConfig: NextAuthOptions = {
           }) as any
 
           if (process.env.NODE_ENV === "development") {
-            console.log("[Auth] User found:", !!user, "Has password:", !!user?.password)
+            log.info({ found: !!user, hasPassword: !!user?.password }, "[Auth] User found")
           }
 
           if (!user || !user.password) {
             if (process.env.NODE_ENV === "development") {
-              console.log("[Auth] User not found or no password")
+              log.info("[Auth] User not found or no password")
             }
             return null
           }
@@ -176,18 +180,18 @@ const authConfig: NextAuthOptions = {
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
           
           if (process.env.NODE_ENV === "development") {
-            console.log("[Auth] Password valid:", isPasswordValid)
+            log.info({ isPasswordValid }, "[Auth] Password valid:")
           }
 
           if (!isPasswordValid) {
             if (process.env.NODE_ENV === "development") {
-              console.log("[Auth] Invalid password")
+              log.info("[Auth] Invalid password")
             }
             return null
           }
 
           if (process.env.NODE_ENV === "development") {
-            console.log("[Auth] Authentication successful for:", user.email)
+            log.info(user.email, "[Auth] Authentication successful for:")
           }
           return {
             id: user.id,
@@ -196,7 +200,7 @@ const authConfig: NextAuthOptions = {
             image: user.image,
           }
         } catch (error) {
-          console.error("[Auth] Error in credentials provider:", error)
+          log.error({ err: error }, "[Auth] Error in credentials provider:")
           return null
         }
       }
@@ -205,12 +209,12 @@ const authConfig: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] SignIn callback triggered:", {
+        log.info({
           userId: user?.id,
           userEmail: user?.email,
           provider: account?.provider,
           hasCredentials: !!credentials
-        })
+        }, "[Auth] SignIn callback triggered:")
       }
       
       // Handle Google OAuth sign-in/sign-up
@@ -230,7 +234,7 @@ const authConfig: NextAuthOptions = {
 
             if (!existingGoogleAccount) {
               if (process.env.NODE_ENV === "development") {
-                console.log("[Auth] Linking Google account to existing user:", existingUser.email)
+                log.info({ email: existingUser.email }, "[Auth] Linking Google account to existing user")
               }
 
               // Link Google account to existing user
@@ -268,7 +272,7 @@ const authConfig: NextAuthOptions = {
               if (googlePicture) {
                 updateData.image = googlePicture
                 if (process.env.NODE_ENV === "development") {
-                  console.log("[Auth] Updating user image from Google:", googlePicture.substring(0, 50) + "...")
+                  log.info({ pictureSnippet: googlePicture.substring(0, 50) + "..." }, "[Auth] Updating user image from Google")
                 }
               }
 
@@ -279,17 +283,17 @@ const authConfig: NextAuthOptions = {
             }
 
             if (process.env.NODE_ENV === "development") {
-              console.log("[Auth] Google OAuth successful for existing user:", existingUser.email)
+              log.info({ email: existingUser.email }, "[Auth] Google OAuth successful for existing user")
             }
           } else {
             if (process.env.NODE_ENV === "development") {
-              console.log("[Auth] Google OAuth sign up for new user:", user.email)
+              log.info({ email: user.email }, "[Auth] Google OAuth sign up for new user")
             }
           }
 
           return true
         } catch (error) {
-          console.error("[Auth] Error during Google OAuth sign-in:", error)
+          log.error({ err: error }, "[Auth] Error during Google OAuth sign-in:")
           return false
         }
       }
@@ -297,7 +301,7 @@ const authConfig: NextAuthOptions = {
       // Handle credentials sign-in
       if (account?.provider === "credentials") {
         if (process.env.NODE_ENV === "development") {
-          console.log("[Auth] Credentials sign in successful for:", user?.email)
+          log.info(user?.email, "[Auth] Credentials sign in successful for:")
         }
         return true
       }
@@ -306,7 +310,7 @@ const authConfig: NextAuthOptions = {
     },
     async redirect({ url, baseUrl }) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] Redirect callback:", { url, baseUrl })
+        log.info({ url, baseUrl }, "[Auth] Redirect callback:")
       }
 
       // Avoid redirect loops - if URL already has checkReturnTo, go to base
@@ -330,13 +334,13 @@ const authConfig: NextAuthOptions = {
     },
     jwt: ({ token, user, account }) => {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] JWT callback:", {
+        log.info({
           hasToken: !!token,
           hasUser: !!user,
           hasAccount: !!account,
           provider: account?.provider,
           userEmail: user?.email || token?.email
-        })
+        }, "[Auth] JWT callback:")
       }
 
       // First time signin - store user info in token
@@ -352,12 +356,12 @@ const authConfig: NextAuthOptions = {
     },
     session: ({ session, token }) => {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] Session callback (JWT):", {
+        log.info({
           hasSession: !!session,
           hasToken: !!token,
           tokenId: token?.id,
           userEmail: session?.user?.email
-        })
+        }, "[Auth] Session callback (JWT):")
       }
 
       // Pass token data to session
@@ -416,17 +420,17 @@ const authConfig: NextAuthOptions = {
   events: {
     async signIn(message) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] SignIn event:", message.user.email, "via", message.account?.provider)
+        log.info({ email: message.user.email, provider: message.account?.provider }, "[Auth] SignIn event")
       }
     },
     async signOut(message) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] SignOut event:", message)
+        log.info({ message }, "[Auth] SignOut event:")
       }
     },
     async createUser(message) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] CreateUser event:", message.user.email)
+        log.info({ email: message.user.email }, "[Auth] CreateUser event")
       }
 
       // Create default lists for the new user
@@ -434,12 +438,12 @@ const authConfig: NextAuthOptions = {
     },
     async linkAccount(message) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] LinkAccount event:", message.user.email, "linked", message.account.provider)
+        log.info({ email: message.user.email, provider: message.account.provider }, "[Auth] LinkAccount event")
       }
     },
     async session(message) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Auth] Session event:", message.session.user?.email)
+        log.info(message.session.user?.email, "[Auth] Session event:")
       }
     }
   }
