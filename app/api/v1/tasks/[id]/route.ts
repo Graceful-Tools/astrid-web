@@ -6,43 +6,33 @@
  * DELETE /api/v1/tasks/:id - Delete task
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI, requireScopes, requireTaskAccess, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { requireTaskAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.tasks.id')
 
-interface RouteContext {
-  params: Promise<{
-    id: string
-  }>
-}
+type RouteContext = { params: Promise<{ id: string }> }
 
 /**
  * GET /api/v1/tasks/:id
  * Get detailed task information
  */
-export async function GET(
-  req: NextRequest,
-  context: RouteContext
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['tasks:read'])
+export const GET = withAuth<RouteContext>(
+  { scopes: ['tasks:read'], tag: 'v1.tasks.id' },
+  async (_req, auth, { params }) => {
+    const { id: taskId } = await params
 
-    const { id } = await context.params
-    const taskId = id
-
-    // Check access
+    // requireTaskAccess throws ForbiddenError → withAuth catches → 403
     await requireTaskAccess(auth.userId, taskId)
 
-    // Fetch task
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -75,12 +65,7 @@ export async function GET(
           },
         },
         creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
+          select: { id: true, name: true, email: true, image: true },
         },
         comments: {
           include: {
@@ -101,10 +86,7 @@ export async function GET(
     })
 
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
     const headers: Record<string, string> = {}
@@ -113,7 +95,7 @@ export async function GET(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    // Add listIds array for iOS compatibility
+    // iOS expects a flat listIds array alongside the relation
     const taskWithListIds = {
       ...task,
       listIds: task.lists?.map(list => list.id) || []
@@ -122,46 +104,26 @@ export async function GET(
     return NextResponse.json(
       {
         task: taskWithListIds,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'GET /tasks/:id error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * PUT /api/v1/tasks/:id
  * Update task fields
  */
-export async function PUT(
-  req: NextRequest,
-  context: RouteContext
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['tasks:write'])
+export const PUT = withAuth<RouteContext>(
+  { scopes: ['tasks:write'], tag: 'v1.tasks.id' },
+  async (req, auth, { params }) => {
+    const { id: taskId } = await params
 
-    const { id } = await context.params
-    const taskId = id
-
-    // Check access
     await requireTaskAccess(auth.userId, taskId)
 
     const body = await req.json()
 
-    // Build update data
     const data: any = {}
 
     if (body.title !== undefined) data.title = body.title
@@ -169,7 +131,6 @@ export async function PUT(
     if (body.priority !== undefined) data.priority = body.priority
     if (body.completed !== undefined) data.completed = body.completed
 
-    // Handle datetime with new isAllDay system
     if (body.dueDateTime !== undefined) {
       if (body.dueDateTime === '' || body.dueDateTime === null) {
         data.dueDateTime = null
@@ -178,7 +139,6 @@ export async function PUT(
         const dueDateTime = new Date(body.dueDateTime)
         const isAllDay = body.isAllDay ?? false
 
-        // Normalize all-day tasks to midnight UTC
         if (isAllDay) {
           dueDateTime.setUTCHours(0, 0, 0, 0)
         }
@@ -188,7 +148,7 @@ export async function PUT(
       }
     }
 
-    // Handle explicit isAllDay updates (when only changing all-day flag)
+    // Standalone isAllDay update (no dueDateTime change)
     if (body.isAllDay !== undefined && body.dueDateTime === undefined) {
       data.isAllDay = body.isAllDay
     }
@@ -196,7 +156,6 @@ export async function PUT(
     if (body.isPrivate !== undefined) data.isPrivate = body.isPrivate
     if (body.repeating !== undefined) data.repeating = body.repeating
 
-    // Handle repeating task data
     if (body.repeatingData !== undefined) {
       data.repeatingData = body.repeatingData === null ? null : body.repeatingData
     }
@@ -204,19 +163,17 @@ export async function PUT(
       data.repeatFrom = body.repeatFrom
     }
 
-    // Handle assigneeId (can be null to unassign)
+    // assigneeId can be null to unassign
     if (body.assigneeId !== undefined) {
       data.assigneeId = body.assigneeId || null
     }
 
-    // Handle timer fields
     if (body.timerDuration !== undefined) data.timerDuration = body.timerDuration
     if (body.lastTimerValue !== undefined) data.lastTimerValue = body.lastTimerValue
 
-    // Handle list assignment with SECURITY validation
+    // SECURITY: validate caller has access to every list before connecting
     if (body.listIds !== undefined && Array.isArray(body.listIds)) {
       if (body.listIds.length > 0) {
-        // Fetch lists and validate access
         const lists = await prisma.taskList.findMany({
           where: { id: { in: body.listIds } },
           include: {
@@ -229,7 +186,6 @@ export async function PUT(
           }
         })
 
-        // Check if all requested lists exist
         const foundListIds = new Set(lists.map(l => l.id))
         const missingListIds = body.listIds.filter((id: string) => !foundListIds.has(id))
         if (missingListIds.length > 0) {
@@ -239,7 +195,6 @@ export async function PUT(
           )
         }
 
-        // Validate user has permission to add tasks to each list
         for (const list of lists) {
           const userHasAccess = hasListAccess(list as any, auth.userId)
           const isCollaborativePublic = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
@@ -252,7 +207,7 @@ export async function PUT(
           }
         }
 
-        // Filter out virtual lists
+        // Virtual lists are saved-filter views, not real containers
         const validListIds = lists
           .filter(list => !list.isVirtual)
           .map(list => list.id)
@@ -261,12 +216,13 @@ export async function PUT(
           set: validListIds.map((id: string) => ({ id })),
         }
       } else {
-        // Allow removing task from all lists (empty array)
+        // Empty array → detach from all lists
         data.lists = { set: [] }
       }
     }
 
-    // Fetch existing task to detect assignment changes and repeating task state
+    // Pre-update fetch: needed for assignment-change detection,
+    // optimistic-concurrency check, and repeating-task state machine
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -281,11 +237,7 @@ export async function PUT(
           },
         },
         lists: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
+          select: { id: true, name: true, color: true },
         },
       },
     })
@@ -299,36 +251,30 @@ export async function PUT(
           {
             error: 'Task has been modified since your last read',
             code: 'STALE_UPDATE',
-            task: {
-              id: existingTask.id,
-              updatedAt: existingTask.updatedAt,
-            },
+            task: { id: existingTask.id, updatedAt: existingTask.updatedAt },
           },
           { status: 412 }
         )
       }
     }
 
-    // Handle repeating task completion
     const { handleRepeatingTaskCompletion, applyRepeatingTaskRollForward } = await import('@/lib/repeating-task-handler')
     let repeatingTaskResult = null
 
     if (body.completed !== undefined && existingTask) {
-      // Pass localCompletionDate for all-day repeating tasks with COMPLETION_DATE mode
+      // localCompletionDate (YYYY-MM-DD) is for all-day repeating tasks with COMPLETION_DATE mode
       repeatingTaskResult = await handleRepeatingTaskCompletion(
         taskId,
         existingTask.completed,
         body.completed,
-        body.localCompletionDate // YYYY-MM-DD format from client
+        body.localCompletionDate
       )
     }
 
-    // If repeating task should roll forward or terminate, apply the change and return early
-    // The roll-forward logic already updates the task in the database
+    // Repeating-task roll-forward already updates the row in the DB; we just refetch + return.
     if (repeatingTaskResult?.shouldRollForward || repeatingTaskResult?.shouldTerminate) {
       await applyRepeatingTaskRollForward(taskId, repeatingTaskResult)
 
-      // Fetch the updated task to return to client
       const task = await prisma.task.findUnique({
         where: { id: taskId },
         include: {
@@ -361,12 +307,7 @@ export async function PUT(
             },
           },
           creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
+            select: { id: true, name: true, email: true, image: true },
           },
           comments: {
             include: {
@@ -393,11 +334,10 @@ export async function PUT(
 
       log.info({ taskId, rolledForward: repeatingTaskResult.shouldRollForward }, 'Repeating task processed')
 
-      // Track analytics - task was edited and completed (repeating task roll-forward)
+      // Repeating-task roll-forward counts as both completion and edit
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_EDITED, { taskId })
 
-      // Broadcast SSE event for repeating task roll-forward
       try {
         const userIds = new Set<string>()
 
@@ -429,7 +369,6 @@ export async function PUT(
         log.error({ err: sseError }, 'Failed to broadcast repeating task SSE')
       }
 
-      // Invalidate Redis cache for all affected users (repeating task path)
       try {
         const redisAvailable = await isRedisAvailable()
         if (redisAvailable) {
@@ -463,7 +402,6 @@ export async function PUT(
         headers['X-Deprecation-Warning'] = deprecationWarning
       }
 
-      // Add listIds array for iOS compatibility
       const taskWithListIds = {
         ...task,
         listIds: task.lists?.map(list => list.id) || []
@@ -472,16 +410,12 @@ export async function PUT(
       return NextResponse.json(
         {
           task: taskWithListIds,
-          meta: {
-            apiVersion: 'v1',
-            authSource: auth.source,
-          },
+          meta: { apiVersion: 'v1', authSource: auth.source },
         },
         { headers }
       )
     }
 
-    // Update task (only if not a repeating task that was rolled forward)
     const task = await prisma.task.update({
       where: { id: taskId },
       data,
@@ -515,12 +449,7 @@ export async function PUT(
           },
         },
         creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
+          select: { id: true, name: true, email: true, image: true },
         },
         comments: {
           include: {
@@ -538,15 +467,13 @@ export async function PUT(
       },
     })
 
-    // Track state changes and create system comment
+    // System comment for state changes (assignee/priority/etc.)
     try {
       const { detectTaskStateChanges, formatStateChangesAsComment } = await import('@/lib/task-state-change-tracker')
 
-      // Only track changes if we have the old task state
       if (!existingTask) {
         log.warn('Cannot track state changes - existing task not found')
       } else {
-        // Fetch updater's name
         const updater = await prisma.user.findUnique({
           where: { id: auth.userId },
           select: { name: true, email: true }
@@ -555,42 +482,36 @@ export async function PUT(
 
         const stateChanges = detectTaskStateChanges(existingTask, task, updaterName)
 
-      if (stateChanges.length > 0) {
-        const commentContent = formatStateChangesAsComment(stateChanges, updaterName)
+        if (stateChanges.length > 0) {
+          const commentContent = formatStateChangesAsComment(stateChanges, updaterName)
 
-        // Create system comment (authorId: null indicates system-generated)
-        await prisma.comment.create({
-          data: {
-            taskId: task.id,
-            authorId: null, // System-generated comment
-            content: commentContent,
-            type: 'TEXT',
-          },
-        })
+          // authorId: null marks the comment as system-generated
+          await prisma.comment.create({
+            data: {
+              taskId: task.id,
+              authorId: null,
+              content: commentContent,
+              type: 'TEXT',
+            },
+          })
 
-        log.debug({ taskId: task.id, comment: commentContent }, 'Created state change comment')
-      }
+          log.debug({ taskId: task.id, comment: commentContent }, 'Created state change comment')
+        }
       }
     } catch (stateChangeError) {
       log.error({ err: stateChangeError }, 'Failed to create state change comment')
-      // Don't fail the task update if state change tracking fails
     }
 
-    // AI agent workflow triggering is handled by Prisma middleware
-    // The middleware posts the "starting" comment, sends webhooks, and triggers assistant workflow
-    // This keeps the API route simple and avoids duplicate processing
+    // AI agent workflow triggering happens in Prisma middleware: it posts the
+    // "starting" comment, sends webhooks, and triggers assistant workflow.
 
-    // Broadcast SSE event for real-time updates
     try {
       const userIds = new Set<string>()
 
-      // Add all list members
       for (const list of task.lists) {
         const fullList = await prisma.taskList.findUnique({
           where: { id: list.id },
-          include: {
-            listMembers: { select: { userId: true } },
-          },
+          include: { listMembers: { select: { userId: true } } },
         })
         if (fullList) {
           userIds.add(fullList.ownerId)
@@ -598,15 +519,13 @@ export async function PUT(
         }
       }
 
-      // Add task assignee and creator
       if (task.assigneeId) userIds.add(task.assigneeId)
       if (task.creatorId) userIds.add(task.creatorId)
 
-      // Remove the updater
       userIds.delete(auth.userId)
 
       if (userIds.size > 0) {
-        // Detect assignee change → send task_assigned to new assignee
+        // Assignee change → new assignee gets task_assigned, not task_updated
         const assigneeChanged = existingTask && body.assigneeId !== undefined &&
           body.assigneeId !== existingTask.assigneeId
         if (assigneeChanged && task.assigneeId) {
@@ -618,7 +537,6 @@ export async function PUT(
               task: enrichTaskForAgent(task),
             }
           })
-          // Don't also send task_updated to the new assignee
           userIds.delete(task.assigneeId)
         }
 
@@ -639,7 +557,6 @@ export async function PUT(
       log.error({ err: sseError }, 'Failed to broadcast task update SSE')
     }
 
-    // Invalidate user stats if completion status or assignment changed
     try {
       const completionChanged = existingTask && existingTask.completed !== task.completed
       const assignmentChanged = existingTask && existingTask.assigneeId !== task.assigneeId
@@ -667,7 +584,6 @@ export async function PUT(
       log.error({ err: statsError }, 'Failed to invalidate user stats')
     }
 
-    // Invalidate Redis cache for all affected users
     try {
       const redisAvailable = await isRedisAvailable()
       if (redisAvailable) {
@@ -704,13 +620,11 @@ export async function PUT(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    // Track analytics - check if task was completed
     if (body.completed === true && existingTask && !existingTask.completed) {
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
     }
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_EDITED, { taskId })
 
-    // Add listIds array for iOS compatibility
     const taskWithListIds = {
       ...task,
       listIds: task.lists?.map(list => list.id) || []
@@ -719,57 +633,32 @@ export async function PUT(
     return NextResponse.json(
       {
         task: taskWithListIds,
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'PUT /tasks/:id error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
 /**
  * DELETE /api/v1/tasks/:id
  * Delete a task
  */
-export async function DELETE(
-  req: NextRequest,
-  context: RouteContext
-) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['tasks:delete'])
+export const DELETE = withAuth<RouteContext>(
+  { scopes: ['tasks:delete'], tag: 'v1.tasks.id' },
+  async (req, auth, { params }) => {
+    const { id: taskId } = await params
 
-    const { id } = await context.params
-    const taskId = id
-
-    // Check access
     await requireTaskAccess(auth.userId, taskId)
 
-    // Fetch task with associations before deletion for SSE broadcast
+    // Pre-delete fetch so we can compute SSE recipients (the task is gone after delete)
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        lists: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        lists: { select: { id: true, name: true } },
       },
     })
 
-    // Compute recipients before deletion
     const recipientIds = new Set<string>()
     if (task) {
       for (const list of task.lists) {
@@ -791,17 +680,12 @@ export async function DELETE(
       recipientIds.delete(auth.userId)
     }
 
-    // Delete task
-    await prisma.task.delete({
-      where: { id: taskId },
-    })
+    await prisma.task.delete({ where: { id: taskId } })
 
-    // Invalidate Redis cache for all affected users
     try {
       const redisAvailable = await isRedisAvailable()
       if (redisAvailable) {
         const cacheUserIds = new Set(recipientIds)
-        // Also invalidate for the deleting user
         cacheUserIds.add(auth.userId)
         if (task?.creatorId) cacheUserIds.add(task.creatorId)
         if (task?.assigneeId) cacheUserIds.add(task.assigneeId)
@@ -817,22 +701,18 @@ export async function DELETE(
       log.error({ err: cacheError }, 'Failed to invalidate task cache (delete)')
     }
 
-    // Broadcast task_deleted to all relevant users
     if (recipientIds.size > 0) {
       try {
         broadcastToUsers(Array.from(recipientIds), {
           type: 'task_deleted',
           timestamp: new Date().toISOString(),
-          data: {
-            taskId,
-          },
+          data: { taskId },
         })
       } catch (sseError) {
         log.error({ err: sseError }, 'Failed to broadcast task_deleted SSE')
       }
     }
 
-    // Track analytics
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_DELETED, { taskId })
 
     const headers: Record<string, string> = {}
@@ -845,21 +725,9 @@ export async function DELETE(
       {
         success: true,
         message: 'Task deleted successfully',
-        meta: {
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
-    }
-    log.error({ err: error }, 'DELETE /tasks/:id error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
