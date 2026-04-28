@@ -12,6 +12,10 @@ import { enrichTaskForAgent } from "@/lib/agent-protocol"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { logError } from "@/lib/logging/error-sanitizer"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.tasks')
+
 
 // Only select the user fields needed for display (excludes sensitive data like passwords, API keys)
 const safeUserSelect = {
@@ -69,7 +73,7 @@ export async function GET(request: NextRequest) {
       tasks = await RedisCache.getOrSet(
         cacheKey,
         async () => {
-          console.log(`🔄 Cache miss for user tasks: ${session.user.id}`)
+          log.info(`🔄 Cache miss for user tasks: ${session.user.id}`)
           return await prisma.task.findMany({
             where,
             include: {
@@ -103,7 +107,7 @@ export async function GET(request: NextRequest) {
       )
     } else {
       // Incremental sync - skip cache, fetch directly
-      console.log(`📥 Incremental sync for user ${session.user.id} since ${updatedSince}`)
+      log.info(`📥 Incremental sync for user ${session.user.id} since ${updatedSince}`)
       tasks = await prisma.task.findMany({
         where,
         include: {
@@ -131,7 +135,7 @@ export async function GET(request: NextRequest) {
           { dueDateTime: "asc" },
         ],
       })
-      console.log(`✅ Incremental sync returned ${tasks.length} updated tasks`)
+      log.info(`✅ Incremental sync returned ${tasks.length} updated tasks`)
     }
 
     // Return response with timestamp for next incremental sync
@@ -163,7 +167,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      console.error("User not found in database:", session.user.id)
+      log.error({ userId: session.user.id }, "User not found in database")
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
@@ -184,7 +188,7 @@ export async function POST(request: NextRequest) {
 
       if (testUser) {
         testUserId = testUser.id
-        console.log(`🧪 Debug: Creating task for test user ${data.testUserEmail} (${testUserId})`)
+        log.info(`🧪 Debug: Creating task for test user ${data.testUserEmail} (${testUserId})`)
       } else {
         return NextResponse.json({ error: `Test user not found: ${data.testUserEmail}` }, { status: 404 })
       }
@@ -200,9 +204,9 @@ export async function POST(request: NextRequest) {
           invitedBy: session.user.id,
         })
         emailAssigneeId = placeholderUser.id
-        console.log(`📧 Task assigned to email: ${data.assigneeEmail} (${emailAssigneeId})`)
+        log.info(`📧 Task assigned to email: ${data.assigneeEmail} (${emailAssigneeId})`)
       } catch (error) {
-        console.error('Error creating placeholder user:', error)
+        log.error({ err: error }, 'Error creating placeholder user:')
         return NextResponse.json(
           { error: 'Failed to create placeholder user' },
           { status: 500 }
@@ -232,23 +236,24 @@ export async function POST(request: NextRequest) {
 
       const missingListIds = data.listIds.filter(id => !existingLists?.some(list => list.id === id))
       if (missingListIds.length > 0) {
-        console.error("Invalid list IDs:", missingListIds)
+        log.error({ err: missingListIds }, "Invalid list IDs:")
         return NextResponse.json({ error: `Invalid list IDs: ${missingListIds.join(', ')}` }, { status: 400 })
       }
 
       // Validate user has permission to create tasks in these lists
       for (const list of existingLists) {
-        console.log('🔍 Debug: Checking access for list:', list.id, 'user:', session.user.id)
-        console.log('🔍 Debug: List has owner:', !!list.owner)
-        console.log('🔍 Debug: List has listMembers:', list.listMembers?.length || 0)
+        log.info(
+          { listId: list.id, userId: session.user.id, hasOwner: !!list.owner, memberCount: list.listMembers?.length || 0 },
+          '🔍 Debug: Checking access for list'
+        )
 
         const hasAccess = hasListAccess(list as any, session.user.id)
         const isCollaborativePublic = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
 
-        console.log('🔍 Debug: hasListAccess result:', hasAccess, 'isCollaborativePublic:', isCollaborativePublic)
+        log.info({ hasAccess, isCollaborativePublic }, '🔍 Debug: access check result')
 
         if (!hasAccess && !isCollaborativePublic) {
-          console.error(`User ${session.user.id} does not have permission to create tasks in list ${list.id}`)
+          log.error(`User ${session.user.id} does not have permission to create tasks in list ${list.id}`)
           return NextResponse.json({
             error: `You don't have permission to create tasks in this list`
           }, { status: 403 })
@@ -277,7 +282,7 @@ export async function POST(request: NextRequest) {
     // Copy-only PUBLIC lists MUST have unassigned tasks (security requirement)
     // Collaborative public lists can have assignees since only members can add tasks
     if (hasPublicList) {
-      console.log(`📢 Task being created in copy-only PUBLIC list - forcing unassigned`)
+      log.info(`📢 Task being created in copy-only PUBLIC list - forcing unassigned`)
       finalAssigneeId = null
     }
     // Override for test user debugging
@@ -323,12 +328,12 @@ export async function POST(request: NextRequest) {
       })
       
       if (!assigneeExists) {
-        console.error("Invalid assignee ID:", finalAssigneeId)
+        log.error({ err: finalAssigneeId }, "Invalid assignee ID:")
         return NextResponse.json({ error: `Invalid assignee ID: ${finalAssigneeId}` }, { status: 400 })
       }
     }
 
-    console.log("Creating task with data:", {
+    log.info({
       title: data.title.trim(),
       assigneeId: finalAssigneeId,
       creatorId: session.user.id,
@@ -336,7 +341,7 @@ export async function POST(request: NextRequest) {
       originalListIds: data.listIds || [], // Original list IDs for reference
       repeating: data.repeating,
       customRepeatingData: data.customRepeatingData
-    })
+    }, "Creating task with data:")
 
     // Sanitize customRepeatingData - ensure it's proper JSON or null
     let sanitizedRepeatingData = data.customRepeatingData
@@ -346,7 +351,7 @@ export async function POST(request: NextRequest) {
       try {
         sanitizedRepeatingData = JSON.parse(sanitizedRepeatingData)
       } catch (e) {
-        console.error('Invalid JSON in repeatingData:', sanitizedRepeatingData)
+        log.error({ err: sanitizedRepeatingData }, 'Invalid JSON in repeatingData:')
         sanitizedRepeatingData = null
       }
     }
@@ -361,7 +366,7 @@ export async function POST(request: NextRequest) {
           whenValue = new Date(data.when)
           // Check if the date is valid
           if (isNaN(whenValue.getTime())) {
-            console.error("Invalid date format:", data.when)
+            log.error({ when: data.when }, "Invalid date format")
             return NextResponse.json({ error: `Invalid date format: ${data.when}` }, { status: 400 })
           }
         }
@@ -376,7 +381,7 @@ export async function POST(request: NextRequest) {
       if (typeof data.dueDateTime === "string") {
         dueDateTimeValue = new Date(data.dueDateTime)
         if (isNaN(dueDateTimeValue.getTime())) {
-          console.error("Invalid dueDateTime format:", data.dueDateTime)
+          log.error({ dueDateTime: data.dueDateTime }, "Invalid dueDateTime format")
           return NextResponse.json({ error: `Invalid dueDateTime format: ${data.dueDateTime}` }, { status: 400 })
         }
       } else if (data.dueDateTime instanceof Date) {
@@ -390,7 +395,7 @@ export async function POST(request: NextRequest) {
       if (typeof data.reminderTime === "string") {
         reminderTimeValue = new Date(data.reminderTime)
         if (isNaN(reminderTimeValue.getTime())) {
-          console.error("Invalid reminderTime format:", data.reminderTime)
+          log.error({ reminderTime: data.reminderTime }, "Invalid reminderTime format")
           return NextResponse.json({ error: `Invalid reminderTime format: ${data.reminderTime}` }, { status: 400 })
         }
       } else if (data.reminderTime instanceof Date) {
@@ -437,7 +442,7 @@ export async function POST(request: NextRequest) {
         include: taskFullInclude,
       })
       if (existing) {
-        console.log(`[tasks API] Idempotency (clientRequestId): returning existing task ${existing.id}`)
+        log.info(`[tasks API] Idempotency (clientRequestId): returning existing task ${existing.id}`)
         return NextResponse.json(existing)
       }
     }
@@ -457,7 +462,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (recentDuplicate) {
-        console.log(`[tasks API] Idempotency (time-based): returning existing task ${recentDuplicate.id} (created ${Date.now() - recentDuplicate.createdAt.getTime()}ms ago)`)
+        log.info(`[tasks API] Idempotency (time-based): returning existing task ${recentDuplicate.id} (created ${Date.now() - recentDuplicate.createdAt.getTime()}ms ago)`)
         return NextResponse.json(recentDuplicate)
       }
     }
@@ -504,7 +509,7 @@ export async function POST(request: NextRequest) {
           include: taskFullInclude,
         })
         if (raceExisting && raceExisting.creatorId === session.user.id) {
-          console.log(`[tasks API] Idempotency (P2002 fallback): returning existing task ${raceExisting.id}`)
+          log.info(`[tasks API] Idempotency (P2002 fallback): returning existing task ${raceExisting.id}`)
           return NextResponse.json(raceExisting)
         }
         return NextResponse.json({ error: 'clientRequestId already used by another request' }, { status: 409 })
@@ -556,12 +561,12 @@ export async function POST(request: NextRequest) {
                 data: updatedList
               })
             } catch (error) {
-              console.error(`Failed to append task to manual sort order for list ${listRecord.id}:`, error)
+              log.error({ err: error }, `Failed to append task to manual sort order for list ${listRecord.id}:`)
             }
           })
         )
       } catch (error) {
-        console.error('Failed to fetch candidate manual-sort lists:', error)
+        log.error({ err: error }, 'Failed to fetch candidate manual-sort lists:')
       }
     }
 
@@ -640,12 +645,12 @@ export async function POST(request: NextRequest) {
               },
             }
           })
-          console.log(`📅 Added ${reminder.source} ${reminder.type} to queue for task ${task.id} at ${reminder.scheduledFor.toLocaleString()}`)
+          log.info(`📅 Added ${reminder.source} ${reminder.type} to queue for task ${task.id} at ${reminder.scheduledFor.toLocaleString()}`)
         } else {
-          console.log(`📅 ${reminder.type} already exists for task ${task.id} at ${reminder.scheduledFor.toLocaleString()}`)
+          log.info(`📅 ${reminder.type} already exists for task ${task.id} at ${reminder.scheduledFor.toLocaleString()}`)
         }
       } catch (error) {
-        console.error(`Failed to add ${reminder.type} to queue:`, error)
+        log.error({ err: error }, `Failed to add ${reminder.type} to queue:`)
         // Don't fail the task creation if reminder queueing fails
       }
     }
@@ -683,7 +688,7 @@ export async function POST(request: NextRequest) {
           }
         })
       } catch (sseError) {
-        console.error("Failed to send SSE notification:", sseError)
+        log.error({ err: sseError }, "Failed to send SSE notification:")
         // Continue - task was still created
       }
     }
@@ -707,13 +712,13 @@ export async function POST(request: NextRequest) {
         // Collect all user IDs who should be notified using utility function
         const userIds = new Set<string>()
         
-        console.log(`[SSE] Task created in ${listsWithMembers.length} lists:`, listsWithMembers.map(l => ({ name: l.name, id: l.id, ownerId: l.ownerId })))
+        log.info(listsWithMembers.map(l => ({ name: l.name, id: l.id, ownerId: l.ownerId })), `[SSE] Task created in ${listsWithMembers.length} lists:`)
         
         // Add all list members from all associated lists using utility function
         for (const list of listsWithMembers) {
-          console.log(`[SSE] Processing list "${list.name}":`)
+          log.info(`[SSE] Processing list "${list.name}":`)
           const memberIds = getListMemberIds(list as any)
-          console.log(`  - All members (${memberIds.length}):`, memberIds)
+          log.info({ memberIds }, `  - All members (${memberIds.length}):`)
           memberIds.forEach(id => userIds.add(id))
         }
         
@@ -726,7 +731,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (userIds.size > 0) {
-          console.log(`[SSE] Broadcasting task creation to ${userIds.size} users:`, Array.from(userIds))
+          log.info(Array.from(userIds), `[SSE] Broadcasting task creation to ${userIds.size} users:`)
           broadcastToUsers(Array.from(userIds), {
             type: 'task_created',
             timestamp: new Date().toISOString(),
@@ -763,7 +768,7 @@ export async function POST(request: NextRequest) {
           })
         }
       } catch (sseError) {
-        console.error("Failed to send task creation SSE notifications:", sseError)
+        log.error({ err: sseError }, "Failed to send task creation SSE notifications:")
         // Continue - task was still created
       }
     }
@@ -777,21 +782,21 @@ export async function POST(request: NextRequest) {
         })
 
         if (assignee?.isAIAgent) {
-          console.log(`🤖 Task assigned to AI agent ${assignee.name} (${assignee.aiAgentType}), sending notification...`)
+          log.info(`🤖 Task assigned to AI agent ${assignee.name} (${assignee.aiAgentType}), sending notification...`)
           await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
         }
       } catch (aiNotificationError) {
-        console.error("Failed to notify AI agent about task assignment:", aiNotificationError)
+        log.error({ err: aiNotificationError }, "Failed to notify AI agent about task assignment:")
         // Don't fail the task creation if AI notification fails
       }
     }
     // Also check for aiAgentId assignments (new system)
     else if (task.aiAgentId) {
       try {
-        console.log(`🤖 Task assigned to AI agent via aiAgentId ${task.aiAgentId}, sending notification...`)
+        log.info(`🤖 Task assigned to AI agent via aiAgentId ${task.aiAgentId}, sending notification...`)
         await aiAgentWebhookService.notifyTaskAssignmentViaAIAgentId(task.id, task.aiAgentId)
       } catch (aiNotificationError) {
-        console.error("Failed to notify AI agent about task assignment:", aiNotificationError)
+        log.error({ err: aiNotificationError }, "Failed to notify AI agent about task assignment:")
         // Don't fail the task creation if AI notification fails
       }
     }
@@ -801,12 +806,12 @@ export async function POST(request: NextRequest) {
       const redisAvailable = await isRedisAvailable()
       if (redisAvailable) {
         await RedisCache.invalidate.userTasks(session.user.id, nonVirtualListIds)
-        console.log(`🗑️ Invalidated task caches after task creation`)
+        log.info(`🗑️ Invalidated task caches after task creation`)
       } else {
-        console.log(`ℹ️ Redis not available, skipping cache invalidation`)
+        log.info(`ℹ️ Redis not available, skipping cache invalidation`)
       }
     } catch (cacheError) {
-      console.error('Failed to invalidate task cache:', cacheError)
+      log.error({ err: cacheError }, 'Failed to invalidate task cache:')
       // Don't fail the request for cache errors
     }
 

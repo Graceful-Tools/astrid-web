@@ -18,6 +18,10 @@ import {
 } from "@/lib/task-query-utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.tasks.id')
+
 // AI agent workflow handling is now done by Prisma middleware (lib/prisma.ts)
 // Removed: getAgentService, aiAgentWebhookService imports
 
@@ -70,7 +74,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
 
     return NextResponse.json(task)
   } catch (error) {
-    console.error("Error fetching task:", error)
+    log.error({ err: error }, "Error fetching task:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -88,11 +92,11 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     const data = await request.json()
     taskId = (await context.params).id
 
-    console.log(`🔧 [TASK-UPDATE] PUT request received:`, {
+    log.info({
       taskId,
       userId: session.user.id,
       updateData: data
-    })
+    }, `🔧 [TASK-UPDATE] PUT request received:`)
 
     // Validate required data
     if (!data.title?.trim()) {
@@ -100,14 +104,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     }
 
     // Check if user has permission to update this task
-    console.log(`[DEBUG] Before existingTask lookup: prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
-    console.log(`[DEBUG] Before existingTask lookup (DELETE): prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
+    log.info(`[DEBUG] Before existingTask lookup: prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
+    log.info(`[DEBUG] Before existingTask lookup (DELETE): prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: TASK_FULL_INCLUDE,
     })
-    console.log(`[DEBUG] After existingTask lookup (DELETE): existingTask exists? ${!!existingTask}`);
-    console.log(`[DEBUG] After existingTask lookup: existingTask exists? ${!!existingTask}`);
+    log.info(`[DEBUG] After existingTask lookup (DELETE): existingTask exists? ${!!existingTask}`);
+    log.info(`[DEBUG] After existingTask lookup: existingTask exists? ${!!existingTask}`);
 
     if (!existingTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
@@ -123,7 +127,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         canUserEditTask(user, existingTask, list)
       )
 
-    console.log(`🔐 [TASK-UPDATE] Permission check:`, {
+    log.info({
       taskId,
       userId: session.user.id,
       canUpdate,
@@ -135,7 +139,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         privacy: l.privacy,
         publicListType: l.publicListType
       }))
-    })
+    }, `🔐 [TASK-UPDATE] Permission check:`)
 
     if (!canUpdate) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -143,8 +147,8 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     // Validate and sanitize the data
     if (process.env.NODE_ENV === "development") {
-      console.log('Updating task with data:', JSON.stringify(data, null, 2))
-      console.log('Session data:', { userId: session?.user?.id, email: session?.user?.email })
+      log.info({ data }, 'Updating task with data')
+      log.info({ userId: session?.user?.id, email: session?.user?.email }, 'Session data:')
     }
     
     // Handle date conversion for 'dueDateTime' field
@@ -156,15 +160,15 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         try {
           sanitizedDueDateTime = new Date(sanitizedDueDateTime)
           if (isNaN(sanitizedDueDateTime.getTime())) {
-            console.error('Invalid dueDateTime string:', data.dueDateTime)
+            log.error({ dueDateTime: data.dueDateTime }, 'Invalid dueDateTime string')
             sanitizedDueDateTime = null
           }
         } catch (e) {
-          console.error('Error parsing dueDateTime:', data.dueDateTime, e)
+          log.error({ err: e, dueDateTime: data.dueDateTime }, 'Error parsing dueDateTime')
           sanitizedDueDateTime = null
         }
       } else if (!(sanitizedDueDateTime instanceof Date)) {
-        console.error('Invalid dueDateTime type:', typeof data.dueDateTime, data.dueDateTime)
+        log.error({ type: typeof data.dueDateTime, value: data.dueDateTime }, 'Invalid dueDateTime type')
         sanitizedDueDateTime = null
       }
     }
@@ -177,7 +181,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       try {
         sanitizedRepeatingData = JSON.parse(sanitizedRepeatingData)
       } catch (e) {
-        console.error('Invalid JSON in repeatingData:', sanitizedRepeatingData)
+        log.error({ err: sanitizedRepeatingData }, 'Invalid JSON in repeatingData:')
         sanitizedRepeatingData = null
       }
     }
@@ -192,9 +196,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           invitedBy: session.user.id,
         })
         emailAssigneeId = placeholderUser.id
-        console.log(`📧 Task reassigned to email: ${data.assigneeEmail} (${emailAssigneeId})`)
+        log.info(`📧 Task reassigned to email: ${data.assigneeEmail} (${emailAssigneeId})`)
       } catch (error) {
-        console.error('Error creating placeholder user for update:', error)
+        log.error({ err: error }, 'Error creating placeholder user for update:')
         return NextResponse.json(
           { error: 'Failed to create placeholder user' },
           { status: 500 }
@@ -216,11 +220,11 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
       if (!assigneeUser?.isAIAgent) {
         // Regular user assignment on public list - prevent it
-        console.log(`📢 Task ${taskId} is in a PUBLIC list - preventing regular user assignment`)
+        log.info(`📢 Task ${taskId} is in a PUBLIC list - preventing regular user assignment`)
         finalAssigneeId = null // Force unassigned for public lists
       } else {
         // AI agent assignment on public list - allow it
-        console.log(`🤖 Task ${taskId} is in a PUBLIC list - allowing AI agent assignment`)
+        log.info(`🤖 Task ${taskId} is in a PUBLIC list - allowing AI agent assignment`)
       }
     }
 
@@ -245,23 +249,23 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       await applyRepeatingTaskRollForward(taskId, repeatingTaskResult)
 
       // Fetch the updated task to return to client
-      console.log(`[DEBUG] Before fetching updatedTask: prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
+      log.info(`[DEBUG] Before fetching updatedTask: prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
       const updatedTask = await prisma.task.findUnique({
         where: { id: taskId },
         include: TASK_FULL_INCLUDE,
       })
-      console.log(`[DEBUG] After fetching updatedTask: updatedTask exists? ${!!updatedTask}`);
+      log.info(`[DEBUG] After fetching updatedTask: updatedTask exists? ${!!updatedTask}`);
 
       if (!updatedTask) {
         return NextResponse.json({ error: "Task not found after update" }, { status: 404 })
       }
 
-      console.log(`✅ Task ${taskId} ${repeatingTaskResult.shouldRollForward ? 'rolled forward to next occurrence' : 'series terminated'}`)
+      log.info(`✅ Task ${taskId} ${repeatingTaskResult.shouldRollForward ? 'rolled forward to next occurrence' : 'series terminated'}`)
       return NextResponse.json(updatedTask)
     }
 
     // Log ALL updates with repeatFrom for debugging
-    console.log('[API Route] Update request received:', {
+    log.info({
       taskId,
       repeating: data.repeating,
       repeatFrom: data.repeatFrom,
@@ -269,16 +273,16 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       repeatFromUndefined: data.repeatFrom === undefined,
       hasRepeatFromInData: 'repeatFrom' in data,
       repeatingData: sanitizedRepeatingData
-    })
+    }, '[API Route] Update request received:')
 
     // Log repeating task data for debugging
     if (data.repeating && data.repeating !== 'never') {
-      console.log('[API Route] Updating repeating task:', {
+      log.info({
         taskId,
         repeating: data.repeating,
         repeatFrom: data.repeatFrom,
         repeatingData: sanitizedRepeatingData
-      })
+      }, '[API Route] Updating repeating task:')
     }
 
     // SECURITY: Validate user has access to all specified lists before updating
@@ -339,12 +343,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       ...(data.lastTimerValue !== undefined && { lastTimerValue: data.lastTimerValue }),
     }
 
-    console.log('[API Route] Prisma update data:', {
+    log.info({
       taskId,
       updateData,
       hasRepeatFrom: 'repeatFrom' in updateData,
       repeatFromValue: updateData.repeatFrom
-    })
+    }, '[API Route] Prisma update data:')
 
     // Update the task (only if not a repeating task that was rolled forward)
     const updatedTask = await prisma.task.update({
@@ -401,10 +405,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         // Comments are ordered by createdAt desc, so add at beginning
         updatedTask.comments = [stateChangeComment, ...updatedTask.comments]
 
-        console.log(`📝 Created state change comment for task ${updatedTask.id}: ${commentContent}`)
+        log.info(`📝 Created state change comment for task ${updatedTask.id}: ${commentContent}`)
       }
     } catch (stateChangeError) {
-      console.error('❌ Failed to create state change comment:', stateChangeError)
+      log.error({ err: stateChangeError }, '❌ Failed to create state change comment:')
       // Don't fail the task update if state change tracking fails
     }
 
@@ -463,15 +467,15 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
             data: updatedList
           })
         } catch (error) {
-          console.error('Failed to synchronize manual sort order for list', candidateId, error)
+          log.error('Failed to synchronize manual sort order for list', candidateId, error)
         }
       }
     }
 
     // Handle AI agent assignment using command pattern (prevents circular dependencies)
     try {
-      console.log(`🔔 [TASK-UPDATE] Starting AI agent assignment check for task ${updatedTask.id}`)
-      console.log(`🔔 [TASK-UPDATE] Session user: ${session.user.id}, email: ${session.user.email}`)
+      log.info(`🔔 [TASK-UPDATE] Starting AI agent assignment check for task ${updatedTask.id}`)
+      log.info(`🔔 [TASK-UPDATE] Session user: ${session.user.id}, email: ${session.user.email}`)
 
       // Check if updater is an AI agent to prevent self-triggering loops
       const updaterUser = await prisma.user.findUnique({
@@ -479,7 +483,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         select: { isAIAgent: true }
       })
       const isUpdaterAIAgent = updaterUser?.isAIAgent === true
-      console.log(`🔔 [TASK-UPDATE] isUpdaterAIAgent: ${isUpdaterAIAgent}`)
+      log.info(`🔔 [TASK-UPDATE] isUpdaterAIAgent: ${isUpdaterAIAgent}`)
 
       // AI agent workflow triggering is handled by Prisma middleware
       // The middleware posts the "starting" comment, sends webhooks, and triggers assistant workflow
@@ -487,13 +491,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       if (!isUpdaterAIAgent) {
         const assigneeChanged = updatedTask.assigneeId !== existingTask.assigneeId
         if (assigneeChanged && updatedTask.assigneeId) {
-          console.log(`🤖 [TASK-UPDATE] Assignee changed to ${updatedTask.assigneeId} - Prisma middleware will handle AI agent processing`)
+          log.info(`🤖 [TASK-UPDATE] Assignee changed to ${updatedTask.assigneeId} - Prisma middleware will handle AI agent processing`)
         }
       } else {
-        console.log(`🤖 Task updated by AI agent itself, skipping AI agent processing`)
+        log.info(`🤖 Task updated by AI agent itself, skipping AI agent processing`)
       }
     } catch (aiWebhookError) {
-      console.error("Failed to check AI agent assignment:", aiWebhookError)
+      log.error({ err: aiWebhookError }, "Failed to check AI agent assignment:")
       // Don't fail the task update if check fails
     }
 
@@ -524,11 +528,11 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
         if (statsUserIds.size > 0) {
           await invalidateUserStats(Array.from(statsUserIds))
-          console.log(`📊 Invalidated user stats for ${statsUserIds.size} users`)
+          log.info(`📊 Invalidated user stats for ${statsUserIds.size} users`)
         }
       }
     } catch (statsError) {
-      console.error("❌ Failed to invalidate user stats:", statsError)
+      log.error({ err: statsError }, "❌ Failed to invalidate user stats:")
       // Continue - task was still updated
     }
 
@@ -564,12 +568,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           RedisCache.del(RedisCache.keys.userTasks(userId))
         )
 
-        console.log(`🗄️ Invalidating task cache for ${affectedUserIds.size} users after task update`)
+        log.info(`🗄️ Invalidating task cache for ${affectedUserIds.size} users after task update`)
         await Promise.all(invalidationPromises)
-        console.log(`✅ Task cache invalidated for all affected users`)
+        log.info(`✅ Task cache invalidated for all affected users`)
       }
     } catch (cacheError) {
-      console.error("❌ Failed to invalidate task cache:", cacheError)
+      log.error({ err: cacheError }, "❌ Failed to invalidate task cache:")
       // Continue - task was still updated
     }
 
@@ -598,12 +602,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       // Remove the user who made the update (they already see it)
       userIds.delete(session.user.id)
       
-      console.log(`[SSE] Task update broadcast - userIds before removal: ${Array.from(userIds).length}`)
-      console.log(`[SSE] User IDs to notify:`, Array.from(userIds))
+      log.info(`[SSE] Task update broadcast - userIds before removal: ${Array.from(userIds).length}`)
+      log.info(Array.from(userIds), `[SSE] User IDs to notify:`)
       
       // Broadcast to all relevant users
       if (userIds.size > 0) {
-        console.log(`[SSE] Broadcasting task update to ${userIds.size} users`)
+        log.info(`[SSE] Broadcasting task update to ${userIds.size} users`)
         // broadcastToUsers imported at top level
         broadcastToUsers(Array.from(userIds), {
           type: 'task_updated',
@@ -644,7 +648,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
       }
     } catch (sseError) {
-      console.error("Failed to send task update SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send task update SSE notifications:")
       // Continue - task was still updated
     }
 
@@ -657,7 +661,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
 
         if (activeWorkflow && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(activeWorkflow.status)) {
-          console.log(`🛑 [TASK-UPDATE] Cancelling active workflow due to task completion: ${taskId}`)
+          log.info(`🛑 [TASK-UPDATE] Cancelling active workflow due to task completion: ${taskId}`)
           await prisma.codingTaskWorkflow.update({
             where: { taskId },
             data: {
@@ -669,10 +673,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
               }
             }
           })
-          console.log(`✅ [TASK-UPDATE] Workflow cancelled successfully`)
+          log.info(`✅ [TASK-UPDATE] Workflow cancelled successfully`)
         }
       } catch (workflowError) {
-        console.error('❌ [TASK-UPDATE] Failed to cancel workflow:', workflowError)
+        log.error({ err: workflowError }, '❌ [TASK-UPDATE] Failed to cancel workflow:')
         // Continue with update even if workflow cancellation fails
       }
     }
@@ -694,7 +698,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
             status: "cancelled"
           }
         })
-        console.log(`📅 Cancelled existing reminders for updated task ${updatedTask.id}`)
+        log.info(`📅 Cancelled existing reminders for updated task ${updatedTask.id}`)
 
         // Add new reminders if task is not completed and has due date
         if (!updatedTask.completed && sanitizedDueDateTime) {
@@ -744,23 +748,23 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
                   },
                 }
               })
-              console.log(`📅 Added ${reminder.type} to queue for updated task ${updatedTask.id} at ${reminder.scheduledFor.toLocaleString()}`)
+              log.info(`📅 Added ${reminder.type} to queue for updated task ${updatedTask.id} at ${reminder.scheduledFor.toLocaleString()}`)
             } catch (reminderError) {
-              console.error(`Failed to add ${reminder.type} for updated task:`, reminderError)
+              log.error({ err: reminderError }, `Failed to add ${reminder.type} for updated task:`)
             }
           }
         }
       } catch (error) {
-        console.error("Failed to update reminders for task:", error)
+        log.error({ err: error }, "Failed to update reminders for task:")
         // Don't fail the task update if reminder scheduling fails
       }
     }
 
-    console.log('[API Route] Returning updated task:', {
+    log.info({
       taskId: updatedTask.id,
       repeatFrom: updatedTask.repeatFrom,
       repeating: updatedTask.repeating
-    })
+    }, '[API Route] Returning updated task:')
 
     // Track analytics events (fire-and-forget)
     if (data.completed !== undefined && data.completed !== existingTask.completed) {
@@ -772,14 +776,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     return NextResponse.json(updatedTask)
   } catch (error) {
-    console.error("Error updating task:", error)
-    console.error("Error details:", {
+    log.error({ err: error }, "Error updating task:")
+    log.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : undefined,
       taskId,
       userId: session?.user?.id
-    })
+    }, "Error details:")
     return NextResponse.json({ 
       error: "Internal server error",
       details: error instanceof Error ? error.message : String(error)
@@ -833,7 +837,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       })
 
       if (activeWorkflow && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(activeWorkflow.status)) {
-        console.log(`🛑 [TASK-DELETE] Cancelling active workflow for task ${taskId}`)
+        log.info(`🛑 [TASK-DELETE] Cancelling active workflow for task ${taskId}`)
         await prisma.codingTaskWorkflow.update({
           where: { taskId },
           data: {
@@ -845,10 +849,10 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
             }
           }
         })
-        console.log(`✅ [TASK-DELETE] Workflow cancelled successfully`)
+        log.info(`✅ [TASK-DELETE] Workflow cancelled successfully`)
       }
     } catch (workflowError) {
-      console.error('❌ [TASK-DELETE] Failed to cancel workflow:', workflowError)
+      log.error({ err: workflowError }, '❌ [TASK-DELETE] Failed to cancel workflow:')
       // Continue with deletion even if workflow cancellation fails
     }
 
@@ -902,12 +906,12 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
               data: updatedList
             })
           } catch (error) {
-            console.error(`Failed to update manual sort order after deletion for list ${listRecord.id}:`, error)
+            log.error({ err: error }, `Failed to update manual sort order after deletion for list ${listRecord.id}:`)
           }
         })
       )
     } catch (error) {
-      console.error('Failed to fetch candidate manual-sort lists for deletion:', error)
+      log.error({ err: error }, 'Failed to fetch candidate manual-sort lists for deletion:')
     }
 
     // Invalidate cache for all affected users BEFORE broadcasting SSE
@@ -938,12 +942,12 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
           RedisCache.del(RedisCache.keys.userTasks(userId))
         )
 
-        console.log(`🗄️ Invalidating task cache for ${affectedUserIds.size} users after task deletion`)
+        log.info(`🗄️ Invalidating task cache for ${affectedUserIds.size} users after task deletion`)
         await Promise.all(invalidationPromises)
-        console.log(`✅ Task cache invalidated for all affected users`)
+        log.info(`✅ Task cache invalidated for all affected users`)
       }
     } catch (cacheError) {
-      console.error("❌ Failed to invalidate task cache:", cacheError)
+      log.error({ err: cacheError }, "❌ Failed to invalidate task cache:")
       // Continue - task was still deleted
     }
 
@@ -972,12 +976,12 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       // Remove the user who made the deletion (they already see it)
       userIds.delete(session.user.id)
 
-      console.log(`[SSE] Task deletion broadcast - userIds before removal: ${Array.from(userIds).length}`)
-      console.log(`[SSE] User IDs to notify:`, Array.from(userIds))
+      log.info(`[SSE] Task deletion broadcast - userIds before removal: ${Array.from(userIds).length}`)
+      log.info(Array.from(userIds), `[SSE] User IDs to notify:`)
 
       // Broadcast to all relevant users
       if (userIds.size > 0) {
-        console.log(`[SSE] Broadcasting task deletion to ${userIds.size} users`)
+        log.info(`[SSE] Broadcasting task deletion to ${userIds.size} users`)
         // broadcastToUsers imported at top level
         broadcastToUsers(Array.from(userIds), {
           type: 'task_deleted',
@@ -993,7 +997,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
         })
       }
     } catch (sseError) {
-      console.error("Failed to send task deletion SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send task deletion SSE notifications:")
       // Continue - task was still deleted
     }
 
@@ -1002,7 +1006,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting task:", error)
+    log.error({ err: error }, "Error deleting task:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
