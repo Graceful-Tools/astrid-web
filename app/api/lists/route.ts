@@ -8,6 +8,10 @@ import { getListMemberIds } from "@/lib/list-member-utils"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { hydrateListFavorites } from "@/lib/favorites"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.lists')
+
 
 // Only select the user fields needed for display (excludes sensitive data like passwords, API keys)
 const safeUserSelect = {
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
       lists = await RedisCache.getOrSet(
         cacheKey,
         async () => {
-          console.log(`🔄 Cache miss for user lists: ${session.user.id}`)
+          log.info(`🔄 Cache miss for user lists: ${session.user.id}`)
           return await prisma.taskList.findMany({
             where,
             include: {
@@ -77,7 +81,7 @@ export async function GET(request: NextRequest) {
       )
     } else {
       // Incremental sync - skip cache, fetch directly
-      console.log(`📥 Incremental sync for user ${session.user.id} lists since ${updatedSince}`)
+      log.info(`📥 Incremental sync for user ${session.user.id} lists since ${updatedSince}`)
       lists = await prisma.taskList.findMany({
         where,
         include: {
@@ -97,7 +101,7 @@ export async function GET(request: NextRequest) {
           updatedAt: "desc", // For incremental, order by update time
         },
       })
-      console.log(`✅ Incremental sync returned ${lists.length} updated lists`)
+      log.info(`✅ Incremental sync returned ${lists.length} updated lists`)
     }
 
     // Hydrate per-user favorite state
@@ -144,7 +148,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error("Error fetching lists:", error)
+    log.error({ err: error }, "Error fetching lists:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -235,7 +239,7 @@ export async function POST(request: NextRequest) {
         )
       }
     } catch (error) {
-      console.error('Error creating list:', error)
+      log.error({ err: error }, 'Error creating list:')
       return NextResponse.json({
         error: 'Failed to create list',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -386,7 +390,7 @@ export async function POST(request: NextRequest) {
             invitationUrl: `${process.env.NEXTAUTH_URL}/invite/${token}`,
           })
         } catch (emailError) {
-          console.error(`Failed to send invitation to ${trimmedEmail}:`, emailError)
+          log.error({ err: emailError }, `Failed to send invitation to ${trimmedEmail}:`)
           // Continue with other invitations even if one fails
         }
       }
@@ -415,36 +419,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("🗄️ Invalidating cache for users after list creation:", userIdsToInvalidate.length, "users")
+    log.info({ userCount: userIdsToInvalidate.length }, "🗄️ Invalidating cache for users after list creation")
     await Promise.all(
       [...new Set(userIdsToInvalidate)].map(async (userId) => { // Remove duplicates with Set
         try {
           await RedisCache.del(RedisCache.keys.userLists(userId))
-          console.log(`✅ Cache invalidated for user: ${userId}`)
+          log.info(`✅ Cache invalidated for user: ${userId}`)
         } catch (error) {
-          console.error(`❌ Failed to invalidate cache for user ${userId}:`, error)
+          log.error({ err: error }, `❌ Failed to invalidate cache for user ${userId}:`)
         }
       })
     )
 
     // Broadcast SSE event for list creation
     try {
-      console.log(`[SSE] Broadcasting list creation to ${userIdsToInvalidate.length} users`)
+      log.info(`[SSE] Broadcasting list creation to ${userIdsToInvalidate.length} users`)
       await broadcastToUsers([...new Set(userIdsToInvalidate)], {
         type: 'list_created',
         timestamp: new Date().toISOString(),
         data: listWithDefaultAssignee
       })
     } catch (sseError) {
-      console.error('Failed to broadcast list creation SSE event:', sseError)
+      log.error({ err: sseError }, 'Failed to broadcast list creation SSE event:')
       // Don't fail the request if SSE fails
     }
 
     // Invalidate public lists cache if new list is public
     if (data.privacy === 'PUBLIC') {
-      console.log(`🗑️ Invalidating public lists cache for new public list`)
+      log.info(`🗑️ Invalidating public lists cache for new public list`)
       await RedisCache.delPattern('public_lists:*').catch(err =>
-        console.error('Failed to invalidate public lists cache:', err)
+        log.error({ err: err }, 'Failed to invalidate public lists cache:')
       )
     }
 
@@ -453,7 +457,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(listWithDefaultAssignee)
   } catch (error) {
-    console.error("Error creating list:", error)
+    log.error({ err: error }, "Error creating list:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

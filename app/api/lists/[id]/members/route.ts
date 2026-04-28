@@ -8,6 +8,10 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.lists.members')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,7 +38,7 @@ async function isListAdmin(listId: string, userId: string): Promise<boolean> {
     })
     return !!memberResult
   } catch (error) {
-    console.error('Error checking list admin status:', error)
+    log.error({ err: error }, 'Error checking list admin status:')
     return false
   }
 }
@@ -168,7 +172,7 @@ export async function GET(
       user_role: userRole
     })
   } catch (error) {
-    console.error("Error fetching list members:", error)
+    log.error({ err: error }, "Error fetching list members:")
     return NextResponse.json({ error: "Failed to fetch list members" }, { status: 500 })
   }
 }
@@ -260,20 +264,20 @@ export async function POST(
           invitationUrl: `${process.env.NEXTAUTH_URL}/invite/${token}`,
         })
       } catch (emailError) {
-        console.error("Failed to send notification email:", emailError)
+        log.error({ err: emailError }, "Failed to send notification email:")
         // Continue - member was still added
       }
 
       // Invalidate cache for the newly added user
-      console.log("🗄️ Invalidating cache for newly added member:", existingUser.id)
+      log.info({ userId: existingUser.id }, "🗄️ Invalidating cache for newly added member")
       try {
         await Promise.all([
           RedisCache.del(RedisCache.keys.userLists(existingUser.id)),
           RedisCache.del(RedisCache.keys.userTasks(existingUser.id))
         ])
-        console.log(`✅ Cache invalidated for new member: ${existingUser.id}`)
+        log.info(`✅ Cache invalidated for new member: ${existingUser.id}`)
       } catch (error) {
-        console.error(`❌ Failed to invalidate cache for user ${existingUser.id}:`, error)
+        log.error({ err: error }, `❌ Failed to invalidate cache for user ${existingUser.id}:`)
       }
 
       // Broadcast SSE event to ALL list members (including the person who added them)
@@ -307,7 +311,7 @@ export async function POST(
           })
         }
       } catch (sseError) {
-        console.error("Failed to send SSE notification:", sseError)
+        log.error({ err: sseError }, "Failed to send SSE notification:")
         // Continue - member was still added
       }
 
@@ -339,7 +343,7 @@ export async function POST(
           invitationUrl: `${process.env.NEXTAUTH_URL}/invite/${token}`,
         })
       } catch (emailError) {
-        console.error("Failed to send invitation email:", emailError)
+        log.error({ err: emailError }, "Failed to send invitation email:")
         // Continue even if email fails
       }
 
@@ -349,7 +353,7 @@ export async function POST(
       })
     }
   } catch (error) {
-    console.error("Error adding member:", error)
+    log.error({ err: error }, "Error adding member:")
     return NextResponse.json({ error: "Failed to add member" }, { status: 500 })
   }
 }
@@ -494,15 +498,15 @@ export async function DELETE(
     const allMemberIdsBeforeRemoval = getListMemberIds(fullListBeforeRemoval as any)
 
     // Invalidate cache for the removed user
-    console.log("🗄️ Invalidating cache for removed member:", memberId)
+    log.info({ memberId }, "🗄️ Invalidating cache for removed member:")
     try {
       await Promise.all([
         RedisCache.del(RedisCache.keys.userLists(memberId)),
         RedisCache.del(RedisCache.keys.userTasks(memberId))
       ])
-      console.log(`✅ Cache invalidated for removed member: ${memberId}`)
+      log.info(`✅ Cache invalidated for removed member: ${memberId}`)
     } catch (error) {
-      console.error(`❌ Failed to invalidate cache for user ${memberId}:`, error)
+      log.error({ err: error }, `❌ Failed to invalidate cache for user ${memberId}:`)
     }
 
     // Broadcast SSE event to ALL members (including the person who removed them)
@@ -527,13 +531,13 @@ export async function DELETE(
         })
       }
     } catch (sseError) {
-      console.error("Failed to send SSE notification for member removal:", sseError)
+      log.error({ err: sseError }, "Failed to send SSE notification for member removal:")
       // Continue - member was still removed
     }
 
     return NextResponse.json({ message: "Member removed successfully" })
   } catch (error) {
-    console.error("Error removing member:", error)
+    log.error({ err: error }, "Error removing member:")
     return NextResponse.json({ error: "Failed to remove member" }, { status: 500 })
   }
 }
@@ -599,15 +603,15 @@ export async function PATCH(
           })
 
           // Invalidate cache for the leaving owner
-          console.log("🗄️ Invalidating cache for owner leaving and deleting list:", session.user.id)
+          log.info({ userId: session.user.id }, "🗄️ Invalidating cache for owner leaving and deleting list")
           try {
             await Promise.all([
               RedisCache.del(RedisCache.keys.userLists(session.user.id)),
               RedisCache.del(RedisCache.keys.userTasks(session.user.id))
             ])
-            console.log(`✅ Cache invalidated for leaving owner: ${session.user.id}`)
+            log.info(`✅ Cache invalidated for leaving owner: ${session.user.id}`)
           } catch (error) {
-            console.error(`❌ Failed to invalidate cache for user ${session.user.id}:`, error)
+            log.error({ err: error }, `❌ Failed to invalidate cache for user ${session.user.id}:`)
           }
 
           return NextResponse.json({ message: "Successfully left the list", deleted: true })
@@ -674,7 +678,7 @@ export async function PATCH(
           }
           
           // Invalidate cache for both old and new owner after ownership transfer
-          console.log("🗄️ Invalidating cache for ownership transfer - old owner:", session.user.id, "new owner:", newOwner.userId)
+          log.info({ oldOwnerId: session.user.id, newOwnerId: newOwner.userId }, "🗄️ Invalidating cache for ownership transfer")
           try {
             await Promise.all([
               RedisCache.del(RedisCache.keys.userLists(session.user.id)), // Old owner
@@ -682,9 +686,9 @@ export async function PATCH(
               RedisCache.del(RedisCache.keys.userLists(newOwner.userId)),   // New owner
               RedisCache.del(RedisCache.keys.userTasks(newOwner.userId))    // New owner tasks
             ])
-            console.log(`✅ Cache invalidated for ownership transfer`)
+            log.info(`✅ Cache invalidated for ownership transfer`)
           } catch (error) {
-            console.error(`❌ Failed to invalidate cache for ownership transfer:`, error)
+            log.error({ err: error }, `❌ Failed to invalidate cache for ownership transfer:`)
           }
         }
       } else {
@@ -740,15 +744,15 @@ export async function PATCH(
       }
 
       // Invalidate cache for the user who left
-      console.log("🗄️ Invalidating cache for user who left list:", session.user.id)
+      log.info({ userId: session.user.id }, "🗄️ Invalidating cache for user who left list")
       try {
         await Promise.all([
           RedisCache.del(RedisCache.keys.userLists(session.user.id)),
           RedisCache.del(RedisCache.keys.userTasks(session.user.id))
         ])
-        console.log(`✅ Cache invalidated for leaving user: ${session.user.id}`)
+        log.info(`✅ Cache invalidated for leaving user: ${session.user.id}`)
       } catch (error) {
-        console.error(`❌ Failed to invalidate cache for user ${session.user.id}:`, error)
+        log.error({ err: error }, `❌ Failed to invalidate cache for user ${session.user.id}:`)
       }
 
       return NextResponse.json({ message: "Successfully left the list" })
@@ -853,7 +857,7 @@ export async function PATCH(
         allMemberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId)))
       )
     } catch (cacheError) {
-      console.error("Failed to invalidate cache for list members:", cacheError)
+      log.error({ err: cacheError }, "Failed to invalidate cache for list members:")
     }
 
     // Send SSE notification to ALL list members (including the user making the change)
@@ -874,13 +878,13 @@ export async function PATCH(
         }
       })
     } catch (sseError) {
-      console.error("Failed to send SSE notification for role update:", sseError)
+      log.error({ err: sseError }, "Failed to send SSE notification for role update:")
       // Continue - role was still updated
     }
 
     return NextResponse.json({ message: "Member role updated successfully" })
   } catch (error) {
-    console.error("Error updating member role:", error)
+    log.error({ err: error }, "Error updating member role:")
     return NextResponse.json({ error: "Failed to update member role" }, { status: 500 })
   }
 }
