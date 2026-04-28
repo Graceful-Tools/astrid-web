@@ -1,5 +1,9 @@
 import { createClient } from 'redis'
 import { Redis as UpstashRedis } from '@upstash/redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('redis')
+
 
 // Redis client singleton (supports both standard Redis and Upstash)
 let redis: ReturnType<typeof createClient> | null = null
@@ -34,7 +38,7 @@ export async function getRedisClient() {
 
     if (isProduction && hasUpstashConfig) {
       // Production: Use Upstash REST API (serverless-friendly)
-      console.log('[Redis] Using Upstash REST API for production')
+      log.info('[Redis] Using Upstash REST API for production')
       upstashRedis = new UpstashRedis({
         url: process.env.UPSTASH_REDIS_REST_URL!,
         token: process.env.UPSTASH_REDIS_REST_TOKEN!
@@ -45,7 +49,7 @@ export async function getRedisClient() {
       return createUpstashAdapter(upstashRedis)
     } else if (process.env.REDIS_URL) {
       // Development: Use local Redis server
-      console.log('[Redis] Using local Redis server')
+      log.info('[Redis] Using local Redis server')
       redis = createClient({
         url: process.env.REDIS_URL,
         socket: {
@@ -55,7 +59,7 @@ export async function getRedisClient() {
       })
     } else {
       // No Redis configured - skip connection
-      console.log('[Redis] No REDIS_URL configured, skipping Redis')
+      log.info('[Redis] No REDIS_URL configured, skipping Redis')
       return null
     }
 
@@ -64,23 +68,23 @@ export async function getRedisClient() {
       redis.on('error', (err) => {
         // Only log once, not on every reconnect attempt
         if (Date.now() >= redisUnavailableUntil) {
-          console.error('[Redis] Client error:', err.message || err)
+          log.error(err.message || err, '[Redis] Client error:')
         }
         redis = null
         redisUnavailableUntil = Date.now() + REDIS_BACKOFF_MS
       })
 
       redis.on('connect', () => {
-        console.log('[Redis] Client connected')
+        log.info('[Redis] Client connected')
         redisUnavailableUntil = 0 // Reset circuit breaker on success
       })
 
       redis.on('ready', () => {
-        console.log('[Redis] Client ready')
+        log.info('[Redis] Client ready')
       })
 
       redis.on('end', () => {
-        console.log('[Redis] Client disconnected')
+        log.info('[Redis] Client disconnected')
         redis = null
       })
 
@@ -99,7 +103,7 @@ export async function getRedisClient() {
     if (msg.includes('circuit breaker')) {
       throw error
     }
-    console.warn(`[Redis] Unavailable (will retry in ${REDIS_BACKOFF_MS / 1000}s): ${msg}`)
+    log.warn(`[Redis] Unavailable (will retry in ${REDIS_BACKOFF_MS / 1000}s): ${msg}`)
     throw error
   }
 }
@@ -151,7 +155,7 @@ function createUpstashAdapter(upstash: UpstashRedis): any {
 
         return allKeys
       } catch (error) {
-        console.error('⚠️ [Redis] Upstash SCAN error:', error)
+        log.error({ err: error }, '⚠️ [Redis] Upstash SCAN error:')
         return []
       }
     },
@@ -236,7 +240,7 @@ export class RedisCache {
         return null
       }
     } catch (error) {
-      console.error('Redis get error:', error)
+      log.error({ err: error }, 'Redis get error:')
       this.metrics.errors++
       return null // Fail silently, fall back to database
     }
@@ -252,7 +256,7 @@ export class RedisCache {
       // Track key in appropriate pattern sets for efficient pattern deletion
       await this.trackKeyInSets(key, ttl, client)
     } catch (error) {
-      console.error('Redis set error:', error)
+      log.error({ err: error }, 'Redis set error:')
       this.metrics.errors++
       // Don't throw - caching is optional
     }
@@ -293,7 +297,7 @@ export class RedisCache {
       }
     } catch (error) {
       // Don't fail if key tracking fails - pattern deletion will fall back to SCAN
-      console.warn('⚠️ [Redis] Key tracking failed:', error)
+      log.warn({ error }, '⚠️ [Redis] Key tracking failed:')
     }
   }
 
@@ -304,7 +308,7 @@ export class RedisCache {
       await client.del(key)
       this.metrics.deletes++
     } catch (error) {
-      console.error('Redis del error:', error)
+      log.error({ err: error }, 'Redis del error:')
       this.metrics.errors++
       // Don't throw - cache invalidation failure is not critical
     }
@@ -324,26 +328,26 @@ export class RedisCache {
         try {
           keys = await client.sMembers(keysetName)
           if (keys.length > 0) {
-            console.log(`✅ [Redis] Pattern delete via keyset: ${keysetName} (${keys.length} keys)`)
+            log.info(`✅ [Redis] Pattern delete via keyset: ${keysetName} (${keys.length} keys)`)
             await client.del(keys)
             await client.del(keysetName) // Clean up the keyset itself
             return
           }
         } catch (error) {
-          console.warn('⚠️ [Redis] Keyset lookup failed, falling back to SCAN:', error)
+          log.warn({ error }, '⚠️ [Redis] Keyset lookup failed, falling back to SCAN:')
         }
       }
 
       // Strategy 2: Fall back to SCAN/KEYS
       keys = await client.keys(pattern)
       if (keys.length > 0) {
-        console.log(`✅ [Redis] Pattern delete via SCAN: ${pattern} (${keys.length} keys)`)
+        log.info(`✅ [Redis] Pattern delete via SCAN: ${pattern} (${keys.length} keys)`)
         await client.del(keys)
       } else {
-        console.log(`ℹ️ [Redis] No keys found for pattern: ${pattern}`)
+        log.info(`ℹ️ [Redis] No keys found for pattern: ${pattern}`)
       }
     } catch (error) {
-      console.error('Redis delPattern error:', error)
+      log.error({ err: error }, 'Redis delPattern error:')
       this.metrics.errors++
       // Don't throw - cache invalidation failure is not critical
     }
@@ -359,19 +363,19 @@ export class RedisCache {
       // Check if Redis is available first
       const isAvailable = await isRedisAvailable()
       if (!isAvailable) {
-        console.log('Redis not available, using direct database fetch')
+        log.info('Redis not available, using direct database fetch')
         return await fetchFn()
       }
 
       // Try to get from cache first
       const cached = await this.get<T>(key)
       if (cached !== null) {
-        console.log(`✅ Cache hit: ${key}`)
+        log.info(`✅ Cache hit: ${key}`)
         return cached
       }
 
       // Cache miss - fetch data
-      console.log(`❌ Cache miss: ${key}`)
+      log.info(`❌ Cache miss: ${key}`)
       const data = await fetchFn()
       
       // Cache the result for next time
@@ -379,7 +383,7 @@ export class RedisCache {
       
       return data
     } catch (error) {
-      console.error('Redis getOrSet error:', error)
+      log.error({ err: error }, 'Redis getOrSet error:')
       // Fallback to direct fetch if Redis fails
       return await fetchFn()
     }

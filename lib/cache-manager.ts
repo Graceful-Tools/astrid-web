@@ -20,6 +20,10 @@ import {
   type OfflineUser
 } from './offline-db'
 import { CrossTabSync, type CrossTabEvent, type EntityType } from './cross-tab-sync'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('cache-manager')
+
 
 /**
  * Cache status for UI feedback
@@ -139,7 +143,7 @@ class CacheManagerClass {
     this.initialized = true
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('🗄️ [CacheManager] Initialized')
+      log.info('🗄️ [CacheManager] Initialized')
     }
   }
 
@@ -223,7 +227,7 @@ class CacheManagerClass {
         }
       }
     } catch (error) {
-      console.error(`❌ [CacheManager] Failed to refresh ${entity}:${entityId}:`, error)
+      log.error({ err: error }, `❌ [CacheManager] Failed to refresh ${entity}:${entityId}:`)
     }
   }
 
@@ -263,7 +267,7 @@ class CacheManagerClass {
         }
       }
     } catch (error) {
-      console.error(`❌ [CacheManager] Failed to get task ${taskId}:`, error)
+      log.error({ err: error }, `❌ [CacheManager] Failed to get task ${taskId}:`)
     }
 
     return null
@@ -303,7 +307,7 @@ class CacheManagerClass {
         isStale: false
       }
     } catch (error) {
-      console.error('❌ [CacheManager] Failed to get all tasks:', error)
+      log.error({ err: error }, '❌ [CacheManager] Failed to get all tasks:')
       return {
         data: [],
         status: 'error',
@@ -348,7 +352,7 @@ class CacheManagerClass {
         isStale: false
       }
     } catch (error) {
-      console.error(`❌ [CacheManager] Failed to get tasks for list ${listId}:`, error)
+      log.error({ err: error }, `❌ [CacheManager] Failed to get tasks for list ${listId}:`)
       return {
         data: [],
         status: 'error',
@@ -382,7 +386,7 @@ class CacheManagerClass {
         await OfflineTaskOperations.saveTask(task)
       } catch (error) {
         // Log but don't fail - memory cache is still updated
-        console.error('❌ [CacheManager] Failed to persist task to IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to persist task to IndexedDB:')
       }
     }
 
@@ -414,7 +418,7 @@ class CacheManagerClass {
         await OfflineTaskOperations.saveTasks(tasks)
       } catch (error) {
         // Log but don't fail - memory cache is still updated
-        console.error('❌ [CacheManager] Failed to persist tasks to IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to persist tasks to IndexedDB:')
       }
     }
 
@@ -446,7 +450,7 @@ class CacheManagerClass {
       try {
         await OfflineTaskOperations.deleteTask(taskId)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to delete task from IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to delete task from IndexedDB:')
       }
     }
 
@@ -492,7 +496,7 @@ class CacheManagerClass {
         }
       }
     } catch (error) {
-      console.error(`❌ [CacheManager] Failed to get list ${listId}:`, error)
+      log.error({ err: error }, `❌ [CacheManager] Failed to get list ${listId}:`)
     }
 
     return null
@@ -534,7 +538,7 @@ class CacheManagerClass {
         isStale: false
       }
     } catch (error) {
-      console.error('❌ [CacheManager] Failed to get all lists:', error)
+      log.error({ err: error }, '❌ [CacheManager] Failed to get all lists:')
       return {
         data: [],
         status: 'error',
@@ -558,7 +562,7 @@ class CacheManagerClass {
       try {
         await OfflineListOperations.saveList(list)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to persist list to IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to persist list to IndexedDB:')
       }
     }
 
@@ -583,7 +587,7 @@ class CacheManagerClass {
       try {
         await OfflineListOperations.saveLists(lists)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to persist lists to IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to persist lists to IndexedDB:')
       }
     }
 
@@ -602,7 +606,7 @@ class CacheManagerClass {
       try {
         await OfflineListOperations.deleteList(listId)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to delete list from IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to delete list from IndexedDB:')
       }
     }
 
@@ -649,7 +653,7 @@ class CacheManagerClass {
         isStale: false
       }
     } catch (error) {
-      console.error(`❌ [CacheManager] Failed to get comments for task ${taskId}:`, error)
+      log.error({ err: error }, `❌ [CacheManager] Failed to get comments for task ${taskId}:`)
       return {
         data: [],
         status: 'error',
@@ -673,7 +677,7 @@ class CacheManagerClass {
       try {
         await OfflineCommentOperations.saveComment(comment)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to persist comment to IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to persist comment to IndexedDB:')
       }
     }
 
@@ -695,7 +699,7 @@ class CacheManagerClass {
       try {
         await OfflineCommentOperations.deleteComment(commentId)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to delete comment from IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to delete comment from IndexedDB:')
       }
     }
 
@@ -726,7 +730,7 @@ class CacheManagerClass {
         return dbUser
       }
     } catch (error) {
-      console.error(`❌ [CacheManager] Failed to get user ${userId}:`, error)
+      log.error({ err: error }, `❌ [CacheManager] Failed to get user ${userId}:`)
     }
 
     return null
@@ -742,7 +746,7 @@ class CacheManagerClass {
       try {
         await OfflineUserOperations.saveUser(user)
       } catch (error) {
-        console.error('❌ [CacheManager] Failed to persist user to IndexedDB:', error)
+        log.error({ err: error }, '❌ [CacheManager] Failed to persist user to IndexedDB:')
       }
     }
   }
@@ -858,7 +862,7 @@ class CacheManagerClass {
     this.lastSyncTime.clear()
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('🗑️ [CacheManager] All caches cleared')
+      log.info('🗑️ [CacheManager] All caches cleared')
     }
   }
 
@@ -885,7 +889,7 @@ class CacheManagerClass {
       try {
         callback()
       } catch (error) {
-        console.error('❌ [CacheManager] Error in listener callback:', error)
+        log.error({ err: error }, '❌ [CacheManager] Error in listener callback:')
       }
     })
   }
