@@ -5,29 +5,26 @@
  * PATCH /api/v1/agent/tasks/:id — update task (complete, priority, etc)
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude } from '@/lib/agent-protocol'
+import { NextResponse } from 'next/server'
+import { enrichTaskForAgent, agentTaskInclude } from '@/lib/agent-protocol'
 import { prisma } from '@/lib/prisma'
-import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
+import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.agent.tasks.id')
 
-interface RouteContext {
-  params: Promise<{ id: string }>
-}
+type RouteContext = { params: Promise<{ id: string }> }
 
-export async function GET(req: NextRequest, context: RouteContext) {
-  try {
-    const auth = await authenticateAgentRequest(req)
-
+export const GET = withAgentAuth<RouteContext>(
+  { requiredScopes: ['tasks:read'], tag: 'v1.agent.tasks.id' },
+  async (req, auth, { params }) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.TASKS)
     if (rateCheck.response) return rateCheck.response
 
-    const { id } = await context.params
+    const { id } = await params
 
     const task = await prisma.task.findFirst({
       where: { id, assigneeId: auth.userId },
@@ -42,28 +39,18 @@ export async function GET(req: NextRequest, context: RouteContext) {
       NextResponse.json({ task: enrichTaskForAgent(task) }),
       rateCheck.headers
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    log.error({ err: error }, 'GET /agent/tasks/:id error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
-export async function PATCH(req: NextRequest, context: RouteContext) {
-  try {
-    const auth = await authenticateAgentRequest(req, ['tasks:read', 'tasks:write'])
-
+export const PATCH = withAgentAuth<RouteContext>(
+  { requiredScopes: ['tasks:read', 'tasks:write'], tag: 'v1.agent.tasks.id' },
+  async (req, auth, { params }) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.TASKS)
     if (rateCheck.response) return rateCheck.response
 
-    const { id } = await context.params
+    const { id } = await params
 
-    // Verify agent owns this task
+    // Agents can only edit tasks assigned to them
     const existing = await prisma.task.findFirst({
       where: { id, assigneeId: auth.userId },
     })
@@ -86,17 +73,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       include: agentTaskInclude,
     })
 
-    // Broadcast SSE event to task creator and list members
     try {
       const eventType = body.completed ? 'task_completed' : 'task_updated'
       const recipientIds = new Set<string>()
 
-      // Add task creator
       if (task.creatorId && task.creatorId !== auth.userId) {
         recipientIds.add(task.creatorId)
       }
 
-      // Add list members
       for (const list of (task as any).lists || []) {
         const memberIds = getListMemberIds(list)
         memberIds.forEach((mid: string) => {
@@ -122,14 +106,5 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       NextResponse.json({ task: enrichTaskForAgent(task) }),
       rateCheck.headers
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    log.error({ err: error }, 'PATCH /agent/tasks/:id error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

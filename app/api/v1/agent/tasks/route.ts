@@ -4,19 +4,15 @@
  * GET /api/v1/agent/tasks — list tasks assigned to the authenticated agent
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAgentRequest, enrichTaskForAgent, agentTaskInclude } from '@/lib/agent-protocol'
+import { NextResponse } from 'next/server'
+import { enrichTaskForAgent, agentTaskInclude } from '@/lib/agent-protocol'
 import { prisma } from '@/lib/prisma'
-import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
-import { createLogger } from '@/lib/logger'
+import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 
-const log = createLogger('v1.agent.tasks')
-
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAgentRequest(req)
-
+export const GET = withAgentAuth(
+  { requiredScopes: ['tasks:read'], tag: 'v1.agent.tasks' },
+  async (req, auth) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.TASKS)
     if (rateCheck.response) return rateCheck.response
 
@@ -24,10 +20,7 @@ export async function GET(req: NextRequest) {
     const completedParam = url.searchParams.get('completed')
     const completed = completedParam !== null ? completedParam === 'true' : undefined
 
-    const where: any = {
-      assigneeId: auth.userId,
-    }
-
+    const where: any = { assigneeId: auth.userId }
     if (completed !== undefined) {
       where.completed = completed
     }
@@ -47,14 +40,5 @@ export async function GET(req: NextRequest) {
       NextResponse.json({ tasks: tasks.map(enrichTaskForAgent) }),
       rateCheck.headers
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    log.error({ err: error }, 'GET /agent/tasks error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
