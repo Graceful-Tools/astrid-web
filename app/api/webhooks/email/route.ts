@@ -13,6 +13,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { emailToTaskService } from '@/lib/email-to-task-service'
 import type { ParsedEmail } from '@/lib/email-to-task-service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.webhooks.email')
+
 
 /**
  * Cloudflare Email Worker payload structure
@@ -79,13 +83,13 @@ export async function POST(request: NextRequest) {
 
     if (isMailgun) {
       // Handle Mailgun webhook (form data)
-      console.log('📧 Received Mailgun webhook')
+      log.info('📧 Received Mailgun webhook')
       const formData = await request.formData()
 
       // Verify Mailgun webhook signature (mandatory)
       const mailgunSecret = process.env.MAILGUN_WEBHOOK_SIGNING_KEY
       if (!mailgunSecret) {
-        console.error('❌ MAILGUN_WEBHOOK_SIGNING_KEY not configured - rejecting webhook')
+        log.error('❌ MAILGUN_WEBHOOK_SIGNING_KEY not configured - rejecting webhook')
         return NextResponse.json(
           { error: 'Webhook signature verification not configured' },
           { status: 500 }
@@ -93,13 +97,13 @@ export async function POST(request: NextRequest) {
       }
       const isMailgunValid = verifyMailgunSignature(formData, mailgunSecret)
       if (!isMailgunValid) {
-        console.error('❌ Invalid Mailgun webhook signature')
+        log.error('❌ Invalid Mailgun webhook signature')
         return NextResponse.json(
           { error: 'Invalid signature' },
           { status: 401 }
         )
       }
-      console.log('✅ Mailgun signature verified')
+      log.info('✅ Mailgun signature verified')
 
       parsedEmail = parseMailgunWebhook(formData)
     } else if (isCloudflare || contentType.includes('application/json')) {
@@ -108,18 +112,18 @@ export async function POST(request: NextRequest) {
 
       // Check if it's a Resend webhook (has 'type' and 'data' fields)
       if ('type' in payload && 'data' in payload) {
-        console.log('📧 Received Resend webhook')
+        log.info('📧 Received Resend webhook')
 
         // Verify webhook type
         if (payload.type !== 'email.received') {
-          console.log('Ignoring non-email webhook:', payload.type)
+          log.info(payload.type, 'Ignoring non-email webhook:')
           return NextResponse.json({ success: true, message: 'Ignored' })
         }
 
         // Verify Resend webhook signature (mandatory)
         const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
         if (!webhookSecret) {
-          console.error('❌ RESEND_WEBHOOK_SECRET not configured - rejecting webhook')
+          log.error('❌ RESEND_WEBHOOK_SECRET not configured - rejecting webhook')
           return NextResponse.json(
             { error: 'Webhook signature verification not configured' },
             { status: 500 }
@@ -127,47 +131,47 @@ export async function POST(request: NextRequest) {
         }
         const isResendValid = await verifyWebhookSignature(request, webhookSecret)
         if (!isResendValid) {
-          console.error('❌ Invalid Resend webhook signature')
+          log.error('❌ Invalid Resend webhook signature')
           return NextResponse.json(
             { error: 'Invalid signature' },
             { status: 401 }
           )
         }
-        console.log('✅ Resend signature verified')
+        log.info('✅ Resend signature verified')
 
         parsedEmail = parseResendWebhook(payload as ResendInboundEmailWebhook)
       } else {
         // Assume Cloudflare Email Worker format
-        console.log('📧 Received Cloudflare Email Worker webhook')
+        log.info('📧 Received Cloudflare Email Worker webhook')
         parsedEmail = parseCloudflareWebhook(payload as CloudflareEmailWebhook)
       }
     } else {
       throw new Error('Unsupported webhook format')
     }
 
-    console.log('📧 Parsed email:', {
+    log.info({
       from: parsedEmail.from,
       to: parsedEmail.to,
       subject: parsedEmail.subject,
-    })
+    }, '📧 Parsed email:')
 
     // Process email and create task
     const result = await emailToTaskService.processEmail(parsedEmail)
 
     if (!result) {
-      console.error('Failed to process email - no result returned')
+      log.error('Failed to process email - no result returned')
       return NextResponse.json(
         { error: 'Failed to process email' },
         { status: 400 }
       )
     }
 
-    console.log('✅ Email processed successfully:', {
+    log.info({
       taskId: result.task.id,
       routing: result.routing,
       listId: result.list?.id,
       createdUsers: result.createdUsers.length,
-    })
+    }, '✅ Email processed successfully:')
 
     // Return success response
     return NextResponse.json({
@@ -185,14 +189,14 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error processing email webhook:', error)
+    log.error({ err: error }, 'Error processing email webhook:')
 
     // Log detailed error for debugging
     if (error instanceof Error) {
-      console.error('Error details:', {
+      log.error({
         message: error.message,
         stack: error.stack,
-      })
+      }, 'Error details:')
     }
 
     return NextResponse.json(
@@ -310,7 +314,7 @@ function parseMimeEmail(rawEmail: string): { text: string | null; html: string |
       }
     }
   } catch (error) {
-    console.error('❌ Error parsing MIME email:', error)
+    log.error({ err: error }, '❌ Error parsing MIME email:')
   }
 
   return { text: textBody, html: htmlBody }
@@ -396,7 +400,7 @@ async function verifyWebhookSignature(
 
     return isValid
   } catch (error) {
-    console.error('Error verifying webhook signature:', error)
+    log.error({ err: error }, 'Error verifying webhook signature:')
     return false
   }
 }
@@ -412,7 +416,7 @@ function verifyMailgunSignature(formData: FormData, signingKey: string): boolean
     const signature = formData.get('signature') as string
 
     if (!timestamp || !token || !signature) {
-      console.error('Missing Mailgun signature fields')
+      log.error('Missing Mailgun signature fields')
       return false
     }
 
@@ -429,7 +433,7 @@ function verifyMailgunSignature(formData: FormData, signingKey: string): boolean
       Buffer.from(encodedToken)
     )
   } catch (error) {
-    console.error('Error verifying Mailgun signature:', error)
+    log.error({ err: error }, 'Error verifying Mailgun signature:')
     return false
   }
 }

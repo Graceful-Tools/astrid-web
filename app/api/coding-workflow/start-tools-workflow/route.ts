@@ -13,6 +13,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.coding-workflow.start-tools-workflow')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,10 +36,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (userComment) {
-      console.log('🤖 [Tools Workflow] Starting for task:', taskId, '(responding to user comment)')
-      console.log('   User comment:', userComment)
+      log.info('🤖 [Tools Workflow] Starting for task:', taskId, '(responding to user comment)')
+      log.info({ userComment }, '   User comment:')
     } else {
-      console.log('🤖 [Tools Workflow] Starting for task:', taskId)
+      log.info({ taskId }, '🤖 [Tools Workflow] Starting for task:')
     }
 
     // Get task and verify it exists
@@ -78,13 +82,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`🤖 [Workflow] Determined AI service: ${aiService} for agent: ${task.assignee?.email}`)
+    log.info(`🤖 [Workflow] Determined AI service: ${aiService} for agent: ${task.assignee?.email}`)
 
     // Redirect to AIOrchestrator (improved Phase 1-3 system)
-    console.log('🚀 [Workflow] Redirecting to AIOrchestrator...')
-    console.log('   Task ID:', taskId)
-    console.log('   User ID:', configuredByUserId)
-    console.log('   Repository:', repository)
+    log.info('🚀 [Workflow] Redirecting to AIOrchestrator...')
+    log.info({ taskId }, '   Task ID:')
+    log.info({ configuredByUserId }, '   User ID:')
+    log.info({ repository }, '   Repository:')
 
     // Create AI Orchestrator using the static factory method
     const orchestrator = await AIOrchestrator.createForTaskWithService(taskId, configuredByUserId, aiService)
@@ -113,11 +117,11 @@ export async function POST(request: NextRequest) {
     const workflowId = workflow.id
     orchestrator.executeCompleteWorkflow(workflowId, taskId)
       .then(() => {
-        console.log('✅ [Workflow] Completed successfully via AIOrchestrator')
+        log.info('✅ [Workflow] Completed successfully via AIOrchestrator')
       })
       .catch(async (error) => {
-        console.error('❌ [Workflow] Failed:', error)
-        console.error('   Error stack:', error.stack)
+        log.error({ err: error }, '❌ [Workflow] Failed:')
+        log.error(error.stack, '   Error stack:')
 
         // Update workflow status to FAILED to prevent stuck workflows
         try {
@@ -132,7 +136,7 @@ export async function POST(request: NextRequest) {
             }
           })
         } catch (e) {
-          console.error('❌ [Workflow] Failed to update workflow status:', e)
+          log.error({ err: e }, '❌ [Workflow] Failed to update workflow status:')
         }
 
         // Post error to task
@@ -143,7 +147,7 @@ export async function POST(request: NextRequest) {
             content: `❌ **Workflow error**\n\n\`\`\`\n${error.message}\n\`\`\``,
             type: 'MARKDOWN'
           })
-        }).catch(e => console.error('Failed to post error comment:', e))
+        }).catch(e => log.error({ err: e }, 'Failed to post error comment:'))
       })
 
     // Return immediately
@@ -154,7 +158,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [Tools Workflow] Error:', error)
+    log.error({ err: error }, '❌ [Tools Workflow] Error:')
 
     return NextResponse.json(
       {
