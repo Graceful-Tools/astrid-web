@@ -5,31 +5,27 @@
  * POST /api/v1/agent/tasks/:id/comments — post a comment
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
-import { authenticateAgentRequest } from '@/lib/agent-protocol'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
-import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
+import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.agent.tasks.comments')
 
-interface RouteContext {
-  params: Promise<{ id: string }>
-}
+type RouteContext = { params: Promise<{ id: string }> }
 
-export async function GET(req: NextRequest, context: RouteContext) {
-  try {
-    const auth = await authenticateAgentRequest(req)
-
+export const GET = withAgentAuth<RouteContext>(
+  { requiredScopes: ['tasks:read'], tag: 'v1.agent.tasks.comments' },
+  async (req, auth, { params }) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.COMMENTS)
     if (rateCheck.response) return rateCheck.response
 
-    const { id } = await context.params
+    const { id } = await params
 
-    // Verify agent has access to this task
+    // Agents can only see comments on tasks assigned to them
     const task = await prisma.task.findFirst({
       where: { id, assigneeId: auth.userId },
       select: { id: true },
@@ -67,28 +63,17 @@ export async function GET(req: NextRequest, context: RouteContext) {
       }),
       rateCheck.headers
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    log.error({ err: error }, 'GET /agent/tasks/:id/comments error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
-export async function POST(req: NextRequest, context: RouteContext) {
-  try {
-    const auth = await authenticateAgentRequest(req, ['tasks:read', 'comments:write'])
-
+export const POST = withAgentAuth<RouteContext>(
+  { requiredScopes: ['tasks:read', 'comments:write'], tag: 'v1.agent.tasks.comments' },
+  async (req, auth, { params }) => {
     const rateCheckPost = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.COMMENTS)
     if (rateCheckPost.response) return rateCheckPost.response
 
-    const { id } = await context.params
+    const { id } = await params
 
-    // Verify agent has access
     const task = await prisma.task.findFirst({
       where: { id, assigneeId: auth.userId },
       include: {
@@ -106,7 +91,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // Rate limit: max 10 comments per task per minute per agent
+    // Per-task spam guard: max 10 comments per minute per agent
     const recentComments = await prisma.comment.count({
       where: {
         taskId: id,
@@ -123,7 +108,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'content is required' }, { status: 400 })
     }
 
-    // Enforce max length
     const content = body.content.slice(0, 10_000)
 
     const comment = await prisma.comment.create({
@@ -145,7 +129,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
       },
     })
 
-    // Broadcast to relevant users
     try {
       const userIds = new Set<string>()
       if (task.creatorId) userIds.add(task.creatorId)
@@ -153,10 +136,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
         const memberIds = getListMemberIds(list as any)
         memberIds.forEach(id => userIds.add(id))
       }
-      userIds.delete(auth.userId) // Don't notify ourselves
+      // Don't notify the agent about its own comment
+      userIds.delete(auth.userId)
 
       if (userIds.size > 0) {
-        // Build AgentComment-compatible object for SDK consumers
+        // AgentComment-shaped object for SDK consumers
         const agentComment = {
           id: comment.id,
           content: comment.content,
@@ -196,14 +180,5 @@ export async function POST(req: NextRequest, context: RouteContext) {
       ),
       rateCheckPost.headers
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    log.error({ err: error }, 'POST /agent/tasks/:id/comments error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

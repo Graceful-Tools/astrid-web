@@ -4,12 +4,11 @@
  * POST /api/v1/agent/chat/[channelId]/messages — agent sends a chat message
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAgentRequest } from '@/lib/agent-protocol'
-import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.agent.chat.messages')
@@ -23,13 +22,11 @@ const MESSAGE_AUTHOR_SELECT = {
   aiAgentType: true,
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ channelId: string }> }
-) {
-  try {
-    const auth = await authenticateAgentRequest(req, ['chat:write'])
+type RouteContext = { params: Promise<{ channelId: string }> }
 
+export const POST = withAgentAuth<RouteContext>(
+  { requiredScopes: ['chat:write'], tag: 'v1.agent.chat.messages' },
+  async (req, auth, { params }) => {
     const { channelId } = await params
     const hasAccess = await canAccessChatChannel(channelId, auth.userId)
     if (!hasAccess) {
@@ -43,7 +40,6 @@ export async function POST(
       return NextResponse.json({ error: 'Content is required' }, { status: 400 })
     }
 
-    // Idempotency check
     if (clientRequestId) {
       const existing = await prisma.chatMessage.findUnique({
         where: { clientRequestId },
@@ -77,7 +73,6 @@ export async function POST(
       updatedAt: message.updatedAt.toISOString(),
     }
 
-    // Broadcast to all channel members (except the agent itself)
     try {
       const recipientIds = await getChatChannelRecipients(channelId)
       const otherRecipients = recipientIds.filter(id => id !== auth.userId)
@@ -86,10 +81,7 @@ export async function POST(
         await broadcastToUsers(otherRecipients, {
           type: 'chat_message_created',
           timestamp: new Date().toISOString(),
-          data: {
-            channelId,
-            message: serializedMessage,
-          },
+          data: { channelId, message: serializedMessage },
         })
       }
     } catch (sseError) {
@@ -97,14 +89,5 @@ export async function POST(
     }
 
     return NextResponse.json({ message: serializedMessage }, { status: 201 })
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: (error as Error).message }, { status: 403 })
-    }
-    log.error({ err: error }, 'POST /agent/chat/:channelId/messages error')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
