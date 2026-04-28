@@ -4,12 +4,15 @@
 
 import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
+import { createLogger } from '@/lib/logger'
 import {
   validateMCPToken,
   getListMemberIdsByListId,
   redactArgsForLogging,
   maskToken
 } from "./shared"
+
+const log = createLogger('mcp.task-operations')
 
 export async function getListTasks(accessToken: string, listId: string, userId: string, includeCompleted = false) {
   const mcpToken = await validateMCPToken(accessToken, listId)
@@ -153,8 +156,8 @@ export async function getUserTasks(accessToken: string, userId: string, includeC
 }
 
 export async function createTask(accessToken: string, listIds: string[], taskData: any, userId: string) {
-  console.log('MCP [createTask] args:', JSON.stringify(redactArgsForLogging({ accessToken, listIds, taskData }), null, 2))
-  console.log('MCP [createTask] Extracted listIds:', listIds)
+  log.info({ args: redactArgsForLogging({ accessToken, listIds, taskData }) }, 'MCP [createTask] args')
+  log.info({ listIds }, 'MCP [createTask] Extracted listIds:')
 
   // Validate MCP token
   // If listIds provided, use first list for validation, otherwise use user-level token
@@ -255,7 +258,7 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
     userIds.delete(mcpToken.userId)
 
     if (userIds.size > 0) {
-      console.log(`[MCP SSE] Broadcasting task_created to ${userIds.size} users`)
+      log.info(`[MCP SSE] Broadcasting task_created to ${userIds.size} users`)
       broadcastToUsers(Array.from(userIds), {
         type: 'task_created',
         timestamp: new Date().toISOString(),
@@ -282,7 +285,7 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
       })
     }
   } catch (error) {
-    console.error('[MCP SSE] Failed to broadcast task_created:', error)
+    log.error({ err: error }, '[MCP SSE] Failed to broadcast task_created:')
     // Don't fail the operation if SSE fails
   }
 
@@ -417,7 +420,7 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
     userIds.delete(mcpToken.userId)
 
     if (userIds.size > 0) {
-      console.log(`[MCP SSE] Broadcasting task_updated to ${userIds.size} users`)
+      log.info(`[MCP SSE] Broadcasting task_updated to ${userIds.size} users`)
       broadcastToUsers(Array.from(userIds), {
         type: 'task_updated',
         timestamp: new Date().toISOString(),
@@ -445,7 +448,7 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
       })
     }
   } catch (error) {
-    console.error('[MCP SSE] Failed to broadcast task_updated:', error)
+    log.error({ err: error }, '[MCP SSE] Failed to broadcast task_updated:')
     // Don't fail the operation if SSE fails
   }
 
@@ -475,7 +478,7 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
 export async function deleteTask(accessToken: string, taskId: string, userId: string) {
   const mcpToken = await validateMCPToken(accessToken)
 
-  console.log(`[MCP deleteTask] Attempting to delete task ${taskId} for user ${mcpToken.userId}`)
+  log.info(`[MCP deleteTask] Attempting to delete task ${taskId} for user ${mcpToken.userId}`)
 
   // First, check if task exists at all
   const taskExists = await prisma.task.findUnique({
@@ -488,12 +491,12 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
   })
 
   if (!taskExists) {
-    console.log(`[MCP deleteTask] Task ${taskId} not found in database`)
+    log.info(`[MCP deleteTask] Task ${taskId} not found in database`)
     throw new Error('Task not found')
   }
 
-  console.log(`[MCP deleteTask] Task found. Lists: ${JSON.stringify(taskExists.lists)}`)
-  console.log(`[MCP deleteTask] MCP token userId: ${mcpToken.userId}`)
+  log.info(`[MCP deleteTask] Task found. Lists: ${JSON.stringify(taskExists.lists)}`)
+  log.info(`[MCP deleteTask] MCP token userId: ${mcpToken.userId}`)
 
   // Verify task access and write permission
   // User can delete if they are: (1) task creator, OR (2) member of a list containing the task
@@ -536,11 +539,11 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
   })
 
   if (!task) {
-    console.log(`[MCP deleteTask] Access denied for user ${mcpToken.userId} to task ${taskId}`)
+    log.info(`[MCP deleteTask] Access denied for user ${mcpToken.userId} to task ${taskId}`)
     throw new Error('Task not found or access denied')
   }
 
-  console.log(`[MCP deleteTask] Access granted. Deleting task ${taskId}`)
+  log.info(`[MCP deleteTask] Access granted. Deleting task ${taskId}`)
 
   // Get relevant users before deletion for SSE broadcast
   const userIds = new Set<string>()
@@ -559,7 +562,7 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
     // Remove the deleter (MCP user) from notifications
     userIds.delete(mcpToken.userId)
   } catch (error) {
-    console.error('[MCP SSE] Failed to gather user IDs for task deletion broadcast:', error)
+    log.error({ err: error }, '[MCP SSE] Failed to gather user IDs for task deletion broadcast:')
   }
 
   await prisma.task.delete({
@@ -569,7 +572,7 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
   // Broadcast SSE event for real-time updates
   try {
     if (userIds.size > 0) {
-      console.log(`[MCP SSE] Broadcasting task_deleted to ${userIds.size} users`)
+      log.info(`[MCP SSE] Broadcasting task_deleted to ${userIds.size} users`)
       broadcastToUsers(Array.from(userIds), {
         type: 'task_deleted',
         timestamp: new Date().toISOString(),
@@ -583,7 +586,7 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
       })
     }
   } catch (error) {
-    console.error('[MCP SSE] Failed to broadcast task_deleted:', error)
+    log.error({ err: error }, '[MCP SSE] Failed to broadcast task_deleted:')
     // Don't fail the operation if SSE fails
   }
 
