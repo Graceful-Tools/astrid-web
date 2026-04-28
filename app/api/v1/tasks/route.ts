@@ -8,13 +8,14 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
-import { authenticateAPI, requireScopes, getDeprecationWarning, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { getDeprecationWarning, type AuthContext } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.tasks')
@@ -32,11 +33,9 @@ const log = createLogger('v1.tasks')
  * - offset: Pagination offset (default: 0)
  * - includeComments: true/false (default: false)
  */
-export async function GET(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['tasks:read'])
-
+export const GET = withAuth(
+  { scopes: ['tasks:read'], tag: 'v1.tasks' },
+  async (req, auth) => {
     const url = new URL(req.url)
     const listId = url.searchParams.get('listId')
     // Only apply completed filter if explicitly provided
@@ -48,24 +47,23 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const includeComments = url.searchParams.get('includeComments') === 'true'
 
-    // Build query
     const where: any = {}
 
     if (listId) {
-      // When filtering by specific list, ONLY return tasks from that list
-      // User must have access to the list (owner, member, or public)
+      // Filtering by a specific list returns ONLY that list's tasks; caller
+      // must have access to the list (owner, member, or public).
       where.lists = {
         some: {
           id: listId,
           OR: [
             { ownerId: auth.userId },
             { listMembers: { some: { userId: auth.userId } } },
-            { privacy: 'PUBLIC' },  // Include tasks from PUBLIC lists
+            { privacy: 'PUBLIC' },
           ],
         },
       }
     } else {
-      // When no listId specified, show all tasks user has access to
+      // No listId: surface every task the caller can see
       where.OR = [
         { creatorId: auth.userId },
         { assigneeId: auth.userId },
@@ -83,7 +81,6 @@ export async function GET(req: NextRequest) {
       ]
     }
 
-    // Apply additional filters
     if (completed !== undefined) {
       where.completed = completed
     }
@@ -101,8 +98,8 @@ export async function GET(req: NextRequest) {
           id: true,
           title: true,
           description: true,
-          assigneeId: true,  // Explicitly include foreign key
-          creatorId: true,   // Explicitly include foreign key
+          assigneeId: true,
+          creatorId: true,
           dueDateTime: true,
           isAllDay: true,
           reminderTime: true,
@@ -170,9 +167,7 @@ export async function GET(req: NextRequest) {
                   },
                 },
               },
-              orderBy: {
-                createdAt: 'desc',
-              },
+              orderBy: { createdAt: 'desc' },
             },
           }),
         },
@@ -193,7 +188,7 @@ export async function GET(req: NextRequest) {
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    // Add listIds array for iOS compatibility
+    // iOS expects a flat listIds array alongside the relation
     const tasksWithListIds = tasks.map(task => ({
       ...task,
       listIds: task.lists?.map(list => list.id) || []
@@ -212,26 +207,8 @@ export async function GET(req: NextRequest) {
       },
       { headers }
     )
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'GET /tasks error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
   }
-}
+)
 
 /**
  * POST /api/v1/tasks
@@ -244,20 +221,18 @@ export async function GET(req: NextRequest) {
  *   listIds?: string[]
  *   priority?: number (0-2)
  *   assigneeId?: string
- *   dueDateTime?: ISO datetime string (primary field)
  *   dueDateTime?: ISO datetime string
+ *   isAllDay?: boolean
  *   isPrivate?: boolean
  *   repeating?: string
+ *   clientRequestId?: string (8-128 chars; idempotency key)
  * }
  */
-export async function POST(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-    requireScopes(auth, ['tasks:write'])
-
+export const POST = withAuth(
+  { scopes: ['tasks:write'], tag: 'v1.tasks' },
+  async (req, auth) => {
     const body = await req.json()
 
-    // Validate required fields
     if (!body.title || typeof body.title !== 'string') {
       return NextResponse.json(
         { error: 'title is required and must be a string' },
@@ -265,7 +240,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Parse datetime with new isAllDay system
     let dueDateTime: Date | undefined
     let isAllDay = false
 
@@ -273,17 +247,12 @@ export async function POST(req: NextRequest) {
       dueDateTime = new Date(body.dueDateTime)
       isAllDay = body.isAllDay ?? false
 
-      // Normalize all-day tasks to midnight UTC
       if (isAllDay) {
         dueDateTime.setUTCHours(0, 0, 0, 0)
       }
     } else if (body.when) {
-      // Legacy support: old clients may still send 'when' field
+      // Legacy clients still send `when`; normalize to all-day midnight UTC
       dueDateTime = new Date(body.when)
-      // Assume all-day if legacy 'when' field is used without dueDateTime
-      if (!body.isAllDay) {
-        isAllDay = true
-      }
       dueDateTime.setUTCHours(0, 0, 0, 0)
       isAllDay = true
     }
@@ -303,7 +272,6 @@ export async function POST(req: NextRequest) {
         }
       })
 
-      // Check if all requested lists exist
       const foundListIds = new Set(lists.map(l => l.id))
       const missingListIds = body.listIds.filter((id: string) => !foundListIds.has(id))
       if (missingListIds.length > 0) {
@@ -313,7 +281,6 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Validate user has permission to create tasks in each list
       for (const list of lists) {
         const userHasAccess = hasListAccess(list as any, auth.userId)
         const isCollaborativePublic = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
@@ -326,13 +293,13 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Filter out virtual lists - tasks should not be connected to virtual lists
+      // Virtual lists are saved-filter views, not real containers
       validatedListIds = lists
         .filter(list => !list.isVirtual)
         .map(list => list.id)
     }
 
-    // Task include shape (reused for idempotency and creation)
+    // Reused for idempotency hits and the actual create
     const taskInclude = {
       lists: {
         select: {
@@ -384,7 +351,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Optimistic check — fast path
+      // Optimistic lookup — fast path when retried after a successful create
       const existing = await prisma.task.findUnique({
         where: { clientRequestId: rawClientRequestId },
         include: taskInclude,
@@ -400,7 +367,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Try to create with clientRequestId — unique constraint catches races
+      // Unique constraint on clientRequestId catches concurrent retries
       try {
         const task = await prisma.task.create({
           data: {
@@ -422,10 +389,9 @@ export async function POST(req: NextRequest) {
           include: taskInclude,
         })
 
-        // Fall through to SSE broadcast + response below
-        return await handleTaskCreated(req, task, auth, validatedListIds)
+        return await handleTaskCreated(req, task, auth)
       } catch (err) {
-        // P2002 = unique constraint violation on clientRequestId (race condition)
+        // P2002 = unique constraint hit, meaning another request won the race
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
           const raceExisting = await prisma.task.findUnique({
             where: { clientRequestId: rawClientRequestId },
@@ -441,13 +407,12 @@ export async function POST(req: NextRequest) {
               { status: 200, headers }
             )
           }
-          // Different creator — treat as a conflict
           return NextResponse.json(
             { error: 'clientRequestId already used by another request' },
             { status: 409 }
           )
         }
-        throw err // re-throw other errors
+        throw err
       }
     }
 
@@ -474,17 +439,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           task: recentDuplicate,
-          meta: {
-            apiVersion: 'v1',
-            authSource: auth.source,
-            idempotent: true,
-          },
+          meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true },
         },
         { status: 200, headers }
       )
     }
 
-    // Create task (no clientRequestId, or clientRequestId was null/empty)
     const task = await prisma.task.create({
       data: {
         title: body.title,
@@ -499,41 +459,21 @@ export async function POST(req: NextRequest) {
         repeating: body.repeating || 'never',
         completed: false,
         lists: validatedListIds.length
-          ? {
-              connect: validatedListIds.map((id: string) => ({ id })),
-            }
+          ? { connect: validatedListIds.map((id: string) => ({ id })) }
           : undefined,
       },
       include: taskInclude,
     })
 
-    return await handleTaskCreated(req, task, auth, validatedListIds)
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
-      )
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      )
-    }
-    log.error({ err: error }, 'POST /tasks error')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return await handleTaskCreated(req, task, auth)
   }
-}
+)
 
 /**
- * Shared handler for post-creation: SSE broadcasts, AI agent notification, analytics, response.
+ * Shared handler for post-creation: SSE broadcasts, AI agent notification,
+ * cache invalidation, analytics, response.
  */
-async function handleTaskCreated(req: NextRequest, task: any, auth: any, validatedListIds: string[]) {
-  // Broadcast SSE event to task assignee if different from creator
+async function handleTaskCreated(req: NextRequest, task: any, auth: AuthContext) {
   if (task.assigneeId && task.assigneeId !== auth.userId) {
     try {
       broadcastToUsers([task.assigneeId], {
@@ -566,7 +506,7 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
     }
   }
 
-  // Broadcast to all list members
+  // Notify all list members other than the creator and assignee
   const taskListIds = task.lists?.map((list: any) => list.id) || []
   if (taskListIds.length > 0) {
     try {
@@ -603,7 +543,6 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
     }
   }
 
-  // Notify AI agent if task is assigned to an AI agent
   if (task.assigneeId && task.assignee?.isAIAgent) {
     try {
       const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
@@ -613,12 +552,11 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
     }
   }
 
-  // Invalidate Redis cache for all affected users
   try {
     const redisAvailable = await isRedisAvailable()
     if (redisAvailable) {
       const affectedUserIds = new Set<string>()
-      affectedUserIds.add(auth.userId) // creator
+      affectedUserIds.add(auth.userId)
       if (task.assigneeId) affectedUserIds.add(task.assigneeId)
       for (const list of (task.lists || [])) {
         const memberIds = getListMemberIds(list as any)
@@ -646,10 +584,7 @@ async function handleTaskCreated(req: NextRequest, task: any, auth: any, validat
   return NextResponse.json(
     {
       task,
-      meta: {
-        apiVersion: 'v1',
-        authSource: auth.source,
-      },
+      meta: { apiVersion: 'v1', authSource: auth.source },
     },
     { status: 201, headers }
   )
