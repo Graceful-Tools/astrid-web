@@ -34,7 +34,7 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
     domains: ['lh3.googleusercontent.com', 'images.unsplash.com'],
   },
-  serverExternalPackages: ['@prisma/client'],
+  serverExternalPackages: ['@prisma/client', 'pino', 'pino-pretty', 'thread-stream'],
   async redirects() {
     return [
       {
