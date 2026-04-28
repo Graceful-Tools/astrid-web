@@ -22,6 +22,9 @@ import {
 } from '@/lib/oauth/oauth-token-manager'
 import { parseScopeString } from '@/lib/oauth/oauth-scopes'
 import { oauthTokenRateLimiter, createRateLimitHeaders } from '@/lib/rate-limiter'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('v1.oauth.token')
 
 /**
  * Parse form-urlencoded body
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     return oauthError('unsupported_grant_type', `Grant type '${grantType}' is not supported`)
   } catch (error) {
-    console.error('[OAuth Token] Error:', error)
+    log.error({ err: error }, 'OAuth token endpoint error')
     return oauthError('server_error', 'An internal error occurred', 500)
   }
 }
