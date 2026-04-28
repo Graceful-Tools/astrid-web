@@ -8,6 +8,10 @@ import { RedisCache } from "@/lib/redis"
 import { hydrateSingleListFavorite } from "@/lib/favorites"
 import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.lists.id')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -71,7 +75,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
 
     return NextResponse.json(listWithDefaultAssignee)
   } catch (error) {
-    console.error("Error fetching list:", error)
+    log.error({ err: error }, "Error fetching list:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -251,7 +255,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     // If changing privacy to PUBLIC, unassign all tasks
     if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
-      console.log(`🔓 List ${listId} becoming public - unassigning all tasks`)
+      log.info(`🔓 List ${listId} becoming public - unassigning all tasks`)
 
       // Unassign all tasks in this list
       await prisma.task.updateMany({
@@ -267,7 +271,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         }
       })
 
-      console.log(`✅ Unassigned all tasks in list ${listId}`)
+      log.info(`✅ Unassigned all tasks in list ${listId}`)
     }
 
     const updatedList = await prisma.taskList.update({
@@ -306,9 +310,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     // Invalidate public lists cache if privacy changed to/from PUBLIC
     if (data.privacy === 'PUBLIC' || existingList.privacy === 'PUBLIC') {
-      console.log(`🗑️ Invalidating public lists cache due to privacy change`)
+      log.info(`🗑️ Invalidating public lists cache due to privacy change`)
       await RedisCache.delPattern('public_lists:*').catch(err =>
-        console.error('Failed to invalidate public lists cache:', err)
+        log.error({ err: err }, 'Failed to invalidate public lists cache:')
       )
     }
 
@@ -319,13 +323,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       ...allMembers.map(m => m.id)
     ].filter((id, index, self) => id && self.indexOf(id) === index) // Dedupe
 
-    console.log(`🗑️ Invalidating lists cache for ${userIdsToInvalidate.length} users after list update`)
+    log.info(`🗑️ Invalidating lists cache for ${userIdsToInvalidate.length} users after list update`)
     await Promise.all(
       userIdsToInvalidate.map(async (userId) => {
         try {
           await RedisCache.del(RedisCache.keys.userLists(userId))
         } catch (error) {
-          console.error(`❌ Failed to invalidate cache for user ${userId}:`, error)
+          log.error({ err: error }, `❌ Failed to invalidate cache for user ${userId}:`)
         }
       })
     )
@@ -345,7 +349,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         // Strip per-user favorite fields — these are user-specific and must not
         // overwrite other users' favorite state via SSE
         const { isFavorite: _isFav, favoriteOrder: _favOrd, ...broadcastData } = updatedListWithDefaultAssignee
-        console.log(`[SSE] Broadcasting list update to ${userIdsFiltered.length} users`)
+        log.info(`[SSE] Broadcasting list update to ${userIdsFiltered.length} users`)
         const { broadcastToUsers } = await import("@/lib/sse-utils")
         broadcastToUsers(userIdsFiltered, {
           type: 'list_updated',
@@ -354,7 +358,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
       }
     } catch (sseError) {
-      console.error("Failed to send list update SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send list update SSE notifications:")
       // Continue - list was still updated
     }
 
@@ -366,7 +370,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     return NextResponse.json(updatedListWithDefaultAssignee)
   } catch (error) {
-    console.error("Error updating list:", error)
+    log.error({ err: error }, "Error updating list:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -414,14 +418,14 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
     })
 
     // Invalidate cache for all users who had access to this list
-    console.log("🗄️ Invalidating cache for users after list deletion:", userIdsToInvalidate.length, "users")
+    log.info({ userCount: userIdsToInvalidate.length }, "🗄️ Invalidating cache for users after list deletion")
     await Promise.all(
       userIdsToInvalidate.map(async (userId) => {
         try {
           await RedisCache.del(RedisCache.keys.userLists(userId))
-          console.log(`✅ Cache invalidated for user: ${userId}`)
+          log.info(`✅ Cache invalidated for user: ${userId}`)
         } catch (error) {
-          console.error(`❌ Failed to invalidate cache for user ${userId}:`, error)
+          log.error({ err: error }, `❌ Failed to invalidate cache for user ${userId}:`)
         }
       })
     )
@@ -432,7 +436,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       const userIdsToNotify = userIdsToInvalidate.filter(userId => userId !== session.user.id)
 
       if (userIdsToNotify.length > 0) {
-        console.log(`[SSE] Broadcasting list deletion to ${userIdsToNotify.length} users`)
+        log.info(`[SSE] Broadcasting list deletion to ${userIdsToNotify.length} users`)
         const { broadcastToUsers } = await import("@/lib/sse-utils")
         broadcastToUsers(userIdsToNotify, {
           type: 'list_deleted',
@@ -447,7 +451,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
         })
       }
     } catch (sseError) {
-      console.error("Failed to send list deletion SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send list deletion SSE notifications:")
       // Continue - list was still deleted
     }
 
@@ -456,7 +460,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting list:", error)
+    log.error({ err: error }, "Error deleting list:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -443,7 +443,6 @@ describe('/api/lists - List Defaults', () => {
 
   describe('Database Constraints', () => {
     it('handles database errors during list creation', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       mockPrisma.taskList.create.mockRejectedValue(new Error('Database connection failed'))
 
       const listData = {
@@ -455,10 +454,10 @@ describe('/api/lists - List Defaults', () => {
       const request = createMockRequest('POST', listData)
       const response = await POST(request)
 
-      expect(response.status).toBe(400) // Implementation returns 400 for database errors
-      expect(consoleSpy).toHaveBeenCalledWith('Error creating list:', expect.any(Error))
-
-      consoleSpy.mockRestore()
+      // Implementation returns 400 for database errors; the route also logs
+      // via pino — assertion on the log call removed since the route no
+      // longer goes through console.error.
+      expect(response.status).toBe(400)
     })
 
     it('validates due date default values', async () => {
