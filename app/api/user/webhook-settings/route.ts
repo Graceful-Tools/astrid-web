@@ -13,6 +13,10 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { encryptField, decryptField } from '@/lib/field-encryption'
 import crypto from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.webhook-settings')
+
 
 // Available AI agents that can be routed to webhook
 const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini'] as const
@@ -85,7 +89,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching webhook settings:', error)
+    log.error({ err: error }, 'Error fetching webhook settings:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -183,7 +187,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error('Error updating webhook settings:', error)
+    log.error({ err: error }, 'Error updating webhook settings:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -230,7 +234,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error deleting webhook settings:', error)
+    log.error({ err: error }, 'Error deleting webhook settings:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -345,7 +349,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error testing webhook:', error)
+    log.error({ err: error }, 'Error testing webhook:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

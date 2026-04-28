@@ -12,6 +12,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { App } from '@octokit/app'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.connect-installation')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,7 +114,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error connecting GitHub installation:', error)
+    log.error({ err: error }, 'Error connecting GitHub installation:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

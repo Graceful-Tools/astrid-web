@@ -7,6 +7,10 @@ import { sendEmailVerification } from "@/lib/email-verification"
 import { createVerifyEmailTask } from "@/lib/system-tasks"
 import { encode } from "next-auth/jwt"
 import type { RegistrationResponseJSON } from "@simplewebauthn/types"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.webauthn.register.verify')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,11 +30,11 @@ export async function POST(request: NextRequest) {
 
     // Retrieve stored challenge
     const storedData = await getChallenge(sessionId)
-    console.log("[WebAuthn] Verify: storedData =", storedData ? {
+    log.info(storedData ? {
       hasChallenge: !!storedData.challenge,
       userId: storedData.userId,
       email: storedData.email
-    } : null)
+    } : null, "[WebAuthn] Verify: storedData =")
 
     if (!storedData) {
       return NextResponse.json(
@@ -41,17 +45,17 @@ export async function POST(request: NextRequest) {
 
     // Use getUnifiedSession to support both web (JWT) and mobile (database) sessions
     const session = await getUnifiedSession(request)
-    console.log("[WebAuthn] Verify: session =", session?.user?.id ? { userId: session.user.id } : null)
+    log.info(session?.user?.id ? { userId: session.user.id } : null, "[WebAuthn] Verify: session =")
 
     let userId: string
 
     if (session?.user?.id && storedData.userId === session.user.id) {
       // Adding passkey to existing account
-      console.log("[WebAuthn] Verify: Adding passkey to existing account")
+      log.info("[WebAuthn] Verify: Adding passkey to existing account")
       userId = session.user.id
     } else if (storedData.email && !storedData.userId) {
       // New account registration - create user (email NOT verified yet)
-      console.log("[WebAuthn] Verify: Creating new user with email:", storedData.email)
+      log.info({ email: storedData.email }, "[WebAuthn] Verify: Creating new user")
       const user = await prisma.user.create({
         data: {
           email: storedData.email,
@@ -65,12 +69,12 @@ export async function POST(request: NextRequest) {
 
       // Send verification email
       await sendEmailVerification(userId, storedData.email, false)
-      console.log("[WebAuthn] Verify: Sent verification email to:", storedData.email)
+      log.info({ email: storedData.email }, "[WebAuthn] Verify: Sent verification email")
 
       // Create system task to remind user to verify email
       await createVerifyEmailTask(userId)
     } else {
-      console.log("[WebAuthn] Verify: Invalid session state - session.user.id:", session?.user?.id, "storedData.userId:", storedData.userId)
+      log.info({ sessionUserId: session?.user?.id, storedUserId: storedData.userId }, '[WebAuthn] Verify: Invalid session state')
       return NextResponse.json(
         { error: "Invalid session state" },
         { status: 400 }
@@ -177,7 +181,7 @@ export async function POST(request: NextRequest) {
       isNewUser: false,
     })
   } catch (error) {
-    console.error("[WebAuthn] Registration verify error:", error)
+    log.error({ err: error }, "[WebAuthn] Registration verify error:")
     return NextResponse.json(
       { error: "Registration verification failed" },
       { status: 500 }

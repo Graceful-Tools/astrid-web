@@ -4,6 +4,10 @@
  */
 
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.clients.openai')
+
 
 export interface OpenAIClientOptions {
   apiKey: string
@@ -145,7 +149,7 @@ export async function callOpenAI(options: OpenAIClientOptions): Promise<OpenAIRe
     }
 
     const delay = computeRetryDelayMs(attempt + 1, response.headers.get('retry-after'))
-    console.warn(
+    log.warn(
       `[OpenAI] ${response.status} on attempt ${attempt + 1}/${maxRetries + 1} — backing off ${delay}ms`
     )
     await sleepFn(delay)

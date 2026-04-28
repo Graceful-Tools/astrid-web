@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { DEFAULT_MODELS, SUGGESTED_MODELS, type AIService } from "@/lib/ai/agent-config"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.ai-model-preferences')
+
 
 const UpdateModelSchema = z.object({
   serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
@@ -63,7 +67,7 @@ export async function GET() {
       suggestions: SUGGESTED_MODELS
     })
   } catch (error) {
-    console.error("Error fetching model preferences:", error)
+    log.error({ err: error }, "Error fetching model preferences:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -120,7 +124,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error("Error updating model preference:", error)
+    log.error({ err: error }, "Error updating model preference:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -179,7 +183,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    console.error("Error resetting model preference:", error)
+    log.error({ err: error }, "Error resetting model preference:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

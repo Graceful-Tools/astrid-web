@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.reminder-settings')
+
 
 const ReminderSettingsSchema = z.object({
   enablePushReminders: z.boolean().optional(),
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(reminderSettings)
   } catch (error) {
-    console.error('Error fetching reminder settings:', error)
+    log.error({ err: error }, 'Error fetching reminder settings:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -101,7 +105,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error('Error updating reminder settings:', error)
+    log.error({ err: error }, 'Error updating reminder settings:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

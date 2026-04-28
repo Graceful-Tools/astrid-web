@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('reminders.status')
+
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -114,7 +118,7 @@ export async function GET(request: NextRequest) {
       total: formattedReminders.length,
     })
   } catch (error) {
-    console.error('Error fetching reminder status:', error)
+    log.error({ err: error }, 'Error fetching reminder status:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

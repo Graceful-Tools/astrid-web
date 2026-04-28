@@ -6,6 +6,10 @@
 import CryptoJS from 'crypto-js'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api-key-cache')
+
 
 // Cache to avoid repeated database queries
 const apiKeyCache = new Map<string, { key: string; timestamp: number }>()
@@ -44,7 +48,7 @@ export async function getCachedApiKey(
         ? JSON.parse(user.mcpSettings)
         : user.mcpSettings
     } catch (error) {
-      console.error('Failed to parse mcpSettings in getCachedApiKey:', error)
+      log.error({ err: error }, 'Failed to parse mcpSettings in getCachedApiKey:')
       return null
     }
 
@@ -68,13 +72,13 @@ export async function getCachedApiKey(
 
       return decryptedKey
     } catch (decryptError) {
-      console.error(`Error getting ${service} API key for user ${userId}:`, decryptError)
-      console.log(`💡 [API Key Cache] The ${service} API key was encrypted with a different encryption key. Please re-enter your ${service} API key in Settings → AI Agents to fix this.`)
+      log.error({ err: decryptError }, `Error getting ${service} API key for user ${userId}:`)
+      log.info(`💡 [API Key Cache] The ${service} API key was encrypted with a different encryption key. Please re-enter your ${service} API key in Settings → AI Agents to fix this.`)
       return null
     }
 
   } catch (error) {
-    console.error(`Error getting ${service} API key for user ${userId}:`, error)
+    log.error({ err: error }, `Error getting ${service} API key for user ${userId}:`)
     return null
   }
 }
@@ -191,7 +195,7 @@ export async function getCachedModelPreference(
         ? JSON.parse(user.mcpSettings)
         : user.mcpSettings
     } catch (error) {
-      console.error('Failed to parse mcpSettings in getCachedModelPreference:', error)
+      log.error({ err: error }, 'Failed to parse mcpSettings in getCachedModelPreference:')
       return null
     }
 
@@ -199,7 +203,7 @@ export async function getCachedModelPreference(
     const modelPreferences = settings.modelPreferences || {}
     return modelPreferences[service] || null
   } catch (error) {
-    console.error(`Error getting ${service} model preference for user ${userId}:`, error)
+    log.error({ err: error }, `Error getting ${service} model preference for user ${userId}:`)
     return null
   }
 }
@@ -238,7 +242,7 @@ export async function getPreferredAIService(userId: string): Promise<'claude' | 
     return 'claude' // Final fallback
 
   } catch (error) {
-    console.error('Error getting preferred AI service:', error)
+    log.error({ err: error }, 'Error getting preferred AI service:')
     return 'claude'
   }
 }

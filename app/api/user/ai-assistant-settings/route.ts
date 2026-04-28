@@ -10,6 +10,10 @@ import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
 import { AIAssistantSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.ai-assistant-settings')
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +38,7 @@ export async function GET(req: NextRequest) {
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[AI Assistant Settings] GET error:', error)
+    log.error({ err: error }, '[AI Assistant Settings] GET error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -90,7 +94,7 @@ export async function PATCH(req: NextRequest) {
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[AI Assistant Settings] PATCH error:', error)
+    log.error({ err: error }, '[AI Assistant Settings] PATCH error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -6,6 +6,10 @@
  */
 
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('chat-agent-dispatch')
+
 
 interface DispatchChatMentionParams {
   channelId: string
@@ -40,6 +44,6 @@ export async function dispatchChatMention(params: DispatchChatMentionParams) {
       },
     })
   } catch (error) {
-    console.error('[ChatAgentDispatch] Failed to dispatch mention:', error)
+    log.error({ err: error }, '[ChatAgentDispatch] Failed to dispatch mention:')
   }
 }

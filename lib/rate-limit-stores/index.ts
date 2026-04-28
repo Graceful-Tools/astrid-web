@@ -6,6 +6,10 @@ import { RateLimitStore } from './types'
 import { getMemoryStore } from './memory-store'
 import { getRedisStore } from './redis-store'
 import { isRedisAvailable } from '../redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('rate-limit-stores.index')
+
 
 /**
  * Get the appropriate rate limit store based on Redis availability
@@ -21,7 +25,7 @@ export async function getRateLimitStore(): Promise<RateLimitStore> {
       return getRedisStore()
     }
   } catch (error) {
-    console.warn('[RateLimitStore] Redis check failed, using memory store:', error)
+    log.warn({ error }, '[RateLimitStore] Redis check failed, using memory store:')
   }
 
   return getMemoryStore()
@@ -46,7 +50,7 @@ export async function getCachedRateLimitStore(): Promise<RateLimitStore> {
     if (cachedStore.isAvailable) {
       const isRedis = await cachedStore.isAvailable()
       const storeType = isRedis ? 'Redis' : 'Memory'
-      console.log(`[RateLimitStore] Using ${storeType} store`)
+      log.info(`[RateLimitStore] Using ${storeType} store`)
     }
   }
 

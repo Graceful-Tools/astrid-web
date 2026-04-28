@@ -399,9 +399,6 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockRejectedValue(new Error('Email service down'))
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
       const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -416,9 +413,6 @@ describe('/api/lists/[id]/invite', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('Invitation sent successfully')
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to send invitation email:', expect.any(Error))
-
-      consoleSpy.mockRestore()
     })
   })
 })

@@ -4,6 +4,10 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('task-count-utils')
+
 
 export interface TaskCountOptions {
   /** Include completed tasks in the count */
@@ -63,7 +67,7 @@ export async function getListTaskCount(
     return count
 
   } catch (error) {
-    console.error('Error counting tasks for list:', listId, error)
+    log.error({ listId: listId, error }, 'Error counting tasks for list')
     return 0
   }
 }
@@ -143,7 +147,7 @@ export async function getMultipleListTaskCounts(
     return counts
 
   } catch (error) {
-    console.error('Error counting tasks for multiple lists:', error)
+    log.error({ err: error }, 'Error counting tasks for multiple lists:')
     return listIds.reduce((acc, listId) => {
       acc[listId] = 0
       return acc

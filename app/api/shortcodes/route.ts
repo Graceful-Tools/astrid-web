@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { createShortcode, getShortcodesForTarget, buildShortcodeUrl } from "@/lib/shortcode"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('shortcodes')
+
 
 /**
  * POST /api/shortcodes
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest) {
       url: buildShortcodeUrl(shortcode.code, baseUrl)
     })
   } catch (error) {
-    console.error("Error creating shortcode:", error)
+    log.error({ err: error }, "Error creating shortcode:")
     return NextResponse.json(
       { error: "Failed to create shortcode" },
       { status: 500 }
@@ -219,7 +223,7 @@ export async function GET(request: NextRequest) {
       }))
     })
   } catch (error) {
-    console.error("Error fetching shortcodes:", error)
+    log.error({ err: error }, "Error fetching shortcodes:")
     return NextResponse.json(
       { error: "Failed to fetch shortcodes" },
       { status: 500 }

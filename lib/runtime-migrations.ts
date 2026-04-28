@@ -1,5 +1,9 @@
 import { prisma } from './prisma'
 import { execSync } from 'child_process'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('runtime-migrations')
+
 
 let migrationChecked = false
 let migrationInProgress = false
@@ -19,43 +23,43 @@ export async function ensureMigrations() {
     await prisma.user.count()
     migrationChecked = true
     migrationInProgress = false
-    console.log('✅ Database schema verified')
+    log.info('✅ Database schema verified')
     return { success: true, action: 'verified' }
   } catch (error) {
-    console.warn('⚠️ Database schema verification failed, attempting to run migrations...', error)
+    log.warn({ error }, '⚠️ Database schema verification failed, attempting to run migrations...')
 
     // Attempt to run migrations automatically
     try {
       if (process.env.NODE_ENV === 'production' && process.env.AUTO_MIGRATE_ON_STARTUP === 'true') {
-        console.log('🔄 Running automatic migrations...')
+        log.info('🔄 Running automatic migrations...')
 
         // Generate Prisma client first
         execSync('npx prisma generate', { stdio: 'pipe' })
-        console.log('✅ Prisma client generated')
+        log.info('✅ Prisma client generated')
 
         // Deploy migrations
         const migrationOutput = execSync('npx prisma migrate deploy', {
           stdio: 'pipe',
           encoding: 'utf8'
         })
-        console.log('✅ Migrations deployed:', migrationOutput)
+        log.info({ migrationOutput }, '✅ Migrations deployed:')
 
         // Verify the fix worked
         await prisma.user.count()
 
         migrationChecked = true
         migrationInProgress = false
-        console.log('✅ Database schema fixed and verified')
+        log.info('✅ Database schema fixed and verified')
         return { success: true, action: 'migrated' }
 
       } else {
-        console.log('ℹ️ Auto-migration disabled. Set AUTO_MIGRATE_ON_STARTUP=true to enable.')
+        log.info('ℹ️ Auto-migration disabled. Set AUTO_MIGRATE_ON_STARTUP=true to enable.')
         migrationChecked = true
         migrationInProgress = false
         return { success: false, action: 'disabled', error: 'Auto-migration disabled' }
       }
     } catch (migrationError) {
-      console.error('❌ Failed to run automatic migrations:', migrationError)
+      log.error({ err: migrationError }, '❌ Failed to run automatic migrations:')
       migrationChecked = true
       migrationInProgress = false
       return {
@@ -101,7 +105,7 @@ export async function safeHealthCheck() {
     const responseTime = Date.now() - start
     return { healthy: true, responseTime, timestamp: new Date() }
   } catch (error) {
-    console.error('Database health check failed:', error)
+    log.error({ err: error }, 'Database health check failed:')
     return { 
       healthy: false, 
       responseTime: 0,

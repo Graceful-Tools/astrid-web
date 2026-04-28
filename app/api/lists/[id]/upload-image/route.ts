@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].upload-image')
+
 
 // Allowed image extensions and their corresponding MIME types
 const ALLOWED_IMAGE_TYPES: Record<string, string[]> = {
@@ -132,7 +136,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error("Error uploading list image:", error)
+    log.error({ err: error }, "Error uploading list image:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

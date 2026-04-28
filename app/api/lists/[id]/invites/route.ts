@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { canUserManageMembers, getUserRoleInList, prismaToTaskList } from "@/lib/list-permissions"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].invites')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,7 +77,7 @@ export async function GET(
 
     return NextResponse.json({ invites: invitations })
   } catch (error) {
-    console.error("Error fetching list invitations:", error)
+    log.error({ err: error }, "Error fetching list invitations:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

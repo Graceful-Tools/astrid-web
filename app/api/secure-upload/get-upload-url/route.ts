@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
 import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-upload.get-upload-url')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -238,7 +242,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error generating upload URL:", error)
+    log.error({ err: error }, "Error generating upload URL:")
     return NextResponse.json({
       error: "Failed to generate upload URL"
     }, { status: 500 })

@@ -2,6 +2,10 @@ import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { authConfig } from "@/lib/auth-config"
 import { broadcastToUsers } from "@/lib/sse-utils"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('test-sse')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "targetUserId and message are required" }, { status: 400 })
     }
 
-    console.log(`[TEST SSE] Broadcasting test message from ${session.user.id} to ${targetUserId}`)
+    log.info(`[TEST SSE] Broadcasting test message from ${session.user.id} to ${targetUserId}`)
 
     // Broadcast test message
     broadcastToUsers([targetUserId], {
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
       to: targetUserId
     })
   } catch (error) {
-    console.error("Error sending test SSE:", error)
+    log.error({ err: error }, "Error sending test SSE:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

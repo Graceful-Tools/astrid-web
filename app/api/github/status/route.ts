@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.status')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,10 +64,10 @@ export async function GET(request: NextRequest) {
       ? ['claude', 'openai', 'gemini'] // Worker has all provider keys
       : configuredProviders // User's personal API keys
 
-    console.log('🔍 [GitHub Status] Checking status for user:', session.user.id)
-    console.log('  - GitHub connected:', isGitHubConnected)
-    console.log('  - User API keys:', configuredProviders)
-    console.log('  - Available providers:', availableProviders)
+    log.info({ userId: session.user.id }, '🔍 [GitHub Status] Checking status for user')
+    log.info({ isGitHubConnected }, '  - GitHub connected:')
+    log.info({ configuredProviders }, '  - User API keys:')
+    log.info({ availableProviders }, '  - Available providers:')
 
     return NextResponse.json({
       isGitHubConnected,
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error checking GitHub status:', error)
+    log.error({ err: error }, 'Error checking GitHub status:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

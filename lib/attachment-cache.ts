@@ -16,6 +16,10 @@ import {
   type OfflineAttachment
 } from './offline-db'
 import { CrossTabSync } from './cross-tab-sync'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('attachment-cache')
+
 
 // Maximum cache size (100MB)
 const MAX_CACHE_SIZE = 100 * 1024 * 1024
@@ -78,7 +82,7 @@ class AttachmentCacheManagerClass {
         }
       }
     } catch (error) {
-      console.error(`❌ [AttachmentCache] Failed to read from cache:`, error)
+      log.error({ err: error }, `❌ [AttachmentCache] Failed to read from cache:`)
       // Continue to download
     }
 
@@ -180,7 +184,7 @@ class AttachmentCacheManagerClass {
       } catch (saveError) {
         // Handle quota exceeded error
         if (this.isQuotaError(saveError)) {
-          console.warn(`⚠️ [AttachmentCache] Quota exceeded, attempting eviction...`)
+          log.warn(`⚠️ [AttachmentCache] Quota exceeded, attempting eviction...`)
           await this.evictLRU(blob.size + EVICTION_TARGET)
 
           // Retry save after eviction
@@ -188,7 +192,7 @@ class AttachmentCacheManagerClass {
             await OfflineAttachmentOperations.saveAttachmentWithBlob(attachment, blob)
           } catch (retryError) {
             // If still fails, log and return blob without caching
-            console.warn(`⚠️ [AttachmentCache] Could not cache attachment after eviction, returning uncached blob`)
+            log.warn(`⚠️ [AttachmentCache] Could not cache attachment after eviction, returning uncached blob`)
             return blob
           }
         } else {
@@ -200,13 +204,13 @@ class AttachmentCacheManagerClass {
       CrossTabSync.broadcastCacheUpdated('attachment', attachmentId)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`📦 Cached attachment: ${metadata.name} (${blob.size} bytes)`)
+        log.info(`📦 Cached attachment: ${metadata.name} (${blob.size} bytes)`)
       }
 
       return blob
     } catch (error) {
       this.stats.errors++
-      console.error(`❌ Failed to download attachment ${attachmentId}:`, error)
+      log.error({ err: error }, `❌ Failed to download attachment ${attachmentId}:`)
       return null
     }
   }
@@ -269,10 +273,10 @@ class AttachmentCacheManagerClass {
       }
 
       if (process.env.NODE_ENV === 'development' && toDelete.length > 0) {
-        console.log(`🗑️ [AttachmentCache] Evicted ${toDelete.length} attachments, freed ${(freedBytes / 1024 / 1024).toFixed(2)}MB`)
+        log.info(`🗑️ [AttachmentCache] Evicted ${toDelete.length} attachments, freed ${(freedBytes / 1024 / 1024).toFixed(2)}MB`)
       }
     } catch (error) {
-      console.error('❌ [AttachmentCache] Failed to evict attachments:', error)
+      log.error({ err: error }, '❌ [AttachmentCache] Failed to evict attachments:')
     }
   }
 
@@ -342,7 +346,7 @@ class AttachmentCacheManagerClass {
     await OfflineAttachmentOperations.clearAttachments()
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('🗑️ Attachment cache cleared')
+      log.info('🗑️ Attachment cache cleared')
     }
   }
 

@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import crypto from "crypto"
 import { MCPSettingsSchema, parseUserAIConfig } from "@/lib/ai/user-config-schemas"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.ai-api-keys')
+
 
 function getEncryptionKey(): string {
   const key = process.env.ENCRYPTION_KEY
@@ -134,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ keys: keyData })
   } catch (error) {
-    console.error("Error fetching AI API keys:", error)
+    log.error({ err: error }, "Error fetching AI API keys:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -237,7 +241,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error("Error saving AI API key:", error)
+    log.error({ err: error }, "Error saving AI API key:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -315,7 +319,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    console.error("Error deleting AI API key:", error)
+    log.error({ err: error }, "Error deleting AI API key:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

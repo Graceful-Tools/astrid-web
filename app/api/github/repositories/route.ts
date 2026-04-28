@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.repositories')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +39,7 @@ export async function GET(request: NextRequest) {
     // If refresh is requested and we have an installation, fetch from GitHub API
     if (refresh && githubIntegration.installationId) {
       try {
-        console.log('🔄 Refreshing repositories from GitHub API...')
+        log.info('🔄 Refreshing repositories from GitHub API...')
 
         // Import GitHub client and fetch fresh repositories
         const { GitHubClient } = await import('@/lib/github-client')
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
           private: repo.private || false
         }))
 
-        console.log(`✅ Found ${repositories.length} repositories from GitHub API`)
+        log.info(`✅ Found ${repositories.length} repositories from GitHub API`)
 
         // Update the cached repositories in database
         if (githubIntegration) {
@@ -64,9 +68,9 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        console.log('✅ Updated cached repositories in database')
+        log.info('✅ Updated cached repositories in database')
       } catch (error) {
-        console.error('Error refreshing repositories from GitHub:', error)
+        log.error({ err: error }, 'Error refreshing repositories from GitHub:')
         // Fall back to cached repositories if refresh fails
         repositories = Array.isArray(githubIntegration.repositories)
           ? githubIntegration.repositories
@@ -92,7 +96,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching GitHub repositories:', error)
+    log.error({ err: error }, 'Error fetching GitHub repositories:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

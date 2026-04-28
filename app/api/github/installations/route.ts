@@ -11,6 +11,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { App } from '@octokit/app'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.installations')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +69,7 @@ export async function GET(request: NextRequest) {
         } catch (installationError: any) {
           // Installation might have been removed from GitHub
           if (installationError.status === 404) {
-            console.log(`Installation ${integration.installationId} not found on GitHub - may have been uninstalled`)
+            log.info(`Installation ${integration.installationId} not found on GitHub - may have been uninstalled`)
           } else {
             throw installationError
           }
@@ -133,7 +137,7 @@ export async function GET(request: NextRequest) {
       })
 
     } catch (detectError: any) {
-      console.error('Error detecting GitHub installations:', detectError)
+      log.error({ err: detectError }, 'Error detecting GitHub installations:')
       return NextResponse.json({
         installations: [],
         detectedInstallations: [],
@@ -142,7 +146,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error fetching GitHub installations:', error)
+    log.error({ err: error }, 'Error fetching GitHub installations:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

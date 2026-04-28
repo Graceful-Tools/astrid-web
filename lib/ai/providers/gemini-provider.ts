@@ -12,6 +12,10 @@
 
 import type { AILogger } from '../types/logger'
 import type { AIProviderCallOptions, AIProviderResponse, ToolExecutionCallback } from './types'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.providers.gemini-provider')
+
 
 /**
  * Gemini-compatible tool definitions for function calling
@@ -93,7 +97,7 @@ function defaultLogger(level: 'info' | 'warn' | 'error', message: string, meta: 
     message,
     ...meta,
   }
-  console.log(JSON.stringify(logEntry))
+  log.info(JSON.stringify(logEntry))
 }
 
 /**

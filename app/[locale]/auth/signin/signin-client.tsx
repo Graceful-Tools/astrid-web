@@ -12,6 +12,10 @@ import { Chrome, Loader2, AlertCircle, Mail, Lock, Eye, EyeOff, KeyRound } from 
 import Image from "next/image"
 import { useWebAuthn } from "@/hooks/use-webauthn"
 import Link from "next/link"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].auth.signin.signin-client.tsx')
+
 
 export function SignInContent() {
   const [providers, setProviders] = useState<any>(null)
@@ -50,7 +54,7 @@ export function SignInContent() {
         setProviders(res)
       })
       .catch((err) => {
-        console.error("Failed to fetch providers:", err)
+        log.error({ err: err }, "Failed to fetch providers:")
       })
   }, [])
 
@@ -69,7 +73,7 @@ export function SignInContent() {
         window.location.href = result.url
       }
     } catch (error) {
-      console.error("Google sign in error:", error)
+      log.error({ err: error }, "Google sign in error:")
       setError("An unexpected error occurred during sign in")
     } finally {
       setLoading(false)
@@ -104,7 +108,7 @@ export function SignInContent() {
         setLoading(false)
       }
     } catch (error) {
-      console.error("Email sign in error:", error)
+      log.error({ err: error }, "Email sign in error:")
       setError("An unexpected error occurred during sign in")
       setLoading(false)
     }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { RATE_LIMITS, createRateLimitHeaders } from "@/lib/rate-limiter"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('public-tasks')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
       headers: createRateLimitHeaders(rateLimit)
     })
   } catch (error) {
-    console.error("Error fetching public tasks:", error)
+    log.error({ err: error }, "Error fetching public tasks:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

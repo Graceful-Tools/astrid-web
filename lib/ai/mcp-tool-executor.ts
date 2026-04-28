@@ -7,6 +7,10 @@
 
 import { generateFilePathVariations } from './file-path-utils'
 import type { MCPToolLogger } from './types/logger'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.mcp-tool-executor')
+
 
 // Re-export for backward compatibility
 export type { MCPToolLogger }
@@ -160,7 +164,7 @@ export async function executeMCPTool(
         }
     }
   } catch (error: any) {
-    console.error(`❌ [Tool Execution] ${toolName} failed:`, error)
+    log.error({ err: error }, `❌ [Tool Execution] ${toolName} failed:`)
     return {
       success: false,
       error: error.message || String(error)

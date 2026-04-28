@@ -8,6 +8,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { authenticateAPI, getDeprecationWarning, UnauthorizedError } from "@/lib/api-auth-middleware"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('mcp.operations')
 
 // Import all handlers from the handlers barrel export
 import {
@@ -90,11 +93,11 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
     const auth = await authenticateAPI(request, legacyToken)
 
     const result = await executeMCPOperation(operation, args, auth.userId)
-    console.log('[MCP API] Operation result:', {
+    log.info({
       operation,
       authSource: auth.source,
       ok: true
-    })
+    }, '[MCP API] Operation result:')
 
     // Add deprecation warning header if using legacy auth
     const deprecationWarning = getDeprecationWarning(auth)
@@ -129,7 +132,7 @@ export async function POST(request: NextRequest) {
   const rateLimitCheck = withRateLimit(RATE_LIMITS.MCP_OPERATIONS)(request)
 
   if (!rateLimitCheck.allowed) {
-    console.log('[MCP] Operations rate limited')
+    log.info('[MCP] Operations rate limited')
     return NextResponse.json(
       rateLimitCheck.error,
       {
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
     const { operation, args } = body || {}
     return await processMCPRequest(request, operation, args)
   } catch (error) {
-    console.error("Error executing MCP operation:", error)
+    log.error({ err: error }, "Error executing MCP operation:")
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Internal server error"
     }, { status: 500 })
@@ -158,7 +161,7 @@ export async function GET(request: NextRequest) {
   const rateLimitCheck = withRateLimit(RATE_LIMITS.MCP_OPERATIONS)(request)
 
   if (!rateLimitCheck.allowed) {
-    console.log('[MCP] Operations rate limited (GET)')
+    log.info('[MCP] Operations rate limited (GET)')
     return NextResponse.json(
       rateLimitCheck.error,
       {
@@ -200,7 +203,7 @@ export async function GET(request: NextRequest) {
 
     return await processMCPRequest(request, operation, args)
   } catch (error) {
-    console.error("Error executing MCP operation:", error)
+    log.error({ err: error }, "Error executing MCP operation:")
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Internal server error"
     }, { status: 500 })
@@ -239,10 +242,10 @@ async function executeMCPOperation(operation: string, args: any, userId: string)
       return await getUserTasks(args.accessToken, userId, args.includeCompleted)
 
     case 'create_task':
-      console.log('[MCP API] create_task args:', JSON.stringify(redactArgsForLogging(args), null, 2))
+      log.info({ args: redactArgsForLogging(args) }, '[MCP API] create_task args')
       // Handle both single listId and lists array formats
       const listIds = args.lists || (args.listId ? [args.listId] : [])
-      console.log('[MCP API] Extracted listIds:', listIds)
+      log.info({ listIds }, '[MCP API] Extracted listIds:')
       // Allow empty listIds - tasks without lists are valid
       return await createTask(args.accessToken, listIds, args.task, userId)
 

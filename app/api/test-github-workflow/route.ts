@@ -1,27 +1,31 @@
 import { NextResponse } from 'next/server'
 import { GitHubClient } from '@/lib/github-client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('test-github-workflow')
+
 
 export async function POST(request: Request) {
   try {
     const { userId, repository } = await request.json()
 
-    console.log('🧪 Testing GitHub workflow...')
+    log.info('🧪 Testing GitHub workflow...')
 
     // Step 1: Create GitHub client
     const githubClient = await GitHubClient.forUser(userId)
 
     // Step 2: Test reading a file
     const readmeContent = await githubClient.getFile(repository, 'README.md')
-    console.log(`✅ Read file: ${readmeContent.substring(0, 50)}...`)
+    log.info(`✅ Read file: ${readmeContent.substring(0, 50)}...`)
 
     // Get repository info to find default branch
     const repoInfo = await githubClient.getRepository(repository)
-    console.log(`✅ Repository: ${repoInfo.fullName}, default branch: ${repoInfo.defaultBranch}`)
+    log.info(`✅ Repository: ${repoInfo.fullName}, default branch: ${repoInfo.defaultBranch}`)
 
     // Step 3: Create a test branch
     const branchName = `test-workflow-${Date.now()}`
     await githubClient.createBranch(repository, repoInfo.defaultBranch, branchName)
-    console.log(`✅ Branch created: ${branchName}`)
+    log.info(`✅ Branch created: ${branchName}`)
 
     // Step 4: Commit a test file
     const commitResult = await githubClient.commitChanges(
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
       ],
       'test: add test.md via GitHub workflow test'
     )
-    console.log(`✅ Commit created: ${commitResult.sha}`)
+    log.info(`✅ Commit created: ${commitResult.sha}`)
 
     // Step 5: Create pull request (correct parameter order: repo, head, base, title, body)
     const pr = await githubClient.createPullRequest(
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('❌ Test error:', error)
+    log.error({ err: error }, '❌ Test error:')
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

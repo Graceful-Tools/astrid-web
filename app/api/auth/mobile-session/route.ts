@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { decode } from "next-auth/jwt"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.mobile-session')
+
 
 // Session validation endpoint for iOS
 // Supports both:
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("Session validation error:", error)
+    log.error({ err: error }, "Session validation error:")
     return NextResponse.json(
       { error: "Session validation failed" },
       { status: 500 }

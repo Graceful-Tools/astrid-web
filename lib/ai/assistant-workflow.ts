@@ -9,6 +9,10 @@ import { prisma } from '@/lib/prisma'
 import { getCachedApiKey, getCachedModelPreference } from '@/lib/api-key-cache'
 import type { AIService } from './agent-config'
 import { getAgentService } from './agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.assistant-workflow')
+
 
 // Hardcoded default models - these are reliable fallbacks
 const FALLBACK_MODELS: Record<AIService, string> = {
@@ -198,7 +202,7 @@ export async function executeAssistantWorkflow(
   agentEmail: string,
   configuredByUserId: string
 ): Promise<void> {
-  console.log(`🤖 [ASSISTANT] Starting assistant workflow for task ${taskId}`)
+  log.info(`🤖 [ASSISTANT] Starting assistant workflow for task ${taskId}`)
 
   // Get task details
   const task = await prisma.task.findUnique({
@@ -214,7 +218,7 @@ export async function executeAssistantWorkflow(
   })
 
   if (!task) {
-    console.error(`❌ [ASSISTANT] Task ${taskId} not found`)
+    log.error(`❌ [ASSISTANT] Task ${taskId} not found`)
     return
   }
 
@@ -236,14 +240,14 @@ export async function executeAssistantWorkflow(
       }
     })
   } catch (error) {
-    console.error(`❌ [ASSISTANT] Failed to post starting comment:`, error)
+    log.error({ err: error }, `❌ [ASSISTANT] Failed to post starting comment:`)
   }
 
   // Get API key from the user who configured the AI agent
   const apiKey = await getCachedApiKey(configuredByUserId, service)
 
   if (!apiKey) {
-    console.error(`❌ [ASSISTANT] No ${service} API key configured for user ${configuredByUserId}`)
+    log.error(`❌ [ASSISTANT] No ${service} API key configured for user ${configuredByUserId}`)
     await prisma.comment.create({
       data: {
         taskId,
@@ -259,7 +263,7 @@ No ${service.toUpperCase()} API key configured. Please add your API key in Setti
 
   // Get user's preferred model for this service
   const userModel = await getCachedModelPreference(configuredByUserId, service)
-  console.log(`🤖 [ASSISTANT] Using model: ${userModel || FALLBACK_MODELS[service]} (user preference: ${userModel ? 'yes' : 'no'})`)
+  log.info(`🤖 [ASSISTANT] Using model: ${userModel || FALLBACK_MODELS[service]} (user preference: ${userModel ? 'yes' : 'no'})`)
 
   // Call the AI assistant with user's model preference
   const result = await callAssistant(
@@ -271,7 +275,7 @@ No ${service.toUpperCase()} API key configured. Please add your API key in Setti
   )
 
   if (!result.success) {
-    console.error(`❌ [ASSISTANT] AI call failed:`, result.error)
+    log.error(result.error, `❌ [ASSISTANT] AI call failed:`)
     await prisma.comment.create({
       data: {
         taskId,
@@ -306,9 +310,9 @@ Please try again or provide more details.`,
       data: { description: newDescription }
     })
 
-    console.log(`📝 [ASSISTANT] Updated task description with AI response`)
+    log.info(`📝 [ASSISTANT] Updated task description with AI response`)
   } catch (error) {
-    console.error(`❌ [ASSISTANT] Failed to update task description:`, error)
+    log.error({ err: error }, `❌ [ASSISTANT] Failed to update task description:`)
   }
 
   // Post completion message
@@ -323,8 +327,8 @@ I've added my response to the task description above.${result.usage ? `\n\n*Cost
         type: 'MARKDOWN'
       }
     })
-    console.log(`✅ [ASSISTANT] Workflow complete for task ${taskId}`)
+    log.info(`✅ [ASSISTANT] Workflow complete for task ${taskId}`)
   } catch (error) {
-    console.error(`❌ [ASSISTANT] Failed to post completion comment:`, error)
+    log.error({ err: error }, `❌ [ASSISTANT] Failed to post completion comment:`)
   }
 }

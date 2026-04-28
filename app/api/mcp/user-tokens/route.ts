@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { randomBytes } from "crypto"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('mcp.user-tokens')
+
 
 // Schema for creating user-level MCP access tokens
 const CreateUserMCPTokenSchema = z.object({
@@ -41,7 +45,7 @@ export async function GET() {
 
     return NextResponse.json({ tokens: formattedTokens })
   } catch (error) {
-    console.error("Error fetching user MCP tokens:", error)
+    log.error({ err: error }, "Error fetching user MCP tokens:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error("Error creating user MCP token:", error)
+    log.error({ err: error }, "Error creating user MCP token:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -148,7 +152,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Token revoked successfully" })
   } catch (error) {
-    console.error("Error deleting user MCP token:", error)
+    log.error({ err: error }, "Error deleting user MCP token:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

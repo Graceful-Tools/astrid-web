@@ -4,6 +4,10 @@ import { createRemoteJWKSet, jwtVerify, JWTPayload } from "jose"
 import { prisma } from "@/lib/prisma"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { withRateLimitHandler, authRateLimiter } from "@/lib/rate-limiter"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.apple')
+
 
 // Generate cryptographically secure token
 function generateSecureToken(prefix: string): string {
@@ -65,7 +69,7 @@ async function appleSignInHandler(request: NextRequest) {
     try {
       verifiedPayload = await verifyAppleToken(identityToken)
     } catch (error) {
-      console.error("Apple token verification error:", error)
+      log.error({ err: error }, "Apple token verification error:")
       return NextResponse.json({ error: "Invalid identity token" }, { status: 401 })
     }
 
@@ -101,7 +105,7 @@ async function appleSignInHandler(request: NextRequest) {
         })
       } else if (appleAccount.providerAccountId !== appleUserId) {
         // Security check: Apple user ID should match
-        console.error("Apple user ID mismatch for email:", userEmail)
+        log.error({ err: userEmail }, "Apple user ID mismatch for email:")
         return NextResponse.json({ error: "Account verification failed" }, { status: 401 })
       }
 
@@ -186,7 +190,7 @@ async function appleSignInHandler(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error("Apple Sign In error:", error)
+    log.error({ err: error }, "Apple Sign In error:")
     return NextResponse.json(
       { error: "Apple Sign In failed" },
       { status: 500 }

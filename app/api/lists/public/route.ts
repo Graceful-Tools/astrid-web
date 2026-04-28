@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { getPopularPublicLists, searchPublicLists, getRecentPublicLists } from "@/lib/copy-utils"
 import { RedisCache } from "@/lib/redis"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.public')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     if (query) {
       // Search public lists - cache for 2 minutes (searches change less frequently)
-      console.log(`🔍 Searching public lists for: "${query}"`)
+      log.info(`🔍 Searching public lists for: "${query}"`)
       publicLists = await RedisCache.getOrSet(
         cacheKey,
         () => searchPublicLists(query, limit, { sortBy, ownerId }),
@@ -36,7 +40,7 @@ export async function GET(request: NextRequest) {
       )
     } else if (sortBy === "recent") {
       // Get recent public lists - cache for 1 minute (recent lists change frequently)
-      console.log(`📋 Fetching ${limit} recent public lists`)
+      log.info(`📋 Fetching ${limit} recent public lists`)
       publicLists = await RedisCache.getOrSet(
         cacheKey,
         () => getRecentPublicLists(limit, { ownerId }),
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
       )
     } else {
       // Get popular public lists - cache for 5 minutes (popular lists change slowly)
-      console.log(`📋 Fetching ${limit} popular public lists`)
+      log.info(`📋 Fetching ${limit} popular public lists`)
       publicLists = await RedisCache.getOrSet(
         cacheKey,
         () => getPopularPublicLists(limit, { ownerId }),
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error fetching public lists:", error)
+    log.error({ err: error }, "Error fetching public lists:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

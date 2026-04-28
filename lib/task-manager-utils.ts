@@ -3,6 +3,10 @@ import { parseRelativeDate } from '@/lib/date-utils'
 import { applyVirtualListFilter } from '@/lib/virtual-list-utils'
 import type { WeeklyRepeatingPattern, Weekday } from '@/types/repeating'
 import { getNLPKeywords, type NLPKeywords } from '@/lib/i18n/nlp-keywords'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('task-manager-utils')
+
 
 /**
  * Escape special regex characters in a string
@@ -341,7 +345,7 @@ export function parseTaskInput(input: string, selectedListId: string, effectiveS
     customRepeatingData: customRepeatingData // For custom weekly patterns with specific days
   }
 
-  console.log('📝 parseTaskInput result:', {
+  log.info({
     input,
     selectedListId,
     selectedList: selectedList ? {
@@ -355,7 +359,7 @@ export function parseTaskInput(input: string, selectedListId: string, effectiveS
     parsedValues: { assigneeId, priority, dueDateTime, extractedListIds },
     listDefaults,
     finalResult: result
-  })
+  }, '📝 parseTaskInput result:')
 
   return result
 }
@@ -403,7 +407,7 @@ export function canEditListSettings(list: TaskList, userId?: string): boolean {
   // Built-in virtual lists (like "my-tasks", "today") cannot be edited
   if (isVirtualListId(list.id)) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 canEditListSettings: Built-in virtual list, returning false', { listId: list.id })
+      log.info({ listId: list.id }, '🔧 canEditListSettings: Built-in virtual list, returning false')
     }
     return false
   }
@@ -420,7 +424,7 @@ export function canEditListSettings(list: TaskList, userId?: string): boolean {
   const finalCanEdit = canEdit || isOwner
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('🔧 canEditListSettings debug:', {
+    log.info({
       listId: list.id,
       listName: list.name,
       isVirtual: list.isVirtual,
@@ -431,7 +435,7 @@ export function canEditListSettings(list: TaskList, userId?: string): boolean {
       isOwner,
       canEditFromMemberUtils: canEdit,
       finalCanEdit
-    })
+    }, '🔧 canEditListSettings debug:')
   }
 
   return finalCanEdit

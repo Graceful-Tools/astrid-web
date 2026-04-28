@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.user-config-schemas')
+
 
 /**
  * Zod schemas for the three JSON-as-string AI config blobs on the User row.
@@ -59,16 +63,13 @@ export function parseUserAIConfig<T extends z.ZodTypeAny>(
   try {
     parsed = JSON.parse(raw)
   } catch (err) {
-    console.warn(`[user-config-schemas] ${context}: invalid JSON, returning empty`, err)
+    log.warn({ err }, `[user-config-schemas] ${context}: invalid JSON, returning empty`)
     return schema.parse({})
   }
 
   const result = schema.safeParse(parsed)
   if (!result.success) {
-    console.warn(
-      `[user-config-schemas] ${context}: schema mismatch, returning empty`,
-      result.error.issues
-    )
+    log.warn(result.error.issues, `[user-config-schemas] ${context}: schema mismatch, returning empty`)
     return schema.parse({})
   }
   return result.data

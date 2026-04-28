@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { parseVirtualChatKey } from '@/lib/chat-channel-eligibility'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('chat.channels')
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (error.name === 'UnauthorizedError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('[Chat API] POST /chat/channels error:', error)
+    log.error({ err: error }, '[Chat API] POST /chat/channels error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

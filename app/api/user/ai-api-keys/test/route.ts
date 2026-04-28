@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { z } from "zod"
 import crypto from "crypto"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user.ai-api-keys.test')
+
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
 
@@ -96,7 +100,7 @@ export async function POST(request: NextRequest) {
   const rateLimitCheck = withRateLimit(RATE_LIMITS.API_KEY_TEST)(request)
 
   if (!rateLimitCheck.allowed) {
-    console.log('🚫 API key test rate limited')
+    log.info('🚫 API key test rate limited')
     return NextResponse.json(
       rateLimitCheck.error,
       {
@@ -203,7 +207,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error("Error testing AI API key:", error)
+    log.error({ err: error }, "Error testing AI API key:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

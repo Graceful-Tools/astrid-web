@@ -5,6 +5,10 @@
 
 import { prisma } from "@/lib/prisma"
 import { customAlphabet } from "nanoid"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('shortcode')
+
 
 const SHORTCODE_LENGTH = 8
 const SHORTCODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -136,7 +140,7 @@ export async function resolveShortcode(
       data: { clicks: { increment: 1 } }
     })
     .catch((err) => {
-      console.error("Failed to increment shortcode clicks:", err)
+      log.error({ err: err }, "Failed to increment shortcode clicks:")
     })
 
   return {

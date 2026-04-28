@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].transfer-ownership')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -89,22 +93,22 @@ export async function POST(
     })
 
     // Invalidate cache for both old and new owners
-    console.log("🗄️ Invalidating cache for ownership transfer - old owner:", session.user.id, "new owner:", newOwnerId)
+    log.info({ oldOwnerId: session.user.id, newOwnerId }, '🗄️ Invalidating cache for ownership transfer')
     try {
       // Invalidate cache for the old owner (who left)
       await RedisCache.del(RedisCache.keys.userLists(session.user.id))
-      console.log(`✅ Cache invalidated for old owner: ${session.user.id}`)
+      log.info(`✅ Cache invalidated for old owner: ${session.user.id}`)
       
       // Invalidate cache for the new owner (who now owns the list)
       await RedisCache.del(RedisCache.keys.userLists(newOwnerId))
-      console.log(`✅ Cache invalidated for new owner: ${newOwnerId}`)
+      log.info(`✅ Cache invalidated for new owner: ${newOwnerId}`)
     } catch (error) {
-      console.error(`❌ Failed to invalidate cache for ownership transfer:`, error)
+      log.error({ err: error }, `❌ Failed to invalidate cache for ownership transfer:`)
     }
 
     return NextResponse.json({ message: "Ownership transferred successfully" })
   } catch (error) {
-    console.error("Error transferring ownership:", error)
+    log.error({ err: error }, "Error transferring ownership:")
     return NextResponse.json({ error: "Failed to transfer ownership" }, { status: 500 })
   }
 }

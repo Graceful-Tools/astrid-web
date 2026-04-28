@@ -6,6 +6,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.integration')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error getting GitHub integration:', error)
+    log.error({ err: error }, 'Error getting GitHub integration:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -82,7 +86,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Error deleting GitHub integration:', error)
+    log.error({ err: error }, 'Error deleting GitHub integration:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

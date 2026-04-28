@@ -11,6 +11,10 @@
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { type OAuthScope, validateScopes, hasRequiredScopes } from './oauth-scopes'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('oauth.oauth-token-manager')
+
 
 const TOKEN_LENGTHS = {
   ACCESS_TOKEN: 64, // bytes (128 hex chars)
@@ -190,10 +194,10 @@ export async function validateAccessToken(
     name: string | null
   }
 } | null> {
-  console.log('[OAuth] validateAccessToken called:', {
+  log.info({
     tokenPrefix: token.substring(0, 20) + '...',
     tokenLength: token.length,
-  })
+  }, '[OAuth] validateAccessToken called:')
 
   const oauthToken = await prisma.oAuthToken.findFirst({
     where: {
@@ -216,21 +220,21 @@ export async function validateAccessToken(
   })
 
   if (!oauthToken) {
-    console.log('[OAuth] Token not found or expired')
+    log.info('[OAuth] Token not found or expired')
     // Debug: Check if token exists at all
     const anyToken = await prisma.oAuthToken.findFirst({
       where: { accessToken: token },
       select: { id: true, expiresAt: true, revokedAt: true },
     })
     if (anyToken) {
-      console.log('[OAuth] Token exists but invalid:', anyToken)
+      log.info({ anyToken }, '[OAuth] Token exists but invalid:')
     } else {
-      console.log('[OAuth] Token does not exist in database')
+      log.info('[OAuth] Token does not exist in database')
     }
     return null
   }
 
-  console.log('[OAuth] Token validated successfully for user:', oauthToken.userId)
+  log.info({ userId: oauthToken.userId }, '[OAuth] Token validated successfully for user')
 
   // Update last used timestamp for the client
   await prisma.oAuthClient.update({

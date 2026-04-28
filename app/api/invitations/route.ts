@@ -4,6 +4,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { sendInvitationEmail } from "@/lib/email"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('invitations')
+
 
 // Generate cryptographically secure invitation token
 function generateInvitationToken(): string {
@@ -189,7 +193,7 @@ export async function POST(request: NextRequest) {
     try {
       await sendInvitationEmail(invitation)
     } catch (emailError) {
-      console.error("Failed to send invitation email:", emailError)
+      log.error({ err: emailError }, "Failed to send invitation email:")
       // Don't fail the request if email fails
     }
 
@@ -206,7 +210,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error creating invitation:", error)
+    log.error({ err: error }, "Error creating invitation:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -248,7 +252,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ invitations })
   } catch (error) {
-    console.error("Error fetching invitations:", error)
+    log.error({ err: error }, "Error fetching invitations:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

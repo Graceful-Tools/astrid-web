@@ -2,6 +2,10 @@ import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAPI } from "@/lib/api-auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { getUserStats } from "@/lib/user-stats"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('users.[userId].profile')
+
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +16,7 @@ export async function GET(
     const auth = await authenticateAPI(request)
 
     const { userId } = await context.params
-    console.log(`[User Profile API] Fetching profile for userId: ${userId}, requested by: ${auth.userId} (${auth.user.email || 'no email'})`)
+    log.info(`[User Profile API] Fetching profile for userId: ${userId}, requested by: ${auth.userId} (${auth.user.email || 'no email'})`)
 
     // Get the profile user's information
     const profileUser = await prisma.user.findUnique({
@@ -47,14 +51,14 @@ export async function GET(
     }
 
     // Get user statistics (always force refresh for profile views to ensure accuracy)
-    console.log(`[User Profile API] Getting stats for user: ${userId} (forceRefresh=true)`)
+    log.info(`[User Profile API] Getting stats for user: ${userId} (forceRefresh=true)`)
     const stats = await getUserStats(userId, true)
-    console.log(`[User Profile API] Stats retrieved:`, stats)
+    log.info({ stats }, `[User Profile API] Stats retrieved:`)
 
     // Get tasks visible on profile (only PUBLIC list tasks)
     // Profile should show what others would see - only tasks in PUBLIC lists
     // This applies to both self-view and viewing others' profiles
-    console.log(`[User Profile API] Fetching public tasks for profile...`)
+    log.info(`[User Profile API] Fetching public tasks for profile...`)
     const sharedTasks = await prisma.task.findMany({
       where: {
         OR: [
@@ -132,7 +136,7 @@ export async function GET(
       isOwnProfile: currentUser.id === userId,
     })
   } catch (error) {
-    console.error("[User Profile API] Error fetching user profile:", error)
+    log.error({ err: error }, "[User Profile API] Error fetching user profile:")
 
     // Return appropriate error based on error type
     if (error instanceof Error && error.name === 'UnauthorizedError') {

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-upload.upload-complete')
+
 
 /**
  * Upload Complete Callback
@@ -16,18 +20,18 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    console.log('📦 [UploadComplete] Received callback:', JSON.stringify(body, null, 2))
+    log.info({ body }, '📦 [UploadComplete] Received callback')
 
     // Validate request type
     if (body.type !== 'blob.upload-completed') {
-      console.error('❌ [UploadComplete] Invalid request type:', body.type)
+      log.error(body.type, '❌ [UploadComplete] Invalid request type:')
       return NextResponse.json({ error: 'Invalid request type' }, { status: 400 })
     }
 
     const { blob, tokenPayload } = body.payload
 
     if (!blob || !tokenPayload) {
-      console.error('❌ [UploadComplete] Missing blob or tokenPayload')
+      log.error('❌ [UploadComplete] Missing blob or tokenPayload')
       return NextResponse.json({ error: 'Missing required data' }, { status: 400 })
     }
 
@@ -35,12 +39,12 @@ export async function POST(request: NextRequest) {
     const payload = JSON.parse(tokenPayload)
     const { userId, fileId, fileName, fileType, fileSize, taskId, listId, commentId } = payload
 
-    console.log('📦 [UploadComplete] Storing file metadata:', {
+    log.info({
       fileId,
       fileName,
       userId,
       blobUrl: blob.url,
-    })
+    }, '📦 [UploadComplete] Storing file metadata:')
 
     // Store metadata in database
     await prisma.secureFile.create({
@@ -57,11 +61,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('✅ [UploadComplete] File metadata stored successfully:', fileId)
+    log.info({ fileId }, '✅ [UploadComplete] File metadata stored successfully:')
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('❌ [UploadComplete] Error:', error)
+    log.error({ err: error }, '❌ [UploadComplete] Error:')
     return NextResponse.json({
       error: 'Failed to process upload completion'
     }, { status: 500 })

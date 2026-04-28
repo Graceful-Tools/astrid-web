@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { workflowQueue } from '@/lib/workflow-queue'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('workflow-queue.status')
+
 
 /**
  * GET /api/workflow-queue/status
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error getting queue status:', error)
+    log.error({ err: error }, 'Error getting queue status:')
     return NextResponse.json(
       { error: 'Failed to get queue status' },
       { status: 500 }
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
       position: taskStatus.position
     })
   } catch (error) {
-    console.error('Error getting task status:', error)
+    log.error({ err: error }, 'Error getting task status:')
     return NextResponse.json(
       { error: 'Failed to get task status' },
       { status: 500 }

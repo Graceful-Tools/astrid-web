@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('webhooks.openai-integration')
+
 
 export async function POST(request: NextRequest) {
-  console.log('🧠 OpenAI integration webhook called')
+  log.info('🧠 OpenAI integration webhook called')
 
   return NextResponse.json({
     service: "OpenAI Integration Webhook",

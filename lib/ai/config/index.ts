@@ -14,6 +14,10 @@ import type {
   PlatformDetection,
 } from './schema'
 import { CONFIG_DEFAULTS } from './defaults'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai.config.index')
+
 
 // Re-export types and defaults
 export * from './schema'
@@ -114,7 +118,7 @@ export async function loadAstridConfig(repoPath: string): Promise<ResolvedAstrid
     }
   } catch {
     // No config file or invalid JSON - use defaults
-    console.log('   ℹ️ No .astrid.config.json found, using defaults')
+    log.info('   ℹ️ No .astrid.config.json found, using defaults')
   }
 
   // Deep merge user config with defaults

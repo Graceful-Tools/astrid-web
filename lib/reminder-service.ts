@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import type { ReminderSettings, TaskReminderData, DailyDigestData } from '@/types/reminder'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('reminder-service')
+
 
 interface EmailService {
   sendTaskReminder: (data: TaskReminderData) => Promise<void>
@@ -52,7 +56,7 @@ export class ReminderService {
       try {
         await this.processSingleReminder(reminder)
       } catch (error) {
-        console.error(`Failed to process reminder ${reminder.id}:`, error)
+        log.error({ err: error }, `Failed to process reminder ${reminder.id}:`)
         await this.handleReminderFailure(reminder, error)
       }
     }
@@ -78,7 +82,7 @@ export class ReminderService {
       const maxAdvance = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
       
       if (timeDiff > maxAdvance) {
-        console.log(`Reminder for task ${task.id} is too far in advance, rescheduling`)
+        log.info(`Reminder for task ${task.id} is too far in advance, rescheduling`)
         // Reschedule to 7 days before due date
         const newScheduledFor = new Date(new Date(task.dueDateTime).getTime() - maxAdvance)
         await this.prisma.reminderQueue.update({
@@ -306,7 +310,7 @@ export class ReminderService {
       }
     }
 
-    console.log(`Rescheduled reminder ${reminder.id} to end of quiet hours: ${endOfQuietHours}`)
+    log.info(`Rescheduled reminder ${reminder.id} to end of quiet hours: ${endOfQuietHours}`)
 
     await this.prisma.reminderQueue.update({
       where: { id: reminder.id },
@@ -364,7 +368,7 @@ export class ReminderService {
       try {
         await this.sendDailyDigestForUser(user)
       } catch (error) {
-        console.error(`Failed to send daily digest for user ${user.id}:`, error)
+        log.error({ err: error }, `Failed to send daily digest for user ${user.id}:`)
       }
     }
   }
@@ -464,7 +468,7 @@ export class ReminderService {
       
       return Math.abs(currentTimeInMinutes - targetTimeInMinutes) <= 5
     } catch (error) {
-      console.error('Error checking digest time:', error)
+      log.error({ err: error }, 'Error checking digest time:')
       return false
     }
   }
@@ -490,7 +494,7 @@ export class ReminderService {
       try {
         await this.sendWeeklyDigestForUser(user)
       } catch (error) {
-        console.error(`Failed to send weekly digest for user ${user.id}:`, error)
+        log.error({ err: error }, `Failed to send weekly digest for user ${user.id}:`)
       }
     }
   }
@@ -588,7 +592,7 @@ export class ReminderService {
 
       return { success: true }
     } catch (error) {
-      console.error('Error snoozing reminder:', error)
+      log.error({ err: error }, 'Error snoozing reminder:')
       return { success: false, error: 'Failed to snooze reminder' }
     }
   }
@@ -601,7 +605,7 @@ export class ReminderService {
 
       return { success: true }
     } catch (error) {
-      console.error('Error dismissing reminder:', error)
+      log.error({ err: error }, 'Error dismissing reminder:')
       return { success: false, error: 'Failed to dismiss reminder' }
     }
   }
@@ -628,9 +632,9 @@ export class ReminderService {
           },
         })
 
-        console.log(`Rescheduled failed reminder ${reminder.id} with ${backoffMinutes}min backoff`)
+        log.info(`Rescheduled failed reminder ${reminder.id} with ${backoffMinutes}min backoff`)
       } catch (error) {
-        console.error(`Failed to reschedule reminder ${reminder.id}:`, error)
+        log.error({ err: error }, `Failed to reschedule reminder ${reminder.id}:`)
       }
     }
   }

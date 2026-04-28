@@ -8,6 +8,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.request-changes')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('📝 [Change Request] Processing change request:', { workflowId, commentId, taskId })
+    log.info({ workflowId, commentId, taskId }, '📝 [Change Request] Processing change request:')
 
     // Get the workflow
     const workflow = await prisma.codingTaskWorkflow.findUnique({
@@ -101,10 +105,10 @@ Working on it now... 🔧`,
     // Start the revision process asynchronously
     orchestrator.handleChangeRequest(workflowId, taskId, feedback)
       .then(() => {
-        console.log('✅ [Change Request] Revision process completed successfully')
+        log.info('✅ [Change Request] Revision process completed successfully')
       })
       .catch((error) => {
-        console.error('❌ [Change Request] Revision process failed:', error)
+        log.error({ err: error }, '❌ [Change Request] Revision process failed:')
 
         // Post error comment
         fetch(`/api/tasks/${taskId}/comments`, {
@@ -123,7 +127,7 @@ Please try again or contact support if the issue persists.`,
         })
       })
 
-    console.log('📝 [Change Request] Change request initiated successfully')
+    log.info('📝 [Change Request] Change request initiated successfully')
 
     return NextResponse.json({
       success: true,
@@ -133,7 +137,7 @@ Please try again or contact support if the issue persists.`,
     })
 
   } catch (error) {
-    console.error('❌ [Change Request] Error processing change request:', error)
+    log.error({ err: error }, '❌ [Change Request] Error processing change request:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('account.remove-password')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error removing password:", error)
+    log.error({ err: error }, "Error removing password:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

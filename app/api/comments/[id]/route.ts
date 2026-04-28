@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('comments.[id]')
+
 
 export async function PUT(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
@@ -108,13 +112,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
       }
     } catch (sseError) {
-      console.error("Failed to send comment update SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send comment update SSE notifications:")
       // Continue - comment was still updated
     }
 
     return NextResponse.json(updatedComment)
   } catch (error) {
-    console.error("Error updating comment:", error)
+    log.error({ err: error }, "Error updating comment:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -204,13 +208,13 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
         })
       }
     } catch (sseError) {
-      console.error("Failed to send comment delete SSE notifications:", sseError)
+      log.error({ err: sseError }, "Failed to send comment delete SSE notifications:")
       // Continue - comment was still deleted
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting comment:", error)
+    log.error({ err: error }, "Error deleting comment:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

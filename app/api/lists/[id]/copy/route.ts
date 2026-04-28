@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { copyListWithTasks } from "@/lib/copy-utils"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].copy')
+
 
 export async function POST(
   request: NextRequest,
@@ -28,7 +32,7 @@ export async function POST(
       newName
     } = body
 
-    console.log(`📋 Copying list ${listId} for user ${session.user.id}, assignToUser: ${assignToUser}`)
+    log.info(`📋 Copying list ${listId} for user ${session.user.id}, assignToUser: ${assignToUser}`)
 
     const result = await copyListWithTasks(listId, {
       newOwnerId: session.user.id,
@@ -46,8 +50,8 @@ export async function POST(
       )
     }
 
-    console.log(`✅ List copied successfully: ${result.copiedList?.id}`)
-    console.log(`📝 Copied ${result.copiedTasksCount} tasks`)
+    log.info(`✅ List copied successfully: ${result.copiedList?.id}`)
+    log.info(`📝 Copied ${result.copiedTasksCount} tasks`)
 
     return NextResponse.json({
       success: true,
@@ -57,7 +61,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error("Error in copy list API:", error)
+    log.error({ err: error }, "Error in copy list API:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

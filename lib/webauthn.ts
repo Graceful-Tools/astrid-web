@@ -10,6 +10,10 @@ import type {
   AuthenticatorTransportFuture,
 } from "@simplewebauthn/types"
 import { prisma } from "./prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('webauthn')
+
 
 // Relying Party configuration
 const rpName = "Astrid"
@@ -56,13 +60,13 @@ const origin = expectedOrigins[0]
 
 // Log configuration on module load (helps debug production issues)
 if (typeof process !== "undefined") {
-  console.log("[WebAuthn] Configuration:", {
+  log.info({
     rpID,
     expectedOrigins,
     NODE_ENV: process.env.NODE_ENV,
     VERCEL_ENV: process.env.VERCEL_ENV,
     isProduction,
-  })
+  }, "[WebAuthn] Configuration:")
 }
 
 export interface StoredChallenge {
@@ -169,13 +173,13 @@ export async function verifyRegistration(
 ) {
   try {
     const origins = getExpectedOrigins(requestOrigin)
-    console.log("[WebAuthn] Verifying registration:", {
+    log.info({
       userId,
       expectedChallenge: expectedChallenge.substring(0, 20) + "...",
       expectedOrigin: origins,
       expectedRPID: rpID,
       requestOrigin,
-    })
+    }, "[WebAuthn] Verifying registration:")
 
     const verification = await verifyRegistrationResponse({
       response,
@@ -185,7 +189,7 @@ export async function verifyRegistration(
       requireUserVerification: false, // We use "preferred" in options, so don't require it
     })
 
-    console.log("[WebAuthn] Verification result:", { verified: verification.verified })
+    log.info({ verified: verification.verified }, "[WebAuthn] Verification result:")
 
     if (verification.verified && verification.registrationInfo) {
       const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo
@@ -208,7 +212,7 @@ export async function verifyRegistration(
 
     return { verified: false, error: "Verification not confirmed" }
   } catch (error) {
-    console.error("[WebAuthn] Registration verification error:", error)
+    log.error({ err: error }, "[WebAuthn] Registration verification error:")
     return { verified: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
@@ -287,7 +291,7 @@ export async function verifyAuthentication(
 
     return { verified: false, error: "Verification failed" }
   } catch (error) {
-    console.error("[WebAuthn] Authentication verification error:", error)
+    log.error({ err: error }, "[WebAuthn] Authentication verification error:")
     return { verified: false, error: "Verification error" }
   }
 }

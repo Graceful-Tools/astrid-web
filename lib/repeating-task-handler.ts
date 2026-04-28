@@ -15,6 +15,10 @@ import { Prisma } from '@prisma/client'
 import type { RepeatFromMode } from '@/types/task'
 import type { CustomRepeatingPattern, SimplePatternEndCondition } from '@/types/repeating'
 import { calculateNextOccurrence, calculateSimpleRepeatingNextOccurrence, checkSimplePatternEndCondition } from '@/types/repeating'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('repeating-task-handler')
+
 
 export interface RepeatingTaskResult {
   shouldRollForward: boolean
@@ -134,7 +138,7 @@ export async function handleRepeatingTaskCompletion(
           }
         }
       } catch (e) {
-        console.warn('Failed to parse end condition data for simple pattern:', e)
+        log.warn({ e }, 'Failed to parse end condition data for simple pattern:')
         // If parsing fails, continue without end conditions
         endData = null
       }

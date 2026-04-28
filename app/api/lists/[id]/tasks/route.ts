@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].tasks')
+
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -104,7 +108,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
       tasks
     })
   } catch (error) {
-    console.error("Error fetching tasks for list:", error)
+    log.error({ err: error }, "Error fetching tasks for list:")
     return NextResponse.json(
       { error: "Failed to fetch tasks" },
       { status: 500 }

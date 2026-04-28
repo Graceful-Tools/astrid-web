@@ -1,5 +1,9 @@
 import { Task, TaskList } from "@/types/task"
 import { applyDateFilter } from "@/lib/date-filter-utils"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('virtual-list-utils')
+
 
 export function applyVirtualListFilter(
   tasks: Task[],
@@ -7,7 +11,7 @@ export function applyVirtualListFilter(
   currentUserId: string
 ): Task[] {
   // Debug logging disabled to reduce console noise
-  // console.log('🔍 applyVirtualListFilter called:', {
+  // log.info({
   //   listId: list.id,
   //   listName: list.name,
   //   isVirtual: list.isVirtual,
@@ -21,7 +25,7 @@ export function applyVirtualListFilter(
   //     filterPriority: list.filterPriority,
   //     filterInLists: list.filterInLists
   //   }
-  // })
+  // }, '🔍 applyVirtualListFilter called:')
 
   if (!list.isVirtual) {
     // For regular lists, filter by list membership
@@ -182,12 +186,12 @@ export function applyVirtualListFilter(
   }
 
   // Debug logging disabled to reduce console noise
-  // console.log('🔍 applyVirtualListFilter result:', {
+  // log.info({
   //   listId: list.id,
   //   originalCount: tasks.length,
   //   filteredCount: filtered.length,
   //   filteredTaskTitles: filtered.map(t => ({ id: t.id, title: t.title, when: t.when }))
-  // })
+  // }, '🔍 applyVirtualListFilter result:')
 
   return filtered
 }

@@ -1,4 +1,8 @@
 import { prisma } from './prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('admin-auth')
+
 
 // Initial admin email - this user gets admin access automatically
 const INITIAL_ADMIN_EMAIL = 'jon@gracefultools.com'
@@ -135,7 +139,7 @@ export async function ensureInitialAdmin(): Promise<void> {
   })
 
   if (!user) {
-    console.log(`Initial admin user ${INITIAL_ADMIN_EMAIL} not found in database`)
+    log.info(`Initial admin user ${INITIAL_ADMIN_EMAIL} not found in database`)
     return
   }
 
@@ -151,7 +155,7 @@ export async function ensureInitialAdmin(): Promise<void> {
         grantedBy: null, // Initial admin has no grantor
       },
     })
-    console.log(`Created initial admin for ${INITIAL_ADMIN_EMAIL}`)
+    log.info(`Created initial admin for ${INITIAL_ADMIN_EMAIL}`)
   }
 }
 

@@ -15,6 +15,10 @@ import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendInvitationEmail } from '@/lib/email'
 import type { User } from '@prisma/client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('placeholder-user-service')
+
 
 export interface PlaceholderUserOptions {
   email: string
@@ -202,7 +206,7 @@ export class PlaceholderUserService {
     })
 
     if (!inviter) {
-      console.error('Inviter not found:', invitedBy)
+      log.error({ err: invitedBy }, 'Inviter not found:')
       return
     }
 

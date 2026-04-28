@@ -1,5 +1,9 @@
 import { RateLimitEntry, RateLimitStore } from './types'
 import { getRedisClient, isRedisAvailable } from '../redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('rate-limit-stores.redis-store')
+
 
 /**
  * Redis-backed rate limit store
@@ -44,7 +48,7 @@ export class RedisRateLimitStore implements RateLimitStore {
 
       return entry
     } catch (error) {
-      console.error('[RateLimitStore] Redis get error:', error)
+      log.error({ err: error }, '[RateLimitStore] Redis get error:')
       return null
     }
   }
@@ -93,7 +97,7 @@ export class RedisRateLimitStore implements RateLimitStore {
 
       return entry
     } catch (error) {
-      console.error('[RateLimitStore] Redis increment error:', error)
+      log.error({ err: error }, '[RateLimitStore] Redis increment error:')
       // Return a default entry on error (fail open to not block requests)
       return {
         count: 1,

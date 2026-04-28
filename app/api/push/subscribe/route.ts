@@ -4,6 +4,10 @@ import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { encryptField } from '@/lib/field-encryption'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('push.subscribe')
+
 
 const PushSubscriptionSchema = z.object({
   subscription: z.object({
@@ -42,7 +46,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    console.log(`🔔 Setting up push subscription for user ${user.email} (${user.id})`)
+    log.info(`🔔 Setting up push subscription for user ${user.email} (${user.id})`)
 
     // Check if subscription already exists
     const existingSubscription = await prisma.pushSubscription.findFirst({
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
         },
       })
       
-      console.log(`🔔 Updated existing push subscription for user ${user.email}`)
+      log.info(`🔔 Updated existing push subscription for user ${user.email}`)
       
       return NextResponse.json({
         success: true,
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log(`🔔 Created new push subscription for user ${user.email}: ${newSubscription.id}`)
+    log.info(`🔔 Created new push subscription for user ${user.email}: ${newSubscription.id}`)
 
     return NextResponse.json({
       success: true,
@@ -100,7 +104,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    console.error('Error saving push subscription:', error)
+    log.error({ err: error }, 'Error saving push subscription:')
     return NextResponse.json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'

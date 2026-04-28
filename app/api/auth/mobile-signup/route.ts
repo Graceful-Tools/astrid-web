@@ -11,6 +11,10 @@ import { withRateLimitHandler, signupRateLimiter } from "@/lib/rate-limiter"
 import { sendEmailVerification } from "@/lib/email-verification"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.mobile-signup')
+
 
 // Email sign up endpoint for iOS (password optional)
 async function signupHandler(request: NextRequest) {
@@ -67,7 +71,7 @@ async function signupHandler(request: NextRequest) {
 
     if (canUpgrade && placeholderUser) {
       // Upgrade placeholder user to full user
-      console.log(`📧 Upgrading placeholder user ${placeholderUser.email} to full user`)
+      log.info(`📧 Upgrading placeholder user ${placeholderUser.email} to full user`)
       user = await placeholderUserService.upgradePlaceholderToFullUser(
         placeholderUser.id,
         {
@@ -76,7 +80,7 @@ async function signupHandler(request: NextRequest) {
           emailVerified: new Date(), // Auto-verify when upgrading from placeholder
         }
       )
-      console.log(`✅ Placeholder user upgraded successfully. User now has access to ${await prisma.task.count({ where: { assigneeId: user.id } })} assigned tasks`)
+      log.info(`✅ Placeholder user upgraded successfully. User now has access to ${await prisma.task.count({ where: { assigneeId: user.id } })} assigned tasks`)
     } else {
       // Create new user
       user = await prisma.user.create({
@@ -101,7 +105,7 @@ async function signupHandler(request: NextRequest) {
     try {
       await createDefaultListsForUser(user.id)
     } catch (error) {
-      console.error("Failed to create default lists:", error)
+      log.error({ err: error }, "Failed to create default lists:")
       // Don't fail the signup if default list creation fails
     }
 
@@ -109,7 +113,7 @@ async function signupHandler(request: NextRequest) {
     try {
       await sendEmailVerification(user.id)
     } catch (error) {
-      console.error("Failed to send verification email:", error)
+      log.error({ err: error }, "Failed to send verification email:")
       // Don't fail the signup if verification email fails
     }
 
@@ -145,7 +149,7 @@ async function signupHandler(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error("Error in mobile signup:", error)
+    log.error({ err: error }, "Error in mobile signup:")
     return NextResponse.json(
       { error: "Sign up failed" },
       { status: 500 }

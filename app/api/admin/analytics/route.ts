@@ -9,6 +9,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { isAdmin } from '@/lib/admin-auth'
 import { getAnalyticsStats } from '@/lib/analytics-events'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('admin.analytics')
+
 
 /**
  * GET /api/admin/analytics
@@ -99,7 +103,7 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[Admin Analytics] GET error:', error)
+    log.error({ err: error }, '[Admin Analytics] GET error:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

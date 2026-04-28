@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCachedApiKey, getCachedModelPreference } from '@/lib/api-key-cache'
 import { uploadTextContent } from '@/lib/secure-storage'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('assistant-workflow')
+
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
     const body: AssistantWorkflowRequest = await request.json()
     const { taskId, agentEmail, creatorId, isCommentResponse, userComment } = body
 
-    console.log(`🤖 [AssistantWorkflow] Processing task ${taskId} for agent ${agentEmail}`)
+    log.info(`🤖 [AssistantWorkflow] Processing task ${taskId} for agent ${agentEmail}`)
 
     // Get task details
     const task = await prisma.task.findUnique({
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Determine which AI service to use based on agent email
     const service = getServiceFromEmail(agentEmail)
     if (!service) {
-      console.error(`❌ [AssistantWorkflow] Unknown agent email: ${agentEmail}`)
+      log.error(`❌ [AssistantWorkflow] Unknown agent email: ${agentEmail}`)
       return NextResponse.json({ error: 'Unknown AI agent' }, { status: 400 })
     }
 
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Get the creator's API key for this service
     const apiKey = await getCachedApiKey(creatorId, service)
     if (!apiKey) {
-      console.log(`⚠️ [AssistantWorkflow] No ${service} API key for user ${creatorId}`)
+      log.info(`⚠️ [AssistantWorkflow] No ${service} API key for user ${creatorId}`)
 
       // Post a comment explaining the issue
       await prisma.comment.create({
@@ -97,14 +101,14 @@ export async function POST(request: NextRequest) {
     // Get user's model preference for this service
     const userModel = await getCachedModelPreference(creatorId, service)
     const model = userModel || DEFAULT_MODELS[service]
-    console.log(`🤖 [AssistantWorkflow] Using model: ${model} (user preference: ${userModel ? 'yes' : 'no'})`)
+    log.info(`🤖 [AssistantWorkflow] Using model: ${model} (user preference: ${userModel ? 'yes' : 'no'})`)
 
     // Call the appropriate AI service
     let response: string
     try {
       response = await callAIService(service, apiKey, prompt, model)
     } catch (aiError: any) {
-      console.error(`❌ [AssistantWorkflow] AI call failed:`, aiError)
+      log.error({ err: aiError }, `❌ [AssistantWorkflow] AI call failed:`)
 
       // Post error comment
       await prisma.comment.create({
@@ -170,9 +174,9 @@ export async function POST(request: NextRequest) {
           commentContent += `\n\n📎 **Attached:** ${fileName}`
         }
 
-        console.log(`📎 [AssistantWorkflow] Uploaded file attachment: ${fileName}`)
+        log.info(`📎 [AssistantWorkflow] Uploaded file attachment: ${fileName}`)
       } catch (uploadError) {
-        console.error(`❌ [AssistantWorkflow] Failed to upload file:`, uploadError)
+        log.error({ err: uploadError }, `❌ [AssistantWorkflow] Failed to upload file:`)
         // Keep the file content in the response if upload fails
       }
     }
@@ -194,7 +198,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ [AssistantWorkflow] Posted response for task ${taskId}${fileId ? ' with attachment' : ''}`)
+    log.info(`✅ [AssistantWorkflow] Posted response for task ${taskId}${fileId ? ' with attachment' : ''}`)
 
     return NextResponse.json({
       success: true,
@@ -203,7 +207,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error(`❌ [AssistantWorkflow] Error:`, error)
+    log.error({ err: error }, `❌ [AssistantWorkflow] Error:`)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

@@ -3,6 +3,10 @@ import { prisma as defaultPrisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
 import type { PushNotificationPayload } from '@/types/reminder'
 import type { PrismaClient } from '@prisma/client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('push-notification-service')
+
 
 // Configure web-push with VAPID keys
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
@@ -31,7 +35,7 @@ export class PushNotificationService {
       })
 
       if (subscriptions.length === 0) {
-        console.log(`No active push subscriptions found for user ${userId}`)
+        log.info(`No active push subscriptions found for user ${userId}`)
         return
       }
 
@@ -41,7 +45,7 @@ export class PushNotificationService {
 
       await Promise.allSettled(promises)
     } catch (error) {
-      console.error('Error sending push notifications:', error)
+      log.error({ err: error }, 'Error sending push notifications:')
       throw error
     }
   }
@@ -53,7 +57,7 @@ export class PushNotificationService {
       const auth = decryptField(subscription.auth)
 
       if (!p256dh || !auth) {
-        console.error(`Missing decrypted keys for subscription ${subscription.id}`)
+        log.error(`Missing decrypted keys for subscription ${subscription.id}`)
         return
       }
 
@@ -74,9 +78,9 @@ export class PushNotificationService {
         }
       )
 
-      console.log(`Push notification sent successfully to subscription ${subscription.id}`)
+      log.info(`Push notification sent successfully to subscription ${subscription.id}`)
     } catch (error: any) {
-      console.error(`Failed to send push notification to subscription ${subscription.id}:`, error)
+      log.error({ err: error }, `Failed to send push notification to subscription ${subscription.id}:`)
 
       // Handle subscription errors
       if (error.statusCode === 410 || error.statusCode === 404) {
@@ -85,7 +89,7 @@ export class PushNotificationService {
           where: { id: subscription.id },
           data: { isActive: false },
         })
-        console.log(`Deactivated invalid push subscription ${subscription.id}`)
+        log.info(`Deactivated invalid push subscription ${subscription.id}`)
       }
 
       throw error

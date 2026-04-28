@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('webhooks.gemini-integration')
+
 
 export async function POST(request: NextRequest) {
-  console.log('💎 Gemini integration webhook called')
+  log.info('💎 Gemini integration webhook called')
 
   return NextResponse.json({
     service: "Gemini Integration Webhook",

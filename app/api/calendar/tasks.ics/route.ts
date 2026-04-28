@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('calendar.tasks.ics')
+
 
 // ICS (iCalendar) format helper functions
 function formatDateForICS(date: Date): string {
@@ -179,7 +183,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error generating calendar:', error)
+    log.error({ err: error }, 'Error generating calendar:')
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }

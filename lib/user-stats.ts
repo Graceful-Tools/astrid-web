@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('user-stats')
+
 
 export interface UserStats {
   completedTasks: number
@@ -110,7 +114,7 @@ export async function getUserStats(userId: string, forceRefresh: boolean = false
   if (needsUpdate) {
     // Recalculate and update in background (don't wait)
     updateUserStats(userId).catch((err) => {
-      console.error(`Failed to update stats for user ${userId}:`, err)
+      log.error({ err: err }, `Failed to update stats for user ${userId}:`)
     })
   }
 

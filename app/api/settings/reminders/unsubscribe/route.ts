@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('settings.reminders.unsubscribe')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,7 +101,7 @@ export async function GET(request: NextRequest) {
       }
     )
   } catch (error) {
-    console.error('Error unsubscribing from email reminders:', error)
+    log.error({ err: error }, 'Error unsubscribing from email reminders:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -138,7 +142,7 @@ export async function POST(request: NextRequest) {
       message: 'Email reminders disabled successfully',
     })
   } catch (error) {
-    console.error('Error unsubscribing from email reminders:', error)
+    log.error({ err: error }, 'Error unsubscribing from email reminders:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -5,6 +5,10 @@ import { generateSignedDownloadUrl, uploadFileToBlob, deleteFile } from "@/lib/s
 import { prisma } from "@/lib/prisma"
 import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-files.[fileId]')
+
 
 // Helper function to safely check list access with any list-like object
 function canAccessList(list: any, userId: string): boolean {
@@ -223,7 +227,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
     return NextResponse.redirect(downloadUrl)
 
   } catch (error) {
-    console.error("Error serving secure file:", error)
+    log.error({ err: error }, "Error serving secure file:")
     return NextResponse.json({
       error: "Failed to serve file"
     }, { status: 500 })
@@ -304,12 +308,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ fi
     // Delete old blob (best effort, don't fail if this fails)
     try {
       await deleteFile(oldBlobUrl)
-      console.log(`🗑️ [SecureFiles] Deleted old blob: ${oldBlobUrl}`)
+      log.info(`🗑️ [SecureFiles] Deleted old blob: ${oldBlobUrl}`)
     } catch (deleteError) {
-      console.warn(`⚠️ [SecureFiles] Failed to delete old blob: ${oldBlobUrl}`, deleteError)
+      log.warn({ deleteError }, `⚠️ [SecureFiles] Failed to delete old blob: ${oldBlobUrl}`)
     }
 
-    console.log(`✅ [SecureFiles] Updated file ${fileId}: ${oldBlobUrl} -> ${newBlobUrl}`)
+    log.info(`✅ [SecureFiles] Updated file ${fileId}: ${oldBlobUrl} -> ${newBlobUrl}`)
 
     return NextResponse.json({
       id: updatedFile.id,
@@ -321,7 +325,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ fi
     })
 
   } catch (error) {
-    console.error("Error updating secure file:", error)
+    log.error({ err: error }, "Error updating secure file:")
     return NextResponse.json({
       error: "Failed to update file"
     }, { status: 500 })

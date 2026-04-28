@@ -7,6 +7,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { GitHubClient } from '@/lib/github-client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.merge-request')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔀 [Merge Request] Processing merge request:', { workflowId, commentId, taskId })
+    log.info({ workflowId, commentId, taskId }, '🔀 [Merge Request] Processing merge request:')
 
     // Get the workflow
     const workflow = await prisma.codingTaskWorkflow.findUnique({
@@ -73,10 +77,10 @@ export async function POST(request: NextRequest) {
         'squash' // merge method: 'merge' | 'squash' | 'rebase'
       )
 
-      console.log('✅ [Merge Request] Pull request merged successfully')
+      log.info('✅ [Merge Request] Pull request merged successfully')
 
     } catch (error) {
-      console.error('❌ [Merge Request] Failed to merge PR:', error)
+      log.error({ err: error }, '❌ [Merge Request] Failed to merge PR:')
 
       // Post error comment
       await fetch(`/api/tasks/${taskId}/comments`, {
@@ -136,7 +140,7 @@ Thank you for using Astrid Agent! 🤖`,
       })
     })
 
-    console.log('🎉 [Merge Request] Workflow completed successfully')
+    log.info('🎉 [Merge Request] Workflow completed successfully')
 
     return NextResponse.json({
       success: true,
@@ -146,7 +150,7 @@ Thank you for using Astrid Agent! 🤖`,
     })
 
   } catch (error) {
-    console.error('❌ [Merge Request] Error processing merge request:', error)
+    log.error({ err: error }, '❌ [Merge Request] Error processing merge request:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -8,6 +8,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { App } from '@octokit/app'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.repositories.refresh')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,12 +51,12 @@ export async function POST(request: NextRequest) {
     // Refresh repositories for each integration
     for (const integration of integrations) {
       if (!integration.installationId) {
-        console.log(`⚠️ Skipping integration ${integration.id} - no installationId`)
+        log.info(`⚠️ Skipping integration ${integration.id} - no installationId`)
         continue
       }
 
       try {
-        console.log(`🔄 Refreshing repositories for installation ${integration.installationId}...`)
+        log.info(`🔄 Refreshing repositories for installation ${integration.installationId}...`)
 
         const installationOctokit = await app.getInstallationOctokit(integration.installationId)
         const reposResponse = await installationOctokit.request('GET /installation/repositories')
@@ -81,14 +85,14 @@ export async function POST(request: NextRequest) {
           data: { repositories }
         })
 
-        console.log(`✅ Found ${repositories.length} repositories for installation ${integration.installationId} (${owner})`)
+        log.info(`✅ Found ${repositories.length} repositories for installation ${integration.installationId} (${owner})`)
 
         // Add to aggregated list
         allRepositories.push(...repositories)
 
       } catch (error) {
         const errorMessage = `Failed to refresh installation ${integration.installationId}: ${error}`
-        console.error(`❌ ${errorMessage}`)
+        log.error(`❌ ${errorMessage}`)
         errors.push(errorMessage)
 
         // Still include cached repositories if refresh fails
@@ -109,7 +113,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error refreshing GitHub repositories:', error)
+    log.error({ err: error }, 'Error refreshing GitHub repositories:')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

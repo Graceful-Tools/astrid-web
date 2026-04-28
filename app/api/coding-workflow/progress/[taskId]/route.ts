@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { RouteContextParams } from '@/types/next'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('coding-workflow.progress.[taskId]')
+
 
 export const dynamic = 'force-dynamic'
 
@@ -145,7 +149,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error fetching workflow progress:', error)
+    log.error({ err: error }, 'Error fetching workflow progress:')
     return NextResponse.json({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'

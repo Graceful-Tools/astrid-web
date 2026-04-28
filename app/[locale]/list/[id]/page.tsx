@@ -7,6 +7,10 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { AuthenticatedApp } from "@/components/authenticated-app"
 import { LoadingScreen } from "@/components/loading-screen"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('[locale].list.[id].page.tsx')
+
 
 export default function ListPage() {
   const { data: session, status } = useSession()
@@ -39,7 +43,7 @@ export default function ListPage() {
         setListData(data)
       } catch (err) {
         setError("Failed to load list")
-        console.error("Error fetching list:", err)
+        log.error({ err: err }, "Error fetching list:")
       } finally {
         setLoading(false)
       }

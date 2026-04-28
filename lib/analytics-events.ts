@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { prisma } from './prisma'
 import { Prisma } from '@prisma/client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('analytics-events')
+
 
 // Event types
 export const AnalyticsEventType = {
@@ -110,7 +114,7 @@ export async function trackAnalyticsEvent(
     })
   } catch (error) {
     // Log but don't throw - analytics should never break the app
-    console.error('Failed to track analytics event:', error)
+    log.error({ err: error }, 'Failed to track analytics event:')
   }
 }
 

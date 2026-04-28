@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { writeFile } from "fs/promises"
 import { join } from "path"
 import { randomBytes } from "crypto"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.upload-image')
+
 
 // Allowed image extensions and their corresponding MIME types
 const ALLOWED_IMAGE_TYPES: Record<string, string[]> = {
@@ -95,7 +99,7 @@ export async function POST(request: NextRequest) {
       type: file.type
     })
   } catch (error) {
-    console.error("Error uploading image:", error)
+    log.error({ err: error }, "Error uploading image:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

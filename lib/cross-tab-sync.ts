@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('cross-tab-sync')
+
 /**
  * Cross-Tab Synchronization Manager
  * Uses BroadcastChannel API to sync state across browser tabs
@@ -84,10 +88,10 @@ class CrossTabSyncManagerClass {
       this.initialized = true
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔗 [CrossTabSync] Initialized for tab ${this.tabId}`)
+        log.info(`🔗 [CrossTabSync] Initialized for tab ${this.tabId}`)
       }
     } catch (error) {
-      console.error('❌ [CrossTabSync] Failed to initialize BroadcastChannel:', error)
+      log.error({ err: error }, '❌ [CrossTabSync] Failed to initialize BroadcastChannel:')
       this.isSupported = false
     }
   }
@@ -104,7 +108,7 @@ class CrossTabSyncManagerClass {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`📨 [CrossTabSync] Received from ${crossTabEvent.tabId}:`, crossTabEvent.type, crossTabEvent.entity || '')
+      log.info({ type: crossTabEvent.type, entity: crossTabEvent.entity || '', tabId: crossTabEvent.tabId }, '📨 [CrossTabSync] Received')
     }
 
     // Notify all subscribers
@@ -112,7 +116,7 @@ class CrossTabSyncManagerClass {
       try {
         callback(crossTabEvent)
       } catch (error) {
-        console.error('❌ [CrossTabSync] Error in subscriber callback:', error)
+        log.error({ err: error }, '❌ [CrossTabSync] Error in subscriber callback:')
       }
     })
   }
@@ -121,7 +125,7 @@ class CrossTabSyncManagerClass {
    * Handle message errors
    */
   private handleMessageError(event: MessageEvent) {
-    console.error('❌ [CrossTabSync] Message error:', event)
+    log.error({ err: event }, '❌ [CrossTabSync] Message error:')
   }
 
   /**
@@ -180,10 +184,10 @@ class CrossTabSyncManagerClass {
       this.channel.postMessage(event)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`📤 [CrossTabSync] Broadcast:`, type, options?.entity || '', options?.entityId || '')
+        log.info({ type, entity: options?.entity || '', entityId: options?.entityId || '' }, '📤 [CrossTabSync] Broadcast')
       }
     } catch (error) {
-      console.error('❌ [CrossTabSync] Failed to broadcast:', error)
+      log.error({ err: error }, '❌ [CrossTabSync] Failed to broadcast:')
     }
   }
 

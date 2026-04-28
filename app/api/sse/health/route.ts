@@ -2,6 +2,10 @@ import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { authConfig } from "@/lib/auth-config"
 import { getConnectionsStatus } from "@/lib/sse-utils"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('sse.health')
+
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +31,7 @@ export async function GET(request: NextRequest) {
       allConnections: connectionsStatus.connections
     })
   } catch (error) {
-    console.error("Error getting SSE health status:", error)
+    log.error({ err: error }, "Error getting SSE health status:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

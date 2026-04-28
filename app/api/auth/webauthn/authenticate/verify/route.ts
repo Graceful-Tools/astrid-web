@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyAuthentication, getChallenge, deleteChallenge, isProduction } from "@/lib/webauthn"
 import { encode } from "next-auth/jwt"
 import type { AuthenticationResponseJSON } from "@simplewebauthn/types"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.webauthn.authenticate.verify')
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     return res
   } catch (error) {
-    console.error("[WebAuthn] Authentication verify error:", error)
+    log.error({ err: error }, "[WebAuthn] Authentication verify error:")
     return NextResponse.json(
       { error: "Authentication verification failed" },
       { status: 500 }

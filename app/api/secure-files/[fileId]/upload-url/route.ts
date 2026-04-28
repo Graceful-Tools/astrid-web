@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('secure-files.[fileId].upload-url')
+
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -78,7 +82,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     const blobToken = process.env.BLOB_READ_WRITE_TOKEN
 
     if (!blobToken) {
-      console.error("BLOB_READ_WRITE_TOKEN not configured")
+      log.error("BLOB_READ_WRITE_TOKEN not configured")
       return NextResponse.json({ error: "Storage not configured" }, { status: 500 })
     }
 
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     })
 
   } catch (error) {
-    console.error("Error generating upload URL:", error)
+    log.error({ err: error }, "Error generating upload URL:")
     return NextResponse.json({
       error: "Failed to generate upload URL"
     }, { status: 500 })

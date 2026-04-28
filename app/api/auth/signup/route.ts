@@ -6,6 +6,10 @@ import { sendEmailVerification } from "@/lib/email-verification"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { createVerifyEmailTask } from "@/lib/system-tasks"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth.signup')
+
 
 async function signupHandler(request: NextRequest) {
   try {
@@ -62,7 +66,7 @@ async function signupHandler(request: NextRequest) {
           data: { password: hashedPassword },
           select: { id: true, email: true, name: true, emailVerified: true }
         })
-        console.log(`✅ Password set for passwordless account: ${existingUser.email}`)
+        log.info(`✅ Password set for passwordless account: ${existingUser.email}`)
         return NextResponse.json({
           success: true,
           message: "Password set successfully",
@@ -90,7 +94,7 @@ async function signupHandler(request: NextRequest) {
 
     if (canUpgrade && placeholderUser) {
       // Upgrade placeholder user to full user
-      console.log(`📧 Upgrading placeholder user ${placeholderUser.email} to full user`)
+      log.info(`📧 Upgrading placeholder user ${placeholderUser.email} to full user`)
       user = await placeholderUserService.upgradePlaceholderToFullUser(
         placeholderUser.id,
         {
@@ -99,7 +103,7 @@ async function signupHandler(request: NextRequest) {
           emailVerified: new Date(), // Auto-verify when upgrading from placeholder
         }
       )
-      console.log(`✅ Placeholder user upgraded successfully. User now has access to ${await prisma.task.count({ where: { assigneeId: user.id } })} assigned tasks`)
+      log.info(`✅ Placeholder user upgraded successfully. User now has access to ${await prisma.task.count({ where: { assigneeId: user.id } })} assigned tasks`)
     } else {
       // Create new user
       user = await prisma.user.create({
@@ -123,7 +127,7 @@ async function signupHandler(request: NextRequest) {
     try {
       await createDefaultListsForUser(user.id)
     } catch (error) {
-      console.error("Failed to create default lists:", error)
+      log.error({ err: error }, "Failed to create default lists:")
       // Don't fail the signup if default list creation fails
     }
 
@@ -131,7 +135,7 @@ async function signupHandler(request: NextRequest) {
     try {
       await sendEmailVerification(user.id)
     } catch (error) {
-      console.error("Failed to send verification email:", error)
+      log.error({ err: error }, "Failed to send verification email:")
       // Don't fail the signup if verification email fails
     }
 
@@ -139,7 +143,7 @@ async function signupHandler(request: NextRequest) {
     try {
       await createVerifyEmailTask(user.id)
     } catch (error) {
-      console.error("Failed to create verify email task:", error)
+      log.error({ err: error }, "Failed to create verify email task:")
       // Don't fail the signup if task creation fails
     }
 
@@ -156,7 +160,7 @@ async function signupHandler(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error in signup:", error)
+    log.error({ err: error }, "Error in signup:")
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

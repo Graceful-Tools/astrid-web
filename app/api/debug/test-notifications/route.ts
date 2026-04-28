@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { PushNotificationService } from "@/lib/push-notification-service"
 import { z } from "zod"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('debug.test-notifications')
+
 
 const TestNotificationSchema = z.object({
   type: z.enum(["daily_digest", "push_notification"]),
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    console.log(`🧪 Debug: Sending test notification to user ${user.email} (${user.id})`)
+    log.info(`🧪 Debug: Sending test notification to user ${user.email} (${user.id})`)
 
     // Schedule test notification with delay
     const testTime = new Date()
@@ -162,7 +166,7 @@ export async function POST(request: NextRequest) {
           }
         })
       } catch (error) {
-        console.error("Failed to send test push notification:", error)
+        log.error({ err: error }, "Failed to send test push notification:")
         return NextResponse.json({
           success: false,
           error: "Failed to send push notification",
@@ -183,7 +187,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 })
     }
     
-    console.error("Error in test notifications:", error)
+    log.error({ err: error }, "Error in test notifications:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

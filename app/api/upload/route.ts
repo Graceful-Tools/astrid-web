@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { put } from "@vercel/blob"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('upload')
+
 
 // Allowed file extensions and their corresponding MIME types
 const ALLOWED_FILE_TYPES: Record<string, string[]> = {
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error uploading file:", error)
+    log.error({ err: error }, "Error uploading file:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -8,6 +8,10 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { App } from '@octokit/app'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('github.setup')
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +38,7 @@ export async function GET(request: NextRequest) {
       })
 
       if (existingConnection) {
-        console.log(`⚠️ Installation ${installationId} already connected to another user`)
+        log.info(`⚠️ Installation ${installationId} already connected to another user`)
         return NextResponse.redirect(
           new URL('/settings/coding-agents?github=already_connected', request.url)
         )
@@ -67,7 +71,7 @@ export async function GET(request: NextRequest) {
             owner: account?.login || account?.name || 'unknown'
           }))
         } catch (error) {
-          console.error('Error fetching repositories:', error)
+          log.error({ err: error }, 'Error fetching repositories:')
           // Continue without repos - they can be fetched later
         }
       }
@@ -94,7 +98,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      console.log(`✅ GitHub App ${setupAction}ed for user ${userId}, installation ${installationId}, ${repositories.length} repos`)
+      log.info(`✅ GitHub App ${setupAction}ed for user ${userId}, installation ${installationId}, ${repositories.length} repos`)
 
       // Redirect to coding-agents settings with success message
       return NextResponse.redirect(
@@ -106,7 +110,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/settings/coding-agents', request.url))
 
   } catch (error) {
-    console.error('Error handling GitHub setup:', error)
+    log.error({ err: error }, 'Error handling GitHub setup:')
     return NextResponse.redirect(
       new URL('/settings/coding-agents?github=error', request.url)
     )

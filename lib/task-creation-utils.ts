@@ -1,5 +1,9 @@
 import type { Task, TaskList } from '@/types/task'
 import { parseRelativeDate } from '@/lib/date-utils'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('task-creation-utils')
+
 
 export interface TaskCreationData {
   title: string
@@ -190,14 +194,14 @@ export async function handleTaskCreationOptimistic(
 
       return realTask
     } catch (error) {
-      console.error("❌ Error creating task:", error)
-      console.error("❌ Error details:", {
+      log.error({ err: error }, "❌ Error creating task:")
+      log.error({
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
-      })
+      }, "❌ Error details:")
 
       // Rollback: Remove the temporary task on error
-      console.log("🔄 Rolling back optimistic task creation")
+      log.info("🔄 Rolling back optimistic task creation")
       dependencies.setTasks(prevTasks => prevTasks.filter(task => task.id !== tempTaskId))
 
       const errorMessage = error instanceof Error ? error.message : "Unknown error"
@@ -211,7 +215,7 @@ export async function handleTaskCreationOptimistic(
     }
 
   } catch (error) {
-    console.error("Error creating task:", error)
+    log.error({ err: error }, "Error creating task:")
     dependencies.toast({
       title: "Error",
       description: "Failed to create task. Please try again.",
@@ -244,7 +248,7 @@ export async function validateSession(
         return false
       }
     } else {
-      console.error('No user session available for task creation', { sessionStatus, hasSession: !!effectiveSession })
+      log.error({ sessionStatus, hasSession: !!effectiveSession }, 'No user session available for task creation')
 
       if (sessionStatus === "loading") {
         toast({

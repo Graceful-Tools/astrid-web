@@ -4,6 +4,10 @@ import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { toggleFavorite, hydrateSingleListFavorite } from "@/lib/favorites"
 import type { RouteContextParams } from "@/types/next"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('lists.[id].favorite')
+
 
 export async function PATCH(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
@@ -86,7 +90,7 @@ export async function PATCH(request: NextRequest, context: RouteContextParams<{ 
     })
 
   } catch (error) {
-    console.error("Error toggling saved filter:", error)
+    log.error({ err: error }, "Error toggling saved filter:")
     return NextResponse.json(
       { error: "Failed to toggle saved filter" },
       { status: 500 }
