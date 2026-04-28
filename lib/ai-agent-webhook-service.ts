@@ -5,6 +5,10 @@ import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { generateWebhookHeaders } from '@/lib/webhook-signature'
 import { decryptField } from '@/lib/field-encryption'
 import type { PrismaClient } from '@prisma/client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ai-agent-webhook-service')
+
 
 /**
  * Extract agent type from email (e.g., claude@astrid.cc -> claude)
@@ -108,17 +112,17 @@ export class AIAgentWebhookService {
     // Create unique key for this notification to prevent infinite loops
     const notificationKey = `${taskId}:${aiAgentId}:${event}`
 
-    console.log(`🔔 [WEBHOOK-SERVICE] notifyTaskAssignment called:`, {
+    log.info({
       taskId,
       aiAgentId,
       event,
       notificationKey,
       stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n')
-    })
+    }, `🔔 [WEBHOOK-SERVICE] notifyTaskAssignment called`)
 
     // Check if this exact notification is already in progress
     if (AIAgentWebhookService.notificationInProgress.has(notificationKey)) {
-      console.log(`🔄 [WEBHOOK-SERVICE] Notification ${notificationKey} already in progress, skipping to prevent infinite loop`)
+      log.info(`🔄 [WEBHOOK-SERVICE] Notification ${notificationKey} already in progress, skipping to prevent infinite loop`)
       return
     }
 
@@ -161,7 +165,7 @@ export class AIAgentWebhookService {
       })
 
       if (!task) {
-        console.log(`⚠️  Task ${taskId} not found`)
+        log.info(`⚠️  Task ${taskId} not found`)
         return
       }
 
@@ -182,7 +186,7 @@ export class AIAgentWebhookService {
       }
 
       if (!agentUser && !agentRecord) {
-        console.log(`⚠️  Task ${taskId} not assigned to AI agent ${aiAgentId}`)
+        log.info(`⚠️  Task ${taskId} not assigned to AI agent ${aiAgentId}`)
         return
       }
 
@@ -197,7 +201,7 @@ export class AIAgentWebhookService {
       const isInternalAgent = agentUser?.email?.endsWith('@astrid.cc')
 
       if (!webhookUrl && !isInternalAgent) {
-        console.log(`⚠️  No webhook URL configured for external AI agent ${agentName}`)
+        log.info(`⚠️  No webhook URL configured for external AI agent ${agentName}`)
         return
       }
 
@@ -281,16 +285,16 @@ export class AIAgentWebhookService {
         }))
       }
 
-      console.log(`🔔 Notifying AI agent ${agentName} about ${event}:`, payload.task.title)
-      console.log(`📝 Including ${task.comments?.length || 0} comments in payload`)
+      log.info({ taskTitle: payload.task.title }, `🔔 Notifying AI agent ${agentName} about ${event}`)
+      log.info(`📝 Including ${task.comments?.length || 0} comments in payload`)
 
       // Determine agent type for routing (claude, openai, gemini)
       const agentType = getAgentType(agentUser?.email ?? undefined, agentRecord?.name ?? agentName)
-      console.log(`🔍 [WEBHOOK-TRACE] Agent type: ${agentType} (from email: ${agentUser?.email}, name: ${agentRecord?.name})`)
+      log.info(`🔍 [WEBHOOK-TRACE] Agent type: ${agentType} (from email: ${agentUser?.email}, name: ${agentRecord?.name})`)
 
       // OpenClaw agents connect via SSE channel plugin — no webhook or workflow trigger needed
       if (agentType === 'openclaw') {
-        console.log(`🐾 OpenClaw agent detected — routing via SSE channel plugin (no webhook needed)`)
+        log.info(`🐾 OpenClaw agent detected — routing via SSE channel plugin (no webhook needed)`)
         await this.sendSSENotification(task, payload)
         return
       }
@@ -299,7 +303,7 @@ export class AIAgentWebhookService {
       // If so, route to their self-hosted server instead of standard processing
       // Fall back to list owner when creatorId is null (common for tasks created via mobile apps)
       const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
-      console.log(`🔍 [WEBHOOK-TRACE] Checking user webhook for user ${webhookUserId} (creatorId: ${task.creatorId}, listOwner: ${task.lists?.[0]?.ownerId})...`)
+      log.info(`🔍 [WEBHOOK-TRACE] Checking user webhook for user ${webhookUserId} (creatorId: ${task.creatorId}, listOwner: ${task.lists?.[0]?.ownerId})...`)
       if (webhookUserId) {
         const userWebhookResult = await this.sendToUserWebhook(
           webhookUserId,
@@ -307,10 +311,10 @@ export class AIAgentWebhookService {
           payload,
           agentType
         )
-        console.log(`🔍 [WEBHOOK-TRACE] sendToUserWebhook result:`, userWebhookResult)
+        log.info({ userWebhookResult }, `🔍 [WEBHOOK-TRACE] sendToUserWebhook result`)
 
         if (userWebhookResult.sent) {
-          console.log(`📤 Routed to user's Claude Code Remote server (skipping standard flow)`)
+          log.info(`📤 Routed to user's Claude Code Remote server (skipping standard flow)`)
           // Still send SSE notification to keep UI updated
           await this.sendSSENotification(task, payload)
           return
@@ -323,9 +327,9 @@ export class AIAgentWebhookService {
       const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
       const envRemoteSecret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET
       const isClaudeAgent = agentType === 'claude'
-      console.log(`🔍 [WEBHOOK-TRACE] ENV check: URL=${!!envRemoteUrl}, SECRET=${!!envRemoteSecret}, isClaudeAgent=${isClaudeAgent}, isInternalAgent=${isInternalAgent}`)
+      log.info(`🔍 [WEBHOOK-TRACE] ENV check: URL=${!!envRemoteUrl}, SECRET=${!!envRemoteSecret}, isClaudeAgent=${isClaudeAgent}, isInternalAgent=${isInternalAgent}`)
       if (envRemoteUrl && envRemoteSecret && isClaudeAgent) {
-        console.log(`📤 Sending to env-configured Claude Code Remote: ${envRemoteUrl}`)
+        log.info(`📤 Sending to env-configured Claude Code Remote: ${envRemoteUrl}`)
         try {
           const { generateWebhookHeaders } = await import('@/lib/webhook-signature')
           const body = JSON.stringify(payload)
@@ -339,14 +343,14 @@ export class AIAgentWebhookService {
           })
 
           if (response.ok) {
-            console.log(`✅ Webhook sent to Claude Code Remote server`)
+            log.info(`✅ Webhook sent to Claude Code Remote server`)
             await this.sendSSENotification(task, payload)
             return
           } else {
-            console.error(`❌ Claude Remote webhook failed: HTTP ${response.status}`)
+            log.error(`❌ Claude Remote webhook failed: HTTP ${response.status}`)
           }
         } catch (error) {
-          console.error(`❌ Claude Remote webhook error:`, error)
+          log.error({ err: error }, `❌ Claude Remote webhook error:`)
         }
         // Fall through to standard processing if env webhook failed
       }
@@ -359,11 +363,11 @@ export class AIAgentWebhookService {
         const isCoding = agentUser && isCodingAgent(agentUser)
 
         if (hasRepository && isCoding) {
-          console.log(`🤖 Internal coding agent ${agentName} - polling worker will handle this`)
-          console.log(`   Repository: ${task.lists?.find(l => l.githubRepositoryId)?.githubRepositoryId}`)
+          log.info(`🤖 Internal coding agent ${agentName} - polling worker will handle this`)
+          log.info(`   Repository: ${task.lists?.find(l => l.githubRepositoryId)?.githubRepositoryId}`)
           // Coding workflow handled by polling-based worker
         } else {
-          console.log(`🤖 Internal assistant agent ${agentName} - triggering real-time workflow`)
+          log.info(`🤖 Internal assistant agent ${agentName} - triggering real-time workflow`)
           // Non-coding task: trigger assistant workflow immediately
           try {
             const baseUrl = getBaseUrl()
@@ -379,13 +383,13 @@ export class AIAgentWebhookService {
             })
 
             if (response.ok) {
-              console.log(`✅ Assistant workflow triggered for task: ${task.title}`)
+              log.info(`✅ Assistant workflow triggered for task: ${task.title}`)
             } else {
               const error = await response.text()
-              console.error(`❌ Assistant workflow failed: ${error}`)
+              log.error(`❌ Assistant workflow failed: ${error}`)
             }
           } catch (error) {
-            console.error(`❌ Failed to trigger assistant workflow:`, error)
+            log.error({ err: error }, `❌ Failed to trigger assistant workflow:`)
           }
         }
 
@@ -402,15 +406,15 @@ export class AIAgentWebhookService {
       // Send SSE notification to task creator and list members about AI assignment
       await this.sendSSENotification(task, payload)
 
-      console.log(`✅ Successfully notified AI agent ${agentName}`)
+      log.info(`✅ Successfully notified AI agent ${agentName}`)
 
     } catch (error) {
-      console.error(`❌ Failed to notify AI agent about task assignment:`, error)
+      log.error({ err: error }, `❌ Failed to notify AI agent about task assignment:`)
       throw error
     } finally {
       // Always remove the notification from tracking to allow future notifications
       AIAgentWebhookService.notificationInProgress.delete(notificationKey)
-      console.log(`🧹 [AIAgentWebhookService] Removed notification tracking for ${notificationKey}`)
+      log.info(`🧹 [AIAgentWebhookService] Removed notification tracking for ${notificationKey}`)
     }
   }
 
@@ -431,9 +435,9 @@ export class AIAgentWebhookService {
         throw new Error(`Webhook failed with status ${response.status}: ${response.statusText}`)
       }
 
-      console.log(`📤 Webhook sent successfully to ${webhookUrl}`)
+      log.info(`📤 Webhook sent successfully to ${webhookUrl}`)
     } catch (error) {
-      console.error(`❌ Failed to send webhook to ${webhookUrl}:`, error)
+      log.error({ err: error }, `❌ Failed to send webhook to ${webhookUrl}:`)
       throw error
     }
   }
@@ -462,7 +466,7 @@ export class AIAgentWebhookService {
         ]
       })
     } catch (error) {
-      console.error(`❌ Failed to send push notification:`, error)
+      log.error({ err: error }, `❌ Failed to send push notification:`)
     }
   }
 
@@ -530,10 +534,10 @@ export class AIAgentWebhookService {
           }
         })
 
-        console.log(`📡 Sent SSE notification to ${userIdsArray.length} users about AI agent assignment`)
+        log.info(`📡 Sent SSE notification to ${userIdsArray.length} users about AI agent assignment`)
       }
     } catch (error) {
-      console.error(`❌ Failed to send SSE notification:`, error)
+      log.error({ err: error }, `❌ Failed to send SSE notification:`)
     }
   }
 
@@ -559,15 +563,15 @@ export class AIAgentWebhookService {
     payload: TaskAssignmentWebhookPayload,
     agentType?: string | null
   ): Promise<{ sent: boolean; error?: string }> {
-    console.log(`🔔 [WEBHOOK] sendToUserWebhook called for user ${userId}, event: ${event}, agentType: ${agentType}`)
-    console.log(`🔔 [WEBHOOK] ENV CHECK - CLAUDE_REMOTE_WEBHOOK_URL: ${process.env.CLAUDE_REMOTE_WEBHOOK_URL ? 'SET' : 'NOT SET'}`)
-    console.log(`🔔 [WEBHOOK] ENV CHECK - CLAUDE_REMOTE_WEBHOOK_SECRET: ${process.env.CLAUDE_REMOTE_WEBHOOK_SECRET ? 'SET' : 'NOT SET'}`)
+    log.info(`🔔 [WEBHOOK] sendToUserWebhook called for user ${userId}, event: ${event}, agentType: ${agentType}`)
+    log.info(`🔔 [WEBHOOK] ENV CHECK - CLAUDE_REMOTE_WEBHOOK_URL: ${process.env.CLAUDE_REMOTE_WEBHOOK_URL ? 'SET' : 'NOT SET'}`)
+    log.info(`🔔 [WEBHOOK] ENV CHECK - CLAUDE_REMOTE_WEBHOOK_SECRET: ${process.env.CLAUDE_REMOTE_WEBHOOK_SECRET ? 'SET' : 'NOT SET'}`)
     try {
       // Get user's webhook config
       const config = await this.prisma.userWebhookConfig.findUnique({
         where: { userId }
       })
-      console.log(`🔔 [WEBHOOK] Config found: ${!!config}, enabled: ${config?.enabled}, events: ${config?.events?.join(',')}, agents: ${config?.agents?.join(',')}`)
+      log.info(`🔔 [WEBHOOK] Config found: ${!!config}, enabled: ${config?.enabled}, events: ${config?.events?.join(',')}, agents: ${config?.agents?.join(',')}`)
 
       // No config or not enabled - check for env-based fallback
       if (!config || !config.enabled) {
@@ -578,7 +582,7 @@ export class AIAgentWebhookService {
         // Only use env fallback for Claude agents (or when agent type is unknown)
         const isClaudeAgentType = !agentType || agentType === 'claude'
         if (envRemoteUrl && envRemoteSecret && isClaudeAgentType) {
-          console.log(`📤 [WEBHOOK] No UserWebhookConfig, using env-based Claude Remote: ${envRemoteUrl}`)
+          log.info(`📤 [WEBHOOK] No UserWebhookConfig, using env-based Claude Remote: ${envRemoteUrl}`)
 
           const body = JSON.stringify(payload)
           const headers = generateWebhookHeaders(body, envRemoteSecret, event)
@@ -591,10 +595,10 @@ export class AIAgentWebhookService {
           })
 
           if (response.ok) {
-            console.log(`✅ Webhook sent to env-configured Claude Code Remote server`)
+            log.info(`✅ Webhook sent to env-configured Claude Code Remote server`)
             return { sent: true }
           } else {
-            console.error(`❌ Env-based Claude Remote webhook failed: HTTP ${response.status}`)
+            log.error(`❌ Env-based Claude Remote webhook failed: HTTP ${response.status}`)
             return { sent: false, error: `HTTP ${response.status}` }
           }
         }
@@ -613,20 +617,20 @@ export class AIAgentWebhookService {
       if (agentType) {
         const agentsList = config.agents || []
         if (agentsList.length === 0 || !agentsList.includes(agentType)) {
-          console.log(`🔔 [WEBHOOK] Agent ${agentType} not in webhook agents list [${agentsList.join(', ')}] - skipping webhook (will use polling)`)
+          log.info(`🔔 [WEBHOOK] Agent ${agentType} not in webhook agents list [${agentsList.join(', ')}] - skipping webhook (will use polling)`)
           return { sent: false, error: `Agent ${agentType} not configured for webhook` }
         }
       }
 
       // Check failure count - fall back to env config if too many failures
       if (config.failureCount >= config.maxRetries) {
-        console.log(`⚠️  User webhook disabled due to ${config.failureCount} failures - falling back to env config`)
+        log.info(`⚠️  User webhook disabled due to ${config.failureCount} failures - falling back to env config`)
         // Fall through to env-based config
         const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
         const envRemoteSecret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET
 
         if (envRemoteUrl && envRemoteSecret) {
-          console.log(`📤 [WEBHOOK] Using env-based fallback after user config failure: ${envRemoteUrl}`)
+          log.info(`📤 [WEBHOOK] Using env-based fallback after user config failure: ${envRemoteUrl}`)
 
           const body = JSON.stringify(payload)
           const headers = generateWebhookHeaders(body, envRemoteSecret, event)
@@ -639,10 +643,10 @@ export class AIAgentWebhookService {
           })
 
           if (response.ok) {
-            console.log(`✅ Webhook sent to env-configured server (user config had failures)`)
+            log.info(`✅ Webhook sent to env-configured server (user config had failures)`)
             return { sent: true }
           } else {
-            console.error(`❌ Env-based webhook failed: HTTP ${response.status}`)
+            log.error(`❌ Env-based webhook failed: HTTP ${response.status}`)
             return { sent: false, error: `HTTP ${response.status}` }
           }
         }
@@ -651,13 +655,13 @@ export class AIAgentWebhookService {
       }
 
       // Decrypt URL and secret
-      console.log(`🔔 [WEBHOOK] Decrypting URL and secret...`)
+      log.info(`🔔 [WEBHOOK] Decrypting URL and secret...`)
       const webhookUrl = decryptField(config.webhookUrl)
       const webhookSecret = decryptField(config.webhookSecret)
-      console.log(`🔔 [WEBHOOK] URL decrypted: ${!!webhookUrl}, Secret decrypted: ${!!webhookSecret}`)
+      log.info(`🔔 [WEBHOOK] URL decrypted: ${!!webhookUrl}, Secret decrypted: ${!!webhookSecret}`)
 
       if (!webhookUrl || !webhookSecret) {
-        console.log(`🔔 [WEBHOOK] Decryption failed - URL: ${!!webhookUrl}, Secret: ${!!webhookSecret}`)
+        log.info(`🔔 [WEBHOOK] Decryption failed - URL: ${!!webhookUrl}, Secret: ${!!webhookSecret}`)
         return { sent: false, error: 'Invalid webhook configuration' }
       }
 
@@ -665,7 +669,7 @@ export class AIAgentWebhookService {
       const body = JSON.stringify(payload)
       const headers = generateWebhookHeaders(body, webhookSecret, event)
 
-      console.log(`📤 Sending signed webhook to user's Claude Code Remote server: ${webhookUrl}`)
+      log.info(`📤 Sending signed webhook to user's Claude Code Remote server: ${webhookUrl}`)
 
       // Send with timeout
       const response = await fetch(webhookUrl, {
@@ -688,12 +692,12 @@ export class AIAgentWebhookService {
         }
       })
 
-      console.log(`✅ Webhook sent successfully to user's Claude Code Remote server`)
+      log.info(`✅ Webhook sent successfully to user's Claude Code Remote server`)
       return { sent: true }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error(`❌ Failed to send user webhook: ${errorMessage}`)
+      log.error(`❌ Failed to send user webhook: ${errorMessage}`)
 
       // Increment failure count
       try {
@@ -767,7 +771,7 @@ export class AIAgentWebhookService {
       })
 
       if (!task || !task.assignee || !task.assignee.isAIAgent) {
-        console.log(`⚠️  Task ${taskId} is not assigned to an AI agent`)
+        log.info(`⚠️  Task ${taskId} is not assigned to an AI agent`)
         return
       }
 
@@ -782,7 +786,7 @@ export class AIAgentWebhookService {
       })
 
       if (!comment) {
-        console.log(`⚠️  Comment ${commentId} not found`)
+        log.info(`⚠️  Comment ${commentId} not found`)
         return
       }
 
@@ -873,22 +877,22 @@ export class AIAgentWebhookService {
         }))
       }
 
-      console.log(`🔔 Notifying AI agent ${task.assignee.name} about comment from ${commenterName}`)
-      console.log(`📝 Including ${task.comments?.length || 0} comments in payload`)
+      log.info(`🔔 Notifying AI agent ${task.assignee.name} about comment from ${commenterName}`)
+      log.info(`📝 Including ${task.comments?.length || 0} comments in payload`)
 
       // Determine agent type for routing
       const agentType = getAgentType(task.assignee.email ?? undefined, task.assignee.name ?? undefined)
 
       // OpenClaw agents connect via SSE channel plugin — comment delivered via SSE
       if (agentType === 'openclaw') {
-        console.log(`🐾 OpenClaw agent — comment notification delivered via SSE channel`)
+        log.info(`🐾 OpenClaw agent — comment notification delivered via SSE channel`)
         return
       }
 
       // FIRST: Check if task creator OR list owner has Claude Code Remote configured
       // Fall back to list owner when creatorId is null
       const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
-      console.log(`🔍 [WEBHOOK-TRACE] Comment: checking user webhook for ${webhookUserId}`)
+      log.info(`🔍 [WEBHOOK-TRACE] Comment: checking user webhook for ${webhookUserId}`)
       if (webhookUserId) {
         const userWebhookResult = await this.sendToUserWebhook(
           webhookUserId,
@@ -898,7 +902,7 @@ export class AIAgentWebhookService {
         )
 
         if (userWebhookResult.sent) {
-          console.log(`📤 Routed comment to user's Claude Code Remote server`)
+          log.info(`📤 Routed comment to user's Claude Code Remote server`)
           return
         }
         // Fall through to standard processing if webhook not configured or failed
@@ -913,7 +917,7 @@ export class AIAgentWebhookService {
         const repository = task.lists?.find(l => l.githubRepositoryId)?.githubRepositoryId
 
         if (repository && isCodingAgent(task.assignee)) {
-          console.log(`🤖 Internal coding agent - triggering tools workflow for comment response`)
+          log.info(`🤖 Internal coding agent - triggering tools workflow for comment response`)
 
           // Trigger tools-based workflow to handle the user's comment
           try {
@@ -927,12 +931,12 @@ export class AIAgentWebhookService {
                 userComment: commentContent // Pass user's comment as context
               })
             })
-            console.log(`✅ Tools workflow triggered for comment: "${commentContent}"`)
+            log.info(`✅ Tools workflow triggered for comment: "${commentContent}"`)
           } catch (error) {
-            console.error(`❌ Failed to trigger tools workflow:`, error)
+            log.error({ err: error }, `❌ Failed to trigger tools workflow:`)
           }
         } else {
-          console.log(`🤖 Internal assistant agent - triggering real-time workflow for comment response`)
+          log.info(`🤖 Internal assistant agent - triggering real-time workflow for comment response`)
 
           // Non-coding task: trigger assistant workflow for comment response
           try {
@@ -950,13 +954,13 @@ export class AIAgentWebhookService {
             })
 
             if (response.ok) {
-              console.log(`✅ Assistant workflow triggered for comment: "${commentContent}"`)
+              log.info(`✅ Assistant workflow triggered for comment: "${commentContent}"`)
             } else {
               const error = await response.text()
-              console.error(`❌ Assistant workflow failed: ${error}`)
+              log.error(`❌ Assistant workflow failed: ${error}`)
             }
           } catch (error) {
-            console.error(`❌ Failed to trigger assistant workflow:`, error)
+            log.error({ err: error }, `❌ Failed to trigger assistant workflow:`)
           }
         }
         return
@@ -967,10 +971,10 @@ export class AIAgentWebhookService {
         await this.sendWebhookNotification(task.assignee.webhookUrl, payload)
       }
 
-      console.log(`✅ Successfully notified AI agent ${task.assignee.name} about comment`)
+      log.info(`✅ Successfully notified AI agent ${task.assignee.name} about comment`)
 
     } catch (error) {
-      console.error(`❌ Failed to notify AI agent about comment:`, error)
+      log.error({ err: error }, `❌ Failed to notify AI agent about comment:`)
       throw error
     }
   }
