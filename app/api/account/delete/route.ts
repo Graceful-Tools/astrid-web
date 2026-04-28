@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { del } from "@vercel/blob"
-import bcrypt from "bcryptjs"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('account.delete')
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { confirmationText, password } = body
+    const { confirmationText } = body
 
     // Validate confirmation text
     if (confirmationText !== "DELETE MY ACCOUNT") {
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user with password for verification
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -68,36 +66,19 @@ export async function POST(request: NextRequest) {
       return new NextResponse("User not found", { status: 404 })
     }
 
-    // Verify password (if user has email/password auth)
-    if (user.password) {
-      if (!password) {
-        return NextResponse.json(
-          { error: "Password required for account deletion" },
-          { status: 400 }
-        )
-      }
+    // Verify the user has a valid auth method (OAuth or passkey).
+    // Authentication itself is already verified via the active session above —
+    // the confirmation text is the user-facing acknowledgement.
+    const hasOAuthAccount = user.accounts.some(
+      acc => acc.provider === 'google' || acc.provider === 'github' || acc.provider === 'apple'
+    )
+    const hasPasskey = user.authenticators && user.authenticators.length > 0
 
-      const isValidPassword = await bcrypt.compare(password, user.password)
-      if (!isValidPassword) {
-        return NextResponse.json(
-          { error: "Invalid password" },
-          { status: 401 }
-        )
-      }
-    } else {
-      // Non-password user - verify they have a valid auth method (OAuth or passkey)
-      const hasOAuthAccount = user.accounts.some(
-        acc => acc.provider === 'google' || acc.provider === 'github' || acc.provider === 'apple'
+    if (!hasOAuthAccount && !hasPasskey) {
+      return NextResponse.json(
+        { error: "Account authentication method not found" },
+        { status: 400 }
       )
-      const hasPasskey = user.authenticators && user.authenticators.length > 0
-
-      if (!hasOAuthAccount && !hasPasskey) {
-        return NextResponse.json(
-          { error: "Account authentication method not found" },
-          { status: 400 }
-        )
-      }
-      // OAuth or passkey users just need confirmation text since they're already authenticated
     }
 
     // Delete all user files from Vercel Blob storage

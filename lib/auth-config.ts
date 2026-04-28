@@ -1,9 +1,7 @@
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
-import bcrypt from "bcryptjs"
 import { getConsistentDefaultImage } from "./default-images"
 import { getDevBaseUrl, isLocalDevelopment } from "./port-detection"
 import { getBaseUrl } from "./base-url"
@@ -140,68 +138,6 @@ const authConfig: NextAuthOptions = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code"
-        }
-      }
-    }),
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          if (process.env.NODE_ENV === "development") {
-            log.info("[Auth] Missing credentials")
-          }
-          return null
-        }
-
-        try {
-          if (process.env.NODE_ENV === "development") {
-            log.info({ email: credentials.email }, "[Auth] Attempting to authenticate")
-          }
-          
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() }
-          }) as any
-
-          if (process.env.NODE_ENV === "development") {
-            log.info({ found: !!user, hasPassword: !!user?.password }, "[Auth] User found")
-          }
-
-          if (!user || !user.password) {
-            if (process.env.NODE_ENV === "development") {
-              log.info("[Auth] User not found or no password")
-            }
-            return null
-          }
-
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
-          
-          if (process.env.NODE_ENV === "development") {
-            log.info({ isPasswordValid }, "[Auth] Password valid:")
-          }
-
-          if (!isPasswordValid) {
-            if (process.env.NODE_ENV === "development") {
-              log.info("[Auth] Invalid password")
-            }
-            return null
-          }
-
-          if (process.env.NODE_ENV === "development") {
-            log.info(user.email, "[Auth] Authentication successful for:")
-          }
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-          }
-        } catch (error) {
-          log.error({ err: error }, "[Auth] Error in credentials provider:")
-          return null
         }
       }
     }),

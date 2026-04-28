@@ -54,7 +54,6 @@ interface AccountData {
   hasPendingChange: boolean
   hasPendingVerification: boolean
   verifiedViaOAuth?: boolean
-  hasPassword: boolean
   createdAt: string
   updatedAt: string
 }
@@ -92,24 +91,12 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [customImageUrl, setCustomImageUrl] = useState<string | null>(null)
 
-  // Password change state
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [changingPassword, setChangingPassword] = useState(false)
-
-  // Remove password state
-  const [showRemovePasswordDialog, setShowRemovePasswordDialog] = useState(false)
-  const [removePasswordConfirm, setRemovePasswordConfirm] = useState("")
-  const [removingPassword, setRemovingPassword] = useState(false)
-
   // Export state
   const [exporting, setExporting] = useState(false)
 
   // Delete account state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("")
-  const [deletePassword, setDeletePassword] = useState("")
   const [deleting, setDeleting] = useState(false)
 
   // Passkey state
@@ -313,125 +300,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
     }
   }
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "New passwords do not match.",
-        duration: 5000,
-      })
-      return
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Error",
-        description: "New password must be at least 6 characters long.",
-        duration: 5000,
-      })
-      return
-    }
-
-    setChangingPassword(true)
-    try {
-      const response = await fetch("/api/account", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success!",
-          description: "Your password has been updated.",
-          duration: 3000,
-        })
-        setCurrentPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
-      } else {
-        const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.error || "Failed to update password.",
-          duration: 5000,
-        })
-      }
-    } catch (error) {
-      console.error("Error updating password:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update password.",
-        duration: 5000,
-      })
-    } finally {
-      setChangingPassword(false)
-    }
-  }
-
-  const handleRemovePassword = async () => {
-    if (!removePasswordConfirm) {
-      toast({
-        title: "Error",
-        description: "Please enter your current password to confirm.",
-        duration: 5000,
-      })
-      return
-    }
-
-    if (passkeys.length === 0) {
-      toast({
-        title: "Error",
-        description: "You must have at least one passkey before removing your password.",
-        duration: 5000,
-      })
-      return
-    }
-
-    setRemovingPassword(true)
-    try {
-      const response = await fetch("/api/account/remove-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: removePasswordConfirm
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Password Removed!",
-          description: "You can now sign in using only your passkey.",
-          duration: 3000,
-        })
-        setShowRemovePasswordDialog(false)
-        setRemovePasswordConfirm("")
-        loadAccountData() // Refresh to update hasPassword state
-      } else {
-        const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.error || "Failed to remove password.",
-          duration: 5000,
-        })
-      }
-    } catch (error) {
-      console.error("Error removing password:", error)
-      toast({
-        title: "Error",
-        description: "Failed to remove password.",
-        duration: 5000,
-      })
-    } finally {
-      setRemovingPassword(false)
-    }
-  }
-
   const handleExport = async (format: "json" | "csv") => {
     setExporting(true)
     try {
@@ -580,7 +448,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           confirmationText: deleteConfirmationText,
-          password: deletePassword
         }),
       })
 
@@ -853,65 +720,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
             </CardContent>
           </Card>
 
-          {/* Password Change (only for email/password users) */}
-          {!accountData.verifiedViaOAuth && (
-            <Card className="theme-bg-secondary theme-border">
-              <CardHeader>
-                <CardTitle className="theme-text-primary">{t("settingsPages.passwordSection.title")}</CardTitle>
-                <CardDescription className="theme-text-muted">
-                  {t("settingsPages.passwordSection.description")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div>
-                    <Label htmlFor="currentPassword" className="theme-text-secondary">{t("settingsPages.passwordSection.currentPassword")}</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter your current password"
-                      className="theme-input theme-text-primary"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="newPassword" className="theme-text-secondary">{t("settingsPages.passwordSection.newPassword")}</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter your new password (min. 6 characters)"
-                      className="theme-input theme-text-primary"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="confirmPassword" className="theme-text-secondary">{t("settingsPages.passwordSection.confirmPassword")}</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm your new password"
-                      className="theme-input theme-text-primary"
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={changingPassword}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {changingPassword ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : t("settingsPages.passwordSection.changePassword")}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Passkeys Section */}
           {isPasskeySupported && (
             <Card className="theme-bg-secondary theme-border">
@@ -1061,25 +869,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
                   <p>• More secure than passwords - resistant to phishing</p>
                 </div>
 
-                {/* Remove Password Option - only show if user has password AND at least one passkey */}
-                {accountData?.hasPassword && passkeys.length > 0 && (
-                  <div className="pt-4 border-t border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium theme-text-primary">{t("settingsPages.passkeys.goPasswordless")}</p>
-                        <p className="text-xs theme-text-muted">{t("settingsPages.passkeys.removePasswordHint")}</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowRemovePasswordDialog(true)}
-                        className="border-orange-600 text-orange-400 hover:bg-orange-600 hover:text-white"
-                      >
-                        {t("settingsPages.passkeys.removePassword")}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
@@ -1194,74 +983,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
         </div>
       </div>
 
-      {/* Remove Password Confirmation Dialog */}
-      <Dialog open={showRemovePasswordDialog} onOpenChange={setShowRemovePasswordDialog}>
-        <DialogContent className="theme-bg-secondary theme-border">
-          <DialogHeader>
-            <DialogTitle className="text-orange-400 flex flex-wrap items-center gap-2">
-              <KeyRound className="w-5 h-5" />
-              <span>Go Passwordless</span>
-            </DialogTitle>
-            <DialogDescription className="theme-text-muted">
-              Remove your password and use only passkeys to sign in.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Alert className="border-orange-600 bg-orange-900/20">
-              <AlertCircle className="w-4 h-4 text-orange-400" />
-              <AlertDescription className="text-orange-300 text-sm">
-                <p className="font-medium">After removing your password:</p>
-                <ul className="list-disc list-inside mt-1">
-                  <li>You will sign in using your passkey only</li>
-                  <li>You can add a password back anytime</li>
-                  <li>Make sure your passkey is backed up</li>
-                </ul>
-              </AlertDescription>
-            </Alert>
-
-            <div>
-              <Label htmlFor="removePasswordConfirm" className="theme-text-secondary">
-                Enter your current password to confirm
-              </Label>
-              <Input
-                id="removePasswordConfirm"
-                type="password"
-                value={removePasswordConfirm}
-                onChange={(e) => setRemovePasswordConfirm(e.target.value)}
-                placeholder="Current password"
-                className="theme-input theme-text-primary mt-2"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowRemovePasswordDialog(false)
-                setRemovePasswordConfirm("")
-              }}
-              className="theme-text-secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleRemovePassword}
-              disabled={removingPassword || !removePasswordConfirm}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
-            >
-              {removingPassword ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Removing...
-                </>
-              ) : (
-                "Remove Password"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Delete Account Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="theme-bg-secondary theme-border">
@@ -1282,22 +1003,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
               </AlertDescription>
             </Alert>
 
-            {!accountData?.verifiedViaOAuth && (
-              <div>
-                <Label htmlFor="deletePassword" className="theme-text-secondary">
-                  {t("settingsPages.deleteAccount.enterPassword")}
-                </Label>
-                <Input
-                  id="deletePassword"
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="Your password"
-                  className="theme-input theme-text-primary"
-                />
-              </div>
-            )}
-
             <div>
               <Label htmlFor="deleteConfirmation" className="theme-text-secondary">
                 {t("settingsPages.deleteAccount.typeToConfirm")}
@@ -1317,7 +1022,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
               onClick={() => {
                 setShowDeleteDialog(false)
                 setDeleteConfirmationText("")
-                setDeletePassword("")
               }}
               disabled={deleting}
               className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white"

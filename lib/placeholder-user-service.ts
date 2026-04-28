@@ -65,7 +65,6 @@ export class PlaceholderUserService {
         isPlaceholder: true,
         invitedBy,
         emailVerified: null,
-        password: null,
         isActive: true,
       }
     })

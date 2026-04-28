@@ -40,23 +40,9 @@ test.describe('Authentication Flow', () => {
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
     await expect(passkeyButton).toBeVisible()
 
-    // Legacy email/password should be hidden behind a link
-    const legacyLink = page.getByText(/legacy email\/password/i)
-    await expect(legacyLink).toBeVisible()
-  })
-
-  test('should show legacy email/password option when clicking legacy link', async ({ page, browserName }) => {
-    // Webkit/Safari doesn't reliably handle React state transitions from button clicks in CI
-    test.skip(browserName === 'webkit', 'Webkit click → state transition is unreliable in CI')
-
-    await page.goto('/auth/signin')
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
-    const legacyLink = page.getByRole('button', { name: /legacy email\/password/i })
-    await expect(legacyLink).toBeVisible()
-    await legacyLink.click()
-    await expect(page.getByText('Welcome back')).toBeVisible({ timeout: 10000 })
-    await expect(page.getByLabel(/^email$/i)).toBeVisible()
-    await expect(page.getByLabel(/^password$/i)).toBeVisible()
+    // Legacy email/password is fully removed — verify no password field is rendered
+    await expect(page.getByLabel(/^password$/i)).toHaveCount(0)
+    await expect(page.getByText(/legacy email\/password/i)).toHaveCount(0)
   })
 
   // Test passkey button behavior based on browser support

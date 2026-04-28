@@ -47,7 +47,6 @@ model User {
   pendingEmail                 String?
   emailVerificationToken       String?              @unique
   emailTokenExpiresAt          DateTime?
-  password                     String?
   aiAssistantSettings          String?
   defaultDueTime               String?              @default("17:00")
   mcpEnabled                   Boolean              @default(true)

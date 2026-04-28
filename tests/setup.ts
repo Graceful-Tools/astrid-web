@@ -275,24 +275,6 @@ vi.mock('next-auth/react', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
-// Mock bcryptjs properly
-vi.mock('bcryptjs', () => ({
-  default: {
-    hash: vi.fn().mockResolvedValue('hashed_password_123'),
-    compare: vi.fn().mockResolvedValue(true),
-    genSalt: vi.fn().mockResolvedValue('salt_123'),
-    hashSync: vi.fn().mockReturnValue('hashed_password_123'),
-    compareSync: vi.fn().mockReturnValue(true),
-    genSaltSync: vi.fn().mockReturnValue('salt_123'),
-  },
-  hash: vi.fn().mockResolvedValue('hashed_password_123'),
-  compare: vi.fn().mockResolvedValue(true),
-  genSalt: vi.fn().mockResolvedValue('salt_123'),
-  hashSync: vi.fn().mockReturnValue('hashed_password_123'),
-  compareSync: vi.fn().mockReturnValue(true),
-  genSaltSync: vi.fn().mockReturnValue('salt_123'),
-}))
-
 // Mock OpenAI client
 vi.mock('openai', () => ({
   default: vi.fn().mockImplementation(() => ({
@@ -398,7 +380,7 @@ vi.mock('@/lib/i18n/client', () => ({
         'settings.settings': 'Settings',
         'settings.remindersNotifications': 'Reminders & Notifications',
         'settingsPages.accountAccess.title': 'Account & Access',
-        'settingsPages.accountAccess.description': 'Profile, email verification, and password settings',
+        'settingsPages.accountAccess.description': 'Profile, email verification, and access settings',
         'settingsPages.remindersNotifications.title': 'Reminders & Notifications',
         'settingsPages.remindersNotifications.description': 'Configure reminders, push notifications, and calendar integration',
         'settingsPages.contacts.title': 'Contacts',
