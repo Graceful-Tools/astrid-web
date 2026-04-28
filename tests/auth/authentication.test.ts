@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { signupRateLimiter, passwordChangeRateLimiter, RateLimiter } from '@/lib/rate-limiter'
+import { RateLimiter } from '@/lib/rate-limiter'
 import { NextRequest } from 'next/server'
 
 // Mock NextAuth
@@ -15,14 +15,6 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
-  },
-}))
-
-// Mock bcrypt
-vi.mock('bcryptjs', () => ({
-  default: {
-    hash: vi.fn(),
-    compare: vi.fn(),
   },
 }))
 
@@ -117,40 +109,6 @@ describe('Authentication System', () => {
       const result = rateLimiter.checkRateLimit(req2)
       expect(result.allowed).toBe(true)
       expect(result.remaining).toBe(2)
-    })
-  })
-
-  describe('Signup Rate Limiting', () => {
-    it('should enforce stricter limits for signup', () => {
-      const ip = getUniqueIP()
-      const req = createMockRequest(ip)
-
-      // First 5 requests should succeed (signupRateLimiter has maxRequests: 5)
-      for (let i = 0; i < 5; i++) {
-        const result = signupRateLimiter.checkRateLimit(req)
-        expect(result.allowed).toBe(true)
-      }
-
-      // 6th request should fail
-      const result = signupRateLimiter.checkRateLimit(req)
-      expect(result.allowed).toBe(false)
-    })
-  })
-
-  describe('Password Change Rate Limiting', () => {
-    it('should enforce stricter limits for password changes', () => {
-      const ip = getUniqueIP()
-      const req = createMockRequest(ip)
-
-      // First 5 requests should succeed (passwordChangeRateLimiter has maxRequests: 5)
-      for (let i = 0; i < 5; i++) {
-        const result = passwordChangeRateLimiter.checkRateLimit(req)
-        expect(result.allowed).toBe(true)
-      }
-
-      // 6th request should fail
-      const result = passwordChangeRateLimiter.checkRateLimit(req)
-      expect(result.allowed).toBe(false)
     })
   })
 

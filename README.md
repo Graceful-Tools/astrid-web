@@ -4,7 +4,7 @@ A modern, production-ready task management application built with Next.js, NextA
 
 ## Features
 
-- **Real Authentication**: Google OAuth + Email/Password with NextAuth.js (JWT sessions)
+- **Real Authentication**: Google OAuth + WebAuthn passkeys with NextAuth.js (JWT sessions); Apple Sign-In on iOS
 - **Database Integration**: PostgreSQL/SQLite with Prisma ORM
 - **Task Management**: Create, edit, delete, and organize tasks
 - **List Organization**: Group tasks into customizable lists

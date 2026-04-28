@@ -225,9 +225,6 @@
     "signOut": "退出登录",
     "signInWith": "使用{provider}登录",
     "email": "邮箱",
-    "password": "密码",
-    "forgotPassword": "忘记密码？",
-    "resetPassword": "重置密码",
     "createAccount": "创建账户",
     "alreadyHaveAccount": "已有账户？",
     "dontHaveAccount": "没有账户？",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "账户与访问",
-      "description": "个人资料、邮箱验证和密码设置"
+      "description": "个人资料、邮箱验证和访问设置"
     },
     "remindersNotifications": {
       "title": "提醒与通知",
@@ -596,26 +593,13 @@
       "pendingChange": "邮箱更改待处理",
       "waitingVerification": "等待验证"
     },
-    "passwordSection": {
-      "title": "更改密码",
-      "description": "更新你的邮箱/密码认证密码",
-      "currentPassword": "当前密码",
-      "newPassword": "新密码",
-      "confirmPassword": "确认新密码",
-      "changePassword": "更改密码",
-      "passwordsDoNotMatch": "新密码不匹配。",
-      "passwordTooShort": "新密码必须至少6个字符。"
-    },
     "passkeys": {
       "title": "通行密钥",
       "description": "使用通行密钥更快更安全地登录，无需密码",
       "addPasskey": "添加通行密钥",
       "addingPasskey": "添加通行密钥中...",
       "noPasskeys": "还没有注册通行密钥",
-      "addPasskeyHint": "添加通行密钥以更快地无密码登录",
-      "goPasswordless": "无密码登录",
-      "removePassword": "移除密码",
-      "removePasswordHint": "移除密码，仅使用通行密钥登录"
+      "addPasskeyHint": "添加通行密钥以更快地无密码登录"
     },
     "accountInfo": {
       "title": "账户信息",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "删除我的账户",
       "confirmTitle": "确认删除账户",
       "confirmDescription": "此操作是永久的，无法撤销。",
-      "enterPassword": "输入密码以确认",
       "typeToConfirm": "输入「删除我的账户」以确认",
       "permanentlyDelete": "永久删除账户",
       "deleting": "删除中..."

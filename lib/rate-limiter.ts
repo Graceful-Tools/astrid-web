@@ -136,17 +136,7 @@ export class RateLimiter {
   }
 }
 
-// Auth-specific rate limiters (stricter limits for security-sensitive operations)
-export const signupRateLimiter = new RateLimiter({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  maxRequests: 5, // 5 signup attempts per 5 minutes per IP
-})
-
-export const passwordChangeRateLimiter = new RateLimiter({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  maxRequests: 5, // 5 password change attempts per 5 minutes per IP
-})
-
+// Auth-specific rate limiter (stricter limits for security-sensitive operations)
 export const authRateLimiter = new RateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   maxRequests: 10, // 10 auth attempts per minute per IP

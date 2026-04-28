@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
         email: true,
         emailVerified: true,
         image: true,
-        password: true,
         pendingEmail: true,
         createdAt: true,
         updatedAt: true
@@ -72,14 +71,10 @@ export async function GET(request: NextRequest) {
 
     const verificationStatus = await checkEmailVerificationStatus(user.id)
 
-    // Don't include actual password hash in response
-    const { password, ...userWithoutPassword } = user
-
     return NextResponse.json({
       user: {
-        ...userWithoutPassword,
+        ...user,
         ...verificationStatus,
-        hasPassword: !!password
       }
     })
   } catch (error) {

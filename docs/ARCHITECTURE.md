@@ -13,7 +13,7 @@ Astrid is a task management application built with clean separation of concerns 
 
 ### Backend & Data
 - **PostgreSQL** with **Prisma** ORM (hosted on Neon)
-- **NextAuth.js** for authentication (Google OAuth + email/password)
+- **NextAuth.js** for authentication (Google OAuth + WebAuthn passkeys; Apple Sign-In on iOS)
 - **Server-Sent Events (SSE)** for real-time updates
 - **Vercel Blob** for file storage
 - **Redis** (Upstash) for caching and SSE state management
@@ -193,7 +193,7 @@ tests/                # Test suites (40+ test files)
 6. **State Update** → React hook triggers re-render
 
 ### Authentication Flow
-1. **Login** → NextAuth.js providers (Google OAuth or email/password)
+1. **Login** → NextAuth.js providers (Google OAuth, WebAuthn passkeys, or — on iOS — Apple Sign-In via `/api/auth/apple`)
 2. **Session** → JWT stored in secure cookies
 3. **API Protection** → Middleware validates sessions
 4. **User Context** → Available throughout application
@@ -383,7 +383,7 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 #### **Email Types**
 1. **Invitation Emails**: List invites, task assignments
-2. **Verification Emails**: Email verification, password reset
+2. **Verification Emails**: Email change verification
 3. **Reminder Emails**: Task due date reminders (via [lib/email-reminder-service.ts](../lib/email-reminder-service.ts))
 
 ### **Inbound Email** ([lib/email-to-task-service.ts](../lib/email-to-task-service.ts))
@@ -664,10 +664,15 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 
 #### **NextAuth.js**
 - OAuth providers: Google
-- Email/password authentication
+- WebAuthn passkeys
 - JWT-based sessions
 - Secure cookie management
-- Email verification flow
+- Email change verification flow
+
+#### **Apple Sign-In (iOS)**
+- Custom endpoint at `/api/auth/apple`
+- Verifies Apple identity tokens against Apple's JWKS
+- Issues a session cookie directly (does not go through NextAuth)
 - Password reset functionality
 
 #### **Encryption**

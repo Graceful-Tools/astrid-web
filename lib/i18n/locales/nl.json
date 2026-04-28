@@ -225,9 +225,6 @@
     "signOut": "Uitloggen",
     "signInWith": "Inloggen met {provider}",
     "email": "E-mail",
-    "password": "Wachtwoord",
-    "forgotPassword": "Wachtwoord vergeten?",
-    "resetPassword": "Wachtwoord resetten",
     "createAccount": "Account aanmaken",
     "alreadyHaveAccount": "Heb je al een account?",
     "dontHaveAccount": "Heb je geen account?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Account en Toegang",
-      "description": "Profiel, e-mailverificatie en wachtwoordinstellingen"
+      "description": "Profiel, e-mailverificatie en toegangsinstellingen"
     },
     "remindersNotifications": {
       "title": "Herinneringen en Meldingen",
@@ -596,26 +593,13 @@
       "pendingChange": "E-mailwijziging in behandeling",
       "waitingVerification": "Wachten op verificatie"
     },
-    "passwordSection": {
-      "title": "Wachtwoord Wijzigen",
-      "description": "Werk je wachtwoord bij voor e-mail/wachtwoord authenticatie",
-      "currentPassword": "Huidig Wachtwoord",
-      "newPassword": "Nieuw Wachtwoord",
-      "confirmPassword": "Bevestig Nieuw Wachtwoord",
-      "changePassword": "Wachtwoord Wijzigen",
-      "passwordsDoNotMatch": "De nieuwe wachtwoorden komen niet overeen.",
-      "passwordTooShort": "Het nieuwe wachtwoord moet minimaal 6 tekens bevatten."
-    },
     "passkeys": {
       "title": "Passkeys",
       "description": "Gebruik passkeys voor sneller, veiliger inloggen zonder wachtwoorden",
       "addPasskey": "Passkey Toevoegen",
       "addingPasskey": "Passkey toevoegen...",
       "noPasskeys": "Nog geen passkeys geregistreerd",
-      "addPasskeyHint": "Voeg een passkey toe voor sneller inloggen zonder wachtwoord",
-      "goPasswordless": "Wachtwoordloos gaan",
-      "removePassword": "Wachtwoord Verwijderen",
-      "removePasswordHint": "Verwijder je wachtwoord en log alleen in met passkey"
+      "addPasskeyHint": "Voeg een passkey toe voor sneller inloggen zonder wachtwoord"
     },
     "accountInfo": {
       "title": "Accountinformatie",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Mijn Account Verwijderen",
       "confirmTitle": "Accountverwijdering Bevestigen",
       "confirmDescription": "Deze actie is permanent en kan niet ongedaan worden gemaakt.",
-      "enterPassword": "Voer je wachtwoord in om te bevestigen",
       "typeToConfirm": "Typ VERWIJDER MIJN ACCOUNT om te bevestigen",
       "permanentlyDelete": "Account Permanent Verwijderen",
       "deleting": "Verwijderen..."

@@ -225,9 +225,6 @@
     "signOut": "Sign out",
     "signInWith": "Sign in with {provider}",
     "email": "Email",
-    "password": "Password",
-    "forgotPassword": "Forgot password?",
-    "resetPassword": "Reset password",
     "createAccount": "Create account",
     "alreadyHaveAccount": "Already have an account?",
     "dontHaveAccount": "Don't have an account?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Account & Access",
-      "description": "Profile, email verification, and password settings"
+      "description": "Profile, email verification, and access settings"
     },
     "remindersNotifications": {
       "title": "Reminders & Notifications",
@@ -596,26 +593,13 @@
       "pendingChange": "Pending email change",
       "waitingVerification": "Waiting for verification"
     },
-    "passwordSection": {
-      "title": "Change Password",
-      "description": "Update your password for email/password authentication",
-      "currentPassword": "Current Password",
-      "newPassword": "New Password",
-      "confirmPassword": "Confirm New Password",
-      "changePassword": "Change Password",
-      "passwordsDoNotMatch": "New passwords do not match.",
-      "passwordTooShort": "New password must be at least 6 characters long."
-    },
     "passkeys": {
       "title": "Passkeys",
       "description": "Use passkeys for faster, more secure sign-in without passwords",
       "addPasskey": "Add a Passkey",
       "addingPasskey": "Adding passkey...",
       "noPasskeys": "No passkeys registered yet",
-      "addPasskeyHint": "Add a passkey for faster, passwordless sign-in",
-      "goPasswordless": "Go passwordless",
-      "removePassword": "Remove Password",
-      "removePasswordHint": "Remove your password and sign in with passkey only"
+      "addPasskeyHint": "Add a passkey for faster, passwordless sign-in"
     },
     "accountInfo": {
       "title": "Account Information",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Delete My Account",
       "confirmTitle": "Confirm Account Deletion",
       "confirmDescription": "This action is permanent and cannot be reversed.",
-      "enterPassword": "Enter your password to confirm",
       "typeToConfirm": "Type DELETE MY ACCOUNT to confirm",
       "permanentlyDelete": "Permanently Delete Account",
       "deleting": "Deleting..."

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Chrome, Loader2, AlertCircle, Mail, Lock, Eye, EyeOff, KeyRound } from "lucide-react"
+import { Chrome, Loader2, AlertCircle, Mail, KeyRound } from "lucide-react"
 import Image from "next/image"
 import { useWebAuthn } from "@/hooks/use-webauthn"
 import Link from "next/link"
@@ -21,13 +21,6 @@ export function SignInContent() {
   const [providers, setProviders] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Default to signup (Create your account) view
-  const [showSignIn, setShowSignIn] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-
-  // Form states
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
 
   // Passkey signup email prompt state
   const [showPasskeyEmailPrompt, setShowPasskeyEmailPrompt] = useState(false)
@@ -76,40 +69,6 @@ export function SignInContent() {
       log.error({ err: error }, "Google sign in error:")
       setError("An unexpected error occurred during sign in")
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleEmailSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email || !password) {
-      setError("Please fill in all fields")
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-    try {
-      // Use redirect: false to handle the response manually
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError("Invalid email or password")
-        setLoading(false)
-      } else if (result?.ok) {
-        // Successful sign in, redirect to home
-        window.location.href = "/"
-      } else {
-        setError("An unexpected error occurred during sign in")
-        setLoading(false)
-      }
-    } catch (error) {
-      log.error({ err: error }, "Email sign in error:")
-      setError("An unexpected error occurred during sign in")
       setLoading(false)
     }
   }
@@ -190,8 +149,6 @@ export function SignInContent() {
         return "An account with this email already exists. Please try signing in again - we'll link your Google account automatically."
       case "EmailSignin":
         return "Sending the e-mail with the verification token failed."
-      case "CredentialsSignin":
-        return "Invalid email or password. Please try again."
       case "SessionRequired":
         return "The content of this page requires you to be signed in at all times."
       default:
@@ -239,13 +196,8 @@ export function SignInContent() {
         <Card className="bg-gray-900 border-gray-800 shadow-2xl">
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-semibold text-white">
-              {showSignIn ? "Welcome back" : "Sign in to get started!"}
+              Sign in to get started!
             </CardTitle>
-            {showSignIn && (
-              <CardDescription className="text-gray-400 text-base">
-                Sign in to access your tasks and collaborate with others
-              </CardDescription>
-            )}
           </CardHeader>
           <CardContent className="px-8 pb-8">
             {displayError && (
@@ -256,7 +208,7 @@ export function SignInContent() {
             )}
 
             {/* Create Account View (Default) */}
-            {!showSignIn && !showPasskeyEmailPrompt && (
+            {!showPasskeyEmailPrompt && (
               <div className="space-y-4">
                 {/* 1. Google - Most prominent (blue), rendered immediately for fast LCP */}
                 <Button
@@ -293,22 +245,11 @@ export function SignInContent() {
                     Passkeys not supported in this browser
                   </p>
                 )}
-
-                {/* Sign in link for legacy users (matching iOS) */}
-                <div className="pt-4 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowSignIn(true)}
-                    className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                  >
-                    Legacy email/password? Sign in
-                  </button>
-                </div>
               </div>
             )}
 
             {/* Passkey Dialog - New/Returning options */}
-            {!showSignIn && showPasskeyEmailPrompt && (
+            {showPasskeyEmailPrompt && (
               <div className="space-y-5">
                 <div className="text-center mb-2">
                   <KeyRound className="w-10 h-10 text-blue-400 mx-auto mb-2" />
@@ -380,111 +321,6 @@ export function SignInContent() {
               </div>
             )}
 
-            {/* Sign In View (Legacy users) */}
-            {showSignIn && (
-              <form onSubmit={handleEmailSignIn} className="space-y-5">
-                <div>
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-300 mb-2 block">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      className="pl-10 h-12 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-300 mb-2 block">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="pl-10 pr-10 h-12 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-12 rounded-xl shadow-sm"
-                  size="lg"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : "Sign In"}
-                </Button>
-
-                {/* Divider */}
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-700" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-gray-900 px-3 text-gray-500 font-medium">Or continue with</span>
-                  </div>
-                </div>
-
-                {/* OAuth buttons in order: Google, Passkey, Apple */}
-                <div className="space-y-3">
-                  {/* 1. Google */}
-                  {providers?.google && (
-                    <Button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      disabled={loading || isPasskeyLoading}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-12 rounded-xl shadow-sm"
-                      size="lg"
-                    >
-                      {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
-                      Continue with Google
-                    </Button>
-                  )}
-
-                  {/* 2. Passkey */}
-                  <Button
-                    type="button"
-                    onClick={handlePasskeySignIn}
-                    disabled={loading || isPasskeyLoading || !isPasskeySupported}
-                    className={`w-full font-medium h-12 rounded-xl shadow-sm ${
-                      isPasskeySupported
-                        ? "bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300"
-                        : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                    }`}
-                    size="lg"
-                  >
-                    {isPasskeyLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <KeyRound className="w-5 h-5 mr-2" />}
-                    {isPasskeyLoading ? "Authenticating..." : "Sign in with Passkey"}
-                  </Button>
-
-                </div>
-
-                {/* Back to create account */}
-                <div className="pt-4 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowSignIn(false)}
-                    className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                  >
-                    Don&apos;t have an account? Create one
-                  </button>
-                </div>
-              </form>
-            )}
 
 
             <div className="text-center text-sm text-gray-500 mt-6">

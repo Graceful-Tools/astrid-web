@@ -225,9 +225,6 @@
     "signOut": "Abmelden",
     "signInWith": "Mit {provider} anmelden",
     "email": "E-Mail",
-    "password": "Passwort",
-    "forgotPassword": "Passwort vergessen?",
-    "resetPassword": "Passwort zurücksetzen",
     "createAccount": "Konto erstellen",
     "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
     "dontHaveAccount": "Haben Sie noch kein Konto?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Konto und Zugang",
-      "description": "Profil, E-Mail-Verifizierung und Passworteinstellungen"
+      "description": "Profil, E-Mail-Verifizierung und Zugriffseinstellungen"
     },
     "remindersNotifications": {
       "title": "Erinnerungen und Benachrichtigungen",
@@ -596,26 +593,13 @@
       "pendingChange": "E-Mail-Änderung ausstehend",
       "waitingVerification": "Warte auf Verifizierung"
     },
-    "passwordSection": {
-      "title": "Passwort ändern",
-      "description": "Aktualisieren Sie Ihr Passwort für die E-Mail/Passwort-Authentifizierung",
-      "currentPassword": "Aktuelles Passwort",
-      "newPassword": "Neues Passwort",
-      "confirmPassword": "Neues Passwort bestätigen",
-      "changePassword": "Passwort ändern",
-      "passwordsDoNotMatch": "Die neuen Passwörter stimmen nicht überein.",
-      "passwordTooShort": "Das neue Passwort muss mindestens 6 Zeichen lang sein."
-    },
     "passkeys": {
       "title": "Passkeys",
       "description": "Verwenden Sie Passkeys für schnellere, sicherere Anmeldung ohne Passwörter",
       "addPasskey": "Passkey hinzufügen",
       "addingPasskey": "Passkey wird hinzugefügt...",
       "noPasskeys": "Noch keine Passkeys registriert",
-      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu",
-      "goPasswordless": "Passwortlos werden",
-      "removePassword": "Passwort entfernen",
-      "removePasswordHint": "Entfernen Sie Ihr Passwort und melden Sie sich nur mit Passkey an"
+      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu"
     },
     "accountInfo": {
       "title": "Kontoinformationen",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Mein Konto löschen",
       "confirmTitle": "Kontolöschung bestätigen",
       "confirmDescription": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
-      "enterPassword": "Geben Sie Ihr Passwort zur Bestätigung ein",
       "typeToConfirm": "Geben Sie MEIN KONTO LÖSCHEN zur Bestätigung ein",
       "permanentlyDelete": "Konto dauerhaft löschen",
       "deleting": "Löschen..."

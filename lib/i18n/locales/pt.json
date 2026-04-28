@@ -225,9 +225,6 @@
     "signOut": "Sair",
     "signInWith": "Entrar com {provider}",
     "email": "E-mail",
-    "password": "Senha",
-    "forgotPassword": "Esqueceu a senha?",
-    "resetPassword": "Redefinir senha",
     "createAccount": "Criar conta",
     "alreadyHaveAccount": "Já tem uma conta?",
     "dontHaveAccount": "Não tem uma conta?",
@@ -393,7 +390,7 @@
   "settingsPages": {
     "accountAccess": {
       "title": "Conta e Acesso",
-      "description": "Perfil, verificação de e-mail e configurações de senha"
+      "description": "Perfil, verificação de email e configurações de acesso"
     },
     "remindersNotifications": {
       "title": "Lembretes e Notificações",
@@ -596,26 +593,13 @@
       "pendingChange": "Alteração de e-mail pendente",
       "waitingVerification": "Aguardando verificação"
     },
-    "passwordSection": {
-      "title": "Alterar Senha",
-      "description": "Atualize sua senha para autenticação por e-mail/senha",
-      "currentPassword": "Senha Atual",
-      "newPassword": "Nova Senha",
-      "confirmPassword": "Confirmar Nova Senha",
-      "changePassword": "Alterar Senha",
-      "passwordsDoNotMatch": "As novas senhas não coincidem.",
-      "passwordTooShort": "A nova senha deve ter pelo menos 6 caracteres."
-    },
     "passkeys": {
       "title": "Passkeys",
       "description": "Use passkeys para login mais rápido e seguro sem senhas",
       "addPasskey": "Adicionar Passkey",
       "addingPasskey": "Adicionando passkey...",
       "noPasskeys": "Nenhuma passkey registrada ainda",
-      "addPasskeyHint": "Adicione uma passkey para login mais rápido sem senha",
-      "goPasswordless": "Usar sem senha",
-      "removePassword": "Remover Senha",
-      "removePasswordHint": "Remova sua senha e faça login apenas com passkey"
+      "addPasskeyHint": "Adicione uma passkey para login mais rápido sem senha"
     },
     "accountInfo": {
       "title": "Informações da Conta",
@@ -648,7 +632,6 @@
       "deleteMyAccount": "Excluir Minha Conta",
       "confirmTitle": "Confirmar Exclusão da Conta",
       "confirmDescription": "Esta ação é permanente e não pode ser revertida.",
-      "enterPassword": "Digite sua senha para confirmar",
       "typeToConfirm": "Digite EXCLUIR MINHA CONTA para confirmar",
       "permanentlyDelete": "Excluir Conta Permanentemente",
       "deleting": "Excluindo..."
