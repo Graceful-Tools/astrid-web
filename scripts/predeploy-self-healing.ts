@@ -43,6 +43,41 @@ interface TestStats {
   total: number
 }
 
+/**
+ * Trim a tool's combined stdout+stderr down to the parts useful for diagnosis.
+ *
+ * The previous behavior — slice(0, 1500) — captured only the noisy *start* of
+ * test runs (warm-up logs, [Auth] env checks, broadcast tracing) and cut off
+ * before vitest's failure summary, which is always at the end. Result: every
+ * auto-filed failure task said "Vitest failed" with no test names attached.
+ *
+ * This helper:
+ *   - Strips ANSI escape codes (CI=true / NO_COLOR usually handles this, but
+ *     belt-and-braces in case a tool ignores both).
+ *   - For tsc-style output (lines like `path.ts(L,C): error TSxxxx:`) it
+ *     extracts only the error lines.
+ *   - For everything else it keeps the head (200 chars, for command context)
+ *     plus the tail (3000 chars, where vitest/jest/playwright land their
+ *     `Tests N failed` summary and the per-test ❯ + AssertionError blocks).
+ */
+export function formatFailureOutput(raw: string): string {
+  const stripped = raw.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '')
+
+  const tscErrorLine = /^.+\.tsx?\(\d+,\d+\): error TS\d+:/m
+  if (tscErrorLine.test(stripped)) {
+    const errors = stripped
+      .split('\n')
+      .filter((line) => /^.+\.tsx?\(\d+,\d+\): error TS\d+:/.test(line) || /^\s+/.test(line))
+    const joined = errors.join('\n').slice(0, 3500)
+    return joined + (errors.join('\n').length > 3500 ? '\n... (truncated)' : '')
+  }
+
+  const HEAD = 200
+  const TAIL = 3000
+  if (stripped.length <= HEAD + TAIL) return stripped
+  return `${stripped.slice(0, HEAD)}\n... (middle truncated) ...\n${stripped.slice(-TAIL)}`
+}
+
 interface CheckResult {
   name: string
   command: string
@@ -264,7 +299,12 @@ class SelfHealingPredeploy {
       }
     } catch (error: any) {
       const duration = Date.now() - start
-      const output = error.stdout || error.stderr || error.message || ''
+      // Concatenate stdout + stderr so vitest's failure summary (which can land
+      // in either stream depending on reporter) and tsc's stderr-mixed errors
+      // are both captured in the report.
+      const stdout = error.stdout || ''
+      const stderr = error.stderr || ''
+      const output = [stdout, stderr].filter(Boolean).join('\n').trim() || error.message || ''
       const testStats = this.parseTestStats(check.name, output)
 
       if (CONFIG.verboseOutput) {
@@ -434,9 +474,9 @@ ${failedChecks
 - **Auto-fixable**: ${c.autoFixable ? 'Yes' : 'No'}
 - **Duration**: ${(c.duration / 1000).toFixed(1)}s
 
-**Output** (truncated):
+**Output**:
 \`\`\`
-${c.output.slice(0, 1500)}${c.output.length > 1500 ? '\n... (truncated)' : ''}
+${formatFailureOutput(c.output)}
 \`\`\`
 `
   )
@@ -514,7 +554,14 @@ ${
 **Time**: ${new Date().toISOString()}
 
 ### Failed Checks
-${failedChecks.map((c) => `- ❌ ${c.name}`).join('\n')}
+${failedChecks
+  .map(
+    (c) => `#### ❌ ${c.name}
+\`\`\`
+${formatFailureOutput(c.output)}
+\`\`\``
+  )
+  .join('\n\n')}
 
 ### Fix Attempts
 ${fixAttempts.length > 0 ? fixAttempts.map((f) => `- ${f.check}: ${f.success ? '✅' : '❌'}`).join('\n') : '_None_'}
@@ -750,9 +797,15 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error)
-  process.exit(1)
-})
+// Only run when invoked as a script. Without this guard, importing this module
+// (e.g. from a vitest test for formatFailureOutput) would re-trigger the full
+// predeploy run — which itself spawns vitest, leading to an infinite spawn loop.
+const invokedAsScript = process.argv[1] && /predeploy-self-healing\.ts$/.test(process.argv[1])
+if (invokedAsScript) {
+  main().catch((error) => {
+    console.error('Fatal error:', error)
+    process.exit(1)
+  })
+}
 
 export { SelfHealingPredeploy, CONFIG }
