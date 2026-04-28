@@ -5,6 +5,10 @@
 
 import { PrismaClient } from '@prisma/client'
 import { createAIAgentComment } from './ai-agent-comment-service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('comment-approval-detector')
+
 
 const prisma = new PrismaClient()
 
@@ -130,7 +134,7 @@ export async function processCommentForWorkflowAction(
       )
 
       if (hasFailureMarker && task.creatorId === authorId) {
-        console.log(`🔄 [CommentAction] No workflow record but task has failure markers - treating as retry feedback`)
+        log.info(`🔄 [CommentAction] No workflow record but task has failure markers - treating as retry feedback`)
 
         // Create a workflow record with FAILED status so retry logic can work
         const newWorkflow = await prisma.codingTaskWorkflow.create({
@@ -165,7 +169,7 @@ export async function processCommentForWorkflowAction(
     // IMPORTANT: Check for FAILED status FIRST - any comment on a failed workflow triggers retry
     // This must come before action detection because users may not use specific keywords
     if (workflow.status === 'FAILED') {
-      console.log(`🔄 [CommentAction] Workflow is FAILED - treating comment as retry feedback`)
+      log.info(`🔄 [CommentAction] Workflow is FAILED - treating comment as retry feedback`)
       await triggerRetryWithFeedback(workflow.id, commentId, taskId, content)
       return
     }
@@ -178,14 +182,14 @@ export async function processCommentForWorkflowAction(
       return
     }
 
-    console.log(`🎯 [CommentAction] Detected ${action.type} action:`, {
+    log.info({
       taskId,
       commentId,
       workflowId: workflow.id,
       author: authorId,
       confidence: action.confidence,
       currentStatus: workflow.status
-    })
+    }, `🎯 [CommentAction] Detected ${action.type} action:`)
 
     // Handle action based on workflow status and action type
     if (action.type === 'approve' && workflow.status === 'AWAITING_APPROVAL') {
@@ -195,11 +199,11 @@ export async function processCommentForWorkflowAction(
     } else if (action.type === 'changes_requested') {
       await triggerChangeRequest(workflow.id, commentId, taskId, action.feedback || content)
     } else {
-      console.log(`⚠️ [CommentAction] Action ${action.type} not applicable for status ${workflow.status}`)
+      log.info(`⚠️ [CommentAction] Action ${action.type} not applicable for status ${workflow.status}`)
     }
 
   } catch (error) {
-    console.error('❌ [CommentAction] Error processing comment for workflow action:', error)
+    log.error({ err: error }, '❌ [CommentAction] Error processing comment for workflow action:')
   }
 }
 
@@ -258,18 +262,18 @@ export async function processCommentForMergeRequest(
       return
     }
 
-    console.log('🔀 [CommentApproval] Detected merge request in comment:', {
+    log.info({
       taskId,
       commentId,
       workflowId: workflow.id,
       author: authorId
-    })
+    }, '🔀 [CommentApproval] Detected merge request in comment:')
 
     // Trigger merge request
     await triggerMergeRequest(workflow.id, commentId, taskId)
 
   } catch (error) {
-    console.error('❌ [CommentApproval] Error processing comment for merge:', error)
+    log.error({ err: error }, '❌ [CommentApproval] Error processing comment for merge:')
   }
 }
 
@@ -292,7 +296,7 @@ async function triggerPlanApproval(workflowId: string, commentId: string, taskId
         `✅ **Approval Received**\n\nThanks! Starting implementation now...\n\n*This is an automated response to your approval*\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post approval acknowledgment comment:', result.error)
+        log.error(result.error, 'Failed to post approval acknowledgment comment:')
       }
     }
 
@@ -318,10 +322,10 @@ async function triggerPlanApproval(workflowId: string, commentId: string, taskId
     const orchestrator = await AIOrchestrator.createForTask(taskId, workflow.task.creatorId)
     await orchestrator.handlePlanApproval(workflowId, commentId)
 
-    console.log('✅ [CommentApproval] Plan approval triggered successfully')
+    log.info('✅ [CommentApproval] Plan approval triggered successfully')
 
   } catch (error) {
-    console.error('❌ [CommentApproval] Failed to trigger plan approval:', error)
+    log.error({ err: error }, '❌ [CommentApproval] Failed to trigger plan approval:')
 
     // Post error comment using the actual AI assignee
     const task = await prisma.task.findUnique({
@@ -335,7 +339,7 @@ async function triggerPlanApproval(workflowId: string, commentId: string, taskId
         `❌ **Approval Processing Error**\n\nI encountered an issue starting the implementation:\n\n**Error:** ${error instanceof Error ? error.message : 'Unknown error'}\n\nLet me investigate and try again, or feel free to re-approve if needed.\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post approval error comment:', result.error)
+        log.error(result.error, 'Failed to post approval error comment:')
       }
     }
   }
@@ -360,7 +364,7 @@ async function triggerMergeRequest(workflowId: string, commentId: string, taskId
         `🚀 **Shipping to Production**\n\nDeploying your approved changes to production now!\n\n*This is an automated response to your ship command*\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post merge acknowledgment comment:', result.error)
+        log.error(result.error, 'Failed to post merge acknowledgment comment:')
       }
     }
 
@@ -388,10 +392,10 @@ async function triggerMergeRequest(workflowId: string, commentId: string, taskId
       data: { completed: true }
     })
 
-    console.log('🔀 [CommentApproval] Merge request triggered successfully')
+    log.info('🔀 [CommentApproval] Merge request triggered successfully')
 
   } catch (error) {
-    console.error('❌ [CommentApproval] Failed to trigger merge request:', error)
+    log.error({ err: error }, '❌ [CommentApproval] Failed to trigger merge request:')
 
     // Post error comment using the actual AI assignee
     const task = await prisma.task.findUnique({
@@ -405,7 +409,7 @@ async function triggerMergeRequest(workflowId: string, commentId: string, taskId
         `❌ **Deployment Error**\n\nI encountered an issue deploying to production:\n\n**Error:** ${error instanceof Error ? error.message : 'Unknown error'}\n\nLet me investigate this issue. The code is ready but deployment failed.\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post deployment error comment:', result.error)
+        log.error(result.error, 'Failed to post deployment error comment:')
       }
     }
   }
@@ -438,7 +442,7 @@ async function triggerChangeRequest(
         `🔄 **Change Request Received**\n\nI understand you'd like me to modify the implementation:\n\n> ${changeRequest}\n\nI'll analyze your request and update the code accordingly. Give me a few minutes to make these changes!\n\n*This is an automated response to your change request*\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post change request acknowledgment comment:', result.error)
+        log.error(result.error, 'Failed to post change request acknowledgment comment:')
       }
     }
 
@@ -464,10 +468,10 @@ async function triggerChangeRequest(
     const orchestrator = await AIOrchestrator.createForTask(taskId, workflow.task.creatorId)
     await orchestrator.handleChangeRequest(workflowId, taskId, changeRequest)
 
-    console.log('📝 [CommentApproval] Change request triggered successfully')
+    log.info('📝 [CommentApproval] Change request triggered successfully')
 
   } catch (error) {
-    console.error('❌ [CommentApproval] Failed to trigger change request:', error)
+    log.error({ err: error }, '❌ [CommentApproval] Failed to trigger change request:')
 
     // Post error comment using the actual AI assignee
     const task = await prisma.task.findUnique({
@@ -481,7 +485,7 @@ async function triggerChangeRequest(
         `❌ **Change Request Error**\n\nI encountered an issue processing your change request:\n\n**Error:** ${error instanceof Error ? error.message : 'Unknown error'}\n\nCould you please clarify what changes you'd like me to make? I'll try again with more specific instructions.\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post change request error comment:', result.error)
+        log.error(result.error, 'Failed to post change request error comment:')
       }
     }
   }
@@ -511,7 +515,7 @@ async function triggerRetryWithFeedback(
         `🔄 **Retrying with your feedback**\n\nI'll use your clarification to try again:\n\n> ${feedback.substring(0, 500)}${feedback.length > 500 ? '...' : ''}\n\nLet me re-analyze the task with this additional context.\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post retry acknowledgment comment:', result.error)
+        log.error(result.error, 'Failed to post retry acknowledgment comment:')
       }
     }
 
@@ -564,10 +568,10 @@ async function triggerRetryWithFeedback(
     // Call handleRetryWithFeedback which will re-run planning with additional context
     await orchestrator.handleRetryWithFeedback(workflowId, taskId, feedback, previousError)
 
-    console.log('🔄 [CommentApproval] Retry with feedback triggered successfully')
+    log.info('🔄 [CommentApproval] Retry with feedback triggered successfully')
 
   } catch (error) {
-    console.error('❌ [CommentApproval] Failed to trigger retry with feedback:', error)
+    log.error({ err: error }, '❌ [CommentApproval] Failed to trigger retry with feedback:')
 
     // Post error comment
     const task = await prisma.task.findUnique({
@@ -581,7 +585,7 @@ async function triggerRetryWithFeedback(
         `❌ **Retry Failed**\n\nI couldn't retry with your feedback:\n\n**Error:** ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try reassigning the task to me, or provide more details about what you'd like done.\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
-        console.error('Failed to post retry error comment:', result.error)
+        log.error(result.error, 'Failed to post retry error comment:')
       }
     }
   }
