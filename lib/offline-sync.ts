@@ -3,6 +3,10 @@ import { offlineDB, type MutationOperation, OfflineIdMappingOperations } from '.
 import { apiCall } from './api'
 import { CrossTabSync } from './cross-tab-sync'
 import { safeResponseJson } from './safe-parse'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('offline-sync')
+
 
 /**
  * Mutation queue manager for offline operations
@@ -43,7 +47,7 @@ export class OfflineSyncManager {
     await offlineDB.mutations.add(mutation)
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('📝 Queued offline mutation:', mutation)
+      log.info({ mutation }, '📝 Queued offline mutation:')
     }
 
     // Broadcast to other tabs
@@ -51,7 +55,7 @@ export class OfflineSyncManager {
 
     // Try to sync immediately if online
     if (navigator.onLine) {
-      this.syncPendingMutations().catch(console.error)
+      this.syncPendingMutations().catch(err => log.error({ err }, 'syncPendingMutations failed'))
     }
 
     return mutation
@@ -95,7 +99,7 @@ export class OfflineSyncManager {
     // Prevent concurrent sync operations
     if (this.syncInProgress) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Sync already in progress, skipping')
+        log.info('🔄 Sync already in progress, skipping')
       }
       return { success: 0, failed: 0, errors: [] }
     }
@@ -103,7 +107,7 @@ export class OfflineSyncManager {
     // Check if online
     if (!navigator.onLine) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('📡 Offline, skipping sync')
+        log.info('📡 Offline, skipping sync')
       }
       return { success: 0, failed: 0, errors: [] }
     }
@@ -118,14 +122,14 @@ export class OfflineSyncManager {
 
       if (pendingMutations.length === 0) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ No pending mutations to sync')
+          log.info('✅ No pending mutations to sync')
         }
         CrossTabSync.broadcastSyncCompleted(0, 0)
         return { success: 0, failed: 0, errors: [] }
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔄 Syncing ${pendingMutations.length} pending mutations...`)
+        log.info(`🔄 Syncing ${pendingMutations.length} pending mutations...`)
       }
 
       let successCount = 0
@@ -157,12 +161,12 @@ export class OfflineSyncManager {
               }
 
               if (process.env.NODE_ENV === 'development') {
-                console.log(`🔗 Mapped temp parent ID ${mutation.parentId} → ${realParentId}`)
+                log.info(`🔗 Mapped temp parent ID ${mutation.parentId} → ${realParentId}`)
               }
             } else {
               // Parent hasn't synced yet, skip this mutation for now
               if (process.env.NODE_ENV === 'development') {
-                console.log(`⏸️ Skipping mutation - waiting for parent ${mutation.parentId} to sync`)
+                log.info(`⏸️ Skipping mutation - waiting for parent ${mutation.parentId} to sync`)
               }
               continue
             }
@@ -180,13 +184,13 @@ export class OfflineSyncManager {
               const { OfflineTaskOperations } = await import('./offline-db')
               await OfflineTaskOperations.deleteTask(updatedMutation.tempId)
               if (process.env.NODE_ENV === 'development') {
-                console.log(`🗑️ Removed temp task: ${updatedMutation.tempId}`)
+                log.info(`🗑️ Removed temp task: ${updatedMutation.tempId}`)
               }
             } else if (updatedMutation.entity === 'list') {
               const { OfflineListOperations } = await import('./offline-db')
               await OfflineListOperations.deleteList(updatedMutation.tempId)
               if (process.env.NODE_ENV === 'development') {
-                console.log(`🗑️ Removed temp list: ${updatedMutation.tempId}`)
+                log.info(`🗑️ Removed temp list: ${updatedMutation.tempId}`)
               }
             }
 
@@ -199,7 +203,7 @@ export class OfflineSyncManager {
             )
 
             if (process.env.NODE_ENV === 'development') {
-              console.log(`🔗 Saved ID mapping: ${updatedMutation.tempId} → ${responseData.id}`)
+              log.info(`🔗 Saved ID mapping: ${updatedMutation.tempId} → ${responseData.id}`)
             }
           } else {
             // Broadcast synced without ID mapping
@@ -210,7 +214,7 @@ export class OfflineSyncManager {
           await offlineDB.mutations.delete(mutation.id)
 
           if (process.env.NODE_ENV === 'development') {
-            console.log(`✅ Synced mutation ${mutation.id}:`, mutation.type, mutation.entity)
+            log.info({ mutationId: mutation.id, type: mutation.type, entity: mutation.entity }, '✅ Synced mutation')
           }
         } catch (error) {
           failedCount++
@@ -228,13 +232,13 @@ export class OfflineSyncManager {
           await offlineDB.mutations.put(updatedMutation)
 
           if (process.env.NODE_ENV === 'development') {
-            console.error(`❌ Failed to sync mutation ${mutation.id}:`, errorMessage)
+            log.error({ err: errorMessage }, `❌ Failed to sync mutation ${mutation.id}:`)
           }
 
           // If max retries reached, skip to next mutation
           if (mutation.retryCount + 1 >= this.maxRetries) {
             if (process.env.NODE_ENV === 'development') {
-              console.error(`⚠️ Mutation ${mutation.id} exceeded max retries, marked as failed`)
+              log.error(`⚠️ Mutation ${mutation.id} exceeded max retries, marked as failed`)
             }
           }
         }
@@ -244,7 +248,7 @@ export class OfflineSyncManager {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔄 Sync complete: ${successCount} success, ${failedCount} failed`)
+        log.info(`🔄 Sync complete: ${successCount} success, ${failedCount} failed`)
       }
 
       // Broadcast sync completed
@@ -291,7 +295,7 @@ export class OfflineSyncManager {
 
       // Skip cache update if response is empty
       if (!responseData || Object.keys(responseData).length === 0) {
-        console.warn('⚠️ [OfflineSync] Empty response data, skipping cache update')
+        log.warn('⚠️ [OfflineSync] Empty response data, skipping cache update')
         return
       }
 
@@ -322,12 +326,12 @@ export class OfflineSyncManager {
       if (error instanceof Error && error.message.includes('Conflict')) {
         // Log conflict for potential manual resolution
         if (process.env.NODE_ENV === 'development') {
-          console.warn('⚠️ Conflict detected:', {
+          log.warn({
             entity,
             entityId,
             localData: data,
             error: error.message
-          })
+          }, '⚠️ Conflict detected:')
         }
 
         // In production, you might want to:
@@ -356,7 +360,7 @@ export class OfflineSyncManager {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🔄 Retrying ${failedMutations.length} failed mutations...`)
+      log.info(`🔄 Retrying ${failedMutations.length} failed mutations...`)
     }
 
     // Reset status to pending and retry count
@@ -390,7 +394,7 @@ export class OfflineSyncManager {
       await offlineDB.mutations.bulkDelete(ids)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🗑️ Cleared ${oldMutations.length} old completed mutations`)
+        log.info(`🗑️ Cleared ${oldMutations.length} old completed mutations`)
       }
     }
   }
@@ -402,7 +406,7 @@ export class OfflineSyncManager {
     await offlineDB.mutations.clear()
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('🗑️ Cleared all mutations')
+      log.info('🗑️ Cleared all mutations')
     }
   }
 
@@ -413,7 +417,7 @@ export class OfflineSyncManager {
     await offlineDB.mutations.delete(mutationId)
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🗑️ Cancelled mutation ${mutationId}`)
+      log.info(`🗑️ Cancelled mutation ${mutationId}`)
     }
   }
 }
@@ -458,15 +462,15 @@ class OfflineSyncAutoManager {
     // Auto-sync on reconnection
     this.onlineHandler = () => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('📡 Connection restored, syncing pending mutations...')
+        log.info('📡 Connection restored, syncing pending mutations...')
       }
-      OfflineSyncManager.syncPendingMutations().catch(console.error)
+      OfflineSyncManager.syncPendingMutations().catch(err => log.error({ err }, 'syncPendingMutations failed'))
     }
     window.addEventListener('online', this.onlineHandler)
 
     // Periodic cleanup of old completed mutations (every hour)
     this.cleanupIntervalId = setInterval(() => {
-      OfflineSyncManager.clearOldCompletedMutations().catch(console.error)
+      OfflineSyncManager.clearOldCompletedMutations().catch(err => log.error({ err }, 'clearOldCompletedMutations failed'))
     }, 60 * 60 * 1000)
   }
 

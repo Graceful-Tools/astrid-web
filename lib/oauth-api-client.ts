@@ -7,6 +7,10 @@
 
 import { type OAuthScope } from './oauth/oauth-scopes'
 import { safeResponseJson } from './safe-parse'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('oauth-api-client')
+
 
 interface OAuthTokenResponse {
   access_token: string
@@ -80,7 +84,7 @@ export class OAuthAPIClient {
     this.clientSecret = options?.clientSecret || process.env.ASTRID_OAUTH_CLIENT_SECRET || ''
 
     if (!this.clientId || !this.clientSecret) {
-      console.warn('⚠️ OAuth credentials not configured. Set ASTRID_OAUTH_CLIENT_ID and ASTRID_OAUTH_CLIENT_SECRET')
+      log.warn('⚠️ OAuth credentials not configured. Set ASTRID_OAUTH_CLIENT_ID and ASTRID_OAUTH_CLIENT_SECRET')
     }
   }
 
@@ -101,7 +105,7 @@ export class OAuthAPIClient {
         return this.accessToken
       }
 
-      console.log('🔑 Obtaining OAuth access token...')
+      log.info('🔑 Obtaining OAuth access token...')
 
       const response = await fetch(`${this.baseUrl}/api/v1/oauth/token`, {
         method: 'POST',
@@ -126,11 +130,11 @@ export class OAuthAPIClient {
       // Set expiry to 5 minutes before actual expiry for safety
       this.tokenExpiry = Date.now() + ((data.expires_in - 300) * 1000)
 
-      console.log('✅ Access token obtained successfully')
+      log.info('✅ Access token obtained successfully')
       return this.accessToken
 
     } catch (error) {
-      console.error('❌ Failed to obtain access token:', error)
+      log.error({ err: error }, '❌ Failed to obtain access token:')
       throw error
     }
   }
@@ -175,7 +179,7 @@ export class OAuthAPIClient {
         data: data.lists,
       }
     } catch (error) {
-      console.error('❌ Failed to get lists:', error)
+      log.error({ err: error }, '❌ Failed to get lists:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -201,7 +205,7 @@ export class OAuthAPIClient {
         data: data.tasks,
       }
     } catch (error) {
-      console.error('❌ Failed to get tasks:', error)
+      log.error({ err: error }, '❌ Failed to get tasks:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -220,7 +224,7 @@ export class OAuthAPIClient {
         data: data.task,
       }
     } catch (error) {
-      console.error('❌ Failed to get task:', error)
+      log.error({ err: error }, '❌ Failed to get task:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -233,20 +237,20 @@ export class OAuthAPIClient {
    */
   async createTask(taskData: CreateTaskData): Promise<APIResponse<Task>> {
     try {
-      console.log('📝 Creating task:', taskData.title)
+      log.info({ title: taskData.title }, '📝 Creating task')
 
       const data = await this.makeRequest<{ task: Task }>('/api/v1/tasks', {
         method: 'POST',
         body: JSON.stringify(taskData),
       })
 
-      console.log('✅ Task created successfully:', data.task.id)
+      log.info({ taskId: data.task.id }, '✅ Task created successfully')
       return {
         success: true,
         data: data.task,
       }
     } catch (error) {
-      console.error('❌ Failed to create task:', error)
+      log.error({ err: error }, '❌ Failed to create task:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -259,20 +263,20 @@ export class OAuthAPIClient {
    */
   async updateTask(taskId: string, updates: UpdateTaskData): Promise<APIResponse<Task>> {
     try {
-      console.log('📝 Updating task:', taskId)
+      log.info({ taskId }, '📝 Updating task:')
 
       const data = await this.makeRequest<{ task: Task }>(`/api/v1/tasks/${taskId}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
       })
 
-      console.log('✅ Task updated successfully')
+      log.info('✅ Task updated successfully')
       return {
         success: true,
         data: data.task,
       }
     } catch (error) {
-      console.error('❌ Failed to update task:', error)
+      log.error({ err: error }, '❌ Failed to update task:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -285,7 +289,7 @@ export class OAuthAPIClient {
    */
   async addComment(taskId: string, content: string): Promise<APIResponse<Comment>> {
     try {
-      console.log('💬 Adding comment to task:', taskId)
+      log.info({ taskId }, '💬 Adding comment to task:')
 
       const data = await this.makeRequest<{ comment: Comment }>(
         `/api/v1/tasks/${taskId}/comments`,
@@ -295,13 +299,13 @@ export class OAuthAPIClient {
         }
       )
 
-      console.log('✅ Comment added successfully')
+      log.info('✅ Comment added successfully')
       return {
         success: true,
         data: data.comment,
       }
     } catch (error) {
-      console.error('❌ Failed to add comment:', error)
+      log.error({ err: error }, '❌ Failed to add comment:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -318,12 +322,12 @@ export class OAuthAPIClient {
         throw new Error('OAuth credentials not configured')
       }
 
-      console.log('🔍 Testing API connection...')
+      log.info('🔍 Testing API connection...')
 
       const result = await this.getLists()
 
       if (result.success) {
-        console.log('✅ API connection successful')
+        log.info('✅ API connection successful')
         return {
           success: true,
           data: {
@@ -335,7 +339,7 @@ export class OAuthAPIClient {
         throw new Error(result.error)
       }
     } catch (error) {
-      console.error('❌ API connection failed:', error)
+      log.error({ err: error }, '❌ API connection failed:')
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Connection failed',

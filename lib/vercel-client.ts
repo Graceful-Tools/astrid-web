@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('vercel-client')
+
 /**
  * Vercel API Client for staging deployments
  * Handles deployment creation and status monitoring for GitHub PRs
@@ -91,11 +95,11 @@ export class VercelClient {
       )
 
       if (!project) {
-        console.log(`⚠️ No Vercel project found for repository: ${repoFullName}`)
-        console.log('💡 To enable preview deployments:')
-        console.log('   1. Import your project at https://vercel.com/new')
-        console.log('   2. Ensure the GitHub repository is linked to the Vercel project')
-        console.log('   3. Verify VERCEL_TOKEN and VERCEL_TEAM_ID environment variables are set')
+        log.info(`⚠️ No Vercel project found for repository: ${repoFullName}`)
+        log.info('💡 To enable preview deployments:')
+        log.info('   1. Import your project at https://vercel.com/new')
+        log.info('   2. Ensure the GitHub repository is linked to the Vercel project')
+        log.info('   3. Verify VERCEL_TOKEN and VERCEL_TEAM_ID environment variables are set')
         return null
       }
 
@@ -114,7 +118,7 @@ export class VercelClient {
         }
       }
     } catch (error) {
-      console.error('Error finding Vercel project:', error)
+      log.error({ err: error }, 'Error finding Vercel project:')
       return null
     }
   }
@@ -154,12 +158,12 @@ export class VercelClient {
         }
       }
 
-      console.log('🚀 [Vercel] Creating deployment:', {
+      log.info({
         projectId,
         repo: options.gitSource.repo,
         ref: options.gitSource.ref,
         target: options.target
-      })
+      }, '🚀 [Vercel] Creating deployment:')
 
       const response = await fetch(`${this.baseUrl}/v13/deployments`, {
         method: 'POST',
@@ -169,17 +173,17 @@ export class VercelClient {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('Vercel API Error:', response.status, errorText)
+        log.error({ status: response.status, errorText }, 'Vercel API Error')
         throw new Error(`Failed to create deployment: ${response.statusText}`)
       }
 
       const deployment = await response.json()
 
-      console.log('✅ [Vercel] Deployment created:', {
+      log.info({
         id: deployment.id,
         url: deployment.url,
         state: deployment.readyState
-      })
+      }, '✅ [Vercel] Deployment created:')
 
       return {
         id: deployment.id,
@@ -200,7 +204,7 @@ export class VercelClient {
         }
       }
     } catch (error) {
-      console.error('Error creating Vercel deployment:', error)
+      log.error({ err: error }, 'Error creating Vercel deployment:')
       return null
     }
   }
@@ -239,7 +243,7 @@ export class VercelClient {
         }
       }
     } catch (error) {
-      console.error('Error fetching deployment:', error)
+      log.error({ err: error }, 'Error fetching deployment:')
       return null
     }
   }
@@ -291,8 +295,8 @@ export class VercelClient {
       const project = await this.findProjectByRepo(repoFullName)
 
       if (!project) {
-        console.log(`⚠️ No Vercel project configured for ${repoFullName}`)
-        console.log('💡 Preview URLs will not be available. See instructions above for setup.')
+        log.info(`⚠️ No Vercel project configured for ${repoFullName}`)
+        log.info('💡 Preview URLs will not be available. See instructions above for setup.')
         return null
       }
 
@@ -317,7 +321,7 @@ export class VercelClient {
 
       return { deployment, project }
     } catch (error) {
-      console.error('Error deploying PR branch:', error)
+      log.error({ err: error }, 'Error deploying PR branch:')
       return null
     }
   }
@@ -365,7 +369,7 @@ export class VercelClient {
 
       return logs.join('\n')
     } catch (error) {
-      console.error('Error fetching deployment logs:', error)
+      log.error({ err: error }, 'Error fetching deployment logs:')
       return null
     }
   }
@@ -399,7 +403,7 @@ export class VercelClient {
 
       return logs.join('\n')
     } catch (error) {
-      console.error('Error fetching runtime logs:', error)
+      log.error({ err: error }, 'Error fetching runtime logs:')
       return null
     }
   }
@@ -440,7 +444,7 @@ export class VercelClient {
         buildLogs: logs || undefined
       }
     } catch (error) {
-      console.error('Error checking deployment errors:', error)
+      log.error({ err: error }, 'Error checking deployment errors:')
       return {
         hasErrors: true,
         errors: [error instanceof Error ? error.message : 'Unknown error checking deployment']
@@ -461,7 +465,7 @@ export class VercelClient {
       // The Vercel API accepts either deployment ID or full URL
       const deploymentId = deploymentUrl.replace('https://', '').replace('http://', '')
 
-      console.log(`🔗 Creating alias: ${aliasHostname} -> ${deploymentUrl}`)
+      log.info(`🔗 Creating alias: ${aliasHostname} -> ${deploymentUrl}`)
 
       const response = await fetch(`${this.baseUrl}/v2/deployments/${deploymentId}/aliases`, {
         method: 'POST',
@@ -471,18 +475,18 @@ export class VercelClient {
 
       if (!response.ok) {
         const errorData = await response.text()
-        console.error('Vercel alias API error:', response.status, errorData)
+        log.error({ status: response.status, errorData }, 'Vercel alias API error')
         return { success: false, error: `Failed to create alias: ${response.statusText}` }
       }
 
       const data = await response.json()
       const aliasUrl = `https://${aliasHostname}`
 
-      console.log(`✅ Alias created: ${aliasUrl}`)
+      log.info(`✅ Alias created: ${aliasUrl}`)
       return { success: true, aliasUrl }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error('Error creating Vercel alias:', errorMessage)
+      log.error({ err: errorMessage }, 'Error creating Vercel alias:')
       return { success: false, error: errorMessage }
     }
   }
@@ -525,7 +529,7 @@ export class VercelClient {
         }
       }))
     } catch (error) {
-      console.error('Error listing deployments:', error)
+      log.error({ err: error }, 'Error listing deployments:')
       return []
     }
   }

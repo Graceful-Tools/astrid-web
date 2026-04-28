@@ -15,6 +15,10 @@
 import type { PrismaClient } from '@prisma/client'
 import { prisma as sharedPrisma } from './prisma'
 import type { AIService } from '@/lib/ai/agent-config'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('workflow-queue')
+
 
 interface QueuedWorkflow {
   id: string
@@ -92,7 +96,7 @@ export class WorkflowQueue {
       // Start processor for this queue
       this.startQueueProcessor(userId)
 
-      console.log(`✅ [QUEUE] Created new queue for user: ${userId}`)
+      log.info(`✅ [QUEUE] Created new queue for user: ${userId}`)
     }
 
     return this.apiKeyQueues.get(userId)!
@@ -128,7 +132,7 @@ export class WorkflowQueue {
 
     // Check if we can execute immediately on this API key's queue
     if (this.canExecuteImmediately(userId)) {
-      console.log(`✅ [QUEUE:${userId}] Executing workflow immediately: ${taskId}`)
+      log.info(`✅ [QUEUE:${userId}] Executing workflow immediately: ${taskId}`)
       this.executeWorkflow(queuedWorkflow, userId)
       return { queued: false }
     }
@@ -140,7 +144,7 @@ export class WorkflowQueue {
     const position = apiQueue.queue.findIndex(w => w.id === workflowId) + 1
     const estimatedWaitTime = this.calculateEstimatedWaitTime(position)
 
-    console.log(`📋 [QUEUE:${userId}] Workflow queued: ${taskId} (position: ${position}, wait: ${estimatedWaitTime}s)`)
+    log.info(`📋 [QUEUE:${userId}] Workflow queued: ${taskId} (position: ${position}, wait: ${estimatedWaitTime}s)`)
 
     // ✅ Post queue notification to user
     try {
@@ -160,7 +164,7 @@ export class WorkflowQueue {
         `*Your queue is isolated from other users' API keys.*`
       )
     } catch (error) {
-      console.error('Failed to post queue notification:', error)
+      log.error({ err: error }, 'Failed to post queue notification:')
     }
 
     return {
@@ -269,16 +273,16 @@ export class WorkflowQueue {
         })
 
         if (!task) {
-          console.log(`❌ [QUEUE:${userId}] Workflow cancelled - task ${taskId} was deleted`)
+          log.info(`❌ [QUEUE:${userId}] Workflow cancelled - task ${taskId} was deleted`)
           return
         }
 
         if (task.completed) {
-          console.log(`✅ [QUEUE:${userId}] Workflow cancelled - task ${taskId} was completed`)
+          log.info(`✅ [QUEUE:${userId}] Workflow cancelled - task ${taskId} was completed`)
           return
         }
 
-        console.log(`🚀 [QUEUE:${userId}] Starting workflow execution: ${taskId}`)
+        log.info(`🚀 [QUEUE:${userId}] Starting workflow execution: ${taskId}`)
 
         // Record estimated token usage upfront for this API key
         this.recordTokenUsage(userId, workflow.estimatedTokens)
@@ -321,7 +325,7 @@ export class WorkflowQueue {
               }
             }
           })
-          console.log(`✅ [QUEUE] Using existing workflow record: ${workflowRecord.id}`)
+          log.info(`✅ [QUEUE] Using existing workflow record: ${workflowRecord.id}`)
         }
 
         // Create orchestrator
@@ -333,29 +337,29 @@ export class WorkflowQueue {
             aiService
           )
         } catch (createError: any) {
-          console.error(`❌ [QUEUE:${userId}] Failed to create AIOrchestrator:`, createError)
+          log.error({ err: createError }, `❌ [QUEUE:${userId}] Failed to create AIOrchestrator:`)
           throw new Error(`Failed to initialize AI workflow: ${createError.message || 'Unknown error'}. Check that AI API keys are configured correctly.`)
         }
 
         // Execute - this posts "Starting work" comment
-        console.log(`🎬 [QUEUE:${userId}] ABOUT TO CALL executeCompleteWorkflow for task ${taskId}`)
-        console.log(`🎬 [QUEUE:${userId}] Workflow ID: ${workflowRecord.id}`)
-        console.log(`🎬 [QUEUE:${userId}] Orchestrator trace ID: ${orchestrator.getTraceId() || 'unknown'}`)
+        log.info(`🎬 [QUEUE:${userId}] ABOUT TO CALL executeCompleteWorkflow for task ${taskId}`)
+        log.info(`🎬 [QUEUE:${userId}] Workflow ID: ${workflowRecord.id}`)
+        log.info(`🎬 [QUEUE:${userId}] Orchestrator trace ID: ${orchestrator.getTraceId() || 'unknown'}`)
 
         try {
-          console.log(`▶️ [QUEUE:${userId}] CALLING orchestrator.executeCompleteWorkflow NOW`)
+          log.info(`▶️ [QUEUE:${userId}] CALLING orchestrator.executeCompleteWorkflow NOW`)
           await orchestrator.executeCompleteWorkflow(workflowRecord.id, taskId)
-          console.log(`✅ [QUEUE:${userId}] executeCompleteWorkflow COMPLETED for task ${taskId}`)
+          log.info(`✅ [QUEUE:${userId}] executeCompleteWorkflow COMPLETED for task ${taskId}`)
         } catch (executeError: any) {
-          console.error(`❌ [QUEUE:${userId}] executeCompleteWorkflow FAILED:`, executeError)
-          console.error(`❌ [QUEUE:${userId}] Error message:`, executeError.message)
-          console.error(`❌ [QUEUE:${userId}] Error stack:`, executeError.stack)
+          log.error({ err: executeError }, `❌ [QUEUE:${userId}] executeCompleteWorkflow FAILED:`)
+          log.error(executeError.message, `❌ [QUEUE:${userId}] Error message:`)
+          log.error(executeError.stack, `❌ [QUEUE:${userId}] Error stack:`)
           throw new Error(`Workflow execution failed: ${executeError.message || 'Unknown error'}`)
         }
 
       } catch (error: any) {
-        console.error(`❌ [QUEUE:${userId}] Workflow failed: ${taskId}`, error)
-        console.error(`❌ [QUEUE:${userId}] Error stack:`, error?.stack)
+        log.error({ err: error }, `❌ [QUEUE:${userId}] Workflow failed: ${taskId}`)
+        log.error(error?.stack, `❌ [QUEUE:${userId}] Error stack:`)
 
         // Check if rate limit error
         const isRateLimitError = error?.message?.includes('rate_limit_error') ||
@@ -394,7 +398,7 @@ export class WorkflowQueue {
     const delaySeconds = Math.round(delay / 1000)
     const delayMinutes = Math.round(delaySeconds / 60)
 
-    console.log(`🔄 [QUEUE:${userId}] Retrying workflow ${workflow.taskId} in ${delayMinutes}min (attempt ${workflow.retries}/${workflow.maxRetries})${isRateLimit ? ' [RATE LIMIT]' : ''}`)
+    log.info(`🔄 [QUEUE:${userId}] Retrying workflow ${workflow.taskId} in ${delayMinutes}min (attempt ${workflow.retries}/${workflow.maxRetries})${isRateLimit ? ' [RATE LIMIT]' : ''}`)
 
     // Post retry notice with queue info
     await this.postRetryComment(workflow.taskId, workflow.retries, delaySeconds, isRateLimit, userId)
@@ -410,22 +414,22 @@ export class WorkflowQueue {
         })
 
         if (!task) {
-          console.log(`❌ [QUEUE:${userId}] Retry cancelled - task ${workflow.taskId} was deleted`)
+          log.info(`❌ [QUEUE:${userId}] Retry cancelled - task ${workflow.taskId} was deleted`)
           return
         }
 
         if (task.completed) {
-          console.log(`✅ [QUEUE:${userId}] Retry cancelled - task ${workflow.taskId} was completed`)
+          log.info(`✅ [QUEUE:${userId}] Retry cancelled - task ${workflow.taskId} was completed`)
           return
         }
 
         // Task is still valid, proceed with retry
-        console.log(`✅ [QUEUE:${userId}] Task ${workflow.taskId} still active, proceeding with retry`)
+        log.info(`✅ [QUEUE:${userId}] Task ${workflow.taskId} still active, proceeding with retry`)
         apiQueue.queue.unshift(workflow) // Add to front of queue
         this.processQueue(userId)
 
       } catch (error) {
-        console.error(`❌ [QUEUE:${userId}] Error checking task status for retry:`, error)
+        log.error({ err: error }, `❌ [QUEUE:${userId}] Error checking task status for retry:`)
         // Don't retry if we can't verify task status
       }
     }, delay)
@@ -464,7 +468,7 @@ export class WorkflowQueue {
 
       await createAIAgentComment(taskId, message)
     } catch (error) {
-      console.error('Failed to post retry comment:', error)
+      log.error({ err: error }, 'Failed to post retry comment:')
     }
   }
 
@@ -521,7 +525,7 @@ export class WorkflowQueue {
 
       await createAIAgentComment(taskId, message)
     } catch (err) {
-      console.error('Failed to post error comment:', err)
+      log.error({ err: err }, 'Failed to post error comment:')
     }
   }
 
@@ -542,7 +546,7 @@ export class WorkflowQueue {
       return
     }
 
-    console.log(`⏭️  [QUEUE:${userId}] Starting next workflow from queue: ${nextWorkflow.taskId}`)
+    log.info(`⏭️  [QUEUE:${userId}] Starting next workflow from queue: ${nextWorkflow.taskId}`)
     this.executeWorkflow(nextWorkflow, userId)
 
     // Try to process more if capacity available
@@ -566,7 +570,7 @@ export class WorkflowQueue {
       this.processQueue(userId)
     }, 5000) // Check every 5 seconds
 
-    console.log(`✅ [QUEUE:${userId}] Started queue processor`)
+    log.info(`✅ [QUEUE:${userId}] Started queue processor`)
   }
 
   /**
