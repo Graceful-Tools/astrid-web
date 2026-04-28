@@ -2,6 +2,10 @@
 
 import { getSession } from "next-auth/react"
 import { safeEventParse } from "./safe-parse"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('sse-manager')
+
 
 export interface SSEEvent {
   type: string
@@ -136,7 +140,7 @@ class SSEManagerClass {
     try {
       session = await getSession()
     } catch (error) {
-      console.warn('🔗 [SSE Manager] Failed to get session, retrying in 2s:', error)
+      log.warn({ error }, '🔗 [SSE Manager] Failed to get session, retrying in 2s:')
       // Retry session fetch after a short delay
       setTimeout(() => this.connect(), 2000)
       return
@@ -145,7 +149,7 @@ class SSEManagerClass {
     if (!session?.user) {
       // Only log in development - this is expected for logged-out users
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔗 [SSEManager] No session/user, skipping SSE connection')
+        log.info('🔗 [SSEManager] No session/user, skipping SSE connection')
       }
       return
     }
@@ -163,7 +167,7 @@ class SSEManagerClass {
       let sseUrl = '/api/sse'
       if (this.wasDisconnected && this.lastEventTime > 0) {
         sseUrl = `/api/sse?since=${this.lastEventTime}`
-        console.log('🔗 [SSEManager] Reconnecting with since=', new Date(this.lastEventTime).toISOString())
+        log.info({ since: new Date(this.lastEventTime).toISOString() }, '🔗 [SSEManager] Reconnecting')
       }
 
       this.eventSource = new EventSource(sseUrl, { withCredentials: true })
@@ -172,11 +176,11 @@ class SSEManagerClass {
       this.eventSource.onerror = this.handleError.bind(this)
 
     } catch (error) {
-      console.error('🔗 [SSE Manager] ❌ FATAL: Failed to create EventSource:', error)
-      console.error('🔗 [SSE Manager] Error details:', {
+      log.error({ err: error }, '🔗 [SSE Manager] ❌ FATAL: Failed to create EventSource:')
+      log.error({
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : 'No stack trace'
-      })
+      }, '🔗 [SSE Manager] Error details:')
       this.handleError(error as Event)
     }
   }
@@ -205,13 +209,13 @@ class SSEManagerClass {
     // If this is a reconnection (was previously disconnected), notify reconnection listeners
     if (this.wasDisconnected) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 [SSE Manager] Reconnected - notifying listeners')
+        log.info('🔄 [SSE Manager] Reconnected - notifying listeners')
       }
       this.reconnectionListeners.forEach(callback => {
         try {
           callback()
         } catch (error) {
-          console.error('❌ [SSE Manager] Error in reconnection listener:', error)
+          log.error({ err: error }, '❌ [SSE Manager] Error in reconnection listener:')
         }
       })
       this.wasDisconnected = false
@@ -237,7 +241,7 @@ class SSEManagerClass {
 
       // Skip error events (parsing failed)
       if (eventData.type === 'error' && eventData.data?.error === 'Invalid event data') {
-        console.warn('⚠️ [SSE Manager] Skipping invalid event data')
+        log.warn('⚠️ [SSE Manager] Skipping invalid event data')
         return
       }
 
@@ -248,7 +252,7 @@ class SSEManagerClass {
       // Handle reconnect event from server (graceful close before timeout)
       if (eventData.type === 'reconnect') {
         if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 [SSE Manager] Server requested graceful reconnection:', eventData.data?.reason || 'Unknown reason')
+          log.info(eventData.data?.reason || 'Unknown reason', '🔄 [SSE Manager] Server requested graceful reconnection:')
         }
         this.handleGracefulReconnect()
         return
@@ -285,7 +289,7 @@ class SSEManagerClass {
       this.routeEvent(eventData)
 
     } catch (error) {
-      console.error('❌ [SSE Manager] Error parsing SSE event:', error)
+      log.error({ err: error }, '❌ [SSE Manager] Error parsing SSE event:')
     }
   }
 
@@ -299,7 +303,7 @@ class SSEManagerClass {
         try {
           subscription.callback(event)
         } catch (error) {
-          console.error(`❌ [SSE Manager] Error in subscription ${subscription.id}:`, error)
+          log.error({ err: error }, `❌ [SSE Manager] Error in subscription ${subscription.id}:`)
         }
       }
     })
@@ -344,7 +348,7 @@ class SSEManagerClass {
 
     // Only log errors in development for unexpected failures
     if (process.env.NODE_ENV === 'development' && !isNormalClose) {
-      console.error('❌ [SSE Manager] SSE Error:', error)
+      log.error({ err: error }, '❌ [SSE Manager] SSE Error:')
     }
 
     this.isConnecting = false
@@ -367,7 +371,7 @@ class SSEManagerClass {
 
     // Circuit breaker: stop trying after 10 consecutive failures
     if (this.connectionAttempts >= 10) {
-      console.warn('🚫 [SSE Manager] Circuit breaker activated - too many consecutive failures')
+      log.warn('🚫 [SSE Manager] Circuit breaker activated - too many consecutive failures')
       return
     }
 
@@ -392,7 +396,7 @@ class SSEManagerClass {
 
     // Set timeout for 60 seconds (server pings every 15s, so this allows 4 missed pings)
     this.heartbeatTimeout = setTimeout(() => {
-      console.warn('💓 [SSE Manager] Heartbeat timeout - no ping received for 60 seconds')
+      log.warn('💓 [SSE Manager] Heartbeat timeout - no ping received for 60 seconds')
 
       // Trigger reconnection
       if (this.eventSource) {

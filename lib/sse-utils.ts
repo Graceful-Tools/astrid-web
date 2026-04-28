@@ -1,4 +1,8 @@
 import { Redis } from '@upstash/redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('sse-utils')
+
 
 // Global SSE connection registry to ensure state is shared across all API routes
 declare global {
@@ -238,9 +242,9 @@ export async function broadcastToUsers(userIds: string[], event: any) {
     }
 
     const userConnections = connections.get(userId)
-    console.log(`[SSE] User ${userId} has ${userConnections?.size || 0} connections`)
+    log.info(`[SSE] User ${userId} has ${userConnections?.size || 0} connections`)
     if (userConnections && userConnections.size > 0) {
-      console.log(`[SSE] Broadcasting ${event.type} to ${userConnections.size} connections for user ${userId}`)
+      log.info(`[SSE] Broadcasting ${event.type} to ${userConnections.size} connections for user ${userId}`)
 
       userConnections.forEach((connection, connectionId) => {
         if (connection.isAlive) {
@@ -248,20 +252,20 @@ export async function broadcastToUsers(userIds: string[], event: any) {
             connection.controller.enqueue(encoder.encode(sseMessage))
             connection.lastPing = Date.now()
             connection.lastEventCheck = Date.now()
-            console.log(`[SSE] ✅ Sent ${event.type} to connection ${connectionId}`)
+            log.info(`[SSE] ✅ Sent ${event.type} to connection ${connectionId}`)
           } catch (error) {
-            console.error(`[SSE] ❌ Failed to send SSE to user ${userId} connection ${connectionId}:`, error)
+            log.error({ err: error }, `[SSE] ❌ Failed to send SSE to user ${userId} connection ${connectionId}:`)
             // Mark connection as dead for cleanup
             connection.isAlive = false
             deadConnectionIds.push({userId, connectionId})
           }
         } else {
-          console.log(`[SSE] ⚠️  Connection ${connectionId} is not alive, skipping`)
+          log.info(`[SSE] ⚠️  Connection ${connectionId} is not alive, skipping`)
           deadConnectionIds.push({userId, connectionId})
         }
       })
     } else {
-      console.log(`[SSE] ⚠️  No active connections for user ${userId} (event cached for reconnection)`)
+      log.info(`[SSE] ⚠️  No active connections for user ${userId} (event cached for reconnection)`)
     }
   })
 
@@ -329,20 +333,20 @@ export async function broadcastCommentCreatedNotification(
     }
 
     // Debug: Log users before removing commenter
-    console.log('🔍 Comment SSE debug - All users who should be notified:', Array.from(userIds))
-    console.log('🔍 Comment SSE debug - Comment author:', comment.authorId)
-    console.log('🔍 Comment SSE debug - Exclude user ID:', excludeUserId)
+    log.info(Array.from(userIds), '🔍 Comment SSE debug - All users who should be notified:')
+    log.info(comment.authorId, '🔍 Comment SSE debug - Comment author:')
+    log.info({ excludeUserId }, '🔍 Comment SSE debug - Exclude user ID:')
 
     // Remove the excluded user (usually the comment author, since they already see it)
     if (excludeUserId) {
       userIds.delete(excludeUserId)
     }
 
-    console.log('🔍 Comment SSE debug - Users after removing excluded:', Array.from(userIds))
+    log.info(Array.from(userIds), '🔍 Comment SSE debug - Users after removing excluded:')
 
     // Broadcast to all relevant users
     if (userIds.size > 0) {
-      console.log('🔍 Comment SSE debug - Broadcasting comment_created to:', Array.from(userIds))
+      log.info(Array.from(userIds), '🔍 Comment SSE debug - Broadcasting comment_created to:')
       broadcastToUsers(Array.from(userIds), {
         type: 'comment_created',
         timestamp: new Date().toISOString(),
@@ -368,12 +372,12 @@ export async function broadcastCommentCreatedNotification(
           }
         }
       })
-      console.log('✅ Comment SSE notification sent successfully')
+      log.info('✅ Comment SSE notification sent successfully')
     } else {
-      console.log('⚠️ No users to notify for comment SSE notification')
+      log.info('⚠️ No users to notify for comment SSE notification')
     }
   } catch (sseError) {
-    console.error("Failed to send comment SSE notifications:", sseError)
+    log.error({ err: sseError }, "Failed to send comment SSE notifications:")
     // Don't throw - this should not break comment creation
   }
 }
@@ -432,9 +436,9 @@ async function cacheEventForUser(userId: string, event: any) {
     try {
       const key = `sse:events:${userId}:${timestamp}`
       await redis.setex(key, REDIS_EVENT_TTL_SECONDS, JSON.stringify({ event, timestamp }))
-      console.log(`[SSE] Cached event in Redis for user ${userId}`)
+      log.info(`[SSE] Cached event in Redis for user ${userId}`)
     } catch (error) {
-      console.error('[SSE] Failed to cache event in Redis:', error)
+      log.error({ err: error }, '[SSE] Failed to cache event in Redis:')
       // Fall back to in-memory
       cacheEventInMemory(userId, event, timestamp)
     }
@@ -493,10 +497,10 @@ export async function getMissedEvents(userId: string, sinceTimestamp: number): P
 
       // Sort by timestamp
       events.sort((a, b) => a.timestamp - b.timestamp)
-      console.log(`[SSE] getMissedEvents from Redis for user ${userId}: ${events.length} events`)
+      log.info(`[SSE] getMissedEvents from Redis for user ${userId}: ${events.length} events`)
       return events.map(e => e.event)
     } catch (error) {
-      console.error('[SSE] Failed to get events from Redis:', error)
+      log.error({ err: error }, '[SSE] Failed to get events from Redis:')
       // Fall back to in-memory
     }
   }
@@ -511,7 +515,7 @@ export async function getMissedEvents(userId: string, sinceTimestamp: number): P
     .filter(e => e.timestamp > sinceTimestamp)
     .map(e => e.event)
 
-  console.log(`[SSE] getMissedEvents from memory for user ${userId}: ${missedEvents.length} events`)
+  log.info(`[SSE] getMissedEvents from memory for user ${userId}: ${missedEvents.length} events`)
   return missedEvents
 }
 
@@ -541,20 +545,20 @@ export async function checkAndDeliverNewEvents(userId: string, connectionId: str
         try {
           connection.controller.enqueue(encoder.encode(sseMessage))
         } catch (error) {
-          console.error(`[SSE] Failed to deliver event to ${connectionId}:`, error)
+          log.error({ err: error }, `[SSE] Failed to deliver event to ${connectionId}:`)
           connection.isAlive = false
           return events.length
         }
       }
 
-      console.log(`[SSE] Delivered ${events.length} events from Redis to ${connectionId}`)
+      log.info(`[SSE] Delivered ${events.length} events from Redis to ${connectionId}`)
     }
 
     // Update last check time
     connection.lastEventCheck = Date.now()
     return events.length
   } catch (error) {
-    console.error('[SSE] Error checking for new events:', error)
+    log.error({ err: error }, '[SSE] Error checking for new events:')
     return 0
   }
 }

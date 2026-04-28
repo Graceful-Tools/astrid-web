@@ -1,4 +1,8 @@
 import { Prisma, PrismaClient } from "@prisma/client"
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('prisma')
+
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -16,7 +20,7 @@ async function handleTaskAssigneeChange(
     return
   }
 
-  console.log(`🔔 [PRISMA-MIDDLEWARE] Task ${taskId} assignee changed: ${previousAssigneeId} → ${newAssigneeId}`)
+  log.info(`🔔 [PRISMA-MIDDLEWARE] Task ${taskId} assignee changed: ${previousAssigneeId} → ${newAssigneeId}`)
 
   try {
     // Dynamic import to avoid circular dependencies
@@ -35,11 +39,11 @@ async function handleTaskAssigneeChange(
       })
 
       if (!assignee || !isCodingAgent(assignee)) {
-        console.log(`📋 [PRISMA-MIDDLEWARE] Assignee ${newAssigneeId} is not a coding agent, skipping webhook`)
+        log.info(`📋 [PRISMA-MIDDLEWARE] Assignee ${newAssigneeId} is not a coding agent, skipping webhook`)
         return
       }
 
-      console.log(`🤖 [PRISMA-MIDDLEWARE] Coding agent detected: ${assignee.name}`)
+      log.info(`🤖 [PRISMA-MIDDLEWARE] Coding agent detected: ${assignee.name}`)
 
       // Get full task data for webhook
       const task = await queryClient.task.findUnique({
@@ -52,7 +56,7 @@ async function handleTaskAssigneeChange(
       })
 
       if (!task) {
-        console.error(`❌ [PRISMA-MIDDLEWARE] Task ${taskId} not found after update`)
+        log.error(`❌ [PRISMA-MIDDLEWARE] Task ${taskId} not found after update`)
         return
       }
 
@@ -69,7 +73,7 @@ async function handleTaskAssigneeChange(
       })
 
       if (recentStartingComment) {
-        console.log(`📋 [PRISMA-MIDDLEWARE] Starting comment already posted recently, skipping duplicate`)
+        log.info(`📋 [PRISMA-MIDDLEWARE] Starting comment already posted recently, skipping duplicate`)
       } else {
         // Post acknowledgment comment
         await queryClient.comment.create({
@@ -80,7 +84,7 @@ async function handleTaskAssigneeChange(
             type: 'MARKDOWN'
           }
         })
-        console.log(`✅ [PRISMA-MIDDLEWARE] Posted acknowledgment comment`)
+        log.info(`✅ [PRISMA-MIDDLEWARE] Posted acknowledgment comment`)
       }
 
       // Send webhook to user's Claude Code Remote server
@@ -128,11 +132,11 @@ async function handleTaskAssigneeChange(
       // Fall back to list owner when creatorId is null
       const webhookUserId = task.creatorId || firstList?.ownerId
       if (!webhookUserId) {
-        console.log(`📋 [PRISMA-MIDDLEWARE] Task has no creatorId or list owner, skipping webhook`)
+        log.info(`📋 [PRISMA-MIDDLEWARE] Task has no creatorId or list owner, skipping webhook`)
         return
       }
 
-      console.log(`🚀 [PRISMA-MIDDLEWARE] Sending webhook for task ${taskId} to user ${webhookUserId} (creator: ${task.creatorId}, listOwner: ${firstList?.ownerId})`)
+      log.info(`🚀 [PRISMA-MIDDLEWARE] Sending webhook for task ${taskId} to user ${webhookUserId} (creator: ${task.creatorId}, listOwner: ${firstList?.ownerId})`)
       const webhookResult = await aiAgentWebhookService.sendToUserWebhook(
         webhookUserId,
         'task.assigned',
@@ -140,21 +144,21 @@ async function handleTaskAssigneeChange(
       )
 
       if (webhookResult.sent) {
-        console.log(`✅ [PRISMA-MIDDLEWARE] Webhook sent successfully`)
+        log.info(`✅ [PRISMA-MIDDLEWARE] Webhook sent successfully`)
       } else {
         // No webhook configured - check if this is a non-git task that needs assistant workflow
         const hasGitRepo = task.lists?.some(l => l.githubRepositoryId)
 
         if (!hasGitRepo) {
           // Non-git task: trigger assistant workflow via API route (runs in its own request context)
-          console.log(`📝 [PRISMA-MIDDLEWARE] No git repo, triggering assistant workflow API for task ${taskId}`)
+          log.info(`📝 [PRISMA-MIDDLEWARE] No git repo, triggering assistant workflow API for task ${taskId}`)
 
           const configuredByUserId = firstList?.aiAgentConfiguredBy || task.creatorId || firstList?.ownerId
 
           if (configuredByUserId) {
             // Call the API route - this runs in a separate request with its own timeout
             // Using fetch and awaiting to ensure request is sent before function terminates
-            console.log(`🚀 [PRISMA-MIDDLEWARE] Calling assistant workflow API at ${baseUrl}/api/assistant-workflow`)
+            log.info(`🚀 [PRISMA-MIDDLEWARE] Calling assistant workflow API at ${baseUrl}/api/assistant-workflow`)
             try {
               const workflowResponse = await fetch(`${baseUrl}/api/assistant-workflow`, {
                 method: 'POST',
@@ -169,27 +173,27 @@ async function handleTaskAssigneeChange(
 
               if (workflowResponse.ok) {
                 const result = await workflowResponse.json()
-                console.log(`✅ [PRISMA-MIDDLEWARE] Assistant workflow API completed:`, result)
+                log.info({ result }, `✅ [PRISMA-MIDDLEWARE] Assistant workflow API completed:`)
               } else {
                 const errorText = await workflowResponse.text()
-                console.error(`❌ [PRISMA-MIDDLEWARE] Assistant workflow API failed: ${errorText}`)
+                log.error(`❌ [PRISMA-MIDDLEWARE] Assistant workflow API failed: ${errorText}`)
               }
             } catch (err) {
-              console.error(`❌ [PRISMA-MIDDLEWARE] Failed to call assistant workflow API:`, err)
+              log.error({ err: err }, `❌ [PRISMA-MIDDLEWARE] Failed to call assistant workflow API:`)
             }
           } else {
-            console.log(`⚠️ [PRISMA-MIDDLEWARE] No user ID available to get API keys for assistant workflow`)
+            log.info(`⚠️ [PRISMA-MIDDLEWARE] No user ID available to get API keys for assistant workflow`)
           }
         } else {
           // Git repo task: polling worker will handle this
-          console.log(`📋 [PRISMA-MIDDLEWARE] Task has git repo, polling worker will handle`)
+          log.info(`📋 [PRISMA-MIDDLEWARE] Task has git repo, polling worker will handle`)
         }
       }
     } finally {
       await queryClient.$disconnect()
     }
   } catch (error) {
-    console.error(`❌ [PRISMA-MIDDLEWARE] Error handling assignee change:`, error)
+    log.error({ err: error }, `❌ [PRISMA-MIDDLEWARE] Error handling assignee change:`)
   }
 }
 
@@ -244,7 +248,7 @@ const createPrismaClient = () => {
             if (typeof newAssigneeId === 'string' && newAssigneeId !== previousAssigneeId) {
               // Fire and forget - don't block the response
               handleTaskAssigneeChange(taskId, previousAssigneeId, newAssigneeId).catch(err => {
-                console.error(`❌ [PRISMA-MIDDLEWARE] Webhook handler error:`, err)
+                log.error({ err: err }, `❌ [PRISMA-MIDDLEWARE] Webhook handler error:`)
               })
             }
 
@@ -258,7 +262,7 @@ const createPrismaClient = () => {
   // During build time, return a mock client that throws runtime errors
   // This allows static analysis to pass while preventing actual database calls during build
   if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
-    console.warn("⚠️  DATABASE_URL not available during build - using mock Prisma client")
+    log.warn("⚠️  DATABASE_URL not available during build - using mock Prisma client")
     return new Proxy({} as PrismaClient, {
       get() {
         throw new Error("Database not available - DATABASE_URL not configured")
