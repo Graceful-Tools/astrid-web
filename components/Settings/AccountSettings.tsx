@@ -45,6 +45,7 @@ import { useTranslations } from "@/lib/i18n/client"
 import { EmailVerificationSection } from "./EmailVerificationSection"
 import { AccountInfoSection } from "./AccountInfoSection"
 import { DataExportSection } from "./DataExportSection"
+import { AccountDeletionSection } from "./AccountDeletionSection"
 
 export interface AccountData {
   id: string
@@ -97,9 +98,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
   // Export state
   const [exporting, setExporting] = useState(false)
 
-  // Delete account state
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [deleteConfirmationText, setDeleteConfirmationText] = useState("")
+  // Delete account state — modal open/text moved into AccountDeletionSection.
   const [deleting, setDeleting] = useState(false)
 
   // Passkey state
@@ -434,8 +433,8 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
     }
   }
 
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmationText !== "DELETE MY ACCOUNT") {
+  const handleDeleteAccount = async (confirmationText: string) => {
+    if (confirmationText !== "DELETE MY ACCOUNT") {
       toast({
         title: "Error",
         description: "Please type 'DELETE MY ACCOUNT' to confirm.",
@@ -450,7 +449,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          confirmationText: deleteConfirmationText,
+          confirmationText,
         }),
       })
 
@@ -797,113 +796,9 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
 
           <DataExportSection exporting={exporting} onExport={handleExport} />
 
-          {/* Danger Zone - Account Deletion */}
-          <Card className="theme-bg-secondary border-red-600">
-            <CardHeader>
-              <CardTitle className="text-red-400 flex flex-wrap items-center gap-2">
-                <Trash2 className="w-5 h-5" />
-                <span>{t("settingsPages.deleteAccount.title")}</span>
-              </CardTitle>
-              <CardDescription className="text-red-300">
-                {t("settingsPages.deleteAccount.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert className="border-red-600 bg-red-900/20">
-                <AlertCircle className="w-4 h-4 text-red-400" />
-                <AlertDescription className="text-red-300 text-sm">
-                  <p className="font-semibold mb-2">{t("settingsPages.deleteAccount.warning")}</p>
-                  <p>{t("settingsPages.deleteAccount.willRemove")}</p>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>All tasks, lists, and comments</li>
-                    <li>All uploaded files and attachments</li>
-                    <li>All integrations and settings</li>
-                    <li>Access to shared lists and collaborations</li>
-                  </ul>
-                  <p className="mt-2 font-semibold">
-                    Consider exporting your data first (see above).
-                  </p>
-                </AlertDescription>
-              </Alert>
-              <Button
-                onClick={() => setShowDeleteDialog(true)}
-                variant="destructive"
-                className="w-full bg-red-600 hover:bg-red-700"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {t("settingsPages.deleteAccount.deleteMyAccount")}
-              </Button>
-            </CardContent>
-          </Card>
+          <AccountDeletionSection deleting={deleting} onConfirmDelete={handleDeleteAccount} />
         </div>
       </div>
-
-      {/* Delete Account Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="theme-bg-secondary theme-border">
-          <DialogHeader>
-            <DialogTitle className="text-red-400 flex flex-wrap items-center gap-2">
-              <Trash2 className="w-5 h-5" />
-              <span>{t("settingsPages.deleteAccount.confirmTitle")}</span>
-            </DialogTitle>
-            <DialogDescription className="theme-text-muted">
-              {t("settingsPages.deleteAccount.confirmDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Alert className="border-red-600 bg-red-900/20">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <AlertDescription className="text-red-300 text-sm">
-                All your data will be permanently deleted, including tasks, lists, and files.
-              </AlertDescription>
-            </Alert>
-
-            <div>
-              <Label htmlFor="deleteConfirmation" className="theme-text-secondary">
-                {t("settingsPages.deleteAccount.typeToConfirm")}
-              </Label>
-              <Input
-                id="deleteConfirmation"
-                value={deleteConfirmationText}
-                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                placeholder="DELETE MY ACCOUNT"
-                className="theme-input theme-text-primary font-mono"
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowDeleteDialog(false)
-                setDeleteConfirmationText("")
-              }}
-              disabled={deleting}
-              className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteAccount}
-              disabled={deleting || deleteConfirmationText !== "DELETE MY ACCOUNT"}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  {t("settingsPages.deleteAccount.deleting")}
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {t("settingsPages.deleteAccount.permanentlyDelete")}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
