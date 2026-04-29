@@ -49,24 +49,30 @@ export function getWindowWidth(): number {
 }
 
 /**
- * Determine the current layout type based on device and window size
+ * Determine the current layout type based on device and window size.
+ *
+ * Order matters: iPad must be checked BEFORE mobile, because every iPad
+ * Safari user agent contains the substring "Mobile/..." (Apple's convention),
+ * which makes isMobileDevice() match. If we let the mobile branch run first,
+ * iPad-portrait users land in mobile-1-column even though they should see
+ * tablet-2-column.
  */
 export function getLayoutType(): LayoutType {
   const width = getWindowWidth()
   const isMobile = isMobileDevice()
   const isIPad = isIPadDevice()
 
-  if (isMobile && width < 910) {
-    return 'mobile-1-column'
-  } else if (isIPad && width >= 1100) {
+  if (isIPad && width >= 1100) {
     return 'tablet-3-column'
-  } else if (isIPad && width < 1100) {
+  } else if (isIPad) {
     return 'tablet-2-column'
-  } else if (!isMobile && !isIPad && width < 910) {
+  } else if (isMobile && width < 910) {
+    return 'mobile-1-column'
+  } else if (!isMobile && width < 910) {
     return 'computer-1-column'
-  } else if (!isMobile && !isIPad && width >= 910 && width < 1100) {
+  } else if (!isMobile && width >= 910 && width < 1100) {
     return 'computer-2-column'
-  } else if (!isMobile && !isIPad && width >= 1100) {
+  } else if (!isMobile && width >= 1100) {
     return 'computer-3-column'
   }
 
