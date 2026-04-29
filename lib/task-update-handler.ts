@@ -1,0 +1,146 @@
+/**
+ * Server-side helpers for the PUT-task route's two side-effect blocks that
+ * previously used dynamic imports inline:
+ *
+ *   1. Repeating-task completion: when a task is marked complete and is part
+ *      of a repeating series, roll forward / terminate via the existing
+ *      handlers and tell the caller to short-circuit.
+ *
+ *   2. State-change comment: diff old vs new task and persist a system
+ *      comment describing what changed.
+ *
+ * Extracted from app/api/tasks/[id]/route.ts so POST and PUT can share the
+ * same orchestration and so the dynamic imports become static (matches the
+ * pattern Stage 1 established for reminder scheduling).
+ *
+ * Reminder rescheduling is in lib/reminder-scheduling.ts (Stage 1) — these
+ * three modules together cover the PUT route's three post-update concerns.
+ */
+
+import { prisma } from "./prisma"
+import { createLogger } from "./logger"
+import {
+  handleRepeatingTaskCompletion,
+  applyRepeatingTaskRollForward,
+} from "./repeating-task-handler"
+import {
+  detectTaskStateChanges,
+  formatStateChangesAsComment,
+  type TaskWithRelations,
+} from "./task-state-change-tracker"
+import { TASK_FULL_INCLUDE, type TaskWithFullRelations } from "./task-query-utils"
+
+const log = createLogger("task-update-handler")
+
+export type RepeatingCompletionOutcome =
+  | { rolledForward: false }
+  | { rolledForward: true; updatedTask: TaskWithFullRelations }
+
+/**
+ * Handle the "task being marked complete might be part of a repeating series
+ * that should roll forward (or terminate) instead of staying completed" branch.
+ *
+ * The repeating-task helpers already mutate the database when the result
+ * indicates roll-forward/terminate; this function only orchestrates detection
+ * + apply + re-fetch, then signals to the caller whether to short-circuit.
+ *
+ * Returns rolledForward:true with the freshly-fetched task when the caller
+ * should return that task to the client. Returns rolledForward:false when the
+ * caller should proceed with the normal update path.
+ */
+export async function applyRepeatingTaskCompletion(args: {
+  taskId: string
+  existingCompleted: boolean
+  dataCompleted: boolean | undefined
+  /** YYYY-MM-DD from client; only used for all-day repeating tasks in COMPLETION_DATE mode. */
+  localCompletionDate?: string
+}): Promise<RepeatingCompletionOutcome> {
+  const { taskId, existingCompleted, dataCompleted, localCompletionDate } = args
+
+  if (dataCompleted === undefined) return { rolledForward: false }
+
+  const result = await handleRepeatingTaskCompletion(
+    taskId,
+    existingCompleted,
+    dataCompleted,
+    localCompletionDate,
+  )
+
+  if (!result?.shouldRollForward && !result?.shouldTerminate) {
+    return { rolledForward: false }
+  }
+
+  await applyRepeatingTaskRollForward(taskId, result)
+
+  const updatedTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: TASK_FULL_INCLUDE,
+  })
+
+  if (!updatedTask) {
+    throw new Error(`Task ${taskId} not found after roll-forward`)
+  }
+
+  log.info(
+    {
+      taskId,
+      action: result.shouldRollForward ? "rolled_forward" : "terminated",
+    },
+    "Applied repeating task completion",
+  )
+
+  return { rolledForward: true, updatedTask: updatedTask as TaskWithFullRelations }
+}
+
+/**
+ * Diff the pre-update and post-update task and persist a system-authored
+ * comment describing the changes. Returns the new comment row (so the caller
+ * can prepend it to the task's comments array for the response), or null if
+ * no changes were detected or comment creation failed.
+ *
+ * Errors are logged but never thrown — a failed state-change comment must
+ * never fail the surrounding task update.
+ */
+export async function recordStateChangeComment(args: {
+  existingTask: TaskWithRelations
+  updatedTask: TaskWithFullRelations
+  updaterName: string
+}) {
+  const { existingTask, updatedTask, updaterName } = args
+
+  try {
+    const stateChanges = detectTaskStateChanges(existingTask, updatedTask, updaterName)
+    if (stateChanges.length === 0) return null
+
+    const commentContent = formatStateChangesAsComment(stateChanges, updaterName)
+
+    const comment = await prisma.comment.create({
+      data: {
+        taskId: updatedTask.id,
+        authorId: null,
+        content: commentContent,
+        type: "TEXT",
+      },
+      include: {
+        author: true,
+        secureFiles: true,
+        replies: {
+          include: { author: true, secureFiles: true },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    })
+
+    log.info(
+      { taskId: updatedTask.id, changes: stateChanges.length },
+      "Created state change comment",
+    )
+    return comment
+  } catch (err) {
+    log.error(
+      { err, taskId: updatedTask.id },
+      "Failed to create state change comment",
+    )
+    return null
+  }
+}
