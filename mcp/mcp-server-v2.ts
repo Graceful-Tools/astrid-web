@@ -23,6 +23,12 @@ const { callMCPOperation } = require("./call-mcp-operation");
 // Access token validation — extracted to ./access-token-validator.ts
 const { validateAccessToken } = require("./access-token-validator");
 
+// Comment handlers — extracted to ./handlers/comments.ts
+const {
+  addComment: addCommentHandler,
+  getTaskComments: getTaskCommentsHandler,
+} = require("./handlers/comments");
+
 // Schema definitions for validation — extracted to ./schemas.ts
 const {
   CreateTaskSchema,
@@ -923,113 +929,12 @@ class AstridMCPServerV2 {
     };
   }
 
-  private async addComment(args: any) {
-    const { accessToken, listId, comment } = args;
-
-    const { userId, user } = await this.validateAccessToken(accessToken, listId, "write");
-
-    // Validate comment data
-    const validatedComment = CreateCommentSchema.parse(comment);
-
-    // Verify task exists and is in the list
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: validatedComment.taskId,
-        lists: {
-          some: { id: listId },
-        },
-      },
-    });
-
-    if (!existingTask) {
-      throw new Error("Task not found in the specified list");
-    }
-
-    // Create the comment
-    const newComment = await prisma.comment.create({
-      data: {
-        content: validatedComment.content,
-        type: validatedComment.type,
-        authorId: userId,
-        taskId: validatedComment.taskId,
-      },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true },
-        },
-        task: {
-          select: { id: true, title: true },
-        },
-      },
-    });
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            success: true,
-            comment: {
-              id: newComment.id,
-              content: newComment.content,
-              type: newComment.type,
-              createdAt: newComment.createdAt,
-              author: newComment.author,
-              task: newComment.task,
-            },
-          }),
-        },
-      ],
-    };
+  private addComment(args: any) {
+    return addCommentHandler(args);
   }
 
-  private async getTaskComments(args: any) {
-    const { accessToken, listId, taskId } = args;
-
-    await this.validateAccessToken(accessToken, listId, "read");
-
-    // Verify task exists and is in the list
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: taskId,
-        lists: {
-          some: { id: listId },
-        },
-      },
-    });
-
-    if (!existingTask) {
-      throw new Error("Task not found in the specified list");
-    }
-
-    // Get all comments for the task
-    const comments = await prisma.comment.findMany({
-      where: { taskId },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            taskId,
-            comments: comments.map((comment: any) => ({
-              id: comment.id,
-              content: comment.content,
-              type: comment.type,
-              createdAt: comment.createdAt,
-              author: comment.author,
-            })),
-          }),
-        },
-      ],
-    };
+  private getTaskComments(args: any) {
+    return getTaskCommentsHandler(args);
   }
 
   private async getTaskDetails(args: any) {

@@ -85,3 +85,4 @@ async function validateAccessToken(
 }
 
 module.exports = { validateAccessToken }
+export {}
