@@ -20,6 +20,9 @@ const { hasListAccess } = require("./list-access");
 // GitHub MCP delegation — extracted to ./call-mcp-operation.ts
 const { callMCPOperation } = require("./call-mcp-operation");
 
+// Access token validation — extracted to ./access-token-validator.ts
+const { validateAccessToken } = require("./access-token-validator");
+
 // Schema definitions for validation — extracted to ./schemas.ts
 const {
   CreateTaskSchema,
@@ -640,74 +643,12 @@ class AstridMCPServerV2 {
     });
   }
 
-  private async validateAccessToken(
+  private validateAccessToken(
     accessToken: string,
     listId: string,
     requiredPermission: "read" | "write" | "admin"
   ): Promise<{ userId: string; permissions: string[]; user: any; list: any }> {
-    // Get token from database instead of memory
-    const mcpToken = await prisma.mcpToken.findFirst({
-      where: {
-        token: accessToken,
-        listId,
-        isActive: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, mcpEnabled: true }
-        },
-        list: {
-          include: {
-            owner: { select: { id: true, name: true, email: true } },
-            admins: { select: { id: true, name: true, email: true } },
-            listMembers: {
-              select: { userId: true, role: true, user: { select: { id: true, name: true, email: true } } }
-            }
-          }
-        }
-      }
-    });
-
-    if (!mcpToken) {
-      throw new Error("Invalid or expired access token");
-    }
-
-    // Check if user has MCP enabled globally
-    if (!mcpToken.user.mcpEnabled) {
-      throw new Error("MCP access is disabled for this user");
-    }
-
-    // Check token permissions
-    const hasPermission = mcpToken.permissions.includes(requiredPermission) ||
-                         mcpToken.permissions.includes('admin');
-
-    if (!hasPermission) {
-      throw new Error(`Insufficient permissions. Required: ${requiredPermission}`);
-    }
-
-    // Verify user still has access to the list
-    const userHasListAccess =
-      mcpToken.list.ownerId === mcpToken.user.id ||
-      mcpToken.list.admins.some((admin: any) => admin.id === mcpToken.user.id) ||
-      mcpToken.list.listMembers.some((member: any) =>
-        member.userId === mcpToken.user.id &&
-        ['admin', 'member'].includes(member.role)
-      );
-
-    if (!userHasListAccess) {
-      throw new Error("User no longer has access to this list");
-    }
-
-    return {
-      userId: mcpToken.user.id,
-      permissions: mcpToken.permissions,
-      user: mcpToken.user,
-      list: mcpToken.list
-    };
+    return validateAccessToken(accessToken, listId, requiredPermission);
   }
 
   private async getSharedLists(args: any) {
