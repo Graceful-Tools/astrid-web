@@ -43,6 +43,8 @@ import {
 import { signOut } from "next-auth/react"
 import { useTranslations } from "@/lib/i18n/client"
 import { EmailVerificationSection } from "./EmailVerificationSection"
+import { AccountInfoSection } from "./AccountInfoSection"
+import { DataExportSection } from "./DataExportSection"
 
 export interface AccountData {
   id: string
@@ -791,74 +793,9 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
             </Card>
           )}
 
-          {/* Account Info */}
-          <Card className="theme-bg-secondary theme-border">
-            <CardHeader>
-              <CardTitle className="theme-text-primary">{t("settingsPages.accountInfo.title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="theme-text-muted">{t("settingsPages.accountInfo.created")}</span>
-                <span className="theme-text-primary">
-                  {new Date(accountData.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="theme-text-muted">{t("settingsPages.accountInfo.lastUpdated")}</span>
-                <span className="theme-text-primary">
-                  {new Date(accountData.updatedAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="theme-text-muted">{t("settingsPages.accountInfo.accountId")}</span>
-                <span className="theme-text-primary font-mono text-xs">{accountData.id}</span>
-              </div>
-            </CardContent>
-          </Card>
+          <AccountInfoSection accountData={accountData} />
 
-          {/* Data Export */}
-          <Card className="theme-bg-secondary theme-border">
-            <CardHeader>
-              <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Download className="w-5 h-5" />
-                <span>{t("settingsPages.exportData.title")}</span>
-              </CardTitle>
-              <CardDescription className="theme-text-muted">
-                {t("settingsPages.exportData.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-sm theme-text-muted space-y-2">
-                <p>{t("settingsPages.exportData.includes")}</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>{t("settingsPages.exportData.allTasks")}</li>
-                  <li>{t("settingsPages.exportData.allLists")}</li>
-                  <li>{t("settingsPages.exportData.comments")}</li>
-                  <li>{t("settingsPages.exportData.settings")}</li>
-                </ul>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  onClick={() => handleExport("json")}
-                  disabled={exporting}
-                  variant="outline"
-                  className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white w-full"
-                >
-                  <FileJson className="w-4 h-4 mr-2" />
-                  {exporting ? t("settingsPages.exportData.exporting") : t("settingsPages.exportData.exportJson")}
-                </Button>
-                <Button
-                  onClick={() => handleExport("csv")}
-                  disabled={exporting}
-                  variant="outline"
-                  className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white w-full"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {exporting ? t("settingsPages.exportData.exporting") : t("settingsPages.exportData.exportCsv")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <DataExportSection exporting={exporting} onExport={handleExport} />
 
           {/* Danger Zone - Account Deletion */}
           <Card className="theme-bg-secondary border-red-600">
