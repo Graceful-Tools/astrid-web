@@ -36,6 +36,15 @@ const {
   getListMembers: getListMembersHandler,
 } = require("./handlers/lists");
 
+// Task handlers — extracted to ./handlers/tasks.ts
+const {
+  createTask: createTaskHandler,
+  updateTask: updateTaskHandler,
+  getTaskDetails: getTaskDetailsHandler,
+  addTaskAttachment: addTaskAttachmentHandler,
+  deleteTask: deleteTaskHandler,
+} = require("./handlers/tasks");
+
 // Schema definitions for validation — extracted to ./schemas.ts
 const {
   CreateTaskSchema,
@@ -672,152 +681,12 @@ class AstridMCPServerV2 {
     return getListTasksHandler(args);
   }
 
-  private async createTask(args: any) {
-    const { accessToken, listId, task } = args;
-
-    const { userId, user, list } = await this.validateAccessToken(accessToken, listId, "write");
-
-    // Validate task data
-    const validatedTask = CreateTaskSchema.parse(task);
-
-    // Check if user can still create tasks in this list (MCP never has more access than user)
-    const userCanCreateTasks = hasListAccess(list, user.id);
-
-    if (!userCanCreateTasks) {
-      throw new Error("User no longer has permission to create tasks in this list");
-    }
-
-    // Create the task using the same API approach as the controller
-    const newTask = await prisma.task.create({
-      data: {
-        ...validatedTask,
-        creatorId: userId,
-        dueDateTime: validatedTask.dueDateTime ? new Date(validatedTask.dueDateTime) : null,
-        reminderTime: validatedTask.reminderTime ? new Date(validatedTask.reminderTime) : null,
-        lists: {
-          connect: { id: listId },
-        },
-      },
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true },
-        },
-        creator: {
-          select: { id: true, name: true, email: true },
-        },
-        lists: {
-          select: { id: true, name: true },
-        },
-      },
-    });
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            success: true,
-            task: {
-              id: newTask.id,
-              title: newTask.title,
-              description: newTask.description,
-              priority: newTask.priority,
-              completed: newTask.completed,
-              dueDateTime: newTask.dueDateTime,
-              reminderTime: newTask.reminderTime,
-              reminderType: newTask.reminderType,
-              isPrivate: newTask.isPrivate,
-              createdAt: newTask.createdAt,
-              assignee: newTask.assignee,
-              creator: newTask.creator,
-              lists: newTask.lists,
-            },
-          }),
-        },
-      ],
-    };
+  private createTask(args: any) {
+    return createTaskHandler(args);
   }
 
-  private async updateTask(args: any) {
-    const { accessToken, listId, taskUpdate } = args;
-
-    const { userId, user, list } = await this.validateAccessToken(accessToken, listId, "write");
-
-    // Validate task update data
-    const validatedUpdate = UpdateTaskSchema.parse(taskUpdate);
-    const { taskId, ...updateData } = validatedUpdate;
-
-    // Verify task exists and is in the list
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: taskId,
-        lists: {
-          some: { id: listId },
-        },
-      },
-    });
-
-    if (!existingTask) {
-      throw new Error("Task not found in the specified list");
-    }
-
-    // Check if user can still edit this task (MCP never has more access than user)
-    const userCanEditTask =
-      existingTask.creatorId === user.id ||
-      existingTask.assigneeId === user.id ||
-      list.ownerId === user.id ||
-      list.admins.some((admin: any) => admin.id === user.id);
-
-    if (!userCanEditTask) {
-      throw new Error("User no longer has permission to edit this task");
-    }
-
-    // Update the task
-    const updatedTask = await prisma.task.update({
-      where: { id: taskId },
-      data: {
-        ...updateData,
-        dueDateTime: updateData.dueDateTime ? new Date(updateData.dueDateTime) : undefined,
-        reminderTime: updateData.reminderTime ? new Date(updateData.reminderTime) : undefined,
-      },
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true },
-        },
-        creator: {
-          select: { id: true, name: true, email: true },
-        },
-        lists: {
-          select: { id: true, name: true },
-        },
-      },
-    });
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            success: true,
-            task: {
-              id: updatedTask.id,
-              title: updatedTask.title,
-              description: updatedTask.description,
-              priority: updatedTask.priority,
-              completed: updatedTask.completed,
-              dueDateTime: updatedTask.dueDateTime,
-              reminderTime: updatedTask.reminderTime,
-              reminderType: updatedTask.reminderType,
-              isPrivate: updatedTask.isPrivate,
-              updatedAt: updatedTask.updatedAt,
-              assignee: updatedTask.assignee,
-              creator: updatedTask.creator,
-              lists: updatedTask.lists,
-            },
-          }),
-        },
-      ],
-    };
+  private updateTask(args: any) {
+    return updateTaskHandler(args);
   }
 
   private addComment(args: any) {
@@ -828,167 +697,16 @@ class AstridMCPServerV2 {
     return getTaskCommentsHandler(args);
   }
 
-  private async getTaskDetails(args: any) {
-    const { accessToken, listId, taskId, includeComments = true, includeAttachments = true } = args;
-
-    await this.validateAccessToken(accessToken, listId, "read");
-
-    // Get comprehensive task details
-    const task = await prisma.task.findFirst({
-      where: {
-        id: taskId,
-        lists: {
-          some: { id: listId },
-        },
-      },
-      include: {
-        assignee: { select: { id: true, name: true, email: true } },
-        creator: { select: { id: true, name: true, email: true } },
-        lists: { select: { id: true, name: true } },
-        comments: includeComments ? {
-          include: {
-            author: { select: { id: true, name: true, email: true } },
-          },
-          orderBy: { createdAt: "asc" }
-        } : false,
-        attachments: includeAttachments,
-        _count: { select: { comments: true, attachments: true } }
-      },
-    });
-
-    if (!task) {
-      throw new Error("Task not found in the specified list");
-    }
-
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          task: {
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            priority: task.priority,
-            completed: task.completed,
-            dueDateTime: task.dueDateTime,
-            isAllDay: task.isAllDay,
-            reminderTime: task.reminderTime,
-            reminderType: task.reminderType,
-            repeating: task.repeating,
-            repeatingData: task.repeatingData,
-            isPrivate: task.isPrivate,
-            createdAt: task.createdAt,
-            updatedAt: task.updatedAt,
-            assignee: task.assignee,
-            creator: task.creator,
-            lists: task.lists,
-            comments: includeComments ? task.comments : undefined,
-            attachments: includeAttachments ? task.attachments : undefined,
-            commentCount: task._count.comments,
-            attachmentCount: task._count.attachments
-          }
-        })
-      }]
-    };
+  private getTaskDetails(args: any) {
+    return getTaskDetailsHandler(args);
   }
 
-  private async addTaskAttachment(args: any) {
-    const { accessToken, listId, taskId, attachment } = args;
-
-    const { user } = await this.validateAccessToken(accessToken, listId, "write");
-
-    // Validate attachment data
-    const validatedAttachment = CreateAttachmentSchema.parse(attachment);
-
-    // Verify task exists and is in the list
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: taskId,
-        lists: {
-          some: { id: listId },
-        },
-      },
-    });
-
-    if (!existingTask) {
-      throw new Error("Task not found in the specified list");
-    }
-
-    // Create the attachment
-    const newAttachment = await prisma.attachment.create({
-      data: {
-        name: validatedAttachment.name,
-        url: validatedAttachment.url,
-        type: validatedAttachment.type,
-        size: validatedAttachment.size,
-        taskId: taskId,
-      },
-    });
-
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          success: true,
-          attachment: {
-            id: newAttachment.id,
-            name: newAttachment.name,
-            url: newAttachment.url,
-            type: newAttachment.type,
-            size: newAttachment.size,
-            createdAt: newAttachment.createdAt,
-            taskId: newAttachment.taskId
-          }
-        })
-      }]
-    };
+  private addTaskAttachment(args: any) {
+    return addTaskAttachmentHandler(args);
   }
 
-  private async deleteTask(args: any) {
-    const { accessToken, listId, taskId } = args;
-
-    const { user, list } = await this.validateAccessToken(accessToken, listId, "write");
-
-    // Verify task exists and is in the list
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: taskId,
-        lists: {
-          some: { id: listId },
-        },
-      },
-    });
-
-    if (!existingTask) {
-      throw new Error("Task not found in the specified list");
-    }
-
-    // Check if user can delete this task (same logic as update)
-    const userCanDeleteTask =
-      existingTask.creatorId === user.id ||
-      existingTask.assigneeId === user.id ||
-      list.ownerId === user.id ||
-      list.admins.some((admin) => admin.id === user.id);
-
-    if (!userCanDeleteTask) {
-      throw new Error("User no longer has permission to delete this task");
-    }
-
-    // Delete the task
-    await prisma.task.delete({
-      where: { id: taskId }
-    });
-
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          success: true,
-          message: "Task deleted successfully",
-          taskId: taskId
-        })
-      }]
-    };
+  private deleteTask(args: any) {
+    return deleteTaskHandler(args);
   }
 
   private getListMembers(args: any) {
