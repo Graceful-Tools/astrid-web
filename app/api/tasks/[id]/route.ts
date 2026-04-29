@@ -18,6 +18,7 @@ import {
 } from "@/lib/task-query-utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import { rescheduleRemindersForUpdate } from "@/lib/reminder-scheduling"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api.tasks.id')
@@ -687,77 +688,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     const assigneeChanged = existingTask.assigneeId !== data.assigneeId
 
     if (dueDateChanged || completedChanged || assigneeChanged) {
-      try {
-        // Remove existing reminders for this task
-        await prisma.reminderQueue.updateMany({
-          where: {
-            taskId: updatedTask.id,
-            status: "pending"
-          },
-          data: {
-            status: "cancelled"
-          }
-        })
-        log.info(`📅 Cancelled existing reminders for updated task ${updatedTask.id}`)
-
-        // Add new reminders if task is not completed and has due date
-        if (!updatedTask.completed && sanitizedDueDateTime) {
-          const remindersToSchedule = []
-          const dueDate = new Date(sanitizedDueDateTime)
-          const now = new Date()
-          
-          // Only schedule for future due dates
-          if (dueDate > now) {
-            // Schedule reminder 15 minutes before due time
-            const reminderTime = new Date(dueDate.getTime() - (15 * 60 * 1000))
-            if (reminderTime > now) {
-              remindersToSchedule.push({
-                scheduledFor: reminderTime,
-                type: "due_reminder"
-              })
-            } else {
-              // If less than 15 minutes until due, schedule for due time
-              remindersToSchedule.push({
-                scheduledFor: dueDate,
-                type: "due_reminder"
-              })
-            }
-            
-            // Schedule overdue reminder (1 hour after due time)
-            const overdueTime = new Date(dueDate.getTime() + (60 * 60 * 1000))
-            remindersToSchedule.push({
-              scheduledFor: overdueTime,
-              type: "overdue_reminder"
-            })
-          }
-
-          // Create the new reminders
-          for (const reminder of remindersToSchedule) {
-            try {
-              await prisma.reminderQueue.create({
-                data: {
-                  taskId: updatedTask.id,
-                  userId: updatedTask.assigneeId || updatedTask.creatorId || session.user.id, // Send to assignee, creator, or current user
-                  scheduledFor: reminder.scheduledFor,
-                  type: reminder.type,
-                  status: "pending",
-                  data: {
-                    taskTitle: updatedTask.title,
-                    taskId: updatedTask.id,
-                    source: "automatic_update",
-                  },
-                }
-              })
-              log.info(`📅 Added ${reminder.type} to queue for updated task ${updatedTask.id} at ${reminder.scheduledFor.toLocaleString()}`)
-            } catch (reminderError) {
-              log.error({ err: reminderError }, `Failed to add ${reminder.type} for updated task:`)
-            }
-          }
-        }
-      } catch (error) {
-        log.error({ err: error }, "Failed to update reminders for task:")
-        // Don't fail the task update if reminder scheduling fails
-      }
+      await rescheduleRemindersForUpdate({
+        taskId: updatedTask.id,
+        taskTitle: updatedTask.title,
+        userId: updatedTask.assigneeId || updatedTask.creatorId || session.user.id,
+        dueDateTime: sanitizedDueDateTime ? new Date(sanitizedDueDateTime) : null,
+        completed: !!updatedTask.completed,
+      })
     }
 
     log.info({
