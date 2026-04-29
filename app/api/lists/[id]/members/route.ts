@@ -7,6 +7,12 @@ import { sendListInvitationEmail } from "@/lib/email"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
+import {
+  invalidateMemberCache,
+  invalidateMemberCaches,
+  loadListWithMembers,
+  isLastAdminInList,
+} from "@/lib/list-member-operations"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 
@@ -268,30 +274,11 @@ export async function POST(
         // Continue - member was still added
       }
 
-      // Invalidate cache for the newly added user
-      log.info({ userId: existingUser.id }, "🗄️ Invalidating cache for newly added member")
-      try {
-        await Promise.all([
-          RedisCache.del(RedisCache.keys.userLists(existingUser.id)),
-          RedisCache.del(RedisCache.keys.userTasks(existingUser.id))
-        ])
-        log.info(`✅ Cache invalidated for new member: ${existingUser.id}`)
-      } catch (error) {
-        log.error({ err: error }, `❌ Failed to invalidate cache for user ${existingUser.id}:`)
-      }
+      await invalidateMemberCache(existingUser.id)
 
       // Broadcast SSE event to ALL list members (including the person who added them)
       try {
-        // Fetch full list with members to get all member IDs
-        const fullList = await prisma.taskList.findUnique({
-          where: { id: listId },
-          include: {
-            owner: true,
-            listMembers: {
-              include: { user: true }
-            }
-          }
-        })
+        const fullList = await loadListWithMembers(listId)
 
         if (fullList) {
           const allMemberIds = getListMemberIds(fullList as any)
@@ -419,25 +406,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Member not found" }, { status: 404 })
     }
 
-    if (memberToRemove.role === 'admin') {
-      const adminCount = await prisma.listMember.count({
-        where: {
-          listId,
-          role: 'admin'
-        }
-      })
-
-      // Also count list owner as admin
-      const list = await prisma.taskList.findUnique({
-        where: { id: listId },
-        select: { ownerId: true }
-      })
-
-      const totalAdmins = adminCount + (list?.ownerId ? 1 : 0)
-      
-      if (totalAdmins <= 1) {
-        return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 })
-      }
+    if (await isLastAdminInList({ listId, removingAdmin: memberToRemove.role === 'admin' })) {
+      return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 })
     }
 
     // Remove the member
@@ -481,15 +451,7 @@ export async function DELETE(
     }
 
     // Get all remaining member IDs BEFORE removing the member (for cache invalidation and broadcast)
-    const fullListBeforeRemoval = await prisma.taskList.findUnique({
-      where: { id: listId },
-      include: {
-        owner: true,
-        listMembers: {
-          include: { user: true }
-        }
-      }
-    })
+    const fullListBeforeRemoval = await loadListWithMembers(listId)
 
     if (!fullListBeforeRemoval) {
       return NextResponse.json({ error: "List not found" }, { status: 404 })
@@ -497,17 +459,7 @@ export async function DELETE(
 
     const allMemberIdsBeforeRemoval = getListMemberIds(fullListBeforeRemoval as any)
 
-    // Invalidate cache for the removed user
-    log.info({ memberId }, "🗄️ Invalidating cache for removed member:")
-    try {
-      await Promise.all([
-        RedisCache.del(RedisCache.keys.userLists(memberId)),
-        RedisCache.del(RedisCache.keys.userTasks(memberId))
-      ])
-      log.info(`✅ Cache invalidated for removed member: ${memberId}`)
-    } catch (error) {
-      log.error({ err: error }, `❌ Failed to invalidate cache for user ${memberId}:`)
-    }
+    await invalidateMemberCache(memberId)
 
     // Broadcast SSE event to ALL members (including the person who removed them)
     try {
@@ -602,18 +554,7 @@ export async function PATCH(
             where: { id: listId }
           })
 
-          // Invalidate cache for the leaving owner
-          log.info({ userId: session.user.id }, "🗄️ Invalidating cache for owner leaving and deleting list")
-          try {
-            await Promise.all([
-              RedisCache.del(RedisCache.keys.userLists(session.user.id)),
-              RedisCache.del(RedisCache.keys.userTasks(session.user.id))
-            ])
-            log.info(`✅ Cache invalidated for leaving owner: ${session.user.id}`)
-          } catch (error) {
-            log.error({ err: error }, `❌ Failed to invalidate cache for user ${session.user.id}:`)
-          }
-
+          await invalidateMemberCache(session.user.id)
           return NextResponse.json({ message: "Successfully left the list", deleted: true })
         } else if (adminMembers.length === 0 && regularMembers.length > 0) {
           // No admins but has regular members - cannot leave as owner
@@ -677,19 +618,7 @@ export async function PATCH(
             }
           }
           
-          // Invalidate cache for both old and new owner after ownership transfer
-          log.info({ oldOwnerId: session.user.id, newOwnerId: newOwner.userId }, "🗄️ Invalidating cache for ownership transfer")
-          try {
-            await Promise.all([
-              RedisCache.del(RedisCache.keys.userLists(session.user.id)), // Old owner
-              RedisCache.del(RedisCache.keys.userTasks(session.user.id)), // Old owner tasks
-              RedisCache.del(RedisCache.keys.userLists(newOwner.userId)),   // New owner
-              RedisCache.del(RedisCache.keys.userTasks(newOwner.userId))    // New owner tasks
-            ])
-            log.info(`✅ Cache invalidated for ownership transfer`)
-          } catch (error) {
-            log.error({ err: error }, `❌ Failed to invalidate cache for ownership transfer:`)
-          }
+          await invalidateMemberCaches([session.user.id, newOwner.userId])
         }
       } else {
         // Regular member/admin leaving - check if user is actually a member
@@ -704,20 +633,8 @@ export async function PATCH(
           return NextResponse.json({ error: "You are not a member of this list" }, { status: 404 })
         }
 
-        // Check if this would remove the last admin
-        if (memberToRemove.role === 'admin') {
-          const adminCount = await prisma.listMember.count({
-            where: {
-              listId,
-              role: 'admin'
-            }
-          })
-
-          const totalAdmins = adminCount + (existingList.ownerId ? 1 : 0)
-          
-          if (totalAdmins <= 1) {
-            return NextResponse.json({ error: "Cannot leave as the last admin" }, { status: 400 })
-          }
+        if (await isLastAdminInList({ listId, removingAdmin: memberToRemove.role === 'admin' })) {
+          return NextResponse.json({ error: "Cannot leave as the last admin" }, { status: 400 })
         }
 
         // Remove the member
@@ -743,18 +660,7 @@ export async function PATCH(
         })
       }
 
-      // Invalidate cache for the user who left
-      log.info({ userId: session.user.id }, "🗄️ Invalidating cache for user who left list")
-      try {
-        await Promise.all([
-          RedisCache.del(RedisCache.keys.userLists(session.user.id)),
-          RedisCache.del(RedisCache.keys.userTasks(session.user.id))
-        ])
-        log.info(`✅ Cache invalidated for leaving user: ${session.user.id}`)
-      } catch (error) {
-        log.error({ err: error }, `❌ Failed to invalidate cache for user ${session.user.id}:`)
-      }
-
+      await invalidateMemberCache(session.user.id)
       return NextResponse.json({ message: "Successfully left the list" })
     }
 
@@ -792,33 +698,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Member ID is required" }, { status: 400 })
     }
 
-    // Check if removing admin role would leave no admins
+    // Check if demoting to non-admin would leave no admins
     if (role !== 'admin') {
       const memberToUpdate = await prisma.listMember.findFirst({
-        where: {
-          listId,
-          userId: memberId
-        }
+        where: { listId, userId: memberId },
       })
 
-      if (memberToUpdate?.role === 'admin') {
-        const adminCount = await prisma.listMember.count({
-          where: {
-            listId,
-            role: 'admin'
-          }
-        })
-
-        const list = await prisma.taskList.findUnique({
-          where: { id: listId },
-          select: { ownerId: true }
-        })
-
-        const totalAdmins = adminCount + (list?.ownerId ? 1 : 0)
-
-        if (totalAdmins <= 1) {
-          return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 })
-        }
+      if (await isLastAdminInList({ listId, removingAdmin: memberToUpdate?.role === 'admin' })) {
+        return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 })
       }
     }
 
@@ -836,15 +723,7 @@ export async function PATCH(
     }
 
     // Fetch full list to get all member IDs for cache invalidation and SSE broadcast
-    const fullList = await prisma.taskList.findUnique({
-      where: { id: listId },
-      include: {
-        owner: true,
-        listMembers: {
-          include: { user: true }
-        }
-      }
-    })
+    const fullList = await loadListWithMembers(listId)
 
     if (!fullList) {
       return NextResponse.json({ error: "List not found" }, { status: 404 })
