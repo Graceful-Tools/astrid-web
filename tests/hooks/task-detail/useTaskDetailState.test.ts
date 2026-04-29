@@ -170,4 +170,85 @@ describe('useTaskDetailState', () => {
 
     expect(result.current.tempValues.when).toBeUndefined()
   })
+
+  describe('tempWhen resync (regression)', () => {
+    const baseTime = new Date('2025-06-15T21:00:00Z') // 9pm UTC
+    const taskWithTime: Task = { ...mockTask, dueDateTime: baseTime } as Task
+
+    it('syncs tempWhen when neither date nor time is being edited', () => {
+      const { result, rerender } = renderHook(
+        ({ task }) => useTaskDetailState(task),
+        { initialProps: { task: taskWithTime } }
+      )
+
+      const newTime = new Date('2025-06-15T15:00:00Z')
+      rerender({ task: { ...taskWithTime, dueDateTime: newTime } as Task })
+
+      expect(result.current.tempValues.when?.toISOString()).toBe(newTime.toISOString())
+    })
+
+    it('does NOT overwrite tempWhen while the time picker is open', () => {
+      // Regression: parent re-renders (SSE typing indicator, focus events on
+      // mobile, etc.) used to stomp the in-flight time-picker selection
+      // because the resync useEffect only gated on editingWhen.
+      const { result, rerender } = renderHook(
+        ({ task }) => useTaskDetailState(task),
+        { initialProps: { task: taskWithTime } }
+      )
+
+      act(() => {
+        result.current.editing.setEditingTime(true)
+        // User has tapped a new value in the picker but not yet committed
+        result.current.tempValues.setTempWhen(new Date('2025-06-15T19:00:00Z'))
+      })
+
+      // Parent re-renders with a fresh task reference (same data, new instance)
+      rerender({ task: { ...taskWithTime, dueDateTime: new Date(baseTime) } as Task })
+
+      expect(result.current.tempValues.when?.toISOString()).toBe(
+        new Date('2025-06-15T19:00:00Z').toISOString()
+      )
+    })
+
+    it('does NOT overwrite tempWhen while the date picker is open', () => {
+      const { result, rerender } = renderHook(
+        ({ task }) => useTaskDetailState(task),
+        { initialProps: { task: taskWithTime } }
+      )
+
+      act(() => {
+        result.current.editing.setEditingWhen(true)
+        result.current.tempValues.setTempWhen(new Date('2025-07-01T21:00:00Z'))
+      })
+
+      rerender({ task: { ...taskWithTime, dueDateTime: new Date(baseTime) } as Task })
+
+      expect(result.current.tempValues.when?.toISOString()).toBe(
+        new Date('2025-07-01T21:00:00Z').toISOString()
+      )
+    })
+
+    it('resumes syncing tempWhen after the time picker closes', () => {
+      const { result, rerender } = renderHook(
+        ({ task }) => useTaskDetailState(task),
+        { initialProps: { task: taskWithTime } }
+      )
+
+      act(() => {
+        result.current.editing.setEditingTime(true)
+        result.current.tempValues.setTempWhen(new Date('2025-06-15T19:00:00Z'))
+      })
+
+      // Close the picker
+      act(() => {
+        result.current.editing.setEditingTime(false)
+      })
+
+      // Parent now updates the canonical task
+      const committed = new Date('2025-06-15T19:30:00Z')
+      rerender({ task: { ...taskWithTime, dueDateTime: committed } as Task })
+
+      expect(result.current.tempValues.when?.toISOString()).toBe(committed.toISOString())
+    })
+  })
 })

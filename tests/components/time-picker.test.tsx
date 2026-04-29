@@ -67,4 +67,37 @@ describe('TimePicker (desktop popover)', () => {
     // Default state is 5:00 PM → 17:00
     expect(onChange).toHaveBeenCalledWith('17:00')
   })
+
+  describe('value parsing (regression)', () => {
+    // Regression: the string branch used split(':') and parseInt, which turned
+    // ISO timestamps like "2025-04-29T22:00:00.000Z" into hours=2025, then
+    // setHours(2025) overflowed and the picker landed on ~9–10am regardless
+    // of the actual saved time. Task fields hydrated from IndexedDB cache
+    // arrive as ISO strings, so this branch was reached on every reopen.
+    it('reflects the saved hour when value is an ISO timestamp string (3pm)', () => {
+      // 15:00 in the user's local TZ — build an ISO string from a real Date so
+      // the test is timezone-agnostic.
+      const localThreePm = new Date()
+      localThreePm.setHours(15, 0, 0, 0)
+      const iso = localThreePm.toISOString()
+
+      render(<TimePicker value={iso} onChange={() => {}} />)
+
+      // Trigger button shows formatted time. With the legacy parser this
+      // would render "9am" or "10am"; with the fix it renders "3pm".
+      expect(screen.getByRole('button', { name: /3pm/i })).toBeInTheDocument()
+    })
+
+    it('still accepts the bare HH:MM string format', () => {
+      render(<TimePicker value="14:30" onChange={() => {}} mode="string" />)
+      expect(screen.getByRole('button', { name: /2:30pm/i })).toBeInTheDocument()
+    })
+
+    it('reflects the saved hour when value is a Date object', () => {
+      const d = new Date()
+      d.setHours(15, 0, 0, 0)
+      render(<TimePicker value={d} onChange={() => {}} />)
+      expect(screen.getByRole('button', { name: /3pm/i })).toBeInTheDocument()
+    })
+  })
 })
