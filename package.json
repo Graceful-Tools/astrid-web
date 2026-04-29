@@ -237,7 +237,7 @@
     "eslint-config-next": "^15.0.0",
     "fake-indexeddb": "^6.2.2",
     "husky": "^9.1.7",
-    "jsdom": "^26.1.0",
+    "jsdom": "^29.1.0",
     "lint-staged": "^16.2.7",
     "playwright": "^1.56.0",
     "postcss": "^8.5",
