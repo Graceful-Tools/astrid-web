@@ -64,13 +64,15 @@ async function detectLayout(page: Page): Promise<{ device: string; columns: numb
       /iPad/.test(ua) ||
       ((navigator.maxTouchPoints || 0) > 1 && /Macintosh/.test(ua))
 
+    // Mirror the order of lib/layout-detection.ts:getLayoutType — iPad must
+    // win over mobile because iPad UAs include "Mobile/...".
     let layout: string
-    if (isMobile && width < 910) layout = 'mobile-1-column'
-    else if (isIPad && width >= 1100) layout = 'tablet-3-column'
-    else if (isIPad && width < 1100) layout = 'tablet-2-column'
-    else if (!isMobile && !isIPad && width < 910) layout = 'computer-1-column'
-    else if (!isMobile && !isIPad && width >= 910 && width < 1100) layout = 'computer-2-column'
-    else if (!isMobile && !isIPad && width >= 1100) layout = 'computer-3-column'
+    if (isIPad && width >= 1100) layout = 'tablet-3-column'
+    else if (isIPad) layout = 'tablet-2-column'
+    else if (isMobile && width < 910) layout = 'mobile-1-column'
+    else if (!isMobile && width < 910) layout = 'computer-1-column'
+    else if (!isMobile && width >= 910 && width < 1100) layout = 'computer-2-column'
+    else if (!isMobile && width >= 1100) layout = 'computer-3-column'
     else layout = 'computer-2-column'
 
     const device = layout.split('-')[0]

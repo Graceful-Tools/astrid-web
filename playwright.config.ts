@@ -95,14 +95,10 @@ export default defineConfig({
     },
     {
       name: 'tablet-2-column',
-      // iPad Mini landscape (1024x768) — iPad UA + width in [910, 1100) →
-      // tablet-2-column. We can't use iPad portrait here because all iPad
-      // Safari UAs include "Mobile/..." which the production
-      // isMobileDevice() helper matches before isIPadDevice() gets checked,
-      // so iPad portrait is currently misrouted to mobile-1-column. That's
-      // a separate bug to fix; the matrix only needs ONE viewport per
-      // layout type and landscape is unambiguous.
-      use: { ...devices['iPad Mini landscape'] },
+      // iPad Mini portrait (768x1024) — iPad UA + width < 1100 →
+      // tablet-2-column (after the iPad-before-mobile fix in
+      // lib/layout-detection.ts).
+      use: { ...devices['iPad Mini'] },
       testMatch: /layout-regression\.spec\.ts/,
     },
     {
