@@ -1339,38 +1339,66 @@ Ready for review.`
    * Handle retry with user feedback after a failed workflow
    * Re-runs planning phase with additional context from user
    */
+  /**
+   * Re-run the saga after a previous attempt failed, using the user's
+   * clarification comment as additional planning context. Same pipeline
+   * shape as executeCompleteWorkflow — load → plan → (approval gate) →
+   * implement — but the planning prompt gets an "User Clarification"
+   * appendix that includes the previous error.
+   */
   async handleRetryWithFeedback(
     workflowId: string,
     taskId: string,
     userFeedback: string,
-    previousError: string
+    previousError: string,
   ): Promise<void> {
     this.log('info', 'Handling retry with feedback', {
       workflowId,
       taskId,
       feedback: userFeedback.substring(0, 100),
-      previousError: previousError.substring(0, 100)
+      previousError: previousError.substring(0, 100),
     })
 
     try {
-      // Get the current workflow and task
-      const workflow = await prisma.codingTaskWorkflow.findUnique({
-        where: { id: workflowId },
-        include: { task: true }
-      })
+      const { workflow, enhancedDescription } = await this.loadRetryContext(workflowId, userFeedback, previousError)
+      const plan = await this.runRetryPlanning(workflow, enhancedDescription)
 
-      if (!workflow) {
-        throw new Error(`Workflow ${workflowId} not found`)
+      if (!plan.files || plan.files.length === 0) {
+        await this.failRetryAtPlanning(workflowId, taskId, plan, userFeedback, previousError)
+        return
       }
 
-      // Update workflow status to indicate retry in progress
-      await prisma.codingTaskWorkflow.update({
-        where: { id: workflowId },
-        data: { status: 'PLANNING' }
-      })
+      if (await this.maybePauseRetryForApproval(workflowId, taskId, plan)) {
+        return
+      }
 
-      // Create enhanced task description incorporating user feedback
-      const enhancedDescription = `${workflow.task.description || ''}
+      await this.runRetryImplementation(workflow, plan, enhancedDescription)
+      this.log('info', 'Retry with feedback completed successfully', { workflowId })
+    } catch (error) {
+      await this.failRetry(workflowId, taskId, userFeedback, previousError, error)
+      throw error
+    }
+  }
+
+  /** Load the retry workflow + build the user-clarification-appended description. */
+  private async loadRetryContext(workflowId: string, userFeedback: string, previousError: string): Promise<{
+    workflow: any
+    enhancedDescription: string
+  }> {
+    const workflow = await prisma.codingTaskWorkflow.findUnique({
+      where: { id: workflowId },
+      include: { task: true },
+    })
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`)
+    }
+
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflowId },
+      data: { status: 'PLANNING' },
+    })
+
+    const enhancedDescription = `${workflow.task.description || ''}
 
 ## User Clarification (after previous attempt failed)
 
@@ -1381,125 +1409,144 @@ User provided this clarification:
 
 Please use this additional context to better understand what needs to be done.`
 
-      // Create a new planning request with enhanced context
-      const planRequest: CodeGenerationRequest = {
+    return { workflow, enhancedDescription }
+  }
+
+  /** Run the planning AI call with the enhanced (clarification-appended) description. */
+  private runRetryPlanning(workflow: any, enhancedDescription: string): Promise<ImplementationPlan> {
+    return this.generateImplementationPlan({
+      taskTitle: workflow.task.title,
+      taskDescription: enhancedDescription,
+      targetFramework: 'react-typescript',
+    })
+  }
+
+  /**
+   * Even with the user's clarification the AI couldn't pick files. Post the
+   * AI's response back to the user and persist a planning-failure record so
+   * the next "ship it"/retry doesn't loop on the same dead end.
+   */
+  private async failRetryAtPlanning(
+    workflowId: string,
+    taskId: string,
+    plan: ImplementationPlan,
+    userFeedback: string,
+    previousError: string,
+  ): Promise<void> {
+    const aiResponse = plan.rawPlanningResponse
+      ? `\n\n**AI Response:**\n${plan.rawPlanningResponse.substring(0, 2000)}${plan.rawPlanningResponse.length > 2000 ? '\n...(truncated)' : ''}`
+      : ''
+
+    await this.postStatusComment(
+      taskId,
+      '❌ **Planning still unsuccessful**',
+      `Even with your clarification, I couldn't identify files to modify.${aiResponse}\n\n**Please provide more specific details about:**\n- Which files or components need changes\n- What specific behavior you want to achieve\n- Any error messages or symptoms you're seeing`,
+    )
+
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflowId },
+      data: {
+        status: 'FAILED',
+        metadata: {
+          error: 'Planning still produced no files after retry with feedback',
+          step: 'PLANNING_RETRY',
+          userFeedback,
+          previousError,
+          timestamp: new Date().toISOString(),
+        },
+      },
+    })
+  }
+
+  /**
+   * Mirror of shouldPauseForApproval but for the retry path — same
+   * persisted shape plus a `retriedWithFeedback` marker so the audit log
+   * can distinguish retries from initial approvals. Returns true if the
+   * saga should pause.
+   */
+  private async maybePauseRetryForApproval(workflowId: string, taskId: string, plan: ImplementationPlan): Promise<boolean> {
+    await this.postPlanComment(taskId, plan)
+
+    const config = await this.loadProjectConfig()
+    if (!config.safety.requirePlanApproval) return false
+
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflowId },
+      data: {
+        status: 'AWAITING_APPROVAL',
+        metadata: {
+          plan: JSON.parse(JSON.stringify(plan)),
+          awaitingApprovalSince: new Date().toISOString(),
+          retriedWithFeedback: true,
+        },
+      },
+    })
+
+    await this.postStatusComment(
+      taskId,
+      '⏸️ **Awaiting Approval**',
+      `I've created an implementation plan with ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}.\n\n` +
+        `**Reply "approve" or "lgtm" to start implementation**, or provide more feedback to revise.`,
+    )
+
+    return true
+  }
+
+  /** Auto-approve path: generate code with the enhanced description and ship the PR. */
+  private async runRetryImplementation(workflow: any, plan: ImplementationPlan, enhancedDescription: string): Promise<void> {
+    await this.postStatusComment(
+      workflow.task.id,
+      '⚙️ **Implementing**',
+      `Generating code for ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}...`,
+    )
+
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflow.id },
+      data: { status: 'IMPLEMENTING' },
+    })
+
+    const generatedCode = await this.generateCode(
+      {
         taskTitle: workflow.task.title,
         taskDescription: enhancedDescription,
-        targetFramework: 'react-typescript'
-      }
+        targetFramework: 'react-typescript',
+      },
+      plan,
+    )
 
-      // Re-run the planning phase
-      const plan = await this.generateImplementationPlan(planRequest)
-
-      // Check if we got a valid plan this time
-      if (!plan.files || plan.files.length === 0) {
-        // Still no files - include the AI response for the user
-        const aiResponse = plan.rawPlanningResponse
-          ? `\n\n**AI Response:**\n${plan.rawPlanningResponse.substring(0, 2000)}${plan.rawPlanningResponse.length > 2000 ? '\n...(truncated)' : ''}`
-          : ''
-
-        await this.postStatusComment(taskId, '❌ **Planning still unsuccessful**',
-          `Even with your clarification, I couldn't identify files to modify.${aiResponse}\n\n**Please provide more specific details about:**\n- Which files or components need changes\n- What specific behavior you want to achieve\n- Any error messages or symptoms you're seeing`)
-
-        // Mark as failed again
-        await prisma.codingTaskWorkflow.update({
-          where: { id: workflowId },
-          data: {
-            status: 'FAILED',
-            metadata: {
-              error: 'Planning still produced no files after retry with feedback',
-              step: 'PLANNING_RETRY',
-              userFeedback,
-              previousError,
-              timestamp: new Date().toISOString()
-            }
-          }
-        })
-
-        return
-      }
-
-      // Success! Post the plan and continue
-      await this.postPlanComment(taskId, plan)
-
-      // Check config for requirePlanApproval
-      const config = await this.loadProjectConfig()
-      if (config.safety.requirePlanApproval) {
-        // Store plan and wait for approval
-        await prisma.codingTaskWorkflow.update({
-          where: { id: workflowId },
-          data: {
-            status: 'AWAITING_APPROVAL',
-            metadata: {
-              plan: JSON.parse(JSON.stringify(plan)),
-              awaitingApprovalSince: new Date().toISOString(),
-              retriedWithFeedback: true
-            }
-          }
-        })
-
-        await this.postStatusComment(taskId, '⏸️ **Awaiting Approval**',
-          `I've created an implementation plan with ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}.\n\n` +
-          `**Reply "approve" or "lgtm" to start implementation**, or provide more feedback to revise.`)
-
-        return
-      }
-
-      // Auto-approve mode - continue to implementation
-      await this.postStatusComment(taskId, '⚙️ **Implementing**',
-        `Generating code for ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}...`)
-
-      // Update status
-      await prisma.codingTaskWorkflow.update({
-        where: { id: workflowId },
-        data: { status: 'IMPLEMENTING' }
-      })
-
-      // Generate code
-      const codeRequest: CodeGenerationRequest = {
-        taskTitle: workflow.task.title,
-        taskDescription: enhancedDescription,
-        targetFramework: 'react-typescript'
-      }
-
-      const generatedCode = await this.generateCode(codeRequest, plan)
-
-      if (generatedCode.files.length === 0) {
-        throw new Error('Code generation produced no files even after retry')
-      }
-
-      // Create GitHub implementation
-      await this.createGitHubImplementation(workflow, generatedCode)
-
-      this.log('info', 'Retry with feedback completed successfully', { workflowId })
-
-    } catch (error) {
-      this.log('error', 'Retry with feedback failed', {
-        workflowId,
-        error: error instanceof Error ? error.message : String(error)
-      })
-
-      // Mark as failed
-      await prisma.codingTaskWorkflow.update({
-        where: { id: workflowId },
-        data: {
-          status: 'FAILED',
-          metadata: {
-            error: error instanceof Error ? error.message : String(error),
-            step: 'RETRY_WITH_FEEDBACK',
-            userFeedback,
-            previousError,
-            timestamp: new Date().toISOString()
-          }
-        }
-      })
-
-      // Post error comment
-      await this.postStatusComment(taskId, '❌ **Retry Failed**',
-        `Even with your clarification, I encountered an error:\n\n**${error instanceof Error ? error.message : 'Unknown error'}**\n\nPlease try providing more specific details or reassign the task.`)
-
-      throw error
+    if (generatedCode.files.length === 0) {
+      throw new Error('Code generation produced no files even after retry')
     }
+
+    await this.createGitHubImplementation(workflow, generatedCode)
+  }
+
+  /** Saga-level failure handler for the retry path. */
+  private async failRetry(workflowId: string, taskId: string, userFeedback: string, previousError: string, error: unknown): Promise<void> {
+    this.log('error', 'Retry with feedback failed', {
+      workflowId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflowId },
+      data: {
+        status: 'FAILED',
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+          step: 'RETRY_WITH_FEEDBACK',
+          userFeedback,
+          previousError,
+          timestamp: new Date().toISOString(),
+        },
+      },
+    })
+
+    await this.postStatusComment(
+      taskId,
+      '❌ **Retry Failed**',
+      `Even with your clarification, I encountered an error:\n\n**${error instanceof Error ? error.message : 'Unknown error'}**\n\nPlease try providing more specific details or reassign the task.`,
+    )
   }
 
   /**
