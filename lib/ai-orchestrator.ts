@@ -335,44 +335,73 @@ export class AIOrchestrator {
   /**
    * Generate actual code based on approved plan
    */
+  /**
+   * Generate code from an approved plan. Saga pipeline of named in-class
+   * sub-steps following the pattern from PRs #97/#98/#105:
+   *
+   *   validateGenerationPlan       — run plan / file-size validators (throws)
+   *   loadGenerationContext        — load planning context, with safety net
+   *   buildSystemBlocks/getPrompt  — existing helpers
+   *   callAndParseGeneration       — call AI + parse, with format-retry fallback
+   *   finalizeGeneration           — filter generated files to plan + log result
+   */
   async generateCode(
     request: CodeGenerationRequest,
-    approvedPlan: ImplementationPlan
+    approvedPlan: ImplementationPlan,
   ): Promise<GeneratedCode> {
     this.log('info', 'Generating code with progressive context from planning phase')
 
-    // Validate and auto-deduplicate plan files using extracted service
+    await this.validateGenerationPlan(approvedPlan)
+    const planningContext = await this.loadGenerationContext(approvedPlan)
+
+    const systemBlocks = this.buildSystemBlocks('implementation', planningContext)
+    const prompt = this.getCodeGenerationPrompt(request, approvedPlan)
+
+    const generatedCode = await this.callAndParseGeneration({
+      prompt,
+      systemBlocks,
+      approvedPlan,
+      planningContext,
+    })
+
+    return this.finalizeGeneration({ generatedCode, approvedPlan, systemBlocks, planningContext })
+  }
+
+  /** Validate plan structure (de-dupe files) and individual file sizes. Throws on failure. */
+  private async validateGenerationPlan(approvedPlan: ImplementationPlan): Promise<void> {
     const validationResult = validateAndDeduplicatePlan(
       approvedPlan,
-      (level, msg, meta) => this.log(level, msg, meta)
+      (level, msg, meta) => this.log(level, msg, meta),
     )
-
     if (!validationResult.success) {
       throw new Error(validationResult.error)
     }
 
-    // Validate file sizes using extracted service
     await validateFileSizes(
       approvedPlan,
       {
         repositoryId: this._repositoryId!,
         userId: this.userId,
-        logger: (level, msg, meta) => this.log(level, msg, meta)
+        logger: (level, msg, meta) => this.log(level, msg, meta),
       },
       async (userId) => {
         const { GitHubClient } = await import('./github-client')
         return GitHubClient.forUser(userId) as Promise<FileValidatorGitHubClient>
-      }
+      },
     )
+  }
 
-    // Load planning context (includes ASTRID.md and explored files)
+  /** Load planning context from prior phase, or fall back to direct file load
+   *  if it's missing or empty (safety net for restarts). */
+  private async loadGenerationContext(
+    approvedPlan: ImplementationPlan,
+  ): Promise<PlanningContextFiles | null> {
     let planningContext: PlanningContextFiles | null = await this.loadPlanningContext()
 
     if (!planningContext) {
       this.log('warn', 'No planning context found, implementation will use minimal context')
     }
 
-    // Safety net: If planning context is incomplete, try to load small files directly
     if (!planningContext || !planningContext.exploredFiles || planningContext.exploredFiles.length === 0) {
       planningContext = await loadFilesDirectly(
         approvedPlan,
@@ -380,34 +409,58 @@ export class AIOrchestrator {
         {
           repositoryId: this._repositoryId!,
           userId: this.userId,
-          logger: (level, msg, meta) => this.log(level, msg, meta)
+          logger: (level, msg, meta) => this.log(level, msg, meta),
         },
         async (userId) => {
           const { GitHubClient } = await import('./github-client')
           return GitHubClient.forUser(userId) as Promise<FileValidatorGitHubClient>
-        }
+        },
       )
     }
 
-    // ✅ Build progressive system blocks (extends planning cache + adds planning insights)
-    const systemBlocks = this.buildSystemBlocks('implementation', planningContext)
+    return planningContext
+  }
 
-    const prompt = this.getCodeGenerationPrompt(request, approvedPlan)
+  /** Initial AI call + parse. If the parser raises RETRY_WITH_FORMAT_ENFORCEMENT,
+   *  re-prompt the model with explicit format instructions and try again. */
+  private async callAndParseGeneration(args: {
+    prompt: string
+    systemBlocks: ClaudeSystemBlock[]
+    approvedPlan: ImplementationPlan
+    planningContext: PlanningContextFiles | null
+  }): Promise<GeneratedCode> {
+    const { prompt, systemBlocks, approvedPlan, planningContext } = args
 
-    // ✅ Call AI with progressive system blocks (JSON-only mode, no tools)
-    let response = await this.callAIService(prompt, 8192, true, systemBlocks)
+    const response = await this.callAIService(prompt, 8192, true, systemBlocks)
 
-    // Parse the AI response into structured code changes
-    let generatedCode: GeneratedCode
     try {
-      generatedCode = this.parseGeneratedCode(response)
+      return this.parseGeneratedCode(response)
     } catch (error) {
-      // If parsing failed because of format issues, retry with stronger prompt
       if (error instanceof Error && error.message === 'RETRY_WITH_FORMAT_ENFORCEMENT') {
-        this.log('warn', 'AI response was not in expected format, retrying with format enforcement')
+        return this.retryGenerationWithFormatEnforcement({
+          originalPrompt: prompt,
+          systemBlocks,
+          approvedPlan,
+          planningContext,
+        })
+      }
+      throw error
+    }
+  }
 
-        // Create a strong format enforcement prompt
-        const formatEnforcementPrompt = `The previous response was not in the correct JSON format.
+  /** Re-prompt the model with explicit JSON-only format instructions, then
+   *  parse again. On second-attempt failure, throws a diagnostics-rich error. */
+  private async retryGenerationWithFormatEnforcement(args: {
+    originalPrompt: string
+    systemBlocks: ClaudeSystemBlock[]
+    approvedPlan: ImplementationPlan
+    planningContext: PlanningContextFiles | null
+  }): Promise<GeneratedCode> {
+    const { originalPrompt, systemBlocks, approvedPlan, planningContext } = args
+
+    this.log('warn', 'AI response was not in expected format, retrying with format enforcement')
+
+    const formatEnforcementPrompt = `The previous response was not in the correct JSON format.
 
 CRITICAL: You MUST respond with ONLY valid JSON. No explanations, no markdown, no code blocks - just raw JSON.
 
@@ -434,105 +487,130 @@ IMPORTANT RULES:
 4. Do not truncate or summarize code
 
 Here is the original request again:
-${prompt}
+${originalPrompt}
 
 Respond with ONLY the JSON object as specified above.`
 
-        // Retry with format enforcement
-        response = await this.callAIService(formatEnforcementPrompt, 8192, true, systemBlocks)
+    const response = await this.callAIService(formatEnforcementPrompt, 8192, true, systemBlocks)
 
-        // Try parsing again
-        try {
-          generatedCode = this.parseGeneratedCode(response)
-          this.log('info', 'Successfully parsed response after format enforcement retry')
-        } catch (retryError) {
-          // If it still fails, save the full response for debugging and throw informative error
-          const diagnostics = {
-            responseLength: response.length,
-            responsePreview: response.substring(0, 1000),
-            responseTail: response.length > 1000 ? response.substring(response.length - 500) : '',
-            responseMiddle: response.length > 2000 ? response.substring(Math.floor(response.length / 2) - 250, Math.floor(response.length / 2) + 250) : '',
-            error: retryError instanceof Error ? retryError.message : String(retryError),
-            attemptedPatterns: [
-              'Pure JSON parse',
-              'Markdown code block extraction',
-              'Balanced brace matching',
-              'Regex JSON object search',
-              'First-to-last brace extraction',
-              'Markdown file header patterns'
-            ],
-            // Additional diagnostics
-            hasJsonCodeBlock: response.includes('```json'),
-            hasCodeBlock: response.includes('```'),
-            hasFilesKey: response.includes('"files"'),
-            hasBraces: response.includes('{') && response.includes('}'),
-            braceBalance: countBraceBalance(response),
-            firstBraceIndex: response.indexOf('{'),
-            lastBraceIndex: response.lastIndexOf('}'),
-            // ✅ NEW: File size diagnostics to help debug large file issues
-            attemptedFiles: approvedPlan.files.map(f => ({
-              path: f.path,
-              estimatedSize: planningContext?.exploredFiles?.find((ef: any) => ef.path === f.path)?.content?.length || 'unknown'
-            })),
-            largestFile: planningContext?.exploredFiles?.reduce((largest: any, file: any) =>
-              (file.content?.length > (largest?.content?.length || 0)) ? file : largest
-            , null)?.path || 'unknown',
-            totalContextSize: planningContext?.exploredFiles?.reduce((sum: number, file: any) =>
-              sum + (file.content?.length || 0), 0) || 0
-          }
-          
-          this.log('error', 'Failed to parse AI response even after format enforcement', diagnostics)
+    try {
+      const generatedCode = this.parseGeneratedCode(response)
+      this.log('info', 'Successfully parsed response after format enforcement retry')
+      return generatedCode
+    } catch (retryError) {
+      throw this.buildGenerationFailureError({
+        response,
+        retryError,
+        approvedPlan,
+        planningContext,
+      })
+    }
+  }
 
-          // Include more helpful error details in the user-facing error
-          const errorPreview = response.length > 1000 
-            ? response.substring(0, 1000) + '\n\n... (truncated, full response logged)' 
-            : response
-          const actualError = retryError instanceof Error ? retryError.message : String(retryError)
-          
-          // Create a more detailed error message
-          let errorMessage = 'AI did not return code in the expected format after retry.\n\n'
-          errorMessage += `Parsing error: ${actualError}\n\n`
-          
-          // Add diagnostic info
-          if (!diagnostics.hasBraces) {
-            errorMessage += '⚠️ Response does not contain JSON braces ({}).\n'
-          } else if (diagnostics.braceBalance !== 0) {
-            errorMessage += `⚠️ JSON braces are unbalanced (balance: ${diagnostics.braceBalance}).\n`
-          }
-          
-          if (diagnostics.hasCodeBlock && !diagnostics.hasJsonCodeBlock) {
-            errorMessage += '⚠️ Response contains code blocks but not JSON code blocks.\n'
-          }
-          
-          if (!diagnostics.hasFilesKey) {
-            errorMessage += '⚠️ Response does not contain "files" key.\n'
-          }
+  /** Build a diagnostics-rich Error after format-enforcement retry has failed.
+   *  Logs the full diagnostics object and returns a user-facing Error with the
+   *  most actionable subset embedded in the message. */
+  private buildGenerationFailureError(args: {
+    response: string
+    retryError: unknown
+    approvedPlan: ImplementationPlan
+    planningContext: PlanningContextFiles | null
+  }): Error {
+    const { response, retryError, approvedPlan, planningContext } = args
 
-          // ✅ NEW: Add file size warning if we detect large files
-          if (diagnostics.totalContextSize > 50000) {
-            errorMessage += `\n⚠️ Large files detected in context (${Math.round(diagnostics.totalContextSize / 1024)}KB total).\n`
-            errorMessage += `   Largest file: ${diagnostics.largestFile}\n`
-            errorMessage += '   Large files often cause JSON parsing failures.\n'
-          }
-
-          errorMessage += `\nResponse preview (first 1000 chars):\n${errorPreview}\n\n`
-          errorMessage += 'The AI may need more specific instructions or the response may be too large. '
-          errorMessage += 'Try simplifying the task or breaking it into smaller steps.'
-          
-          throw new Error(errorMessage)
-        }
-      } else {
-        // Re-throw other errors
-        throw error
-      }
+    const diagnostics = {
+      responseLength: response.length,
+      responsePreview: response.substring(0, 1000),
+      responseTail: response.length > 1000 ? response.substring(response.length - 500) : '',
+      responseMiddle: response.length > 2000
+        ? response.substring(Math.floor(response.length / 2) - 250, Math.floor(response.length / 2) + 250)
+        : '',
+      error: retryError instanceof Error ? retryError.message : String(retryError),
+      attemptedPatterns: [
+        'Pure JSON parse',
+        'Markdown code block extraction',
+        'Balanced brace matching',
+        'Regex JSON object search',
+        'First-to-last brace extraction',
+        'Markdown file header patterns',
+      ],
+      hasJsonCodeBlock: response.includes('```json'),
+      hasCodeBlock: response.includes('```'),
+      hasFilesKey: response.includes('"files"'),
+      hasBraces: response.includes('{') && response.includes('}'),
+      braceBalance: countBraceBalance(response),
+      firstBraceIndex: response.indexOf('{'),
+      lastBraceIndex: response.lastIndexOf('}'),
+      attemptedFiles: approvedPlan.files.map(f => ({
+        path: f.path,
+        estimatedSize:
+          planningContext?.exploredFiles?.find((ef: any) => ef.path === f.path)?.content?.length ||
+          'unknown',
+      })),
+      largestFile:
+        planningContext?.exploredFiles?.reduce(
+          (largest: any, file: any) =>
+            (file.content?.length || 0) > (largest?.content?.length || 0) ? file : largest,
+          null,
+        )?.path || 'unknown',
+      totalContextSize:
+        planningContext?.exploredFiles?.reduce(
+          (sum: number, file: any) => sum + (file.content?.length || 0),
+          0,
+        ) || 0,
     }
 
-    // Validate that generated files match the plan using extracted service
+    this.log('error', 'Failed to parse AI response even after format enforcement', diagnostics)
+
+    const errorPreview = response.length > 1000
+      ? response.substring(0, 1000) + '\n\n... (truncated, full response logged)'
+      : response
+    const actualError = retryError instanceof Error ? retryError.message : String(retryError)
+
+    let errorMessage = 'AI did not return code in the expected format after retry.\n\n'
+    errorMessage += `Parsing error: ${actualError}\n\n`
+
+    if (!diagnostics.hasBraces) {
+      errorMessage += '⚠️ Response does not contain JSON braces ({}).\n'
+    } else if (diagnostics.braceBalance !== 0) {
+      errorMessage += `⚠️ JSON braces are unbalanced (balance: ${diagnostics.braceBalance}).\n`
+    }
+
+    if (diagnostics.hasCodeBlock && !diagnostics.hasJsonCodeBlock) {
+      errorMessage += '⚠️ Response contains code blocks but not JSON code blocks.\n'
+    }
+
+    if (!diagnostics.hasFilesKey) {
+      errorMessage += '⚠️ Response does not contain "files" key.\n'
+    }
+
+    if (diagnostics.totalContextSize > 50000) {
+      errorMessage += `\n⚠️ Large files detected in context (${Math.round(diagnostics.totalContextSize / 1024)}KB total).\n`
+      errorMessage += `   Largest file: ${diagnostics.largestFile}\n`
+      errorMessage += '   Large files often cause JSON parsing failures.\n'
+    }
+
+    errorMessage += `\nResponse preview (first 1000 chars):\n${errorPreview}\n\n`
+    errorMessage += 'The AI may need more specific instructions or the response may be too large. '
+    errorMessage += 'Try simplifying the task or breaking it into smaller steps.'
+
+    return new Error(errorMessage)
+  }
+
+  /** Filter the generated files to those in the approved plan and log the result. */
+  private finalizeGeneration(args: {
+    generatedCode: GeneratedCode
+    approvedPlan: ImplementationPlan
+    systemBlocks: ClaudeSystemBlock[]
+    planningContext: PlanningContextFiles | null
+  }): GeneratedCode {
+    const { generatedCode, approvedPlan, systemBlocks, planningContext } = args
+
     const plannedPaths = new Set(approvedPlan.files.map(f => f.path))
     generatedCode.files = filterGeneratedCode(
       generatedCode.files,
       plannedPaths,
-      (level, msg, meta) => this.log(level, msg, meta)
+      (level, msg, meta) => this.log(level, msg, meta),
     )
 
     this.log('info', 'Code generation completed with progressive context', {
@@ -540,7 +618,7 @@ Respond with ONLY the JSON object as specified above.`
       paths: generatedCode.files.map(f => f.path),
       systemBlocksCount: systemBlocks.length,
       cachedLayers: systemBlocks.filter(b => b.cache_control).length,
-      hadPlanningContext: !!planningContext
+      hadPlanningContext: !!planningContext,
     })
 
     return generatedCode
