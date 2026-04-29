@@ -16,6 +16,11 @@ import {
   postImplementationComment as postImplementationCommentImpl,
   postToAstridTask as postToAstridTaskImpl,
 } from './ai/orchestrator/comment-poster'
+import {
+  checkWorkflowStatus as checkWorkflowStatusImpl,
+  updateWorkflowStatus as updateWorkflowStatusImpl,
+  handleWorkflowError as handleWorkflowErrorImpl,
+} from './ai/orchestrator/workflow-status'
 import { prisma } from './prisma'
 import { type AIService, getAgentService } from './ai/agent-config'
 import { type ClaudeSystemBlock } from './ai/clients'
@@ -725,30 +730,8 @@ Respond with ONLY the JSON object as specified above.`
   /**
    * ✅ Check if workflow or task has been cancelled/completed
    */
-  private async checkWorkflowStatus(workflowId: string, taskId: string): Promise<void> {
-    const workflow = await prisma.codingTaskWorkflow.findUnique({
-      where: { id: workflowId },
-      include: {
-        task: true
-      }
-    })
-
-    if (!workflow) {
-      throw new Error('Workflow not found - may have been deleted')
-    }
-
-    if (workflow.status === 'CANCELLED') {
-      throw new Error('Workflow has been cancelled')
-    }
-
-    if (workflow.task?.completed) {
-      throw new Error('Task has been marked as completed')
-    }
-
-    // Task was deleted (orphaned workflow)
-    if (!workflow.task) {
-      throw new Error('Task has been deleted')
-    }
+  private checkWorkflowStatus(workflowId: string, _taskId: string): Promise<void> {
+    return checkWorkflowStatusImpl(workflowId)
   }
 
   /**
@@ -1228,27 +1211,14 @@ Respond with ONLY the JSON object as specified above.`
   }
 
   /**
-   * Workflow management methods
+   * Workflow management methods (delegating to lib/ai/orchestrator/workflow-status.ts)
    */
-  private async updateWorkflowStatus(workflowId: string, status: string): Promise<void> {
-    await prisma.codingTaskWorkflow.update({
-      where: { id: workflowId },
-      data: { status: status as any }
-    })
+  private updateWorkflowStatus(workflowId: string, status: string): Promise<void> {
+    return updateWorkflowStatusImpl(workflowId, status)
   }
 
-  private async handleWorkflowError(workflowId: string, step: string, error: any): Promise<void> {
-    await prisma.codingTaskWorkflow.update({
-      where: { id: workflowId },
-      data: {
-        status: 'FAILED',
-        metadata: {
-          error: error.message,
-          step,
-          timestamp: new Date().toISOString()
-        }
-      }
-    })
+  private handleWorkflowError(workflowId: string, step: string, error: unknown): Promise<void> {
+    return handleWorkflowErrorImpl(workflowId, step, error)
   }
 
   /**
