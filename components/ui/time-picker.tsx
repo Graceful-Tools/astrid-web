@@ -59,14 +59,24 @@ export function TimePicker({
   useEffect(() => {
     if (value) {
       let date: Date
-      
+
       if (typeof value === "string") {
-        // Handle HH:MM string format
-        const [hourStr, minuteStr] = value.split(':')
-        const hour24 = parseInt(hourStr)
-        const mins = parseInt(minuteStr)
-        date = new Date()
-        date.setHours(hour24, mins, 0, 0)
+        // Two string formats are passed in: bare "HH:MM" (reminder settings)
+        // and full ISO timestamps "YYYY-MM-DDTHH:MM:SS.sssZ" (task fields,
+        // which round-trip as strings through IndexedDB cache hydration).
+        // The split-on-colon parser produces nonsense for ISO strings —
+        // parseInt("2025-04-29T22") returns 2025, then setHours(2025)
+        // overflows and the picker lands on ~9am. Detect ISO and use Date.
+        const looksLikeIso = value.length > 5 && (value.includes("T") || value.includes("-"))
+        if (looksLikeIso) {
+          date = new Date(value)
+        } else {
+          const [hourStr, minuteStr] = value.split(':')
+          const hour24 = parseInt(hourStr)
+          const mins = parseInt(minuteStr)
+          date = new Date()
+          date.setHours(hour24, mins, 0, 0)
+        }
       } else {
         // Handle Date object
         date = new Date(value)

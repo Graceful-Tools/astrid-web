@@ -176,8 +176,11 @@ export function useTaskDetailState(task: Task): TaskDetailState {
   }, [task.description, editingDescription])
 
   useEffect(() => {
-    if (!editingWhen) setTempWhen(task.dueDateTime || undefined)
-  }, [task.dueDateTime, editingWhen])
+    // tempWhen feeds both the date picker (editingWhen) and the time picker
+    // (editingTime). Resyncing while either is open lets a parent re-render
+    // (SSE, focus events, etc.) overwrite the user's in-flight selection.
+    if (!editingWhen && !editingTime) setTempWhen(task.dueDateTime || undefined)
+  }, [task.dueDateTime, editingWhen, editingTime])
 
   useEffect(() => {
     if (!editingPriority) setTempPriority(task.priority)
