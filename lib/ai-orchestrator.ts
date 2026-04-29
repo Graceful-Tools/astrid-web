@@ -1069,29 +1069,54 @@ Respond with ONLY the JSON object as specified above.`
   /**
    * Handle change requests from user feedback
    */
+  /**
+   * Apply user feedback to an already-implemented workflow: regenerate
+   * code from the feedback, push to the existing PR branch, redeploy the
+   * preview if there is one, and post an "✅ changes applied" comment.
+   *
+   * Saga pipeline of named in-class sub-steps; mirrors the structure of
+   * executeCompleteWorkflow / handleRetryWithFeedback.
+   */
   async handleChangeRequest(workflowId: string, taskId: string, feedback: string): Promise<void> {
     this.log('info', 'Handling change request', { workflowId, taskId, feedback: feedback.substring(0, 100) })
 
     try {
-      // Get the current workflow
-      const workflow = await prisma.codingTaskWorkflow.findUnique({
-        where: { id: workflowId },
-        include: {
-          task: true
-        }
-      })
+      const workflow = await this.loadChangeRequestWorkflow(workflowId)
+      const revisedCode = await this.generateRevisedImplementation(workflow, feedback)
+      await this.applyRevisedCodeToBranch(workflow, revisedCode, feedback)
+      const vercelDeployment = await this.redeployPreviewIfNeeded(workflow)
+      await this.persistRevisionAndNotify({ workflow, taskId, revisedCode, feedback, vercelDeployment })
 
-      if (!workflow) {
-        throw new Error(`Workflow ${workflowId} not found`)
-      }
+      this.log('info', 'Change request handled successfully', { workflowId })
+    } catch (error) {
+      this.log('error', 'Change request handling failed', { workflowId, error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+  }
 
-      // Get the current plan and implementation details
-      const currentPlan = workflow.metadata && typeof workflow.metadata === 'object' && 'plan' in workflow.metadata
-        ? (workflow.metadata.plan as unknown) as ImplementationPlan
-        : null
+  /** Fetch the workflow + its task. Throws if the workflow is missing. */
+  private async loadChangeRequestWorkflow(workflowId: string) {
+    const workflow = await prisma.codingTaskWorkflow.findUnique({
+      where: { id: workflowId },
+      include: { task: true },
+    })
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`)
+    }
+    return workflow
+  }
 
-      // Create a revision prompt incorporating the feedback
-      const revisionPrompt = `I need to revise my implementation based on user feedback.
+  /** Build a revision prompt from the existing plan + user feedback,
+   *  call the AI service, and parse the response into GeneratedCode. */
+  private async generateRevisedImplementation(
+    workflow: { task: { title: string; description: string | null }; metadata: unknown },
+    feedback: string,
+  ): Promise<GeneratedCode> {
+    const currentPlan = workflow.metadata && typeof workflow.metadata === 'object' && 'plan' in workflow.metadata
+      ? ((workflow.metadata as { plan: unknown }).plan as ImplementationPlan)
+      : null
+
+    const revisionPrompt = `I need to revise my implementation based on user feedback.
 
 ORIGINAL TASK: ${workflow.task.title}
 ${workflow.task.description ? `DESCRIPTION: ${workflow.task.description}` : ''}
@@ -1109,84 +1134,98 @@ Please create a revised implementation plan that addresses the user's feedback. 
 
 Generate a complete revised implementation including updated code.`
 
-      // Generate revised implementation
-      const revisedImplementation = await this.callAIService(revisionPrompt)
+    const revisedImplementation = await this.callAIService(revisionPrompt)
+    return this.parseGeneratedCode(revisedImplementation)
+  }
 
-      // Extract and parse the revised code
-      const revisedCode = this.parseGeneratedCode(revisedImplementation)
+  /** Push the revised file set to the workflow's existing PR branch. */
+  private async applyRevisedCodeToBranch(
+    workflow: { repositoryId: string | null; workingBranch: string | null },
+    revisedCode: GeneratedCode,
+    feedback: string,
+  ): Promise<void> {
+    const { GitHubClient } = await import('./github-client')
+    const githubClient = await GitHubClient.forUser(this.userId)
 
-      // Initialize GitHub client
-      const { GitHubClient } = await import('./github-client')
-      const githubClient = await GitHubClient.forUser(this.userId)
+    const repository = workflow.repositoryId!
+    const branchName = workflow.workingBranch!
 
-      // Update the existing branch with new changes
-      const repository = workflow.repositoryId!
-      const branchName = workflow.workingBranch!
+    await githubClient.commitChanges(
+      repository,
+      branchName,
+      revisedCode.files.map(file => ({
+        path: file.path,
+        content: file.content,
+        mode: file.action === 'create' ? 'create' : 'update',
+      })),
+      `${revisedCode.commitMessage}\n\nAddresses feedback: ${feedback.substring(0, 100)}...`,
+    )
+  }
 
-      await githubClient.commitChanges(
-        repository,
-        branchName,
-        revisedCode.files.map((file: { path: string; content: string; action: 'create' | 'modify' | 'delete' }) => ({
-          path: file.path,
-          content: file.content,
-          mode: file.action === 'create' ? 'create' : 'update'
-        })),
-        `${revisedCode.commitMessage}\n\nAddresses feedback: ${feedback.substring(0, 100)}...`
+  /** Best-effort Vercel redeploy of the workflow's preview, if one exists.
+   *  Returns the new deployment or null on no-op / failure. */
+  private async redeployPreviewIfNeeded(workflow: {
+    repositoryId: string | null
+    workingBranch: string | null
+    deploymentUrl: string | null
+  }): Promise<{ url: string; id?: string } | null> {
+    if (!workflow.deploymentUrl) return null
+
+    try {
+      const { VercelClient } = await import('./vercel-client')
+      const vercelClient = new VercelClient()
+      const deploymentResult = await vercelClient.deployPRBranch(
+        workflow.repositoryId!,
+        workflow.workingBranch!,
       )
+      return deploymentResult?.deployment ?? null
+    } catch {
+      return null
+    }
+  }
 
-      // Update Vercel deployment if available
-      let vercelDeployment = null
-      if (workflow.deploymentUrl) {
-        try {
-          const { VercelClient } = await import('./vercel-client')
-        const vercelClient = new VercelClient()
-          const deploymentResult = await vercelClient.deployPRBranch(
-            repository,
-            branchName
-          )
+  /** Persist the revision into workflow metadata and post the
+   *  "🔄 Changes applied" comment to the task. */
+  private async persistRevisionAndNotify(args: {
+    workflow: {
+      id: string
+      pullRequestNumber: number | null
+      deploymentUrl: string | null
+      metadata: unknown
+    }
+    taskId: string
+    revisedCode: GeneratedCode
+    feedback: string
+    vercelDeployment: { url: string; id?: string } | null
+  }): Promise<void> {
+    const { workflow, taskId, revisedCode, feedback, vercelDeployment } = args
 
-          if (deploymentResult) {
-            vercelDeployment = deploymentResult.deployment
-          }
-        } catch {
-          // Continue without Vercel redeployment
-        }
-      }
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflow.id },
+      data: {
+        status: 'TESTING',
+        deploymentUrl: vercelDeployment?.url || workflow.deploymentUrl,
+        metadata: {
+          ...(workflow.metadata as any),
+          revisedPlan: revisedCode,
+          revisionFeedback: feedback,
+          lastRevisionAt: new Date().toISOString(),
+          deploymentId: vercelDeployment?.id || (workflow.metadata as any)?.deploymentId,
+        },
+      },
+    })
 
-      // Update workflow metadata
-      await prisma.codingTaskWorkflow.update({
-        where: { id: workflowId },
-        data: {
-          status: 'TESTING',
-          deploymentUrl: vercelDeployment?.url || workflow.deploymentUrl,
-          metadata: {
-            ...workflow.metadata as any,
-            revisedPlan: revisedCode,
-            revisionFeedback: feedback,
-            lastRevisionAt: new Date().toISOString(),
-            deploymentId: vercelDeployment?.id || (workflow.metadata as any)?.deploymentId
-          }
-        }
-      })
-
-      // Post update comment as the AI agent
-      await createAIAgentComment(
-        taskId,
-        `🔄 **Changes applied**
+    const previewUrl = vercelDeployment?.url || workflow.deploymentUrl
+    await createAIAgentComment(
+      taskId,
+      `🔄 **Changes applied**
 
 > ${feedback}
 
-Updated PR #${workflow.pullRequestNumber}${vercelDeployment ? ` · [Preview](${vercelDeployment.url})` : workflow.deploymentUrl ? ` · [Preview](${workflow.deploymentUrl})` : ''}
+Updated PR #${workflow.pullRequestNumber}${previewUrl ? ` · [Preview](${previewUrl})` : ''}
 
-Ready for review.`
-      )
-
-      this.log('info', 'Change request handled successfully', { workflowId })
-
-    } catch (error) {
-      this.log('error', 'Change request handling failed', { workflowId, error: error instanceof Error ? error.message : String(error) })
-      throw error
-    }
+Ready for review.`,
+    )
   }
 
   /**
