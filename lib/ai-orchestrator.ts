@@ -21,6 +21,10 @@ import {
   updateWorkflowStatus as updateWorkflowStatusImpl,
   handleWorkflowError as handleWorkflowErrorImpl,
 } from './ai/orchestrator/workflow-status'
+import {
+  storePlanningContext as storePlanningContextImpl,
+  loadPlanningContext as loadPlanningContextImpl,
+} from './ai/orchestrator/planning-context'
 import { prisma } from './prisma'
 import { type AIService, getAgentService } from './ai/agent-config'
 import { type ClaudeSystemBlock } from './ai/clients'
@@ -200,96 +204,39 @@ export class AIOrchestrator {
   }
 
   /**
-   * ✅ Store planning context in workflow metadata for implementation phase
+   * Persist planning context for implementation phase pickup.
+   * Delegates to lib/ai/orchestrator/planning-context.ts.
    */
   private async storePlanningContext(plan: ImplementationPlan): Promise<void> {
     if (!this.currentTaskId) {
       this.log('warn', 'No task ID set, cannot store planning context')
       return
     }
-
-    try {
-      // Serialize explored files
-      const exploredFiles = Array.from(this.exploredFiles.entries()).map(([path, data]) => ({
-        path,
-        content: data.content,
-        relevance: 'Explored during planning',
-        timestamp: data.timestamp
-      }))
-
-      await prisma.codingTaskWorkflow.updateMany({
-        where: { taskId: this.currentTaskId },
-        data: {
-          metadata: {
-            planningContext: {
-              plan,
-              exploredFiles,
-              astridMdContent: this.astridMdContent,
-              timestamp: Date.now()
-            }
-          } as any
-        }
-      })
-
-      this.log('info', 'Stored planning context for implementation phase', {
-        taskId: this.currentTaskId,
-        exploredFilesCount: exploredFiles.length,
-        hasAstridMd: !!this.astridMdContent
-      })
-    } catch (error) {
-      this.log('error', 'Failed to store planning context', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      })
-    }
+    await storePlanningContextImpl({
+      taskId: this.currentTaskId,
+      plan,
+      exploredFiles: this.exploredFiles,
+      astridMdContent: this.astridMdContent,
+    })
   }
 
   /**
-   * ✅ Load planning context from workflow metadata
+   * Load planning context from the most recent workflow row for this task.
+   * Side-effect: rehydrates `this.astridMdContent` if it was cached and the
+   * orchestrator hasn't loaded it yet (matches pre-extraction behavior).
    */
+   
   private async loadPlanningContext(): Promise<any | null> {
     if (!this.currentTaskId) {
       this.log('warn', 'No task ID set, cannot load planning context')
       return null
     }
-
-    try {
-      const workflow = await prisma.codingTaskWorkflow.findFirst({
-        where: { taskId: this.currentTaskId },
-        orderBy: { createdAt: 'desc' }
-      })
-
-      if (!workflow || !workflow.metadata) {
-        this.log('warn', 'No workflow or metadata found for task')
-        return null
-      }
-
-      const metadata = workflow.metadata as any
-      const planningContext = metadata.planningContext
-
-      if (!planningContext) {
-        this.log('warn', 'No planning context found in workflow metadata')
-        return null
-      }
-
-      // Restore ASTRID.md if it was stored
-      if (planningContext.astridMdContent && !this.astridMdContent) {
-        this.astridMdContent = planningContext.astridMdContent
-        this.log('info', 'Restored ASTRID.md from planning context')
-      }
-
-      this.log('info', 'Loaded planning context from workflow', {
-        taskId: this.currentTaskId,
-        exploredFilesCount: planningContext.exploredFiles?.length || 0,
-        hasAstridMd: !!planningContext.astridMdContent
-      })
-
-      return planningContext
-    } catch (error) {
-      this.log('error', 'Failed to load planning context', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      })
-      return null
+    const planningContext = await loadPlanningContextImpl({ taskId: this.currentTaskId })
+    if (planningContext?.astridMdContent && !this.astridMdContent) {
+      this.astridMdContent = planningContext.astridMdContent
+      this.log('info', 'Restored ASTRID.md from planning context')
     }
+    return planningContext
   }
 
   /**
