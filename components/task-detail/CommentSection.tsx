@@ -12,6 +12,7 @@ import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
+import { uploadCommentFile as uploadCommentFileImpl } from "@/lib/comment-file-upload"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 
@@ -28,70 +29,32 @@ function getAuthorInitial(author: User | null | undefined, isSystemComment: bool
 }
 
 /**
- * Shared file upload logic for comments and replies.
- * Handles the upload to secure-upload API and returns file attachment data.
+ * Adapter around lib/comment-file-upload that wires the pure helper to
+ * the React state setters this component owns. Behavior preserved exactly.
  */
 async function uploadCommentFile(
   file: File,
   taskId: string,
   setUploading: (value: boolean) => void,
   setAttachedFile: (value: FileAttachment | null) => void,
-  setUploadError?: (error: string | null) => void
+  setUploadError?: (error: string | null) => void,
 ): Promise<void> {
-  // Check file size before upload (100MB limit)
-  const maxSize = 100 * 1024 * 1024
-  if (file.size > maxSize) {
-    const errorMessage = `File size exceeds 100MB limit. Please upload large files to a file service (Google Drive, Dropbox, etc.) and share a link instead.`
-    if (setUploadError) {
-      setUploadError(errorMessage)
-    }
-    return
-  }
-
   setUploading(true)
-  if (setUploadError) {
-    setUploadError(null)
-  }
+  if (setUploadError) setUploadError(null)
 
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('context', JSON.stringify({ taskId }))
-
-    const response = await fetch('/api/secure-upload/request-upload', {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || 'Failed to upload file'
-
-      // Check if error is about file size
-      if (errorMessage.includes('100MB') || errorMessage.includes('size')) {
-        if (setUploadError) {
-          setUploadError('File size exceeds 100MB limit. Please upload large files to a file service (Google Drive, Dropbox, etc.) and share a link instead.')
-        }
-      } else {
-        if (setUploadError) {
-          setUploadError(errorMessage)
-        }
-      }
-      throw new Error(errorMessage)
+    const result = await uploadCommentFileImpl(file, taskId)
+    if (result.success) {
+      setAttachedFile(result.attachment)
+    } else if (setUploadError) {
+      setUploadError(result.error)
+    } else {
+      alert("Failed to upload file. Please try again.")
     }
-
-    const result = await response.json()
-    setAttachedFile({
-      url: `/api/secure-files/${result.fileId}`,
-      name: result.fileName,
-      type: result.mimeType,
-      size: result.fileSize
-    })
   } catch (error) {
-    console.error('Error uploading file:', error)
+    console.error("Error uploading file:", error)
     if (!setUploadError) {
-      // If no error handler provided, show generic message
-      alert('Failed to upload file. Please try again.')
+      alert("Failed to upload file. Please try again.")
     }
   } finally {
     setUploading(false)
