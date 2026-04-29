@@ -14,60 +14,11 @@ import {
 
 const log = createLogger('ai-agent-webhook-service')
 
-export interface TaskAssignmentWebhookPayload {
-  event: 'task.assigned' | 'task.updated' | 'task.completed' | 'task.commented'
-  timestamp: string
-  aiAgent: {
-    id: string
-    name: string
-    type: string
-    email: string
-  }
-  task: {
-    id: string
-    title: string
-    description: string
-    priority: number
-    dueDateTime?: string
-    assigneeId: string
-    creatorId: string | null
-    listId: string
-    url: string
-  }
-  list: {
-    id: string
-    name: string
-    description?: string
-    githubRepositoryId?: string
-  }
-  mcp: {
-    baseUrl: string
-    operationsEndpoint: string
-    accessToken?: string
-    availableOperations: string[]
-    contextInstructions: string
-  }
-  creator: {
-    id: string | null
-    name?: string
-    email: string
-  }
-  comment?: {
-    id: string
-    content: string
-    authorName: string
-    authorId: string | null
-    createdAt: string
-  }
-  // Full comment history for context (used by Claude Code Remote)
-  comments?: Array<{
-    id: string
-    content: string
-    authorName: string
-    authorId: string | null
-    createdAt: string
-  }>
-}
+// Re-export for external callers that previously imported the type from here.
+// The canonical home is now lib/webhooks/types.ts so the notifier modules
+// don't need a type-only circular import back to this file.
+export type { TaskAssignmentWebhookPayload } from '@/lib/webhooks/types'
+import type { TaskAssignmentWebhookPayload } from '@/lib/webhooks/types'
 
 export class AIAgentWebhookService {
   private prisma: PrismaClient

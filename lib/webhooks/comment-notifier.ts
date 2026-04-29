@@ -20,7 +20,7 @@ import type { PrismaClient } from '@prisma/client'
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
-import type { TaskAssignmentWebhookPayload } from '@/lib/ai-agent-webhook-service'
+import type { TaskAssignmentWebhookPayload } from './types'
 
 const log = createLogger('webhooks/comment-notifier')
 

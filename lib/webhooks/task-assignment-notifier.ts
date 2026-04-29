@@ -27,7 +27,7 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
-import type { TaskAssignmentWebhookPayload } from '@/lib/ai-agent-webhook-service'
+import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 
 const log = createLogger('webhooks/task-assignment-notifier')
