@@ -12,6 +12,11 @@ import { enrichTaskForAgent } from "@/lib/agent-protocol"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { logError } from "@/lib/logging/error-sanitizer"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
+import {
+  computeAutomaticReminders,
+  scheduleReminders,
+  type ReminderScheduleEntry,
+} from "@/lib/reminder-scheduling"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api.tasks')
@@ -570,89 +575,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add reminders to queue - both explicit reminders and automatic due date reminders
-    const remindersToSchedule = []
-    
-    // 1. Explicit reminder if set
+    // Add reminders to queue: an explicit reminder if set, otherwise the
+    // standard automatic schedule for the due date. Both routes share the
+    // same helpers so POST/PUT can't drift apart.
+    const reminders: ReminderScheduleEntry[] = []
     if (reminderTimeValue) {
-      remindersToSchedule.push({
+      reminders.push({
         scheduledFor: reminderTimeValue,
         type: "due_reminder",
-        source: "explicit"
+        source: "explicit",
       })
-    }
-    
-    // 2. Automatic reminders for tasks with due dates (if no explicit reminder set)
-    if (dueDateTimeValue && !reminderTimeValue) {
-      const dueDate = new Date(dueDateTimeValue)
-      const now = new Date()
-      
-      // Only schedule for future due dates
-      if (dueDate > now) {
-        // Schedule reminder 15 minutes before due time
-        const reminderTime = new Date(dueDate.getTime() - (15 * 60 * 1000))
-        if (reminderTime > now) {
-          remindersToSchedule.push({
-            scheduledFor: reminderTime,
-            type: "due_reminder",
-            source: "automatic"
-          })
-        } else {
-          // If less than 15 minutes until due, schedule for due time
-          remindersToSchedule.push({
-            scheduledFor: dueDate,
-            type: "due_reminder", 
-            source: "automatic"
-          })
-        }
-        
-        // Schedule overdue reminder (1 hour after due time)
-        const overdueTime = new Date(dueDate.getTime() + (60 * 60 * 1000))
-        remindersToSchedule.push({
-          scheduledFor: overdueTime,
-          type: "overdue_reminder",
-          source: "automatic"
-        })
-      }
+    } else if (dueDateTimeValue) {
+      reminders.push(...computeAutomaticReminders(new Date(dueDateTimeValue), "automatic"))
     }
 
-    // Schedule all reminders
-    for (const reminder of remindersToSchedule) {
-      try {
-        // Check if a reminder already exists for this task and time to avoid duplicates
-        const existingReminder = await prisma.reminderQueue.findFirst({
-          where: {
-            taskId: task.id,
-            type: reminder.type,
-            scheduledFor: reminder.scheduledFor,
-            status: "pending"
-          }
-        })
-
-        if (!existingReminder) {
-          await prisma.reminderQueue.create({
-            data: {
-              taskId: task.id,
-              userId: finalAssigneeId || session.user.id, // Send reminder to assignee or creator
-              scheduledFor: reminder.scheduledFor,
-              type: reminder.type,
-              status: "pending",
-              data: {
-                taskTitle: task.title,
-                taskId: task.id,
-                reminderType: data.reminderType,
-                source: reminder.source,
-              },
-            }
-          })
-          log.info(`📅 Added ${reminder.source} ${reminder.type} to queue for task ${task.id} at ${reminder.scheduledFor.toLocaleString()}`)
-        } else {
-          log.info(`📅 ${reminder.type} already exists for task ${task.id} at ${reminder.scheduledFor.toLocaleString()}`)
-        }
-      } catch (error) {
-        log.error({ err: error }, `Failed to add ${reminder.type} to queue:`)
-        // Don't fail the task creation if reminder queueing fails
-      }
+    if (reminders.length > 0) {
+      await scheduleReminders({
+        taskId: task.id,
+        taskTitle: task.title,
+        userId: finalAssigneeId || session.user.id,
+        reminders,
+        checkDuplicates: true,
+        reminderTypeLabel: data.reminderType,
+      })
     }
 
     // Broadcast SSE event to task assignee if different from creator
