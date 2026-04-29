@@ -10,6 +10,12 @@
 
 import { getCachedApiKey } from './api-key-cache'
 import { createAIAgentComment } from './ai-agent-comment-service'
+import {
+  postStatusComment as postStatusCommentImpl,
+  postPlanComment as postPlanCommentImpl,
+  postImplementationComment as postImplementationCommentImpl,
+  postToAstridTask as postToAstridTaskImpl,
+} from './ai/orchestrator/comment-poster'
 import { prisma } from './prisma'
 import { type AIService, getAgentService } from './ai/agent-config'
 import { type ClaudeSystemBlock } from './ai/clients'
@@ -49,10 +55,6 @@ import {
 import { CONFIG_DEFAULTS } from './ai/config/defaults'
 import type { ResolvedAstridConfig } from './ai/config/schema'
 import {
-  formatPlanComment,
-  formatPlanSummary,
-  formatImplementationComment,
-  formatCompletionSummary,
   parseWorkflowSteps as parseWorkflowStepsUtil,
   DEFAULT_WORKFLOW_STEPS,
   MINIMAL_WORKFLOW_STEPS,
@@ -1252,45 +1254,20 @@ Respond with ONLY the JSON object as specified above.`
   /**
    * Comment posting methods using the proper AI agent service
    */
-  private async postStatusComment(taskId: string, title: string, message: string): Promise<void> {
-    const result = await createAIAgentComment(taskId, `${title}\n\n${message}`)
-    if (!result.success) {
-      this.log('error', 'Failed to post status comment', { taskId, error: result.error })
-    }
+  private postStatusComment(taskId: string, title: string, message: string): Promise<void> {
+    return postStatusCommentImpl(taskId, title, message, this.traceId)
   }
 
-  private async postPlanComment(taskId: string, plan: ImplementationPlan): Promise<void> {
-    const planComment = formatPlanComment(plan)
-    const result = await createAIAgentComment(taskId, planComment)
-    if (!result.success) {
-      this.log('error', 'Failed to post plan comment', { taskId, error: result.error })
-    }
-
-    // Store plan in workflow metadata
-    await prisma.codingTaskWorkflow.updateMany({
-      where: { taskId },
-      data: { metadata: { plan: plan as any } }
-    })
-
-    // Post plan to Astrid MCP task
-    try { await this.postToAstridTask(taskId, formatPlanSummary(plan)) } catch { /* MCP optional */ }
+  private postPlanComment(taskId: string, plan: ImplementationPlan): Promise<void> {
+    return postPlanCommentImpl(taskId, plan, this.traceId)
   }
 
-  private async postImplementationComment(taskId: string, details: ImplementationDetails): Promise<void> {
-    const result = await createAIAgentComment(taskId, formatImplementationComment(details))
-    if (!result.success) {
-      this.log('error', 'Failed to post implementation comment', { taskId, error: result.error })
-    }
-
-    // Post completion to Astrid MCP task (optional)
-    try { await this.postToAstridTask(taskId, formatCompletionSummary(details)) } catch { /* MCP optional */ }
+  private postImplementationComment(taskId: string, details: ImplementationDetails): Promise<void> {
+    return postImplementationCommentImpl(taskId, details, this.traceId)
   }
 
-  /**
-   * Post update to Astrid MCP task following Claude.md best practices
-   */
-  private async postToAstridTask(_taskId: string, _content: string): Promise<void> {
-    // Placeholder for MCP integration - would use npx tsx scripts/add-task-comment.ts
+  private postToAstridTask(taskId: string, content: string): Promise<void> {
+    return postToAstridTaskImpl(taskId, content)
   }
 
   /**
