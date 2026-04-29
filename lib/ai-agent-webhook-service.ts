@@ -6,40 +6,10 @@ import { generateWebhookHeaders } from '@/lib/webhook-signature'
 import { decryptField } from '@/lib/field-encryption'
 import type { PrismaClient } from '@prisma/client'
 import { createLogger } from '@/lib/logger'
+import { getAgentType } from '@/lib/webhooks/agent-type'
+import { notifyCommentOnAssignedTask as notifyCommentOnAssignedTaskImpl } from '@/lib/webhooks/comment-notifier'
 
 const log = createLogger('ai-agent-webhook-service')
-
-
-/**
- * Extract agent type from email (e.g., claude@astrid.cc -> claude)
- * or from agent name (e.g., "Claude" -> claude, "OpenAI" -> openai)
- */
-function getAgentType(email?: string, name?: string): string | null {
-  // Check for OpenClaw agent pattern: {name}.oc@astrid.cc
-  if (email?.match(/^[a-z0-9._-]+\.oc@astrid\.cc$/i)) {
-    return 'openclaw'
-  }
-
-  // Try email first (e.g., claude@astrid.cc, openai@astrid.cc, gemini@astrid.cc, openclaw@astrid.cc)
-  if (email?.endsWith('@astrid.cc')) {
-    const prefix = email.split('@')[0].toLowerCase()
-    // Normalize: claude, openai, gemini, openclaw are the standard types
-    if (['claude', 'openai', 'gemini', 'openclaw'].includes(prefix)) {
-      return prefix
-    }
-  }
-
-  // Fall back to name matching
-  if (name) {
-    const lowerName = name.toLowerCase()
-    if (lowerName.includes('claude')) return 'claude'
-    if (lowerName.includes('openai') || lowerName.includes('gpt')) return 'openai'
-    if (lowerName.includes('gemini')) return 'gemini'
-    if (lowerName.includes('openclaw') || lowerName.includes('claw')) return 'openclaw'
-  }
-
-  return null
-}
 
 export interface TaskAssignmentWebhookPayload {
   event: 'task.assigned' | 'task.updated' | 'task.completed' | 'task.commented'
@@ -735,248 +705,23 @@ export class AIAgentWebhookService {
     }
   }
 
-  async notifyCommentOnAssignedTask(taskId: string, commentId: string, commentContent: string, commenterName: string) {
-    try {
-      // Get task details with assignee info and comment history
-      const task = await this.prisma.task.findFirst({
-        where: { id: taskId },
-        include: {
-          assignee: true,
-          creator: {
-            select: { id: true, name: true, email: true }
-          },
-          lists: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              githubRepositoryId: true,
-              ownerId: true,
-              owner: { select: { id: true, email: true } }
-            }
-          },
-          comments: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              author: {
-                select: { id: true, name: true, email: true }
-              }
-            },
-            orderBy: { createdAt: 'asc' },
-            take: 50 // Limit to last 50 comments for context
-          }
-        }
-      })
-
-      if (!task || !task.assignee || !task.assignee.isAIAgent) {
-        log.info(`⚠️  Task ${taskId} is not assigned to an AI agent`)
-        return
-      }
-
-      // Get comment details
-      const comment = await this.prisma.comment.findUnique({
-        where: { id: commentId },
-        include: {
-          author: {
-            select: { id: true, name: true, email: true }
-          }
-        }
-      })
-
-      if (!comment) {
-        log.info(`⚠️  Comment ${commentId} not found`)
-        return
-      }
-
-      // Get AI agent config
-      const aiAgentConfig = task.assignee.aiAgentConfig ? JSON.parse(task.assignee.aiAgentConfig) : {}
-
-      // Get or create MCP token for the AI agent
-      let mcpToken = await this.prisma.mCPToken.findFirst({
-        where: {
-          userId: task.assignee.id,
-          isActive: true
-        }
-      })
-
-      if (!mcpToken) {
-        // Create MCP token for AI agent
-        mcpToken = await this.prisma.mCPToken.create({
-          data: {
-            token: `ai-agent-${task.assignee.id}-${Date.now()}`,
-            userId: task.assignee.id,
-            permissions: ['read', 'write'],
-            description: `Auto-generated token for ${task.assignee.name}`,
-            isActive: true
-          }
-        })
-      }
-
-      // Build webhook payload for comment notification
-      const payload: TaskAssignmentWebhookPayload = {
-        event: 'task.commented',
-        timestamp: new Date().toISOString(),
-        aiAgent: {
-          id: task.assignee.id,
-          name: task.assignee.name || 'AI Agent',
-          type: task.assignee.aiAgentType || 'unknown',
-          email: task.assignee.email
-        },
-        task: {
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          dueDateTime: task.dueDateTime?.toISOString(),
-          assigneeId: task.assignee.id,
-          creatorId: task.creatorId,
-          listId: task.lists[0]?.id || '',
-          url: getTaskUrl(task.id)
-        },
-        list: {
-          id: task.lists[0]?.id || '',
-          name: task.lists[0]?.name || 'Unknown List',
-          description: task.lists[0]?.description || undefined,
-          githubRepositoryId: task.lists[0]?.githubRepositoryId || undefined
-        },
-        mcp: {
-          baseUrl: getBaseUrl(),
-          operationsEndpoint: '/api/mcp/operations',
-          accessToken: mcpToken?.token || 'no-mcp-token',
-          availableOperations: [
-            'get_shared_lists',
-            'get_list_tasks',
-            'get_task_details',
-            'update_task',
-            'add_comment',
-            'get_task_comments'
-          ],
-          contextInstructions: task.lists[0]?.description || aiAgentConfig.contextInstructions || `Someone has commented on your assigned task. Read the comment and respond if needed using the MCP API.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`
-        },
-        creator: {
-          id: task.creator?.id || task.creatorId,
-          name: task.creator?.name || "Deleted User" || undefined,
-          email: task.creator?.email || "deleted@user.com"
-        },
-        comment: {
-          id: comment.id,
-          content: comment.content,
-          authorName: comment.author?.name || "Deleted User" || comment.author?.email || "deleted@user.com",
-          authorId: comment.author?.id || null,
-          createdAt: comment.createdAt.toISOString()
-        },
-        // Include full comment history for Claude Code Remote context
-        comments: task.comments?.map(c => ({
-          id: c.id,
-          content: c.content,
-          authorName: c.author?.name || c.author?.email || 'Unknown',
-          authorId: c.author?.id || null,
-          createdAt: c.createdAt.toISOString()
-        }))
-      }
-
-      log.info(`🔔 Notifying AI agent ${task.assignee.name} about comment from ${commenterName}`)
-      log.info(`📝 Including ${task.comments?.length || 0} comments in payload`)
-
-      // Determine agent type for routing
-      const agentType = getAgentType(task.assignee.email ?? undefined, task.assignee.name ?? undefined)
-
-      // OpenClaw agents connect via SSE channel plugin — comment delivered via SSE
-      if (agentType === 'openclaw') {
-        log.info(`🐾 OpenClaw agent — comment notification delivered via SSE channel`)
-        return
-      }
-
-      // FIRST: Check if task creator OR list owner has Claude Code Remote configured
-      // Fall back to list owner when creatorId is null
-      const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
-      log.info(`🔍 [WEBHOOK-TRACE] Comment: checking user webhook for ${webhookUserId}`)
-      if (webhookUserId) {
-        const userWebhookResult = await this.sendToUserWebhook(
-          webhookUserId,
-          'comment.created',
-          payload,
-          agentType
-        )
-
-        if (userWebhookResult.sent) {
-          log.info(`📤 Routed comment to user's Claude Code Remote server`)
-          return
-        }
-        // Fall through to standard processing if webhook not configured or failed
-      }
-
-      // Check if this is an internal agent
-      const isInternalAgent = task.assignee.email?.endsWith('@astrid.cc')
-      const { isCodingAgent } = await import('@/lib/ai-agent-utils')
-
-      if (isInternalAgent) {
-        // Find first list with a repository (task may be in multiple lists)
-        const repository = task.lists?.find(l => l.githubRepositoryId)?.githubRepositoryId
-
-        if (repository && isCodingAgent(task.assignee)) {
-          log.info(`🤖 Internal coding agent - triggering tools workflow for comment response`)
-
-          // Trigger tools-based workflow to handle the user's comment
-          try {
-            const baseUrl = getBaseUrl()
-            await fetch(`${baseUrl}/api/coding-workflow/start-tools-workflow`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                taskId: task.id,
-                repository,
-                userComment: commentContent // Pass user's comment as context
-              })
-            })
-            log.info(`✅ Tools workflow triggered for comment: "${commentContent}"`)
-          } catch (error) {
-            log.error({ err: error }, `❌ Failed to trigger tools workflow:`)
-          }
-        } else {
-          log.info(`🤖 Internal assistant agent - triggering real-time workflow for comment response`)
-
-          // Non-coding task: trigger assistant workflow for comment response
-          try {
-            const baseUrl = getBaseUrl()
-            const response = await fetch(`${baseUrl}/api/assistant-workflow`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                taskId: task.id,
-                agentEmail: task.assignee.email,
-                creatorId: task.creatorId,
-                isCommentResponse: true,
-                userComment: commentContent
-              })
-            })
-
-            if (response.ok) {
-              log.info(`✅ Assistant workflow triggered for comment: "${commentContent}"`)
-            } else {
-              const error = await response.text()
-              log.error(`❌ Assistant workflow failed: ${error}`)
-            }
-          } catch (error) {
-            log.error({ err: error }, `❌ Failed to trigger assistant workflow:`)
-          }
-        }
-        return
-      }
-
-      // Send webhook notification for external agents only
-      if (task.assignee.webhookUrl) {
-        await this.sendWebhookNotification(task.assignee.webhookUrl, payload)
-      }
-
-      log.info(`✅ Successfully notified AI agent ${task.assignee.name} about comment`)
-
-    } catch (error) {
-      log.error({ err: error }, `❌ Failed to notify AI agent about comment:`)
-      throw error
-    }
+  /** Delegates to lib/webhooks/comment-notifier.ts. Routing logic + payload
+   *  construction live there; the class supplies the still-private dispatch
+   *  helpers (Stage 9b will continue the split). */
+  notifyCommentOnAssignedTask(
+    taskId: string,
+    commentId: string,
+    commentContent: string,
+    commenterName: string,
+  ) {
+    return notifyCommentOnAssignedTaskImpl(
+      { taskId, commentId, commentContent, commenterName },
+      {
+        prisma: this.prisma,
+        sendToUserWebhook: this.sendToUserWebhook.bind(this),
+        sendWebhookNotification: this.sendWebhookNotification.bind(this),
+      },
+    )
   }
 
   async getAIAgents() {
