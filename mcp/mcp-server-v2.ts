@@ -14,22 +14,11 @@ const { z } = require("zod");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-// Helper function to check if user has access to a list
-function hasListAccess(list, userId) {
-  // Check if user is owner
-  if (list.ownerId === userId) return true;
+// Helper function to check if user has access to a list — extracted to ./list-access.ts
+const { hasListAccess } = require("./list-access");
 
-  // Check admins
-  if (list.admins && list.admins.some(admin => admin.id === userId)) return true;
-
-  // Check legacy members
-  if (list.members && list.members.some(member => member.id === userId)) return true;
-
-  // Check new listMembers structure
-  if (list.listMembers && list.listMembers.some(member => member.userId === userId)) return true;
-
-  return false;
-}
+// GitHub MCP delegation — extracted to ./call-mcp-operation.ts
+const { callMCPOperation } = require("./call-mcp-operation");
 
 // Schema definitions for validation — extracted to ./schemas.ts
 const {
@@ -1346,37 +1335,8 @@ class AstridMCPServerV2 {
    * Call MCP operation via the API route
    * This delegates GitHub and other operations to the centralized API handler
    */
-  private async callMCPOperation(operation: string, args: any) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-    try {
-      const response = await fetch(`${apiUrl}/api/mcp/operations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          operation,
-          args
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      return {
-        content: [{
-          type: "text",
-          text: JSON.stringify(data, null, 2)
-        }]
-      };
-    } catch (error) {
-      throw new Error(`Failed to call MCP operation ${operation}: ${error instanceof Error ? error.message : String(error)}`);
-    }
+  private callMCPOperation(operation: string, args: any) {
+    return callMCPOperation(operation, args);
   }
 
   public async run() {
