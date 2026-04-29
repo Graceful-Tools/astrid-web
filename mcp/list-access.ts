@@ -18,3 +18,4 @@ function hasListAccess(list: any, userId: string): boolean {
 }
 
 module.exports = { hasListAccess }
+export {}

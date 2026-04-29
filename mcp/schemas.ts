@@ -83,3 +83,8 @@ module.exports = {
   CreateCommentSchema,
   CreateAttachmentSchema,
 }
+
+// Force this file to be a module (not a script) so its top-level `const`s
+// don't collide with same-named consts in sibling mcp/*.ts files under the
+// project's CommonJS-style require/module.exports usage.
+export {}

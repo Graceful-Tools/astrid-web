@@ -37,3 +37,4 @@ async function callMCPOperation(operation: string, args: any) {
 }
 
 module.exports = { callMCPOperation }
+export {}
