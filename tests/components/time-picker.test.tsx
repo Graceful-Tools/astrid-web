@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { TimePicker } from '@/components/ui/time-picker'
 
 // Force desktop branch so the Popover UI (with Set Time button) renders.
@@ -99,5 +99,49 @@ describe('TimePicker (desktop popover)', () => {
       render(<TimePicker value={d} onChange={() => {}} />)
       expect(screen.getByRole('button', { name: /3pm/i })).toBeInTheDocument()
     })
+  })
+})
+
+describe('TimePicker (mobile native input)', () => {
+  // Force the mobile branch by injecting an iPhone UA before each test.
+  let originalUA: string | undefined
+  beforeEach(() => {
+    originalUA = window.navigator.userAgent
+    Object.defineProperty(window.navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+      configurable: true,
+    })
+  })
+  afterEach(() => {
+    if (originalUA !== undefined) {
+      Object.defineProperty(window.navigator, 'userAgent', {
+        value: originalUA,
+        configurable: true,
+      })
+    }
+  })
+
+  // Regression: an ISO timestamp string passed straight through to the
+  // <input type="time"> value attribute is silently rejected (the input
+  // only accepts "HH:mm"). On iOS this leaves the native picker with no
+  // initial value and any tap on the backdrop commits a default — the
+  // "auto-selects and closes" symptom.
+  it('passes a valid HH:mm value to the native input when given an ISO string', () => {
+    const localThreePm = new Date()
+    localThreePm.setHours(15, 0, 0, 0)
+    const iso = localThreePm.toISOString()
+
+    const { container } = render(<TimePicker value={iso} onChange={() => {}} />)
+
+    const input = container.querySelector('input[type="time"]') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+    expect(input!.value).toMatch(/^\d{2}:\d{2}$/)
+    expect(input!.value).toBe('15:00')
+  })
+
+  it('passes through bare HH:mm strings unchanged', () => {
+    const { container } = render(<TimePicker value="14:30" onChange={() => {}} mode="string" />)
+    const input = container.querySelector('input[type="time"]') as HTMLInputElement | null
+    expect(input!.value).toBe('14:30')
   })
 })
