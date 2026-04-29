@@ -23,7 +23,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 3,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
+    // open: 'never' so chained scripts (predeploy:full) aren't blocked by an
+    // auto-launched report browser when a flake happens
+    ['html', { open: 'never' }],
     ['list'],
     process.env.CI ? ['github'] : ['list']
   ],
