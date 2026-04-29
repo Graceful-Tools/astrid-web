@@ -57,13 +57,9 @@ import {
   type PlanningContextFiles,
 } from './ai/file-validator'
 import {
-  extractSection,
-  assessComplexity,
-  extractConsiderations,
-  extractFilePaths,
-  mapToKnownPath,
   countBraceBalance,
   parseGeneratedCode as parseGeneratedCodeUtil,
+  parseImplementationPlan as parseImplementationPlanUtil,
 } from './ai/response-parser'
 import { CONFIG_DEFAULTS } from './ai/config/defaults'
 import type { ResolvedAstridConfig } from './ai/config/schema'
@@ -1023,35 +1019,13 @@ Respond with ONLY the JSON object as specified above.`
     })
   }
 
-  /**
-   * Parse AI response into implementation plan
-   */
+  /** Delegates to the extracted parseImplementationPlan utility. */
   private parseImplementationPlan(response: string): ImplementationPlan {
-    // Extract files using utility and map to known paths
-    const filePaths = extractFilePaths(response)
-    const exploredPaths = Array.from(this.exploredFiles.keys())
-    const files = filePaths.map(path => {
-      const mappedPath = mapToKnownPath(path, exploredPaths)
-      if (mappedPath !== path) {
-        this.log('info', 'Mapped AI hallucinated path to actual explored file', {
-          aiPath: path,
-          actualPath: mappedPath
-        })
-      }
-      return {
-        path: mappedPath,
-        purpose: 'Component file',
-        changes: 'Create/modify component'
-      }
-    })
-
-    return {
-      summary: extractSection(response, 'summary') || 'Implementation plan generated',
-      approach: extractSection(response, 'approach') || response.substring(0, 200),
-      files,
-      estimatedComplexity: assessComplexity(response),
-      considerations: extractConsiderations(response)
-    }
+    return parseImplementationPlanUtil(
+      response,
+      Array.from(this.exploredFiles.keys()),
+      (level, msg, meta) => this.log(level, msg, meta),
+    )
   }
 
   /**
