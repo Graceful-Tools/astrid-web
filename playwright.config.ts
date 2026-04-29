@@ -46,12 +46,13 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Unauthenticated tests (auth flows, public pages, locale navigation)
-    // Run these first as they don't require setup
+    // Unauthenticated tests (auth flows, public pages, locale navigation,
+    // and the layout-regression matrix where the device's natural width
+    // produces a computer-3-column layout).
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /(auth|locale-navigation)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression)\.spec\.ts/,
     },
 
     {
@@ -66,16 +67,50 @@ export default defineConfig({
       testMatch: /(auth|locale-navigation)\.spec\.ts/,
     },
 
-    // Mobile tests (unauthenticated)
+    // Mobile tests (unauthenticated). Pixel 5 / iPhone 12 viewports are both
+    // < 910px so they land in mobile-1-column.
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      testMatch: /(auth|locale-navigation)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression)\.spec\.ts/,
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
       testMatch: /(auth|locale-navigation)\.spec\.ts/,
+    },
+
+    // Layout-regression matrix: each project below pins a viewport that
+    // exercises one of the layouts defined in lib/layout-detection.ts.
+    // computer-3-column is covered by the chromium project above.
+    {
+      name: 'computer-1-column',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 800, height: 900 } },
+      testMatch: /layout-regression\.spec\.ts/,
+    },
+    {
+      name: 'computer-2-column',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1000, height: 900 } },
+      testMatch: /layout-regression\.spec\.ts/,
+    },
+    {
+      name: 'tablet-2-column',
+      // iPad Mini landscape (1024x768) — iPad UA + width in [910, 1100) →
+      // tablet-2-column. We can't use iPad portrait here because all iPad
+      // Safari UAs include "Mobile/..." which the production
+      // isMobileDevice() helper matches before isIPadDevice() gets checked,
+      // so iPad portrait is currently misrouted to mobile-1-column. That's
+      // a separate bug to fix; the matrix only needs ONE viewport per
+      // layout type and landscape is unambiguous.
+      use: { ...devices['iPad Mini landscape'] },
+      testMatch: /layout-regression\.spec\.ts/,
+    },
+    {
+      name: 'tablet-3-column',
+      // iPad Pro 11 landscape (1194x834) — iPad UA + width ≥ 1100 →
+      // tablet-3-column.
+      use: { ...devices['iPad Pro 11 landscape'] },
+      testMatch: /layout-regression\.spec\.ts/,
     },
 
     // Setup project - runs once to authenticate (optional, only if env vars are set)
