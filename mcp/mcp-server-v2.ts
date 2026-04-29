@@ -29,6 +29,13 @@ const {
   getTaskComments: getTaskCommentsHandler,
 } = require("./handlers/comments");
 
+// List read handlers — extracted to ./handlers/lists.ts
+const {
+  getSharedLists: getSharedListsHandler,
+  getListTasks: getListTasksHandler,
+  getListMembers: getListMembersHandler,
+} = require("./handlers/lists");
+
 // Schema definitions for validation — extracted to ./schemas.ts
 const {
   CreateTaskSchema,
@@ -657,128 +664,12 @@ class AstridMCPServerV2 {
     return validateAccessToken(accessToken, listId, requiredPermission);
   }
 
-  private async getSharedLists(args: any) {
-    const { accessToken } = args;
-
-    if (!accessToken) {
-      throw new Error("Access token required");
-    }
-
-    // Find all tokens for this access token (currently one-to-one with lists)
-    const mcpToken = await prisma.mcpToken.findFirst({
-      where: {
-        token: accessToken,
-        isActive: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
-      },
-      include: {
-        list: {
-          include: {
-            owner: { select: { id: true, name: true, email: true } },
-            _count: { select: { tasks: true } }
-          }
-        }
-      }
-    });
-
-    if (!mcpToken) {
-      throw new Error("No accessible lists found");
-    }
-
-    const lists = [{
-      id: mcpToken.list.id,
-      name: mcpToken.list.name,
-      description: mcpToken.list.description,
-      color: mcpToken.list.color,
-      privacy: mcpToken.list.privacy,
-      owner: mcpToken.list.owner,
-      taskCount: mcpToken.list._count.tasks,
-      permissions: mcpToken.permissions,
-      mcpAccessLevel: mcpToken.permissions.includes('admin') ? 'BOTH' :
-                     mcpToken.permissions.includes('write') ? 'BOTH' : 'READ'
-    }];
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ lists }),
-        },
-      ],
-    };
+  private getSharedLists(args: any) {
+    return getSharedListsHandler(args);
   }
 
-  private async getListTasks(args: any) {
-    const { accessToken, listId, includeCompleted = false } = args;
-
-    await this.validateAccessToken(accessToken, listId, "read");
-
-    // Get tasks using proper relations
-    const tasks = await prisma.task.findMany({
-      where: {
-        lists: {
-          some: { id: listId },
-        },
-        ...(includeCompleted ? {} : { completed: false }),
-      },
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true },
-        },
-        creator: {
-          select: { id: true, name: true, email: true },
-        },
-        comments: {
-          include: {
-            author: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 3 // Only recent comments for performance
-        },
-        _count: {
-          select: { comments: true },
-        },
-      },
-      orderBy: [
-        { completed: "asc" },
-        { priority: "desc" },
-        { dueDateTime: "asc" },
-        { createdAt: "desc" },
-      ],
-    });
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            listId,
-            tasks: tasks.map((task: any) => ({
-              id: task.id,
-              title: task.title,
-              description: task.description,
-              priority: task.priority,
-              completed: task.completed,
-              dueDateTime: task.dueDateTime,
-              reminderTime: task.reminderTime,
-              reminderType: task.reminderType,
-              isPrivate: task.isPrivate,
-              createdAt: task.createdAt,
-              updatedAt: task.updatedAt,
-              assignee: task.assignee,
-              creator: task.creator,
-              commentCount: task._count.comments,
-              recentComments: task.comments
-            })),
-          }),
-        },
-      ],
-    };
+  private getListTasks(args: any) {
+    return getListTasksHandler(args);
   }
 
   private async createTask(args: any) {
@@ -1100,81 +991,8 @@ class AstridMCPServerV2 {
     };
   }
 
-  private async getListMembers(args: any) {
-    const { accessToken, listId } = args;
-
-    await this.validateAccessToken(accessToken, listId, "read");
-
-    // Get list with all member information
-    const list = await prisma.taskList.findFirst({
-      where: { id: listId },
-      include: {
-        owner: { select: { id: true, name: true, email: true } },
-        admins: { select: { id: true, name: true, email: true } },
-        members: { select: { id: true, name: true, email: true } },
-        listMembers: {
-          include: {
-            user: { select: { id: true, name: true, email: true } }
-          }
-        }
-      }
-    });
-
-    if (!list) {
-      throw new Error("List not found");
-    }
-
-    // Combine all members with roles
-    const members = [];
-
-    // Add owner
-    members.push({
-      ...list.owner,
-      role: "owner"
-    });
-
-    // Add admins (legacy)
-    list.admins.forEach(admin => {
-      if (admin.id !== list.ownerId) {
-        members.push({
-          ...admin,
-          role: "admin"
-        });
-      }
-    });
-
-    // Add members (legacy)
-    list.members.forEach(member => {
-      if (member.id !== list.ownerId && !list.admins.some(admin => admin.id === member.id)) {
-        members.push({
-          ...member,
-          role: "member"
-        });
-      }
-    });
-
-    // Add new list members system
-    list.listMembers.forEach(listMember => {
-      // Avoid duplicates from legacy system
-      if (!members.some(m => m.id === listMember.user.id)) {
-        members.push({
-          ...listMember.user,
-          role: listMember.role
-        });
-      }
-    });
-
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          listId: listId,
-          listName: list.name,
-          members: members,
-          totalMembers: members.length
-        })
-      }]
-    };
+  private getListMembers(args: any) {
+    return getListMembersHandler(args);
   }
 
   /**
