@@ -6,6 +6,7 @@
  */
 
 import type { ParseLogger } from './types/logger'
+import type { ImplementationPlan } from './types'
 
 // Re-export for backward compatibility
 export type { ParseLogger }
@@ -419,5 +420,44 @@ export function parseGeneratedCode(
       })
       throw extractError
     }
+  }
+}
+
+/**
+ * Parse an AI planning response into an ImplementationPlan.
+ *
+ * AI responses sometimes name files by paths the orchestrator never
+ * actually explored — `knownPaths` is the set of files the caller has
+ * loaded so far, and any "close-but-not-quite" path the AI returns is
+ * mapped onto the matching real path via `mapToKnownPath` (e.g. the AI
+ * says `src/foo.tsx` but only `app/foo.tsx` was explored).
+ */
+export function parseImplementationPlan(
+  response: string,
+  knownPaths: string[],
+  logger?: ParseLogger,
+): ImplementationPlan {
+  const filePaths = extractFilePaths(response)
+  const files = filePaths.map(path => {
+    const mappedPath = mapToKnownPath(path, knownPaths)
+    if (mappedPath !== path) {
+      logger?.('info', 'Mapped AI hallucinated path to actual explored file', {
+        aiPath: path,
+        actualPath: mappedPath,
+      })
+    }
+    return {
+      path: mappedPath,
+      purpose: 'Component file',
+      changes: 'Create/modify component',
+    }
+  })
+
+  return {
+    summary: extractSection(response, 'summary') || 'Implementation plan generated',
+    approach: extractSection(response, 'approach') || response.substring(0, 200),
+    files,
+    estimatedComplexity: assessComplexity(response),
+    considerations: extractConsiderations(response),
   }
 }
