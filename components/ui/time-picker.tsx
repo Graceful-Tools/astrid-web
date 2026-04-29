@@ -203,11 +203,17 @@ export function TimePicker({
     : placeholder
 
   if (isMobile) {
-    // Format value for native input (HH:mm)
+    // Format value for native input (`<input type="time">` only accepts
+    // "HH:mm"). Strings can arrive as either bare HH:mm (reminder settings)
+    // or full ISO timestamps (task fields hydrated from cache). Passing an
+    // ISO string makes the input silently reject the value, leaving it
+    // empty — on iOS the native picker then commits the default time on
+    // any tap, producing the "auto-selects and closes" symptom.
     let nativeValue = ""
     if (value) {
       if (typeof value === "string") {
-        nativeValue = value
+        const looksLikeIso = value.length > 5 && (value.includes("T") || value.includes("-"))
+        nativeValue = looksLikeIso ? format(new Date(value), "HH:mm") : value
       } else {
         nativeValue = format(new Date(value), "HH:mm")
       }
