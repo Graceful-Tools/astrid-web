@@ -19,6 +19,10 @@ import {
 import { getErrorMessage } from "@/lib/error-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { rescheduleRemindersForUpdate } from "@/lib/reminder-scheduling"
+import {
+  applyRepeatingTaskCompletion,
+  recordStateChangeComment,
+} from "@/lib/task-update-handler"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api.tasks.id')
@@ -229,40 +233,17 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       }
     }
 
-    // Handle repeating task completion
-    const { handleRepeatingTaskCompletion, applyRepeatingTaskRollForward } = await import('@/lib/repeating-task-handler')
-    let repeatingTaskResult = null
-
-    if (data.completed !== undefined) {
-      // Pass localCompletionDate for all-day repeating tasks with COMPLETION_DATE mode
-      // This allows the handler to use the client's local date instead of server UTC date
-      repeatingTaskResult = await handleRepeatingTaskCompletion(
-        taskId,
-        existingTask.completed,
-        data.completed,
-        data.localCompletionDate // YYYY-MM-DD format from client
-      )
-    }
-
-    // If repeating task should roll forward or terminate, apply the change and return early
-    // The roll-forward logic already updates the task in the database
-    if (repeatingTaskResult?.shouldRollForward || repeatingTaskResult?.shouldTerminate) {
-      await applyRepeatingTaskRollForward(taskId, repeatingTaskResult)
-
-      // Fetch the updated task to return to client
-      log.info(`[DEBUG] Before fetching updatedTask: prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
-      const updatedTask = await prisma.task.findUnique({
-        where: { id: taskId },
-        include: TASK_FULL_INCLUDE,
-      })
-      log.info(`[DEBUG] After fetching updatedTask: updatedTask exists? ${!!updatedTask}`);
-
-      if (!updatedTask) {
-        return NextResponse.json({ error: "Task not found after update" }, { status: 404 })
-      }
-
-      log.info(`✅ Task ${taskId} ${repeatingTaskResult.shouldRollForward ? 'rolled forward to next occurrence' : 'series terminated'}`)
-      return NextResponse.json(updatedTask)
+    // Handle repeating-task completion: if the task is part of a repeating
+    // series and should roll forward / terminate, the helper applies it and
+    // we short-circuit with the freshly-fetched task.
+    const completionOutcome = await applyRepeatingTaskCompletion({
+      taskId,
+      existingCompleted: existingTask.completed,
+      dataCompleted: data.completed,
+      localCompletionDate: data.localCompletionDate,
+    })
+    if (completionOutcome.rolledForward) {
+      return NextResponse.json(completionOutcome.updatedTask)
     }
 
     // Log ALL updates with repeatFrom for debugging
@@ -369,48 +350,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       include: TASK_FULL_INCLUDE,
     })
 
-    // Track state changes and create system comment
-    try {
-      const { detectTaskStateChanges, formatStateChangesAsComment } = await import('@/lib/task-state-change-tracker')
-
-      const updaterName = session.user.name || session.user.email || 'Someone'
-      const stateChanges = detectTaskStateChanges(existingTask, updatedTask, updaterName)
-
-      if (stateChanges.length > 0) {
-        const commentContent = formatStateChangesAsComment(stateChanges, updaterName)
-
-        // Create system comment (authorId: null indicates system-generated)
-        const stateChangeComment = await prisma.comment.create({
-          data: {
-            taskId: updatedTask.id,
-            authorId: null, // System-generated comment
-            content: commentContent,
-            type: 'TEXT',
-          },
-          include: {
-            author: true,
-            secureFiles: true,
-            replies: {
-              include: {
-                author: true,
-                secureFiles: true,
-              },
-              orderBy: {
-                createdAt: 'asc',
-              },
-            },
-          },
-        })
-
-        // Add the new comment to updatedTask so it appears in the response
-        // Comments are ordered by createdAt desc, so add at beginning
-        updatedTask.comments = [stateChangeComment, ...updatedTask.comments]
-
-        log.info(`📝 Created state change comment for task ${updatedTask.id}: ${commentContent}`)
-      }
-    } catch (stateChangeError) {
-      log.error({ err: stateChangeError }, '❌ Failed to create state change comment:')
-      // Don't fail the task update if state change tracking fails
+    // Track state changes and create system comment.
+    const stateChangeComment = await recordStateChangeComment({
+      existingTask,
+      updatedTask,
+      updaterName: session.user.name || session.user.email || 'Someone',
+    })
+    if (stateChangeComment) {
+      updatedTask.comments = [stateChangeComment, ...updatedTask.comments]
     }
 
     if (data.listIds !== undefined) {
