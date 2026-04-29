@@ -13,6 +13,9 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { getTokenForUser, getBaseUrl } from '@/lib/astrid-api-client'
 import { createLogger } from '@/lib/logger'
+import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
+import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
+import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
 
 const log = createLogger('astrid-agent-runtime')
 
@@ -538,14 +541,8 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const { getChatChannelRecipients } = await import('@/lib/chat-access')
     recipients = (await getChatChannelRecipients(channelId)).filter(id => id !== astridUser!.id)
 
-    // Broadcast typing indicator
-    if (recipients.length > 0) {
-      broadcastToUsers(recipients, {
-        type: 'agent_typing_start',
-        timestamp: new Date().toISOString(),
-        data: { channelId, agentId: astridUser.id, agentName: astridUser.name || 'Astrid' },
-      }).catch(() => {})
-    }
+    const channelScope = { scope: 'channel' as const, scopeId: channelId }
+    startTyping({ recipients, agentId: astridUser.id, agentName: astridUser.name || 'Astrid', scope: channelScope })
 
     // Check if user has an on-device model selected (e.g. Apple Foundation Models)
     const userRecord = await prisma.user.findUnique({
@@ -558,14 +555,8 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
 
     if (isOnDeviceModel) {
       log.info(`[Astrid] User ${userId} has on-device model selected — iOS handles response on-device`)
-      // Stop typing indicator — iOS will process on-device and post via /agent-response
-      if (recipients.length > 0) {
-        broadcastToUsers(recipients, {
-          type: 'agent_typing_stop',
-          timestamp: new Date().toISOString(),
-          data: { channelId, agentId: astridUser.id },
-        }).catch(() => {})
-      }
+      // iOS will process on-device and post via /agent-response.
+      stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
       return
     }
 
@@ -573,7 +564,6 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const apiKey = await getCachedApiKey(userId, service)
     if (!apiKey) {
       log.info(`[Astrid] No ${service} API key for user ${userId}, sending setup prompt`)
-      // Post a helpful setup message instead of silently failing
       const setupMessage = await prisma.chatMessage.create({
         data: {
           channelId,
@@ -592,22 +582,12 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
           timestamp: new Date().toISOString(),
           data: { channelId, message: serialized },
         })
-        broadcastToUsers(recipients, {
-          type: 'agent_typing_stop',
-          timestamp: new Date().toISOString(),
-          data: { channelId, agentId: astridUser.id },
-        }).catch(() => {})
+        stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
       }
       return
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { mcpSettings: true, email: true },
-    })
-    const mcpSettings = user?.mcpSettings ? JSON.parse(user.mcpSettings) : {}
-    const model = mcpSettings.modelPreferences?.[service] || undefined
-    const userEmail = user?.email || ''
+    const { model, email: userEmail } = await loadUserAIPreferences(userId, service)
 
     const list = listId
       ? await prisma.taskList.findUnique({
@@ -648,20 +628,16 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
 
     const toolContext = { userId }
 
-    let response: string
-    switch (service) {
-      case 'claude':
-        response = await callClaudeWithTools(apiKey, systemPrompt, cleanMessage, toolContext, model)
-        break
-      case 'openai':
-        response = await callOpenAIWithTools(apiKey, systemPrompt, cleanMessage, toolContext, model)
-        break
-      case 'gemini':
-        response = await callGeminiWithTools(apiKey, systemPrompt, cleanMessage, toolContext, model)
-        break
-      default:
-        return
-    }
+    const response = await dispatchToolCall({
+      service,
+      apiKey,
+      systemPrompt,
+      userMessage: cleanMessage,
+      toolContext,
+      model,
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools },
+    })
+    if (response === null) return
 
     // Post response as Astrid (already looked up at the top)
     const message = await prisma.chatMessage.create({
@@ -679,24 +655,14 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
         timestamp: new Date().toISOString(),
         data: { channelId, message: serialized },
       })
-      // Stop typing indicator (happy path)
-      broadcastToUsers(recipients, {
-        type: 'agent_typing_stop',
-        timestamp: new Date().toISOString(),
-        data: { channelId, agentId: astridUser.id },
-      }).catch(() => {})
+      stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
     }
 
     log.info(`[Astrid] Responded in channel ${channelId} using ${service}/${model || 'default'}`)
   } catch (error) {
     log.error({ err: error }, '[Astrid] Error processing message:')
-    // Stop typing indicator (error path)
-    if (recipients.length > 0 && astridUser) {
-      broadcastToUsers(recipients, {
-        type: 'agent_typing_stop',
-        timestamp: new Date().toISOString(),
-        data: { channelId, agentId: astridUser.id },
-      }).catch(() => {})
+    if (astridUser) {
+      stopTyping({ recipients, agentId: astridUser.id, scope: { scope: 'channel', scopeId: channelId } })
     }
   }
 }
@@ -740,19 +706,12 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       recipients = [...recipientIds]
     }
 
-    // Broadcast typing indicator
-    if (recipients.length > 0) {
-      broadcastToUsers(recipients, {
-        type: 'agent_typing_start',
-        timestamp: new Date().toISOString(),
-        data: { taskId, agentId: astridUser.id, agentName: 'Astrid' },
-      }).catch(() => {})
-    }
+    const taskScope = { scope: 'task' as const, scopeId: taskId }
+    startTyping({ recipients, agentId: astridUser.id, agentName: 'Astrid', scope: taskScope })
 
     const service = await getPreferredAIService(userId)
     const apiKey = await getCachedApiKey(userId, service)
     if (!apiKey) {
-      // Post a helpful setup comment instead of silently failing
       const setupComment = await prisma.comment.create({
         data: {
           content: "I'd love to help, but I need an AI model to power my responses! Head to [Settings > AI Agents](/settings/agents) to set up your preferred model and unlock my full capabilities.",
@@ -768,22 +727,12 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
           timestamp: new Date().toISOString(),
           data: { taskId, comment: { ...setupComment, createdAt: setupComment.createdAt.toISOString(), updatedAt: setupComment.updatedAt.toISOString() } },
         })
-        broadcastToUsers(recipients, {
-          type: 'agent_typing_stop',
-          timestamp: new Date().toISOString(),
-          data: { taskId, agentId: astridUser.id },
-        }).catch(() => {})
+        stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
       }
       return
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { mcpSettings: true, email: true },
-    })
-    const mcpSettings = user?.mcpSettings ? JSON.parse(user.mcpSettings) : {}
-    const model = mcpSettings.modelPreferences?.[service] || undefined
-    const userEmail = user?.email || ''
+    const { model, email: userEmail } = await loadUserAIPreferences(userId, service)
 
     const list = listId
       ? await prisma.taskList.findUnique({
@@ -811,51 +760,36 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
 
     const toolContext = { userId }
 
-    let response: string
-    switch (service) {
-      case 'claude':
-        response = await callClaudeWithTools(apiKey, systemPrompt, cleanComment, toolContext, model)
-        break
-      case 'openai':
-        response = await callOpenAIWithTools(apiKey, systemPrompt, cleanComment, toolContext, model)
-        break
-      case 'gemini':
-        response = await callGeminiWithTools(apiKey, systemPrompt, cleanComment, toolContext, model)
-        break
-      default:
-        return
-    }
+    const response = await dispatchToolCall({
+      service,
+      apiKey,
+      systemPrompt,
+      userMessage: cleanComment,
+      toolContext,
+      model,
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools },
+    })
+    if (response === null) return
 
-    // Post as a comment from Astrid (already looked up at the top)
     const comment = await prisma.comment.create({
       data: { content: response, type: 'MARKDOWN', authorId: astridUser.id, taskId },
       include: { author: { select: { id: true, name: true, email: true, image: true } } },
     })
 
-    // Broadcast comment + stop typing indicator
     if (recipients.length > 0) {
       await broadcastToUsers(recipients, {
         type: 'comment_created',
         timestamp: new Date().toISOString(),
         data: { taskId, comment: { ...comment, createdAt: comment.createdAt.toISOString(), updatedAt: comment.updatedAt.toISOString() } },
       })
-      broadcastToUsers(recipients, {
-        type: 'agent_typing_stop',
-        timestamp: new Date().toISOString(),
-        data: { taskId, agentId: astridUser.id },
-      }).catch(() => {})
+      stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
     }
 
     log.info(`[Astrid] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
   } catch (error) {
     log.error({ err: error }, '[Astrid] Error processing comment:')
-    // Stop typing indicator on error
-    if (recipients.length > 0 && astridUser) {
-      broadcastToUsers(recipients, {
-        type: 'agent_typing_stop',
-        timestamp: new Date().toISOString(),
-        data: { taskId, agentId: astridUser.id },
-      }).catch(() => {})
+    if (astridUser) {
+      stopTyping({ recipients, agentId: astridUser.id, scope: { scope: 'task', scopeId: taskId } })
     }
   }
 }
