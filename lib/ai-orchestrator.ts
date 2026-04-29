@@ -25,6 +25,10 @@ import {
   storePlanningContext as storePlanningContextImpl,
   loadPlanningContext as loadPlanningContextImpl,
 } from './ai/orchestrator/planning-context'
+import {
+  createForTask as createForTaskImpl,
+  createForTaskWithService as createForTaskWithServiceImpl,
+} from './ai/orchestrator/factory'
 import { prisma } from './prisma'
 import { type AIService, getAgentService } from './ai/agent-config'
 import { type ClaudeSystemBlock } from './ai/clients'
@@ -136,6 +140,15 @@ export class AIOrchestrator {
   // setHybridExecutionConfig removed — built-in executors stripped
 
   /**
+   * Bind this orchestrator to a specific task. Used by the factory module
+   * during construction; kept as a method (rather than mutating the field
+   * externally) so currentTaskId can stay private.
+   */
+  setCurrentTaskId(taskId: string): void {
+    this.currentTaskId = taskId
+  }
+
+  /**
    * Expose trace identifier for external logging without leaking internal state
    */
   getTraceId(): string {
@@ -240,10 +253,11 @@ export class AIOrchestrator {
   }
 
   /**
-   * Load ASTRID.md for progressive context caching
-   * Delegates to extracted repository-context-loader service
+   * Load ASTRID.md for progressive context caching.
+   * Public so the factory module can invoke it during construction.
+   * Delegates to the extracted repository-context-loader service.
    */
-  private async loadAstridMd(): Promise<void> {
+  async loadAstridMd(): Promise<void> {
     if (!this._repositoryId) {
       this.log('info', 'No repository ID, skipping ASTRID.md load')
       return
@@ -264,153 +278,19 @@ export class AIOrchestrator {
     this.astridMdContent = result.content || undefined
   }
 
-  /**
-   * Create an AIOrchestrator for a specific AI agent service
-   */
-  static async createForTaskWithService(
+  /** Create an AIOrchestrator for a specific AI agent service. */
+  static createForTaskWithService(
     taskId: string,
-    _userId: string,
-    aiService: AIService
+    userId: string,
+    aiService: AIService,
   ): Promise<AIOrchestrator> {
-    // Get task with list information
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        lists: {
-          select: {
-            githubRepositoryId: true,
-            aiAgentConfiguredBy: true
-          }
-        }
-      }
-    })
-
-    if (!task || task.lists.length === 0) {
-      throw new Error('Task not found or not associated with any list')
-    }
-
-    // Find the first list with a GitHub repository connected (task may be in multiple lists)
-    const listWithRepo = task.lists.find(l => l.githubRepositoryId)
-    const taskList = listWithRepo || task.lists[0]
-    const githubRepositoryId = listWithRepo?.githubRepositoryId
-
-    const candidateUserIds = [
-      _userId,
-      taskList.aiAgentConfiguredBy,
-      task.creatorId
-    ].filter((value): value is string => Boolean(value))
-
-    const configuredByUserId = candidateUserIds[0]
-
-    if (!configuredByUserId) {
-      throw new Error('Task creator no longer exists and no AI agent configured user is set')
-    }
-
-    const orchestrator = new AIOrchestrator(aiService, configuredByUserId, githubRepositoryId || undefined)
-    orchestrator.currentTaskId = taskId
-
-    // ✅ Load ASTRID.md for progressive context caching
-    await orchestrator.loadAstridMd()
-
-    return orchestrator
+    return createForTaskWithServiceImpl(AIOrchestrator, taskId, userId, aiService)
   }
 
-  /**
-   * Create an AIOrchestrator with optimal configuration based on task's assigned agent
-   *
-   * Priority for AI provider selection:
-   * 1. If task is assigned to an AI agent (e.g., claude@astrid.cc), use that agent's service
-   * 2. Fall back to list's preferredAiProvider
-   * 3. Fall back to list's fallbackAiProvider
-   * 4. Fall back to first available provider in user's API keys
-   */
-  static async createForTask(taskId: string, _userId: string): Promise<AIOrchestrator> {
-    // Get task with list information AND assignee
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        assignee: {
-          select: {
-            email: true,
-            isAIAgent: true
-          }
-        },
-        lists: {
-          select: {
-            preferredAiProvider: true,
-            fallbackAiProvider: true,
-            githubRepositoryId: true,
-            aiAgentsEnabled: true,
-            aiAgentConfiguredBy: true
-          }
-        }
-      }
-    })
-
-    if (!task || task.lists.length === 0) {
-      throw new Error('Task not found or not associated with any list')
-    }
-
-    // Find the first list with a GitHub repository connected (task may be in multiple lists)
-    const listWithRepo = task.lists.find(l => l.githubRepositoryId)
-    const taskList = listWithRepo || task.lists[0]
-    const githubRepositoryId = listWithRepo?.githubRepositoryId
-
-    // Get the user who configured the AI agent for this list (not the task creator)
-    // This ensures team members can use AI agents without needing their own API keys
-    // The configuredByUserId is the list admin who added the agent with their own API keys
-    const configuredByUserId = taskList.aiAgentConfiguredBy || task.creatorId || _userId // fallback for existing lists
-    if (!configuredByUserId) {
-      throw new Error('Task creator no longer exists and no AI agent configured user is set')
-    }
-    const user = await prisma.user.findUnique({
-      where: { id: configuredByUserId },
-      select: { mcpSettings: true }
-    })
-
-    // Parse mcpSettings from JSON string if needed
-    let mcpSettings: Record<string, unknown> = {}
-    if (user?.mcpSettings) {
-      try {
-        mcpSettings = typeof user.mcpSettings === 'string'
-          ? JSON.parse(user.mcpSettings)
-          : user.mcpSettings as Record<string, unknown>
-      } catch (error) {
-        log.error({ err: error }, 'Failed to parse mcpSettings JSON:')
-        mcpSettings = {}
-      }
-    }
-
-    // Use standard apiKeys location
-    const apiKeys = (mcpSettings.apiKeys || {}) as Record<string, { encrypted?: boolean }>
-    const availableProviders = Object.keys(apiKeys).filter(provider =>
-      apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini'].includes(provider)
-    )
-
-    // Determine best AI provider - PRIORITY: assigned agent > list preference > fallback > first available
-    let selectedProvider: AIService
-
-    // First: Check if task is assigned to an AI agent and use their service
-    if (task.assignee?.isAIAgent && task.assignee.email) {
-      selectedProvider = getAgentService(task.assignee.email)
-      log.info(`[AIOrchestrator] Using assigned agent's service: ${selectedProvider} (${task.assignee.email})`)
-
-      // OpenClaw tasks use the channel plugin (SSE), not the orchestrator
-      if (selectedProvider === 'openclaw') {
-        throw new Error('OpenClaw tasks are handled via the channel plugin (SSE), not the AI orchestrator. Do not create workflows for OpenClaw agents.')
-      }
-    } else if (taskList.preferredAiProvider && availableProviders.includes(taskList.preferredAiProvider)) {
-      selectedProvider = taskList.preferredAiProvider as AIService
-    } else if (taskList.fallbackAiProvider && availableProviders.includes(taskList.fallbackAiProvider)) {
-      selectedProvider = taskList.fallbackAiProvider as AIService
-    } else if (availableProviders.length > 0) {
-      // Use first available provider
-      selectedProvider = availableProviders[0] as AIService
-    } else {
-      throw new Error('No AI providers available. Please configure API keys in settings.')
-    }
-
-    return new AIOrchestrator(selectedProvider, configuredByUserId, githubRepositoryId || undefined)
+  /** Create an AIOrchestrator with optimal configuration based on the task's
+   *  assigned agent. See lib/ai/orchestrator/factory.ts for provider priority. */
+  static createForTask(taskId: string, userId: string): Promise<AIOrchestrator> {
+    return createForTaskImpl(AIOrchestrator, taskId, userId)
   }
 
   /**
