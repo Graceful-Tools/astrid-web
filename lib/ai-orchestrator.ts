@@ -684,238 +684,263 @@ Respond with ONLY the JSON object as specified above.`
   /**
    * Complete workflow: plan → code → GitHub → PR
    */
+  /**
+   * The main workflow saga: load → plan → (optional approval gate) →
+   * implement → ship to GitHub. Each phase is its own named sub-step
+   * below so the top-level reads as a pipeline rather than a 230-line
+   * try/catch.
+   */
   async executeCompleteWorkflow(workflowId: string, taskId: string): Promise<void> {
     try {
-      this.currentPhase = 'STARTING'
-      this.log('info', 'Starting complete workflow execution', { workflowId, taskId, traceId: this.traceId })
+      const ctx = await this.startWorkflow(workflowId, taskId)
+      const plan = await this.runPlanningPhase(ctx)
 
-      // ✅ Initial status check
-      await this.checkWorkflowStatus(workflowId, taskId)
-
-      // Get workflow and task details
-      const workflow = await prisma.codingTaskWorkflow.findUnique({
-        where: { id: workflowId },
-        include: {
-          task: {
-            include: {
-              creator: true,
-              lists: true
-            }
-          }
-        }
-      })
-
-      if (!workflow) {
-        throw new Error(`Workflow ${workflowId} not found`)
+      if (await this.shouldPauseForApproval(plan, ctx)) {
+        // Workflow paused — resumes via handlePlanApproval when user replies.
+        return
       }
 
-      const task = workflow.task
-
-      // ✅ Store trace ID in workflow metadata for debugging
-      await prisma.codingTaskWorkflow.update({
-        where: { id: workflowId },
-        data: {
-          metadata: {
-            ...(workflow.metadata as any || {}),
-            traceId: this.traceId,
-            startedAt: new Date().toISOString()
-          }
-        }
-      })
-
-      // ✅ Read ASTRID.md from repository to get workflow steps
-      let workflowSteps: string[] = []
-      let astridMdContent = ''
-
-      try {
-        const repository = await resolveTargetRepo({
-          lists: task.lists,
-          creator: task.creator
-        })
-
-        const { GitHubClient } = await import('./github-client')
-        const githubClient = await GitHubClient.forUser(this.userId)
-
-        try {
-          astridMdContent = await githubClient.getFile(repository, 'ASTRID.md')
-          // Use extracted utility with logger callback
-          workflowSteps = parseWorkflowStepsUtil(astridMdContent, (level, msg, meta) => this.log(level, msg, meta))
-
-          this.log('info', 'Loaded ASTRID.md from repository', {
-            repository,
-            stepsFound: workflowSteps.length
-          })
-        } catch (fileError) {
-          // ASTRID.md not found, use default workflow
-          this.log('warn', 'ASTRID.md not found in repository, using default workflow', { repository })
-          workflowSteps = DEFAULT_WORKFLOW_STEPS
-        }
-      } catch (repoError) {
-        this.log('warn', 'Could not load repository workflow', {
-          error: repoError instanceof Error ? repoError.message : 'Unknown error'
-        })
-        workflowSteps = MINIMAL_WORKFLOW_STEPS
-      }
-
-      this.log('info', 'Workflow metadata updated with trace ID', {
-        workflowId,
-        taskTitle: task.title
-      })
-
-      // Post immediate status update
-      await this.postStatusComment(
-        taskId,
-        '🤖 **Starting work**',
-        `Working on: **"${task.title}"**\n\nAnalyzing codebase...`
-      )
-
-      // ✅ Phase 2: Step 2 - PLANNING with dedicated context
-      this.currentPhase = 'PLANNING'
-      await this.updateWorkflowStatus(workflowId, 'PLANNING')
-      this.log('info', 'Phase 2: Creating dedicated planning context', { taskTitle: task.title })
-
-      // ✅ Check status before starting planning
-      await this.checkWorkflowStatus(workflowId, taskId)
-
-      // Add progress timeout - if planning takes >5 minutes, post update
-      const planningTimeout = setTimeout(async () => {
-        await this.postStatusComment(taskId, '🕒 **Still analyzing**', 'Taking longer than expected, still working...')
-      }, 5 * 60 * 1000) // 5 minutes
-
-      const planRequest: CodeGenerationRequest = {
-        taskTitle: task.title,
-        taskDescription: task.description,
-        targetFramework: 'react-typescript' // Default for now
-      }
-
-      try {
-        // ✅ Create dedicated orchestrator for planning (fresh context)
-        const planningOrchestrator = await AIOrchestrator.createForTaskWithService(
-          taskId,
-          this.userId,
-          this.aiService
-        )
-
-        const plan = await planningOrchestrator.generateImplementationPlan(planRequest)
-        clearTimeout(planningTimeout)
-
-        // ✅ Check status after planning completes
-        await this.checkWorkflowStatus(workflowId, taskId)
-
-        this.log('info', 'Planning phase complete (dedicated context)', {
-          filesIdentified: plan.files.length,
-          complexity: plan.estimatedComplexity,
-          planningTraceId: planningOrchestrator.traceId
-        })
-
-        // ✅ Validate plan has at least one file before proceeding
-        if (!plan.files || plan.files.length === 0) {
-          // Include the AI's actual response so user can see what the model said
-          const aiResponse = plan.rawPlanningResponse
-            ? `\n\n**AI Response:**\n${plan.rawPlanningResponse.substring(0, 2000)}${plan.rawPlanningResponse.length > 2000 ? '\n...(truncated)' : ''}`
-            : ''
-          throw new Error(`Planning produced no files to modify.${aiResponse}\n\n**Please provide more specific task details or reply with clarification.**`)
-        }
-
-        // Step 3: Post plan and check if approval is required
-        await this.postPlanComment(taskId, plan)
-
-        // ✅ Check config for requirePlanApproval
-        const config = await this.loadProjectConfig()
-        if (config.safety.requirePlanApproval) {
-          // Store plan in workflow metadata for later retrieval
-          await prisma.codingTaskWorkflow.update({
-            where: { id: workflowId },
-            data: {
-              status: 'AWAITING_APPROVAL',
-              metadata: {
-                plan: JSON.parse(JSON.stringify(plan)),
-                awaitingApprovalSince: new Date().toISOString()
-              }
-            }
-          })
-
-          await this.postStatusComment(taskId, '⏸️ **Awaiting Approval**',
-            `I've created an implementation plan with ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}.\n\n` +
-            `**Reply "approve" or "lgtm" to start implementation**, or provide feedback to revise the plan.`)
-
-          this.log('info', 'Plan requires approval, workflow paused', {
-            workflowId,
-            filesInPlan: plan.files.length
-          })
-
-          return // Exit - will resume when user approves via comment
-        }
-
-        // ✅ Phase 2: Step 3 - IMPLEMENTATION with FRESH context (autonomous mode)
-        this.currentPhase = 'IMPLEMENTING'
-        await this.updateWorkflowStatus(workflowId, 'IMPLEMENTING')
-        this.log('info', 'Phase 2: Creating fresh implementation context (no planning context carryover)')
-
-        // ✅ Check status before starting implementation
-        await this.checkWorkflowStatus(workflowId, taskId)
-
-        await this.postStatusComment(taskId, '⚙️ **Implementing**',
-          `Generating code for ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}...`)
-
-        // Step 4: Autonomous implementation with NEW orchestrator (fresh context)
-        // ✅ This is critical: planning context doesn't leak into implementation
-        const implementationOrchestrator = await AIOrchestrator.createForTaskWithService(
-          taskId,
-          this.userId,
-          this.aiService
-        )
-
-        const codeRequest: CodeGenerationRequest = {
-          taskTitle: task.title,
-          taskDescription: task.description,
-          targetFramework: 'react-typescript'
-        }
-
-        const generatedCode = await implementationOrchestrator.generateCode(codeRequest, plan)
-
-        // ✅ Check status after implementation completes
-        await this.checkWorkflowStatus(workflowId, taskId)
-
-        this.log('info', 'Implementation phase complete (fresh context)', {
-          filesGenerated: generatedCode.files.length,
-          implementationTraceId: implementationOrchestrator.traceId
-        })
-
-        // ✅ Check if any files were generated before trying to commit
-        if (generatedCode.files.length === 0) {
-          throw new Error('Code generation produced no files. The AI may not have understood the task or hit iteration limits. Please try simplifying the task description or breaking it into smaller tasks.')
-        }
-
-        // Step 5: Create GitHub branch and commit changes
-        this.currentPhase = 'GITHUB_OPERATIONS'
-        this.log('info', 'Creating GitHub branch and PR')
-        await this.createGitHubImplementation(workflow, generatedCode)
-
-        this.currentPhase = 'COMPLETED'
-        this.log('info', 'Workflow completed successfully', {
-          workflowId,
-          taskId,
-          totalDuration: Date.now() - parseInt(this.traceId.split('-')[1])
-        })
-      } catch (error) {
-        clearTimeout(planningTimeout)
-        throw error
-      }
-
+      await this.runImplementationPhase(plan, ctx)
     } catch (error) {
-      this.log('error', 'Workflow execution failed', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        phase: this.currentPhase
-      })
-
-      await this.handleWorkflowError(workflowId, this.currentPhase || 'unknown', error)
-
-      // ✅ Post error with trace ID for debugging
-      await this.postStatusComment(taskId, '❌ **Error**', `Issue during ${this.currentPhase || 'execution'}:\n\n**${error instanceof Error ? error.message : 'Unknown error'}**\n\nTrace ID: \`${this.traceId}\``)
+      await this.failWorkflow(workflowId, taskId, error)
       throw error
     }
+  }
+
+  /** Phase 1: load workflow + task, store trace ID, post the kick-off comment. */
+  private async startWorkflow(workflowId: string, taskId: string): Promise<{
+    workflowId: string
+    taskId: string
+    workflow: any
+    task: any
+  }> {
+    this.currentPhase = 'STARTING'
+    this.log('info', 'Starting complete workflow execution', { workflowId, taskId, traceId: this.traceId })
+
+    await this.checkWorkflowStatus(workflowId, taskId)
+
+    const workflow = await prisma.codingTaskWorkflow.findUnique({
+      where: { id: workflowId },
+      include: {
+        task: { include: { creator: true, lists: true } },
+      },
+    })
+
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`)
+    }
+
+    // Store trace ID in workflow metadata for debugging across phases.
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflowId },
+      data: {
+        metadata: {
+          ...(workflow.metadata as any || {}),
+          traceId: this.traceId,
+          startedAt: new Date().toISOString(),
+        },
+      },
+    })
+
+    // ASTRID.md is loaded best-effort — workflow steps from it would feed
+    // the comment templates. Today the result is logged but not yet wired
+    // into the rest of the saga; keeping the read here so the warm cache
+    // benefits later phases that re-invoke loadAstridMd().
+    await this.loadWorkflowSteps(workflow.task)
+
+    this.log('info', 'Workflow metadata updated with trace ID', { workflowId, taskTitle: workflow.task.title })
+
+    await this.postStatusComment(
+      taskId,
+      '🤖 **Starting work**',
+      `Working on: **"${workflow.task.title}"**\n\nAnalyzing codebase...`,
+    )
+
+    return { workflowId, taskId, workflow, task: workflow.task }
+  }
+
+  /** Try to load workflow steps from ASTRID.md; fall back to defaults. */
+  private async loadWorkflowSteps(task: any): Promise<string[]> {
+    try {
+      const repository = await resolveTargetRepo({ lists: task.lists, creator: task.creator })
+      const { GitHubClient } = await import('./github-client')
+      const githubClient = await GitHubClient.forUser(this.userId)
+
+      try {
+        const astridMdContent = await githubClient.getFile(repository, 'ASTRID.md')
+        const steps = parseWorkflowStepsUtil(astridMdContent, (level, msg, meta) => this.log(level, msg, meta))
+        this.log('info', 'Loaded ASTRID.md from repository', { repository, stepsFound: steps.length })
+        return steps
+      } catch (_fileError) {
+        this.log('warn', 'ASTRID.md not found in repository, using default workflow', { repository })
+        return DEFAULT_WORKFLOW_STEPS
+      }
+    } catch (repoError) {
+      this.log('warn', 'Could not load repository workflow', {
+        error: repoError instanceof Error ? repoError.message : 'Unknown error',
+      })
+      return MINIMAL_WORKFLOW_STEPS
+    }
+  }
+
+  /**
+   * Phase 2: dedicated-context planning.
+   *
+   * Spawns a fresh AIOrchestrator just for the planning AI call so the
+   * model's context window isn't polluted by everything we'll later
+   * stuff into it for implementation. Returns the validated plan.
+   */
+  private async runPlanningPhase(ctx: { workflowId: string; taskId: string; task: any }): Promise<ImplementationPlan> {
+    const { workflowId, taskId, task } = ctx
+
+    this.currentPhase = 'PLANNING'
+    await this.updateWorkflowStatus(workflowId, 'PLANNING')
+    this.log('info', 'Phase 2: Creating dedicated planning context', { taskTitle: task.title })
+    await this.checkWorkflowStatus(workflowId, taskId)
+
+    // 5min progress nudge so the user knows we're alive on long planning.
+    const planningTimeout = setTimeout(async () => {
+      await this.postStatusComment(taskId, '🕒 **Still analyzing**', 'Taking longer than expected, still working...')
+    }, 5 * 60 * 1000)
+
+    try {
+      const planningOrchestrator = await AIOrchestrator.createForTaskWithService(taskId, this.userId, this.aiService)
+
+      const plan = await planningOrchestrator.generateImplementationPlan({
+        taskTitle: task.title,
+        taskDescription: task.description,
+        targetFramework: 'react-typescript',
+      })
+
+      clearTimeout(planningTimeout)
+      await this.checkWorkflowStatus(workflowId, taskId)
+
+      this.log('info', 'Planning phase complete (dedicated context)', {
+        filesIdentified: plan.files.length,
+        complexity: plan.estimatedComplexity,
+        planningTraceId: planningOrchestrator.traceId,
+      })
+
+      if (!plan.files || plan.files.length === 0) {
+        const aiResponse = plan.rawPlanningResponse
+          ? `\n\n**AI Response:**\n${plan.rawPlanningResponse.substring(0, 2000)}${plan.rawPlanningResponse.length > 2000 ? '\n...(truncated)' : ''}`
+          : ''
+        throw new Error(`Planning produced no files to modify.${aiResponse}\n\n**Please provide more specific task details or reply with clarification.**`)
+      }
+
+      await this.postPlanComment(taskId, plan)
+      return plan
+    } catch (error) {
+      clearTimeout(planningTimeout)
+      throw error
+    }
+  }
+
+  /**
+   * If the project config requires plan approval, persist the plan into
+   * workflow metadata, post the awaiting-approval message, and return
+   * true so the saga exits. handlePlanApproval picks up where this left
+   * off when the user replies "approve"/"lgtm".
+   */
+  private async shouldPauseForApproval(plan: ImplementationPlan, ctx: { workflowId: string; taskId: string }): Promise<boolean> {
+    const { workflowId, taskId } = ctx
+    const config = await this.loadProjectConfig()
+
+    if (!config.safety.requirePlanApproval) return false
+
+    await prisma.codingTaskWorkflow.update({
+      where: { id: workflowId },
+      data: {
+        status: 'AWAITING_APPROVAL',
+        metadata: {
+          plan: JSON.parse(JSON.stringify(plan)),
+          awaitingApprovalSince: new Date().toISOString(),
+        },
+      },
+    })
+
+    await this.postStatusComment(
+      taskId,
+      '⏸️ **Awaiting Approval**',
+      `I've created an implementation plan with ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}.\n\n` +
+        `**Reply "approve" or "lgtm" to start implementation**, or provide feedback to revise the plan.`,
+    )
+
+    this.log('info', 'Plan requires approval, workflow paused', { workflowId, filesInPlan: plan.files.length })
+    return true
+  }
+
+  /**
+   * Phase 3: fresh-context implementation.
+   *
+   * Spawns yet another fresh AIOrchestrator so the planning context
+   * doesn't leak into code generation — that separation is the whole
+   * reason executeCompleteWorkflow is two phases instead of one big
+   * AI call.
+   */
+  private async runImplementationPhase(plan: ImplementationPlan, ctx: { workflowId: string; taskId: string; workflow: any; task: any }): Promise<void> {
+    const { workflowId, taskId, workflow, task } = ctx
+
+    this.currentPhase = 'IMPLEMENTING'
+    await this.updateWorkflowStatus(workflowId, 'IMPLEMENTING')
+    this.log('info', 'Phase 2: Creating fresh implementation context (no planning context carryover)')
+    await this.checkWorkflowStatus(workflowId, taskId)
+
+    await this.postStatusComment(
+      taskId,
+      '⚙️ **Implementing**',
+      `Generating code for ${plan.files.length} file${plan.files.length === 1 ? '' : 's'}...`,
+    )
+
+    const implementationOrchestrator = await AIOrchestrator.createForTaskWithService(taskId, this.userId, this.aiService)
+
+    const generatedCode = await implementationOrchestrator.generateCode(
+      {
+        taskTitle: task.title,
+        taskDescription: task.description,
+        targetFramework: 'react-typescript',
+      },
+      plan,
+    )
+
+    await this.checkWorkflowStatus(workflowId, taskId)
+
+    this.log('info', 'Implementation phase complete (fresh context)', {
+      filesGenerated: generatedCode.files.length,
+      implementationTraceId: implementationOrchestrator.traceId,
+    })
+
+    if (generatedCode.files.length === 0) {
+      throw new Error('Code generation produced no files. The AI may not have understood the task or hit iteration limits. Please try simplifying the task description or breaking it into smaller tasks.')
+    }
+
+    this.currentPhase = 'GITHUB_OPERATIONS'
+    this.log('info', 'Creating GitHub branch and PR')
+    await this.createGitHubImplementation(workflow, generatedCode)
+
+    this.currentPhase = 'COMPLETED'
+    this.log('info', 'Workflow completed successfully', {
+      workflowId,
+      taskId,
+      totalDuration: Date.now() - parseInt(this.traceId.split('-')[1]),
+    })
+  }
+
+  /** Saga-failure handler: log, mark workflow FAILED, post user-facing error. */
+  private async failWorkflow(workflowId: string, taskId: string, error: unknown): Promise<void> {
+    this.log('error', 'Workflow execution failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      phase: this.currentPhase,
+    })
+
+    await this.handleWorkflowError(workflowId, this.currentPhase || 'unknown', error)
+
+    await this.postStatusComment(
+      taskId,
+      '❌ **Error**',
+      `Issue during ${this.currentPhase || 'execution'}:\n\n**${error instanceof Error ? error.message : 'Unknown error'}**\n\nTrace ID: \`${this.traceId}\``,
+    )
   }
 
   /**
