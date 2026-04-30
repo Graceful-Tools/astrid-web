@@ -23,6 +23,26 @@ import {
   type AgentTask,
   type AgentComment,
 } from '@/lib/agent-protocol'
+import type {
+  V1List,
+  V1ListsResponse,
+  V1ListResponse,
+  V1ListMember,
+  V1MembersResponse,
+  V1MemberMutationResponse,
+  V1Comment,
+  V1CommentResponse,
+  V1CommentsResponse,
+  V1ReminderSettings,
+  V1MeSettingsResponse,
+  V1PublicList,
+  V1PublicListsResponse,
+  V1Shortcode,
+  V1ShortcodeResponse,
+  V1ShortcodesResponse,
+  V1MessageResponse,
+  V1DeleteResponse,
+} from '@/lib/api-contracts/v1-ios-shapes'
 
 /** Frozen task fixture matching the Prisma include shape iOS endpoints use. */
 const makePrismaTask = (overrides: Record<string, unknown> = {}) => ({
@@ -225,6 +245,254 @@ describe('v1 contract — AgentComment shape', () => {
     expect(result.comments[0].authorId).toBe('deleted-user-id')
     expect(result.comments[0].authorName).toBeNull()
     expect(result.comments[0].isAgent).toBe(false)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────
+// Key-set contract tests for v1 response shapes iOS depends on.
+//
+// Pattern: declare the expected key set as a `as const satisfies
+// ReadonlyArray<keyof T>` array. If a key is removed from the interface,
+// `satisfies` fails at compile time. If a key is added to the interface
+// but not added here, the test fails at runtime. This forces every shape
+// change to be a deliberate, grep-able edit — no silent drift.
+// ─────────────────────────────────────────────────────────────────────
+
+describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
+  const EXPECTED_KEYS = [
+    'id', 'name', 'description', 'color', 'imageUrl', 'privacy',
+    'isFavorite', 'favoriteOrder', 'owner', 'listMembers', 'invitations',
+    'taskCount', 'isVirtual', 'virtualListType', 'sortBy', 'manualSortOrder',
+    'filterPriority', 'filterAssignee', 'filterDueDate', 'filterCompletion',
+    'filterRepeating', 'filterAssignedBy', 'filterInLists',
+    'defaultPriority', 'defaultRepeating', 'defaultAssigneeId',
+    'defaultIsPrivate', 'defaultDueDate',
+    'githubRepositoryId', 'preferredAiProvider',
+    'createdAt', 'updatedAt',
+  ] as const satisfies ReadonlyArray<keyof V1List>
+
+  it('every iOS-expected key appears in V1List', () => {
+    // Shape sample built fresh from the contract; if a key is added to
+    // V1List but not to EXPECTED_KEYS above, this object will be missing
+    // a key the type requires — tsc fails. If a key is removed from
+    // V1List, `satisfies` on EXPECTED_KEYS fails. Either way, the contract
+    // change is forced through this test.
+    const sample: V1List = {
+      id: 'l1', name: 'List', description: '', color: '#000', imageUrl: null,
+      privacy: 'PRIVATE', isFavorite: false, favoriteOrder: null,
+      owner: null, listMembers: [], invitations: [],
+      taskCount: 0, isVirtual: false, virtualListType: null,
+      sortBy: null, manualSortOrder: null,
+      filterPriority: null, filterAssignee: null, filterDueDate: null,
+      filterCompletion: null, filterRepeating: null, filterAssignedBy: null,
+      filterInLists: null,
+      defaultPriority: null, defaultRepeating: null, defaultAssigneeId: null,
+      defaultIsPrivate: null, defaultDueDate: null,
+      githubRepositoryId: null, preferredAiProvider: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+})
+
+describe('v1 contract — V1ListsResponse / V1ListResponse envelopes', () => {
+  it('V1ListsResponse has { lists, meta }', () => {
+    const sample: V1ListsResponse = {
+      lists: [],
+      meta: { apiVersion: 'v1', authSource: 'session', total: 0, timestamp: 't', isIncremental: false },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['lists', 'meta'])
+    expect(Object.keys(sample.meta).sort()).toEqual(
+      ['apiVersion', 'authSource', 'isIncremental', 'timestamp', 'total']
+    )
+  })
+
+  it('V1ListResponse has { list, meta }', () => {
+    const sample = {
+      list: undefined as unknown as V1List,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    } satisfies V1ListResponse
+    expect(Object.keys(sample).sort()).toEqual(['list', 'meta'])
+  })
+})
+
+describe('v1 contract — V1ListMember shape (lists/[id]/members)', () => {
+  const EXPECTED_KEYS = [
+    'id', 'name', 'email', 'image', 'role', 'isOwner', 'isAdmin', 'type',
+  ] as const satisfies ReadonlyArray<keyof V1ListMember>
+
+  it('every iOS-expected key appears in V1ListMember', () => {
+    const sample: V1ListMember = {
+      id: 'u1', name: 'X', email: 'x@example.com', image: null,
+      role: 'MEMBER', isOwner: false, isAdmin: false, type: 'human',
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1MembersResponse has { members, meta }', () => {
+    const sample: V1MembersResponse = {
+      members: [],
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['members', 'meta'])
+  })
+
+  it('V1MemberMutationResponse has { message, member, meta }', () => {
+    const sample = {
+      message: 'ok',
+      member: undefined as unknown as V1ListMember,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    } satisfies V1MemberMutationResponse
+    expect(Object.keys(sample).sort()).toEqual(['message', 'meta', 'member'].sort())
+  })
+})
+
+describe('v1 contract — V1Comment shape (comments/[id] + tasks/[id]/comments)', () => {
+  const EXPECTED_KEYS = [
+    'id', 'content', 'type', 'authorId', 'author', 'secureFiles',
+    'createdAt', 'updatedAt',
+  ] as const satisfies ReadonlyArray<keyof V1Comment>
+
+  it('every iOS-expected key appears in V1Comment', () => {
+    const sample: V1Comment = {
+      id: 'c1', content: 'hi', type: null, authorId: 'u1', author: null,
+      secureFiles: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1CommentResponse has { comment, meta }', () => {
+    const sample: V1CommentResponse = {
+      comment: {
+        id: 'c1', content: 'hi', authorId: 'u1', author: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['comment', 'meta'])
+  })
+
+  it('V1CommentsResponse has { comments, meta }', () => {
+    const sample: V1CommentsResponse = {
+      comments: [],
+      meta: { apiVersion: 'v1', authSource: 'session', total: 0, taskId: 't1' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['comments', 'meta'])
+  })
+})
+
+describe('v1 contract — V1ReminderSettings (users/me/settings)', () => {
+  const EXPECTED_KEYS = [
+    'enablePushReminders', 'enableEmailReminders', 'defaultReminderTime',
+    'enableDailyDigest', 'dailyDigestTime', 'dailyDigestTimezone',
+    'quietHoursStart', 'quietHoursEnd',
+  ] as const satisfies ReadonlyArray<keyof V1ReminderSettings>
+
+  it('every iOS-expected key appears in V1ReminderSettings', () => {
+    const sample: V1ReminderSettings = {
+      enablePushReminders: false, enableEmailReminders: true,
+      defaultReminderTime: 15, enableDailyDigest: false,
+      dailyDigestTime: '09:00', dailyDigestTimezone: 'America/Los_Angeles',
+      quietHoursStart: null, quietHoursEnd: null,
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1MeSettingsResponse wraps reminderSettings under settings', () => {
+    const sample: V1MeSettingsResponse = {
+      settings: {
+        reminderSettings: {
+          enablePushReminders: false, enableEmailReminders: true,
+          defaultReminderTime: 15, enableDailyDigest: false,
+          dailyDigestTime: '09:00', dailyDigestTimezone: 'America/Los_Angeles',
+          quietHoursStart: null, quietHoursEnd: null,
+        },
+      },
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['meta', 'settings'])
+    expect(Object.keys(sample.settings)).toEqual(['reminderSettings'])
+  })
+})
+
+describe('v1 contract — V1PublicList shape (public/lists discovery)', () => {
+  const EXPECTED_KEYS = [
+    'id', 'name', 'description', 'color', 'privacy', 'publicListType',
+    'imageUrl', 'createdAt', 'updatedAt',
+    'owner', 'admins', 'taskCount', 'memberCount',
+  ] as const satisfies ReadonlyArray<keyof V1PublicList>
+
+  it('every iOS-expected key appears in V1PublicList', () => {
+    const sample: V1PublicList = {
+      id: 'l1', name: 'Pub', description: '', color: '#000',
+      privacy: 'PUBLIC', publicListType: null, imageUrl: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      owner: null, admins: [], taskCount: 0, memberCount: 0,
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1PublicListsResponse has { lists, meta }', () => {
+    const sample: V1PublicListsResponse = {
+      lists: [],
+      meta: { apiVersion: 'v1', authSource: 'public', count: 0, sortBy: 'recent' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['lists', 'meta'])
+  })
+})
+
+describe('v1 contract — V1Shortcode (shortcodes)', () => {
+  const EXPECTED_KEYS = [
+    'code', 'targetType', 'targetId', 'url',
+  ] as const satisfies ReadonlyArray<keyof V1Shortcode>
+
+  it('every iOS-expected key appears in V1Shortcode', () => {
+    const sample: V1Shortcode = {
+      code: 'abc', targetType: 'task', targetId: 't1', url: 'https://astrid.cc/s/abc',
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1ShortcodeResponse has { shortcode, meta }', () => {
+    const sample: V1ShortcodeResponse = {
+      shortcode: { code: 'abc', targetType: 'task', targetId: 't1', url: 'https://astrid.cc/s/abc' },
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['meta', 'shortcode'])
+  })
+
+  it('V1ShortcodesResponse has { shortcodes, meta }', () => {
+    const sample: V1ShortcodesResponse = {
+      shortcodes: [],
+      meta: { apiVersion: 'v1', authSource: 'session', count: 0 },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['meta', 'shortcodes'])
+  })
+})
+
+describe('v1 contract — generic envelopes', () => {
+  it('V1MessageResponse has { message, meta }', () => {
+    const sample: V1MessageResponse = {
+      message: 'ok',
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['message', 'meta'])
+  })
+
+  it('V1DeleteResponse has { success: true, message, meta }', () => {
+    const sample: V1DeleteResponse = {
+      success: true, message: 'deleted',
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['message', 'meta', 'success'])
+    // success must literally be true — not just truthy. iOS uses it as a
+    // discriminator when the same handler can return error envelopes.
+    expect(sample.success).toBe(true)
   })
 })
 
