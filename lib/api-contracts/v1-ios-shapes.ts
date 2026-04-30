@@ -371,3 +371,37 @@ export interface V1DeleteResponse {
   message: string
   meta: V1ResponseMeta
 }
+
+// ── Auth ──────────────────────────────────────────────────────────────
+
+/**
+ * Common user payload returned by Apple/Google sign-in and mobile-session.
+ * Mirrors the `user` object from legacy /api/auth/{apple,google,mobile-session}.
+ */
+export interface V1AuthUser {
+  id: string
+  email: string | null
+  name: string | null
+  image: string | null
+}
+
+export interface V1AuthSignInResponse {
+  user: V1AuthUser
+  meta: V1ResponseMeta
+}
+
+export interface V1AuthSessionResponse {
+  user: V1AuthUser
+  meta: V1ResponseMeta
+}
+
+export interface V1MobileMcpTokenResponse {
+  token: string
+  userId: string
+  meta: V1ResponseMeta
+}
+
+export interface V1MobileMcpTokenRevokeResponse {
+  success: true
+  meta: V1ResponseMeta
+}
