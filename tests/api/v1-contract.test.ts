@@ -42,6 +42,10 @@ import type {
   V1ShortcodesResponse,
   V1MessageResponse,
   V1DeleteResponse,
+  V1Reminder,
+  V1RemindersResponse,
+  V1ReminderDismissResponse,
+  V1ReminderSnoozeResponse,
 } from '@/lib/api-contracts/v1-ios-shapes'
 
 /** Frozen task fixture matching the Prisma include shape iOS endpoints use. */
@@ -493,6 +497,57 @@ describe('v1 contract — generic envelopes', () => {
     // success must literally be true — not just truthy. iOS uses it as a
     // discriminator when the same handler can return error envelopes.
     expect(sample.success).toBe(true)
+  })
+})
+
+describe('v1 contract — V1Reminder shape (reminders)', () => {
+  const EXPECTED = [
+    'id', 'type', 'scheduledFor', 'retryCount', 'snoozeCount', 'task',
+  ] as const satisfies ReadonlyArray<keyof V1Reminder>
+
+  it('every iOS-expected key appears in V1Reminder', () => {
+    const sample: V1Reminder = {
+      id: 'r1', type: 'DUE_NOW',
+      scheduledFor: '2026-04-30T00:00:00Z',
+      retryCount: 0, snoozeCount: 0,
+      task: {
+        id: 't1', title: 'Title', description: null,
+        dueDateTime: null, priority: null, completed: false,
+        listNames: [],
+      },
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED))
+  })
+
+  it('V1RemindersResponse has { reminders, summary, total, meta }', () => {
+    const sample: V1RemindersResponse = {
+      reminders: [],
+      summary: {},
+      total: 0,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['meta', 'reminders', 'summary', 'total'])
+  })
+
+  it('V1ReminderDismissResponse has { success, dismissedCount, meta }', () => {
+    const sample: V1ReminderDismissResponse = {
+      success: true, dismissedCount: 1,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['dismissedCount', 'meta', 'success'])
+    expect(sample.success).toBe(true)
+  })
+
+  it('V1ReminderSnoozeResponse has { success, scheduledFor, snoozeCount, meta }', () => {
+    const sample: V1ReminderSnoozeResponse = {
+      success: true,
+      scheduledFor: '2026-04-30T00:00:00Z',
+      snoozeCount: 1,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(
+      ['meta', 'scheduledFor', 'snoozeCount', 'success']
+    )
   })
 })
 

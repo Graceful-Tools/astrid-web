@@ -105,18 +105,35 @@ export interface LegacyListFavoriteResponse {
 // ── Reminders ─────────────────────────────────────────────────────────
 
 /**
- * Reminder shape returned in the `reminders` array. Distinct from any
- * Prisma model — this is the iOS-facing pre-derived view.
+ * Embedded task summary inside a Reminder. iOS uses this to render the
+ * reminder list without a second round-trip per item.
+ */
+export interface LegacyReminderTask {
+  id: string
+  title: string
+  description: string | null
+  dueDateTime: string | Date | null
+  priority: number | null
+  completed: boolean
+  listNames: string[]
+}
+
+/**
+ * Reminder shape returned in the `reminders` array.
+ *
+ * NOTE: the prior version of this interface used names from a stale
+ * inventory (taskId/taskTitle/status/reminderType/isOverdue). The actual
+ * server returns the keys below — `type` (matches Prisma column),
+ * `retryCount`, `snoozeCount`, and an embedded `task` object. iOS
+ * decoders track the actual server keys.
  */
 export interface LegacyReminder {
   id: string
-  taskId: string
-  taskTitle: string
+  type: string
   scheduledFor: string | Date
-  status: string
-  reminderType: string
-  isOverdue: boolean
-  attemptCount?: number
+  retryCount: number
+  snoozeCount: number
+  task: LegacyReminderTask | null
 }
 
 export interface LegacyRemindersStatusResponse {

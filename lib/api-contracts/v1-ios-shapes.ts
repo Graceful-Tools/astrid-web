@@ -261,6 +261,56 @@ export interface V1ShortcodesResponse {
   meta: V1ScopedMeta
 }
 
+// ── Reminders ─────────────────────────────────────────────────────────
+
+/**
+ * Embedded task summary in a v1 reminder. Mirrors the legacy
+ * LegacyReminderTask shape so iOS's task-summary decoder can be reused.
+ */
+export interface V1ReminderTask {
+  id: string
+  title: string
+  description: string | null
+  dueDateTime: string | Date | null
+  priority: number | null
+  completed: boolean
+  listNames: string[]
+}
+
+/**
+ * v1 Reminder shape returned by /api/v1/reminders. Same body keys as
+ * LegacyReminder; the v1 envelope adds `meta` for consistency with the
+ * rest of the v1 surface.
+ */
+export interface V1Reminder {
+  id: string
+  type: string
+  scheduledFor: string | Date
+  retryCount: number
+  snoozeCount: number
+  task: V1ReminderTask | null
+}
+
+export interface V1RemindersResponse {
+  reminders: V1Reminder[]
+  summary: Record<string, number>
+  total: number
+  meta: V1ResponseMeta
+}
+
+export interface V1ReminderDismissResponse {
+  success: true
+  dismissedCount: number
+  meta: V1ResponseMeta
+}
+
+export interface V1ReminderSnoozeResponse {
+  success: true
+  scheduledFor: string | Date
+  snoozeCount: number
+  meta: V1ResponseMeta
+}
+
 // ── Generic message/delete responses ──────────────────────────────────
 
 export interface V1MessageResponse {
