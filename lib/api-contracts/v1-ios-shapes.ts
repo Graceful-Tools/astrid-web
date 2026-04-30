@@ -1,0 +1,275 @@
+/**
+ * Canonical iOS-facing response shapes for /api/v1/* endpoints.
+ *
+ * Why: iOS consumes /api/v1/* directly. Shape drift = silent breakage in
+ * production. These interfaces are the contract. Routes should `satisfies`
+ * them at the response site so tsc enforces conformance at build time.
+ *
+ * Scope: only routes the iOS app actively calls. Tasks + comments live in
+ * `lib/agent-protocol.ts` (AgentTask / AgentComment) — those predate this
+ * file. Everything else lives here.
+ *
+ * Tests in `tests/api/v1-contract.test.ts` pin the key sets via
+ * `as const satisfies ReadonlyArray<keyof T>`. Removing or renaming a key
+ * fails the test loudly. Adding a key is fine — but it must also be added
+ * to the test's expected-key array, which is the deliberate gate that
+ * prevents accidental shape sprawl.
+ *
+ * Touching any of these shapes implies a coordinated iOS release. Don't
+ * silence the tests; bump the iOS minimum version and ship the change in
+ * lockstep.
+ */
+
+// ── Shared meta block ─────────────────────────────────────────────────
+
+/**
+ * The `meta` block every v1 response carries. iOS uses these for
+ * incremental-sync coordination and deprecation telemetry.
+ */
+export interface V1ResponseMeta {
+  apiVersion: 'v1'
+  authSource: string
+}
+
+export interface V1ListResponseMeta extends V1ResponseMeta {
+  total: number
+  timestamp: string
+  isIncremental: boolean
+}
+
+export interface V1ScopedMeta extends V1ResponseMeta {
+  total?: number
+  taskId?: string
+  count?: number
+  sortBy?: string
+}
+
+// ── Lists ─────────────────────────────────────────────────────────────
+
+/**
+ * A single list as returned by /api/v1/lists/[id] and as an element of
+ * the array returned by /api/v1/lists. iOS persists this shape locally;
+ * a key removal here cascades into a UI/data-layer migration on iOS.
+ */
+export interface V1List {
+  id: string
+  name: string
+  description: string
+  color: string
+  imageUrl: string | null
+  privacy: string
+  isFavorite: boolean
+  favoriteOrder: number | null
+  owner: V1UserSummary | null
+  listMembers: V1ListMembership[]
+  invitations: V1ListInvitation[]
+  taskCount: number
+  isVirtual: boolean
+  virtualListType: string | null
+  sortBy: string | null
+  manualSortOrder: unknown
+  filterPriority: unknown
+  filterAssignee: unknown
+  filterDueDate: unknown
+  filterCompletion: unknown
+  filterRepeating: unknown
+  filterAssignedBy: unknown
+  filterInLists: unknown
+  defaultPriority: number | null
+  defaultRepeating: string | null
+  defaultAssigneeId: string | null
+  defaultIsPrivate: boolean | null
+  defaultDueDate: string | null
+  githubRepositoryId: string | null
+  preferredAiProvider: string | null
+  createdAt: string | Date
+  updatedAt: string | Date
+}
+
+export interface V1UserSummary {
+  id: string
+  name: string | null
+  email: string
+  image: string | null
+  isAIAgent: boolean
+  aiAgentType: string | null
+}
+
+export interface V1ListMembership {
+  listId?: string
+  userId?: string
+  role: string
+  user: V1UserSummary
+}
+
+export interface V1ListInvitation {
+  id: string
+  listId: string
+  email: string
+  role: string
+  token?: string
+  createdAt: string | Date
+  createdBy: string | null
+}
+
+export interface V1ListsResponse {
+  lists: V1List[]
+  meta: V1ListResponseMeta
+}
+
+export interface V1ListResponse {
+  list: V1List
+  meta: V1ResponseMeta
+}
+
+// ── List members ──────────────────────────────────────────────────────
+
+/**
+ * Member shape used by /api/v1/lists/[id]/members. Distinct from the
+ * V1ListMembership embedded in V1List — this is the dedicated GET shape
+ * with role flags pre-derived for iOS.
+ */
+export interface V1ListMember {
+  id: string
+  name: string | null
+  email: string
+  image: string | null
+  role: string
+  isOwner: boolean
+  isAdmin: boolean
+  type?: string
+}
+
+export interface V1MembersResponse {
+  members: V1ListMember[]
+  meta: V1ResponseMeta
+}
+
+export interface V1MemberMutationResponse {
+  message: string
+  member: V1ListMember
+  meta: V1ResponseMeta
+}
+
+// ── Comments ──────────────────────────────────────────────────────────
+
+/**
+ * Comment shape returned by both /api/v1/comments/[id] and
+ * /api/v1/tasks/[id]/comments. iOS uses the same decoder for both.
+ */
+export interface V1Comment {
+  id: string
+  content: string
+  type?: string | null
+  authorId: string
+  author: V1UserSummary | null
+  secureFiles?: V1SecureFileSummary[]
+  createdAt: string | Date
+  updatedAt: string | Date
+}
+
+export interface V1SecureFileSummary {
+  id: string
+  filename: string
+  contentType: string | null
+  size: number | null
+  url?: string
+}
+
+export interface V1CommentResponse {
+  comment: V1Comment
+  meta: V1ResponseMeta
+}
+
+export interface V1CommentsResponse {
+  comments: V1Comment[]
+  meta: V1ScopedMeta
+}
+
+// ── Users me settings ─────────────────────────────────────────────────
+
+/**
+ * Reminder settings as returned by GET/PUT /api/v1/users/me/settings.
+ * iOS's reminder configuration UI binds directly to this shape.
+ */
+export interface V1ReminderSettings {
+  enablePushReminders: boolean
+  enableEmailReminders: boolean
+  defaultReminderTime: number
+  enableDailyDigest: boolean
+  dailyDigestTime: string
+  dailyDigestTimezone: string
+  quietHoursStart: string | null
+  quietHoursEnd: string | null
+}
+
+export interface V1MeSettingsResponse {
+  settings: {
+    reminderSettings: V1ReminderSettings
+  }
+  meta: V1ResponseMeta
+}
+
+// ── Public lists ──────────────────────────────────────────────────────
+
+/**
+ * Public-list shape returned by /api/v1/public/lists for the discovery
+ * feed. Distinct from V1List — strips fields not safe to expose
+ * unauthenticated, adds memberCount.
+ */
+export interface V1PublicList {
+  id: string
+  name: string
+  description: string
+  color: string
+  privacy: string
+  publicListType: string | null
+  imageUrl: string | null
+  createdAt: string | Date
+  updatedAt: string | Date
+  owner: V1UserSummary | null
+  admins: V1UserSummary[]
+  taskCount: number
+  memberCount: number
+}
+
+export interface V1PublicListsResponse {
+  lists: V1PublicList[]
+  meta: V1ScopedMeta
+}
+
+// ── Shortcodes ────────────────────────────────────────────────────────
+
+/**
+ * Shortcode shape returned by /api/v1/shortcodes. iOS uses this for
+ * share-sheet generation.
+ */
+export interface V1Shortcode {
+  code: string
+  targetType: string
+  targetId: string
+  url: string
+}
+
+export interface V1ShortcodeResponse {
+  shortcode: V1Shortcode
+  meta: V1ResponseMeta
+}
+
+export interface V1ShortcodesResponse {
+  shortcodes: V1Shortcode[]
+  meta: V1ScopedMeta
+}
+
+// ── Generic message/delete responses ──────────────────────────────────
+
+export interface V1MessageResponse {
+  message: string
+  meta: V1ResponseMeta
+}
+
+export interface V1DeleteResponse {
+  success: true
+  message: string
+  meta: V1ResponseMeta
+}
