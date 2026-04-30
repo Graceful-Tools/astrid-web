@@ -46,6 +46,9 @@ import type {
   V1RemindersResponse,
   V1ReminderDismissResponse,
   V1ReminderSnoozeResponse,
+  V1UserSearchResult,
+  V1UsersSearchResponse,
+  V1UserProfileResponse,
 } from '@/lib/api-contracts/v1-ios-shapes'
 
 /** Frozen task fixture matching the Prisma include shape iOS endpoints use. */
@@ -497,6 +500,47 @@ describe('v1 contract — generic envelopes', () => {
     // success must literally be true — not just truthy. iOS uses it as a
     // discriminator when the same handler can return error envelopes.
     expect(sample.success).toBe(true)
+  })
+})
+
+describe('v1 contract — V1Users (search + profile)', () => {
+  it('V1UserSearchResult has the optional-flag set', () => {
+    const sample: V1UserSearchResult = {
+      id: 'u1', name: 'X', email: 'x@y', image: null,
+      isAIAgent: false, aiAgentType: null,
+      isListMember: false, isCodingAgent: false,
+    }
+    expect(new Set(Object.keys(sample))).toEqual(
+      new Set(['id', 'name', 'email', 'image', 'isAIAgent', 'aiAgentType', 'isListMember', 'isCodingAgent'])
+    )
+  })
+
+  it('V1UsersSearchResponse has { users, listMemberCount, meta }', () => {
+    const sample: V1UsersSearchResponse = {
+      users: [], listMemberCount: 0,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['listMemberCount', 'meta', 'users'])
+  })
+
+  it('V1UserProfileResponse has { user, stats, sharedTasks, isOwnProfile, meta }', () => {
+    const sample: V1UserProfileResponse = {
+      user: {
+        id: 'u1', name: 'X', email: 'x@y', image: null,
+        createdAt: 't', isAIAgent: false, aiAgentType: null,
+      },
+      stats: { completed: 0, inspired: 0, supported: 0 },
+      sharedTasks: [],
+      isOwnProfile: false,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(
+      ['isOwnProfile', 'meta', 'sharedTasks', 'stats', 'user']
+    )
+    expect(Object.keys(sample.user).sort()).toEqual(
+      ['aiAgentType', 'createdAt', 'email', 'id', 'image', 'isAIAgent', 'name']
+    )
+    expect(Object.keys(sample.stats).sort()).toEqual(['completed', 'inspired', 'supported'])
   })
 })
 
