@@ -64,10 +64,6 @@ export const useTaskOperations = ({
       // Play creation sound immediately (optimistic)
       playTaskCreateSound()
 
-      console.log('🔍 useTaskOperations received taskData:', taskData)
-      console.log('🔍 taskData.dueDate:', taskData.dueDate)
-      console.log('🔍 taskData.dueDateTime:', (taskData as any).dueDateTime)
-
       // Prefer dueDateTime over dueDate (dueDateTime is the new standard with time support)
       const dateValue = taskData.dueDateTime || taskData.dueDate
 
@@ -90,10 +86,6 @@ export const useTaskOperations = ({
         repeating: taskData.repeating as any || 'never',
         customRepeatingData: taskData.customRepeatingData
       }
-
-      console.log('🔍 dateValue used:', dateValue)
-      console.log('🔍 apiData.dueDateTime after conversion:', apiData.dueDateTime)
-      console.log('🔍 apiData.isAllDay:', isAllDay)
 
       // Check if offline
       if (isOfflineMode()) {
