@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import createMiddleware from 'next-intl/middleware'
 import { routing } from '@/lib/i18n/routing'
+import {
+  isLegacyApiPath,
+  buildLegacyApiHit,
+  buildDeprecationHeaders,
+} from '@/lib/api-deprecation'
 
 // Create next-intl middleware
 const intlMiddleware = createMiddleware(routing)
@@ -23,6 +28,25 @@ export function middleware(request: NextRequest) {
     url.host = "www.astrid.cc"
     // Use 308 to preserve HTTP method (301 converts POST to GET)
     return NextResponse.redirect(url, 308)
+  }
+
+  // Deprecation instrumentation for legacy /api/* during the
+  // iOS-to-v1-only migration. Emits a structured log line (Vercel
+  // captures it; query later to see which legacy routes still have
+  // residual traffic) and attaches RFC 8594 deprecation headers to the
+  // response. No behavior change — the request continues normally.
+  if (isLegacyApiPath(pathname)) {
+     
+    console.log(JSON.stringify(buildLegacyApiHit({
+      pathname,
+      method: request.method,
+      headers: request.headers,
+    })))
+    const response = NextResponse.next()
+    for (const [k, v] of Object.entries(buildDeprecationHeaders(pathname))) {
+      response.headers.set(k, v)
+    }
+    return response
   }
 
   // Skip i18n for API routes, .well-known, and static PWA files
