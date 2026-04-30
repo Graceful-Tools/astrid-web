@@ -261,6 +261,54 @@ export interface V1ShortcodesResponse {
   meta: V1ScopedMeta
 }
 
+// ── Users ─────────────────────────────────────────────────────────────
+
+/**
+ * Search-result user shape returned by /api/v1/users/search. Differs
+ * from V1UserSummary by including the iOS-derived flags
+ * `isListMember` and `isCodingAgent` used to drive the quick-pick UI.
+ */
+export interface V1UserSearchResult {
+  id: string
+  name: string | null
+  email: string
+  image: string | null
+  isAIAgent?: boolean
+  aiAgentType?: string | null
+  isListMember?: boolean
+  isCodingAgent?: boolean
+}
+
+export interface V1UsersSearchResponse {
+  users: V1UserSearchResult[]
+  listMemberCount: number
+  meta: V1ResponseMeta
+}
+
+/**
+ * Response for /api/v1/users/[userId]/profile — public-profile view
+ * with derived stats and recent shared-task list.
+ */
+export interface V1UserProfileResponse {
+  user: {
+    id: string
+    name: string | null
+    email: string
+    image: string | null
+    createdAt: string | Date
+    isAIAgent: boolean
+    aiAgentType: string | null
+  }
+  stats: {
+    completed: number
+    inspired: number
+    supported: number
+  }
+  sharedTasks: unknown[]
+  isOwnProfile: boolean
+  meta: V1ResponseMeta
+}
+
 // ── Reminders ─────────────────────────────────────────────────────────
 
 /**
