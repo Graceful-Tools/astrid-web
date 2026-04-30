@@ -129,15 +129,19 @@ describe('legacy contract — ListFavoriteResponse', () => {
 
 describe('legacy contract — Reminder shape', () => {
   const EXPECTED = [
-    'id', 'taskId', 'taskTitle', 'scheduledFor', 'status',
-    'reminderType', 'isOverdue', 'attemptCount',
+    'id', 'type', 'scheduledFor', 'retryCount', 'snoozeCount', 'task',
   ] as const satisfies ReadonlyArray<keyof LegacyReminder>
 
   it('every iOS-expected key appears', () => {
     const sample: LegacyReminder = {
-      id: 'r1', taskId: 't1', taskTitle: 'Title',
-      scheduledFor: '2026-04-30T00:00:00Z', status: 'PENDING',
-      reminderType: 'DUE_TIME', isOverdue: false, attemptCount: 0,
+      id: 'r1', type: 'DUE_NOW',
+      scheduledFor: '2026-04-30T00:00:00Z',
+      retryCount: 0, snoozeCount: 0,
+      task: {
+        id: 't1', title: 'Title', description: null,
+        dueDateTime: null, priority: null, completed: false,
+        listNames: [],
+      },
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED))
   })
