@@ -102,8 +102,13 @@ describe('TimePicker (desktop popover)', () => {
   })
 })
 
-describe('TimePicker (mobile native input)', () => {
-  // Force the mobile branch by injecting an iPhone UA before each test.
+describe('TimePicker (mobile uses popover, not native input)', () => {
+  // Regression: the mobile branch previously rendered `<input type="time">`,
+  // and iOS fired onChange on every wheel commit (hour, minute, AM/PM each).
+  // That routed through the parent's onChange and immediately closed edit
+  // mode — there was no way to confirm a multi-wheel edit. The popover (with
+  // explicit "Set Time" button) is now used on both mobile and desktop, so
+  // there should be no native time input rendered regardless of UA.
   let originalUA: string | undefined
   beforeEach(() => {
     originalUA = window.navigator.userAgent
@@ -121,27 +126,30 @@ describe('TimePicker (mobile native input)', () => {
     }
   })
 
-  // Regression: an ISO timestamp string passed straight through to the
-  // <input type="time"> value attribute is silently rejected (the input
-  // only accepts "HH:mm"). On iOS this leaves the native picker with no
-  // initial value and any tap on the backdrop commits a default — the
-  // "auto-selects and closes" symptom.
-  it('passes a valid HH:mm value to the native input when given an ISO string', () => {
-    const localThreePm = new Date()
-    localThreePm.setHours(15, 0, 0, 0)
-    const iso = localThreePm.toISOString()
-
-    const { container } = render(<TimePicker value={iso} onChange={() => {}} />)
-
-    const input = container.querySelector('input[type="time"]') as HTMLInputElement | null
-    expect(input).not.toBeNull()
-    expect(input!.value).toMatch(/^\d{2}:\d{2}$/)
-    expect(input!.value).toBe('15:00')
+  it('does not render a native <input type="time"> on mobile', () => {
+    const { container } = render(<TimePicker value="14:30" onChange={() => {}} mode="string" />)
+    expect(container.querySelector('input[type="time"]')).toBeNull()
   })
 
-  it('passes through bare HH:mm strings unchanged', () => {
-    const { container } = render(<TimePicker value="14:30" onChange={() => {}} mode="string" />)
-    const input = container.querySelector('input[type="time"]') as HTMLInputElement | null
-    expect(input!.value).toBe('14:30')
+  it('does not auto-fire onChange when wheel buttons are tapped', async () => {
+    // The wheel buttons (hour/minute/AM-PM) update internal state via
+    // updateTimeSelection; they must NOT trigger the parent onChange.
+    // Only "Set Time" / quick presets / All Day commit.
+    const onChange = vi.fn()
+    render(<TimePicker value="14:00" onChange={onChange} mode="string" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /2pm/i }))
+
+    // Tap a different hour and a different minute — no commit yet.
+    const eight = await screen.findByRole('button', { name: /^8$/ })
+    fireEvent.click(eight)
+    const fortyFive = await screen.findByRole('button', { name: /^45$/ })
+    fireEvent.click(fortyFive)
+
+    expect(onChange).not.toHaveBeenCalled()
+
+    // Now press Set Time — this is when the commit should happen.
+    fireEvent.click(screen.getByRole('button', { name: /^set time$/i }))
+    expect(onChange).toHaveBeenCalledTimes(1)
   })
 })

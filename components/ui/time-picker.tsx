@@ -4,9 +4,6 @@ import { useState, useEffect } from "react"
 import { Button } from "./button"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Clock } from "lucide-react"
-import { isMobileDevice } from "@/lib/layout-detection"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
 
 interface TimePickerProps {
   value?: Date | string | null
@@ -42,11 +39,6 @@ export function TimePicker({
   const [minutes, setMinutes] = useState<number>(0)
   const [period, setPeriod] = useState<"AM" | "PM">("PM")
   const [hasChanges, setHasChanges] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setIsMobile(isMobileDevice())
-  }, [])
 
   // Quick time options
   const quickTimes = [
@@ -162,35 +154,6 @@ export function TimePicker({
     setIsOpen(false)
   }
 
-  const handleNativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const timeVal = e.target.value // HH:mm
-    if (!timeVal) {
-      onChange(null)
-      return
-    }
-    
-    const [h, m] = timeVal.split(':').map(Number)
-    
-    // Convert to 12-hour format for internal state
-    let h12 = h
-    const p = h >= 12 ? "PM" : "AM"
-    if (h12 === 0) h12 = 12
-    else if (h12 > 12) h12 = h12 - 12
-    
-    setHours(h12)
-    setMinutes(m)
-    setPeriod(p)
-    
-    // Trigger onChange
-    if (mode === "string") {
-      onChange(timeVal)
-    } else {
-      const now = new Date()
-      const newTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m)
-      onChange(newTime)
-    }
-  }
-
   const formatDisplayTime = (h: number, m: number, p: "AM" | "PM"): string => {
     const hourStr = h.toString()
     const minuteStr = m === 0 ? "" : `:${m.toString().padStart(2, "0")}`
@@ -202,46 +165,12 @@ export function TimePicker({
     ? formatDisplayTime(hours, minutes, period)
     : placeholder
 
-  if (isMobile) {
-    // Format value for native input (`<input type="time">` only accepts
-    // "HH:mm"). Strings can arrive as either bare HH:mm (reminder settings)
-    // or full ISO timestamps (task fields hydrated from cache). Passing an
-    // ISO string makes the input silently reject the value, leaving it
-    // empty — on iOS the native picker then commits the default time on
-    // any tap, producing the "auto-selects and closes" symptom.
-    let nativeValue = ""
-    if (value) {
-      if (typeof value === "string") {
-        const looksLikeIso = value.length > 5 && (value.includes("T") || value.includes("-"))
-        nativeValue = looksLikeIso ? format(new Date(value), "HH:mm") : value
-      } else {
-        nativeValue = format(new Date(value), "HH:mm")
-      }
-    }
-
-    return (
-      <div className={cn("relative", className)}>
-        {label && <label className="text-sm text-muted-foreground mb-1 block">{label}</label>}
-        <Button
-          variant="outline"
-          className={cn(
-            "justify-start text-left font-normal w-full",
-            compact ? "h-8 px-2 text-sm" : "h-9 px-3",
-            !value && "text-muted-foreground"
-          )}
-        >
-          <Clock className="mr-2 h-4 w-4" />
-          {displayValue}
-        </Button>
-        <input
-          type="time"
-          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-          onChange={handleNativeChange}
-          value={nativeValue}
-        />
-      </div>
-    )
-  }
+  // Note: previously the mobile branch used a native `<input type="time">`
+  // overlay. iOS fired onChange on each wheel commit, which routed through
+  // the parent's onChange and immediately closed edit mode — there was no
+  // way to confirm a multi-wheel edit (hour, minute, AM/PM). The popover
+  // below has explicit "Set Time" / quick-preset buttons, so we use it on
+  // both desktop and mobile for consistent confirm-then-save UX.
 
   return (
     <div className={className}>
