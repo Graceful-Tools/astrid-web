@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import { Prisma } from "@prisma/client"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { CreateCommentData } from "@/types/api"
@@ -171,29 +172,71 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       }, '🔍 List access')
     })
 
-    // Create the comment
-    const comment = await prisma.comment.create({
-      data: {
-        content: data.content.trim() || '',
-        type: data.type || "TEXT",
-        parentCommentId: data.parentCommentId,
-        authorId: session.user.id,
-        taskId,
+    // ── Idempotency: clientRequestId-based (offline retry safety) ─────────
+    // Mirrors /api/v1/tasks/[id]/comments POST. Required because iOS replays
+    // queued comment creates after a network reconnect; without this, every
+    // retry produces a fresh row.
+    const commentInclude = {
+      author: true,
+      secureFiles: true,
+      replies: {
+        include: { author: true, secureFiles: true },
+        orderBy: { createdAt: "asc" as const },
       },
-      include: {
-        author: true,
-        secureFiles: true,
-        replies: {
-          include: {
-            author: true,
-            secureFiles: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
+    }
+
+    const rawClientRequestId = typeof (data as any).clientRequestId === 'string'
+      ? (data as any).clientRequestId.trim()
+      : null
+    if (rawClientRequestId !== null && (rawClientRequestId.length < 8 || rawClientRequestId.length > 128)) {
+      return NextResponse.json(
+        { error: 'clientRequestId must be between 8 and 128 characters' },
+        { status: 400 }
+      )
+    }
+
+    if (rawClientRequestId) {
+      const existing = await prisma.comment.findUnique({
+        where: { clientRequestId: rawClientRequestId },
+        include: commentInclude,
+      })
+      if (existing && existing.taskId === taskId && existing.authorId === session.user.id) {
+        log.info({ commentId: existing.id }, 'Idempotency hit (clientRequestId): returning existing comment')
+        return NextResponse.json(existing, { status: 200 })
+      }
+    }
+
+    let comment
+    try {
+      // Create the comment
+      comment = await prisma.comment.create({
+        data: {
+          content: data.content.trim() || '',
+          type: data.type || "TEXT",
+          parentCommentId: data.parentCommentId,
+          authorId: session.user.id,
+          taskId,
+          clientRequestId: rawClientRequestId,
         },
-      },
-    })
+        include: commentInclude,
+      })
+    } catch (err) {
+      if (rawClientRequestId && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const raceExisting = await prisma.comment.findUnique({
+          where: { clientRequestId: rawClientRequestId },
+          include: commentInclude,
+        })
+        if (raceExisting && raceExisting.taskId === taskId && raceExisting.authorId === session.user.id) {
+          log.info({ commentId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing comment')
+          return NextResponse.json(raceExisting, { status: 200 })
+        }
+        return NextResponse.json(
+          { error: 'clientRequestId already used by another request' },
+          { status: 409 }
+        )
+      }
+      throw err
+    }
 
     // Associate secure file if provided
     if (data.fileId) {

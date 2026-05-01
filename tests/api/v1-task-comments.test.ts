@@ -171,6 +171,7 @@ describe('API v1 task comments public access', () => {
         authorId: 'viewer-id',
         taskId: 'task-collab',
         parentCommentId: null,
+        clientRequestId: null,
       },
       include: {
         author: {
@@ -188,6 +189,47 @@ describe('API v1 task comments public access', () => {
       },
     })
     expect(mockBroadcastToUsers).toHaveBeenCalled()
+  })
+
+  it('returns existing comment when clientRequestId matches a prior submit (offline retry)', async () => {
+    mockAuthenticateAPI.mockResolvedValue({
+      userId: 'author-id',
+      source: 'oauth',
+      scopes: ['comments:write'],
+    } as any)
+
+    const existing = {
+      ...createComment(),
+      id: 'comment-existing',
+      content: 'bam',
+      authorId: 'author-id',
+      taskId: 'task-id',
+      clientRequestId: 'client-req-12345678',
+    }
+    mockPrisma.comment.findUnique.mockResolvedValue(existing)
+
+    const request = new Request('http://localhost:3000/api/v1/tasks/task-id/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: 'bam', clientRequestId: 'client-req-12345678' }),
+    })
+
+    // Even though we don't set up task.findUnique, the idempotency lookup happens
+    // AFTER the access check, so we still need the task mock
+    mockPrisma.task.findUnique.mockResolvedValue({
+      id: 'task-id',
+      creatorId: 'author-id',
+      assigneeId: null,
+      lists: [createPublicList({ id: 'list-id', publicListType: 'collaborative' })],
+    })
+
+    const response = await POST(request, { params: Promise.resolve({ id: 'task-id' }) })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.meta.idempotent).toBe(true)
+    expect(data.comment.id).toBe('comment-existing')
+    expect(mockPrisma.comment.create).not.toHaveBeenCalled()
   })
 
   it('rejects copy-only public list comments from non-members', async () => {
