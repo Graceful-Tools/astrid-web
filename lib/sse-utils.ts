@@ -368,7 +368,8 @@ export async function broadcastCommentCreatedNotification(
             // Legacy fields for web client compatibility
             type: comment.type,
             author: comment.author,
-            parentCommentId: comment.parentCommentId
+            parentCommentId: comment.parentCommentId,
+            secureFiles: comment.secureFiles ?? []
           }
         }
       })

@@ -385,6 +385,12 @@ export const POST = withAuth<RouteContext>(
           authorId: comment.authorId,
           isAgent: comment.author ? !!(comment.author as any).isAIAgent : false,
           createdAt: new Date(comment.createdAt).toISOString(),
+          // Web client appends comment from this payload without re-fetching;
+          // include attachments so offline-synced photo comments render.
+          type: (comment as any).type,
+          author: comment.author,
+          parentCommentId: (comment as any).parentCommentId ?? null,
+          secureFiles: (comment as any).secureFiles ?? []
         }
         broadcastToUsers(Array.from(userIds), {
           type: 'comment_created',
