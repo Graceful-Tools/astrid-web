@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -230,30 +231,80 @@ export const POST = withAuth<RouteContext>(
     // appear in the order the user submitted, even if uploads finish out of order.
     const createdAt = body.createdAt ? new Date(body.createdAt) : undefined
 
-    const comment = await prisma.comment.create({
-      data: {
-        content: body.content?.trim() || '',
-        type: body.type || 'TEXT',
-        authorId,
-        taskId,
-        parentCommentId: body.parentCommentId || null,
-        ...(createdAt && !isNaN(createdAt.getTime()) && { createdAt })
+    // ── Idempotency: clientRequestId-based (offline retry safety) ─────────
+    // Mirrors the pattern in /api/v1/tasks POST. Required because iOS replays
+    // queued comment creates after a network reconnect; without this, every
+    // retry produces a fresh row.
+    const commentInclude = {
+      author: { select: { id: true, name: true, email: true, image: true } },
+      secureFiles: {
+        select: { id: true, originalName: true, mimeType: true, fileSize: true, createdAt: true },
       },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true, image: true }
-        },
-        secureFiles: {
-          select: {
-            id: true,
-            originalName: true,
-            mimeType: true,
-            fileSize: true,
-            createdAt: true
-          }
-        }
+    } as const
+
+    const rawClientRequestId = typeof body.clientRequestId === 'string' ? body.clientRequestId.trim() : null
+    if (rawClientRequestId !== null && (rawClientRequestId.length < 8 || rawClientRequestId.length > 128)) {
+      return NextResponse.json(
+        { error: 'clientRequestId must be between 8 and 128 characters' },
+        { status: 400 }
+      )
+    }
+
+    if (rawClientRequestId) {
+      const existing = await prisma.comment.findUnique({
+        where: { clientRequestId: rawClientRequestId },
+        include: commentInclude,
+      })
+      if (existing && existing.taskId === taskId && existing.authorId === authorId) {
+        log.info({ commentId: existing.id }, 'Idempotency hit (clientRequestId): returning existing comment')
+        const headers: Record<string, string> = {}
+        const deprecationWarning = getDeprecationWarning(auth)
+        if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+        return NextResponse.json(
+          { comment: existing, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
+          { status: 200, headers }
+        )
       }
-    })
+    }
+
+    let comment
+    try {
+      comment = await prisma.comment.create({
+        data: {
+          content: body.content?.trim() || '',
+          type: body.type || 'TEXT',
+          authorId,
+          taskId,
+          parentCommentId: body.parentCommentId || null,
+          clientRequestId: rawClientRequestId,
+          ...(createdAt && !isNaN(createdAt.getTime()) && { createdAt })
+        },
+        include: commentInclude,
+      })
+    } catch (err) {
+      // P2002 = unique constraint hit — concurrent retry won the race
+      if (rawClientRequestId && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const raceExisting = await prisma.comment.findUnique({
+          where: { clientRequestId: rawClientRequestId },
+          include: commentInclude,
+        })
+        if (raceExisting && raceExisting.taskId === taskId && raceExisting.authorId === authorId) {
+          log.info({ commentId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing comment')
+          const headers: Record<string, string> = {}
+          const deprecationWarning = getDeprecationWarning(auth)
+          if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+          return NextResponse.json(
+            { comment: raceExisting, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
+            { status: 200, headers }
+          )
+        }
+        return NextResponse.json(
+          { error: 'clientRequestId already used by another request' },
+          { status: 409 }
+        )
+      }
+      throw err
+    }
 
     if (body.fileId) {
       try {

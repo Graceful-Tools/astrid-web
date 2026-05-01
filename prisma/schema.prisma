@@ -265,6 +265,7 @@ model Comment {
   attachmentType  String?
   attachmentSize  Int?
   parentCommentId String?
+  clientRequestId String?      @unique
   author          User?        @relation(fields: [authorId], references: [id])
   parentComment   Comment?     @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies         Comment[]    @relation("CommentReplies")
