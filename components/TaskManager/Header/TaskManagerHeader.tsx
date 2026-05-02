@@ -246,9 +246,18 @@ export function TaskManagerHeader({
     )
   }
 
+  // During the close-animation window, mobileView is still 'task' but
+  // isMobileTaskDetailClosing is true. Without this guard the task branch is
+  // suppressed (waiting for the animation to finish) and the list branch hasn't
+  // taken over yet — control falls through to the desktop Astrid-logo branch
+  // and you see a flash of the wordmark before the list header reappears.
+  // Treat the closing state as "already on the list" for header purposes.
+  const isHeadingBackToList = isMobile && isMobileTaskDetailClosing
+  const showListHeader = (showHamburgerMenu && mobileView === 'list') || isHeadingBackToList
+
   return (
     <div className={headerClasses}>
-      {showHamburgerMenu && mobileView === 'list' ? (
+      {showListHeader ? (
         // Mobile/Narrow Desktop List View: Unified flex layout with hamburger menu
         <div className="flex items-center justify-between w-full max-w-full min-h-[44px]">
           {/* Left: Hamburger button with large tap target, aligned with task checkboxes */}
