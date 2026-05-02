@@ -104,7 +104,7 @@ export function TaskHeader({
               />
             ) : (
               <span
-                className={`text-lg cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 ${
+                className={`text-lg cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
                   task.completed ? "line-through theme-text-muted" : "theme-text-primary"
                 }`}
                 onClick={() => setEditingTitle(true)}
