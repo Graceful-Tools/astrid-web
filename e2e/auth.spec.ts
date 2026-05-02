@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Authentication Flow', () => {
+  // Generous suite timeout — the signin route can be slow to compile/hydrate
+  // on a cold dev server, especially on webkit/firefox after reset:e2e-env.
+  test.setTimeout(60000)
+
   test.beforeEach(async ({ page }) => {
     // Clear any existing auth state
     await page.context().clearCookies()
@@ -11,7 +15,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth/signin')
 
     // Wait for page to load - default view shows modern auth options
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
+    await expect(page.getByText('Sign in to get started!')).toBeVisible({ timeout: 15000 })
 
     // Should show sign-in options (button text is "Continue with Google")
     // Note: Google button may not appear if Google OAuth is not configured
@@ -25,7 +29,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth/signin')
 
     // Wait for page to load - default view shows "Sign in to get started!"
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
+    await expect(page.getByText('Sign in to get started!')).toBeVisible({ timeout: 15000 })
 
     // Should show Google sign-in button (if configured) or just Passkey
     const googleButton = page.getByRole('button', { name: /continue with google/i })
@@ -51,28 +55,38 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth/signin')
 
     // Wait for page to load and React to hydrate
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
+    await expect(page.getByText('Sign in to get started!')).toBeVisible({ timeout: 15000 })
 
     // Passkey button should always be visible
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
     await expect(passkeyButton).toBeVisible()
 
-    // Check if passkeys are supported in this browser/environment
-    const isDisabled = await passkeyButton.isDisabled()
+    // Detect actual browser capability deterministically — the React hook
+    // initializes isSupported=false then flips it in a useEffect, so reading
+    // passkeyButton.isDisabled() races against hydration on slower devices.
+    const browserSupportsWebAuthn = await page.evaluate(
+      () => typeof window.PublicKeyCredential !== 'undefined'
+    )
 
-    if (isDisabled) {
-      // Passkeys NOT supported - verify the disabled state UI
+    if (!browserSupportsWebAuthn) {
+      // Passkeys NOT supported - verify the disabled state UI (post-hydration).
+      // Use a generous timeout since React hydration can lag on a cold dev
+      // server and the button starts disabled either way (isSupported=false
+      // is the initial state); we only need the post-hydration verdict.
       console.log('Passkeys not supported in this browser - verifying disabled state')
 
-      // The button should be visually disabled (gray styling with opacity)
-      const buttonClass = await passkeyButton.getAttribute('class')
-      expect(buttonClass).toContain('disabled:opacity-50')
+      await expect(passkeyButton).toBeDisabled({ timeout: 15000 })
 
       // Should show "not supported" message below the button
-      await expect(page.getByText('Passkeys not supported in this browser')).toBeVisible()
+      await expect(page.getByText('Passkeys not supported in this browser')).toBeVisible({ timeout: 15000 })
     } else {
       // Passkeys ARE supported - verify the full passkey flow
       console.log('Passkeys are supported - verifying passkey dialog flow')
+
+      // Wait for hydration to enable the button before clicking. Generous
+      // timeout because React hydration can lag on a cold dev server while
+      // the page finishes compiling.
+      await expect(passkeyButton).toBeEnabled({ timeout: 15000 })
 
       // Click passkey button to open the passkey dialog
       await passkeyButton.click()
@@ -96,13 +110,17 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth/signin')
 
     // Wait for page to load
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
+    await expect(page.getByText('Sign in to get started!')).toBeVisible({ timeout: 15000 })
 
-    // Check if passkeys are supported
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
-    const isDisabled = await passkeyButton.isDisabled()
 
-    if (isDisabled) {
+    // Detect support via the underlying browser capability rather than the
+    // button's disabled attribute, which races against React hydration.
+    const browserSupportsWebAuthn = await page.evaluate(
+      () => typeof window.PublicKeyCredential !== 'undefined'
+    )
+
+    if (!browserSupportsWebAuthn) {
       // Skip this test if passkeys not supported - can't test dialog navigation
       console.log('Skipping passkey dialog navigation test - passkeys not supported in this browser')
       return
@@ -110,6 +128,10 @@ test.describe('Authentication Flow', () => {
 
     // Passkeys are supported - test the dialog navigation
     console.log('Passkeys supported - testing dialog navigation')
+
+    // Wait for hydration to enable the button before clicking. Generous
+    // timeout because React hydration can lag on a cold dev server.
+    await expect(passkeyButton).toBeEnabled({ timeout: 15000 })
 
     // Click passkey button
     await passkeyButton.click()
@@ -129,7 +151,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth/signin')
 
     // Wait for page to load - default view shows modern auth options
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
+    await expect(page.getByText('Sign in to get started!')).toBeVisible({ timeout: 15000 })
 
     // Wait for Google button to appear (may take time to load providers)
     // If Google OAuth is not configured, this test will be skipped
@@ -166,7 +188,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth/signin?error=OAuthAccountNotLinked')
 
     // Wait for page to load - default view shows modern auth options
-    await expect(page.getByText('Sign in to get started!')).toBeVisible()
+    await expect(page.getByText('Sign in to get started!')).toBeVisible({ timeout: 15000 })
 
     // Should show error message (look for the specific error text, avoiding strict mode violation)
     await expect(page.getByText(/account.*already exists/i)).toBeVisible({ timeout: 10000 })

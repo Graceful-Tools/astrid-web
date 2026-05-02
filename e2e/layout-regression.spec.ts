@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
 
 /**
  * Layout regression matrix.
@@ -85,7 +86,7 @@ test.describe('Layout regression matrix', () => {
   test('homepage detects the expected layout', async ({ page }, testInfo) => {
     const expected = expectedFor(testInfo.project.name)
 
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await page.waitForLoadState('domcontentloaded')
 
     const detected = await detectLayout(page)
@@ -95,7 +96,7 @@ test.describe('Layout regression matrix', () => {
   })
 
   test('signin page renders without errors at this layout', async ({ page }, testInfo) => {
-    const response = await page.goto('/auth/signin')
+    const response = await gotoWithRetry(page, '/auth/signin')
     expect(response?.status(), 'signin should not 5xx').toBeLessThan(500)
 
     // Critical UI: heading and primary auth buttons should be visible across
@@ -117,7 +118,7 @@ test.describe('Layout regression matrix', () => {
   })
 
   test('locale page renders without errors at this layout', async ({ page }, testInfo) => {
-    const response = await page.goto('/es')
+    const response = await gotoWithRetry(page, '/es')
     expect(response?.status(), 'locale page should not 5xx').toBeLessThan(500)
     await page.waitForLoadState('domcontentloaded')
 

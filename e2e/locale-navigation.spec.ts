@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
 
 /**
  * E2E Tests for Locale Navigation
@@ -14,7 +15,7 @@ test.describe('Locale Navigation', () => {
 
   test.describe('Direct locale URL access', () => {
     test('should load Spanish locale page without 404', async ({ page }) => {
-      const response = await page.goto('/es')
+      const response = await gotoWithRetry(page, '/es')
 
       // Should not get 404 error
       expect(response?.status()).not.toBe(404)
@@ -28,7 +29,7 @@ test.describe('Locale Navigation', () => {
     })
 
     test('should load French locale page without 404', async ({ page }) => {
-      const response = await page.goto('/fr')
+      const response = await gotoWithRetry(page, '/fr')
 
       expect(response?.status()).not.toBe(404)
       expect(response?.status()).toBeLessThan(400)
@@ -39,7 +40,7 @@ test.describe('Locale Navigation', () => {
     })
 
     test('should load German locale page without 404', async ({ page }) => {
-      const response = await page.goto('/de')
+      const response = await gotoWithRetry(page, '/de')
 
       expect(response?.status()).not.toBe(404)
       expect(response?.status()).toBeLessThan(400)
@@ -50,7 +51,7 @@ test.describe('Locale Navigation', () => {
     })
 
     test('should load English locale page without 404', async ({ page }) => {
-      const response = await page.goto('/en')
+      const response = await gotoWithRetry(page, '/en')
 
       expect(response?.status()).not.toBe(404)
       expect(response?.status()).toBeLessThan(400)
@@ -63,7 +64,7 @@ test.describe('Locale Navigation', () => {
 
   test.describe('Locale-prefixed auth routes', () => {
     test('should load Spanish auth signin page without 404', async ({ page }) => {
-      const response = await page.goto('/es/auth/signin')
+      const response = await gotoWithRetry(page, '/es/auth/signin')
 
       // Should not get 404 error
       expect(response?.status()).not.toBe(404)
@@ -73,7 +74,7 @@ test.describe('Locale Navigation', () => {
     })
 
     test('should load French auth signin page without 404', async ({ page }) => {
-      const response = await page.goto('/fr/auth/signin')
+      const response = await gotoWithRetry(page, '/fr/auth/signin')
 
       expect(response?.status()).not.toBe(404)
       expect(response?.status()).toBeLessThan(400)
@@ -84,7 +85,7 @@ test.describe('Locale Navigation', () => {
 
   test.describe('Root URL access (backward compatibility)', () => {
     test('should load root URL without locale prefix', async ({ page }) => {
-      const response = await page.goto('/')
+      const response = await gotoWithRetry(page, '/')
 
       expect(response?.status()).not.toBe(404)
       expect(response?.status()).toBeLessThan(400)
@@ -96,7 +97,7 @@ test.describe('Locale Navigation', () => {
     })
 
     test('should load auth signin without locale prefix', async ({ page }) => {
-      const response = await page.goto('/auth/signin')
+      const response = await gotoWithRetry(page, '/auth/signin')
 
       // Should not get 404 error (may redirect but should not 404)
       expect(response?.status()).not.toBe(404)
@@ -157,7 +158,7 @@ test.describe('Locale Navigation', () => {
 
   test.describe('Locale URL formatting', () => {
     test('should accept locale URLs with trailing slash', async ({ page }) => {
-      const response = await page.goto('/es/')
+      const response = await gotoWithRetry(page, '/es/')
 
       expect(response?.status()).not.toBe(404)
       expect(response?.status()).toBeLessThan(400)

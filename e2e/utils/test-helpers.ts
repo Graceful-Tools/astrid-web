@@ -1,8 +1,29 @@
-import type { Page, Locator } from '@playwright/test'
+import type { Page, Locator, Response } from '@playwright/test'
 
 /**
  * Common test helper utilities for E2E tests
  */
+
+/**
+ * Navigate with a single retry on transient dev-server 5xx responses.
+ *
+ * Next's dev compiler can return a 500 the first time a route is hit under
+ * concurrent load (multiple browser projects warming up the same dev server
+ * in parallel). Production never sees this — it only happens locally. The
+ * retry tolerates that one cold-compile blip without masking real failures:
+ * a route that consistently 5xxs will still fail on the second attempt.
+ */
+export async function gotoWithRetry(
+  page: Page,
+  url: string,
+  options?: Parameters<Page['goto']>[1]
+): Promise<Response | null> {
+  const response = await page.goto(url, options)
+  if (response && response.status() >= 500) {
+    return await page.goto(url, options)
+  }
+  return response
+}
 
 export class TaskHelpers {
   constructor(private page: Page) {}
