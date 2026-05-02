@@ -72,7 +72,7 @@ export default defineConfig({
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      testMatch: /(auth|locale-navigation|layout-regression)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression|mobile-keyboard-no-list-shift)\.spec\.ts/,
     },
     {
       name: 'Mobile Safari',

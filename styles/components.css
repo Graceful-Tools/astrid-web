@@ -14,6 +14,19 @@
   --priority-high: rgb(239, 68, 68);
 }
 
+/* Lock document-level scrolling. The app shell (.app-container) and inner
+ * scrollable lists own all vertical scrolling. Without this, iOS Safari
+ * tries to bring a focused fixed-position input "into view" by scrolling
+ * <html>/<body>, which yanks the floating header off-screen and shifts the
+ * task list upward when the user is scrolled to the bottom of a long list.
+ */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  /* Lock the visual viewport so the keyboard can't drag the page */
+  overscroll-behavior: none;
+}
+
 /* Layout Components */
 .app-container {
   @apply flex flex-col;
