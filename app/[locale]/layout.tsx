@@ -21,6 +21,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#3b82f6",
+  // Shrink the layout viewport when the on-screen keyboard appears so a
+  // position: fixed input sits naturally above the keyboard. Without this,
+  // Mobile Safari auto-scrolls the underlying task list to reveal the focused
+  // input, which yanks the entire list upward.
+  interactiveWidget: "resizes-content",
 }
 
 export const metadata: Metadata = {
