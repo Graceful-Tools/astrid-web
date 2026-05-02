@@ -112,7 +112,8 @@
 }
 
 .task-title {
-  @apply flex-1;
+  @apply flex-1 min-w-0 break-words;
+  overflow-wrap: anywhere;
 }
 
 .task-title-completed {
