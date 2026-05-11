@@ -54,7 +54,7 @@ describe('Header — no astrid-logo flash when closing task detail', () => {
     expect(container.textContent).toContain('My List')
   })
 
-  it('shows the task header normally when not closing', () => {
+  it('shows the list name in the header in mobile task view (bug 35c1ad50: the title MUST stay as the list name, not the task title)', () => {
     const { container } = render(
       <TaskManagerHeader
         {...mobileBaseProps}
@@ -62,9 +62,11 @@ describe('Header — no astrid-logo flash when closing task detail', () => {
       />
     )
 
-    // Task title is rendered in the task header
-    expect(container.textContent).toContain('A task')
-    // No wordmark
+    // Header anchors on the list name across list/task views.
+    expect(container.textContent).toContain('My List')
+    // The task title is NOT rendered in the top header anymore.
+    expect(container.textContent).not.toContain('A task')
+    // No desktop wordmark either.
     const wordmark = Array.from(container.querySelectorAll('span')).filter(
       (s) => s.textContent === 'astrid',
     )

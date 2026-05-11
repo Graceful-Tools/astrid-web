@@ -27,10 +27,15 @@ Pull tasks from the Astrid web to-do list and help the user work through them.
    - Analyze the issue
    - Post strategy comment to the task
    - Create a feature branch (`fix/<short-description>`)
-   - Implement the fix
+   - **RED-GREEN TDD (mandatory for bug fixes):**
+     1. Write a failing test that reproduces the bug. Cite the task id in
+        the test name. Confirm it fails for the right reason.
+        - Prefer a vitest unit test against a pure helper. If the bug only
+          manifests in the UI, add a Playwright spec under `e2e/` too.
+     2. Implement the minimum code change to make the test pass.
+     3. Refactor while tests stay green.
    - Run `npm run predeploy` to verify
    - Fix any regressions
-   - Add regression tests
    - Deploy preview: `./scripts/deploy-preview.sh`
    - Post preview link and fix summary comment to the task
    - Wait for user approval before merging to main
