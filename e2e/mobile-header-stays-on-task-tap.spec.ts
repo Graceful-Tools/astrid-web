@@ -49,7 +49,7 @@ test.describe('Mobile 1-column: header stays on list name when tapping a task ro
     if ((await header.count()) > 0) {
       await expect(header.getByText(taskTitle, { exact: false })).toHaveCount(0)
     }
-    // And the back button now exists (regression for the leading-button swap).
-    await expect(page.getByTestId('mobile-header-back')).toBeVisible()
+    // The hamburger stays put — the header doesn't morph into a back arrow.
+    await expect(page.locator('[data-hamburger-button]')).toBeVisible()
   })
 })

@@ -1,7 +1,4 @@
-export type MobileHeaderMode =
-  | 'desktop'
-  | 'mobile-list-with-menu'
-  | 'mobile-list-with-back'
+export type MobileHeaderMode = 'desktop' | 'mobile-list-with-menu'
 
 export interface MobileHeaderModeState {
   /** True when the layout is a 1-column mobile layout. */
@@ -19,17 +16,16 @@ export interface MobileHeaderModeState {
  *
  * Bug history (35c1ad50): mobile 1-column previously switched the header
  * title from the list name to the *task* title whenever you tapped a task
- * row. The list name should stay put — only the leading button flips
- * (hamburger ↔ back arrow) to reflect the navigation state.
+ * row, and the leading button flipped from hamburger to back arrow. Neither
+ * is needed — back navigation is handled by swipe-right and the in-pane
+ * close. The header stays the same across list/task/chat views.
  */
 export function getMobileHeaderMode(state: MobileHeaderModeState): MobileHeaderMode {
   if (!state.showHamburgerMenu) return 'desktop'
-  if (
-    state.isMobile &&
-    state.mobileView === 'task' &&
-    !state.isMobileTaskDetailClosing
-  ) {
-    return 'mobile-list-with-back'
-  }
+  // Suppress unused-state warnings: kept in the signature for future modes
+  // (e.g. when we want a different leading affordance in a specific view).
+  void state.isMobile
+  void state.mobileView
+  void state.isMobileTaskDetailClosing
   return 'mobile-list-with-menu'
 }

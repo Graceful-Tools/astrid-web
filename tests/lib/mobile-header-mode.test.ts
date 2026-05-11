@@ -17,8 +17,10 @@ describe('getMobileHeaderMode', () => {
     expect(getMobileHeaderMode(base)).toBe('mobile-list-with-menu')
   })
 
-  it('renders the list-style header on mobile task view, but with a back arrow — bug 35c1ad50: header must NOT show the task title', () => {
-    expect(getMobileHeaderMode({ ...base, mobileView: 'task' })).toBe('mobile-list-with-back')
+  it('keeps the hamburger header on mobile task view — bug 35c1ad50: header must NOT change when a task is tapped', () => {
+    // The hamburger stays put; back navigation is handled by swipe-right /
+    // the in-pane close, not a header swap.
+    expect(getMobileHeaderMode({ ...base, mobileView: 'task' })).toBe('mobile-list-with-menu')
   })
 
   it('keeps the menu variant while the task detail is animating closed (avoid mid-flight flicker)', () => {

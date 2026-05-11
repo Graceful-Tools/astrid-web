@@ -3,7 +3,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Menu, ArrowLeft, Settings, Filter, X, Keyboard, KanbanSquare, ListChecks } from "lucide-react"
+import { Search, Menu, Settings, Filter, X, Keyboard, KanbanSquare, ListChecks } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
 import Image from "next/image"
 import { useTranslations } from "@/lib/i18n/client"
@@ -253,9 +253,9 @@ export function TaskManagerHeader({
     )
   }
 
-  // See lib/mobile-header-mode.ts for the rules. The list name stays
-  // anchored across mobile list/task/chat panes (bug 35c1ad50); the leading
-  // button is the only thing that flips between hamburger and back arrow.
+  // See lib/mobile-header-mode.ts for the rules. The header is identical
+  // across mobile list / task / chat panes (bug 35c1ad50). Back navigation
+  // happens via swipe-right / the in-pane close, not via a header swap.
   const mobileHeaderMode = getMobileHeaderMode({
     isMobile,
     showHamburgerMenu,
@@ -263,7 +263,6 @@ export function TaskManagerHeader({
     isMobileTaskDetailClosing: Boolean(isMobileTaskDetailClosing),
   })
   const showListHeader = mobileHeaderMode !== 'desktop'
-  const useBackArrow = mobileHeaderMode === 'mobile-list-with-back'
 
   const renderTaskViewToggle = () => {
     if (!hasProjectBoard || !onTaskViewModeChange || activeView !== 'list') {
@@ -305,46 +304,33 @@ export function TaskManagerHeader({
       {showListHeader ? (
         // Mobile/Narrow Desktop List View: Unified flex layout with hamburger menu
         <div className="flex items-center justify-between w-full max-w-full min-h-[44px]">
-          {/* Left: Hamburger button (list view) OR back arrow (task view). The
-              list-name title to the right stays put either way. */}
+          {/* Left: Hamburger button with large tap target, aligned with task checkboxes.
+              The hamburger stays put across mobile list / task / chat panes. */}
           <div className="flex-shrink-0">
-            {useBackArrow ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMobileBack}
-                className="pl-1.5 pr-1 py-3 min-w-[44px] min-h-[44px]"
-                aria-label="Back to list"
-                data-testid="mobile-header-back"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleMobileSidebar}
-                className="pl-1.5 pr-1 py-3 min-w-[44px] min-h-[44px]"
-                data-hamburger-button
-                onDragEnter={(event) => {
-                  if (!isTaskDragActive) return
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMobileSidebar}
+              className="pl-1.5 pr-1 py-3 min-w-[44px] min-h-[44px]"
+              data-hamburger-button
+              onDragEnter={(event) => {
+                if (!isTaskDragActive) return
+                event.preventDefault()
+                onHamburgerDragHover?.()
+              }}
+              onDragOver={(event) => {
+                if (!isTaskDragActive) return
+                event.preventDefault()
+                onHamburgerDragHover?.()
+              }}
+              onDrop={(event) => {
+                if (isTaskDragActive) {
                   event.preventDefault()
-                  onHamburgerDragHover?.()
-                }}
-                onDragOver={(event) => {
-                  if (!isTaskDragActive) return
-                  event.preventDefault()
-                  onHamburgerDragHover?.()
-                }}
-                onDrop={(event) => {
-                  if (isTaskDragActive) {
-                    event.preventDefault()
-                  }
-                }}
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            )}
+                }
+              }}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
           </div>
 
           {/* Center: List name, Settings title, or Search input */}
