@@ -23,6 +23,7 @@ import { ChatToggle } from "./chat/ChatToggle"
 import SettingsPanel from "./Settings/SettingsPanel"
 import SettingsDetailPanel from "./Settings/SettingsDetailPanel"
 import { getProjectIdForBoard } from "./project-status-board"
+import { didEnterBoardMode } from "@/lib/board-mode-transition"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
@@ -455,8 +456,16 @@ const TaskManagerView = memo(function TaskManagerView({
     return () => setLayoutBoardMode?.(false)
   }, [isBoardMode, setLayoutBoardMode])
 
+  // Only fire the "leave chat / close task detail" side-effects at the
+  // moment of entering board mode, NOT every render while in it — otherwise
+  // any state change in board view (e.g. tapping Messages to flip
+  // activePanel='chat') gets immediately reverted. See bug a1e5c0ff
+  // follow-up and lib/board-mode-transition.ts.
+  const prevTaskViewModeRef = React.useRef<'list' | 'board'>(taskViewMode)
   React.useEffect(() => {
-    if (taskViewMode === 'board') {
+    const prev = prevTaskViewModeRef.current
+    prevTaskViewModeRef.current = taskViewMode
+    if (didEnterBoardMode({ prevTaskViewMode: prev, nextTaskViewMode: taskViewMode })) {
       setActivePanel('tasks')
       closeTaskDetail()
     }
