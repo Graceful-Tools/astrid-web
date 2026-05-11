@@ -10,6 +10,8 @@ import { useTranslations } from "@/lib/i18n/client"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { getMyTasksFilterText, getPriorityColorClass } from "@/lib/task-manager-utils"
 import { getMobileHeaderMode } from "@/lib/mobile-header-mode"
+import { getHeaderViewToggle, type HeaderToggleSegment } from "@/lib/header-view-toggle"
+import { MessageCircle } from "lucide-react"
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskManagerHeaderProps {
@@ -264,37 +266,71 @@ export function TaskManagerHeader({
   })
   const showListHeader = mobileHeaderMode !== 'desktop'
 
-  const renderTaskViewToggle = () => {
-    if (!hasProjectBoard || !onTaskViewModeChange || activeView !== 'list') {
-      return null
+  // Build the unified header view-toggle config. In 1-col mode this becomes
+  // a single segmented control (List / Board / Messages); on wider screens
+  // it's the legacy List/Board toggle with a separate ChatToggle icon.
+  const headerToggle = getHeaderViewToggle({
+    isOneColumn: isMobile,
+    hasProjectBoard,
+    chatAvailable: Boolean(onToggleActivePanel),
+    activeView,
+    isSearching: Boolean(mobileSearchMode || (searchValue || '').trim()),
+  })
+
+  const isSegmentActive = (segment: HeaderToggleSegment): boolean => {
+    if (segment === 'messages') return activePanel === 'chat'
+    if (activePanel === 'chat') return false
+    return segment === taskViewMode
+  }
+
+  const handleSegmentClick = (segment: HeaderToggleSegment) => {
+    if (segment === 'messages') {
+      onToggleActivePanel?.('chat')
+      return
     }
+    // Switching to list/board implies leaving the chat panel.
+    if (activePanel === 'chat') onToggleActivePanel?.('tasks')
+    if (segment === 'list' && taskViewMode !== 'list') onTaskViewModeChange?.('list')
+    if (segment === 'board' && taskViewMode !== 'board') onTaskViewModeChange?.('board')
+  }
+
+  const segmentMeta: Record<HeaderToggleSegment, { label: string; Icon: typeof ListChecks }> = {
+    list: { label: 'List', Icon: ListChecks },
+    board: { label: 'Board', Icon: KanbanSquare },
+    messages: { label: 'Messages', Icon: MessageCircle },
+  }
+
+  const renderTaskViewToggle = () => {
+    if (headerToggle.segments.length === 0) return null
+    // Wider layouts: the legacy 2-button List/Board control. Skip when there
+    // is no board (single segment isn't a toggle).
+    if (!headerToggle.unified && headerToggle.segments.length < 2) return null
 
     return (
-      <div className="flex rounded-md border theme-border theme-bg-secondary p-0.5">
-        <Button
-          type="button"
-          size="sm"
-          variant={taskViewMode === 'list' ? 'default' : 'ghost'}
-          onClick={() => onTaskViewModeChange('list')}
-          className="h-8 gap-1.5 px-2.5"
-          aria-pressed={taskViewMode === 'list'}
-          title="List"
-        >
-          <ListChecks className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">List</span>
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={taskViewMode === 'board' ? 'default' : 'ghost'}
-          onClick={() => onTaskViewModeChange('board')}
-          className="h-8 gap-1.5 px-2.5"
-          aria-pressed={taskViewMode === 'board'}
-          title="Board"
-        >
-          <KanbanSquare className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Board</span>
-        </Button>
+      <div
+        className="flex rounded-md border theme-border theme-bg-secondary p-0.5"
+        data-testid={headerToggle.unified ? 'header-unified-toggle' : 'header-list-board-toggle'}
+      >
+        {headerToggle.segments.map((segment) => {
+          const { label, Icon } = segmentMeta[segment]
+          const active = isSegmentActive(segment)
+          return (
+            <Button
+              key={segment}
+              type="button"
+              size="sm"
+              variant={active ? 'default' : 'ghost'}
+              onClick={() => handleSegmentClick(segment)}
+              className="h-8 gap-1.5 px-2.5"
+              aria-pressed={active}
+              title={label}
+              data-segment={segment}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{label}</span>
+            </Button>
+          )
+        })}
       </div>
     )
   }
@@ -367,11 +403,13 @@ export function TaskManagerHeader({
             )}
           </div>
 
-          {/* Right: Chat toggle + Settings icon (context-dependent) */}
+          {/* Right: Chat toggle + Settings icon (context-dependent). When the
+              unified toggle is active it already contains Messages — don't
+              render a duplicate ChatToggle icon. */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {renderTaskViewToggle()}
 
-            {onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
+            {!headerToggle.unified && onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
               <ChatToggle
                 activePanel={activePanel}
                 onToggle={onToggleActivePanel}
