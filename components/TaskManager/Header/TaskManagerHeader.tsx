@@ -3,12 +3,13 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Menu, ArrowLeft, Settings, Filter, X, Keyboard, KanbanSquare, ListChecks } from "lucide-react"
+import { Search, Menu, Settings, Filter, X, Keyboard, KanbanSquare, ListChecks } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
 import Image from "next/image"
 import { useTranslations } from "@/lib/i18n/client"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { getMyTasksFilterText, getPriorityColorClass } from "@/lib/task-manager-utils"
+import { getMobileHeaderMode } from "@/lib/mobile-header-mode"
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskManagerHeaderProps {
@@ -252,14 +253,16 @@ export function TaskManagerHeader({
     )
   }
 
-  // During the close-animation window, mobileView is still 'task' but
-  // isMobileTaskDetailClosing is true. Without this guard the task branch is
-  // suppressed (waiting for the animation to finish) and the list branch hasn't
-  // taken over yet — control falls through to the desktop Astrid-logo branch
-  // and you see a flash of the wordmark before the list header reappears.
-  // Treat the closing state as "already on the list" for header purposes.
-  const isHeadingBackToList = isMobile && isMobileTaskDetailClosing
-  const showListHeader = (showHamburgerMenu && mobileView === 'list') || isHeadingBackToList
+  // See lib/mobile-header-mode.ts for the rules. The header is identical
+  // across mobile list / task / chat panes (bug 35c1ad50). Back navigation
+  // happens via swipe-right / the in-pane close, not via a header swap.
+  const mobileHeaderMode = getMobileHeaderMode({
+    isMobile,
+    showHamburgerMenu,
+    mobileView,
+    isMobileTaskDetailClosing: Boolean(isMobileTaskDetailClosing),
+  })
+  const showListHeader = mobileHeaderMode !== 'desktop'
 
   const renderTaskViewToggle = () => {
     if (!hasProjectBoard || !onTaskViewModeChange || activeView !== 'list') {
@@ -301,7 +304,8 @@ export function TaskManagerHeader({
       {showListHeader ? (
         // Mobile/Narrow Desktop List View: Unified flex layout with hamburger menu
         <div className="flex items-center justify-between w-full max-w-full min-h-[44px]">
-          {/* Left: Hamburger button with large tap target, aligned with task checkboxes */}
+          {/* Left: Hamburger button with large tap target, aligned with task checkboxes.
+              The hamburger stays put across mobile list / task / chat panes. */}
           <div className="flex-shrink-0">
             <Button
               variant="ghost"
@@ -397,26 +401,6 @@ export function TaskManagerHeader({
               </Button>
             )}
           </div>
-        </div>
-      ) : isMobile && mobileView === 'task' && !isMobileTaskDetailClosing ? (
-        // Mobile Task View (hidden during close animation)
-        <div className="flex items-center justify-between gap-2 w-full max-w-full">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMobileBack}
-            className="p-2 flex-shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-
-          {selectedTask && (
-            <div className="flex-1 text-center min-w-0 overflow-hidden px-2">
-              <span className="text-lg font-medium truncate inline-block max-w-full">{selectedTask.title}</span>
-            </div>
-          )}
-
-          <div className="flex-shrink-0 w-10" /> {/* Spacer for centering */}
         </div>
       ) : (
         // Desktop View

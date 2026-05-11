@@ -278,7 +278,24 @@ This affects lines 71-104 in LoginView.swift. Will also add a regression test.
 
 Wait for user feedback if needed before proceeding.
 
-### Step 3: Implementation
+### Step 3: Implementation — RED-GREEN TDD (Mandatory for bug fixes)
+
+Bug fixes MUST follow red-green test-driven development:
+
+1. **RED** — first write a failing test that reproduces the bug. Run it and
+   confirm it fails for the right reason. The failing test is the proof
+   that the bug exists and that your fix actually addresses it.
+   - Prefer a small **vitest** unit test against a pure helper. If the bug
+     only manifests at the UI/integration level, also add a **Playwright**
+     spec under `e2e/` that exercises the gesture/flow end-to-end.
+2. **GREEN** — write the minimum code that makes the test pass.
+3. **Refactor** — clean up while the tests stay green.
+
+Cite the bug's task id (e.g. "regression for bug 35c1ad50") in the test name
+or doc-comment so the link is searchable later.
+
+For features (not bug fixes) you can write code first, but every shipped
+feature still needs its regression tests (see Step 5).
 
 Write code following established patterns (see Architecture Patterns section).
 
