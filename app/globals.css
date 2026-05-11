@@ -40,9 +40,16 @@
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
   }
-  
-  .scrollbar-hide::-webkit-scrollbar { 
-    display: none;  /* Safari and Chrome */
+
+  /* iOS Safari still flashes its overlay scroll indicator on
+   * `-webkit-overflow-scrolling: touch` containers when only `display:none`
+   * is set. Zeroing the size + dropping the native appearance suppresses it. */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;        /* Safari and Chrome */
+    width: 0;
+    height: 0;
+    background: transparent;
+    -webkit-appearance: none;
   }
 }
 
