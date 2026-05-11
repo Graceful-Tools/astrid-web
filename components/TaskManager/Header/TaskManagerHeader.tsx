@@ -3,7 +3,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Menu, ArrowLeft, Settings, Filter, X, Keyboard } from "lucide-react"
+import { Search, Menu, ArrowLeft, Settings, Filter, X, Keyboard, KanbanSquare, ListChecks } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
 import Image from "next/image"
 import { useTranslations } from "@/lib/i18n/client"
@@ -49,6 +49,9 @@ interface TaskManagerHeaderProps {
   // Chat toggle
   activePanel?: 'tasks' | 'chat'
   onToggleActivePanel?: (panel: 'tasks' | 'chat') => void
+  hasProjectBoard?: boolean
+  taskViewMode?: 'list' | 'board'
+  onTaskViewModeChange?: (mode: 'list' | 'board') => void
 
   // Unified navigation
   activeView?: 'list' | 'settings' | 'search'
@@ -86,6 +89,9 @@ export function TaskManagerHeader({
   onHamburgerDragHover,
   activePanel = 'tasks',
   onToggleActivePanel,
+  hasProjectBoard = false,
+  taskViewMode = 'list',
+  onTaskViewModeChange,
   activeView = 'list',
   settingsPage,
   isSearchActive = false,
@@ -255,6 +261,41 @@ export function TaskManagerHeader({
   const isHeadingBackToList = isMobile && isMobileTaskDetailClosing
   const showListHeader = (showHamburgerMenu && mobileView === 'list') || isHeadingBackToList
 
+  const renderTaskViewToggle = () => {
+    if (!hasProjectBoard || !onTaskViewModeChange || activeView !== 'list') {
+      return null
+    }
+
+    return (
+      <div className="flex rounded-md border theme-border theme-bg-secondary p-0.5">
+        <Button
+          type="button"
+          size="sm"
+          variant={taskViewMode === 'list' ? 'default' : 'ghost'}
+          onClick={() => onTaskViewModeChange('list')}
+          className="h-8 gap-1.5 px-2.5"
+          aria-pressed={taskViewMode === 'list'}
+          title="List"
+        >
+          <ListChecks className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">List</span>
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={taskViewMode === 'board' ? 'default' : 'ghost'}
+          onClick={() => onTaskViewModeChange('board')}
+          className="h-8 gap-1.5 px-2.5"
+          aria-pressed={taskViewMode === 'board'}
+          title="Board"
+        >
+          <KanbanSquare className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Board</span>
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className={headerClasses}>
       {showListHeader ? (
@@ -324,6 +365,8 @@ export function TaskManagerHeader({
 
           {/* Right: Chat toggle + Settings icon (context-dependent) */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {renderTaskViewToggle()}
+
             {onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
               <ChatToggle
                 activePanel={activePanel}
@@ -377,7 +420,7 @@ export function TaskManagerHeader({
         </div>
       ) : (
         // Desktop View
-        <div className="flex items-center space-x-4">
+        <div className="flex w-full items-center justify-between gap-4 space-x-4">
           <div
             className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={onLogoClick}
@@ -393,6 +436,15 @@ export function TaskManagerHeader({
             <span className="text-lg font-semibold tracking-tight theme-text-primary">astrid</span>
           </div>
 
+          <div className="flex items-center gap-2">
+            {renderTaskViewToggle()}
+            {onToggleActivePanel && activeView === 'list' && (
+              <ChatToggle
+                activePanel={activePanel}
+                onToggle={onToggleActivePanel}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

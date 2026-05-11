@@ -1,6 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import type { CreateTaskData } from "@/types/api"
@@ -18,6 +16,8 @@ import {
   type ReminderScheduleEntry,
 } from "@/lib/reminder-scheduling"
 import { createLogger } from '@/lib/logger'
+import { normalizeProjectStatusListIds } from '@/lib/project-status'
+import { getUnifiedSession } from "@/lib/session-utils"
 
 const log = createLogger('api.tasks')
 
@@ -34,7 +34,7 @@ const safeUserSelect = {
 export async function GET(request: NextRequest) {
   let userId: string | undefined
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession(request)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession(request)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -275,6 +275,28 @@ export async function POST(request: NextRequest) {
       nonVirtualListIds = existingLists
         .filter(list => !list.isVirtual)
         .map(list => list.id)
+
+      const projectIds = existingLists
+        .map(list => list.projectId)
+        .filter((id): id is string => Boolean(id))
+
+      if (projectIds.length > 0) {
+        const projectStatusLists = await prisma.taskList.findMany({
+          where: {
+            projectId: { in: Array.from(new Set(projectIds)) },
+            listType: "status",
+          },
+        })
+        const normalized = normalizeProjectStatusListIds(
+          nonVirtualListIds,
+          [...existingLists, ...projectStatusLists] as any,
+          { completed: false }
+        )
+        nonVirtualListIds = normalized.listIds
+        if (normalized.completedFromStatus !== undefined) {
+          ;(data as any).completed = normalized.completedFromStatus
+        }
+      }
     }
 
     // Determine final assignee
@@ -485,6 +507,7 @@ export async function POST(request: NextRequest) {
       reminderTime: reminderTimeValue,
       reminderType: data.reminderType || null,
       reminderSent: false,
+      completed: (data as any).completed ?? false,
       creatorId: session.user.id,
       lists: {
         connect: nonVirtualListIds.map((id) => ({ id })),

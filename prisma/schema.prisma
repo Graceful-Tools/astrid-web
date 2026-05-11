@@ -79,6 +79,8 @@ model User {
   mcpTokens                    MCPToken[]
   oauthClients                 OAuthClient[]        @relation("OAuthClients")
   oauthTokens                  OAuthToken[]         @relation("OAuthTokens")
+  ownedProjects                Project[]            @relation("ProjectOwner")
+  projectMemberships           ProjectMember[]      @relation("ProjectMembership")
   pushSubscriptions            PushSubscription[]
   reminderQueue                ReminderQueue[]
   reminderSettings             ReminderSettings?
@@ -148,6 +150,12 @@ model TaskList {
   description         String?
   color               String          @default("#3b82f6")
   imageUrl            String?
+  projectId           String?
+  listType            String          @default("regular")
+  statusRole          String?
+  statusOrder         Int?
+  statusDescription   String?
+  statusCompleted     Boolean         @default(false)
   privacy             TaskListPrivacy @default(PRIVATE)
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
@@ -188,9 +196,13 @@ model TaskList {
   chatChannel         ChatChannel?
   userListFavorites   UserListFavorite[] @relation("ListFavorites")
   owner               User            @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  project             Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks               Task[]          @relation("TaskToTaskList")
 
   @@index([ownerId])
+  @@index([projectId])
+  @@index([projectId, listType])
+  @@index([projectId, statusOrder])
   @@index([privacy])
   @@index([createdAt])
   @@index([defaultAssigneeId])
@@ -198,6 +210,39 @@ model TaskList {
   @@index([ownerId, isFavorite])
   @@index([virtualListType])
   @@index([mcpEnabled])
+}
+
+model Project {
+  id          String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name        String
+  description String?
+  color       String          @default("#3b82f6")
+  imageUrl    String?
+  ownerId     String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     ProjectMember[]
+  lists       TaskList[]
+
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation("ProjectMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([projectId, role])
 }
 
 model Task {

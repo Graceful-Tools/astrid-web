@@ -22,6 +22,7 @@ import { ChatPanel } from "./chat/ChatPanel"
 import { ChatToggle } from "./chat/ChatToggle"
 import SettingsPanel from "./Settings/SettingsPanel"
 import SettingsDetailPanel from "./Settings/SettingsDetailPanel"
+import { getProjectIdForBoard } from "./project-status-board"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
@@ -168,7 +169,7 @@ interface TaskManagerViewProps {
   handleDeleteTask: (taskId: string) => void
   closeTaskDetail: () => void
   handleCreateTask: (taskTitle: string) => Promise<string | null>
-  handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean }) => Promise<string | null>
+  handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
   handleCreateList: (listData: { name: string; description: string; memberEmails: string[] }) => Promise<void>
   handleCopyList: (listId: string) => Promise<void>
@@ -408,6 +409,48 @@ const TaskManagerView = memo(function TaskManagerView({
   chatListMembers,
   chatListId,
 }: TaskManagerViewProps) {
+  const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
+  const hasProjectBoard = React.useMemo(
+    () => Boolean(getProjectIdForBoard(lists, selectedListId)),
+    [lists, selectedListId]
+  )
+  const isBoardMode = hasProjectBoard && taskViewMode === 'board'
+
+  const handleProjectBoardCreated = React.useCallback((projectLists: TaskList[]) => {
+    setLists(prevLists => {
+      const byId = new Map(prevLists.map(list => [list.id, list]))
+      projectLists.forEach(list => byId.set(list.id, list))
+      return Array.from(byId.values())
+    })
+  }, [setLists])
+
+  const handleProjectBoardRemoved = React.useCallback((projectId: string, detachedListIds: string[]) => {
+    const detachedSet = new Set(detachedListIds)
+    setLists(prevLists =>
+      prevLists
+        .filter(list => !(list.projectId === projectId && list.listType === 'status'))
+        .map(list =>
+          list.projectId === projectId || detachedSet.has(list.id)
+            ? { ...list, projectId: null }
+            : list
+        )
+    )
+    setTaskViewMode('list')
+  }, [setLists])
+
+  React.useEffect(() => {
+    if (!hasProjectBoard && taskViewMode === 'board') {
+      setTaskViewMode('list')
+    }
+  }, [hasProjectBoard, taskViewMode])
+
+  React.useEffect(() => {
+    if (taskViewMode === 'board') {
+      setActivePanel('tasks')
+      closeTaskDetail()
+    }
+  }, [closeTaskDetail, setActivePanel, taskViewMode])
+
   const autoOpenedSidebarRef = React.useRef(false)
 
   const settingsCloseAnimation = useSlideCloseAnimation({
@@ -627,15 +670,15 @@ const TaskManagerView = memo(function TaskManagerView({
 
   // iOS drawer: sidebar is always rendered, content slides to reveal it
   // Works on mobile AND 2-column view (anywhere hamburger menu is shown)
-  const isIOSDrawer = showHamburgerMenu
+  const isIOSDrawer = showHamburgerMenu || isBoardMode
 
   return (
     <div className="app-container theme-bg-primary theme-text-primary">
       {/* Mobile Sidebar - rendered outside content wrapper for iOS drawer effect */}
       {isIOSDrawer && (
         <LeftSidebar
-          isMobile={isMobile}
-          showHamburgerMenu={showHamburgerMenu}
+          isMobile={isMobile || isBoardMode}
+          showHamburgerMenu={isIOSDrawer}
           showMobileSidebar={showMobileSidebar}
           sidebarRef={sidebarRef}
           effectiveSession={effectiveSession}
@@ -671,7 +714,7 @@ const TaskManagerView = memo(function TaskManagerView({
         {/* Header */}
         <TaskManagerHeader
           isMobile={isMobile}
-          showHamburgerMenu={showHamburgerMenu}
+          showHamburgerMenu={isIOSDrawer}
           mobileView={mobileView}
           isMobileTaskDetailClosing={isMobileTaskDetailClosing}
           lists={lists}
@@ -695,7 +738,10 @@ const TaskManagerView = memo(function TaskManagerView({
           isTaskDragActive={Boolean(activeDragTaskId)}
           onHamburgerDragHover={handleHamburgerDragHover}
           activePanel={activePanel}
-          onToggleActivePanel={isMobile ? setActivePanel : undefined}
+          onToggleActivePanel={isMobile || isBoardMode ? setActivePanel : undefined}
+          hasProjectBoard={hasProjectBoard}
+          taskViewMode={taskViewMode}
+          onTaskViewModeChange={setTaskViewMode}
           activeView={activeView}
           settingsPage={settingsPage}
           isSearchActive={isSearchActive}
@@ -771,8 +817,8 @@ const TaskManagerView = memo(function TaskManagerView({
               </div>
             )}
           </div>
-        ) : activePanel === 'chat' && isMobile && !isSearchActive ? (
-          // Mobile only: ChatPanel replaces task list
+        ) : activePanel === 'chat' && (isMobile || isBoardMode) && !isSearchActive ? (
+          // In mobile and board mode, messages replace the task surface.
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
             <ChatPanel
               channelId={chatChannelId}
@@ -791,10 +837,12 @@ const TaskManagerView = memo(function TaskManagerView({
             isMobile={isMobile}
             mobileView={mobileView}
             isMobileTaskDetailClosing={isMobileTaskDetailClosing}
+            isOneColumn={is1Column}
             is2Column={is2Column}
             is3Column={is3Column}
             selectedListId={selectedListId}
             lists={lists}
+            allTasks={tasks}
             finalFilteredTasks={finalFilteredTasks}
             listMetadata={{}}
             effectiveSession={effectiveSession}
@@ -822,6 +870,8 @@ const TaskManagerView = memo(function TaskManagerView({
             recentlyChangedList={false}
             isSessionReady={isSessionReady}
             justReturnedFromTaskDetail={justReturnedFromTaskDetail}
+            hasProjectBoard={hasProjectBoard}
+            taskViewMode={taskViewMode}
             pullToRefresh={pullToRefresh}
             handleListImageClick={handleListImageClick}
             handleEditListName={handleEditListName}
@@ -832,7 +882,10 @@ const TaskManagerView = memo(function TaskManagerView({
             handleQuickTaskKeyDown={handleQuickTaskKeyDown}
             handleAddTaskButtonClick={handleAddTaskButtonClick}
             handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
+            handleUpdateTask={handleUpdateTask}
+            handleLocalUpdateTask={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
             handleToggleTaskComplete={handleToggleTaskComplete}
+            handleDeleteTask={handleDeleteTask}
             handleQuickCreateTask={handleQuickCreateTask}
             handleCreateNewTask={handleCreateNewTask}
             handleTaskDragStart={handleTaskDragStartInternal}
@@ -852,6 +905,8 @@ const TaskManagerView = memo(function TaskManagerView({
             taskManagerRef={taskManagerRef}
             isKeyboardScrollingRef={isKeyboardScrollingRef}
             onListUpdate={handleUpdateList}
+            onProjectBoardCreated={handleProjectBoardCreated}
+            onProjectBoardRemoved={handleProjectBoardRemoved}
             onFavoriteToggle={handleToggleListFavorite}
             onListDelete={handleDeleteList}
             handleCopyList={handleCopyList}
@@ -860,7 +915,7 @@ const TaskManagerView = memo(function TaskManagerView({
         )}
 
         {/* Chat Panel - inline flex column on the right (2-column and 3-column), hidden in settings, dimmed when task detail is open */}
-        {(is3Column || is2Column) && effectiveSession?.user && !isSettingsActive && (
+        {(is3Column || is2Column) && effectiveSession?.user && !isSettingsActive && taskViewMode !== 'board' && (
           <div className={`flex-1 order-last h-full border-l theme-border min-w-[280px] relative ${(selectedTask || settingsSubPage) ? 'pointer-events-none' : ''}`}>
             {(selectedTask || settingsSubPage) && (
               <div
@@ -911,7 +966,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* Desktop Task Pane - positioned absolutely, slide-out from right.
           Kept mounted during close animation even when settings activates,
           so the slide-out can play instead of popping. */}
-      {!is1Column && selectedTask && effectiveSession?.user && (!isSettingsActive || isTaskPaneClosing) && (() => {
+      {!is1Column && !isBoardMode && selectedTask && effectiveSession?.user && (!isSettingsActive || isTaskPaneClosing) && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
@@ -963,7 +1018,7 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {/* Mobile Task Pane - takes over mobile view */}
-      {isMobile && !isSettingsActive && selectedTask && effectiveSession?.user && (mobileView === 'task' || isMobileTaskDetailClosing) && (() => {
+      {isMobile && !isBoardMode && !isSettingsActive && selectedTask && effectiveSession?.user && (mobileView === 'task' || isMobileTaskDetailClosing) && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
@@ -1016,7 +1071,7 @@ const TaskManagerView = memo(function TaskManagerView({
       })()}
 
       {/* Enhanced Fixed Mobile Add Task at Bottom — hidden when chat is active or sidebar is open */}
-      {isMobile && mobileView === 'list' && activePanel !== 'chat' && !showMobileSidebar && (() => {
+      {isMobile && mobileView === 'list' && activePanel !== 'chat' && taskViewMode !== 'board' && !showMobileSidebar && (() => {
         const selectedList = lists.find(list => list.id === selectedListId)
         const isPublicList = selectedList?.privacy === 'PUBLIC'
         const isCollaborative = selectedList?.publicListType === 'collaborative'

@@ -142,7 +142,13 @@ describe('/api/lists - List Defaults', () => {
           color: listData.color,
           privacy: listData.privacy,
           imageUrl: undefined, // No imageUrl provided in request
+          listType: 'regular',
           ownerId: mockSession.user.id,
+          projectId: null,
+          statusRole: null,
+          statusOrder: null,
+          statusDescription: null,
+          statusCompleted: false,
           // admins/members are now added via separate ListMember.create calls
           defaultAssigneeId: listData.defaultAssigneeId,
           defaultPriority: listData.defaultPriority,

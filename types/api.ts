@@ -47,6 +47,12 @@ export interface CreateListData {
   description?: string
   color?: string
   imageUrl?: string
+  projectId?: string | null
+  listType?: "regular" | "status"
+  statusRole?: "inbox" | "ready" | "doing" | "waiting" | "done" | "custom" | null
+  statusOrder?: number | null
+  statusDescription?: string | null
+  statusCompleted?: boolean
   privacy: "PRIVATE" | "SHARED" | "PUBLIC"
   adminIds?: string[]
   memberIds?: string[]

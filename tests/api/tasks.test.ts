@@ -313,6 +313,7 @@ describe('Tasks API', () => {
           reminderSent: false,
           reminderTime: null,
           reminderType: null,
+          completed: false,
           // NO assigneeId - task should be unassigned when list has no default assignee
           creatorId: 'test-user-id',
           lists: {
@@ -380,6 +381,7 @@ describe('Tasks API', () => {
           reminderSent: false,
           reminderTime: null,
           reminderType: null,
+          completed: false,
           // NO assigneeId - task should be unassigned when no list or list defaults
           creatorId: 'test-user-id',
           lists: {
