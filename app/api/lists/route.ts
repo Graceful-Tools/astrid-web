@@ -176,6 +176,12 @@ export async function POST(request: NextRequest) {
       privacy: data.privacy,
       imageUrl: data.imageUrl, // Use provided imageUrl or null
       ownerId: session.user.id,
+      projectId: data.projectId || null,
+      listType: data.listType || "regular",
+      statusRole: data.statusRole || null,
+      statusOrder: data.statusOrder ?? null,
+      statusDescription: data.statusDescription || null,
+      statusCompleted: data.statusCompleted ?? data.statusRole === "done",
     }
 
     // Only include optional fields if they have values

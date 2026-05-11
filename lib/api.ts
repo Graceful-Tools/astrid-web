@@ -68,7 +68,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       const detailMessage = errorDetail
         ? typeof errorDetail === 'string'
           ? errorDetail
-          : errorDetail.error || errorDetail.message || JSON.stringify(errorDetail)
+          : errorDetail.error || errorDetail.message || errorDetail.details || JSON.stringify(errorDetail)
         : ''
       const error = new Error(
         `API call failed: ${response.status} ${response.statusText}${detailMessage ? ` - ${detailMessage}` : ''}`

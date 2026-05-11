@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
+import { getToken } from "next-auth/jwt"
 import { authConfig } from "./auth-config"
 import { prisma } from "./prisma"
 
@@ -11,6 +12,21 @@ import { prisma } from "./prisma"
  * Returns the user if authenticated, null otherwise.
  */
 export async function getUnifiedSession(request?: NextRequest) {
+  if (request) {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+
+    if (token?.id) {
+      return {
+        user: {
+          id: token.id as string,
+          email: token.email as string,
+          name: (token.name as string | null) || null,
+          image: (token.picture as string | null) || (token.image as string | null) || null,
+        }
+      }
+    }
+  }
+
   // Try JWT session first (web app)
   const jwtSession = await getServerSession(authConfig)
 

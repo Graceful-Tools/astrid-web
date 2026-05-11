@@ -70,6 +70,7 @@ interface TaskDetailProps {
   onSaveNew?: (task: Task) => Promise<void>
   selectedTaskElement?: HTMLElement | null
   readOnly?: boolean  // If true, shows view-only mode (no editing)
+  inline?: boolean
   swipeToDismiss?: {
     onTouchStart: (e: React.TouchEvent) => void
     onTouchMove: (e: React.TouchEvent) => void
@@ -77,7 +78,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, inline = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
   // SSE subscriptions handled by useSSESubscription hook below
   const { reminderDebugMode } = useSettings()
@@ -1042,7 +1043,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       })
 
       if (!response.ok) {
-        throw new Error('Failed to refresh task data')
+        const errorBody = await response.text().catch(() => '')
+        throw new Error(
+          `Failed to refresh task data (${response.status}${errorBody ? `: ${errorBody}` : ''})`
+        )
       }
 
       const freshTask = await response.json()
@@ -1264,18 +1268,24 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   return (
     <>
       {/* Arrow rendered outside the panel div so it escapes overflow:hidden */}
-      {!onClose ? (
+      {!inline && !onClose ? (
         <div
           className="task-panel-arrow theme-panel-arrow"
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
-      ) : (
+      ) : !inline ? (
         <div
           className="task-panel-arrow theme-panel-arrow hidden cols2:block"
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
-      )}
-      <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
+      ) : null}
+      <div
+        className={`${
+          inline ? 'w-full overflow-hidden rounded-md border theme-border' : onClose ? 'w-full' : 'task-panel'
+        } theme-panel flex flex-col ${inline ? 'h-auto max-h-[70vh]' : 'h-full'} relative`}
+        data-task-detail-panel
+        {...(swipeToDismiss || {})}
+      >
 
       <TaskHeader
         task={task}
@@ -1294,10 +1304,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onShare={handleShareClick}
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
+        compact={inline}
       />
 
       <div
-        className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 relative"
+        className={`${inline ? 'max-h-[48vh]' : 'flex-1'} overflow-y-auto scrollbar-hide p-4 space-y-4 relative`}
         ref={scrollAreaCallbackRef}
         onTouchStart={pullToRefresh.onTouchStart}
         onTouchMove={pullToRefresh.onTouchMove}
@@ -1553,6 +1564,7 @@ const TaskDetailMemo = memo(TaskDetailComponent, (prevProps, nextProps) => {
     prevProps.task.dueDateTime === nextProps.task.dueDateTime &&
     prevProps.task.isAllDay === nextProps.task.isAllDay &&
     prevProps.task.assigneeId === nextProps.task.assigneeId &&
+    prevProps.inline === nextProps.inline &&
     !listsChanged &&
     !commentsChanged &&
     prevProps.currentUser?.id === nextProps.currentUser?.id

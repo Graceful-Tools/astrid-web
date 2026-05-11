@@ -20,9 +20,39 @@ export interface ListMember {
   user?: User // Optional to handle cases where user relation isn't included
 }
 
+export interface ProjectMember {
+  id: string
+  projectId: string
+  userId: string
+  role: string
+  createdAt: Date
+  updatedAt: Date
+  user?: User
+}
+
+export interface Project {
+  id: string
+  name: string
+  description?: string | null
+  color?: string
+  imageUrl?: string | null
+  ownerId: string
+  owner?: User
+  members?: ProjectMember[]
+  lists?: TaskList[]
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface TaskList {
   id: string
   name: string
+  projectId?: string | null
+  listType?: "regular" | "status" | null
+  statusRole?: "inbox" | "ready" | "doing" | "waiting" | "done" | "custom" | null
+  statusOrder?: number | null
+  statusDescription?: string | null
+  statusCompleted?: boolean | null
   color?: string
   imageUrl?: string | null
   coverImageUrl?: string | null

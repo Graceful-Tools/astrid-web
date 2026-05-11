@@ -3,16 +3,15 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ListSettingsPopover } from "../../list-settings-popover"
 import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
 import { QuickTaskCreate } from "../../quick-task-create"
 import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creation"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
-import { TaskCheckbox } from "../../task-checkbox"
-import { PublicTaskCopyButton } from "../../public-task-copy-button"
+import { TaskRowContent } from "../../task-row-content"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
+import { ProjectStatusBoard } from "@/components/project-status-board"
 import {
   Dialog,
   DialogContent,
@@ -25,20 +24,14 @@ import {
   Check,
   X,
   ArrowLeft,
-  Globe,
-  Users,
   Copy,
-  Hash,
   Eye,
   Edit3,
   FileText,
   Bot,
   Search
 } from "lucide-react"
-import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
-import { format } from "date-fns"
 import { renderMarkdown } from "@/lib/markdown"
-import { formatDateForDisplay } from "@/lib/date-utils"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import type { Task, TaskList } from "@/types/task"
@@ -48,12 +41,14 @@ interface MainContentProps {
   isMobile: boolean
   mobileView: 'list' | 'task' | 'chat'
   isMobileTaskDetailClosing?: boolean
+  isOneColumn?: boolean
   is2Column?: boolean
   is3Column?: boolean
 
   // Data props
   selectedListId: string
   lists: TaskList[]
+  allTasks: Task[]
   finalFilteredTasks: Task[]
   listMetadata?: any
   effectiveSession: any
@@ -105,6 +100,8 @@ interface MainContentProps {
   recentlyChangedList: boolean
   isSessionReady: boolean
   justReturnedFromTaskDetail: boolean
+  hasProjectBoard?: boolean
+  taskViewMode?: 'list' | 'board'
 
   // Pull to refresh
   pullToRefresh: {
@@ -128,8 +125,11 @@ interface MainContentProps {
   handleQuickTaskKeyDown: (e: React.KeyboardEvent) => void
   handleAddTaskButtonClick: () => void
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => Promise<void>
+  handleUpdateTask: (task: Task) => void
+  handleLocalUpdateTask: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
-  handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean }) => Promise<string | null>
+  handleDeleteTask: (taskId: string) => void
+  handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
   handleCopyList: (listId: string) => Promise<void>
   handleCopyTask: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
@@ -158,6 +158,8 @@ interface MainContentProps {
 
   // List update handler for popovers
   onListUpdate: (updatedList: TaskList) => Promise<void>
+  onProjectBoardCreated?: (projectLists: TaskList[]) => void
+  onProjectBoardRemoved?: (projectId: string, detachedListIds: string[]) => void
   onListDelete: (listId: string) => void
   onFavoriteToggle?: (listId: string) => void
 }
@@ -166,10 +168,12 @@ export function MainContent({
   isMobile,
   mobileView,
   isMobileTaskDetailClosing,
+  isOneColumn,
   is2Column,
   is3Column,
   selectedListId,
   lists,
+  allTasks,
   finalFilteredTasks,
   listMetadata,
   effectiveSession,
@@ -196,6 +200,8 @@ export function MainContent({
   setQuickTaskInput,
   recentlyChangedList,
   isSessionReady,
+  hasProjectBoard = false,
+  taskViewMode = 'list',
   pullToRefresh,
   justReturnedFromTaskDetail,
   handleListImageClick,
@@ -207,7 +213,10 @@ export function MainContent({
   handleQuickTaskKeyDown,
   handleAddTaskButtonClick,
   handleTaskClick,
+  handleUpdateTask,
+  handleLocalUpdateTask,
   handleToggleTaskComplete,
+  handleDeleteTask,
   handleQuickCreateTask,
   handleCreateNewTask,
   handleCopyList,
@@ -229,6 +238,8 @@ export function MainContent({
   taskManagerRef,
   isKeyboardScrollingRef,
   onListUpdate,
+  onProjectBoardCreated,
+  onProjectBoardRemoved,
   onListDelete,
   onFavoriteToggle
 }: MainContentProps) {
@@ -248,7 +259,6 @@ export function MainContent({
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
   const savedScrollPositionRef = React.useRef<number>(0)
   const isTouchManualSort = React.useMemo(() => isMobile && isMobilePhoneDevice(), [isMobile])
-
   const registerTaskRow = React.useCallback((taskId: string) => (node: HTMLDivElement | null) => {
     if (node) {
       const rect = node.getBoundingClientRect()
@@ -444,7 +454,10 @@ export function MainContent({
           transformOrigin: 'left center',
         }),
       }}>
-        <div className="px-4 py-5 theme-border border-b" style={{ display: isMobile ? 'none' : 'block' }}>
+        <div
+          className="px-4 py-5 theme-border border-b"
+          style={{ display: isMobile || (hasProjectBoard && taskViewMode === 'board') ? 'none' : 'block' }}
+        >
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4">
               <div className="text-left flex-1">
@@ -660,6 +673,8 @@ export function MainContent({
                   onLeave={(list, isOwnerLeaving) => handleLeaveList(list, isOwnerLeaving)}
                   onUpdate={onListUpdate}
                   onFavoriteToggle={onFavoriteToggle}
+                  onProjectBoardCreated={onProjectBoardCreated}
+                  onProjectBoardRemoved={onProjectBoardRemoved}
                   onDelete={(listId) => {
                     onListDelete(listId)
                     setShowSettingsPopover(null)
@@ -717,7 +732,7 @@ export function MainContent({
           )}
 
           {/* Enhanced Task Input - Desktop only (mobile version is fixed at bottom) */}
-          {!isSearchActive && !isMobile && (() => {
+          {!isSearchActive && !isMobile && !(hasProjectBoard && taskViewMode === 'board') && (() => {
             const selectedList = lists.find(list => list.id === selectedListId)
             const isPublicList = selectedList?.privacy === 'PUBLIC'
             const isCollaborative = selectedList?.publicListType === 'collaborative'
@@ -799,6 +814,22 @@ export function MainContent({
             >
 
             </div>
+          </div>
+        ) : hasProjectBoard && taskViewMode === 'board' ? (
+          <div id="task_list_area" className="flex-1 min-h-0">
+            <ProjectStatusBoard
+              allTasks={allTasks}
+              lists={lists}
+              selectedListId={selectedListId}
+              currentUser={effectiveSession?.user}
+              availableTasks={allTasks}
+              onUpdateTask={handleUpdateTask}
+              onLocalUpdateTask={handleLocalUpdateTask}
+              onDeleteTask={handleDeleteTask}
+              onCopyTask={handleCopyTask}
+              onCreateTask={handleQuickCreateTask}
+              isOneColumn={Boolean(isOneColumn)}
+            />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (
           <div id="task_list_area" className="flex-1 flex items-center justify-center px-4">
@@ -1057,131 +1088,15 @@ export function MainContent({
                             <span>Drag to move • Hold Shift to add without removing</span>
                           </div>
                         )}
-                      {isPublicListTask(task) ? (
-                      // Show copy button for public list tasks
-                      <PublicTaskCopyButton
-                        onCopy={() => handleCopyTask(task.id)}
+                      <TaskRowContent
+                        task={task}
+                        currentUserId={effectiveSession?.user?.id}
+                        isSelected={selectedTaskId === task.id}
+                        isMobile={isMobile}
+                        getPriorityColor={getPriorityColor}
+                        onToggleComplete={() => handleToggleTaskComplete(task.id)}
+                        onCopyPublic={() => handleCopyTask(task.id)}
                       />
-                    ) : task.assigneeId && task.assigneeId !== effectiveSession?.user?.id ? (
-                      // Show profile photo for tasks assigned to others (non-clickable)
-                      <div className="relative p-2 -m-2 flex items-center justify-center self-center">
-                        <Avatar
-                          className="w-8 h-8 rounded-lg border-2"
-                          style={{
-                            borderColor: getPriorityColor(task.priority)
-                          }}
-                        >
-                          <AvatarImage src={task.assignee?.image || undefined} />
-                          <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
-                            {task.assignee?.name?.slice(0, 2) || task.assignee?.email?.slice(0, 2) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    ) : !task.assigneeId ? (
-                      // Unassigned tasks: show "U" when incomplete, TaskCheckbox when complete
-                      task.completed ? (
-                        <TaskCheckbox
-                          checked={true}
-                          onToggle={() => handleToggleTaskComplete(task.id)}
-                          priority={task.priority}
-                          repeating={task.repeating !== 'never'}
-                        />
-                      ) : (
-                        <div
-                          className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleToggleTaskComplete(task.id)
-                          }}
-                        >
-                          <div
-                            className="w-8 h-8 rounded-lg border-2 flex items-center justify-center"
-                            style={{ borderColor: getPriorityColor(task.priority) }}
-                          >
-                            <span
-                              className="text-sm font-medium"
-                              style={{ color: getPriorityColor(task.priority) }}
-                            >
-                              U
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    ) : (
-                      // Show checkbox for tasks assigned to current user
-                      <TaskCheckbox
-                        checked={task.completed}
-                        onToggle={() => handleToggleTaskComplete(task.id)}
-                        priority={task.priority}
-                        repeating={task.repeating !== 'never'}
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className={`task-title ${
-                        isMobile ? 'text-base font-medium leading-tight' : ''
-                      } ${
-                        task.completed
-                          ? "task-title-completed theme-text-muted"
-                          : selectedTaskId === task.id
-                            ? "theme-text-selected"
-                            : "theme-text-primary"
-                      }`}>
-                        {task.title}
-                      </div>
-
-                      {/* Show due date and lists in a row - date first (left), then lists */}
-                      {((task.dueDateTime && !shouldHideTaskWhen(task)) || (task.lists && task.lists.length > 0)) && (
-                        <div className="flex items-center mt-1 gap-2">
-                          {task.dueDateTime && !shouldHideTaskWhen(task) && (
-                            <div className="text-xs theme-text-muted flex-shrink-0">
-                              {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay)}
-                              {!task.isAllDay && ` ${format(new Date(task.dueDateTime), "h:mm a")}`}
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-1 min-w-0 flex-1">
-                            {task.lists && task.lists.length > 0 && (
-                              <>
-                                {task.lists.filter(list => list != null).slice(0, isMobile ? 2 : undefined).map((list) => (
-                                  <div
-                                    key={list.id}
-                                    className="flex items-center space-x-1 rounded px-1.5 py-0 text-xs"
-                                    style={{ backgroundColor: `${list.color}15` }}
-                                  >
-                                    {(() => {
-                                      const privacy = list?.privacy
-
-                                      // Check if list is PUBLIC first
-                                      if (privacy === 'PUBLIC') {
-                                        return <Globe className="w-3 h-3 text-green-500" />
-                                      }
-
-                                      // Check if list is SHARED (has more than just the owner) using consolidated utility
-                                      const allMembers = getAllListMembers(list)
-                                      const hasAdditionalMembers = allMembers.length > 1 // More than just the owner
-                                      if (hasAdditionalMembers) {
-                                        return <Users className="w-3 h-3 text-blue-500" />
-                                      }
-
-                                      // Default to private - show colored hashtag
-                                      return (
-                                        <Hash
-                                          className={`w-3 h-3 ${isMobile ? 'flex-shrink-0' : ''}`}
-                                          style={{ color: list.color }}
-                                        />
-                                      )
-                                    })()}
-                                    <span className={`theme-text-secondary ${isMobile ? 'truncate' : ''}`}>{list.name}</span>
-                                  </div>
-                                ))}
-                                {isMobile && task.lists && task.lists.length > 2 && (
-                                  <span className="text-xs theme-text-muted">+{task.lists.length - 2}</span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
                     {isTouchManualSort && manualSortActive && (
                       <div
                         className="absolute bottom-0.5 left-1/2 z-30 flex -translate-x-1/2 items-end justify-center"
@@ -1279,6 +1194,7 @@ export function MainContent({
               onLeave={(list, isOwnerLeaving) => handleLeaveList(list, isOwnerLeaving)}
               onUpdate={onListUpdate}
               onFavoriteToggle={onFavoriteToggle}
+              onProjectBoardCreated={onProjectBoardCreated}
               onDelete={(listId) => {
                 onListDelete(listId)
                 setShowSettingsPopover(null)

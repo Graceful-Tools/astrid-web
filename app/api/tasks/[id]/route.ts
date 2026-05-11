@@ -1,6 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { RedisCache, isRedisAvailable } from "@/lib/redis"
@@ -24,6 +22,8 @@ import {
   recordStateChangeComment,
 } from "@/lib/task-update-handler"
 import { createLogger } from '@/lib/logger'
+import { normalizeProjectStatusListIds } from "@/lib/project-status"
+import { getUnifiedSession } from "@/lib/session-utils"
 
 const log = createLogger('api.tasks.id')
 
@@ -46,7 +46,7 @@ function canAccessList(list: ListWithMembers, userId: string): boolean {
 
 export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession(request)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
   let session: { user: { id: string; email?: string | null; name?: string | null } } | null = null
   let taskId = ""
   try {
-    session = await getServerSession(authConfig)
+    session = await getUnifiedSession(request)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -233,19 +233,6 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       }
     }
 
-    // Handle repeating-task completion: if the task is part of a repeating
-    // series and should roll forward / terminate, the helper applies it and
-    // we short-circuit with the freshly-fetched task.
-    const completionOutcome = await applyRepeatingTaskCompletion({
-      taskId,
-      existingCompleted: existingTask.completed,
-      dataCompleted: data.completed,
-      localCompletionDate: data.localCompletionDate,
-    })
-    if (completionOutcome.rolledForward) {
-      return NextResponse.json(completionOutcome.updatedTask)
-    }
-
     // Log ALL updates with repeatFrom for debugging
     log.info({
       taskId,
@@ -269,6 +256,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     // SECURITY: Validate user has access to all specified lists before updating
     let validatedListIds: string[] | undefined
+    let completedFromStatus: boolean | undefined
     if (data.listIds !== undefined && Array.isArray(data.listIds)) {
       if (data.listIds.length > 0) {
         const lists = await prisma.taskList.findMany({
@@ -306,10 +294,48 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         validatedListIds = lists
           .filter(list => !list.isVirtual)
           .map(list => list.id)
+
+        const projectIds = lists
+          .map(list => list.projectId)
+          .filter((id): id is string => Boolean(id))
+
+        if (projectIds.length > 0) {
+          const projectStatusLists = await prisma.taskList.findMany({
+            where: {
+              projectId: { in: Array.from(new Set(projectIds)) },
+              listType: "status",
+            },
+          })
+          const requestedCompletedFlag = typeof data.completed === 'boolean'
+            ? data.completed
+            : existingTask.completed
+          const normalized = normalizeProjectStatusListIds(
+            validatedListIds,
+            [...lists, ...projectStatusLists] as any,
+            { completed: requestedCompletedFlag }
+          )
+          validatedListIds = normalized.listIds
+          completedFromStatus = normalized.completedFromStatus
+        }
       } else {
         // Allow removing task from all lists (empty array)
         validatedListIds = []
       }
+    }
+
+    const requestedCompleted = completedFromStatus ?? data.completed
+
+    // Handle repeating-task completion: if the task is part of a repeating
+    // series and should roll forward / terminate, the helper applies it and
+    // we short-circuit with the freshly-fetched task.
+    const completionOutcome = await applyRepeatingTaskCompletion({
+      taskId,
+      existingCompleted: existingTask.completed,
+      dataCompleted: requestedCompleted,
+      localCompletionDate: data.localCompletionDate,
+    })
+    if (completionOutcome.rolledForward) {
+      return NextResponse.json(completionOutcome.updatedTask)
     }
 
     // Log exactly what will be sent to Prisma
@@ -337,7 +363,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       where: { id: taskId },
       data: {
         ...updateData,
-        completed: data.completed,
+        completed: requestedCompleted,
         dueDateTime: sanitizedDueDateTime,
         isAllDay: data.isAllDay ?? false,
         assigneeId: finalAssigneeId,
@@ -362,7 +388,8 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     if (data.listIds !== undefined) {
       const previousListIds = existingTask.lists.map((list) => list.id)
-      const unifiedListIds = Array.from(new Set([...previousListIds, ...data.listIds]))
+      const requestedListIdsForManualSort = validatedListIds ?? data.listIds
+      const unifiedListIds = Array.from(new Set([...previousListIds, ...requestedListIdsForManualSort]))
 
       for (const candidateId of unifiedListIds) {
         try {
@@ -385,7 +412,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
           let nextOrder = existingOrder.filter(id => id !== taskId)
 
-          if (data.listIds.includes(candidateId)) {
+          if (requestedListIdsForManualSort.includes(candidateId)) {
             if (!nextOrder.includes(taskId)) {
               nextOrder.push(taskId)
             }
@@ -677,7 +704,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
 export async function DELETE(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession(request)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

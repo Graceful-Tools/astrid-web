@@ -22,6 +22,8 @@ interface ListSettingsPopoverProps {
   onLeave?: (list: TaskList, isOwnerLeaving?: boolean) => void
   onEditName?: () => void
   onEditImage?: () => void
+  onProjectBoardCreated?: (projectLists: TaskList[]) => void
+  onProjectBoardRemoved?: (projectId: string, detachedListIds: string[]) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
   children: React.ReactNode
@@ -39,6 +41,8 @@ export function ListSettingsPopover({
   onLeave,
   onEditName,
   onEditImage,
+  onProjectBoardCreated,
+  onProjectBoardRemoved,
   open = false,
   onOpenChange = () => {},
   children,
@@ -160,6 +164,8 @@ export function ListSettingsPopover({
                       }}
                       onEditName={onEditName}
                       onEditImage={onEditImage}
+                      onProjectBoardCreated={onProjectBoardCreated}
+                      onProjectBoardRemoved={onProjectBoardRemoved}
                     />
                   </TabsContent>
                 )}

@@ -658,7 +658,7 @@ export function useTaskManagerController({
 
   const handleCreateTask = useCallback(async (
     taskTitle: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean }
+    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }
   ): Promise<string | null> => {
     if (!effectiveSession?.user || !taskTitle.trim() || isCreatingTask) {
       return null
@@ -701,7 +701,11 @@ export function useTaskManagerController({
       const taskDataWithDefaults = {
         title: parsedTask.title,
         description: "",
-        listIds: parsedTask.listIds.length > 0 ? parsedTask.listIds : (navigationState.selectedListId !== "my-tasks" ? [navigationState.selectedListId] : []),
+        listIds: options?.listIds
+          ? Array.from(new Set(options.listIds))
+          : parsedTask.listIds.length > 0
+            ? parsedTask.listIds
+            : (navigationState.selectedListId !== "my-tasks" ? [navigationState.selectedListId] : []),
         priority: defaults.priority,
         dueDateTime: defaults.dueDateTime,
         isAllDay: defaults.isAllDay,
@@ -738,7 +742,7 @@ export function useTaskManagerController({
 
   const handleQuickCreateTask = useCallback(async (
     title: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean }
+    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }
   ): Promise<string | null> => {
     try {
       await handleCreateTask(title, options)
