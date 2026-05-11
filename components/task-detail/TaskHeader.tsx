@@ -122,12 +122,16 @@ export function TaskHeader({
                   el.style.height = el.scrollHeight + 'px'
                 }
               }}
-              className="text-base px-2 py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary"
+              className={`text-base px-2 py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary ${
+                compact ? 'font-medium leading-tight' : ''
+              }`}
               rows={1}
             />
           ) : (
             <span
               className={`text-base cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
+                compact ? 'font-medium leading-tight' : ''
+              } ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
               onClick={() => setEditingTitle(true)}
