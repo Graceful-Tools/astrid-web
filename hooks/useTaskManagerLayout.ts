@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useSwipe } from "@/hooks/use-swipe"
 import { useSwipeToDismiss } from "@/hooks/use-swipe-to-dismiss"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
+import { shouldHandleMobileListSwipe } from "@/hooks/use-mobile-list-swipe-gate"
 import {
   getLayoutType,
   shouldShowHamburgerMenu,
@@ -28,6 +29,9 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [mobileSearchMode, setMobileSearchMode] = useState(false)
   const [justReturnedFromTaskDetail, setJustReturnedFromTaskDetail] = useState(false)
+  // When the project status board is the active view, its column carousel
+  // owns horizontal gestures — gate the body-level swipe handlers off.
+  const [isBoardMode, setIsBoardMode] = useState(false)
 
   // Mobile task detail animation state
   const [isMobileTaskDetailClosing, setIsMobileTaskDetailClosing] = useState(false)
@@ -171,19 +175,19 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
   // Swipe handlers for mobile navigation
   const swipeHandlers = useSwipe({
     onSwipeLeft: () => {
-      if (isMobile && mobileView === 'list' && !showMobileSidebar) {
+      if (shouldHandleMobileListSwipe({ isMobile, mobileView, showMobileSidebar, isBoardMode })) {
         setMobileView('task')
       }
     },
     onSwipeRight: () => {
       // Only handle right swipes when in list view (not when in task view - task detail handles those)
-      if (isMobile && mobileView === 'list' && !showMobileSidebar) {
+      if (shouldHandleMobileListSwipe({ isMobile, mobileView, showMobileSidebar, isBoardMode })) {
         setShowMobileSidebar(true)
       }
     }
   }, {
     threshold: 50,
-    trackTouch: isMobileDevice()
+    trackTouch: isMobileDevice() && !isBoardMode
   })
 
   // Swipe-to-dismiss handlers for mobile sidebar
@@ -222,11 +226,12 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
     trackTouch: isMobileDevice() && mobileView === 'task'
   })
 
-  // Pull-to-refresh functionality
+  // Pull-to-refresh functionality. The board has its own scroll container
+  // and own gestures — don't compete with it.
   const pullToRefresh = usePullToRefresh({
     threshold: 60,
     onRefresh: onRefresh || (() => Promise.resolve()),
-    disabled: !isMobile || mobileView !== 'list'
+    disabled: !isMobile || mobileView !== 'list' || isBoardMode
   })
 
   return {
@@ -247,6 +252,7 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
     isMobileTaskDetailClosing,
     isMobileTaskDetailOpen,
     taskDetailDragOffset,
+    isBoardMode,
 
     // Refs
     taskManagerRef,
@@ -265,6 +271,7 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
     setShowMobileSidebar,
     setMobileSearchMode,
     setJustReturnedFromTaskDetail,
+    setIsBoardMode,
 
     // Handlers
     toggleMobileSidebar,

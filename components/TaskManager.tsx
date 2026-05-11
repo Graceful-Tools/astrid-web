@@ -515,6 +515,7 @@ export function TaskManager({
       chatChannelLoading={chatChannelLoading}
       chatListMembers={chatListMembers}
       chatListId={isVirtualList ? null : controller.selectedListId}
+      setLayoutBoardMode={layout.setIsBoardMode}
       />
 
       {/* Image Picker Modal */}

@@ -243,6 +243,9 @@ interface TaskManagerViewProps {
   chatChannelLoading?: boolean
   chatListMembers: User[]
   chatListId?: string | null
+
+  // Layout coordination
+  setLayoutBoardMode?: (boardMode: boolean) => void
 }
 
 /**
@@ -408,6 +411,7 @@ const TaskManagerView = memo(function TaskManagerView({
   chatChannelLoading,
   chatListMembers,
   chatListId,
+  setLayoutBoardMode,
 }: TaskManagerViewProps) {
   const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
   const hasProjectBoard = React.useMemo(
@@ -443,6 +447,13 @@ const TaskManagerView = memo(function TaskManagerView({
       setTaskViewMode('list')
     }
   }, [hasProjectBoard, taskViewMode])
+
+  // Tell the layout hook whether the board carousel owns horizontal gestures,
+  // so the body-level swipe handler doesn't steal them and change the header.
+  React.useEffect(() => {
+    setLayoutBoardMode?.(isBoardMode)
+    return () => setLayoutBoardMode?.(false)
+  }, [isBoardMode, setLayoutBoardMode])
 
   React.useEffect(() => {
     if (taskViewMode === 'board') {
