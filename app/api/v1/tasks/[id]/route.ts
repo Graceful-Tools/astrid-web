@@ -16,6 +16,7 @@ import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { normalizeProjectStatusListIds } from '@/lib/project-status'
 
 const log = createLogger('v1.tasks.id')
 
@@ -208,9 +209,37 @@ export const PUT = withAuth<RouteContext>(
         }
 
         // Virtual lists are saved-filter views, not real containers
-        const validListIds = lists
+        let validListIds = lists
           .filter(list => !list.isVirtual)
           .map(list => list.id)
+
+        // Enforce project-status-board invariants on the resulting list
+        // membership: at most one status list per project; toggling to a
+        // completing status flips `completed`. Mirrors /api/tasks/[id].
+        const projectIds = lists
+          .map(list => list.projectId)
+          .filter((id): id is string => Boolean(id))
+
+        if (projectIds.length > 0) {
+          const projectStatusLists = await prisma.taskList.findMany({
+            where: {
+              projectId: { in: Array.from(new Set(projectIds)) },
+              listType: 'status',
+            },
+          })
+          const requestedCompleted = typeof data.completed === 'boolean'
+            ? data.completed
+            : false
+          const normalized = normalizeProjectStatusListIds(
+            validListIds,
+            [...lists, ...projectStatusLists] as any,
+            { completed: requestedCompleted },
+          )
+          validListIds = normalized.listIds
+          if (normalized.completedFromStatus !== undefined) {
+            data.completed = normalized.completedFromStatus
+          }
+        }
 
         data.lists = {
           set: validListIds.map((id: string) => ({ id })),

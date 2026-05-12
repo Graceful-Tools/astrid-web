@@ -4,6 +4,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from "@/lib/logger"
+import { deleteProjectAndDetachLists } from "@/lib/projects-service"
 
 const log = createLogger("api.projects.id")
 
@@ -22,61 +23,33 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      include: {
-        members: true,
-        lists: { select: { id: true, listType: true, ownerId: true } },
-      },
+      select: { ownerId: true },
     })
 
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    const isOwner = project.ownerId === session.user.id
-    if (!isOwner) {
+    if (project.ownerId !== session.user.id) {
       return NextResponse.json({ error: "Only the owner can delete a project" }, { status: 403 })
     }
 
-    const domainListIds = project.lists
-      .filter(list => list.listType !== "status")
-      .map(list => list.id)
-    const statusListIds = project.lists
-      .filter(list => list.listType === "status")
-      .map(list => list.id)
-    const userIdsToInvalidate = new Set<string>([
-      project.ownerId,
-      ...project.members.map(member => member.userId),
-    ])
-
-    await prisma.$transaction(async (tx) => {
-      // Detach domain lists so they survive the project deletion (cascade).
-      if (domainListIds.length > 0) {
-        await tx.taskList.updateMany({
-          where: { id: { in: domainListIds } },
-          data: { projectId: null },
-        })
-      }
-      // Drop status-list memberships from any tasks before the cascade.
-      if (statusListIds.length > 0) {
-        await tx.task.updateMany({
-          where: { lists: { some: { id: { in: statusListIds } } } },
-          data: {},
-        })
-      }
-      await tx.project.delete({ where: { id: projectId } })
-    })
+    const result = await deleteProjectAndDetachLists(projectId)
+    if (!result) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
 
     await Promise.all(
-      Array.from(userIdsToInvalidate).map(async (userId) => {
+      Array.from(result.userIdsToInvalidate).map(async (userId) => {
         try {
           await RedisCache.del(RedisCache.keys.userLists(userId))
         } catch (error) {
           log.error({ err: error }, `Failed to invalidate cache for user ${userId}:`)
         }
-      })
+      }),
     )
 
-    return NextResponse.json({ success: true, detachedListIds: domainListIds })
+    return NextResponse.json({ success: true, detachedListIds: result.detachedListIds })
   } catch (error) {
     log.error({ err: error }, "Error deleting project:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

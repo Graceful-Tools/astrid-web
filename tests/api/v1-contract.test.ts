@@ -49,6 +49,9 @@ import type {
   V1UserSearchResult,
   V1UsersSearchResponse,
   V1UserProfileResponse,
+  V1Project,
+  V1ProjectsResponse,
+  V1ProjectResponse,
 } from '@/lib/api-contracts/v1-ios-shapes'
 
 /** Frozen task fixture matching the Prisma include shape iOS endpoints use. */
@@ -275,6 +278,10 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
     'defaultPriority', 'defaultRepeating', 'defaultAssigneeId',
     'defaultIsPrivate', 'defaultDueDate',
     'githubRepositoryId', 'preferredAiProvider',
+    // Board-related fields (added 2026-05-11). Required for iOS to render
+    // project status boards and the per-list "Recently completed" window.
+    'projectId', 'listType', 'statusRole', 'statusOrder',
+    'statusDescription', 'statusCompleted', 'recentlyCompletedWindow',
     'createdAt', 'updatedAt',
   ] as const satisfies ReadonlyArray<keyof V1List>
 
@@ -296,10 +303,48 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
       defaultPriority: null, defaultRepeating: null, defaultAssigneeId: null,
       defaultIsPrivate: null, defaultDueDate: null,
       githubRepositoryId: null, preferredAiProvider: null,
+      projectId: null, listType: 'regular',
+      statusRole: null, statusOrder: null, statusDescription: null,
+      statusCompleted: false, recentlyCompletedWindow: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+})
+
+describe('v1 contract — V1Project shape (projects/[id] + projects[].element)', () => {
+  const EXPECTED_KEYS = [
+    'id', 'name', 'description', 'color', 'imageUrl',
+    'ownerId', 'owner', 'members', 'lists',
+    'createdAt', 'updatedAt',
+  ] as const satisfies ReadonlyArray<keyof V1Project>
+
+  it('every iOS-expected key appears in V1Project', () => {
+    const sample: V1Project = {
+      id: 'p1', name: 'Project', description: null, color: '#3b82f6',
+      imageUrl: null, ownerId: 'u1', owner: null,
+      members: [], lists: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1ProjectsResponse has { projects, meta }', () => {
+    const sample: V1ProjectsResponse = {
+      projects: [],
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(sample).sort()).toEqual(['meta', 'projects'])
+  })
+
+  it('V1ProjectResponse has { project, meta }', () => {
+    const sample = {
+      project: undefined as unknown as V1Project,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    } satisfies V1ProjectResponse
+    expect(Object.keys(sample).sort()).toEqual(['meta', 'project'])
   })
 })
 

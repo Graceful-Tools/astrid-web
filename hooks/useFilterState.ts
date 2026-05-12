@@ -3,6 +3,11 @@ import { useMyTasksPreferences } from './useMyTasksPreferences'
 import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { applyDateFilter } from '@/lib/date-filter-utils'
+import {
+  shouldShowCompletedByFilter,
+  type CompletionFilterMode,
+  type RecentlyCompletedWindow,
+} from '@/lib/recently-completed-window'
 
 export interface FilterState {
   search: string
@@ -283,20 +288,12 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     // IMPORTANT: During universal search, show ALL tasks (completed + incomplete) by default
     // This ensures search is truly universal and shows all matching results
     if (activeFilters.completed !== "all" && !isUniversalSearch) {
-      // console.log('🔍 Applying completion filter:', activeFilters.completed)
-      filtered = filtered.filter(task => {
-        if (activeFilters.completed === "completed") return task.completed
-        if (activeFilters.completed === "incomplete") return !task.completed
-        if (activeFilters.completed === "default") {
-          // Default filter: show incomplete tasks + completed tasks from last 24 hours
-          if (!task.completed) return true
-
-          // For completed tasks, check if they were completed within the last 24 hours
-          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-          return task.updatedAt && new Date(task.updatedAt) >= twentyFourHoursAgo
-        }
-        return true
-      })
+      // Default mode honors the per-list "Recently completed" window
+      // (null → legacy 24h). Same helper drives the board's Done column.
+      const window = (currentList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
+      const now = new Date()
+      const mode = activeFilters.completed as CompletionFilterMode
+      filtered = filtered.filter(task => shouldShowCompletedByFilter(task, mode, window, now))
     }
 
     // Priority filter (always apply unless we know the virtual list already handled it)
@@ -431,7 +428,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     // console.log('🔍 applyFiltersToTasks result:', { original: tasks.length, filtered: filtered.length, final: sortedTasks.length })
 
     return sortedTasks
-  }, [activeFilters, selectedListId, getManualOrder])
+  }, [activeFilters, selectedListId, currentList, getManualOrder])
 
   return {
     // Current filter values

@@ -8,6 +8,10 @@ import { TaskDetail } from "@/components/task-detail"
 import { canUserEditTask } from "@/lib/list-permissions"
 import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
+import {
+  isTaskRecentlyCompleted,
+  type RecentlyCompletedWindow,
+} from "@/lib/recently-completed-window"
 import type { Task, TaskList, User } from "@/types/task"
 import {
   type ProjectBoardColumn,
@@ -90,6 +94,16 @@ export function ProjectStatusBoard({
       ? projectTasks.filter(task => task.lists.some(list => list.id === selectedList.id))
       : projectTasks
 
+    // Drop completed tasks that fall outside the list's "Recently completed"
+    // window (null → legacy 24h default). The virtual Done column is the
+    // unbounded one — this is the bounded view of it. Incomplete tasks (which
+    // populate Inbox / Ready / Doing / Waiting) always show.
+    const window = (selectedList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
+    const now = new Date()
+    const trimmed = scoped.filter(task =>
+      !task.completed || isTaskRecentlyCompleted(task, window, now),
+    )
+
     const sortBy = selectedList?.sortBy || 'auto'
     const manualOrder = Array.isArray((selectedList as TaskList | undefined)?.manualSortOrder)
       ? ((selectedList as TaskList).manualSortOrder as unknown as string[]).filter(
@@ -97,7 +111,7 @@ export function ProjectStatusBoard({
         )
       : undefined
 
-    return sortTasksForList(scoped, sortBy, manualOrder)
+    return sortTasksForList(trimmed, sortBy, manualOrder)
   }, [allTasks, lists, projectId, selectedList])
 
   React.useEffect(() => {

@@ -82,6 +82,19 @@ export interface V1List {
   defaultDueDate: string | null
   githubRepositoryId: string | null
   preferredAiProvider: string | null
+  // Project status board fields. `null` for lists that don't belong to a
+  // project (the common case for legacy lists). When `projectId` is set,
+  // iOS treats the list as a project-domain list (listType "regular") or
+  // a status-board column (listType "status").
+  projectId: string | null
+  listType: 'regular' | 'status'
+  statusRole: 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'custom' | null
+  statusOrder: number | null
+  statusDescription: string | null
+  statusCompleted: boolean
+  // Per-list "Recently completed" window config. null = legacy 24h default.
+  // Shape mirrors lib/recently-completed-window.ts → RecentlyCompletedWindow.
+  recentlyCompletedWindow: unknown
   createdAt: string | Date
   updatedAt: string | Date
 }
@@ -119,6 +132,48 @@ export interface V1ListsResponse {
 
 export interface V1ListResponse {
   list: V1List
+  meta: V1ResponseMeta
+}
+
+// ── Projects (status boards) ──────────────────────────────────────────
+
+/**
+ * A single project as returned by /api/v1/projects (collection) and
+ * /api/v1/projects/[id] (single). iOS uses this to render the board.
+ *
+ * `lists` is the project's domain lists (listType "regular") plus its
+ * status columns (listType "status"); the same V1List shape is used for
+ * both so iOS doesn't need a second decoder. Sort by `listType` then
+ * `statusOrder` for board column ordering.
+ */
+export interface V1Project {
+  id: string
+  name: string
+  description: string | null
+  color: string
+  imageUrl: string | null
+  ownerId: string
+  owner: V1UserSummary | null
+  members: V1ProjectMember[]
+  lists: V1List[]
+  createdAt: string | Date
+  updatedAt: string | Date
+}
+
+export interface V1ProjectMember {
+  projectId?: string
+  userId?: string
+  role: string
+  user: V1UserSummary
+}
+
+export interface V1ProjectsResponse {
+  projects: V1Project[]
+  meta: V1ResponseMeta
+}
+
+export interface V1ProjectResponse {
+  project: V1Project
   meta: V1ResponseMeta
 }
 

@@ -17,6 +17,11 @@ export const OAUTH_SCOPES = {
   'lists:delete': 'Delete lists',
   'lists:manage_members': 'Manage list members',
 
+  // Project (status board) scopes
+  'projects:read': 'Read projects (status boards)',
+  'projects:write': 'Create and update projects (status boards)',
+  'projects:delete': 'Delete projects (status boards)',
+
   // Comment scopes
   'comments:read': 'Read comments',
   'comments:write': 'Create comments',
@@ -64,6 +69,9 @@ export const SCOPE_GROUPS = {
     'lists:write',
     'lists:delete',
     'lists:manage_members',
+    'projects:read',
+    'projects:write',
+    'projects:delete',
     'comments:read',
     'comments:write',
     'comments:delete',
