@@ -99,6 +99,13 @@ export const GET = withAuth<RouteContext>(
           defaultDueDate: list.defaultDueDate,
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
+          projectId: list.projectId ?? null,
+          listType: list.listType ?? 'regular',
+          statusRole: list.statusRole ?? null,
+          statusOrder: list.statusOrder ?? null,
+          statusDescription: list.statusDescription ?? null,
+          statusCompleted: list.statusCompleted ?? false,
+          recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         },
@@ -169,6 +176,11 @@ export const PUT = withAuth<RouteContext>(
       if (body.virtualListType !== undefined) updateData.virtualListType = body.virtualListType
       if (body.githubRepositoryId !== undefined) updateData.githubRepositoryId = body.githubRepositoryId
       if (body.preferredAiProvider !== undefined) updateData.preferredAiProvider = body.preferredAiProvider
+      // Per-list "Recently completed" window. iOS sends the discriminated
+      // union from lib/recently-completed-window.ts; null/undefined falls
+      // back to the legacy 24h default. We don't validate the shape here —
+      // the helper treats unknown shapes as null.
+      if (body.recentlyCompletedWindow !== undefined) updateData.recentlyCompletedWindow = body.recentlyCompletedWindow
     }
 
     // isFavorite lives in a per-user table, not on TaskList
@@ -246,6 +258,13 @@ export const PUT = withAuth<RouteContext>(
           defaultDueTime: list.defaultDueTime,
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
+          projectId: list.projectId ?? null,
+          listType: list.listType ?? 'regular',
+          statusRole: list.statusRole ?? null,
+          statusOrder: list.statusOrder ?? null,
+          statusDescription: list.statusDescription ?? null,
+          statusCompleted: list.statusCompleted ?? false,
+          recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         },

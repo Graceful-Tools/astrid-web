@@ -17,6 +17,7 @@ import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { normalizeProjectStatusListIds } from '@/lib/project-status'
 
 const log = createLogger('v1.tasks')
 
@@ -297,6 +298,28 @@ export const POST = withAuth(
       validatedListIds = lists
         .filter(list => !list.isVirtual)
         .map(list => list.id)
+
+      // Enforce the project-status board invariants: at most one status
+      // list per project, and never two completing statuses. Mirrors the
+      // call in /api/tasks (legacy). See docs/product/project-status-board.md.
+      const projectIds = lists
+        .map(list => list.projectId)
+        .filter((id): id is string => Boolean(id))
+
+      if (projectIds.length > 0) {
+        const projectStatusLists = await prisma.taskList.findMany({
+          where: {
+            projectId: { in: Array.from(new Set(projectIds)) },
+            listType: 'status',
+          },
+        })
+        const normalized = normalizeProjectStatusListIds(
+          validatedListIds,
+          [...lists, ...projectStatusLists] as any,
+          { completed: false },
+        )
+        validatedListIds = normalized.listIds
+      }
     }
 
     // Reused for idempotency hits and the actual create

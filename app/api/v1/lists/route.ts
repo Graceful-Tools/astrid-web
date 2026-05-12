@@ -124,6 +124,13 @@ export const GET = withAuth(
           defaultDueDate: list.defaultDueDate,
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
+          projectId: list.projectId ?? null,
+          listType: list.listType ?? 'regular',
+          statusRole: list.statusRole ?? null,
+          statusOrder: list.statusOrder ?? null,
+          statusDescription: list.statusDescription ?? null,
+          statusCompleted: list.statusCompleted ?? false,
+          recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         })),
