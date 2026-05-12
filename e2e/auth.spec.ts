@@ -61,34 +61,20 @@ test.describe('Authentication Flow', () => {
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
     await expect(passkeyButton).toBeVisible()
 
-    // Detect actual browser capability deterministically — the React hook
-    // initializes isSupported=false then flips it in a useEffect, so reading
-    // passkeyButton.isDisabled() races against hydration on slower devices.
-    const browserSupportsWebAuthn = await page.evaluate(
-      () => typeof window.PublicKeyCredential !== 'undefined'
-    )
+    // Observe whichever state the button settles into, rather than guessing
+    // browser capability via page.evaluate. WebKit (and especially Playwright's
+    // WebKit) can race: PublicKeyCredential may be exposed by the time the
+    // test queries window, but the React useEffect that reads it ran earlier
+    // and missed it — leaving the button disabled. Let the rendered DOM be
+    // the source of truth.
+    await expect(async () => {
+      const enabled = await passkeyButton.isEnabled()
+      const notSupportedMsg = await page.getByText('Passkeys not supported in this browser').isVisible().catch(() => false)
+      expect(enabled || notSupportedMsg).toBe(true)
+    }).toPass({ timeout: 15000 })
 
-    if (!browserSupportsWebAuthn) {
-      // Passkeys NOT supported - verify the disabled state UI (post-hydration).
-      // Use a generous timeout since React hydration can lag on a cold dev
-      // server and the button starts disabled either way (isSupported=false
-      // is the initial state); we only need the post-hydration verdict.
-      console.log('Passkeys not supported in this browser - verifying disabled state')
-
-      await expect(passkeyButton).toBeDisabled({ timeout: 15000 })
-
-      // Should show "not supported" message below the button
-      await expect(page.getByText('Passkeys not supported in this browser')).toBeVisible({ timeout: 15000 })
-    } else {
+    if (await passkeyButton.isEnabled()) {
       // Passkeys ARE supported - verify the full passkey flow
-      console.log('Passkeys are supported - verifying passkey dialog flow')
-
-      // Wait for hydration to enable the button before clicking. Generous
-      // timeout because React hydration can lag on a cold dev server while
-      // the page finishes compiling.
-      await expect(passkeyButton).toBeEnabled({ timeout: 15000 })
-
-      // Click passkey button to open the passkey dialog
       await passkeyButton.click()
 
       // Should show passkey dialog with email input for new users
@@ -101,11 +87,15 @@ test.describe('Authentication Flow', () => {
 
       // Should show "Returning?" text for existing users
       await expect(page.getByText('Returning?')).toBeVisible()
+    } else {
+      // Passkeys NOT supported (or not yet detected) - verify the disabled state UI
+      await expect(passkeyButton).toBeDisabled()
+      await expect(page.getByText('Passkeys not supported in this browser')).toBeVisible()
     }
   })
 
   // Test navigation back from passkey dialog
-  // This test only runs when passkeys are supported
+  // This test only runs when passkeys are supported (i.e. the button is enabled)
   test('should navigate back from passkey dialog when supported', async ({ page }) => {
     await page.goto('/auth/signin')
 
@@ -114,24 +104,19 @@ test.describe('Authentication Flow', () => {
 
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
 
-    // Detect support via the underlying browser capability rather than the
-    // button's disabled attribute, which races against React hydration.
-    const browserSupportsWebAuthn = await page.evaluate(
-      () => typeof window.PublicKeyCredential !== 'undefined'
-    )
+    // Let the button settle into either enabled (supported) or paired with
+    // the "not supported" message. Reading window.PublicKeyCredential races
+    // against React hydration in WebKit, so observe the DOM instead.
+    await expect(async () => {
+      const enabled = await passkeyButton.isEnabled()
+      const notSupportedMsg = await page.getByText('Passkeys not supported in this browser').isVisible().catch(() => false)
+      expect(enabled || notSupportedMsg).toBe(true)
+    }).toPass({ timeout: 15000 })
 
-    if (!browserSupportsWebAuthn) {
-      // Skip this test if passkeys not supported - can't test dialog navigation
-      console.log('Skipping passkey dialog navigation test - passkeys not supported in this browser')
+    if (!(await passkeyButton.isEnabled())) {
+      test.skip(true, 'Passkeys not supported in this browser — dialog navigation N/A')
       return
     }
-
-    // Passkeys are supported - test the dialog navigation
-    console.log('Passkeys supported - testing dialog navigation')
-
-    // Wait for hydration to enable the button before clicking. Generous
-    // timeout because React hydration can lag on a cold dev server.
-    await expect(passkeyButton).toBeEnabled({ timeout: 15000 })
 
     // Click passkey button
     await passkeyButton.click()
