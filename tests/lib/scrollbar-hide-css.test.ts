@@ -26,4 +26,16 @@ describe('.scrollbar-hide CSS (bug: scrollbar visible in list/board on iOS Safar
     expect(body).toMatch(/width:\s*0/)
     expect(body).toMatch(/-webkit-appearance:\s*none/)
   })
+
+  it('hides scrollbars globally across every scrollable element (matches the app-shell intent — user wants no visible scrollbars anywhere)', () => {
+    // The app shell is full-bleed; visible scrollbars on inner panes look
+    // like a bug on every platform (most visibly on desktop Chrome). The
+    // `* { ... }` rule guarantees no element leaks a native scrollbar even
+    // if it forgot the `scrollbar-hide` utility class.
+    expect(css).toMatch(/\*\s*\{[^}]*scrollbar-width:\s*none/)
+    const wildcardWebkit = css.match(/\*::-webkit-scrollbar\s*\{([^}]*)\}/)
+    expect(wildcardWebkit, 'wildcard webkit-scrollbar block must exist').toBeTruthy()
+    expect(wildcardWebkit![1]).toMatch(/display:\s*none/)
+    expect(wildcardWebkit![1]).toMatch(/width:\s*0/)
+  })
 })
