@@ -157,6 +157,28 @@ Agents must not create a task that is `completed = true` while still attached to
 - Default subtitles per the approved copy: Inbox / Ready / Doing / Waiting / Done.
 - Tests: `tests/lib/project-status.test.ts`, `tests/lib/task-sort.test.ts`, `e2e/project-status-board.spec.ts`.
 
+### Recently Completed Window (added 2026-05-11)
+
+Each list now carries a `recentlyCompletedWindow` JSON config that decides
+which completed tasks stay visible under the default completion filter.
+The same setting also bounds the virtual Done column on the board, so the
+two views never disagree.
+
+Stored shape (`TaskList.recentlyCompletedWindow`, nullable):
+
+```
+{ kind: 'duration', amount: N, unit: 'hour'|'day'|'week'|'month' }
+{ kind: 'since-weekday', weekday: 0..6 }   // 0=Sun..6=Sat
+{ kind: 'since-day-of-month', day: 1..31 }
+{ kind: 'since-date', date: 'YYYY-MM-DD' }
+null  ->  legacy 24-hour default
+```
+
+Surfaced in list Admin Settings → "Advanced — Recently completed window"
+as a labeled dropdown. The picker offers: Last 24 hours (default), Last
+7/14/28/30 days, Since last Sunday/Monday (this week), Since the 1st of
+the month, and Since a specific date… (which reveals an inline date input).
+
 ### Not Yet (tracked as follow-on work)
 1. **Project picker / first-class Project entity in the UI** — `GET /api/projects` exists but no UI lists or opens projects directly. Today a "board" is just a list that has `projectId` set.
 2. **Attach an existing project to additional regular lists** — current "Create Board" always creates a fresh project of one list.

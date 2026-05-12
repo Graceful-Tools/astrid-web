@@ -185,6 +185,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       defaultDueTime: data.defaultDueTime,
       // Filter settings
       filterCompletion: data.filterCompletion,
+      recentlyCompletedWindow: data.recentlyCompletedWindow ?? null,
       filterDueDate: data.filterDueDate,
       filterAssignee: data.filterAssignee,
       filterAssignedBy: data.filterAssignedBy,

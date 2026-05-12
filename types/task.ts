@@ -89,6 +89,9 @@ export interface TaskList {
   
   // Virtual list filtering settings
   filterCompletion?: string | null // "completed", "incomplete", "all"
+  // Per-list "Recently completed" window. null = legacy 24h default.
+  // Shape: see lib/recently-completed-window.ts → RecentlyCompletedWindow.
+  recentlyCompletedWindow?: unknown | null
   filterDueDate?: string | null // "all", "today", "overdue", "this_week", "this_month", "this_calendar_week", "this_calendar_month"
   filterAssignee?: string | null // "current_user", "unassigned", specific user ID, etc.
   filterAssignedBy?: string | null // "current_user", specific user ID, etc.

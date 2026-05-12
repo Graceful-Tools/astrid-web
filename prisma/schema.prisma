@@ -172,6 +172,9 @@ model TaskList {
   filterAssignedBy    String?
   filterAssignee      String?
   filterCompletion    String?
+  /// Per-list "Recently completed" window — null = legacy 24h default.
+  /// Shape: see lib/recently-completed-window.ts → RecentlyCompletedWindow.
+  recentlyCompletedWindow Json?
   filterDueDate       String?
   filterInLists       String?
   filterPriority      String?
