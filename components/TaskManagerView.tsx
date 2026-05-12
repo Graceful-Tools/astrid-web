@@ -730,7 +730,7 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {/* iOS Drawer Content Wrapper - slides right to reveal sidebar */}
-      <div className={`flex flex-col h-full ${isIOSDrawer ? `ios-drawer-content ${showMobileSidebar ? 'ios-drawer-content-open' : ''}` : ''}`}>
+      <div className={`flex flex-col h-full scrollbar-hide ${isIOSDrawer ? `ios-drawer-content ${showMobileSidebar ? 'ios-drawer-content-open' : ''}` : ''}`}>
         {/* Header */}
         <TaskManagerHeader
           isMobile={isMobile}

@@ -237,7 +237,7 @@ export function ProjectStatusBoard({
   return (
     <div
       ref={scrollRef}
-      className={`h-full overflow-x-auto overflow-y-hidden px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
+      className={`h-full overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
       data-testid="project-status-board"
     >
       <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
@@ -299,7 +299,7 @@ export function ProjectStatusBoard({
                 </span>
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto p-2">
+              <div className="flex-1 space-y-2 overflow-y-auto scrollbar-hide p-2">
                 {tasksForColumn.map(task => {
                   const isExpanded = expandedTaskId === task.id
                   const taskList = task.lists.find(list => list.projectId === projectId && list.listType !== "status")

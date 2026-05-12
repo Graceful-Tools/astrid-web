@@ -35,15 +35,38 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
   }
-  
-  .scrollbar-hide::-webkit-scrollbar { 
-    display: none;  /* Safari and Chrome */
+
+  /* iOS Safari still flashes its overlay scroll indicator on
+   * `-webkit-overflow-scrolling: touch` containers when only `display:none`
+   * is set. Zeroing the size + dropping the native appearance suppresses it. */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;        /* Safari and Chrome */
+    width: 0;
+    height: 0;
+    background: transparent;
+    -webkit-appearance: none;
   }
+}
+
+/* Hide native scrollbars globally across every platform (desktop Chrome,
+ * Firefox, Edge, iOS Safari). The app shell is full-bleed and visible
+ * scrollbars on inner panes look like a layout bug. Scrolling still works
+ * via wheel / touch / keyboard. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+  -webkit-appearance: none;
 }
 
 @layer base {
