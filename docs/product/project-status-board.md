@@ -18,7 +18,12 @@ Inbox and Done are **virtual** columns derived from task state. They are not rea
 
 ## Default Statuses
 
-When a board is enabled for a project, three real status lists are created:
+Status lists are **per-user globals**, not per-project. Each user has exactly
+one Ready / Doing / Waiting set (`projectId = null`, `listType = "status"`),
+shared across every project board they own. Enabling a board does **not** seed
+new status lists — it get-or-creates the user's global set if missing
+(`ensureUserStatusLists` in `lib/projects-service.ts`). A project's board is the
+intersection of that project's domain tasks with these global statuses.
 
 | Status | Default subtitle |
 | --- | --- |
@@ -44,7 +49,8 @@ Task: Fix repeating rollover
 Lists: Astrid iOS To-do, Bugs
 ```
 
-Status lists are mutually exclusive inside a project:
+A task carries at most one status globally (statuses are per-user, not
+per-project), and the statuses are mutually exclusive:
 
 ```text
 Status: Ready
@@ -144,7 +150,7 @@ Agents should use the same human-readable buckets:
 - Work needing input, another task, a date, or external action goes to Waiting.
 - Finished work goes to Done by using the existing completion path.
 
-Agents must not create a task that is `completed = true` while still attached to a status list, and must not attach a task to multiple status lists in the same project.
+Agents must not create a task that is `completed = true` while still attached to a status list, and must not attach a task to more than one status list (statuses are a single per-user global concept).
 
 ## Shipping Status (2026-05-10)
 
@@ -197,16 +203,17 @@ and `tests/api/v1-contract.test.ts`.
   projects with embedded lists (regular + status, sorted by
   `listType` then `statusOrder`).
 - **`POST /api/v1/projects`** (scope `projects:write`) creates a project
-  and seeds Ready / Doing / Waiting status lists. Inbox and Done remain
-  virtual columns derived from task state, never stored.
+  and get-or-creates the caller's per-user global Ready / Doing / Waiting
+  status lists. Inbox and Done remain virtual columns derived from task
+  state, never stored.
 - **`DELETE /api/v1/projects/[id]`** (scope `projects:delete`) detaches
   the project's domain lists then cascade-deletes the project and its
   status lists. Owner only.
 - **`POST /api/v1/tasks` and `PUT /api/v1/tasks/[id]`** now call
   `normalizeProjectStatusListIds`, enforcing the same invariants the
-  legacy `/api/tasks` routes do: at most one status list per project,
-  and the completing status (`statusCompleted: true`) implies
-  `completed = true`.
+  legacy `/api/tasks` routes do: at most one status list per task
+  (statuses are per-user globals), and the completing status
+  (`statusCompleted: true`) implies `completed = true`.
 
 Both v1 and legacy `/api/projects*` routes share `lib/projects-service.ts`
 so the two surfaces stay in lockstep (same seed data, same cascade).
@@ -214,6 +221,26 @@ so the two surfaces stay in lockstep (same seed data, same cascade).
 New OAuth scopes: `projects:read`, `projects:write`, `projects:delete`.
 The `mobile_app` scope group includes them — existing iOS clients that
 re-request a token receive them automatically.
+
+### Per-User Global Status Lists (added 2026-05-16)
+
+The first board release seeded a fresh Ready / Doing / Waiting set **per
+project**, producing dozens of duplicate `status` lists for users with many
+boards — unscalable. Status is now a single per-user concept:
+
+- Status lists are per-user singletons: `projectId = null`, `listType =
+  "status"`, owned by the user. `ensureUserStatusLists` idempotently
+  get-or-creates the set; `createProjectForUser` and `listProjectsForUser`
+  both call it.
+- `getProjectStatusLists` / `getProjectBoardColumns` /
+  `getTaskProjectColumnId` / `resolveProjectColumnMove` dropped their
+  `projectId` argument — every board renders the same global status columns.
+- `normalizeProjectStatusListIds` clamps a task to at most one status list
+  total (previously one per project).
+- Migration `20260516000000_per_user_status_lists` deletes all existing
+  per-project status lists; the helper lazily recreates per-user globals.
+  Task-to-status memberships on the old lists were dropped — affected tasks
+  fall back to the board's virtual Inbox.
 
 ### Not Yet (tracked as follow-on work)
 1. **Project picker / first-class Project entity in the UI** — `GET /api/projects` exists but no UI lists or opens projects directly. Today a "board" is just a list that has `projectId` set.

@@ -1,0 +1,12 @@
+-- Per-user global status lists.
+--
+-- The board feature originally seeded a duplicate Ready/Doing/Waiting set
+-- per project, producing dozens of duplicate "status" TaskLists. Status is
+-- now a single per-user concept: one Ready/Doing/Waiting set per user
+-- (projectId = NULL), shared across every project board.
+--
+-- This clears every existing per-project status list. lib/projects-service.ts
+-- → ensureUserStatusLists lazily recreates the per-user globals on the next
+-- project list / create. Task-to-status memberships on the old lists are
+-- dropped (cascade); affected tasks fall back to the board's virtual Inbox.
+DELETE FROM "TaskList" WHERE "listType" = 'status';

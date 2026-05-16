@@ -96,12 +96,18 @@ export function isLegacyInboxStatusList(
 }
 
 /**
- * Returns the project's real status lists in display order, excluding any
+ * Returns the user's real status lists in display order, excluding any
  * legacy Inbox/Done lists (the board renders virtual columns for those).
+ *
+ * Status lists are now **per-user globals** — one Ready/Doing/Waiting set
+ * shared across every project board, not duplicated per project. A
+ * project's board is the intersection of that project's domain tasks
+ * with these global statuses. `getProjectStatusLists` therefore takes no
+ * project id — every board renders the same status columns.
  */
-export function getProjectStatusLists(lists: TaskList[], projectId: string): TaskList[] {
+export function getProjectStatusLists(lists: TaskList[]): TaskList[] {
   return lists
-    .filter(list => list.projectId === projectId && isProjectStatusList(list))
+    .filter(list => isProjectStatusList(list))
     .filter(list => !isLegacyDoneStatusList(list) && !isLegacyInboxStatusList(list))
     .sort((a, b) => {
       const aOrder = typeof a.statusOrder === 'number' ? a.statusOrder : Number.MAX_SAFE_INTEGER
@@ -115,8 +121,8 @@ export function getProjectStatusLists(lists: TaskList[], projectId: string): Tas
  * Build the ordered board columns: [virtual Inbox, ...real statuses, virtual Done].
  * The board renders this output 1:1.
  */
-export function getProjectBoardColumns(lists: TaskList[], projectId: string): ProjectBoardColumn[] {
-  const statuses = getProjectStatusLists(lists, projectId)
+export function getProjectBoardColumns(lists: TaskList[]): ProjectBoardColumn[] {
+  const statuses = getProjectStatusLists(lists)
   return [
     { ...VIRTUAL_INBOX_COLUMN },
     ...statuses.map<ProjectBoardColumn>(status => ({
@@ -136,10 +142,10 @@ export function getProjectBoardColumns(lists: TaskList[], projectId: string): Pr
  *   has a real status list      → that list's id
  *   otherwise                   → virtual Inbox id
  */
-export function getTaskProjectColumnId(task: Task, projectId: string, lists: TaskList[]): string {
+export function getTaskProjectColumnId(task: Task, lists: TaskList[]): string {
   if (task.completed) return VIRTUAL_DONE_COLUMN_ID
 
-  const statusLists = getProjectStatusLists(lists, projectId)
+  const statusLists = getProjectStatusLists(lists)
   const taskListIds = new Set(task.lists?.map(list => list.id) || [])
   const explicit = statusLists.find(status => taskListIds.has(status.id))
   if (explicit) return explicit.id
@@ -149,21 +155,20 @@ export function getTaskProjectColumnId(task: Task, projectId: string, lists: Tas
 
 /**
  * Compute the post-move task state when dragging a task onto a board column.
- *   inbox  → strip every project status from this project, completed=false
- *   done   → strip every project status from this project, completed=true
+ *   inbox  → strip the (global) status, completed=false
+ *   done   → strip the (global) status, completed=true
  *   status → replace any existing status with the target, completed=false
  * Regular (non-status) list memberships are preserved in all cases.
  */
 export function resolveProjectColumnMove(
   task: Task,
   targetColumn: ProjectBoardColumn,
-  projectId: string,
   lists: TaskList[],
 ): { listIds: string[]; completed: boolean } {
-  const projectStatusIds = new Set(
-    lists.filter(list => list.projectId === projectId && isProjectStatusList(list)).map(list => list.id),
+  const statusIds = new Set(
+    lists.filter(list => isProjectStatusList(list)).map(list => list.id),
   )
-  const retainedListIds = task.lists.map(list => list.id).filter(id => !projectStatusIds.has(id))
+  const retainedListIds = task.lists.map(list => list.id).filter(id => !statusIds.has(id))
 
   if (targetColumn.kind === 'inbox') {
     return { listIds: retainedListIds, completed: false }
@@ -181,11 +186,14 @@ export function resolveProjectColumnMove(
  * Server-side guard: take a requested set of list memberships and clamp it to
  * the board invariants.
  *
- * - completed=true: drops every project-status list from the request (Done has
- *   no status memberships).
- * - completed=false (default): keeps at most one status list per project (last
- *   one wins on conflict) and reports `completedFromStatus: false` so the API
- *   can force-clear completed when a status is being applied.
+ * Status is now a single per-user global concept, so a task has **at most one
+ * status list** total (not one per project).
+ *
+ * - completed=true: drops every status list from the request (Done has no
+ *   status membership).
+ * - completed=false (default): keeps at most one status list (last one in the
+ *   request wins) and reports `completedFromStatus: false` so the API can
+ *   force-clear completed when a status is being applied.
  *
  * The function is pure: it never reads from the database.
  */
@@ -194,44 +202,26 @@ export function normalizeProjectStatusListIds(
   knownLists: TaskList[],
   options: { completed?: boolean } = {},
 ): { listIds: string[]; completedFromStatus?: boolean } {
-  const statusById = new Map(knownLists.filter(isProjectStatusList).map(list => [list.id, list]))
-  const allStatusIds = new Set(statusById.keys())
+  const allStatusIds = new Set(knownLists.filter(isProjectStatusList).map(list => list.id))
 
-  // When the task is being marked done, strip every project-status membership.
+  // When the task is being marked done, strip every status membership.
   if (options.completed === true) {
     return {
       listIds: Array.from(new Set(requestedListIds.filter(id => !allStatusIds.has(id)))),
     }
   }
 
-  const selectedStatusByProject = new Map<string, TaskList>()
-  for (const listId of requestedListIds) {
-    const status = statusById.get(listId)
-    if (status?.projectId) {
-      selectedStatusByProject.set(status.projectId, status)
-    }
-  }
-
-  if (selectedStatusByProject.size === 0) {
+  const statusInRequest = requestedListIds.filter(id => allStatusIds.has(id))
+  if (statusInRequest.length === 0) {
     return { listIds: Array.from(new Set(requestedListIds)) }
   }
 
-  const affectedStatusIds = new Set<string>()
-  for (const projectId of selectedStatusByProject.keys()) {
-    for (const list of knownLists) {
-      if (list.projectId === projectId && isProjectStatusList(list)) {
-        affectedStatusIds.add(list.id)
-      }
-    }
-  }
-
-  const listIds = requestedListIds.filter(id => !affectedStatusIds.has(id))
-  for (const status of selectedStatusByProject.values()) {
-    listIds.push(status.id)
-  }
+  // Keep at most one status list — the last one in the request wins.
+  const winningStatus = statusInRequest[statusInRequest.length - 1]
+  const nonStatus = requestedListIds.filter(id => !allStatusIds.has(id))
 
   return {
-    listIds: Array.from(new Set(listIds)),
+    listIds: Array.from(new Set([...nonStatus, winningStatus])),
     completedFromStatus: false,
   }
 }

@@ -54,6 +54,12 @@ function task(overrides: Partial<Task> & { lists: TaskList[] }): Task {
   }
 }
 
+// Status lists are now per-user globals: projectId = null, shared across
+// every project board. Domain lists keep their project id.
+function statusList(overrides: Partial<TaskList> & { id: string; name: string }): TaskList {
+  return list({ projectId: null, listType: 'status', ...overrides })
+}
+
 describe('project status', () => {
   it('seeds only Ready, Doing, and Waiting as real status lists', () => {
     expect(DEFAULT_PROJECT_STATUSES.map(status => status.name)).toEqual([
@@ -65,9 +71,8 @@ describe('project status', () => {
   })
 
   it('uses the approved copy for the virtual Inbox and Done columns', () => {
-    const projectId = 'project-1'
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready', statusOrder: 0 })
-    const columns = getProjectBoardColumns([ready], projectId)
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready', statusOrder: 0 })
+    const columns = getProjectBoardColumns([ready])
     const inboxColumn = columns.find(column => column.id === VIRTUAL_INBOX_COLUMN_ID)!
     const doneColumn = columns.find(column => column.id === VIRTUAL_DONE_COLUMN_ID)!
     expect(inboxColumn.description).toBe('Move them to "Ready" when they are... ready!')
@@ -75,12 +80,11 @@ describe('project status', () => {
   })
 
   it('builds board columns with virtual Inbox first and virtual Done last', () => {
-    const projectId = 'project-1'
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready', statusOrder: 0 })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing', statusOrder: 1 })
-    const waiting = list({ id: 'waiting', name: 'Waiting', projectId, listType: 'status', statusRole: 'waiting', statusOrder: 2 })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready', statusOrder: 0 })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing', statusOrder: 1 })
+    const waiting = statusList({ id: 'waiting', name: 'Waiting', statusRole: 'waiting', statusOrder: 2 })
 
-    const columns = getProjectBoardColumns([ready, doing, waiting], projectId)
+    const columns = getProjectBoardColumns([ready, doing, waiting])
     expect(columns.map(column => column.id)).toEqual([
       VIRTUAL_INBOX_COLUMN_ID,
       'ready',
@@ -90,13 +94,28 @@ describe('project status', () => {
     ])
   })
 
-  it('hides legacy inbox/done status lists from the board so virtual columns own them', () => {
-    const projectId = 'project-1'
-    const legacyInbox = list({ id: 'inbox', name: 'Inbox', projectId, listType: 'status', statusRole: 'inbox', statusOrder: -1 })
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready', statusOrder: 0 })
-    const legacyDone = list({ id: 'done', name: 'Done', projectId, listType: 'status', statusRole: 'done', statusCompleted: true, statusOrder: 9 })
+  it('renders the same per-user status columns regardless of the project board', () => {
+    // The user's global Ready/Doing have projectId null; the board renders
+    // them even though no list in the set carries the project's id.
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready', statusOrder: 0 })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing', statusOrder: 1 })
+    const projectA = list({ id: 'a', name: 'Project A list', projectId: 'project-a', listType: 'regular' })
 
-    const columns = getProjectBoardColumns([legacyInbox, ready, legacyDone], projectId)
+    const columns = getProjectBoardColumns([projectA, ready, doing])
+    expect(columns.map(column => column.id)).toEqual([
+      VIRTUAL_INBOX_COLUMN_ID,
+      'ready',
+      'doing',
+      VIRTUAL_DONE_COLUMN_ID,
+    ])
+  })
+
+  it('hides legacy inbox/done status lists from the board so virtual columns own them', () => {
+    const legacyInbox = statusList({ id: 'inbox', name: 'Inbox', statusRole: 'inbox', statusOrder: -1 })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready', statusOrder: 0 })
+    const legacyDone = statusList({ id: 'done', name: 'Done', statusRole: 'done', statusCompleted: true, statusOrder: 9 })
+
+    const columns = getProjectBoardColumns([legacyInbox, ready, legacyDone])
     expect(columns.map(column => column.id)).toEqual([
       VIRTUAL_INBOX_COLUMN_ID,
       'ready',
@@ -105,69 +124,63 @@ describe('project status', () => {
   })
 
   it('puts completed tasks in the virtual Done column', () => {
-    const projectId = 'project-1'
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready' })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
     const completedTask = task({ completed: true, lists: [ready] })
 
-    expect(getTaskProjectColumnId(completedTask, projectId, [ready])).toBe(VIRTUAL_DONE_COLUMN_ID)
+    expect(getTaskProjectColumnId(completedTask, [ready])).toBe(VIRTUAL_DONE_COLUMN_ID)
   })
 
   it('routes project tasks without a status membership into the virtual Inbox column', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing' })
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
     const inboxTask = task({ lists: [ios] })
 
-    expect(getTaskProjectColumnId(inboxTask, projectId, [ios, doing])).toBe(VIRTUAL_INBOX_COLUMN_ID)
+    expect(getTaskProjectColumnId(inboxTask, [ios, doing])).toBe(VIRTUAL_INBOX_COLUMN_ID)
   })
 
   it('keeps regular list membership while replacing the project status membership', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready' })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing' })
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
     const taskInReady = task({ lists: [ios, ready] })
 
-    const columns = getProjectBoardColumns([ios, ready, doing], projectId)
+    const columns = getProjectBoardColumns([ios, ready, doing])
     const doingColumn = columns.find(column => column.id === 'doing')!
-    const result = resolveProjectColumnMove(taskInReady, doingColumn, projectId, [ios, ready, doing])
+    const result = resolveProjectColumnMove(taskInReady, doingColumn, [ios, ready, doing])
 
     expect(result.listIds).toEqual(['ios', 'doing'])
     expect(result.completed).toBe(false)
   })
 
   it('moves to virtual Done by stripping statuses and setting completed', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready' })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing' })
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
     const taskInReady = task({ lists: [ios, ready] })
 
-    const columns = getProjectBoardColumns([ios, ready, doing], projectId)
+    const columns = getProjectBoardColumns([ios, ready, doing])
     const doneColumn = columns.find(column => column.id === VIRTUAL_DONE_COLUMN_ID)!
-    const result = resolveProjectColumnMove(taskInReady, doneColumn, projectId, [ios, ready, doing])
+    const result = resolveProjectColumnMove(taskInReady, doneColumn, [ios, ready, doing])
 
     expect(result).toEqual({ listIds: ['ios'], completed: true })
   })
 
   it('moves back to virtual Inbox by stripping statuses and clearing completed', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing' })
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
     const completedTask = task({ lists: [ios, doing], completed: true })
 
-    const columns = getProjectBoardColumns([ios, doing], projectId)
+    const columns = getProjectBoardColumns([ios, doing])
     const inboxColumn = columns.find(column => column.id === VIRTUAL_INBOX_COLUMN_ID)!
-    const result = resolveProjectColumnMove(completedTask, inboxColumn, projectId, [ios, doing])
+    const result = resolveProjectColumnMove(completedTask, inboxColumn, [ios, doing])
 
     expect(result).toEqual({ listIds: ['ios'], completed: false })
   })
 
-  it('normalizes direct list updates to one status per project and forces completed=false', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready' })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing' })
+  it('normalizes direct list updates to a single global status and forces completed=false', () => {
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
 
     expect(normalizeProjectStatusListIds(['ios', 'ready', 'doing'], [ios, ready, doing])).toEqual({
       listIds: ['ios', 'doing'],
@@ -175,10 +188,9 @@ describe('project status', () => {
     })
   })
 
-  it('strips every project status when the task is being completed', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const ready = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready' })
+  it('strips every status when the task is being completed', () => {
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
 
     expect(
       normalizeProjectStatusListIds(['ios', 'ready'], [ios, ready], { completed: true }),
@@ -186,9 +198,8 @@ describe('project status', () => {
   })
 
   it('does not auto-add a status when a project task is created without one', () => {
-    const projectId = 'project-1'
-    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
-    const doing = list({ id: 'doing', name: 'Doing', projectId, listType: 'status', statusRole: 'doing', statusOrder: 1 })
+    const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
+    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing', statusOrder: 1 })
 
     expect(normalizeProjectStatusListIds(['ios'], [ios, doing])).toEqual({
       listIds: ['ios'],
@@ -199,7 +210,7 @@ describe('project status', () => {
     const projectId = 'project-1'
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
     const otherProjectList = list({ id: 'web', name: 'Web', projectId: 'project-2', listType: 'regular' })
-    const status = list({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready' })
+    const status = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
     const inProject = task({ id: 't-1', lists: [ios] })
     const onlyStatus = task({ id: 't-2', lists: [status] })
     const outsideProject = task({ id: 't-3', lists: [otherProjectList] })

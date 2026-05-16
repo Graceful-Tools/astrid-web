@@ -8,8 +8,53 @@
  * owns auth/scope checks and Redis-invalidation cleanup.
  */
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_PROJECT_STATUSES } from '@/lib/project-status'
+
+/** Either the top-level client or a transaction client. */
+type PrismaLike = typeof prisma | Prisma.TransactionClient
+
+/**
+ * Get-or-create the user's global status lists (Ready / Doing / Waiting).
+ *
+ * Status lists are per-user singletons — `projectId: null`, `listType:
+ * "status"` — shared across every project board the user has, rather
+ * than duplicated per project. This helper is idempotent: it creates
+ * only the roles the user is missing and returns the full set ordered
+ * by `statusOrder`.
+ */
+export async function ensureUserStatusLists(userId: string, client: PrismaLike = prisma) {
+  const existing = await client.taskList.findMany({
+    where: { ownerId: userId, listType: 'status', projectId: null },
+  })
+  const haveRoles = new Set(existing.map(list => list.statusRole))
+  const missing = DEFAULT_PROJECT_STATUSES.filter(status => !haveRoles.has(status.role))
+
+  if (missing.length > 0) {
+    await client.taskList.createMany({
+      data: missing.map(status => ({
+        name: status.name,
+        description: status.description,
+        color: '#3b82f6',
+        privacy: 'PRIVATE' as const,
+        ownerId: userId,
+        projectId: null,
+        listType: 'status',
+        statusRole: status.role,
+        statusOrder: status.order,
+        statusDescription: status.description,
+        statusCompleted: false,
+        imageUrl: null,
+      })),
+    })
+  }
+
+  return client.taskList.findMany({
+    where: { ownerId: userId, listType: 'status', projectId: null },
+    orderBy: { statusOrder: 'asc' },
+  })
+}
 
 const safeUserSelect = {
   id: true,
@@ -37,6 +82,9 @@ const projectInclude = {
 
 /** List every project the user owns or is a member of. */
 export async function listProjectsForUser(userId: string) {
+  // Lazily backfill the user's global status lists so existing boards
+  // (created before the per-user-status migration) still render columns.
+  await ensureUserStatusLists(userId)
   return prisma.project.findMany({
     where: {
       OR: [
@@ -57,9 +105,11 @@ export interface CreateProjectInput {
 }
 
 /**
- * Create a project and seed its three default status lists (Ready, Doing,
- * Waiting). The creator becomes owner + admin of the project and admin of
- * every seeded status list.
+ * Create a project. Status lists are NOT seeded per project — they are
+ * per-user globals (see {@link ensureUserStatusLists}); a project's board
+ * is the intersection of its domain tasks with those shared statuses.
+ * We ensure the user's global status lists exist so a brand-new board
+ * has its Ready / Doing / Waiting columns.
  *
  * Inbox and Done are virtual columns — never created as rows. See
  * docs/product/project-status-board.md for the invariants.
@@ -80,36 +130,9 @@ export async function createProjectForUser(userId: string, input: CreateProjectI
       },
     })
 
-    await tx.taskList.createMany({
-      data: DEFAULT_PROJECT_STATUSES.map((status) => ({
-        name: status.name,
-        description: status.description,
-        color,
-        privacy: 'SHARED' as const,
-        ownerId: userId,
-        projectId: createdProject.id,
-        listType: 'status',
-        statusRole: status.role,
-        statusOrder: status.order,
-        statusDescription: status.description,
-        statusCompleted: false,
-        imageUrl: null,
-      })),
-    })
-
-    const statusLists = await tx.taskList.findMany({
-      where: { projectId: createdProject.id, listType: 'status' },
-      select: { id: true },
-    })
-
-    await tx.listMember.createMany({
-      data: statusLists.map((list) => ({
-        listId: list.id,
-        userId,
-        role: 'admin',
-      })),
-      skipDuplicates: true,
-    })
+    // Per-user global status lists — shared across every board, created
+    // once per user rather than duplicated per project.
+    await ensureUserStatusLists(userId, tx)
 
     return tx.project.findUniqueOrThrow({
       where: { id: createdProject.id },
