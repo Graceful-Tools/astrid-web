@@ -64,14 +64,16 @@ const safeUserSelect = {
   isAIAgent: true,
 } as const
 
+const listInclude = {
+  owner: { select: safeUserSelect },
+  listMembers: { include: { user: { select: safeUserSelect } } },
+}
+
 const projectInclude = {
   owner: { select: safeUserSelect },
   members: { include: { user: { select: safeUserSelect } } },
   lists: {
-    include: {
-      owner: { select: safeUserSelect },
-      listMembers: { include: { user: { select: safeUserSelect } } },
-    },
+    include: listInclude,
     orderBy: [
       { listType: 'asc' as const },
       { statusOrder: 'asc' as const },
@@ -80,21 +82,44 @@ const projectInclude = {
   },
 }
 
+/**
+ * Fetch the user's per-user global status lists with the same include
+ * shape as a project's embedded lists. Status lists are `projectId: null`
+ * so they are NOT part of any project's `lists` relation — we merge them
+ * in explicitly so each project response embeds the full board (regular
+ * domain lists + the shared status columns).
+ */
+async function fetchUserStatusLists(userId: string, client: PrismaLike = prisma) {
+  return client.taskList.findMany({
+    where: { ownerId: userId, listType: 'status', projectId: null },
+    include: listInclude,
+    orderBy: { statusOrder: 'asc' },
+  })
+}
+
 /** List every project the user owns or is a member of. */
 export async function listProjectsForUser(userId: string) {
   // Lazily backfill the user's global status lists so existing boards
   // (created before the per-user-status migration) still render columns.
   await ensureUserStatusLists(userId)
-  return prisma.project.findMany({
-    where: {
-      OR: [
-        { ownerId: userId },
-        { members: { some: { userId } } },
-      ],
-    },
-    include: projectInclude,
-    orderBy: { createdAt: 'desc' },
-  })
+  const [projects, statusLists] = await Promise.all([
+    prisma.project.findMany({
+      where: {
+        OR: [
+          { ownerId: userId },
+          { members: { some: { userId } } },
+        ],
+      },
+      include: projectInclude,
+      orderBy: { createdAt: 'desc' },
+    }),
+    fetchUserStatusLists(userId),
+  ])
+  // Embed the shared status columns into every project's list set.
+  return projects.map(project => ({
+    ...project,
+    lists: [...project.lists, ...statusLists],
+  }))
 }
 
 export interface CreateProjectInput {
@@ -134,10 +159,17 @@ export async function createProjectForUser(userId: string, input: CreateProjectI
     // once per user rather than duplicated per project.
     await ensureUserStatusLists(userId, tx)
 
-    return tx.project.findUniqueOrThrow({
-      where: { id: createdProject.id },
-      include: projectInclude,
-    })
+    const [project, statusLists] = await Promise.all([
+      tx.project.findUniqueOrThrow({
+        where: { id: createdProject.id },
+        include: projectInclude,
+      }),
+      fetchUserStatusLists(userId, tx),
+    ])
+    // Embed the shared status columns so the response carries the full
+    // board (regular domain lists + status columns) — they are
+    // `projectId: null` and thus absent from the project's relation.
+    return { ...project, lists: [...project.lists, ...statusLists] }
   })
 }
 

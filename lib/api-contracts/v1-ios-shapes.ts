@@ -141,10 +141,11 @@ export interface V1ListResponse {
  * A single project as returned by /api/v1/projects (collection) and
  * /api/v1/projects/[id] (single). iOS uses this to render the board.
  *
- * `lists` is the project's domain lists (listType "regular") plus its
- * status columns (listType "status"); the same V1List shape is used for
- * both so iOS doesn't need a second decoder. Sort by `listType` then
- * `statusOrder` for board column ordering.
+ * `lists` is the project's domain lists (listType "regular") plus the
+ * user's per-user global status columns (listType "status",
+ * `projectId: null`, shared across every project board). The same V1List
+ * shape is used for both so iOS doesn't need a second decoder. Sort by
+ * `listType` then `statusOrder` for board column ordering.
  */
 export interface V1Project {
   id: string

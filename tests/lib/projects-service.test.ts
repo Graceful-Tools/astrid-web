@@ -12,14 +12,18 @@ vi.mock('@/lib/prisma', () => ({
       findMany: vi.fn(),
       createMany: vi.fn(),
     },
+    project: {
+      findMany: vi.fn(),
+    },
   },
 }))
 
-import { ensureUserStatusLists } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
 const mockCreateMany = vi.mocked(prisma.taskList.createMany)
+const mockProjectFindMany = vi.mocked(prisma.project.findMany)
 
 function statusRow(role: string, order: number) {
   return { id: role, statusRole: role, statusOrder: order, listType: 'status', projectId: null }
@@ -94,5 +98,29 @@ describe('ensureUserStatusLists', () => {
     // The top-level client must not be touched when a tx client is passed.
     expect(mockFindMany).not.toHaveBeenCalled()
     expect(mockCreateMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('listProjectsForUser', () => {
+  it('embeds the per-user global status lists into every project\'s list set', async () => {
+    // Status lists are projectId:null so they are not in any project's
+    // `lists` relation — listProjectsForUser must merge them in.
+    const status = [statusRow('ready', 0), statusRow('doing', 1), statusRow('waiting', 2)]
+    mockFindMany.mockResolvedValue(status as any)
+    mockProjectFindMany.mockResolvedValue([
+      { id: 'p1', name: 'Board A', lists: [{ id: 'domain-a', listType: 'regular' }] },
+      { id: 'p2', name: 'Board B', lists: [] },
+    ] as any)
+
+    const projects = await listProjectsForUser('user-1')
+
+    expect(projects).toHaveLength(2)
+    // Each project keeps its own domain lists AND the 3 shared statuses.
+    expect(projects[0].lists.map((l: any) => l.id)).toEqual([
+      'domain-a', 'ready', 'doing', 'waiting',
+    ])
+    expect(projects[1].lists.map((l: any) => l.id)).toEqual([
+      'ready', 'doing', 'waiting',
+    ])
   })
 })
