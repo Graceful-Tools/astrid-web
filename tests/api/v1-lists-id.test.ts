@@ -155,6 +155,37 @@ describe('PUT /api/v1/lists/:id', () => {
     expect(updateCall.data).toMatchObject({ name: 'Renamed', description: 'New' })
   })
 
+  // 2026-05-16: "Create Board" from iOS list settings did nothing.
+  // iOS attaches a list to a new project via PUT /api/v1/lists/:id
+  // with { projectId }, but this handler's allowlist didn't include
+  // projectId — it was silently dropped, the list never attached,
+  // and the response came back with projectId still null.
+  it('owner can attach the list to a project (projectId)', async () => {
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+    const res = await PUT(makeReq('PUT', { projectId: 'project-9' }), { params } as any)
+    expect(res.status).toBe(200)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data.projectId).toBe('project-9')
+  })
+
+  it('owner can detach the list from a project (projectId: null)', async () => {
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+    const res = await PUT(makeReq('PUT', { projectId: null }), { params } as any)
+    expect(res.status).toBe(200)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data.projectId).toBeNull()
+  })
+
+  it('non-admin member cannot attach a list to a project', async () => {
+    mockAuth.mockResolvedValue(memberAuth as any)
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, ownerId: 'someone-else' })
+    ;(mockPrisma.listMember.findFirst as any).mockResolvedValue(null) // not admin
+
+    await PUT(makeReq('PUT', { projectId: 'project-9' }), { params } as any)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data.projectId).toBeUndefined()
+  })
+
   it('non-admin member cannot update content fields, but filter fields go through', async () => {
     mockAuth.mockResolvedValue(memberAuth as any)
     ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, ownerId: 'someone-else' })

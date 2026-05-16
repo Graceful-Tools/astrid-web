@@ -176,6 +176,12 @@ export const PUT = withAuth<RouteContext>(
       if (body.virtualListType !== undefined) updateData.virtualListType = body.virtualListType
       if (body.githubRepositoryId !== undefined) updateData.githubRepositoryId = body.githubRepositoryId
       if (body.preferredAiProvider !== undefined) updateData.preferredAiProvider = body.preferredAiProvider
+      // Attach / detach the list to a project status board. iOS's
+      // "Create Board" flow POSTs a project then PUTs the list here
+      // with { projectId } to attach it; passing null detaches.
+      // Without this the projectId was silently dropped and the
+      // board never linked to its domain list.
+      if (body.projectId !== undefined) updateData.projectId = body.projectId
       // Per-list "Recently completed" window. iOS sends the discriminated
       // union from lib/recently-completed-window.ts; null/undefined falls
       // back to the legacy 24h default. We don't validate the shape here —
