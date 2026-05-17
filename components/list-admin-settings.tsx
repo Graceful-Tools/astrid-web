@@ -19,11 +19,12 @@ import {
   getFocusProtectionThreshold
 } from "@/lib/layout-detection"
 import { sanitizeTextToHtml } from "@/lib/markdown"
-import { Check, X, Edit3, Bot, Sparkles, RefreshCw, FileText, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react"
+import { Check, X, Edit3, Bot, Sparkles, FileText, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react"
 import { renderMarkdown } from "@/lib/markdown"
 import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
+import { GithubIntegrationSection } from "@/components/list-admin/GithubIntegrationSection"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -72,14 +73,6 @@ export function ListAdminSettings({
   const [tempDefaultPriority, setTempDefaultPriority] = useState(list.defaultPriority || 0)
   const [tempDefaultIsPrivate, setTempDefaultIsPrivate] = useState(list.defaultIsPrivate ?? true)
   const [tempDefaultDueTime, setTempDefaultDueTime] = useState<string | null>(list.defaultDueTime || null)
-  // AI Coding Agent Configuration
-  const [tempGithubRepositoryId, setTempGithubRepositoryId] = useState<string | null>(list.githubRepositoryId || null)
-  // GitHub repositories state
-  const [availableRepositories, setAvailableRepositories] = useState<Array<{id: string, name: string, fullName: string}>>([])
-  const [loadingRepositories, setLoadingRepositories] = useState(false)
-  // AI providers state (determines if GitHub integration should be shown)
-  const [availableAiProviders, setAvailableAiProviders] = useState<Array<{id: string, name: string}>>([])
-  const [loadingAiProviders, setLoadingAiProviders] = useState(false)
   // Default agent for this list
   const [availableAgents, setAvailableAgents] = useState<Array<{id: string, name: string | null, email: string, image: string | null, service: string}>>([])
   const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(() => {
@@ -114,49 +107,7 @@ export function ListAdminSettings({
     }
   }, [])
 
-  // Load available AI providers (determines if GitHub integration should be shown)
-  const loadAiProviders = async () => {
-    try {
-      setLoadingAiProviders(true)
-      const response = await fetch('/api/github/status')
-      if (response.ok) {
-        const data = await response.json()
-        const providers = [
-          { id: 'claude', name: 'Claude Code Agent' },
-          { id: 'openai', name: 'OpenAI Codex Agent' },
-          { id: 'gemini', name: 'Gemini AI Agent' }
-        ].filter(provider => data.aiProviders?.includes(provider.id))
-        setAvailableAiProviders(providers)
-        console.log(`🤖 Found ${providers.length} AI providers configured`)
-      }
-    } catch (error) {
-      console.error('Error loading AI providers:', error)
-    } finally {
-      setLoadingAiProviders(false)
-    }
-  }
-
-  // Load available repositories when component mounts
-  const loadRepositories = async (refresh = false) => {
-    try {
-      setLoadingRepositories(true)
-      const url = refresh ? '/api/github/repositories?refresh=true' : '/api/github/repositories'
-      const response = await fetch(url)
-      if (response.ok) {
-        const data = await response.json()
-        setAvailableRepositories(data.repositories || [])
-        console.log(`📦 Loaded ${data.repositories?.length || 0} repositories (cached: ${data.cached !== false})`)
-      }
-    } catch (error) {
-      console.error('Error loading repositories:', error)
-    } finally {
-      setLoadingRepositories(false)
-    }
-  }
-
   useEffect(() => {
-    loadAiProviders()
-    loadRepositories()
     // Load available agents for default agent selector
     fetch('/api/user/available-agents').then(r => r.json()).then(data => {
       setAvailableAgents(data.agents || [])
@@ -937,65 +888,12 @@ export function ListAdminSettings({
         </div>
       )}
 
-      {/* GitHub Repository Selection - Only show if user has AI providers configured */}
-      {canEditSettings && availableAiProviders.length > 0 && (
-        <div className="border-t theme-border pt-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <Bot className="w-4 h-4 text-blue-600" />
-                <Label className="text-sm font-medium theme-text-primary">GitHub Integration</Label>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => loadRepositories(true)}
-                disabled={loadingRepositories}
-                className="text-xs px-2 py-1"
-              >
-                {loadingRepositories ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3 h-3" />
-                )}
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm theme-text-secondary">GitHub Repository</Label>
-              <Select
-                value={tempGithubRepositoryId || "none"}
-                onValueChange={(value) => {
-                  const repoId = value === "none" ? null : value
-                  setTempGithubRepositoryId(repoId)
-                  onUpdate({ ...list, githubRepositoryId: repoId })
-                }}
-                disabled={loadingRepositories}
-              >
-                <SelectTrigger className="w-full max-w-[180px] min-w-[120px]">
-                  <SelectValue placeholder={loadingRepositories ? "Loading..." : "Select repo"} />
-                </SelectTrigger>
-                <SelectContent className="z-[10100] max-w-[300px]">
-                  <SelectItem value="none">None</SelectItem>
-                  {availableRepositories.map((repo) => (
-                    <SelectItem key={repo.fullName} value={repo.fullName}>
-                      <div className="truncate max-w-[250px]" title={repo.name}>
-                        {repo.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {availableRepositories.length === 0 && !loadingRepositories && (
-              <div className="text-xs theme-text-muted">
-                No repositories found. Make sure your GitHub account is connected and has access to repositories.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* GitHub Repository Selection */}
+      <GithubIntegrationSection
+        list={list}
+        canEditSettings={canEditSettings}
+        onUpdate={onUpdate}
+      />
 
       {/* Advanced Settings: Recently Completed window */}
       <RecentlyCompletedWindowSection
