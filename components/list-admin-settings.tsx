@@ -10,13 +10,6 @@ import { Switch } from "@/components/ui/switch"
 import { EnhancedListImageDisplay } from "./enhanced-list-image-display"
 import { PriorityPicker } from "./ui/priority-picker"
 import { TimePicker } from "./ui/time-picker"
-import {
-  RECENTLY_COMPLETED_PRESETS,
-  findPresetForWindow,
-  presetForValue,
-  type RecentlyCompletedPresetId,
-} from "@/lib/recently-completed-presets"
-import type { RecentlyCompletedWindow } from "@/lib/recently-completed-window"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import {
@@ -30,6 +23,7 @@ import { Check, X, Edit3, Bot, Sparkles, RefreshCw, FileText, Eye, EyeOff, Chevr
 import { renderMarkdown } from "@/lib/markdown"
 import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
+import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -1004,62 +998,11 @@ export function ListAdminSettings({
       )}
 
       {/* Advanced Settings: Recently Completed window */}
-      {canEditSettings && (
-        <div className="border-t theme-border pt-4 space-y-2" data-testid="advanced-settings-section">
-          <Label className="text-sm theme-text-secondary">Advanced — Recently completed window</Label>
-          <p className="text-xs theme-text-muted">
-            How long completed tasks stay visible in the default view (and in the Done column on boards). Older completed tasks are filtered out; switch the list to “Completed” or “All” to see them.
-          </p>
-          {(() => {
-            const currentWindow = (list.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
-            const currentPreset = findPresetForWindow(currentWindow)?.id ?? 'default-24h'
-            const isSpecificDate = currentWindow?.kind === 'since-date'
-            const currentDate = isSpecificDate ? (currentWindow as { kind: 'since-date'; date: string }).date : ''
-
-            const handleChange = (id: RecentlyCompletedPresetId) => {
-              if (id === 'since-specific-date') {
-                // Keep the existing date if any, otherwise default to today.
-                const today = new Date()
-                const yyyy = today.getFullYear()
-                const mm = String(today.getMonth() + 1).padStart(2, '0')
-                const dd = String(today.getDate()).padStart(2, '0')
-                const date = currentDate || `${yyyy}-${mm}-${dd}`
-                onUpdate({ ...list, recentlyCompletedWindow: { kind: 'since-date', date } })
-                return
-              }
-              onUpdate({ ...list, recentlyCompletedWindow: presetForValue(id) })
-            }
-
-            return (
-              <>
-                <Select value={currentPreset} onValueChange={(v) => handleChange(v as RecentlyCompletedPresetId)}>
-                  <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid="recently-completed-preset-trigger">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="theme-bg-primary theme-border z-[10100]">
-                    {RECENTLY_COMPLETED_PRESETS.map(p => (
-                      <SelectItem key={p.id} value={p.id} className="theme-text-primary">
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {currentPreset === 'since-specific-date' && (
-                  <Input
-                    type="date"
-                    value={currentDate}
-                    onChange={(e) =>
-                      onUpdate({ ...list, recentlyCompletedWindow: { kind: 'since-date', date: e.target.value } })
-                    }
-                    className="theme-input theme-text-primary"
-                    data-testid="recently-completed-specific-date"
-                  />
-                )}
-              </>
-            )
-          })()}
-        </div>
-      )}
+      <RecentlyCompletedWindowSection
+        list={list}
+        canEditSettings={canEditSettings}
+        onUpdate={onUpdate}
+      />
 
       {/* List ID (for API/OAuth integration) */}
       <div className="border-t theme-border pt-4">
