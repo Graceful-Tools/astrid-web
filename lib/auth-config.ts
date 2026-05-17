@@ -5,6 +5,7 @@ import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
 import { getDevBaseUrl, isLocalDevelopment } from "./port-detection"
 import { getBaseUrl } from "./base-url"
+import { isAstridSubdomainUrl } from "./auth-host"
 import { createDefaultListsForUser } from "./default-lists"
 import { createLogger } from '@/lib/logger'
 
@@ -264,6 +265,14 @@ const authConfig: NextAuthOptions = {
       // Handle relative URLs (e.g., "/auth/signin" from sign-out)
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`
+      }
+
+      // Allow returning a signed-in user to any astrid.cc subdomain — a
+      // preview deploy bounces Google sign-in to astrid.cc and passes its
+      // own origin as callbackUrl. The session cookie is .astrid.cc-scoped
+      // so the preview is authenticated once the user lands back on it.
+      if (isAstridSubdomainUrl(url)) {
+        return url
       }
 
       return url.startsWith(baseUrl) ? url : baseUrl

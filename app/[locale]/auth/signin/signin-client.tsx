@@ -13,6 +13,7 @@ import Image from "next/image"
 import { useWebAuthn } from "@/hooks/use-webauthn"
 import Link from "next/link"
 import { createLogger } from '@/lib/logger'
+import { planGoogleSignIn } from "@/lib/auth-host"
 
 const log = createLogger('[locale].auth.signin.signin-client.tsx')
 
@@ -54,9 +55,23 @@ export function SignInContent() {
   const handleGoogleSignIn = async () => {
     setLoading(true)
     setError(null)
+
+    // Google OAuth's redirect_uri is only whitelisted for astrid.cc.
+    // On a preview subdomain, bounce to the canonical sign-in page
+    // (carrying this origin as callbackUrl) instead of starting OAuth
+    // here — otherwise Google returns redirect_uri_mismatch.
+    const plan = planGoogleSignIn(window.location.origin)
+    if (plan.mode === "redirect") {
+      window.location.href = plan.url
+      return
+    }
+
     try {
+      // Honor a callbackUrl passed in by a preview bounce so the user
+      // returns to the preview after authenticating on astrid.cc.
+      const callbackUrl = searchParams?.get("callbackUrl") || "/"
       const result = await signIn("google", {
-        callbackUrl: "/",
+        callbackUrl,
         redirect: false,
       })
 
