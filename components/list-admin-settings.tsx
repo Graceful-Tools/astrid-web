@@ -12,12 +12,7 @@ import { PriorityPicker } from "./ui/priority-picker"
 import { TimePicker } from "./ui/time-picker"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
-import {
-  shouldPreventAutoFocus,
-  shouldIgnoreTouchDuringKeyboard,
-  needsAggressiveKeyboardProtection,
-  getFocusProtectionThreshold
-} from "@/lib/layout-detection"
+import { shouldPreventAutoFocus } from "@/lib/layout-detection"
 import { sanitizeTextToHtml } from "@/lib/markdown"
 import { Check, X, Edit3, Bot, Sparkles, FileText, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react"
 import { renderMarkdown } from "@/lib/markdown"
@@ -25,6 +20,7 @@ import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
 import { GithubIntegrationSection } from "@/components/list-admin/GithubIntegrationSection"
+import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -341,44 +337,11 @@ export function ListAdminSettings({
     setEditingListDescription(false)
   }, [tempListDescription, list, onUpdate])
 
-  // Handle click outside to save changes
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      const target = event.target as Node
-
-      // On devices that need keyboard protection, ignore touch events during keyboard interactions
-      if (('touches' in event || event.type === 'touchstart') && shouldIgnoreTouchDuringKeyboard()) {
-        return
-      }
-
-      // Extra protection - if this event is happening right after focus, ignore it
-      if (needsAggressiveKeyboardProtection() && event.type === 'mousedown') {
-        const now = Date.now()
-        const lastFocusTime = (window as any)._lastFocusTime || 0
-        const timeSinceFocus = now - lastFocusTime
-        const threshold = getFocusProtectionThreshold()
-
-        if (timeSinceFocus < threshold) {
-          return
-        }
-      }
-
-      if (listNameRef.current && !listNameRef.current.contains(target) && editingListName) {
-        handleSaveListName()
-      }
-
-      if (listDescriptionRef.current && !listDescriptionRef.current.contains(target) && editingListDescription) {
-        handleSaveListDescription()
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-    }
-  }, [editingListName, editingListDescription, tempListName, tempListDescription, list, handleSaveListDescription, handleSaveListName])
+  // Commit each inline editor when the user clicks/taps outside it.
+  // One independent hook instance per section (was a single shared
+  // document listener — see useClickOutsideSave).
+  useClickOutsideSave(listNameRef, editingListName, handleSaveListName)
+  useClickOutsideSave(listDescriptionRef, editingListDescription, handleSaveListDescription)
 
   const getDefaultDueDateDisplay = (dueDate: TaskList["defaultDueDate"]) => {
     switch (dueDate) {
