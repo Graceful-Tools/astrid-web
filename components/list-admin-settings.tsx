@@ -12,7 +12,6 @@ import { PriorityPicker } from "./ui/priority-picker"
 import { TimePicker } from "./ui/time-picker"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
-import { shouldPreventAutoFocus } from "@/lib/layout-detection"
 import { sanitizeTextToHtml } from "@/lib/markdown"
 import { Check, X, Edit3, Bot, Sparkles, FileText, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react"
 import { renderMarkdown } from "@/lib/markdown"
@@ -21,6 +20,7 @@ import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
 import { GithubIntegrationSection } from "@/components/list-admin/GithubIntegrationSection"
 import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
+import { ListNameSection } from "@/components/list-admin/ListNameSection"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -47,7 +47,6 @@ export function ListAdminSettings({
 }: ListAdminSettingsProps) {
 
   // Inline editing states
-  const [editingListName, setEditingListName] = useState(false)
   const [editingListDescription, setEditingListDescription] = useState(false)
   const [editingDefaultAssignee, setEditingDefaultAssignee] = useState(false)
   const [editingDefaultDueDate, setEditingDefaultDueDate] = useState(false)
@@ -56,7 +55,6 @@ export function ListAdminSettings({
   const [showTemplates, setShowTemplates] = useState(false)
 
   // Temporary edit values
-  const [tempListName, setTempListName] = useState(list.name)
   const [tempListDescription, setTempListDescription] = useState(list.description || "")
   const [tempDefaultAssignee, setTempDefaultAssignee] = useState<User | undefined>(list.defaultAssignee)
   const [tempDefaultAssigneeType, setTempDefaultAssigneeType] = useState(() => {
@@ -80,7 +78,6 @@ export function ListAdminSettings({
   })
 
   // Refs for click-outside handling
-  const listNameRef = useRef<HTMLDivElement>(null)
   const listDescriptionRef = useRef<HTMLDivElement>(null)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -112,7 +109,6 @@ export function ListAdminSettings({
 
   // Update temporary state when list changes
   useEffect(() => {
-    setTempListName(list.name)
     setTempListDescription(list.description || "")
     setTempDefaultAssignee(list.defaultAssignee)
     setTempDefaultAssigneeType(() => {
@@ -127,7 +123,6 @@ export function ListAdminSettings({
     setTempDefaultDueTime(list.defaultDueTime || null)
   }, [
     list.id,
-    list.name,
     list.description,
     list.defaultAssignee,
     list.defaultAssigneeId,
@@ -283,33 +278,6 @@ export function ListAdminSettings({
     setEditingDefaultRepeating(false)
   }
 
-  const handleSaveListName = useCallback(async () => {
-    if (tempListName.trim() && tempListName !== list.name) {
-      try {
-        const response = await fetch(`/api/lists/${list.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...list,
-            name: tempListName.trim()
-          }),
-        })
-
-        if (response.ok) {
-          const updatedList = await response.json()
-          onUpdate(updatedList)
-        } else {
-          console.error('Failed to update list name')
-        }
-      } catch (error) {
-        console.error('Error updating list name:', error)
-      }
-    }
-    setEditingListName(false)
-  }, [tempListName, list, onUpdate])
-
   const handleSaveListDescription = useCallback(async () => {
     if (tempListDescription !== (list.description || "")) {
       try {
@@ -337,10 +305,7 @@ export function ListAdminSettings({
     setEditingListDescription(false)
   }, [tempListDescription, list, onUpdate])
 
-  // Commit each inline editor when the user clicks/taps outside it.
-  // One independent hook instance per section (was a single shared
-  // document listener — see useClickOutsideSave).
-  useClickOutsideSave(listNameRef, editingListName, handleSaveListName)
+  // Commit the description inline editor when the user clicks outside it.
   useClickOutsideSave(listDescriptionRef, editingListDescription, handleSaveListDescription)
 
   const getDefaultDueDateDisplay = (dueDate: TaskList["defaultDueDate"]) => {
@@ -368,44 +333,7 @@ export function ListAdminSettings({
   return (
     <div className="space-y-4">
       {/* List Name */}
-      {canEditSettings && (
-        <div className="flex items-center justify-between">
-          <Label className="text-sm theme-text-secondary">List Name</Label>
-          {editingListName ? (
-            <div className="flex items-center space-x-2 flex-1 ml-4" ref={listNameRef}>
-              <Input
-                value={tempListName}
-                onChange={(e) => setTempListName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveListName()
-                  if (e.key === "Escape") setEditingListName(false)
-                }}
-                className="theme-input theme-text-primary flex-1"
-                autoFocus={!shouldPreventAutoFocus()}
-              />
-              <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">
-                <Check className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditingListName(false)}
-                      className="theme-border theme-text-secondary hover:theme-bg-hover">
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <div
-              className="flex items-center space-x-2 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 ml-4 justify-end"
-              onClick={() => {
-                // Track focus time for mobile protection
-                ;(window as any)._lastFocusTime = Date.now()
-                setEditingListName(true)
-              }}
-            >
-              <span className="theme-text-primary">{list.name}</span>
-              <Edit3 className="w-3 h-3 theme-text-muted" />
-            </div>
-          )}
-        </div>
-      )}
+      <ListNameSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
 
       {/* Enhanced List Image Display */}
       <div className="flex items-center justify-between">
