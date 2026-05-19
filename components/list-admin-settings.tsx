@@ -12,6 +12,7 @@ import { ListNameSection } from "@/components/list-admin/ListNameSection"
 import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructionsSection"
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
 import { AstridAgentSection } from "@/components/list-admin/AstridAgentSection"
+import { ListIdSection } from "@/components/list-admin/ListIdSection"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -89,48 +90,7 @@ export function ListAdminSettings({
       />
 
       {/* List ID (for API/OAuth integration) */}
-      <div className="border-t theme-border pt-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs theme-text-muted">List ID</Label>
-          <div className="flex items-center space-x-2">
-            <code className="text-xs theme-text-muted font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-              {list.id}
-            </code>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(list.id)
-                  // Optional: Show a toast notification
-                } catch (err) {
-                  console.error('Failed to copy:', err)
-                }
-              }}
-              className="h-6 w-6 p-0"
-              title="Copy List ID"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </Button>
-          </div>
-        </div>
-        <p className="text-xs theme-text-muted mt-1">
-          Use this ID for OAuth API integrations and coding agents
-        </p>
-      </div>
+      <ListIdSection list={list} />
 
       {/* Delete List */}
       <DeleteListSection list={list} canEditSettings={canEditSettings} onDelete={onDelete} />
