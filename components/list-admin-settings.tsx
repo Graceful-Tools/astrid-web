@@ -1,12 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EnhancedListImageDisplay } from "./enhanced-list-image-display"
 import type { TaskList, User } from "../types/task"
-import { Bot } from "lucide-react"
 import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
@@ -14,6 +11,7 @@ import { GithubIntegrationSection } from "@/components/list-admin/GithubIntegrat
 import { ListNameSection } from "@/components/list-admin/ListNameSection"
 import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructionsSection"
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
+import { AstridAgentSection } from "@/components/list-admin/AstridAgentSection"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -38,46 +36,6 @@ export function ListAdminSettings({
   onProjectBoardCreated,
   onProjectBoardRemoved
 }: ListAdminSettingsProps) {
-
-  // Default agent for this list
-  const [availableAgents, setAvailableAgents] = useState<Array<{id: string, name: string | null, email: string, image: string | null, service: string}>>([])
-  const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(() => {
-    const config = list.aiAgentsEnabled
-    if (config && typeof config === 'object' && !Array.isArray(config)) {
-      return (config as Record<string, unknown>).defaultAgentId as string || null
-    }
-    return null
-  })
-
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Debounced update function to prevent excessive API calls
-  const debouncedUpdate = useCallback((updatedList: TaskList) => {
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current)
-    }
-    updateTimeoutRef.current = setTimeout(() => {
-      onUpdate(updatedList)
-    }, 500) // 500ms debounce
-  }, [onUpdate])
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    // Load available agents for default agent selector
-    fetch('/api/user/available-agents').then(r => r.json()).then(data => {
-      setAvailableAgents(data.agents || [])
-    }).catch(() => {})
-  }, [])
-
-
   return (
     <div className="space-y-4">
       {/* List Name */}
@@ -106,55 +64,7 @@ export function ListAdminSettings({
       />
 
       {/* Astrid — AI agent for this list */}
-      {canEditSettings && availableAgents.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
-            <Bot className="w-4 h-4" />
-            <span>Astrid Agent</span>
-          </Label>
-          <Select
-            value={listDefaultAgentId || '_account_default'}
-            onValueChange={(value) => {
-              const newAgentId = value === '_account_default' ? null : value
-              setListDefaultAgentId(newAgentId)
-              // Build the updated aiAgentsEnabled config
-              const currentTypes = Array.isArray(list.aiAgentsEnabled)
-                ? list.aiAgentsEnabled
-                : (list.aiAgentsEnabled as Record<string, unknown>)?.enabledTypes || []
-              const updatedConfig = {
-                enabledTypes: currentTypes,
-                defaultAgentId: newAgentId,
-              }
-              onUpdate({ ...list, aiAgentsEnabled: updatedConfig as unknown as string[] })
-            }}
-          >
-            <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary">
-              <SelectValue placeholder="Use account default" />
-            </SelectTrigger>
-            <SelectContent className="theme-bg-primary theme-border z-[10100]">
-              <SelectItem value="_account_default" className="theme-text-primary">
-                Use account default
-              </SelectItem>
-              {availableAgents.map(agent => (
-                <SelectItem key={agent.id} value={agent.id} className="theme-text-primary">
-                  <div className="flex items-center gap-2">
-                    {agent.image ? (
-                      <img src={agent.image} alt="" className="w-4 h-4 rounded-full" />
-                    ) : (
-                      <Bot className="w-4 h-4 text-purple-500" />
-                    )}
-                    <span>{agent.name || agent.email}</span>
-                    <span className="text-xs theme-text-muted">({agent.service})</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs theme-text-muted">
-            Choose a model to power Astrid for this list. Astrid reads messages, acts on tasks, and completes tasks by their due dates.
-          </p>
-        </div>
-      )}
+      <AstridAgentSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
 
       {/* Agent Instructions (List Description) */}
       <AgentInstructionsSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
