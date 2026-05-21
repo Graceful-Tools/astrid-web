@@ -46,6 +46,7 @@ import { AccountInfoSection } from "./AccountInfoSection"
 import { DataExportSection } from "./DataExportSection"
 import { AccountDeletionSection } from "./AccountDeletionSection"
 import { PasskeyManagementSection } from "./PasskeyManagementSection"
+import { ProfileSection } from "./ProfileSection"
 
 export interface AccountData {
   id: string
@@ -75,17 +76,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
 
   const [accountData, setAccountData] = useState<AccountData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [resendingVerification, setResendingVerification] = useState(false)
-
-  // Form state
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [hasChanges, setHasChanges] = useState(false)
-
-  // Profile photo upload state
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const [customImageUrl, setCustomImageUrl] = useState<string | null>(null)
 
   // Export state
   const [exporting, setExporting] = useState(false)
@@ -108,24 +99,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
     }
   }, [session, status, searchParams, toast])
 
-  useEffect(() => {
-    if (accountData) {
-      setName(accountData.name || "")
-      setEmail(accountData.email)
-      setCustomImageUrl(accountData.image || null)
-    }
-  }, [accountData])
-
-  // Separate effect for change detection
-  useEffect(() => {
-    if (accountData) {
-      const nameChanged = (accountData.name || "") !== name
-      const emailChanged = accountData.email !== email
-      const imageChanged = (accountData.image || null) !== customImageUrl
-      setHasChanges(nameChanged || emailChanged || imageChanged)
-    }
-  }, [name, email, customImageUrl, accountData])
-
   const loadAccountData = async () => {
     try {
       const response = await fetch("/api/account")
@@ -139,51 +112,6 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
       console.error("Error loading account data:", error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSave = async () => {
-    if (!accountData) return
-
-    setSaving(true)
-    try {
-      // Only include image in update if it has actually changed
-      const updateData: any = { name, email }
-      if (customImageUrl !== accountData.image) {
-        updateData.image = customImageUrl
-      }
-
-      const response = await fetch("/api/account", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
-      })
-
-      if (response.ok) {
-        await loadAccountData()
-
-        toast({
-          title: "Success!",
-          description: "Your account information has been updated.",
-          duration: 3000,
-        })
-      } else {
-        const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.error || "Failed to update account information.",
-          duration: 5000,
-        })
-      }
-    } catch (error) {
-      console.error("Error updating account:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update account information.",
-        duration: 5000,
-      })
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -374,130 +302,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
           </div>
 
           {/* Profile Section */}
-          <Card className="theme-bg-secondary theme-border">
-            <CardHeader>
-              <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-                <User className="w-5 h-5" />
-                <span>{t("settingsPages.profileInfo.title")}</span>
-              </CardTitle>
-              <CardDescription className="theme-text-muted">
-                {t("settingsPages.profileInfo.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-wrap items-center gap-4">
-                  <Avatar className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => document.getElementById('profile-photo-upload')?.click()}>
-                    <AvatarImage src={customImageUrl || accountData.image || "/placeholder.svg"} />
-                    <AvatarFallback>
-                      {accountData.name?.charAt(0) || accountData.email?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-sm theme-text-muted space-y-1">
-                    <p>{t("settingsPages.profileInfo.clickToChangePhoto")}</p>
-                    {accountData.verifiedViaOAuth && (
-                      <p className="text-xs">Currently synced with your OAuth provider</p>
-                    )}
-                    {uploadingPhoto && (
-                      <p className="text-xs text-blue-400">Uploading...</p>
-                    )}
-                  </div>
-                  <input
-                    id="profile-photo-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-
-                      setUploadingPhoto(true)
-                      try {
-                        const formData = new FormData()
-                        formData.append("file", file)
-
-                        const response = await fetch("/api/upload", {
-                          method: "POST",
-                          body: formData,
-                        })
-
-                        if (response.ok) {
-                          const data = await response.json()
-                          setCustomImageUrl(data.url)
-                          toast({
-                            title: "Photo uploaded!",
-                            description: "Click 'Save Changes' to update your profile.",
-                            duration: 3000,
-                          })
-                        } else {
-                          toast({
-                            title: "Upload failed",
-                            description: "Failed to upload photo. Please try again.",
-                            duration: 5000,
-                          })
-                        }
-                      } catch (error) {
-                        console.error("Upload error:", error)
-                        toast({
-                          title: "Upload failed",
-                          description: "Failed to upload photo. Please try again.",
-                          duration: 5000,
-                        })
-                      } finally {
-                        setUploadingPhoto(false)
-                      }
-                    }}
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push(`/u/${accountData.id}`)}
-                  className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  {t("settingsPages.profileInfo.viewPublicProfile")}
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name" className="theme-text-secondary">{t("settingsPages.profileInfo.displayName")}</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your display name"
-                    className="theme-input theme-text-primary focus:border-blue-500 focus:ring-blue-500 cursor-text"
-                    disabled={false}
-                    readOnly={false}
-                    autoComplete="name"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="email" className="theme-text-secondary">{t("settingsPages.profileInfo.emailAddress")}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="theme-input theme-text-primary"
-                  />
-                </div>
-
-                {hasChanges && (
-                  <Button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {saving ? t("settingsPages.profileInfo.saving") : t("settingsPages.profileInfo.saveChanges")}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ProfileSection accountData={accountData} onSaved={loadAccountData} />
 
           <EmailVerificationSection
             accountData={accountData}
