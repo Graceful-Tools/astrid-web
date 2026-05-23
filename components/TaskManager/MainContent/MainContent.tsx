@@ -9,6 +9,7 @@ import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
 import { QuickTaskCreate } from "../../quick-task-create"
 import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creation"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
+import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRowContent } from "../../task-row-content"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
@@ -253,8 +254,6 @@ export function MainContent({
 
   const [draggingTaskMetrics, setDraggingTaskMetrics] = React.useState<{ taskId: string; height: number } | null>(null)
   const taskMeasurementsRef = React.useRef<Map<string, number>>(new Map())
-  const [mobileDragState, setMobileDragState] = React.useState<{ taskId: string } | null>(null)
-  const mobileDragTouchIdRef = React.useRef<number | null>(null)
   const taskListContainerRef = React.useRef<HTMLDivElement | null>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
   const savedScrollPositionRef = React.useRef<number>(0)
@@ -271,17 +270,23 @@ export function MainContent({
   React.useEffect(() => {
     if (!activeDragTaskId) {
       setDraggingTaskMetrics(null)
-      setMobileDragState(null)
-      mobileDragTouchIdRef.current = null
     }
   }, [activeDragTaskId])
 
-  React.useEffect(() => {
-    if ((!manualSortActive || !isTouchManualSort) && mobileDragState) {
-      setMobileDragState(null)
-      mobileDragTouchIdRef.current = null
-    }
-  }, [manualSortActive, isTouchManualSort, mobileDragState])
+  const handleMobileDragEnd = React.useCallback(() => {
+    handleTaskDragEnd()
+    setDraggingTaskMetrics(null)
+  }, [handleTaskDragEnd])
+
+  const { startMobileDrag } = useMobileDragSort({
+    isTouchManualSort,
+    manualSortActive,
+    activeDragTaskId,
+    taskListContainerRef,
+    onDragHover: handleTaskDragHover,
+    onDragHoverEnd: handleTaskDragHoverEnd,
+    onDragEnd: handleMobileDragEnd,
+  })
 
   // Save scroll position when entering task detail view on mobile
   React.useEffect(() => {
@@ -331,95 +336,6 @@ export function MainContent({
       )}
     </div>
   )
-
-  React.useEffect(() => {
-    if (!isTouchManualSort || !manualSortActive || !mobileDragState) {
-      return
-    }
-
-    const findTrackedTouch = (touches: TouchList): Touch | null => {
-      if (mobileDragTouchIdRef.current === null) {
-        return touches.length > 0 ? touches[0] : null
-      }
-      for (let i = 0; i < touches.length; i += 1) {
-        const current = touches.item(i)
-        if (current && current.identifier === mobileDragTouchIdRef.current) {
-          return current
-        }
-      }
-      return null
-    }
-
-    const handleTouchMove = (event: TouchEvent) => {
-      const touch = findTrackedTouch(event.touches)
-      if (!touch) {
-        return
-      }
-      event.preventDefault()
-
-      const targetElement = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null
-      if (targetElement) {
-        const taskElement = targetElement.closest<HTMLElement>("[data-task-id]")
-        if (taskElement) {
-          const hoveredTaskId = taskElement.getAttribute("data-task-id")
-          if (!hoveredTaskId || hoveredTaskId === activeDragTaskId) {
-            return
-          }
-          const rect = taskElement.getBoundingClientRect()
-          const offsetY = touch.clientY - rect.top
-          const ratio = rect.height > 0 ? offsetY / rect.height : 0
-          let position: 'above' | 'below' | null = null
-          if (ratio <= 0.35) {
-            position = 'above'
-          } else if (ratio >= 0.65) {
-            position = 'below'
-          }
-          if (position) {
-            handleTaskDragHover(hoveredTaskId, position)
-          }
-          return
-        }
-      }
-
-      const listContainer = taskListContainerRef.current
-      if (listContainer) {
-        const listRect = listContainer.getBoundingClientRect()
-        if (touch.clientY > listRect.bottom) {
-          handleTaskDragHoverEnd()
-        }
-      }
-    }
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      const touch = findTrackedTouch(event.changedTouches)
-      if (!touch) {
-        return
-      }
-      event.preventDefault()
-      setMobileDragState(null)
-      mobileDragTouchIdRef.current = null
-      handleTaskDragEnd()
-      setDraggingTaskMetrics(null)
-    }
-
-    document.addEventListener("touchmove", handleTouchMove, { passive: false })
-    document.addEventListener("touchend", handleTouchEnd, { passive: false })
-    document.addEventListener("touchcancel", handleTouchEnd, { passive: false })
-
-    return () => {
-      document.removeEventListener("touchmove", handleTouchMove)
-      document.removeEventListener("touchend", handleTouchEnd)
-      document.removeEventListener("touchcancel", handleTouchEnd)
-    }
-  }, [
-    isTouchManualSort,
-    manualSortActive,
-    mobileDragState,
-    activeDragTaskId,
-    handleTaskDragHover,
-    handleTaskDragHoverEnd,
-    handleTaskDragEnd
-  ])
 
   // Calculate parallax state for mobile transitions
   const isShowingTaskDetail = isMobile && mobileView === 'task' && !isMobileTaskDetailClosing
@@ -1117,8 +1033,7 @@ export function MainContent({
                             setDraggingTaskMetrics({ taskId: task.id, height })
                             taskMeasurementsRef.current.set(task.id, height)
                           }
-                          mobileDragTouchIdRef.current = touch.identifier
-                          setMobileDragState({ taskId: task.id })
+                          startMobileDrag(task.id, touch.identifier)
                           handleTaskDragStart(task.id)
                           event.stopPropagation()
                           event.preventDefault()
