@@ -215,3 +215,83 @@ export async function deleteProjectAndDetachLists(projectId: string) {
 
   return { project, detachedListIds: domainListIds, userIdsToInvalidate }
 }
+
+export interface UpdateProjectMetadataInput {
+  name?: string
+  description?: string | null
+  color?: string
+  imageUrl?: string | null
+}
+
+export type UpdateProjectMetadataResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { error: 'invalid'; message: string }
+  | {
+      project: Awaited<ReturnType<typeof listProjectsForUser>>[number]
+      userIdsToInvalidate: Set<string>
+    }
+
+/**
+ * Update a project's display metadata (name / description / color / imageUrl).
+ * Owner-only — project-level membership roles are not yet wired into perms
+ * (that's sub-task #3), so this mirrors the owner check used by DELETE. Only
+ * the fields present in `input` are touched. Returns the updated project in the
+ * same shape as {@link listProjectsForUser} plus the user ids whose cached
+ * list/project data should be invalidated.
+ */
+export async function updateProjectMetadata(
+  projectId: string,
+  userId: string,
+  input: UpdateProjectMetadataInput,
+): Promise<UpdateProjectMetadataResult> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { select: { userId: true } } },
+  })
+
+  if (!project) {
+    return { error: 'not_found' }
+  }
+  if (project.ownerId !== userId) {
+    return { error: 'forbidden' }
+  }
+
+  const data: Record<string, unknown> = {}
+  if (input.name !== undefined) {
+    const trimmed = input.name.trim()
+    if (!trimmed) {
+      return { error: 'invalid', message: 'Project name cannot be empty' }
+    }
+    data.name = trimmed
+  }
+  if (input.description !== undefined) {
+    data.description = input.description?.trim() || null
+  }
+  if (input.color !== undefined) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(input.color)) {
+      return { error: 'invalid', message: 'Color must be a 6-digit hex value like #3b82f6' }
+    }
+    data.color = input.color
+  }
+  if (input.imageUrl !== undefined) {
+    data.imageUrl = input.imageUrl?.trim() || null
+  }
+
+  if (Object.keys(data).length === 0) {
+    return { error: 'invalid', message: 'No metadata fields provided to update' }
+  }
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
+    data,
+    include: projectInclude,
+  })
+
+  const userIdsToInvalidate = new Set<string>([
+    project.ownerId,
+    ...project.members.map((member) => member.userId),
+  ])
+
+  return { project: updated, userIdsToInvalidate }
+}
