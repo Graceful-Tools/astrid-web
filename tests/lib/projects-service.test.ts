@@ -14,18 +14,20 @@ vi.mock('@/lib/prisma', () => ({
     },
     project: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
 const mockCreateMany = vi.mocked(prisma.taskList.createMany)
 const mockProjectFindMany = vi.mocked(prisma.project.findMany)
+const mockProjectFindFirst = vi.mocked(prisma.project.findFirst)
 const mockProjectFindUnique = vi.mocked(prisma.project.findUnique)
 const mockProjectUpdate = vi.mocked(prisma.project.update)
 
@@ -203,5 +205,34 @@ describe('updateProjectMetadata (task 17745aa8 — project board #6)', () => {
     } else {
       throw new Error('expected success result')
     }
+  })
+})
+
+describe('getProjectForUser (task 17745aa8 — project board #6)', () => {
+  it('returns null when the project is missing or not visible', async () => {
+    mockProjectFindFirst.mockResolvedValue(null as never)
+    const result = await getProjectForUser('p1', 'user-1')
+    expect(result).toBeNull()
+    // scoped to owner-or-member in the query
+    expect(mockProjectFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'p1',
+          OR: [{ ownerId: 'user-1' }, { members: { some: { userId: 'user-1' } } }],
+        }),
+      })
+    )
+  })
+
+  it('merges the user global status lists into the project board', async () => {
+    mockProjectFindFirst.mockResolvedValue({
+      id: 'p1', name: 'Board', lists: [{ id: 'domain-a' }],
+    } as never)
+    mockFindMany.mockResolvedValue([
+      statusRow('ready', 0), statusRow('doing', 1), statusRow('waiting', 2),
+    ] as never)
+
+    const result = await getProjectForUser('p1', 'user-1')
+    expect(result?.lists.map((l: any) => l.id)).toEqual(['domain-a', 'ready', 'doing', 'waiting'])
   })
 })

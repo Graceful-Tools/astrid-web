@@ -4,12 +4,34 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from "@/lib/logger"
-import { deleteProjectAndDetachLists, updateProjectMetadata } from "@/lib/projects-service"
+import { deleteProjectAndDetachLists, updateProjectMetadata, getProjectForUser } from "@/lib/projects-service"
 
 const log = createLogger("api.projects.id")
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+
+export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {
+  try {
+    const session = await getUnifiedSession(request)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id: projectId } = await context.params
+    const project = await getProjectForUser(projectId, session.user.id)
+
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ project })
+  } catch (error) {
+    log.error({ err: error }, "Error fetching project:")
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
 
 export async function PATCH(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {

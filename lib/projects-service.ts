@@ -216,6 +216,28 @@ export async function deleteProjectAndDetachLists(projectId: string) {
   return { project, detachedListIds: domainListIds, userIdsToInvalidate }
 }
 
+/**
+ * Fetch a single project the user can see (owner or member), in the same
+ * shape as {@link listProjectsForUser} (embedded board lists + shared status
+ * columns). Returns null when missing or not visible to the user.
+ */
+export async function getProjectForUser(projectId: string, userId: string) {
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+    },
+    include: projectInclude,
+  })
+
+  if (!project) {
+    return null
+  }
+
+  const statusLists = await fetchUserStatusLists(userId)
+  return { ...project, lists: [...project.lists, ...statusLists] }
+}
+
 export interface UpdateProjectMetadataInput {
   name?: string
   description?: string | null

@@ -1,8 +1,9 @@
 "use client"
 
 import React from "react"
-import { CheckCircle2, Inbox, Plus } from "lucide-react"
+import { CheckCircle2, Inbox, Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { EditProjectDialog, type EditableProject } from "@/components/EditProjectDialog"
 import { Input } from "@/components/ui/input"
 import { TaskDetail } from "@/components/task-detail"
 import { canUserEditTask } from "@/lib/list-permissions"
@@ -119,6 +120,26 @@ export function ProjectStatusBoard({
       setExpandedTaskId(null)
     }
   }, [boardTasks, expandedTaskId])
+
+  // Project metadata (name / color / owner) for the board header + edit dialog.
+  const [project, setProject] = React.useState<EditableProject & { owner?: { id: string } } | null>(null)
+  const [showEditProject, setShowEditProject] = React.useState(false)
+  React.useEffect(() => {
+    if (!projectId) {
+      setProject(null)
+      return
+    }
+    let cancelled = false
+    fetch(`/api/projects/${projectId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!cancelled && data?.project) setProject(data.project)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [projectId])
+
+  const isProjectOwner = Boolean(project && currentUser && project.owner?.id === currentUser.id)
 
   if (!projectId || columns.length === 0) {
     return null
@@ -249,12 +270,36 @@ export function ProjectStatusBoard({
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className={`h-full overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
-      data-testid="project-status-board"
-    >
-      <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
+    <div className="flex h-full flex-col">
+      {project && (
+        <div className="flex items-center justify-between px-4 pt-3" data-testid="project-board-header">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: project.color || "#3b82f6" }}
+            />
+            <span className="text-sm font-semibold theme-text-primary truncate">{project.name}</span>
+          </div>
+          {isProjectOwner && (
+            <button
+              type="button"
+              onClick={() => setShowEditProject(true)}
+              className="flex-shrink-0 p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
+              title="Edit project"
+              aria-label="Edit project"
+              data-testid="edit-project-button"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
+        data-testid="project-status-board"
+      >
+        <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
           const tasksForColumn = boardTasks.filter(task =>
             getTaskProjectColumnId(task, lists) === column.id
@@ -434,7 +479,16 @@ export function ProjectStatusBoard({
             </div>
           )
         })}
+        </div>
       </div>
+      {project && (
+        <EditProjectDialog
+          open={showEditProject}
+          onOpenChange={setShowEditProject}
+          project={project}
+          onSaved={setProject}
+        />
+      )}
     </div>
   )
 }
