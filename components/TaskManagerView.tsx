@@ -29,6 +29,7 @@ import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { canUserEditTask } from "@/lib/list-permissions"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
+import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
 
 interface TaskManagerViewProps {
   // Data from controller
@@ -683,6 +684,28 @@ const TaskManagerView = memo(function TaskManagerView({
     }
   }
 
+  // Resolve the full render matrix (which surface + which panes) up front.
+  // Hooks must run before the early return below.
+  const layout = useTaskManagerLayoutRouter({
+    isMobile,
+    isBoardMode,
+    is1Column,
+    is2Column,
+    is3Column,
+    isSettingsActive,
+    isSettingsPaneClosing,
+    settingsSubPage,
+    isSearchActive,
+    activePanel,
+    mobileView,
+    taskViewMode,
+    showHamburgerMenu,
+    hasUser: Boolean(effectiveSession?.user),
+    hasSelectedTask: Boolean(selectedTask),
+    isTaskPaneClosing,
+    isMobileTaskDetailClosing,
+  })
+
   // Show loading screen if no session (on all devices)
   if (!effectiveSession?.user) {
     return <LoadingScreen />
@@ -690,7 +713,7 @@ const TaskManagerView = memo(function TaskManagerView({
 
   // iOS drawer: sidebar is always rendered, content slides to reveal it
   // Works on mobile AND 2-column view (anywhere hamburger menu is shown)
-  const isIOSDrawer = showHamburgerMenu || isBoardMode
+  const isIOSDrawer = layout.isIOSDrawer
 
   return (
     <div className="app-container theme-bg-primary theme-text-primary">
@@ -807,13 +830,13 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           )}
 
-        {isSettingsActive ? (
+        {layout.mainSurface === 'settings' ? (
           <div className="flex-1 min-h-0 overflow-hidden flex">
             <div className="flex-1 min-w-0 overflow-y-auto scrollbar-hide" ref={taskManagerRef}>
               <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
             </div>
 
-            {(is3Column || is2Column) && (
+            {layout.showSettingsSecondPane && (
               <div className="flex-1 min-w-[280px] border-l theme-border flex items-center justify-center p-8">
                 <div className="flex flex-col items-center max-w-xs">
                   <div className="flex items-start space-x-4 w-full">
@@ -837,7 +860,7 @@ const TaskManagerView = memo(function TaskManagerView({
               </div>
             )}
           </div>
-        ) : activePanel === 'chat' && (isMobile || isBoardMode) && !isSearchActive ? (
+        ) : layout.mainSurface === 'mobileChat' ? (
           // In mobile and board mode, messages replace the task surface.
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
             <ChatPanel
@@ -935,7 +958,7 @@ const TaskManagerView = memo(function TaskManagerView({
         )}
 
         {/* Chat Panel - inline flex column on the right (2-column and 3-column), hidden in settings, dimmed when task detail is open */}
-        {(is3Column || is2Column) && effectiveSession?.user && !isSettingsActive && taskViewMode !== 'board' && (
+        {layout.showDesktopChatPanel && effectiveSession?.user && (
           <div className={`flex-1 order-last h-full border-l theme-border min-w-[280px] relative ${(selectedTask || settingsSubPage) ? 'pointer-events-none' : ''}`}>
             {(selectedTask || settingsSubPage) && (
               <div
@@ -968,7 +991,7 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {/* Desktop Settings Detail Pane - floating panel like task detail, positioned at settings panel right edge */}
-      {!is1Column && (settingsSubPage || isSettingsPaneClosing) && isSettingsActive && (
+      {layout.showDesktopSettingsDetailPane && (
         <div
           className={`task-panel-desktop scrollbar-hide ${isSettingsPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
           style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
@@ -986,7 +1009,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* Desktop Task Pane - positioned absolutely, slide-out from right.
           Kept mounted during close animation even when settings activates,
           so the slide-out can play instead of popping. */}
-      {!is1Column && !isBoardMode && selectedTask && effectiveSession?.user && (!isSettingsActive || isTaskPaneClosing) && (() => {
+      {layout.showDesktopTaskPane && selectedTask && effectiveSession?.user && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
@@ -1027,7 +1050,7 @@ const TaskManagerView = memo(function TaskManagerView({
       })()}
 
       {/* Mobile Settings Detail Pane - full screen */}
-      {isMobile && settingsSubPage && isSettingsActive && (
+      {layout.showMobileSettingsDetailPane && settingsSubPage && (
         <div className="task-panel-mobile task-panel-mobile-open">
           <SettingsDetailPanel
             page={settingsSubPage}
@@ -1038,7 +1061,7 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {/* Mobile Task Pane - takes over mobile view */}
-      {isMobile && !isBoardMode && !isSettingsActive && selectedTask && effectiveSession?.user && (mobileView === 'task' || isMobileTaskDetailClosing) && (() => {
+      {layout.showMobileTaskPane && selectedTask && effectiveSession?.user && (() => {
         // Determine if user can edit this specific task based on list permissions and task creator
         const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
         const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
