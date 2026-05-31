@@ -631,4 +631,34 @@ describe('CommentSection', () => {
       expect(screen.queryByText('Attached: test.png')).not.toBeInTheDocument()
     })
   })
+
+  // Task 2821d375 — Stage 12b: reply inputs now use the same RichTextInput +
+  // mention UX as the main input (the legacy @-popup textarea is gone).
+  describe('Unified reply input (Stage 12b)', () => {
+    it('renders the reply input as a RichTextInput, not the legacy textarea', () => {
+      const { container } = render(<CommentSection {...defaultProps} replyingTo="comment-1" />)
+      const replyInput = screen.getByPlaceholderText('Write a reply...')
+      // RichTextInput's textarea carries the rounded-xl signature class;
+      // the removed legacy reply textarea used `chat-input-textarea`.
+      expect(replyInput.className).toContain('rounded-xl')
+      expect(container.querySelector('.chat-input-textarea')).toBeNull()
+    })
+
+    it('uses the same input component for the main composer and the reply', () => {
+      const { container } = render(<CommentSection {...defaultProps} replyingTo="comment-1" />)
+      const main = screen.getByPlaceholderText('Add a comment...')
+      const reply = screen.getByPlaceholderText('Write a reply...')
+      // Same component → same signature class on both textareas.
+      expect(main.className).toContain('rounded-xl')
+      expect(reply.className).toContain('rounded-xl')
+      expect(container.querySelectorAll('.chat-input-textarea')).toHaveLength(0)
+    })
+
+    it('routes reply typing through setReplyContent', () => {
+      const setReplyContent = vi.fn()
+      render(<CommentSection {...defaultProps} replyingTo="comment-1" setReplyContent={setReplyContent} />)
+      fireEvent.change(screen.getByPlaceholderText('Write a reply...'), { target: { value: 'hi @' } })
+      expect(setReplyContent).toHaveBeenCalledWith('hi @')
+    })
+  })
 })
