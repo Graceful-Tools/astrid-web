@@ -139,14 +139,6 @@ export function CommentSection({
   const [localReplyUploadError, setLocalReplyUploadError] = useState<string | null>(null)
   const [isRefreshingDesktop, setIsRefreshingDesktop] = useState(false)
   const commentsContainerRef = useRef<HTMLDivElement>(null)
-  const commentInputRef = useRef<HTMLTextAreaElement>(null)
-  const replyInputRef = useRef<HTMLTextAreaElement>(null)
-
-  // Mention state
-  const [mentionSearch, setMentionSearch] = useState<string | null>(null)
-  const [mentionCursorPos, setMentionCursorPos] = useState<number>(0)
-  const [isMentioningForReply, setIsMentioningForReply] = useState(false)
-
   // Fetch Astrid agent for mention autocomplete
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
@@ -184,67 +176,6 @@ export function CommentSection({
 
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
   }, [task, currentUser.id, defaultAgent])
-
-  const filteredMentionUsers = useMemo(() => {
-    if (!mentionSearch) return mentionableUsers
-    const search = mentionSearch.toLowerCase()
-    return mentionableUsers.filter(u => 
-      (u.name?.toLowerCase().includes(search)) || 
-      (u.email.toLowerCase().includes(search))
-    )
-  }, [mentionableUsers, mentionSearch])
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>, isReply: boolean) => {
-    const value = e.target.value
-    const cursorPos = e.target.selectionStart
-    
-    if (isReply) {
-      setReplyContent(value)
-    } else {
-      setNewComment(value)
-    }
-
-    // Detect @ mention
-    const textBeforeCursor = value.substring(0, cursorPos)
-    const atIndex = textBeforeCursor.lastIndexOf('@')
-    
-    if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
-      const search = textBeforeCursor.substring(atIndex + 1)
-      if (!/\s/.test(search)) {
-        setMentionSearch(search)
-        setMentionCursorPos(atIndex)
-        setIsMentioningForReply(isReply)
-        return
-      }
-    }
-    
-    setMentionSearch(null)
-  }
-
-  const insertMention = (user: User) => {
-    const isReply = isMentioningForReply
-    const content = isReply ? replyContent : newComment
-    const setContent = isReply ? setReplyContent : setNewComment
-    const inputRef = isReply ? replyInputRef : commentInputRef
-
-    const textBefore = content.substring(0, mentionCursorPos)
-    const textAfter = content.substring(mentionCursorPos + (mentionSearch?.length || 0) + 1)
-    
-    const mentionText = `@[${user.name || user.email}](${user.id}) `
-    const newText = textBefore + mentionText + textAfter
-    
-    setContent(newText)
-    setMentionSearch(null)
-    
-    // Focus back and set cursor
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus()
-        const newPos = mentionCursorPos + mentionText.length
-        inputRef.current.setSelectionRange(newPos, newPos)
-      }
-    }, 0)
-  }
 
   // Use provided error state or local state
   const uploadErrorState = uploadError ?? localUploadError
@@ -842,39 +773,6 @@ export function CommentSection({
   }
 
   // Mention popup component (reused for both main and reply inputs)
-  const renderMentionPopup = (isForReply: boolean) => {
-    if (mentionSearch === null) return null
-    if (isForReply && !isMentioningForReply) return null
-    if (!isForReply && isMentioningForReply) return null
-
-    return (
-      <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border rounded-md shadow-lg z-50 overflow-hidden">
-        <div className="p-2 text-xs font-semibold text-muted-foreground border-b bg-muted/50 flex items-center">
-          Mention member
-        </div>
-        <div className="max-h-48 overflow-y-auto">
-          {filteredMentionUsers.length === 0 ? (
-            <div className="p-2 text-sm text-muted-foreground">No members found</div>
-          ) : (
-            filteredMentionUsers.map(user => (
-              <button
-                key={user.id}
-                className="w-full flex items-center px-3 py-2 text-sm hover:bg-accent text-left transition-colors"
-                onClick={() => insertMention(user)}
-              >
-                <Avatar className="h-6 w-6 mr-2">
-                  <AvatarImage src={user.image || undefined} />
-                  <AvatarFallback>{getAuthorInitial(user)}</AvatarFallback>
-                </Avatar>
-                <span className="truncate">{user.name || user.email}</span>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-    )
-  }
-
   const canSend = !!(newComment.trim() || attachedFile)
 
   return (
@@ -968,43 +866,23 @@ export function CommentSection({
                   </button>
                 </div>
 
-                {/* Reply input bar: [textarea] [send] */}
-                <div className="relative">
-                  {renderMentionPopup(true)}
-                  <div className="chat-input-bar shadow-none p-0">
-                    <textarea
-                      ref={replyInputRef}
-                      value={replyContent}
-                      onChange={(e) => handleTextChange(e, true)}
-                      placeholder="Write a reply..."
-                      className="chat-input-textarea theme-comment-bg theme-border theme-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-auto min-h-9 max-h-[200px]"
-                      rows={1}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement
-                        target.style.height = 'auto'
-                        target.style.height = target.scrollHeight + 'px'
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          if (e.shiftKey || e.metaKey || e.ctrlKey) return
-                          e.preventDefault()
-                          if (replyContent.trim() || replyAttachedFile) {
-                            handleAddReply(comment.id)
-                          }
-                        }
-                      }}
-                    />
-
-                    <button
-                      onClick={() => handleAddReply(comment.id)}
-                      disabled={!replyContent.trim() && !replyAttachedFile}
-                      className="flex-shrink-0 transition-colors"
-                      title="Send reply"
-                    >
-                      <Send className={`w-5 h-5 ${(replyContent.trim() || replyAttachedFile) ? 'text-blue-500' : 'theme-text-muted'}`} />
-                    </button>
-                  </div>
-                </div>
+                {/* Reply input bar — same RichTextInput + mention UX as the main input (Stage 12b) */}
+                <RichTextInput
+                  value={replyContent}
+                  onChange={setReplyContent}
+                  onSend={() => handleAddReply(comment.id)}
+                  mentionableUsers={mentionableUsers}
+                  currentUserId={currentUser.id}
+                  lists={availableLists}
+                  tasks={availableTasks}
+                  placeholder="Write a reply..."
+                  enableAttachments
+                  uploadContext={{ taskId: task.id }}
+                  attachedFile={replyAttachedFile}
+                  onAttachedFileChange={setReplyAttachedFile}
+                  uploadError={replyUploadErrorState}
+                  onUploadErrorChange={setReplyUploadErrorState}
+                />
               </div>
             )}
           </div>
