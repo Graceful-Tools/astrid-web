@@ -10,7 +10,7 @@ import { QuickTaskCreate } from "../../quick-task-create"
 import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creation"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
-import { TaskRow } from "./TaskRow"
+import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
@@ -331,6 +331,25 @@ export function MainContent({
 
   // Get the current list for dialog context
   const currentListForDialog = lists.find(l => l.id === selectedListId)
+
+  // Controller slice shared by every TaskRow (Stage 20b). Assembled from the
+  // props MainContent already receives so rows take one bundle, not ~14 props.
+  const rowController: TaskRowControllerSlice = {
+    selectedTaskId,
+    activeDragTaskId,
+    dragTargetTaskId,
+    dragTargetPosition,
+    manualSortActive,
+    manualSortPreviewActive,
+    effectiveSession,
+    handleTaskClick,
+    handleToggleTaskComplete,
+    handleCopyTask,
+    handleTaskDragStart,
+    handleTaskDragHover,
+    handleTaskDragLeaveTask,
+    handleTaskDragEnd,
+  }
 
   return (
     <>
@@ -840,29 +859,16 @@ export function MainContent({
                   <TaskRow
                     key={task.id}
                     task={task}
+                    controller={rowController}
                     isMobile={isMobile}
                     isTouchManualSort={isTouchManualSort}
-                    manualSortActive={manualSortActive}
-                    manualSortPreviewActive={manualSortPreviewActive}
-                    activeDragTaskId={activeDragTaskId}
-                    selectedTaskId={selectedTaskId}
-                    dragTargetTaskId={dragTargetTaskId}
-                    dragTargetPosition={dragTargetPosition}
+                    getPriorityColor={getPriorityColor}
                     draggingTaskMetrics={draggingTaskMetrics}
-                    currentUserId={effectiveSession?.user?.id}
                     registerTaskRow={registerTaskRow}
                     taskMeasurementsRef={taskMeasurementsRef}
                     renderManualPlaceholderRow={renderManualPlaceholderRow}
-                    onTaskClick={handleTaskClick}
                     setDraggingTaskMetrics={setDraggingTaskMetrics}
-                    onDragStart={handleTaskDragStart}
-                    onDragHover={handleTaskDragHover}
-                    onDragLeaveTask={handleTaskDragLeaveTask}
-                    onDragEnd={handleTaskDragEnd}
                     startMobileDrag={startMobileDrag}
-                    getPriorityColor={getPriorityColor}
-                    onToggleComplete={handleToggleTaskComplete}
-                    onCopyPublic={handleCopyTask}
                   />
                 ))}
                 {manualSortPreviewActive && finalFilteredTasks.length > 0 && (

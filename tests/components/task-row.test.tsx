@@ -15,7 +15,7 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TaskRow, type TaskRowProps } from '@/components/TaskManager/MainContent/TaskRow'
+import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/components/TaskManager/MainContent/TaskRow'
 import type { Task } from '@/types/task'
 
 // Mock the inner body so we can drive its callbacks without its real markup.
@@ -31,32 +31,39 @@ vi.mock('@/components/task-row-content', () => ({
 
 const task = { id: 'task-1', title: 'Buy milk', completed: false, priority: 0 } as unknown as Task
 
+function makeController(overrides: Partial<TaskRowControllerSlice> = {}): TaskRowControllerSlice {
+  return {
+    selectedTaskId: '',
+    activeDragTaskId: null,
+    dragTargetTaskId: null,
+    dragTargetPosition: null,
+    manualSortActive: false,
+    manualSortPreviewActive: false,
+    effectiveSession: { user: { id: 'user-1' } },
+    handleTaskClick: vi.fn(),
+    handleToggleTaskComplete: vi.fn(),
+    handleCopyTask: vi.fn(),
+    handleTaskDragStart: vi.fn(),
+    handleTaskDragHover: vi.fn(),
+    handleTaskDragLeaveTask: vi.fn(),
+    handleTaskDragEnd: vi.fn(),
+    ...overrides,
+  } as unknown as TaskRowControllerSlice
+}
+
 function makeProps(overrides: Partial<TaskRowProps> = {}): TaskRowProps {
   return {
     task,
+    controller: makeController(),
     isMobile: false,
     isTouchManualSort: false,
-    manualSortActive: false,
-    manualSortPreviewActive: false,
-    activeDragTaskId: null,
-    selectedTaskId: '',
-    dragTargetTaskId: null,
-    dragTargetPosition: null,
+    getPriorityColor: () => 'gray',
     draggingTaskMetrics: null,
-    currentUserId: 'user-1',
     registerTaskRow: () => () => {},
     taskMeasurementsRef: { current: new Map() },
     renderManualPlaceholderRow: (key) => <div key={key} data-testid="placeholder" />,
-    onTaskClick: vi.fn(),
     setDraggingTaskMetrics: vi.fn(),
-    onDragStart: vi.fn(),
-    onDragHover: vi.fn(),
-    onDragLeaveTask: vi.fn(),
-    onDragEnd: vi.fn(),
     startMobileDrag: vi.fn(),
-    getPriorityColor: () => 'gray',
-    onToggleComplete: vi.fn(),
-    onCopyPublic: vi.fn(),
     ...overrides,
   }
 }
@@ -73,28 +80,27 @@ describe('TaskRow (Stage 20a / task 0a16228c)', () => {
   })
 
   it('opens the task when the row is clicked', () => {
-    const onTaskClick = vi.fn()
-    const { container } = render(<TaskRow {...makeProps({ onTaskClick })} />)
+    const controller = makeController()
+    const { container } = render(<TaskRow {...makeProps({ controller })} />)
     const row = container.querySelector('[data-task-id="task-1"]') as HTMLElement
     fireEvent.click(row)
-    expect(onTaskClick).toHaveBeenCalledWith('task-1', row)
+    expect(controller.handleTaskClick).toHaveBeenCalledWith('task-1', row)
   })
 
   it('wires complete and copy callbacks through to the row id', () => {
-    const onToggleComplete = vi.fn()
-    const onCopyPublic = vi.fn()
-    render(<TaskRow {...makeProps({ onToggleComplete, onCopyPublic })} />)
+    const controller = makeController()
+    render(<TaskRow {...makeProps({ controller })} />)
     fireEvent.click(screen.getByTestId('toggle'))
     fireEvent.click(screen.getByTestId('copy'))
-    expect(onToggleComplete).toHaveBeenCalledWith('task-1')
-    expect(onCopyPublic).toHaveBeenCalledWith('task-1')
+    expect(controller.handleToggleTaskComplete).toHaveBeenCalledWith('task-1')
+    expect(controller.handleCopyTask).toHaveBeenCalledWith('task-1')
   })
 
   it('records drag metrics and notifies on drag start (desktop)', () => {
-    const onDragStart = vi.fn()
+    const controller = makeController()
     const setDraggingTaskMetrics = vi.fn()
     const { container } = render(
-      <TaskRow {...makeProps({ onDragStart, setDraggingTaskMetrics })} />
+      <TaskRow {...makeProps({ controller, setDraggingTaskMetrics })} />
     )
     const row = container.querySelector('[data-task-id="task-1"]') as HTMLElement
     expect(row.getAttribute('draggable')).toBe('true')
@@ -102,7 +108,7 @@ describe('TaskRow (Stage 20a / task 0a16228c)', () => {
     expect(setDraggingTaskMetrics).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 'task-1' })
     )
-    expect(onDragStart).toHaveBeenCalledWith('task-1')
+    expect(controller.handleTaskDragStart).toHaveBeenCalledWith('task-1')
   })
 
   it('is not native-draggable while touch manual sort is active', () => {
@@ -115,15 +121,14 @@ describe('TaskRow (Stage 20a / task 0a16228c)', () => {
 
   it('starts a mobile drag from the grab handle when manual sort is active', () => {
     const startMobileDrag = vi.fn()
-    const onDragStart = vi.fn()
+    const controller = makeController({ manualSortActive: true })
     const { container } = render(
       <TaskRow
         {...makeProps({
           isMobile: true,
           isTouchManualSort: true,
-          manualSortActive: true,
+          controller,
           startMobileDrag,
-          onDragStart,
         })}
       />
     )
@@ -133,6 +138,6 @@ describe('TaskRow (Stage 20a / task 0a16228c)', () => {
     expect(grabber).not.toBeNull()
     fireEvent.touchStart(grabber, { touches: [{ identifier: 7, clientX: 0, clientY: 0 }] })
     expect(startMobileDrag).toHaveBeenCalledWith('task-1', 7)
-    expect(onDragStart).toHaveBeenCalledWith('task-1')
+    expect(controller.handleTaskDragStart).toHaveBeenCalledWith('task-1')
   })
 })

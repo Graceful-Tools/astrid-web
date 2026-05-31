@@ -3,24 +3,44 @@
 import React from "react"
 import { TaskRowContent } from "../../task-row-content"
 import type { Task } from "@/types/task"
+import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
 interface DraggingTaskMetrics {
   taskId: string
   height: number
 }
 
+/**
+ * The slice of the task-manager controller that a single row needs:
+ * selection + drag state plus the per-task action handlers. Bundling these
+ * behind the shared contract (Stage 20b) replaces ~14 drilled props with one,
+ * and lets TypeScript catch any handler the controller drops.
+ */
+export type TaskRowControllerSlice = Pick<
+  TaskManagerControllerReturn,
+  | 'selectedTaskId'
+  | 'activeDragTaskId'
+  | 'dragTargetTaskId'
+  | 'dragTargetPosition'
+  | 'manualSortActive'
+  | 'manualSortPreviewActive'
+  | 'effectiveSession'
+  | 'handleTaskClick'
+  | 'handleToggleTaskComplete'
+  | 'handleCopyTask'
+  | 'handleTaskDragStart'
+  | 'handleTaskDragHover'
+  | 'handleTaskDragLeaveTask'
+  | 'handleTaskDragEnd'
+>
+
 export interface TaskRowProps {
   task: Task
+  controller: TaskRowControllerSlice
   isMobile: boolean
   isTouchManualSort: boolean
-  manualSortActive: boolean
-  manualSortPreviewActive: boolean
-  activeDragTaskId: string | null
-  selectedTaskId: string
-  dragTargetTaskId: string | null
-  dragTargetPosition: 'above' | 'below' | 'end' | null
+  getPriorityColor: (priority: number) => string
   draggingTaskMetrics: DraggingTaskMetrics | null
-  currentUserId?: string
 
   // Per-row DOM registration + measurement cache (shared across the list)
   registerTaskRow: (taskId: string) => (node: HTMLDivElement | null) => void
@@ -33,17 +53,9 @@ export interface TaskRowProps {
     options?: { className?: string; style?: React.CSSProperties }
   ) => React.ReactNode
 
-  // Handlers (owned by MainContent / its hooks)
-  onTaskClick: (taskId: string, taskElement?: HTMLElement) => Promise<void> | void
+  // Row-local drag infrastructure owned by MainContent (not the controller)
   setDraggingTaskMetrics: (metrics: DraggingTaskMetrics | null) => void
-  onDragStart: (taskId: string) => void
-  onDragHover: (taskId: string, position: 'above' | 'below') => void
-  onDragLeaveTask: (taskId: string) => void
-  onDragEnd: () => void
   startMobileDrag: (taskId: string, touchIdentifier: number) => void
-  getPriorityColor: (priority: number) => string
-  onToggleComplete: (taskId: string) => Promise<void> | void
-  onCopyPublic: (taskId: string) => Promise<void> | void
 }
 
 /**
@@ -57,30 +69,34 @@ export interface TaskRowProps {
  */
 export function TaskRow({
   task,
+  controller,
   isMobile,
   isTouchManualSort,
-  manualSortActive,
-  manualSortPreviewActive,
-  activeDragTaskId,
-  selectedTaskId,
-  dragTargetTaskId,
-  dragTargetPosition,
+  getPriorityColor,
   draggingTaskMetrics,
-  currentUserId,
   registerTaskRow,
   taskMeasurementsRef,
   renderManualPlaceholderRow,
-  onTaskClick,
   setDraggingTaskMetrics,
-  onDragStart,
-  onDragHover,
-  onDragLeaveTask,
-  onDragEnd,
   startMobileDrag,
-  getPriorityColor,
-  onToggleComplete,
-  onCopyPublic,
 }: TaskRowProps) {
+  const {
+    selectedTaskId,
+    activeDragTaskId,
+    dragTargetTaskId,
+    dragTargetPosition,
+    manualSortActive,
+    manualSortPreviewActive,
+    effectiveSession,
+    handleTaskClick: onTaskClick,
+    handleToggleTaskComplete: onToggleComplete,
+    handleCopyTask: onCopyPublic,
+    handleTaskDragStart: onDragStart,
+    handleTaskDragHover: onDragHover,
+    handleTaskDragLeaveTask: onDragLeaveTask,
+    handleTaskDragEnd: onDragEnd,
+  } = controller
+  const currentUserId = effectiveSession?.user?.id
   const isDragging = activeDragTaskId === task.id
   // Unified card styling for both mobile and desktop
   const classNames = [
