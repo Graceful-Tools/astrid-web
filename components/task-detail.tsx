@@ -5,7 +5,6 @@ import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,7 +12,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MarkdownEditor } from "./markdown-editor"
-import { SecureAttachmentViewer } from "./secure-attachment-viewer"
 import { UserPicker } from "./user-picker"
 import { CustomRepeatingEditor } from "./custom-repeating-editor"
 import { PriorityPicker } from "./ui/priority-picker"
@@ -22,10 +20,10 @@ import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
+import { TaskActivitySection } from "./task-detail/TaskActivitySection"
 import type { Task, Comment, User, TaskList } from "../types/task"
-import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Globe, Users, Copy, Link as LinkIcon, Timer } from "lucide-react"
+import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Globe, Users, Copy, Link as LinkIcon } from "lucide-react"
 import { apiPost } from "@/lib/api"
-import { TaskTimer } from "./task-timer"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { shouldHideTaskPriority, shouldHideTaskWhen, shouldHideTaskComments } from "@/lib/public-list-utils"
 import { format } from "date-fns"
@@ -1392,68 +1390,13 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           onInviteUser={handleInviteUser}
         />
 
-        {/* All Attachments Section */}
-        {(() => {
-          // Collect attachments from secure files in comments
-          const secureFileAttachments = (task.comments || [])
-            .flatMap(comment =>
-              (comment.secureFiles || []).map((file: any) => ({
-                id: `secure-${file.id}`,
-                fileId: file.id,
-                name: file.originalName,
-                type: file.mimeType,
-                size: file.fileSize,
-                createdAt: comment.createdAt,
-                isSecure: true
-              }))
-            )
-
-          const allAttachments: Array<any> = [...secureFileAttachments]
-
-          return allAttachments.length > 0 ? (
-            <div>
-              <Label className="text-sm theme-text-muted">
-                Attachments ({allAttachments.length})
-              </Label>
-              <div className="flex gap-2 mt-1 overflow-x-auto scrollbar-hide pb-1">
-                {allAttachments.map((attachment) => (
-                  <SecureAttachmentViewer
-                    key={attachment.id}
-                    fileId={attachment.fileId}
-                    fileName={attachment.name}
-                    showFileName={false}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null
-        })()}
-
-
-        {/* Timer Button (before comments, matching iOS order) */}
-        <div className="mt-4 px-4">
-          <Button
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2 py-6 text-lg"
-            onClick={() => setShowTimer(true)}
-          >
-            <Timer className="w-5 h-5" />
-            Timer
-          </Button>
-          {task.lastTimerValue && (
-            <p className="mt-2 text-sm theme-text-muted text-center">
-              Last: {task.lastTimerValue}
-            </p>
-          )}
-        </div>
-
-        {showTimer && (
-          <TaskTimer
-            task={task}
-            onClose={() => setShowTimer(false)}
-            onUpdate={onUpdate}
-          />
-        )}
+        {/* Activity: attachments + timer (Stage 22 sub-view) */}
+        <TaskActivitySection
+          task={task}
+          showTimer={showTimer}
+          setShowTimer={setShowTimer}
+          onUpdate={onUpdate}
+        />
 
         {/* Comments Section (chat bubbles only - input bar is outside scroll area) */}
         {!shouldHideTaskComments(task) && (
