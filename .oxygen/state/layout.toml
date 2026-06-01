@@ -1,0 +1,55 @@
+schema_version = 1
+
+[[panes]]
+id = 0
+buffers = [
+    "AGENTS.md",
+    "ASTRID.md",
+    "ASTRID_WORKFLOW.md",
+]
+active = 2
+
+[panes.surface]
+kind = "editor"
+
+[[panes]]
+id = 1
+buffers = []
+active = 0
+
+[panes.surface]
+kind = "terminal"
+id = 1
+title = "Terminal 1"
+
+[[panes]]
+id = 2
+buffers = []
+active = 0
+
+[panes.surface]
+kind = "terminal"
+id = 2
+title = "Terminal 2"
+
+[layout]
+kind = "split"
+axis = "horizontal"
+ratio = 5000
+
+[layout.left]
+kind = "leaf"
+pane = 0
+
+[layout.right]
+kind = "split"
+axis = "vertical"
+ratio = 5000
+
+[layout.right.left]
+kind = "leaf"
+pane = 1
+
+[layout.right.right]
+kind = "leaf"
+pane = 2

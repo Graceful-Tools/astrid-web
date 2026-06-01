@@ -12,6 +12,8 @@ vi.mock('@/lib/prisma', () => ({
       findMany: vi.fn(),
       createMany: vi.fn(),
       create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
     project: {
       findMany: vi.fn(),
@@ -22,12 +24,14 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
 const mockCreateMany = vi.mocked(prisma.taskList.createMany)
 const mockListCreate = vi.mocked(prisma.taskList.create)
+const mockListFindUnique = vi.mocked(prisma.taskList.findUnique)
+const mockListUpdate = vi.mocked(prisma.taskList.update)
 const mockProjectFindMany = vi.mocked(prisma.project.findMany)
 const mockProjectFindFirst = vi.mocked(prisma.project.findFirst)
 const mockProjectFindUnique = vi.mocked(prisma.project.findUnique)
@@ -287,5 +291,62 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
     await addUserStatus(USER, 'Blocked!')
     const data = (mockListCreate.mock.calls[0][0] as any).data
     expect(data.statusRole).toBe('custom-blocked-2')
+  })
+})
+
+describe('attachListToProject (task 0b0784c7 — project board #2)', () => {
+  const USER = 'user-1'
+
+  function visibleProject() {
+    mockProjectFindFirst.mockResolvedValue({
+      id: 'proj-1', ownerId: USER, members: [{ userId: 'member-2' }],
+    } as never)
+  }
+
+  it('rejects when the project is not visible to the user', async () => {
+    mockProjectFindFirst.mockResolvedValue(null as never)
+    mockListFindUnique.mockResolvedValue({ id: 'l1', ownerId: USER, listType: 'regular', projectId: null } as never)
+    expect(await attachListToProject('proj-1', 'l1', USER)).toEqual({ error: 'project_not_found' })
+    expect(mockListUpdate).not.toHaveBeenCalled()
+  })
+
+  it('rejects when the list does not exist', async () => {
+    visibleProject()
+    mockListFindUnique.mockResolvedValue(null as never)
+    expect(await attachListToProject('proj-1', 'l1', USER)).toEqual({ error: 'list_not_found' })
+  })
+
+  it('forbids attaching a list the user does not own', async () => {
+    visibleProject()
+    mockListFindUnique.mockResolvedValue({ id: 'l1', ownerId: 'someone-else', listType: 'regular', projectId: null } as never)
+    expect(await attachListToProject('proj-1', 'l1', USER)).toEqual({ error: 'forbidden' })
+    expect(mockListUpdate).not.toHaveBeenCalled()
+  })
+
+  it('refuses to attach a status list', async () => {
+    visibleProject()
+    mockListFindUnique.mockResolvedValue({ id: 'l1', ownerId: USER, listType: 'status', projectId: null } as never)
+    expect(await attachListToProject('proj-1', 'l1', USER)).toMatchObject({ error: 'invalid' })
+  })
+
+  it('refuses to attach a list already in a project', async () => {
+    visibleProject()
+    mockListFindUnique.mockResolvedValue({ id: 'l1', ownerId: USER, listType: 'regular', projectId: 'proj-2' } as never)
+    expect(await attachListToProject('proj-1', 'l1', USER)).toMatchObject({ error: 'invalid' })
+  })
+
+  it('attaches the list and invalidates project members + the user', async () => {
+    visibleProject()
+    mockListFindUnique.mockResolvedValue({ id: 'l1', ownerId: USER, listType: 'regular', projectId: null } as never)
+    mockListUpdate.mockResolvedValue({ id: 'l1', projectId: 'proj-1' } as never)
+    const result = await attachListToProject('proj-1', 'l1', USER)
+    expect(mockListUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'l1' }, data: { projectId: 'proj-1' } })
+    )
+    if ('list' in result) {
+      expect([...result.userIdsToInvalidate].sort()).toEqual(['member-2', USER].sort())
+    } else {
+      throw new Error('expected success')
+    }
   })
 })

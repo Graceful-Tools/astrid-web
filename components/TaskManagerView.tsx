@@ -30,6 +30,7 @@ import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { canUserEditTask } from "@/lib/list-permissions"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
+import { useProjects, getProjectPrimaryListId, type ProjectSummary } from "@/hooks/use-projects"
 
 interface TaskManagerViewProps {
   // Data from controller
@@ -422,6 +423,16 @@ const TaskManagerView = memo(function TaskManagerView({
   )
   const isBoardMode = hasProjectBoard && taskViewMode === 'board'
 
+  // Project picker (board sub-task #1): list the user's projects and open one
+  // by selecting its primary domain list, then switching to board view.
+  const { projects: sidebarProjects } = useProjects(Boolean(effectiveSession?.user))
+  const handleOpenProject = React.useCallback((project: ProjectSummary) => {
+    const listId = getProjectPrimaryListId(project)
+    if (!listId) return
+    setSelectedListId(listId)
+    setTaskViewMode('board')
+  }, [setSelectedListId])
+
   const handleProjectBoardCreated = React.useCallback((projectLists: TaskList[]) => {
     setLists(prevLists => {
       const byId = new Map(prevLists.map(list => [list.id, list]))
@@ -729,6 +740,8 @@ const TaskManagerView = memo(function TaskManagerView({
           publicLists={publicLists}
           collaborativePublicLists={collaborativePublicLists}
           suggestedPublicLists={suggestedPublicLists}
+          projects={sidebarProjects}
+          onOpenProject={handleOpenProject}
           selectedListId={selectedListId}
           getFixedListTaskCountMemo={getFixedListTaskCountMemo}
           getSavedFilterTaskCountMemo={getSavedFilterTaskCountMemo}

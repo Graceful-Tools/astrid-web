@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { KanbanSquare } from "lucide-react"
 import type { TaskList } from "@/types/task"
+import { useProjects } from "@/hooks/use-projects"
 
 interface BoardViewSectionProps {
   list: TaskList
@@ -31,6 +32,39 @@ export function BoardViewSection({
   const [isRemovingProjectBoard, setIsRemovingProjectBoard] = useState(false)
   const [projectBoardError, setProjectBoardError] = useState<string | null>(null)
   const [showDisableBoardConfirmation, setShowDisableBoardConfirmation] = useState(false)
+  const [attachTargetId, setAttachTargetId] = useState<string>("")
+  const [isAttaching, setIsAttaching] = useState(false)
+
+  // Projects the list could be attached to (board sub-task #2). Only fetched
+  // when this is an unattached, editable list.
+  const { projects } = useProjects(canEditSettings && !list.projectId)
+
+  const handleAttachToProject = useCallback(async () => {
+    if (!attachTargetId || list.projectId || isAttaching) return
+    setIsAttaching(true)
+    setProjectBoardError(null)
+    try {
+      const response = await fetch(`/api/projects/${attachTargetId}/lists`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listId: list.id }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to attach list')
+      }
+      const data = await response.json()
+      const updatedList: TaskList = data.list ?? { ...list, projectId: attachTargetId }
+      onUpdate(updatedList)
+      onProjectBoardCreated?.([updatedList])
+      setAttachTargetId("")
+    } catch (error) {
+      console.error('Error attaching list to project:', error)
+      setProjectBoardError(error instanceof Error ? error.message : 'Failed to attach list')
+    } finally {
+      setIsAttaching(false)
+    }
+  }, [attachTargetId, isAttaching, list, onProjectBoardCreated, onUpdate])
 
   const handleCreateProjectBoard = useCallback(async () => {
     if (list.projectId || isCreatingProjectBoard) return
@@ -156,6 +190,33 @@ export function BoardViewSection({
             </Button>
           )}
         </div>
+        {!list.projectId && projects.length > 0 && (
+          <div className="flex items-center gap-2 pt-1" data-testid="attach-project-row">
+            <span className="text-xs theme-text-muted shrink-0">or attach to</span>
+            <select
+              value={attachTargetId}
+              onChange={(e) => setAttachTargetId(e.target.value)}
+              disabled={isAttaching}
+              aria-label="Attach to existing project"
+              className="flex-1 min-w-0 text-xs theme-comment-bg theme-border border theme-text-primary rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">an existing project…</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!attachTargetId || isAttaching}
+              onClick={handleAttachToProject}
+              className="shrink-0"
+            >
+              {isAttaching ? "Attaching..." : "Attach"}
+            </Button>
+          </div>
+        )}
         {projectBoardError ? (
           <p className="text-xs text-red-500">{projectBoardError}</p>
         ) : null}
