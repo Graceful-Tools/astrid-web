@@ -215,3 +215,75 @@ export async function deleteProjectAndDetachLists(projectId: string) {
 
   return { project, detachedListIds: domainListIds, userIdsToInvalidate }
 }
+
+export type AttachListResult =
+  | { error: 'project_not_found' }
+  | { error: 'list_not_found' }
+  | { error: 'forbidden' }
+  | { error: 'invalid'; message: string }
+  | {
+      list: Awaited<ReturnType<typeof listProjectsForUser>>[number]['lists'][number]
+      userIdsToInvalidate: Set<string>
+    }
+
+/**
+ * Attach an existing regular list to an existing project (board sub-task #2).
+ * Validated both ways: the user must be able to see the target project (owner
+ * or member) AND own the list. Status lists are per-user globals and can never
+ * be attached; a list already in a project must be detached first.
+ */
+export async function attachListToProject(
+  projectId: string,
+  listId: string,
+  userId: string,
+): Promise<AttachListResult> {
+  const [project, list] = await Promise.all([
+    prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: { id: true, ownerId: true, members: { select: { userId: true } } },
+    }),
+    prisma.taskList.findUnique({
+      where: { id: listId },
+      select: { id: true, ownerId: true, listType: true, projectId: true },
+    }),
+  ])
+
+  if (!project) {
+    return { error: 'project_not_found' }
+  }
+  if (!list) {
+    return { error: 'list_not_found' }
+  }
+  if (list.ownerId !== userId) {
+    return { error: 'forbidden' }
+  }
+  if (list.listType === 'status') {
+    return { error: 'invalid', message: 'Status lists cannot be attached to a project' }
+  }
+  if (list.projectId) {
+    return {
+      error: 'invalid',
+      message:
+        list.projectId === projectId
+          ? 'List is already part of this project'
+          : 'List already belongs to another project — detach it first',
+    }
+  }
+
+  const updated = await prisma.taskList.update({
+    where: { id: listId },
+    data: { projectId },
+    include: listInclude,
+  })
+
+  const userIdsToInvalidate = new Set<string>([
+    project.ownerId,
+    ...project.members.map((member) => member.userId),
+    userId,
+  ])
+
+  return { list: updated, userIdsToInvalidate }
+}
