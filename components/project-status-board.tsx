@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { CheckCircle2, Inbox, Plus, Settings } from "lucide-react"
+import { CheckCircle2, Inbox, Plus, Settings, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EditProjectDialog, type EditableProject } from "@/components/EditProjectDialog"
 import { Input } from "@/components/ui/input"
@@ -20,10 +20,12 @@ import {
   VIRTUAL_DONE_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
+  getProjectStatusLists,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
   scopeProjectBoardTasks,
 } from "@/lib/project-status"
+import { ManageStatusesDialog } from "@/components/ManageStatusesDialog"
 
 interface ProjectStatusBoardProps {
   allTasks: Task[]
@@ -37,6 +39,8 @@ interface ProjectStatusBoardProps {
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onCreateTask: (title: string, options?: { listIds?: string[] }) => Promise<string | null>
   isOneColumn?: boolean
+  /** Reload lists after status columns are renamed/reordered/added (sub-task #5). */
+  onStatusesChanged?: () => void
 }
 
 export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
@@ -65,7 +69,9 @@ export function ProjectStatusBoard({
   onCopyTask,
   onCreateTask,
   isOneColumn = false,
+  onStatusesChanged,
 }: ProjectStatusBoardProps) {
+  const [showManageStatuses, setShowManageStatuses] = React.useState(false)
   const projectId = getProjectIdForBoard(lists, selectedListId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
     () => (projectId ? getProjectBoardColumns(lists) : []),
@@ -314,18 +320,32 @@ export function ProjectStatusBoard({
               </button>
             </div>
           )}
-          {isProjectOwner && (
-            <button
-              type="button"
-              onClick={() => setShowEditProject(true)}
-              className="flex-shrink-0 p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
-              title="Edit project"
-              aria-label="Edit project"
-              data-testid="edit-project-button"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {onStatusesChanged && (
+              <button
+                type="button"
+                onClick={() => setShowManageStatuses(true)}
+                className="p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
+                title="Manage statuses"
+                aria-label="Manage statuses"
+                data-testid="manage-statuses-button"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </button>
+            )}
+            {isProjectOwner && (
+              <button
+                type="button"
+                onClick={() => setShowEditProject(true)}
+                className="p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
+                title="Edit project"
+                aria-label="Edit project"
+                data-testid="edit-project-button"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       )}
       <div
@@ -521,6 +541,14 @@ export function ProjectStatusBoard({
           onOpenChange={setShowEditProject}
           project={project}
           onSaved={setProject}
+        />
+      )}
+      {onStatusesChanged && (
+        <ManageStatusesDialog
+          open={showManageStatuses}
+          onOpenChange={setShowManageStatuses}
+          statuses={getProjectStatusLists(lists)}
+          onChanged={onStatusesChanged}
         />
       )}
     </div>

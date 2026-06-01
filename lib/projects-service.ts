@@ -317,3 +317,73 @@ export async function updateProjectMetadata(
 
   return { project: updated, userIdsToInvalidate }
 }
+
+export type AddUserStatusResult =
+  | { error: 'invalid'; message: string }
+  | { error: 'duplicate'; message: string }
+  | {
+      list: Awaited<ReturnType<typeof fetchUserStatusLists>>[number]
+      userIdsToInvalidate: Set<string>
+    }
+
+/** Slugify a status name into a stable, role-safe identifier fragment. */
+function statusNameToRoleFragment(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'status'
+}
+
+/**
+ * Add a custom status column for the user (board sub-task #5, keep-global
+ * model). Status lists are per-user globals (`projectId: null`), so the new
+ * column appears on every board the user has. Appended after the existing
+ * statuses by `statusOrder`. Rename/reorder reuse PUT /api/lists/[id].
+ */
+export async function addUserStatus(userId: string, name: string): Promise<AddUserStatusResult> {
+  const trimmed = name.trim()
+  if (!trimmed) {
+    return { error: 'invalid', message: 'Status name cannot be empty' }
+  }
+  if (trimmed.length > 40) {
+    return { error: 'invalid', message: 'Status name is too long (40 characters max)' }
+  }
+
+  const existing = await prisma.taskList.findMany({
+    where: { ownerId: userId, listType: 'status', projectId: null },
+    select: { name: true, statusOrder: true, statusRole: true },
+  })
+
+  if (existing.some(s => s.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+    return { error: 'duplicate', message: 'A status with that name already exists' }
+  }
+
+  const maxOrder = existing.reduce(
+    (max, s) => Math.max(max, typeof s.statusOrder === 'number' ? s.statusOrder : 0),
+    0,
+  )
+  const roles = new Set(existing.map(s => s.statusRole))
+  const base = `custom-${statusNameToRoleFragment(trimmed)}`
+  let statusRole = base
+  let suffix = 2
+  while (roles.has(statusRole)) {
+    statusRole = `${base}-${suffix++}`
+  }
+
+  const created = await prisma.taskList.create({
+    data: {
+      name: trimmed,
+      description: trimmed,
+      color: '#3b82f6',
+      privacy: 'PRIVATE',
+      ownerId: userId,
+      projectId: null,
+      listType: 'status',
+      statusRole,
+      statusOrder: maxOrder + 1,
+      statusDescription: trimmed,
+      statusCompleted: false,
+      imageUrl: null,
+    },
+    include: listInclude,
+  })
+
+  return { list: created, userIdsToInvalidate: new Set<string>([userId]) }
+}

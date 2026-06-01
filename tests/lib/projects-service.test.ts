@@ -11,6 +11,7 @@ vi.mock('@/lib/prisma', () => ({
     taskList: {
       findMany: vi.fn(),
       createMany: vi.fn(),
+      create: vi.fn(),
     },
     project: {
       findMany: vi.fn(),
@@ -21,11 +22,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
 const mockCreateMany = vi.mocked(prisma.taskList.createMany)
+const mockListCreate = vi.mocked(prisma.taskList.create)
 const mockProjectFindMany = vi.mocked(prisma.project.findMany)
 const mockProjectFindFirst = vi.mocked(prisma.project.findFirst)
 const mockProjectFindUnique = vi.mocked(prisma.project.findUnique)
@@ -234,5 +236,56 @@ describe('getProjectForUser (task 17745aa8 — project board #6)', () => {
 
     const result = await getProjectForUser('p1', 'user-1')
     expect(result?.lists.map((l: any) => l.id)).toEqual(['domain-a', 'ready', 'doing', 'waiting'])
+  })
+})
+
+describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
+  const USER = 'user-1'
+
+  it('rejects an empty name', async () => {
+    expect(await addUserStatus(USER, '   ')).toMatchObject({ error: 'invalid' })
+    expect(mockListCreate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a duplicate name (case-insensitive)', async () => {
+    mockFindMany.mockResolvedValue([
+      { name: 'Ready', statusOrder: 0, statusRole: 'ready' },
+    ] as never)
+    expect(await addUserStatus(USER, ' ready ')).toMatchObject({ error: 'duplicate' })
+    expect(mockListCreate).not.toHaveBeenCalled()
+  })
+
+  it('appends after the highest statusOrder with a unique custom role', async () => {
+    mockFindMany.mockResolvedValue([
+      { name: 'Ready', statusOrder: 0, statusRole: 'ready' },
+      { name: 'Doing', statusOrder: 1, statusRole: 'doing' },
+      { name: 'Waiting', statusOrder: 2, statusRole: 'waiting' },
+    ] as never)
+    mockListCreate.mockResolvedValue({ id: 'new', name: 'Blocked' } as never)
+
+    const result = await addUserStatus(USER, '  Blocked  ')
+    expect('list' in result && result.list).toMatchObject({ id: 'new' })
+    const data = (mockListCreate.mock.calls[0][0] as any).data
+    expect(data).toMatchObject({
+      name: 'Blocked',
+      ownerId: USER,
+      projectId: null,
+      listType: 'status',
+      statusOrder: 3,
+      statusRole: 'custom-blocked',
+    })
+    if ('userIdsToInvalidate' in result) {
+      expect([...result.userIdsToInvalidate]).toEqual([USER])
+    }
+  })
+
+  it('disambiguates a custom role that collides with an existing one', async () => {
+    mockFindMany.mockResolvedValue([
+      { name: 'Blocked', statusOrder: 0, statusRole: 'custom-blocked' },
+    ] as never)
+    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+    await addUserStatus(USER, 'Blocked!')
+    const data = (mockListCreate.mock.calls[0][0] as any).data
+    expect(data.statusRole).toBe('custom-blocked-2')
   })
 })

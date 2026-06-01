@@ -950,6 +950,7 @@ const TaskManagerView = memo(function TaskManagerView({
             onListUpdate={handleUpdateList}
             onProjectBoardCreated={handleProjectBoardCreated}
             onProjectBoardRemoved={handleProjectBoardRemoved}
+            onStatusesChanged={loadData}
             onFavoriteToggle={handleToggleListFavorite}
             onListDelete={handleDeleteList}
             handleCopyList={handleCopyList}

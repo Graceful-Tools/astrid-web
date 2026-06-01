@@ -152,6 +152,7 @@ interface MainContentProps {
   onListUpdate: (updatedList: TaskList) => Promise<void>
   onProjectBoardCreated?: (projectLists: TaskList[]) => void
   onProjectBoardRemoved?: (projectId: string, detachedListIds: string[]) => void
+  onStatusesChanged?: () => void
   onListDelete: (listId: string) => void
   onFavoriteToggle?: (listId: string) => void
 }
@@ -232,6 +233,7 @@ export function MainContent({
   onListUpdate,
   onProjectBoardCreated,
   onProjectBoardRemoved,
+  onStatusesChanged,
   onListDelete,
   onFavoriteToggle
 }: MainContentProps) {
@@ -751,6 +753,7 @@ export function MainContent({
               onCopyTask={handleCopyTask}
               onCreateTask={handleQuickCreateTask}
               isOneColumn={Boolean(isOneColumn)}
+              onStatusesChanged={onStatusesChanged}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (
