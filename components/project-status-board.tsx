@@ -22,6 +22,7 @@ import {
   getProjectDomainTasks,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
+  scopeProjectBoardTasks,
 } from "@/lib/project-status"
 
 interface ProjectStatusBoardProps {
@@ -87,13 +88,25 @@ export function ProjectStatusBoard({
     }
   }, [])
 
+  // Scope toggle (board sub-task #4): view just the selected list's tasks, or
+  // every list in the project aggregated by status. Defaults to the selected
+  // list; resets to that whenever the selected list changes.
+  const isDomainListSelected =
+    selectedList?.projectId === projectId && selectedList.listType !== "status"
+  const projectDomainListCount = React.useMemo(
+    () => lists.filter(l => l.projectId === projectId && l.listType !== "status").length,
+    [lists, projectId],
+  )
+  const [boardScope, setBoardScope] = React.useState<'list' | 'project'>('list')
+  React.useEffect(() => {
+    setBoardScope('list')
+  }, [selectedListId])
+
   const boardTasks = React.useMemo(() => {
     if (!projectId) return []
     const projectTasks = getProjectDomainTasks(allTasks, lists, projectId)
 
-    const scoped = selectedList?.projectId === projectId && selectedList.listType !== "status"
-      ? projectTasks.filter(task => task.lists.some(list => list.id === selectedList.id))
-      : projectTasks
+    const scoped = scopeProjectBoardTasks(projectTasks, selectedList, projectId, boardScope)
 
     // Drop completed tasks that fall outside the list's "Recently completed"
     // window (null → legacy 24h default). The virtual Done column is the
@@ -113,7 +126,7 @@ export function ProjectStatusBoard({
       : undefined
 
     return sortTasksForList(trimmed, sortBy, manualOrder)
-  }, [allTasks, lists, projectId, selectedList])
+  }, [allTasks, lists, projectId, selectedList, boardScope])
 
   React.useEffect(() => {
     if (expandedTaskId && !boardTasks.some(task => task.id === expandedTaskId)) {
@@ -280,6 +293,27 @@ export function ProjectStatusBoard({
             />
             <span className="text-sm font-semibold theme-text-primary truncate">{project.name}</span>
           </div>
+          {isDomainListSelected && projectDomainListCount > 1 && (
+            <div
+              className="flex items-center rounded-md border theme-border overflow-hidden text-xs"
+              data-testid="board-scope-toggle"
+            >
+              <button
+                type="button"
+                onClick={() => setBoardScope('list')}
+                className={`px-2 py-1 transition-colors ${boardScope === 'list' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+              >
+                This list
+              </button>
+              <button
+                type="button"
+                onClick={() => setBoardScope('project')}
+                className={`px-2 py-1 transition-colors ${boardScope === 'project' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+              >
+                Whole project
+              </button>
+            </div>
+          )}
           {isProjectOwner && (
             <button
               type="button"
