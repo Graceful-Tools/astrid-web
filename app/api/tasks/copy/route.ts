@@ -57,7 +57,15 @@ export async function POST(request: NextRequest) {
     const targetLists = await prisma.taskList.findMany({
       where: {
         id: { in: data.targetListIds },
-        OR: [{ ownerId: session.user.id }, { listMembers: { some: { userId: session.user.id } } }],
+        OR: [
+          { ownerId: session.user.id },
+          { listMembers: { some: { userId: session.user.id } } },
+          // Project membership grants access to project lists (sub-task #3).
+          { project: { OR: [
+            { ownerId: session.user.id },
+            { members: { some: { userId: session.user.id } } },
+          ] } },
+        ],
       },
       select: {
         id: true,

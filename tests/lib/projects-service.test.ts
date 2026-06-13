@@ -24,7 +24,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject, collectProjectMemberUserIds } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
@@ -348,5 +348,36 @@ describe('attachListToProject (task 0b0784c7 — project board #2)', () => {
     } else {
       throw new Error('expected success')
     }
+  })
+})
+
+// Cache-invalidation helper for project attach/detach happening outside
+// attachListToProject (e.g. iOS PUT /api/v1/lists/:id changing projectId).
+describe('collectProjectMemberUserIds', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns owner + members across all given projects, deduped', async () => {
+    mockProjectFindMany.mockResolvedValue([
+      { ownerId: 'owner-a', members: [{ userId: 'm1' }, { userId: 'm2' }] },
+      { ownerId: 'owner-b', members: [{ userId: 'm2' }, { userId: 'm3' }] },
+    ] as never)
+    const ids = await collectProjectMemberUserIds(['proj-a', 'proj-b'])
+    expect(ids.sort()).toEqual(['m1', 'm2', 'm3', 'owner-a', 'owner-b'].sort())
+  })
+
+  it('skips null/undefined/empty ids and avoids the query when none remain', async () => {
+    const ids = await collectProjectMemberUserIds([null, undefined, ''])
+    expect(ids).toEqual([])
+    expect(mockProjectFindMany).not.toHaveBeenCalled()
+  })
+
+  it('queries only the valid project ids', async () => {
+    mockProjectFindMany.mockResolvedValue([
+      { ownerId: 'owner-a', members: [] },
+    ] as never)
+    await collectProjectMemberUserIds([null, 'proj-a'])
+    expect(mockProjectFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { in: ['proj-a'] } } })
+    )
   })
 })

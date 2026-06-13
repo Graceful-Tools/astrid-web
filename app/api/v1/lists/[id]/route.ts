@@ -12,6 +12,11 @@ import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateSingleListFavorite, toggleFavorite } from '@/lib/favorites'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { collectProjectMemberUserIds } from '@/lib/projects-service'
+import { RedisCache } from '@/lib/redis'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api.v1.lists.id')
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -222,6 +227,27 @@ export const PUT = withAuth<RouteContext>(
     })
 
     await hydrateSingleListFavorite(list, auth.userId)
+
+    // If this PUT attached/detached the list to a project (board sub-task #3),
+    // project members gain or lose access to it — evict their cached list sets
+    // (both the previous and new project) so the change is visible immediately.
+    if (updateData.projectId !== undefined && updateData.projectId !== existingList.projectId) {
+      try {
+        const affectedUserIds = await collectProjectMemberUserIds([
+          existingList.projectId,
+          updateData.projectId,
+        ])
+        await Promise.all(
+          affectedUserIds.map((userId) =>
+            RedisCache.del(RedisCache.keys.userLists(userId)).catch((error) =>
+              log.error({ err: error }, `Failed to invalidate cache for user ${userId}:`),
+            ),
+          ),
+        )
+      } catch (error) {
+        log.error({ err: error }, 'Failed to invalidate project-member caches after projectId change:')
+      }
+    }
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_EDITED, { listId: id })
 

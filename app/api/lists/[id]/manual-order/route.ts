@@ -36,7 +36,15 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
           include: {
             user: true
           }
-        }
+        },
+        // Project membership grants access to project lists (sub-task #3).
+        project: {
+          select: {
+            ownerId: true,
+            owner: true,
+            members: { include: { user: true } },
+          },
+        },
       }
     })
 

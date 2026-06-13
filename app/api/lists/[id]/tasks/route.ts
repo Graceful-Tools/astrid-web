@@ -34,7 +34,15 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
           include: {
             user: true
           }
-        }
+        },
+        // Project membership grants access to project lists (sub-task #3).
+        project: {
+          select: {
+            ownerId: true,
+            owner: true,
+            members: { include: { user: true } },
+          },
+        },
       }
     })
 
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
       return NextResponse.json({ error: "List not found" }, { status: 404 })
     }
 
-    // Check if user has access to this list
+    // Check if user has access to this list (incl. project membership, #3)
     const canAccess = hasListAccess(list as any, session.user.id)
     if (!canAccess) {
       return NextResponse.json({ error: "Forbidden - You don't have access to this list" }, { status: 403 })

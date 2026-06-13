@@ -50,7 +50,15 @@ export async function POST(
           include: {
             user: true
           }
-        }
+        },
+        // Project membership grants access to project lists (sub-task #3);
+        // project owner / admins manage members like a list admin.
+        project: {
+          select: {
+            ownerId: true,
+            members: { select: { userId: true, role: true } },
+          },
+        },
       },
     })
 

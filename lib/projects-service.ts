@@ -459,3 +459,29 @@ export async function attachListToProject(
 
   return { list: updated, userIdsToInvalidate }
 }
+
+/**
+ * Collect every user whose list visibility depends on the given projects'
+ * membership — the project owner and all project members. Used to invalidate
+ * cached list sets when a list is attached to / detached from a project
+ * outside `attachListToProject` (e.g. iOS's PUT /api/v1/lists/:id with a
+ * changed projectId). Pure read — the caller performs the cache eviction.
+ */
+export async function collectProjectMemberUserIds(
+  projectIds: Array<string | null | undefined>,
+): Promise<string[]> {
+  const ids = projectIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+  if (ids.length === 0) return []
+
+  const projects = await prisma.project.findMany({
+    where: { id: { in: ids } },
+    select: { ownerId: true, members: { select: { userId: true } } },
+  })
+
+  const userIds = new Set<string>()
+  for (const project of projects) {
+    userIds.add(project.ownerId)
+    project.members.forEach((member) => userIds.add(member.userId))
+  }
+  return Array.from(userIds)
+}

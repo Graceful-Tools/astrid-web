@@ -28,6 +28,11 @@ export const PATCH = withAuth<RouteContext>(
           OR: [
             { ownerId: auth.userId },
             { listMembers: { some: { userId: auth.userId } } },
+            // Project membership grants access to project lists (sub-task #3).
+            { project: { OR: [
+              { ownerId: auth.userId },
+              { members: { some: { userId: auth.userId } } },
+            ] } },
           ],
         },
       })
