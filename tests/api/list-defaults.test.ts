@@ -346,6 +346,11 @@ describe('/api/lists - List Defaults', () => {
             // Removed legacy admins check
             // Removed legacy members check
             { listMembers: { some: { userId: mockSession.user.id } } }, // Also check new ListMember table
+            // Project membership grants visibility to the project's lists (sub-task #3)
+            { project: { OR: [
+              { ownerId: mockSession.user.id },
+              { members: { some: { userId: mockSession.user.id } } },
+            ] } },
             { privacy: "PUBLIC" }
           ],
         },
@@ -356,6 +361,7 @@ describe('/api/lists - List Defaults', () => {
               user: { select: safeUserSelect }
             }
           },
+          project: { select: { ownerId: true, members: { select: { userId: true, role: true } } } },
           _count: {
             select: {
               tasks: true,

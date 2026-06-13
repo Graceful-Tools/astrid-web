@@ -48,6 +48,13 @@ export const POST = withAuth<RouteContext>(
         include: {
           owner: true,
           listMembers: { include: { user: true } },
+          // Project owner / admins manage members like a list admin (sub-task #3).
+          project: {
+            select: {
+              ownerId: true,
+              members: { select: { userId: true, role: true } },
+            },
+          },
         },
       })
       if (!list) {

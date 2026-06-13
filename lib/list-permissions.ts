@@ -28,6 +28,31 @@ interface ListLike {
     user?: { id: string; name?: string | null; email: string } | null
   }> | null
   owner?: { id: string; name?: string | null; email: string } | null
+  /**
+   * Project this list belongs to, when fetched with membership (board
+   * sub-task #3). When present, project membership grants access to the
+   * list. Absent → behavior is identical to list-only permissions.
+   */
+  project?: {
+    ownerId?: string | null
+    members?: Array<{ userId: string; role: string }> | null
+  } | null
+}
+
+const ROLE_RANK: Record<"admin" | "member" | "viewer", number> = { admin: 3, member: 2, viewer: 1 }
+
+/**
+ * The list role a user derives from project membership (board sub-task #3).
+ * The project owner and project admins map to list `admin`; other project
+ * members map to `member`. Additive only — never used to lower access.
+ */
+function getProjectMemberRole(user: UserLike, list: ListLike): "admin" | "member" | null {
+  const project = list.project
+  if (!user || !project) return null
+  if (project.ownerId && project.ownerId === user.id) return "admin"
+  const membership = project.members?.find((m) => m.userId === user.id)
+  if (!membership) return null
+  return membership.role === "admin" || membership.role === "owner" ? "admin" : "member"
 }
 
 /**
@@ -63,20 +88,27 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
   if (!user || !list) return null
 
-  // Check if user is the owner
+  // The list owner always has full control.
   if (list.ownerId === user.id) {
     return "owner"
   }
 
-  // Check if user is an admin (from listMembers table with admin role)
-  if (list.listMembers?.some((lm) => lm.userId === user.id && lm.role === 'admin')) {
-    return "admin"
+  // Take the HIGHEST role from any grant — list membership or, sub-task #3,
+  // project membership. Computing the max (rather than early-returning on the
+  // first list grant) means project membership can only ever ADD access,
+  // never lower a role the user already had via the list.
+  let best: "admin" | "member" | "viewer" | null = null
+  const consider = (role: "admin" | "member" | "viewer" | null) => {
+    if (role && (!best || ROLE_RANK[role] > ROLE_RANK[best])) best = role
   }
 
-  // Check if user is a member (from listMembers table with member role)
-  if (list.listMembers?.some((lm) => lm.userId === user.id && lm.role === 'member')) {
-    return "member"
-  }
+  const membership = list.listMembers?.find((lm) => lm.userId === user.id)
+  if (membership?.role === "admin") consider("admin")
+  else if (membership?.role === "member") consider("member")
+
+  consider(getProjectMemberRole(user, list))
+
+  if (best) return best
 
   // For public lists, users have viewer access
   if (list.privacy === "PUBLIC") {

@@ -25,13 +25,19 @@ export async function PATCH(request: NextRequest, context: RouteContextParams<{ 
     const body = await request.json()
     const { isFavorite } = body
 
-    // Verify the user owns or has access to this list
+    // Verify the user owns or has access to this list.
+    // Project members (board sub-task #3) can access a project's lists even
+    // without direct list membership — additive, only widens access.
     const list = await prisma.taskList.findFirst({
       where: {
         id: listId,
         OR: [
           { ownerId: userId },
-          { listMembers: { some: { userId: userId } } }
+          { listMembers: { some: { userId: userId } } },
+          { project: { OR: [
+            { ownerId: userId },
+            { members: { some: { userId: userId } } },
+          ] } }
         ]
       }
     })

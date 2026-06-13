@@ -43,6 +43,11 @@ export async function POST(
           OR: [
             { ownerId: session.user.id },
             { listMembers: { some: { userId: session.user.id } } },
+            // Project membership grants access to project lists (sub-task #3).
+            { project: { OR: [
+              { ownerId: session.user.id },
+              { members: { some: { userId: session.user.id } } },
+            ] } },
             // Also allow collaborative public lists
             { privacy: 'PUBLIC', publicListType: 'collaborative' }
           ]

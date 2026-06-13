@@ -419,4 +419,100 @@ describe('List Member Utils - Permission Checks', () => {
       expect(getUserListRole(list, mockNonMember.id)).toBeNull()
     })
   })
+
+  // Board sub-task #3 — project membership grants access to a project's lists.
+  // These checks must be ADDITIVE: project membership can only ever add a
+  // member entry, never lower an existing list-level role, and must be a no-op
+  // when the list carries no project.
+  describe('Project membership (sub-task #3)', () => {
+    const projectOwner: User = { id: 'p-owner', email: 'powner@example.com', name: 'Project Owner' }
+    const projectMember: User = { id: 'p-member', email: 'pmember@example.com', name: 'Project Member' }
+    const projectAdmin: User = { id: 'p-admin', email: 'padmin@example.com', name: 'Project Admin' }
+
+    function listWithProject(extra: Record<string, unknown> = {}): TaskList {
+      return {
+        id: 'list-1',
+        name: 'Project List',
+        ownerId: mockOwner.id,
+        owner: mockOwner,
+        privacy: 'PRIVATE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        project: {
+          ownerId: projectOwner.id,
+          owner: projectOwner,
+          members: [
+            { userId: projectMember.id, role: 'member', user: projectMember },
+            { userId: projectAdmin.id, role: 'admin', user: projectAdmin },
+          ],
+        },
+        ...extra,
+      } as unknown as TaskList
+    }
+
+    it('grants project owner admin-level access (mapped to admin)', () => {
+      const list = listWithProject()
+      expect(hasListAccess(list, projectOwner.id)).toBe(true)
+      expect(isListAdminOrOwner(list, projectOwner.id)).toBe(true)
+      expect(getUserListRole(list, projectOwner.id)).toBe('admin')
+    })
+
+    it('grants a project member member-level access', () => {
+      const list = listWithProject()
+      expect(hasListAccess(list, projectMember.id)).toBe(true)
+      expect(getUserListRole(list, projectMember.id)).toBe('member')
+      expect(isListAdminOrOwner(list, projectMember.id)).toBe(false)
+    })
+
+    it('maps a project admin to list admin', () => {
+      const list = listWithProject()
+      expect(getUserListRole(list, projectAdmin.id)).toBe('admin')
+      expect(isListAdminOrOwner(list, projectAdmin.id)).toBe(true)
+    })
+
+    it('is a no-op when the list has no project (zero regression)', () => {
+      const list: TaskList = {
+        id: 'list-1',
+        name: 'Test List',
+        ownerId: mockOwner.id,
+        owner: mockOwner,
+        privacy: 'PRIVATE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as TaskList
+      expect(getAllListMembers(list)).toHaveLength(1)
+      expect(hasListAccess(list, projectMember.id)).toBe(false)
+    })
+
+    it('does not lower an existing list-level admin to project member', () => {
+      // User is a list admin AND a plain project member — must stay admin.
+      const list = listWithProject({
+        listMembers: [
+          { id: 'lm-1', listId: 'list-1', userId: projectMember.id, role: 'admin', user: projectMember },
+        ],
+      })
+      expect(getUserListRole(list, projectMember.id)).toBe('admin')
+    })
+
+    it('works with ownerId-only / userId-only project shape (no user relations)', () => {
+      const list = {
+        id: 'list-1',
+        name: 'Project List',
+        ownerId: mockOwner.id,
+        owner: mockOwner,
+        privacy: 'PRIVATE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        project: {
+          ownerId: projectOwner.id,
+          members: [{ userId: projectMember.id, role: 'member' }],
+        },
+      } as unknown as TaskList
+      expect(hasListAccess(list, projectOwner.id)).toBe(true)
+      expect(hasListAccess(list, projectMember.id)).toBe(true)
+      expect(getListMemberIds(list)).toEqual(
+        expect.arrayContaining([mockOwner.id, projectOwner.id, projectMember.id]),
+      )
+    })
+  })
 })
