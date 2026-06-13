@@ -485,3 +485,201 @@ export async function collectProjectMemberUserIds(
   }
   return Array.from(userIds)
 }
+
+/* ───────────────────────── Project member management ─────────────────────────
+ *
+ * The write side of board #3 (the read side — project membership granting list
+ * access — already shipped). Permission model:
+ *   - the project owner and project admins can manage members
+ *   - the owner is immutable: never removed, never demoted
+ *   - only the owner may grant or revoke the `admin` role; admins manage
+ *     plain members only (so an admin can't promote themselves or stage a coup)
+ *
+ * Each mutation returns the set of user ids whose `userLists` cache must be
+ * evicted — the caller (route) performs the Redis eviction, keeping this module
+ * free of cache concerns (same split as attachListToProject).
+ */
+
+export type ProjectMemberRole = 'admin' | 'member'
+
+interface ProjectMemberSummary {
+  id: string
+  name: string | null
+  email: string
+  image: string | null
+  role: ProjectMemberRole
+}
+
+export type AddProjectMemberInput = {
+  userId?: string
+  email?: string
+  role?: ProjectMemberRole
+}
+
+export type AddProjectMemberResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { error: 'user_not_found' }
+  | { error: 'invalid'; message: string }
+  | { member: ProjectMemberSummary; userIdsToInvalidate: Set<string> }
+
+export type RemoveProjectMemberResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { error: 'member_not_found' }
+  | { error: 'invalid'; message: string }
+  | { removedUserId: string; userIdsToInvalidate: Set<string> }
+
+export type UpdateProjectMemberRoleResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { error: 'member_not_found' }
+  | { error: 'invalid'; message: string }
+  | { member: { id: string; role: ProjectMemberRole }; userIdsToInvalidate: Set<string> }
+
+/** The acting user's authority over a project, or null if they have none. */
+function actingProjectRole(
+  project: { ownerId: string; members: Array<{ userId: string; role: string }> },
+  userId: string,
+): 'owner' | 'admin' | null {
+  if (project.ownerId === userId) return 'owner'
+  const membership = project.members.find((m) => m.userId === userId)
+  if (membership && (membership.role === 'admin' || membership.role === 'owner')) return 'admin'
+  return null
+}
+
+/**
+ * Add an existing user to a project as a member or admin. Email lookups are
+ * case-insensitive. There is no email-invite flow for non-existent users yet —
+ * the caller gets `user_not_found` and can surface a "no account" message.
+ */
+export async function addProjectMember(
+  projectId: string,
+  actingUserId: string,
+  input: AddProjectMemberInput,
+): Promise<AddProjectMemberResult> {
+  const role: ProjectMemberRole = input.role ?? 'member'
+  if (role !== 'admin' && role !== 'member') {
+    return { error: 'invalid', message: 'Role must be "admin" or "member"' }
+  }
+  if (!input.userId && !input.email) {
+    return { error: 'invalid', message: 'A userId or email is required' }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+
+  const actingRole = actingProjectRole(project, actingUserId)
+  if (!actingRole) return { error: 'forbidden' }
+  // Only the owner may grant the admin role.
+  if (role === 'admin' && actingRole !== 'owner') return { error: 'forbidden' }
+
+  const target = await prisma.user.findUnique({
+    where: input.userId ? { id: input.userId } : { email: input.email!.toLowerCase() },
+    select: { id: true, name: true, email: true, image: true },
+  })
+  if (!target) return { error: 'user_not_found' }
+
+  if (target.id === project.ownerId) {
+    return { error: 'invalid', message: 'User is already the project owner' }
+  }
+  if (project.members.some((m) => m.userId === target.id)) {
+    return { error: 'invalid', message: 'User is already a member of this project' }
+  }
+
+  await prisma.projectMember.create({
+    data: { projectId, userId: target.id, role },
+  })
+
+  // The newly added user gains access to every list in the project — evict
+  // their cached list set. Existing members' visibility is unchanged.
+  return {
+    member: { id: target.id, name: target.name, email: target.email, image: target.image, role },
+    userIdsToInvalidate: new Set<string>([target.id]),
+  }
+}
+
+/**
+ * Remove a member from a project. The owner can never be removed. Admins may
+ * only remove plain members — removing another admin requires the owner.
+ */
+export async function removeProjectMember(
+  projectId: string,
+  actingUserId: string,
+  targetUserId: string,
+): Promise<RemoveProjectMemberResult> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+
+  const actingRole = actingProjectRole(project, actingUserId)
+  if (!actingRole) return { error: 'forbidden' }
+
+  if (targetUserId === project.ownerId) {
+    return { error: 'invalid', message: 'The project owner cannot be removed' }
+  }
+
+  const membership = project.members.find((m) => m.userId === targetUserId)
+  if (!membership) return { error: 'member_not_found' }
+
+  // Admins can only remove plain members; only the owner removes admins.
+  if (actingRole !== 'owner' && membership.role === 'admin') return { error: 'forbidden' }
+
+  await prisma.projectMember.delete({
+    where: { projectId_userId: { projectId, userId: targetUserId } },
+  })
+
+  // The removed user loses access to the project's lists — evict their cache.
+  return {
+    removedUserId: targetUserId,
+    userIdsToInvalidate: new Set<string>([targetUserId]),
+  }
+}
+
+/**
+ * Change a member's role. Owner-only — promoting/demoting touches the admin
+ * grant, which admins are not allowed to do. The owner's role is fixed.
+ *
+ * A role change does not alter which lists the user can see (both roles have
+ * full project access), so no `userLists` eviction is required; the set is
+ * returned empty for caller symmetry.
+ */
+export async function updateProjectMemberRole(
+  projectId: string,
+  actingUserId: string,
+  targetUserId: string,
+  role: ProjectMemberRole,
+): Promise<UpdateProjectMemberRoleResult> {
+  if (role !== 'admin' && role !== 'member') {
+    return { error: 'invalid', message: 'Role must be "admin" or "member"' }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+
+  if (project.ownerId !== actingUserId) return { error: 'forbidden' }
+  if (targetUserId === project.ownerId) {
+    return { error: 'invalid', message: "The owner's role cannot be changed" }
+  }
+
+  const membership = project.members.find((m) => m.userId === targetUserId)
+  if (!membership) return { error: 'member_not_found' }
+
+  const updated = await prisma.projectMember.update({
+    where: { projectId_userId: { projectId, userId: targetUserId } },
+    data: { role },
+  })
+
+  return {
+    member: { id: targetUserId, role: (updated.role as ProjectMemberRole) ?? role },
+    userIdsToInvalidate: new Set<string>(),
+  }
+}
