@@ -11,6 +11,8 @@ import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creatio
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
+import { VirtualizedTaskList } from "./VirtualizedTaskList"
+import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
@@ -352,6 +354,25 @@ export function MainContent({
     handleTaskDragLeaveTask,
     handleTaskDragEnd,
   }
+
+  // Single source of truth for a task row, shared by the plain and the
+  // virtualized (very-long-list) render paths.
+  const renderTaskRow = (task: Task) => (
+    <TaskRow
+      key={task.id}
+      task={task}
+      controller={rowController}
+      isMobile={isMobile}
+      isTouchManualSort={isTouchManualSort}
+      getPriorityColor={getPriorityColor}
+      draggingTaskMetrics={draggingTaskMetrics}
+      registerTaskRow={registerTaskRow}
+      taskMeasurementsRef={taskMeasurementsRef}
+      renderManualPlaceholderRow={renderManualPlaceholderRow}
+      setDraggingTaskMetrics={setDraggingTaskMetrics}
+      startMobileDrag={startMobileDrag}
+    />
+  )
 
   return (
     <>
@@ -858,22 +879,15 @@ export function MainContent({
                 ref={taskListContainerRef}
                 className={isMobile ? "space-y-2.5" : "space-y-2.5"}
               >
-                {finalFilteredTasks.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    controller={rowController}
-                    isMobile={isMobile}
-                    isTouchManualSort={isTouchManualSort}
-                    getPriorityColor={getPriorityColor}
-                    draggingTaskMetrics={draggingTaskMetrics}
-                    registerTaskRow={registerTaskRow}
-                    taskMeasurementsRef={taskMeasurementsRef}
-                    renderManualPlaceholderRow={renderManualPlaceholderRow}
-                    setDraggingTaskMetrics={setDraggingTaskMetrics}
-                    startMobileDrag={startMobileDrag}
+                {shouldVirtualizeTaskList(finalFilteredTasks.length, manualSortActive) ? (
+                  <VirtualizedTaskList
+                    tasks={finalFilteredTasks}
+                    scrollElementRef={scrollContainerRef}
+                    renderRow={renderTaskRow}
                   />
-                ))}
+                ) : (
+                  finalFilteredTasks.map(renderTaskRow)
+                )}
                 {manualSortPreviewActive && finalFilteredTasks.length > 0 && (
                   <div
                     className="mt-2 min-h-[24px]"
