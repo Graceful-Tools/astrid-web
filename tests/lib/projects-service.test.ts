@@ -29,10 +29,17 @@ vi.mock('@/lib/prisma', () => ({
     user: {
       findUnique: vi.fn(),
     },
+    invitation: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      deleteMany: vi.fn(),
+      updateMany: vi.fn(),
+    },
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject, collectProjectMemberUserIds, addProjectMember, removeProjectMember, updateProjectMemberRole } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject, collectProjectMemberUserIds, addProjectMember, removeProjectMember, updateProjectMemberRole, getProjectMembers, inviteProjectMemberByEmail, cancelProjectInvite, updateProjectInviteRole } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
@@ -48,6 +55,11 @@ const mockMemberCreate = vi.mocked(prisma.projectMember.create)
 const mockMemberDelete = vi.mocked(prisma.projectMember.delete)
 const mockMemberUpdate = vi.mocked(prisma.projectMember.update)
 const mockUserFindUnique = vi.mocked(prisma.user.findUnique)
+const mockInviteFindMany = vi.mocked(prisma.invitation.findMany)
+const mockInviteFindFirst = vi.mocked(prisma.invitation.findFirst)
+const mockInviteCreate = vi.mocked(prisma.invitation.create)
+const mockInviteDeleteMany = vi.mocked(prisma.invitation.deleteMany)
+const mockInviteUpdateMany = vi.mocked(prisma.invitation.updateMany)
 
 function statusRow(role: string, order: number) {
   return { id: role, statusRole: role, statusOrder: order, listType: 'status', projectId: null }
@@ -595,5 +607,143 @@ describe('updateProjectMemberRole', () => {
       })
     )
     expect('member' in result).toBe(true)
+  })
+})
+
+// Project sharing (invitation-based) — board #3 write side reusing the
+// generic Invitation system.
+describe('getProjectMembers', () => {
+  const OWNER = 'owner-1'
+  const PID = 'proj-1'
+  beforeEach(() => vi.clearAllMocks())
+
+  function project(members: Array<{ userId: string; role: string; user?: any }>, owner = { id: OWNER, name: 'Owner', email: 'owner@x.com', image: null, isAIAgent: false }) {
+    mockProjectFindUnique.mockResolvedValue({ ownerId: OWNER, owner, members } as never)
+  }
+
+  it('returns not_found when the project is missing', async () => {
+    mockProjectFindUnique.mockResolvedValue(null as never)
+    expect(await getProjectMembers(PID, OWNER)).toEqual({ error: 'not_found' })
+  })
+
+  it('forbids a non-owner non-member', async () => {
+    project([])
+    mockInviteFindMany.mockResolvedValue([] as never)
+    expect(await getProjectMembers(PID, 'stranger')).toEqual({ error: 'forbidden' })
+  })
+
+  it('returns owner + members + pending invites, deduped, with userRole', async () => {
+    project([
+      { userId: OWNER, role: 'admin', user: { id: OWNER, name: 'Owner', email: 'owner@x.com', image: null, isAIAgent: false } },
+      { userId: 'm1', role: 'member', user: { id: 'm1', name: 'M1', email: 'm1@x.com', image: null, isAIAgent: false } },
+    ])
+    mockInviteFindMany.mockResolvedValue([
+      { id: 'i1', email: 'pending@x.com', role: 'member', createdAt: new Date(0) },
+      { id: 'i2', email: 'm1@x.com', role: 'admin', createdAt: new Date(0) }, // already a member → excluded
+    ] as never)
+
+    const result = await getProjectMembers(PID, OWNER)
+    if ('members' in result) {
+      expect(result.userRole).toBe('owner')
+      const owner = result.members.find((m) => m.role === 'owner')
+      expect(owner?.user_id).toBe(OWNER)
+      // owner appears once (not duplicated by their admin membership row)
+      expect(result.members.filter((m) => m.user_id === OWNER)).toHaveLength(1)
+      expect(result.members.find((m) => m.type === 'invite')?.email).toBe('pending@x.com')
+      expect(result.members.some((m) => m.email === 'm1@x.com' && m.type === 'invite')).toBe(false)
+    } else {
+      throw new Error('expected members')
+    }
+  })
+
+  it('reports member userRole for a plain member viewer', async () => {
+    project([{ userId: 'm1', role: 'member', user: { id: 'm1', email: 'm1@x.com' } }])
+    mockInviteFindMany.mockResolvedValue([] as never)
+    const result = await getProjectMembers(PID, 'm1')
+    expect('members' in result && result.userRole).toBe('member')
+  })
+})
+
+describe('inviteProjectMemberByEmail', () => {
+  const OWNER = 'owner-1'
+  const ADMIN = 'admin-1'
+  const PID = 'proj-1'
+  beforeEach(() => vi.clearAllMocks())
+
+  function project(members: Array<{ userId: string; role: string }> = []) {
+    mockProjectFindUnique.mockResolvedValue({ ownerId: OWNER, name: 'Board', members } as never)
+  }
+
+  it('not_found when project missing', async () => {
+    mockProjectFindUnique.mockResolvedValue(null as never)
+    expect(await inviteProjectMemberByEmail(PID, OWNER, { email: 'a@x.com' })).toEqual({ error: 'not_found' })
+  })
+
+  it('forbids non-owner/admin', async () => {
+    project([])
+    expect(await inviteProjectMemberByEmail(PID, 'stranger', { email: 'a@x.com' })).toEqual({ error: 'forbidden' })
+  })
+
+  it('forbids an admin inviting as admin', async () => {
+    project([{ userId: ADMIN, role: 'admin' }])
+    expect(await inviteProjectMemberByEmail(PID, ADMIN, { email: 'a@x.com', role: 'admin' })).toEqual({ error: 'forbidden' })
+    expect(mockInviteCreate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a duplicate pending invite', async () => {
+    project([])
+    mockInviteFindFirst.mockResolvedValue({ id: 'x' } as never)
+    expect(await inviteProjectMemberByEmail(PID, OWNER, { email: 'a@x.com' })).toMatchObject({ error: 'invalid' })
+    expect(mockInviteCreate).not.toHaveBeenCalled()
+  })
+
+  it('creates a PROJECT_SHARING invitation (lowercased email) and returns the token', async () => {
+    project([])
+    mockInviteFindFirst.mockResolvedValue(null as never)
+    mockInviteCreate.mockResolvedValue({ id: 'inv1' } as never)
+    const result = await inviteProjectMemberByEmail(PID, OWNER, { email: 'New@X.com', role: 'member' })
+    expect(mockInviteCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ email: 'new@x.com', type: 'PROJECT_SHARING', status: 'PENDING', projectId: PID, role: 'member', senderId: OWNER }),
+      })
+    )
+    if ('token' in result) {
+      expect(result.token).toMatch(/^inv_/)
+      expect(result.projectName).toBe('Board')
+    } else {
+      throw new Error('expected token')
+    }
+  })
+})
+
+describe('cancelProjectInvite / updateProjectInviteRole', () => {
+  const OWNER = 'owner-1'
+  const ADMIN = 'admin-1'
+  const PID = 'proj-1'
+  beforeEach(() => vi.clearAllMocks())
+
+  function project(members: Array<{ userId: string; role: string }> = []) {
+    mockProjectFindUnique.mockResolvedValue({ ownerId: OWNER, members } as never)
+  }
+
+  it('cancel: forbids non-member, 404 when none deleted, success otherwise', async () => {
+    project([])
+    expect(await cancelProjectInvite(PID, 'stranger', 'a@x.com')).toEqual({ error: 'forbidden' })
+    mockInviteDeleteMany.mockResolvedValue({ count: 0 } as never)
+    expect(await cancelProjectInvite(PID, OWNER, 'a@x.com')).toEqual({ error: 'not_found' })
+    mockInviteDeleteMany.mockResolvedValue({ count: 1 } as never)
+    expect(await cancelProjectInvite(PID, OWNER, 'A@x.com')).toEqual({ success: true })
+    expect(mockInviteDeleteMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ email: 'a@x.com', type: 'PROJECT_SHARING', status: 'PENDING' }) })
+    )
+  })
+
+  it('updateRole: admin cannot set admin; owner can; 404 when none updated', async () => {
+    project([{ userId: ADMIN, role: 'admin' }])
+    expect(await updateProjectInviteRole(PID, ADMIN, 'a@x.com', 'admin')).toEqual({ error: 'forbidden' })
+    mockInviteUpdateMany.mockResolvedValue({ count: 0 } as never)
+    expect(await updateProjectInviteRole(PID, OWNER, 'a@x.com', 'member')).toEqual({ error: 'not_found' })
+    mockInviteUpdateMany.mockResolvedValue({ count: 1 } as never)
+    expect(await updateProjectInviteRole(PID, OWNER, 'a@x.com', 'admin')).toEqual({ success: true })
   })
 })

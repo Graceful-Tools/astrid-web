@@ -8,6 +8,7 @@
  * owns auth/scope checks and Redis-invalidation cleanup.
  */
 
+import { randomBytes } from 'crypto'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_PROJECT_STATUSES } from '@/lib/project-status'
@@ -682,4 +683,233 @@ export async function updateProjectMemberRole(
     member: { id: targetUserId, role: (updated.role as ProjectMemberRole) ?? role },
     userIdsToInvalidate: new Set<string>(),
   }
+}
+
+/* ─────────────────── Project sharing (invite by email) ───────────────────
+ *
+ * Project sharing reuses the generic Invitation system (type PROJECT_SHARING).
+ * Inviting an email with no Astrid account creates a pending Invitation +
+ * email; on acceptance the invite route upserts a ProjectMember (see
+ * app/api/invitations/[token]). These helpers own the permission + dedupe
+ * rules; the route owns email sending and cache eviction.
+ */
+
+const PROJECT_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+interface NormalizedProjectMember {
+  id: string
+  user_id?: string
+  role: string
+  email: string
+  name?: string | null
+  image?: string | null
+  isAIAgent?: boolean
+  isOwner?: boolean
+  created_at?: Date
+  type: 'member' | 'invite'
+}
+
+export type ProjectMembersResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { members: NormalizedProjectMember[]; userRole: 'owner' | 'admin' | 'member' }
+
+/**
+ * List a project's members + pending project invitations in the shape the
+ * sharing UI expects (mirrors GET /api/lists/[id]/members). Any project member
+ * may view; mutations are gated elsewhere to owner/admin.
+ */
+export async function getProjectMembers(
+  projectId: string,
+  actingUserId: string,
+): Promise<ProjectMembersResult> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      ownerId: true,
+      owner: { select: safeUserSelect },
+      members: { include: { user: { select: safeUserSelect } } },
+    },
+  })
+  if (!project) return { error: 'not_found' }
+
+  const isOwner = project.ownerId === actingUserId
+  const membership = project.members.find((m) => m.userId === actingUserId)
+  if (!isOwner && !membership) return { error: 'forbidden' }
+
+  const userRole: 'owner' | 'admin' | 'member' = isOwner
+    ? 'owner'
+    : membership?.role === 'admin' || membership?.role === 'owner'
+      ? 'admin'
+      : 'member'
+
+  const memberEmails = new Set<string>()
+  const members: NormalizedProjectMember[] = []
+
+  // Owner row (the owner is also stored as a member; represent them once as owner).
+  if (project.owner) {
+    members.push({
+      id: `owner_${project.owner.id}`,
+      user_id: project.owner.id,
+      role: 'owner',
+      email: project.owner.email,
+      name: project.owner.name,
+      image: project.owner.image,
+      isAIAgent: project.owner.isAIAgent,
+      isOwner: true,
+      type: 'member',
+    })
+    if (project.owner.email) memberEmails.add(project.owner.email)
+  }
+
+  for (const pm of project.members) {
+    if (pm.userId === project.ownerId) continue
+    if (pm.user?.email) memberEmails.add(pm.user.email)
+    members.push({
+      id: `member_${pm.id}`,
+      user_id: pm.userId,
+      role: pm.role === 'admin' ? 'admin' : 'member',
+      email: pm.user?.email ?? '',
+      name: pm.user?.name,
+      image: pm.user?.image,
+      isAIAgent: pm.user?.isAIAgent,
+      type: 'member',
+    })
+  }
+
+  // Pending project invitations (exclude any already-member emails).
+  const invites = await prisma.invitation.findMany({
+    where: {
+      projectId,
+      type: 'PROJECT_SHARING',
+      status: 'PENDING',
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  for (const inv of invites) {
+    if (memberEmails.has(inv.email)) continue
+    members.push({
+      id: `invite_${inv.id}`,
+      role: inv.role === 'admin' ? 'admin' : 'member',
+      email: inv.email,
+      created_at: inv.createdAt,
+      type: 'invite',
+    })
+  }
+
+  return { members, userRole }
+}
+
+export type InviteProjectMemberResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { error: 'invalid'; message: string }
+  | { token: string; email: string; role: ProjectMemberRole; projectName: string }
+
+/**
+ * Create a pending PROJECT_SHARING invitation for an email with no account
+ * (the existing-user path goes through addProjectMember instead). Owner +
+ * admins may invite; only the owner may invite as admin.
+ */
+export async function inviteProjectMemberByEmail(
+  projectId: string,
+  actingUserId: string,
+  input: { email: string; role?: ProjectMemberRole },
+): Promise<InviteProjectMemberResult> {
+  const email = input.email.trim().toLowerCase()
+  const role: ProjectMemberRole = input.role ?? 'member'
+  if (!email) return { error: 'invalid', message: 'Email is required' }
+  if (role !== 'admin' && role !== 'member') {
+    return { error: 'invalid', message: 'Role must be "admin" or "member"' }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, name: true, members: { select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+
+  const actingRole = actingProjectRole(project, actingUserId)
+  if (!actingRole) return { error: 'forbidden' }
+  if (role === 'admin' && actingRole !== 'owner') return { error: 'forbidden' }
+
+  // Dedupe an existing pending invite for this email + project.
+  const existing = await prisma.invitation.findFirst({
+    where: { projectId, email, type: 'PROJECT_SHARING', status: 'PENDING' },
+    select: { id: true },
+  })
+  if (existing) {
+    return { error: 'invalid', message: 'An invitation is already pending for this email' }
+  }
+
+  const token = `inv_${randomBytes(16).toString('hex')}`
+  await prisma.invitation.create({
+    data: {
+      email,
+      token,
+      type: 'PROJECT_SHARING',
+      status: 'PENDING',
+      role,
+      projectId,
+      senderId: actingUserId,
+      expiresAt: new Date(Date.now() + PROJECT_INVITE_TTL_MS),
+    },
+  })
+
+  return { token, email, role, projectName: project.name }
+}
+
+export type ProjectInviteMutationResult =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { error: 'invalid'; message: string }
+  | { success: true }
+
+/** Cancel a pending project invitation by email (owner/admin). */
+export async function cancelProjectInvite(
+  projectId: string,
+  actingUserId: string,
+  email: string,
+): Promise<ProjectInviteMutationResult> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+  if (!actingProjectRole(project, actingUserId)) return { error: 'forbidden' }
+
+  const result = await prisma.invitation.deleteMany({
+    where: { projectId, email: email.trim().toLowerCase(), type: 'PROJECT_SHARING', status: 'PENDING' },
+  })
+  if (result.count === 0) return { error: 'not_found' }
+  return { success: true }
+}
+
+/** Change the role on a pending project invitation (owner only for admin). */
+export async function updateProjectInviteRole(
+  projectId: string,
+  actingUserId: string,
+  email: string,
+  role: ProjectMemberRole,
+): Promise<ProjectInviteMutationResult> {
+  if (role !== 'admin' && role !== 'member') {
+    return { error: 'invalid', message: 'Role must be "admin" or "member"' }
+  }
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+
+  const actingRole = actingProjectRole(project, actingUserId)
+  if (!actingRole) return { error: 'forbidden' }
+  if (role === 'admin' && actingRole !== 'owner') return { error: 'forbidden' }
+
+  const result = await prisma.invitation.updateMany({
+    where: { projectId, email: email.trim().toLowerCase(), type: 'PROJECT_SHARING', status: 'PENDING' },
+    data: { role },
+  })
+  if (result.count === 0) return { error: 'not_found' }
+  return { success: true }
 }

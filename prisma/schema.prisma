@@ -61,6 +61,7 @@ model User {
   emailToTaskEnabled           Boolean              @default(true)
   emailToTaskListId            String?
   smartTaskCreationEnabled     Boolean              @default(true)
+  projectsBetaEnabled          Boolean              @default(false)
   invitedBy                    String?
   isPlaceholder                Boolean              @default(false)
   statsCompletedTasks          Int                  @default(0)
@@ -383,6 +384,7 @@ model Invitation {
   receiverId String?
   taskId     String?
   listId     String?
+  projectId  String?
   message    String?
   receiver   User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
   sender     User?            @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -396,6 +398,7 @@ model Invitation {
   @@index([expiresAt])
   @@index([email, status])
   @@index([senderId, status])
+  @@index([projectId])
 }
 
 model VerificationToken {
@@ -775,6 +778,7 @@ enum InvitationType {
   TASK_ASSIGNMENT
   LIST_SHARING
   WORKSPACE_INVITE
+  PROJECT_SHARING
 }
 
 enum TaskListPrivacy {

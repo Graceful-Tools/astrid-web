@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { ProjectSharingManager } from "@/components/project-sharing-manager"
 
 export interface EditableProject {
   id: string
@@ -93,6 +95,13 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaved }: Edit
           <DialogTitle className="theme-text-primary">Edit project</DialogTitle>
         </DialogHeader>
 
+        <Tabs defaultValue="details">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="mt-4">
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="project-name" className="text-sm theme-text-secondary">Name</Label>
@@ -161,6 +170,12 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaved }: Edit
             </Button>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="members" className="mt-4">
+            <ProjectSharingManager projectId={project.id} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   )

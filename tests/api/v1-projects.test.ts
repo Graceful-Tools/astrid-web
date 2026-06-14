@@ -16,6 +16,10 @@ vi.mock('@/lib/projects-service', () => ({
   deleteProjectAndDetachLists: vi.fn(),
 }))
 
+vi.mock('@/lib/feature-flags', () => ({
+  requireProjectsBeta: vi.fn().mockResolvedValue(true),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     project: { findUnique: vi.fn() },
