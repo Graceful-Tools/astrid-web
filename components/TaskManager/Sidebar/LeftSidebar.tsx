@@ -3,16 +3,13 @@
 import React, { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Plus, ExternalLink, Settings, Search, LayoutGrid } from "lucide-react"
+import { Plus, ExternalLink, Settings, Search } from "lucide-react"
 import Image from "next/image"
-import type { ProjectSummary } from "@/hooks/use-projects"
-import { getProjectPrimaryListId } from "@/hooks/use-projects"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
 import { isListAdminOrOwner } from "@/lib/list-member-utils"
 import { canUserEditTasks } from "@/lib/list-permissions"
-import { useProjectsBeta } from "@/hooks/useProjectsBeta"
 import type { TaskList } from "@/types/task"
 
 interface LeftSidebarProps {
@@ -28,8 +25,6 @@ interface LeftSidebarProps {
   publicLists: TaskList[]
   collaborativePublicLists: TaskList[]
   suggestedPublicLists: TaskList[]
-  projects?: ProjectSummary[]
-  onOpenProject?: (project: ProjectSummary) => void
   selectedListId: string
 
   // Memoized functions
@@ -75,8 +70,6 @@ export function LeftSidebar({
   publicLists,
   collaborativePublicLists,
   suggestedPublicLists,
-  projects = [],
-  onOpenProject,
   selectedListId,
   getFixedListTaskCountMemo,
   getSavedFilterTaskCountMemo,
@@ -103,8 +96,6 @@ export function LeftSidebar({
   const { t } = useTranslations()
   const navigationRef = useRef<HTMLDivElement>(null)
   const currentUser = effectiveSession?.user
-  // Projects is an opt-in Beta — only surface the section when enabled.
-  const { enabled: projectsBetaEnabled } = useProjectsBeta()
   // When not in list view, don't highlight any list
   const effectiveSelectedListId = activeView === 'list' ? selectedListId : ''
 
@@ -322,38 +313,6 @@ export function LeftSidebar({
               ))}
           </div>
         </div>
-
-        {/* Projects (board sub-task #1) — gated behind the Projects Beta opt-in */}
-        {projectsBetaEnabled && onOpenProject && projects.length > 0 && (
-          <div className="p-3" data-testid="sidebar-projects-section">
-            <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
-              Projects
-            </div>
-            <div className="space-y-1">
-              {projects
-                .filter((project) => getProjectPrimaryListId(project) !== null)
-                .map((project) => (
-                  <Button
-                    key={project.id}
-                    variant="ghost"
-                    className="w-full justify-start theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
-                    onClick={() => {
-                      onOpenProject(project)
-                      if (isMobile) setShowMobileSidebar(false)
-                    }}
-                    data-testid={`sidebar-project-${project.id}`}
-                  >
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-full mr-2 flex-shrink-0"
-                      style={{ backgroundColor: project.color || "#3b82f6" }}
-                    />
-                    <LayoutGrid className="w-3.5 h-3.5 mr-1.5 flex-shrink-0 opacity-60" />
-                    <span className="truncate">{project.name}</span>
-                  </Button>
-                ))}
-            </div>
-          </div>
-        )}
 
         {/* Public Shared Lists */}
         {collaborativePublicLists && collaborativePublicLists.length > 0 && (

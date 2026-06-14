@@ -35,17 +35,10 @@ export async function GET(request: NextRequest) {
     const updatedSince = searchParams.get('updatedSince')
 
     // Build base where clause.
-    // The project-membership clause (board sub-task #3) makes a project's
-    // domain lists visible to its members, even when they aren't direct list
-    // members. Additive — it only ever widens visibility.
     const baseWhere = {
       OR: [
         { ownerId: session.user.id },
         { listMembers: { some: { userId: session.user.id } } },
-        { project: { OR: [
-          { ownerId: session.user.id },
-          { members: { some: { userId: session.user.id } } },
-        ] } },
         { privacy: "PUBLIC" as const }
       ],
     }
@@ -73,8 +66,6 @@ export async function GET(request: NextRequest) {
                   user: { select: safeUserSelect }
                 }
               },
-              // Project membership grants access to project lists (sub-task #3).
-              project: { select: { ownerId: true, members: { select: { userId: true, role: true } } } },
               _count: {
                 select: {
                   tasks: true,
@@ -100,8 +91,6 @@ export async function GET(request: NextRequest) {
               user: { select: safeUserSelect }
             }
           },
-          // Project membership grants access to project lists (sub-task #3).
-          project: { select: { ownerId: true, members: { select: { userId: true, role: true } } } },
           _count: {
             select: {
               tasks: true,

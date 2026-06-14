@@ -437,40 +437,6 @@ describe('/api/invitations/[token]', () => {
       expect(data.message).toBe('Invitation accepted successfully')
     })
 
-    it('should accept a project sharing invitation by creating a ProjectMember', async () => {
-      const projectInvitation = {
-        ...mockInvitation,
-        type: 'PROJECT_SHARING',
-        projectId: 'project-123',
-        listId: null,
-        role: 'member',
-      }
-      const upsert = vi.fn().mockResolvedValue({ id: 'pm-1' })
-      const transactionMock = vi.fn().mockImplementation((callback) => callback({
-        invitation: { update: vi.fn().mockResolvedValue(projectInvitation) },
-        projectMember: { upsert },
-        project: {
-          findUnique: vi.fn().mockResolvedValue({ id: 'project-123', owner: { id: 'owner-1' }, members: [] }),
-        },
-      }))
-
-      vi.mocked(prisma.invitation.findUnique).mockResolvedValue(projectInvitation as any)
-      vi.mocked(prisma.$transaction).mockImplementation(transactionMock)
-
-      const response = await AcceptInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_proj', { method: 'POST' }),
-        { params: { token: 'inv_proj' } }
-      )
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.success).toBe(true)
-      expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
-        where: { projectId_userId: { projectId: 'project-123', userId: 'test-user-id' } },
-        create: expect.objectContaining({ projectId: 'project-123', userId: 'test-user-id', role: 'member' }),
-      }))
-    })
-
     it('should require authentication', async () => {
       vi.mocked(getServerSession).mockResolvedValue(null)
 

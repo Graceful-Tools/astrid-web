@@ -9,7 +9,6 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
-import { getProjectsBetaEnabled, setProjectsBetaEnabled } from '@/lib/feature-flags'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('user.settings')
@@ -37,11 +36,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // projectsBetaEnabled is read defensively (column may be absent on a
-    // pre-migration preview DB) — see lib/feature-flags.
-    const projectsBetaEnabled = await getProjectsBetaEnabled(session.user.id)
-
-    return NextResponse.json({ ...user, projectsBetaEnabled })
+    return NextResponse.json(user)
   } catch (error) {
     log.error({ err: error }, 'Error fetching user settings:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -121,25 +116,12 @@ export async function PATCH(request: NextRequest) {
       }
     })
 
-    // projectsBetaEnabled is updated separately so a missing column (pre-prod
-    // migration preview) can't break the rest of the settings PATCH.
-    let projectsBetaEnabled: boolean | undefined
-    if (typeof data.projectsBetaEnabled === 'boolean') {
-      try {
-        projectsBetaEnabled = await setProjectsBetaEnabled(session.user.id, data.projectsBetaEnabled)
-      } catch {
-        projectsBetaEnabled = data.projectsBetaEnabled
-      }
-    } else {
-      projectsBetaEnabled = await getProjectsBetaEnabled(session.user.id)
-    }
-
     // Track analytics
     trackEventFromRequest(request, session.user.id, AnalyticsEventType.SETTINGS_UPDATED, {
       settingsType: 'userPreferences'
     })
 
-    return NextResponse.json({ ...updatedUser, projectsBetaEnabled })
+    return NextResponse.json(updatedUser)
   } catch (error) {
     log.error({ err: error }, 'Error updating user settings:')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

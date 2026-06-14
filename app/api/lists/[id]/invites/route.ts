@@ -30,13 +30,6 @@ export async function GET(
       where: { id: listId },
       include: {
         owner: true,
-        // Project owner / admins manage members like a list admin (sub-task #3).
-        project: {
-          select: {
-            ownerId: true,
-            members: { select: { userId: true, role: true } },
-          },
-        },
       },
     })
 

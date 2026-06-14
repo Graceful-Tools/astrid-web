@@ -17,11 +17,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { BoardViewSection } from '@/components/list-admin/BoardViewSection'
 import type { TaskList } from '@/types/task'
 
-// Projects beta enabled so the Create-Board affordance renders.
-vi.mock('@/hooks/useProjectsBeta', () => ({
-  useProjectsBeta: () => ({ enabled: true, loading: false, setEnabled: vi.fn() }),
-}))
-
 global.fetch = vi.fn(() =>
   Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
 )
