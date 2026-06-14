@@ -32,15 +32,24 @@ async function updateJson<T>(request: APIRequestContext, url: string, data: unkn
 test.describe('Project status board', () => {
   test('shows Ready/Doing/Waiting plus virtual Inbox/Done and moves a task across the board', async ({ page, request }) => {
     const suffix = Date.now()
-    const project = await createJson<{ id: string; lists: ApiList[] }>(request, '/api/projects', {
-      name: `Playwright Status Project ${suffix}`,
-      description: 'Created by Playwright status board coverage',
+    // Turn a plain list into a board via the Create-Board flow (the list is the
+    // management entity; "from-list" creates the backing project + status cols).
+    const domainList = await createJson<ApiList>(request, '/api/lists', {
+      name: `Astrid Web To-do ${suffix}`,
+      description: 'Domain list for status board test',
+      privacy: 'SHARED',
+      listType: 'regular',
     })
 
+    await createJson<{ project: { id: string }; list: ApiList }>(request, '/api/projects/from-list', {
+      listId: domainList.id,
+    })
+
+    // Status lists are per-user globals (projectId: null, listType: 'status').
     const listsResponse = await request.get('/api/lists')
     expect(listsResponse.ok()).toBeTruthy()
     const listsPayload = await listsResponse.json() as { lists: ApiList[] }
-    const statusLists = listsPayload.lists.filter(list => list.projectId === project.id && list.listType === 'status')
+    const statusLists = listsPayload.lists.filter(list => list.listType === 'status')
     const ready = statusLists.find(list => list.statusRole === 'ready')
     const doing = statusLists.find(list => list.statusRole === 'doing')
     const waiting = statusLists.find(list => list.statusRole === 'waiting')
@@ -49,14 +58,6 @@ test.describe('Project status board', () => {
     expect(waiting).toBeTruthy()
     expect(statusLists.find(list => list.statusRole === 'inbox')).toBeUndefined()
     expect(statusLists.find(list => list.statusRole === 'done')).toBeUndefined()
-
-    const domainList = await createJson<ApiList>(request, '/api/lists', {
-      name: `Astrid Web To-do ${suffix}`,
-      description: 'Domain list for status board test',
-      privacy: 'SHARED',
-      projectId: project.id,
-      listType: 'regular',
-    })
 
     const task = await createJson<ApiTask>(request, '/api/tasks', {
       title: `Move through status board ${suffix}`,

@@ -8,8 +8,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ListSortAndFilters } from "./list-sort-and-filters"
 import { ListMembership } from "./list-membership"
 import { ListAdminSettings } from "./list-admin-settings"
+import { ManageStatusesPanel } from "./list-admin/ManageStatusesPanel"
 import type { TaskList, User } from "../types/task"
-import { Lock, Unlock, X, Filter, Users, Settings } from "lucide-react"
+import { Lock, Unlock, X, Filter, Users, Settings, KanbanSquare } from "lucide-react"
 
 interface ListSettingsPopoverProps {
   list: TaskList
@@ -24,6 +25,10 @@ interface ListSettingsPopoverProps {
   onEditImage?: () => void
   onProjectBoardCreated?: (projectLists: TaskList[]) => void
   onProjectBoardRemoved?: (projectId: string, detachedListIds: string[]) => void
+  /** The user's global board status lists (Ready/Doing/Waiting + custom). */
+  statuses?: TaskList[]
+  /** Reload lists after a status column is renamed/reordered/added. */
+  onStatusesChanged?: () => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
   children: React.ReactNode
@@ -43,6 +48,8 @@ export function ListSettingsPopover({
   onEditImage,
   onProjectBoardCreated,
   onProjectBoardRemoved,
+  statuses = [],
+  onStatusesChanged,
   open = false,
   onOpenChange = () => {},
   children,
@@ -50,6 +57,10 @@ export function ListSettingsPopover({
 }: ListSettingsPopoverProps) {
   const [activeTab, setActiveTab] = useState("sort-filters")
   const [mounted, setMounted] = useState(false)
+
+  // The Statuses tab manages board columns — only relevant when this list has a
+  // board enabled and the viewer can edit settings.
+  const showStatusesTab = canEditSettings && Boolean(list.projectId)
 
   // Wait for component to mount before rendering portal
   useEffect(() => {
@@ -61,7 +72,10 @@ export function ListSettingsPopover({
     if (!canEditSettings && activeTab === "admin") {
       setActiveTab("sort-filters")
     }
-  }, [canEditSettings, activeTab])
+    if (!showStatusesTab && activeTab === "statuses") {
+      setActiveTab("sort-filters")
+    }
+  }, [canEditSettings, showStatusesTab, activeTab])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -109,7 +123,7 @@ export function ListSettingsPopover({
           {/* Content with Tabs */}
           <div className="flex-1 md:max-h-96 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className={`grid w-full ${canEditSettings ? 'grid-cols-3' : 'grid-cols-2'} theme-bg-secondary`}>
+              <TabsList className={`grid w-full ${showStatusesTab ? 'grid-cols-4' : canEditSettings ? 'grid-cols-3' : 'grid-cols-2'} theme-bg-secondary`}>
                 <TabsTrigger value="sort-filters" className="flex items-center space-x-1 text-xs">
                   <Filter className="w-3 h-3" />
                   <span>Sort & Filters</span>
@@ -118,6 +132,12 @@ export function ListSettingsPopover({
                   <Users className="w-3 h-3" />
                   <span>Membership</span>
                 </TabsTrigger>
+                {showStatusesTab && (
+                  <TabsTrigger value="statuses" className="flex items-center space-x-1 text-xs">
+                    <KanbanSquare className="w-3 h-3" />
+                    <span>Statuses</span>
+                  </TabsTrigger>
+                )}
                 {canEditSettings && (
                   <TabsTrigger value="admin" className="flex items-center space-x-1 text-xs">
                     <Settings className="w-3 h-3" />
@@ -150,6 +170,15 @@ export function ListSettingsPopover({
                     }}
                   />
                 </TabsContent>
+
+                {showStatusesTab && (
+                  <TabsContent value="statuses" className="mt-0">
+                    <ManageStatusesPanel
+                      statuses={statuses}
+                      onChanged={() => onStatusesChanged?.()}
+                    />
+                  </TabsContent>
+                )}
 
                 {canEditSettings && (
                   <TabsContent value="admin" className="mt-0">

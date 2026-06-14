@@ -1,17 +1,13 @@
 /**
  * Route tests for POST /api/projects/from-list — the atomic create-board
  * endpoint (create project + attach list in one transaction). Service is
- * mocked; these cover auth, the beta gate, validation, error mapping, and
- * cache eviction.
+ * mocked; these cover auth, validation, error mapping, and cache eviction.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/projects-service', () => ({
   createProjectFromList: vi.fn(),
-}))
-vi.mock('@/lib/feature-flags', () => ({
-  requireProjectsBeta: vi.fn().mockResolvedValue(true),
 }))
 vi.mock('@/lib/session-utils', () => ({
   getUnifiedSession: vi.fn(),
@@ -25,12 +21,10 @@ vi.mock('@/lib/redis', () => ({
 
 import { POST } from '@/app/api/projects/from-list/route'
 import { createProjectFromList } from '@/lib/projects-service'
-import { requireProjectsBeta } from '@/lib/feature-flags'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { RedisCache } from '@/lib/redis'
 
 const mockCreate = vi.mocked(createProjectFromList)
-const mockBeta = vi.mocked(requireProjectsBeta)
 const mockSession = vi.mocked(getUnifiedSession)
 const mockDel = vi.mocked(RedisCache.del)
 
@@ -43,19 +37,12 @@ const req = (body?: unknown) =>
 beforeEach(() => {
   vi.clearAllMocks()
   mockSession.mockResolvedValue({ user: { id: 'u1' } } as never)
-  mockBeta.mockResolvedValue(true as never)
   mockDel.mockResolvedValue(undefined as never)
 })
 
 it('401 when unauthenticated', async () => {
   mockSession.mockResolvedValue(null as never)
   expect((await POST(req({ listId: 'l1' }))).status).toBe(401)
-})
-
-it('403 when beta disabled', async () => {
-  mockBeta.mockResolvedValue(false as never)
-  expect((await POST(req({ listId: 'l1' }))).status).toBe(403)
-  expect(mockCreate).not.toHaveBeenCalled()
 })
 
 it('400 when listId missing', async () => {

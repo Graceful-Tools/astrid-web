@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
-import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 
@@ -158,38 +157,6 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
           }
           break
 
-        case "PROJECT_SHARING":
-          if (invitation.projectId) {
-            // Add the user to the project. Project membership grants access to
-            // every list in the project (board #3), mirroring how LIST_SHARING
-            // adds a ListMember. Project roles are admin / member.
-            const role = invitation.role === "admin" ? "admin" : "member"
-
-            await tx.projectMember.upsert({
-              where: {
-                projectId_userId: {
-                  projectId: invitation.projectId,
-                  userId: session.user!.id,
-                },
-              },
-              update: { role },
-              create: {
-                projectId: invitation.projectId,
-                userId: session.user!.id,
-                role,
-              },
-            })
-
-            actionResult = await tx.project.findUnique({
-              where: { id: invitation.projectId },
-              include: {
-                owner: true,
-                members: { include: { user: true } },
-              },
-            })
-          }
-          break
-
         case "WORKSPACE_INVITE":
           // For workspace invites, just mark as accepted
           // Additional workspace setup could be done here
@@ -199,16 +166,6 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
 
       return actionResult
     })
-
-    // The new project member now sees every list in the project — evict their
-    // cached list set so the access takes effect immediately.
-    if (invitation.type === "PROJECT_SHARING") {
-      try {
-        await RedisCache.del(RedisCache.keys.userLists(session.user.id))
-      } catch (cacheError) {
-        log.error({ err: cacheError }, "Failed to invalidate userLists cache after project invite accept")
-      }
-    }
 
     return NextResponse.json({
       success: true,

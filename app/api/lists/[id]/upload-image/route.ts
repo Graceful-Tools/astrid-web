@@ -87,13 +87,6 @@ export async function POST(
             user: true
           }
         },
-        // Project membership grants access to project lists (sub-task #3).
-        project: {
-          select: {
-            ownerId: true,
-            members: { select: { userId: true, role: true } },
-          },
-        },
       },
     })
 
@@ -101,17 +94,11 @@ export async function POST(
       return NextResponse.json({ error: "List not found" }, { status: 404 })
     }
 
-    // Check if user can manage the list (owner or admin). Admin can also come
-    // from being the project owner / a project admin (sub-task #3). Additive.
+    // Check if user can manage the list (owner or admin).
     const isOwner = list.ownerId === session.user.id
     const isAdmin = list.listMembers?.some((lm: any) => lm.userId === session.user.id && lm.role === 'admin')
-    const isProjectAdmin =
-      list.project?.ownerId === session.user.id ||
-      list.project?.members?.some(
-        (m) => m.userId === session.user.id && (m.role === 'admin' || m.role === 'owner')
-      )
 
-    if (!isOwner && !isAdmin && !isProjectAdmin) {
+    if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 

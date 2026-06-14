@@ -35,14 +35,6 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
             user: true
           }
         },
-        // Project membership grants access to project lists (sub-task #3).
-        project: {
-          select: {
-            ownerId: true,
-            owner: true,
-            members: { include: { user: true } },
-          },
-        },
         tasks: {
           include: {
             assignee: true,
@@ -109,13 +101,6 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
             user: true
           }
         },
-        // Project membership grants access to project lists (sub-task #3).
-        project: {
-          select: {
-            ownerId: true,
-            members: { select: { userId: true, role: true } },
-          },
-        },
       },
     })
 
@@ -123,18 +108,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       return NextResponse.json({ error: "List not found" }, { status: 404 })
     }
 
-    // Check if user is owner or admin. Admin can come from list membership or,
-    // sub-task #3, from being the project owner / a project admin. Additive —
-    // only ever grants update rights, never removes them.
-    const isProjectAdmin =
-      existingList.project?.ownerId === session.user.id ||
-      existingList.project?.members?.some(
-        (m) => m.userId === session.user.id && (m.role === 'admin' || m.role === 'owner')
-      )
+    // Check if user is owner or admin (via list membership).
     const canUpdate =
       existingList.ownerId === session.user.id ||
-      existingList.listMembers?.some((lm: any) => lm.userId === session.user.id && lm.role === 'admin') ||
-      isProjectAdmin
+      existingList.listMembers?.some((lm: any) => lm.userId === session.user.id && lm.role === 'admin')
 
     if (!canUpdate) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })

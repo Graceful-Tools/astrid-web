@@ -60,11 +60,6 @@ export async function POST(request: NextRequest) {
         OR: [
           { ownerId: session.user.id },
           { listMembers: { some: { userId: session.user.id } } },
-          // Project membership grants access to project lists (sub-task #3).
-          { project: { OR: [
-            { ownerId: session.user.id },
-            { members: { some: { userId: session.user.id } } },
-          ] } },
         ],
       },
       select: {

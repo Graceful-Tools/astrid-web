@@ -242,28 +242,3 @@ export function getProjectDomainTasks(tasks: Task[], lists: TaskList[], projectI
     task.lists?.some(list => projectRegularListIds.has(list.id)),
   )
 }
-
-/**
- * Narrow a project's domain tasks to the board's current scope (sub-task #4).
- * - `list`  (default): only tasks in the selected domain list.
- * - `project`: every task across the project's lists, aggregated by status.
- *
- * If the selected list is not one of the project's domain lists (e.g. a shared
- * status list), the project-wide set is returned regardless of scope, since
- * there is no single list to narrow to.
- */
-export function scopeProjectBoardTasks(
-  projectTasks: Task[],
-  selectedList: TaskList | undefined,
-  projectId: string,
-  boardScope: 'list' | 'project',
-): Task[] {
-  const isDomainList =
-    selectedList?.projectId === projectId && selectedList.listType !== 'status'
-  if (boardScope === 'list' && isDomainList && selectedList) {
-    return projectTasks.filter(task =>
-      task.lists?.some(list => list.id === selectedList.id),
-    )
-  }
-  return projectTasks
-}

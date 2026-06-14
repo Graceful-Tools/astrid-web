@@ -62,11 +62,6 @@ export const POST = withAuth(
           OR: [
             { ownerId: auth.userId },
             { listMembers: { some: { userId: auth.userId } } },
-            // Project membership grants access to project lists (sub-task #3).
-            { project: { OR: [
-              { ownerId: auth.userId },
-              { members: { some: { userId: auth.userId } } },
-            ] } },
           ],
         },
         select: { id: true, name: true, ownerId: true, defaultAssigneeId: true },

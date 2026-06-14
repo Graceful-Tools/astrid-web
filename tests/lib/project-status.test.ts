@@ -8,7 +8,6 @@ import {
   getTaskProjectColumnId,
   normalizeProjectStatusListIds,
   resolveProjectColumnMove,
-  scopeProjectBoardTasks,
 } from '@/lib/project-status'
 import type { Task, TaskList } from '@/types/task'
 
@@ -222,39 +221,5 @@ describe('project status', () => {
       projectId,
     )
     expect(result.map(t => t.id)).toEqual(['t-1'])
-  })
-})
-
-describe('scopeProjectBoardTasks (task 94e79fd8 — project board #4)', () => {
-  const listA = { id: 'list-a', projectId: 'proj-1', listType: 'regular' } as unknown as TaskList
-  const listB = { id: 'list-b', projectId: 'proj-1', listType: 'regular' } as unknown as TaskList
-  const statusList = { id: 'ready', projectId: null, listType: 'status' } as unknown as TaskList
-
-  const tasks = [
-    { id: 't-a', lists: [{ id: 'list-a' }] },
-    { id: 't-b', lists: [{ id: 'list-b' }] },
-  ] as unknown as Task[]
-
-  it("scope 'list' narrows to the selected domain list's tasks", () => {
-    const result = scopeProjectBoardTasks(tasks, listA, 'proj-1', 'list')
-    expect(result.map(t => t.id)).toEqual(['t-a'])
-  })
-
-  it("scope 'project' returns every task across the project's lists", () => {
-    const result = scopeProjectBoardTasks(tasks, listA, 'proj-1', 'project')
-    expect(result.map(t => t.id)).toEqual(['t-a', 't-b'])
-  })
-
-  it('returns the full project set when a status list is selected (no single list to narrow to)', () => {
-    const result = scopeProjectBoardTasks(tasks, statusList, 'proj-1', 'list')
-    expect(result.map(t => t.id)).toEqual(['t-a', 't-b'])
-  })
-
-  it('returns the full project set when nothing is selected', () => {
-    expect(scopeProjectBoardTasks(tasks, undefined, 'proj-1', 'list').map(t => t.id)).toEqual(['t-a', 't-b'])
-  })
-
-  it('narrows to a different domain list when that one is selected', () => {
-    expect(scopeProjectBoardTasks(tasks, listB, 'proj-1', 'list').map(t => t.id)).toEqual(['t-b'])
   })
 })

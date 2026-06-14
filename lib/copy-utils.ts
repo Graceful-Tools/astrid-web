@@ -187,16 +187,6 @@ export async function copyListWithTasks(
         },
         owner: true,
         listMembers: true,
-        // Project membership grants access to project lists (board sub-task #3).
-        // Without this, canAccessList only sees direct list members and would
-        // deny project members copying a private list they can otherwise read.
-        project: {
-          select: {
-            ownerId: true,
-            owner: true,
-            members: { include: { user: true } },
-          },
-        },
       }
     })
 

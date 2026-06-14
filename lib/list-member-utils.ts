@@ -36,20 +36,6 @@ interface ListLike {
     user?: { id: string; name?: string | null; email: string; image?: string | null } | null
   }> | null
   privacy?: string
-  /**
-   * Project this list belongs to (board sub-task #3). When fetched with the
-   * project's members, project membership grants access to the list. Absent →
-   * no project members are added, so behavior is identical to list-only.
-   */
-  project?: {
-    ownerId?: string | null
-    owner?: { id: string; name?: string | null; email: string; image?: string | null } | null
-    members?: Array<{
-      userId: string
-      role: string
-      user?: { id: string; name?: string | null; email: string; image?: string | null } | null
-    }> | null
-  } | null
 }
 
 /**
@@ -118,58 +104,6 @@ export function getAllListMembers(list: ListLike): ListMemberDefinition[] {
           }, '[ListMembers] Added member without user relation:')
         }
       }
-    })
-  }
-
-  // Add project members (board sub-task #3). A list inside a project grants
-  // access to the project's owner and members even when they aren't direct
-  // list members. Project owner / project-admins map to list `admin`, other
-  // project members map to `member`. Additive only — never lowers an existing
-  // entry (we skip IDs already added with a higher list-level role).
-  if (list.project) {
-    const project = list.project
-
-    if (project.owner && !existingIds.has(project.owner.id)) {
-      members.push({
-        id: project.owner.id,
-        name: project.owner.name,
-        email: project.owner.email,
-        image: project.owner.image,
-        role: 'admin',
-        isOwner: false,
-        isAdmin: true,
-        isMember: false
-      })
-      existingIds.add(project.owner.id)
-    } else if (project.ownerId && !existingIds.has(project.ownerId)) {
-      members.push({
-        id: project.ownerId,
-        name: null,
-        email: '',
-        image: null,
-        role: 'admin',
-        isOwner: false,
-        isAdmin: true,
-        isMember: false
-      })
-      existingIds.add(project.ownerId)
-    }
-
-    project.members?.forEach((member) => {
-      const id = member.user?.id ?? member.userId
-      if (!id || existingIds.has(id)) return
-      const memberRole = member.role === 'admin' || member.role === 'owner' ? 'admin' : 'member'
-      members.push({
-        id,
-        name: member.user?.name ?? null,
-        email: member.user?.email ?? '',
-        image: member.user?.image ?? null,
-        role: memberRole,
-        isOwner: false,
-        isAdmin: memberRole === 'admin',
-        isMember: memberRole === 'member'
-      })
-      existingIds.add(id)
     })
   }
 

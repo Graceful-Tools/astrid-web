@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { LoadingScreen } from "@/components/loading-screen"
-import { CheckCircle, XCircle, Clock, UserPlus, List, Briefcase, LayoutGrid } from "lucide-react"
+import { CheckCircle, XCircle, Clock, UserPlus, List, Briefcase } from "lucide-react"
 
 interface InvitationData {
   id: string
@@ -122,8 +122,6 @@ export default function InvitePage() {
         return <Briefcase className="w-8 h-8 text-blue-500" />
       case 'LIST_SHARING':
         return <List className="w-8 h-8 text-green-500" />
-      case 'PROJECT_SHARING':
-        return <LayoutGrid className="w-8 h-8 text-blue-500" />
       case 'WORKSPACE_INVITE':
         return <UserPlus className="w-8 h-8 text-purple-500" />
       default:
@@ -137,8 +135,6 @@ export default function InvitePage() {
         return "Task Assignment"
       case 'LIST_SHARING':
         return "List Sharing"
-      case 'PROJECT_SHARING':
-        return "Project Sharing"
       case 'WORKSPACE_INVITE':
         return "Workspace Invitation"
       default:
@@ -152,8 +148,6 @@ export default function InvitePage() {
         return `${senderName} has assigned you a task and wants you to collaborate.`
       case 'LIST_SHARING':
         return `${senderName} has shared a task list with you.`
-      case 'PROJECT_SHARING':
-        return `${senderName} has shared a project board with you.`
       case 'WORKSPACE_INVITE':
         return `${senderName} has invited you to join their workspace.`
       default:

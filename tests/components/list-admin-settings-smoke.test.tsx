@@ -29,11 +29,6 @@ global.fetch = vi.fn(() =>
   } as Response)
 )
 
-// Projects beta enabled so the Create-Board affordance renders.
-vi.mock('@/hooks/useProjectsBeta', () => ({
-  useProjectsBeta: () => ({ enabled: true, loading: false, setEnabled: vi.fn() }),
-}))
-
 vi.mock('@/lib/layout-detection', () => ({
   shouldPreventAutoFocus: () => false,
   shouldIgnoreTouchDuringKeyboard: () => false,

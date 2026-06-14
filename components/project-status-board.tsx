@@ -1,9 +1,8 @@
 "use client"
 
 import React from "react"
-import { CheckCircle2, Inbox, Plus, Settings, SlidersHorizontal } from "lucide-react"
+import { CheckCircle2, Inbox, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { EditProjectDialog, type EditableProject } from "@/components/EditProjectDialog"
 import { Input } from "@/components/ui/input"
 import { TaskDetail } from "@/components/task-detail"
 import { canUserEditTask } from "@/lib/list-permissions"
@@ -20,12 +19,9 @@ import {
   VIRTUAL_DONE_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
-  getProjectStatusLists,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
-  scopeProjectBoardTasks,
 } from "@/lib/project-status"
-import { ManageStatusesDialog } from "@/components/ManageStatusesDialog"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 
@@ -41,8 +37,6 @@ interface ProjectStatusBoardProps {
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onCreateTask: (title: string, options?: { listIds?: string[] }) => Promise<string | null>
   isOneColumn?: boolean
-  /** Reload lists after status columns are renamed/reordered/added (sub-task #5). */
-  onStatusesChanged?: () => void
 }
 
 export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
@@ -116,9 +110,7 @@ export function ProjectStatusBoard({
   onCopyTask,
   onCreateTask,
   isOneColumn = false,
-  onStatusesChanged,
 }: ProjectStatusBoardProps) {
-  const [showManageStatuses, setShowManageStatuses] = React.useState(false)
   const projectId = getProjectIdForBoard(lists, selectedListId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
     () => (projectId ? getProjectBoardColumns(lists) : []),
@@ -141,25 +133,18 @@ export function ProjectStatusBoard({
     }
   }, [])
 
-  // Scope toggle (board sub-task #4): view just the selected list's tasks, or
-  // every list in the project aggregated by status. Defaults to the selected
-  // list; resets to that whenever the selected list changes.
-  const isDomainListSelected =
-    selectedList?.projectId === projectId && selectedList.listType !== "status"
-  const projectDomainListCount = React.useMemo(
-    () => lists.filter(l => l.projectId === projectId && l.listType !== "status").length,
-    [lists, projectId],
-  )
-  const [boardScope, setBoardScope] = React.useState<'list' | 'project'>('list')
-  React.useEffect(() => {
-    setBoardScope('list')
-  }, [selectedListId])
-
   const boardTasks = React.useMemo(() => {
     if (!projectId) return []
     const projectTasks = getProjectDomainTasks(allTasks, lists, projectId)
 
-    const scoped = scopeProjectBoardTasks(projectTasks, selectedList, projectId, boardScope)
+    // The board always shows the selected list's tasks (the list is the
+    // management entity). Narrow the project's domain tasks to the selected
+    // domain list; status lists fall back to the full project set.
+    const isDomainListSelected =
+      selectedList?.projectId === projectId && selectedList.listType !== "status"
+    const scoped = isDomainListSelected && selectedList
+      ? projectTasks.filter(task => task.lists?.some(l => l.id === selectedList.id))
+      : projectTasks
 
     // Drop completed tasks that fall outside the list's "Recently completed"
     // window (null → legacy 24h default). The virtual Done column is the
@@ -179,33 +164,13 @@ export function ProjectStatusBoard({
       : undefined
 
     return sortTasksForList(trimmed, sortBy, manualOrder)
-  }, [allTasks, lists, projectId, selectedList, boardScope])
+  }, [allTasks, lists, projectId, selectedList])
 
   React.useEffect(() => {
     if (expandedTaskId && !boardTasks.some(task => task.id === expandedTaskId)) {
       setExpandedTaskId(null)
     }
   }, [boardTasks, expandedTaskId])
-
-  // Project metadata (name / color / owner) for the board header + edit dialog.
-  const [project, setProject] = React.useState<EditableProject & { owner?: { id: string } } | null>(null)
-  const [showEditProject, setShowEditProject] = React.useState(false)
-  React.useEffect(() => {
-    if (!projectId) {
-      setProject(null)
-      return
-    }
-    let cancelled = false
-    fetch(`/api/projects/${projectId}`)
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => {
-        if (!cancelled && data?.project) setProject(data.project)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [projectId])
-
-  const isProjectOwner = Boolean(project && currentUser && project.owner?.id === currentUser.id)
 
   if (!projectId || columns.length === 0) {
     return null
@@ -337,64 +302,7 @@ export function ProjectStatusBoard({
 
   return (
     <div className="flex h-full flex-col">
-      {project && (
-        <div className="flex items-center justify-between px-4 pt-3" data-testid="project-board-header">
-          <div className="flex items-center gap-2 min-w-0">
-            <span
-              className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: project.color || "#3b82f6" }}
-            />
-            <span className="text-sm font-semibold theme-text-primary truncate">{project.name}</span>
-          </div>
-          {isDomainListSelected && projectDomainListCount > 1 && (
-            <div
-              className="flex items-center rounded-md border theme-border overflow-hidden text-xs"
-              data-testid="board-scope-toggle"
-            >
-              <button
-                type="button"
-                onClick={() => setBoardScope('list')}
-                className={`px-2 py-1 transition-colors ${boardScope === 'list' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
-              >
-                This list
-              </button>
-              <button
-                type="button"
-                onClick={() => setBoardScope('project')}
-                className={`px-2 py-1 transition-colors ${boardScope === 'project' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
-              >
-                Whole project
-              </button>
-            </div>
-          )}
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            {onStatusesChanged && (
-              <button
-                type="button"
-                onClick={() => setShowManageStatuses(true)}
-                className="p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
-                title="Manage statuses"
-                aria-label="Manage statuses"
-                data-testid="manage-statuses-button"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-            )}
-            {isProjectOwner && (
-              <button
-                type="button"
-                onClick={() => setShowEditProject(true)}
-                className="p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
-                title="Edit project"
-                aria-label="Edit project"
-                data-testid="edit-project-button"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Board status management lives in the list-settings "Statuses" tab. */}
       <div
         ref={scrollRef}
         className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
@@ -581,22 +489,6 @@ export function ProjectStatusBoard({
         })}
         </div>
       </div>
-      {project && (
-        <EditProjectDialog
-          open={showEditProject}
-          onOpenChange={setShowEditProject}
-          project={project}
-          onSaved={setProject}
-        />
-      )}
-      {onStatusesChanged && (
-        <ManageStatusesDialog
-          open={showManageStatuses}
-          onOpenChange={setShowManageStatuses}
-          statuses={getProjectStatusLists(lists)}
-          onChanged={onStatusesChanged}
-        />
-      )}
     </div>
   )
 }

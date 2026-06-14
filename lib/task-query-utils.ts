@@ -22,15 +22,6 @@ export const TASK_FULL_INCLUDE = {
           user: true
         }
       },
-      // Project membership grants access to a project's lists (sub-task #3).
-      // Additive: null when the list has no project, so access is unchanged.
-      project: {
-        select: {
-          ownerId: true,
-          owner: true,
-          members: { include: { user: true } },
-        },
-      },
     },
   },
   comments: {
@@ -55,15 +46,6 @@ export const LIST_WITH_MEMBERS_INCLUDE = {
     include: {
       user: true
     }
-  },
-  // Project membership grants access to a project's lists (sub-task #3).
-  // Additive: null when the list has no project, so access is unchanged.
-  project: {
-    select: {
-      ownerId: true,
-      owner: true,
-      members: { include: { user: true } },
-    },
   },
 } satisfies Prisma.TaskListInclude
 
