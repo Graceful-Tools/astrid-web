@@ -49,17 +49,15 @@ describe('Header Home Text Removal', () => {
     expect(homeIndicators.length).toBe(0)
   })
 
-  it('should still show astrid logo and functionality in desktop header', () => {
+  it('renders no top header bar in 3-column/desktop view — logo moved to sidebar (task 3fa1be3a)', () => {
     const { container } = render(
-      <TaskManagerHeader {...mockProps} isMobile={false} />
+      <TaskManagerHeader {...mockProps} isMobile={false} showHamburgerMenu={false} />
     )
 
-    // Verify essential header elements still exist
-    expect(container.textContent).toContain('astrid')
-
-    // Verify logo image exists (now using Image component instead of lucide icon)
-    const logoImage = container.querySelector('img[alt="Astrid"]')
-    expect(logoImage).toBeTruthy()
+    // The desktop/3-column top header is removed entirely; the astrid logo now
+    // lives at the top of the left sidebar rather than in a top bar.
+    expect(container).toBeEmptyDOMElement()
+    expect(container.querySelector('img[alt="Astrid"]')).toBeNull()
   })
 
   it('should not affect mobile header behavior', () => {
@@ -75,7 +73,7 @@ describe('Header Home Text Removal', () => {
   })
 
   it('should verify file-level removal of Home text pattern', () => {
-    // This test reads the actual component file to ensure the Home text was removed
+    // This test reads the actual component files to ensure the Home text was removed
     const fs = require('fs')
     const path = require('path')
 
@@ -88,25 +86,21 @@ describe('Header Home Text Removal', () => {
     // Verify the home indicator container structure was removed
     expect(fileContent).not.toMatch(/theme-count-bg.*Home/)
 
-    // Ensure we didn't accidentally remove other important "Home" references
-    expect(fileContent).toContain('title="Go to Home"') // Logo should still have this title
+    // The logo (with its "Go to Home" affordance) moved to the left sidebar.
+    const sidebarFilePath = path.join(process.cwd(), 'components/TaskManager/Sidebar/LeftSidebar.tsx')
+    const sidebarContent = fs.readFileSync(sidebarFilePath, 'utf-8')
+    expect(sidebarContent).toContain('title="Go to Home"')
   })
 
-  it('should maintain header structure without Home indicator', () => {
+  it('renders the hamburger header (not the desktop bar) when the hamburger menu is shown', () => {
     const { container } = render(
-      <TaskManagerHeader {...mockProps} isMobile={false} />
+      <TaskManagerHeader {...mockProps} isMobile={false} showHamburgerMenu={true} />
     )
 
-    // Verify header still has proper structure
-    const headerElement = container.querySelector('.app-header')
-    expect(headerElement).toBeTruthy()
-
-    // Verify flex layout is maintained
-    const flexContainer = container.querySelector('.flex.items-center.space-x-4')
-    expect(flexContainer).toBeTruthy()
-
-    // Verify essential elements are still positioned correctly (now using Image component)
-    const logo = container.querySelector('img[alt="Astrid"]')
-    expect(logo).toBeTruthy()
+    // 2-column/1-column still render the hamburger header with the list name…
+    expect(container.querySelector('.app-header')).toBeTruthy()
+    expect(container.textContent).toContain('Test List')
+    // …and never the standalone astrid logo (that's the sidebar's job now).
+    expect(container.querySelector('img[alt="Astrid"]')).toBeNull()
   })
 })
