@@ -26,7 +26,6 @@ import {
   Copy,
   Search
 } from "lucide-react"
-import { renderMarkdown } from "@/lib/markdown"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import type { Task, TaskList } from "@/types/task"
@@ -513,12 +512,19 @@ export function MainContent({
                             Press Enter to save • Shift+Enter or Cmd/Ctrl+Enter for line breaks
                           </div>
                         </>
-                      ) : (
+                      ) : newFilterState.filters.search.trim() ? (
                         <div
-                          className={`theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden ${
-                            !newFilterState.filters.search.trim() ? 'cursor-pointer hover:theme-text-secondary' : ''
-                          }`}
-                          onClick={!newFilterState.filters.search.trim() ? () => {
+                          className="theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden"
+                          dangerouslySetInnerHTML={{
+                            __html: `Showing tasks matching "<strong>${newFilterState.filters.search}</strong>" from all accessible lists`,
+                          }}
+                        />
+                      ) : (
+                        // Inline preview shows the raw description text (not rendered
+                        // markdown). The full formatted view is the dialog on click.
+                        <div
+                          className="theme-text-muted text-sm text-left line-clamp-2 overflow-hidden whitespace-pre-wrap cursor-pointer hover:theme-text-secondary"
+                          onClick={() => {
                             if (currentList.description) {
                               // Has description → open viewer dialog
                               descriptionDialogRef.current?.open(currentList.description)
@@ -526,13 +532,12 @@ export function MainContent({
                               // No description + can edit → go straight to inline edit
                               handleEditListDescription(currentList)
                             }
-                          } : undefined}
-                          dangerouslySetInnerHTML={{
-                            __html: newFilterState.filters.search.trim()
-                              ? `Showing tasks matching "<strong>${newFilterState.filters.search}</strong>" from all accessible lists`
-                              : (currentList.description ? renderMarkdown(currentList.description) : (canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Add a description..." : ""))
                           }}
-                        />
+                        >
+                          {currentList.description
+                            ? currentList.description
+                            : (canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Add a description..." : "")}
+                        </div>
                       )}
                     </div>
 
