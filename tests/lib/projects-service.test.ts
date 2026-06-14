@@ -36,10 +36,11 @@ vi.mock('@/lib/prisma', () => ({
       deleteMany: vi.fn(),
       updateMany: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject, collectProjectMemberUserIds, addProjectMember, removeProjectMember, updateProjectMemberRole, getProjectMembers, inviteProjectMemberByEmail, cancelProjectInvite, updateProjectInviteRole } from '@/lib/projects-service'
+import { ensureUserStatusLists, listProjectsForUser, updateProjectMetadata, getProjectForUser, addUserStatus, attachListToProject, collectProjectMemberUserIds, addProjectMember, removeProjectMember, updateProjectMemberRole, getProjectMembers, inviteProjectMemberByEmail, cancelProjectInvite, updateProjectInviteRole, createProjectFromList } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
@@ -745,5 +746,74 @@ describe('cancelProjectInvite / updateProjectInviteRole', () => {
     expect(await updateProjectInviteRole(PID, OWNER, 'a@x.com', 'member')).toEqual({ error: 'not_found' })
     mockInviteUpdateMany.mockResolvedValue({ count: 1 } as never)
     expect(await updateProjectInviteRole(PID, OWNER, 'a@x.com', 'admin')).toEqual({ success: true })
+  })
+})
+
+// Atomic create-board: create project + attach list in one transaction.
+describe('createProjectFromList', () => {
+  const USER = 'owner-1'
+  beforeEach(() => vi.clearAllMocks())
+
+  // Drive the validation branches: they all return before any write, after a
+  // single tx.taskList.findUnique. We stub $transaction to invoke the callback
+  // with a tx exposing that lookup.
+  function txWithList(list: any) {
+    vi.mocked(prisma.$transaction).mockImplementation(((cb: any) =>
+      cb({ taskList: { findUnique: vi.fn().mockResolvedValue(list) } })) as any)
+  }
+
+  it('list_not_found when the list is missing', async () => {
+    txWithList(null)
+    expect(await createProjectFromList(USER, 'l1')).toEqual({ error: 'list_not_found' })
+  })
+
+  it('forbidden when the user does not own the list', async () => {
+    txWithList({ id: 'l1', ownerId: 'someone', listType: 'regular', projectId: null })
+    expect(await createProjectFromList(USER, 'l1')).toEqual({ error: 'forbidden' })
+  })
+
+  it('invalid for a status list', async () => {
+    txWithList({ id: 'l1', ownerId: USER, listType: 'status', projectId: null })
+    expect(await createProjectFromList(USER, 'l1')).toMatchObject({ error: 'invalid' })
+  })
+
+  it('invalid when the list is already part of a project', async () => {
+    txWithList({ id: 'l1', ownerId: USER, listType: 'regular', projectId: 'p9' })
+    expect(await createProjectFromList(USER, 'l1')).toMatchObject({ error: 'invalid' })
+  })
+
+  it('creates the project and attaches the list atomically', async () => {
+    const projectCreate = vi.fn().mockResolvedValue({ id: 'p1' })
+    const listUpdate = vi.fn().mockResolvedValue({ id: 'l1', projectId: 'p1', listType: 'regular' })
+    const tx: any = {
+      taskList: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'l1', ownerId: USER, name: 'Career', description: null, color: '#fff', imageUrl: null, listType: 'regular', projectId: null }),
+        update: listUpdate,
+        findMany: vi.fn()
+          .mockResolvedValueOnce([]) // ensureUserStatusLists: existing
+          .mockResolvedValueOnce([]) // ensureUserStatusLists: final
+          .mockResolvedValueOnce([]), // fetchUserStatusLists
+        createMany: vi.fn(),
+      },
+      project: {
+        create: projectCreate,
+        findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'p1', name: 'Career', lists: [{ id: 'l1' }] }),
+      },
+    }
+    vi.mocked(prisma.$transaction).mockImplementation(((cb: any) => cb(tx)) as any)
+
+    const result = await createProjectFromList(USER, 'l1')
+    expect(projectCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ name: 'Career', ownerId: USER, members: { create: { userId: USER, role: 'admin' } } }) })
+    )
+    expect(listUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'l1' }, data: { projectId: 'p1', listType: 'regular' } })
+    )
+    if ('project' in result) {
+      expect(result.project.id).toBe('p1')
+      expect(result.list.projectId).toBe('p1')
+    } else {
+      throw new Error('expected success')
+    }
   })
 })

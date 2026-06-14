@@ -174,6 +174,80 @@ export async function createProjectForUser(userId: string, input: CreateProjectI
   })
 }
 
+export type CreateProjectFromListResult =
+  | { error: 'list_not_found' }
+  | { error: 'forbidden' }
+  | { error: 'invalid'; message: string }
+  | {
+      project: Awaited<ReturnType<typeof listProjectsForUser>>[number]
+      list: Prisma.TaskListGetPayload<Record<string, never>>
+    }
+
+/**
+ * Atomically turn a list into a project board: create the project (copying the
+ * list's metadata) AND attach the list, in a single transaction. Replaces the
+ * old two-request client flow (create project, then PUT the list) whose middle
+ * failure left empty, same-named orphan projects. Idempotent guard: refuses a
+ * list that is already part of a project.
+ */
+export async function createProjectFromList(
+  userId: string,
+  listId: string,
+): Promise<CreateProjectFromListResult> {
+  return prisma.$transaction(async (tx) => {
+    const list = await tx.taskList.findUnique({
+      where: { id: listId },
+      select: {
+        id: true,
+        ownerId: true,
+        name: true,
+        description: true,
+        color: true,
+        imageUrl: true,
+        listType: true,
+        projectId: true,
+      },
+    })
+
+    if (!list) return { error: 'list_not_found' as const }
+    if (list.ownerId !== userId) return { error: 'forbidden' as const }
+    if (list.listType === 'status') {
+      return { error: 'invalid' as const, message: 'A status list cannot become a board' }
+    }
+    if (list.projectId) {
+      return { error: 'invalid' as const, message: 'This list is already part of a project' }
+    }
+
+    const created = await tx.project.create({
+      data: {
+        name: list.name,
+        description: list.description || null,
+        color: list.color || '#3b82f6',
+        imageUrl: list.imageUrl || null,
+        ownerId: userId,
+        members: { create: { userId, role: 'admin' } },
+      },
+    })
+
+    const updatedList = await tx.taskList.update({
+      where: { id: listId },
+      data: { projectId: created.id, listType: 'regular' },
+    })
+
+    await ensureUserStatusLists(userId, tx)
+
+    const [project, statusLists] = await Promise.all([
+      tx.project.findUniqueOrThrow({ where: { id: created.id }, include: projectInclude }),
+      fetchUserStatusLists(userId, tx),
+    ])
+
+    return {
+      project: { ...project, lists: [...project.lists, ...statusLists] },
+      list: updatedList,
+    }
+  })
+}
+
 /**
  * Tear down a project: detach its domain (regular) lists, then cascade-delete
  * the project and its status lists. Caller must have already verified that

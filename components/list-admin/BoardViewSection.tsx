@@ -85,44 +85,23 @@ export function BoardViewSection({
     setProjectBoardError(null)
 
     try {
-      const projectResponse = await fetch('/api/projects', {
+      // Single atomic call: creates the project AND attaches this list in one
+      // transaction (no orphan-project window from a failed second request).
+      const response = await fetch('/api/projects/from-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: list.name,
-          description: list.description || null,
-          color: list.color || '#3b82f6',
-          imageUrl: list.imageUrl || null,
-        }),
+        body: JSON.stringify({ listId: list.id }),
       })
 
-      if (!projectResponse.ok) {
-        throw new Error(await projectResponse.text())
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to create board')
       }
 
-      const project = await projectResponse.json()
-      const listResponse = await fetch(`/api/lists/${list.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...list,
-          projectId: project.id,
-          listType: 'regular',
-        }),
-      })
-
-      if (!listResponse.ok) {
-        // The project was created but the list didn't attach. Roll the project
-        // back so it can't linger as an empty, same-named orphan (which is how
-        // duplicate projects accumulated). Best-effort — ignore cleanup errors.
-        await fetch(`/api/projects/${project.id}`, { method: 'DELETE' }).catch(() => {})
-        throw new Error(await listResponse.text())
-      }
-
-      const updatedList = await listResponse.json()
+      const { project, list: updatedList } = await response.json()
       onUpdate(updatedList)
 
-      if (project.lists?.length) {
+      if (project?.lists?.length) {
         onProjectBoardCreated?.([updatedList, ...project.lists])
       } else {
         onProjectBoardCreated?.([updatedList])
