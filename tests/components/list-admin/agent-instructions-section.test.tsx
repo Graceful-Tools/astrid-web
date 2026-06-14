@@ -45,8 +45,18 @@ describe('AgentInstructionsSection', () => {
 
   it('shows the empty-state prompt when the list has no instructions', () => {
     render(<AgentInstructionsSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
-    expect(screen.getByText('Agent Instructions')).toBeInTheDocument()
     expect(screen.getByText(/Click to add agent instructions/)).toBeInTheDocument()
+  })
+
+  it('titles the section "List Description" with an info hint about agent usage (task 3fa1be3a)', () => {
+    render(<AgentInstructionsSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
+    // Renamed from "Agent Instructions" back to "List Description".
+    expect(screen.getByText('List Description')).toBeInTheDocument()
+    expect(screen.queryByText('Agent Instructions')).not.toBeInTheDocument()
+    // An info affordance explains the description is used as agent instructions.
+    expect(
+      screen.getByLabelText(/used as instructions for ai agents/i)
+    ).toBeInTheDocument()
   })
 
   it('enters edit mode with a textarea when the display area is clicked', () => {

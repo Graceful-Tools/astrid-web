@@ -51,13 +51,13 @@ describe('DescriptionDialog (Stage 21 / task 5aad267a)', () => {
 
   it('renders nothing until opened via the ref handle', () => {
     renderDialog()
-    expect(screen.queryByText('Agent Instructions')).not.toBeInTheDocument()
+    expect(screen.queryByText('List Description')).not.toBeInTheDocument()
   })
 
   it('opens in view mode showing the list name and description', () => {
     const { ref } = renderDialog()
     act(() => ref.current!.open('Hello world'))
-    expect(screen.getByText('Agent Instructions')).toBeInTheDocument()
+    expect(screen.getByText('List Description')).toBeInTheDocument()
     expect(screen.getByText(/Engineering/)).toBeInTheDocument()
     // View mode renders markdown, not a textarea
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
