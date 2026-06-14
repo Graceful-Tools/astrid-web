@@ -15,6 +15,13 @@ interface TaskViewToggleProps {
   taskViewMode: 'list' | 'board'
   onTaskViewModeChange?: (mode: 'list' | 'board') => void
   onToggleActivePanel?: (panel: 'tasks' | 'chat') => void
+  /**
+   * Responsive visibility for the segment labels. Defaults to the header's
+   * viewport-based rule (`hidden sm:inline`). The 3-column list-header places
+   * the toggle in a narrower content column, so it overrides this to collapse
+   * to icon-only below a wider viewport breakpoint (e.g. `min-[1300px]:inline`).
+   */
+  labelClassName?: string
 }
 
 const segmentMeta: Record<HeaderToggleSegment, { label: string; Icon: typeof ListChecks }> = {
@@ -33,6 +40,7 @@ export function TaskViewToggle({
   taskViewMode,
   onTaskViewModeChange,
   onToggleActivePanel,
+  labelClassName = 'hidden sm:inline',
 }: TaskViewToggleProps) {
   const headerToggle = getHeaderViewToggle({
     isOneColumn,
@@ -85,7 +93,7 @@ export function TaskViewToggle({
             data-segment={segment}
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{label}</span>
+            <span className={labelClassName}>{label}</span>
           </Button>
         )
       })}

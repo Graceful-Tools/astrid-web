@@ -540,6 +540,7 @@ export function MainContent({
                     <div className="flex items-center space-x-2">
                       {is3Column && hasProjectBoard && (
                         <TaskViewToggle
+                          labelClassName="hidden min-[1300px]:inline"
                           isOneColumn={false}
                           hasProjectBoard={hasProjectBoard}
                           chatAvailable={false}
@@ -597,6 +598,7 @@ export function MainContent({
                 <div className="flex items-center space-x-2">
                   {is3Column && hasProjectBoard && (
                     <TaskViewToggle
+                      labelClassName="hidden min-[1300px]:inline"
                       isOneColumn={false}
                       hasProjectBoard={hasProjectBoard}
                       chatAvailable={false}
