@@ -16,6 +16,7 @@ import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
+import { getProjectStatusLists } from "@/lib/project-status"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
   Settings,
@@ -656,6 +657,8 @@ export function MainContent({
                   onFavoriteToggle={onFavoriteToggle}
                   onProjectBoardCreated={onProjectBoardCreated}
                   onProjectBoardRemoved={onProjectBoardRemoved}
+                  statuses={getProjectStatusLists(lists)}
+                  onStatusesChanged={onStatusesChanged}
                   onDelete={(listId) => {
                     onListDelete(listId)
                     setShowSettingsPopover(null)
@@ -810,7 +813,6 @@ export function MainContent({
               onCopyTask={handleCopyTask}
               onCreateTask={handleQuickCreateTask}
               isOneColumn={Boolean(isOneColumn)}
-              onStatusesChanged={onStatusesChanged}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (
@@ -988,6 +990,9 @@ export function MainContent({
               onUpdate={onListUpdate}
               onFavoriteToggle={onFavoriteToggle}
               onProjectBoardCreated={onProjectBoardCreated}
+              onProjectBoardRemoved={onProjectBoardRemoved}
+              statuses={getProjectStatusLists(lists)}
+              onStatusesChanged={onStatusesChanged}
               onDelete={(listId) => {
                 onListDelete(listId)
                 setShowSettingsPopover(null)

@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { CheckCircle2, Inbox, Plus, SlidersHorizontal } from "lucide-react"
+import { CheckCircle2, Inbox, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TaskDetail } from "@/components/task-detail"
@@ -19,11 +19,9 @@ import {
   VIRTUAL_DONE_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
-  getProjectStatusLists,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
 } from "@/lib/project-status"
-import { ManageStatusesDialog } from "@/components/ManageStatusesDialog"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 
@@ -39,8 +37,6 @@ interface ProjectStatusBoardProps {
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onCreateTask: (title: string, options?: { listIds?: string[] }) => Promise<string | null>
   isOneColumn?: boolean
-  /** Reload lists after status columns are renamed/reordered/added (sub-task #5). */
-  onStatusesChanged?: () => void
 }
 
 export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
@@ -114,9 +110,7 @@ export function ProjectStatusBoard({
   onCopyTask,
   onCreateTask,
   isOneColumn = false,
-  onStatusesChanged,
 }: ProjectStatusBoardProps) {
-  const [showManageStatuses, setShowManageStatuses] = React.useState(false)
   const projectId = getProjectIdForBoard(lists, selectedListId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
     () => (projectId ? getProjectBoardColumns(lists) : []),
@@ -308,31 +302,7 @@ export function ProjectStatusBoard({
 
   return (
     <div className="flex h-full flex-col">
-      {selectedList && (
-        <div className="flex items-center justify-between px-4 pt-3" data-testid="project-board-header">
-          <div className="flex items-center gap-2 min-w-0">
-            <span
-              className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: selectedList.color || "#3b82f6" }}
-            />
-            <span className="text-sm font-semibold theme-text-primary truncate">{selectedList.name}</span>
-          </div>
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            {onStatusesChanged && (
-              <button
-                type="button"
-                onClick={() => setShowManageStatuses(true)}
-                className="p-1.5 rounded-md theme-text-muted hover:theme-text-primary hover:theme-bg-hover transition-colors"
-                title="Manage statuses"
-                aria-label="Manage statuses"
-                data-testid="manage-statuses-button"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Board status management lives in the list-settings "Statuses" tab. */}
       <div
         ref={scrollRef}
         className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
@@ -519,14 +489,6 @@ export function ProjectStatusBoard({
         })}
         </div>
       </div>
-      {onStatusesChanged && (
-        <ManageStatusesDialog
-          open={showManageStatuses}
-          onOpenChange={setShowManageStatuses}
-          statuses={getProjectStatusLists(lists)}
-          onChanged={onStatusesChanged}
-        />
-      )}
     </div>
   )
 }

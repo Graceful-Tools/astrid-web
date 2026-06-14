@@ -3,15 +3,15 @@
  */
 
 /**
- * Task 1c7817f9 — project board #5: rename / reorder / add board statuses.
- * Statuses are per-user globals; the dialog wires to PUT /api/lists/[id]
- * (rename/reorder) and POST /api/statuses (add).
+ * Rename / reorder / add board statuses. Statuses are per-user globals; the
+ * panel wires to PUT /api/lists/[id] (rename/reorder) and POST /api/statuses
+ * (add). Lives in the list-settings "Statuses" tab when a board is enabled.
  */
 
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { ManageStatusesDialog } from '@/components/ManageStatusesDialog'
+import { ManageStatusesPanel } from '@/components/list-admin/ManageStatusesPanel'
 import type { TaskList } from '@/types/task'
 
 const statuses = [
@@ -21,7 +21,7 @@ const statuses = [
 
 function setup() {
   const onChanged = vi.fn()
-  render(<ManageStatusesDialog open onOpenChange={vi.fn()} statuses={statuses} onChanged={onChanged} />)
+  render(<ManageStatusesPanel statuses={statuses} onChanged={onChanged} />)
   return { onChanged }
 }
 
@@ -31,7 +31,7 @@ function okFetch() {
   ) as typeof fetch
 }
 
-describe('ManageStatusesDialog (task 1c7817f9 — board #5)', () => {
+describe('ManageStatusesPanel', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('lists the statuses in order and warns they are global', () => {
