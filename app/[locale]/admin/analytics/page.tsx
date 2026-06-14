@@ -57,15 +57,51 @@ interface AnalyticsSummary {
   eventCounts: Record<string, number>
 }
 
+interface EventsByPlatform {
+  byPlatform: Record<string, Record<string, number>>
+  totalsByEvent: Record<string, number>
+  totalsByPlatform: Record<string, number>
+  platformOrder: string[]
+  eventOrder: string[]
+}
+
 interface AnalyticsData {
   stats: DailyStats[]
   summary: AnalyticsSummary | null
+  eventsByPlatform?: EventsByPlatform
   meta: {
     startDate: string
     endDate: string
     totalDays: number
   }
 }
+
+// Friendly labels for the per-interface breakdown.
+const PLATFORM_LABELS: Record<string, string> = {
+  'web-desktop': 'Desktop Web',
+  'web-iPhone': 'iPhone Web',
+  'web-android': 'Android Web',
+  'iOS-app': 'iOS App',
+  'API-other': 'API',
+  unknown: 'Unknown',
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  task_created: 'Tasks Created',
+  task_completed: 'Tasks Completed',
+  task_edited: 'Tasks Edited',
+  task_deleted: 'Tasks Deleted',
+  comment_added: 'Comments Added',
+  comment_deleted: 'Comments Deleted',
+  list_added: 'Lists Added',
+  list_edited: 'Lists Edited',
+  list_deleted: 'Lists Deleted',
+  settings_updated: 'Settings Updated',
+}
+
+const labelFor = (map: Record<string, string>, key: string) =>
+  map[key] ||
+  key.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 
 function MetricCard({
   title,
@@ -212,27 +248,27 @@ export default function AnalyticsDashboard() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="shrink-0">
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-            <p className="text-muted-foreground">User activity and engagement metrics</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">Analytics Dashboard</h1>
+            <p className="text-sm text-muted-foreground truncate">User activity and engagement metrics</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={dateRange}
             onChange={(e) => setDateRange(Number(e.target.value))}
-            className="border rounded-md px-3 py-2 text-sm"
+            className="border rounded-md px-3 py-2 text-sm flex-1 sm:flex-none min-w-0"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
             <option value={90}>Last 90 days</option>
           </select>
-          <Link href="/admin/analytics/admins">
+          <Link href="/admin/analytics/admins" className="shrink-0">
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
               Manage Admins
@@ -270,7 +306,7 @@ export default function AnalyticsDashboard() {
           <CardDescription>DAU, WAU, and MAU over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[220px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -295,7 +331,7 @@ export default function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           {hasPlatformData ? (
-            <div className="h-[300px]">
+            <div className="h-[220px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={platformTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -313,7 +349,7 @@ export default function AnalyticsDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[220px] sm:h-[300px] flex items-center justify-center text-muted-foreground">
               No platform data available
             </div>
           )}
@@ -328,7 +364,7 @@ export default function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           {eventData.some((e) => e.value > 0) ? (
-            <div className="h-[250px]">
+            <div className="h-[200px] sm:h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={eventData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -340,10 +376,96 @@ export default function AnalyticsDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
               No events recorded today
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Event Activity by Interface */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Metrics by Interface</CardTitle>
+          <CardDescription>
+            All events over the selected period, broken down by interface (web, mobile web, iOS, …)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const ebp = data.eventsByPlatform
+            if (!ebp) {
+              return (
+                <div className="text-sm text-muted-foreground">No interface data available</div>
+              )
+            }
+            // Only show platforms that actually had activity, but always keep
+            // a stable column order. Fall back to all platforms if none active.
+            const activePlatforms = ebp.platformOrder.filter(
+              (p) => (ebp.totalsByPlatform[p] || 0) > 0
+            )
+            const platforms = activePlatforms.length > 0 ? activePlatforms : ebp.platformOrder
+            const grandTotal = platforms.reduce(
+              (sum, p) => sum + (ebp.totalsByPlatform[p] || 0),
+              0
+            )
+
+            if (grandTotal === 0) {
+              return (
+                <div className="text-sm text-muted-foreground">
+                  No events recorded in this period
+                </div>
+              )
+            }
+
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" data-testid="metrics-by-interface-table">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2 font-medium">Metric</th>
+                      {platforms.map((p) => (
+                        <th key={p} className="text-right py-2 px-2 font-medium whitespace-nowrap">
+                          {labelFor(PLATFORM_LABELS, p)}
+                        </th>
+                      ))}
+                      <th className="text-right py-2 px-2 font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ebp.eventOrder.map((eventType) => (
+                      <tr key={eventType} className="border-b">
+                        <td className="py-2 px-2 whitespace-nowrap">
+                          {labelFor(EVENT_LABELS, eventType)}
+                        </td>
+                        {platforms.map((p) => (
+                          <td key={p} className="text-right py-2 px-2 tabular-nums">
+                            {(ebp.byPlatform[p]?.[eventType] || 0).toLocaleString()}
+                          </td>
+                        ))}
+                        <td className="text-right py-2 px-2 font-medium tabular-nums">
+                          {(ebp.totalsByEvent[eventType] || 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2">
+                      <td className="py-2 px-2 font-semibold">Total</td>
+                      {platforms.map((p) => (
+                        <td key={p} className="text-right py-2 px-2 font-semibold tabular-nums">
+                          {(ebp.totalsByPlatform[p] || 0).toLocaleString()}
+                        </td>
+                      ))}
+                      <td className="text-right py-2 px-2 font-semibold tabular-nums">
+                        {grandTotal.toLocaleString()}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 

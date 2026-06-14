@@ -8,7 +8,12 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { isAdmin } from '@/lib/admin-auth'
-import { getAnalyticsStats } from '@/lib/analytics-events'
+import {
+  getAnalyticsStats,
+  getEventCountsByPlatform,
+  ANALYTICS_PLATFORM_ORDER,
+  ANALYTICS_EVENT_ORDER,
+} from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('admin.analytics')
@@ -50,8 +55,11 @@ export async function GET(req: NextRequest) {
       : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000)
     startDate.setUTCHours(0, 0, 0, 0)
 
-    // Get stats
-    const stats = await getAnalyticsStats(startDate, endDate)
+    // Get stats + per-interface (platform) event breakdown over the range.
+    const [stats, eventsByPlatform] = await Promise.all([
+      getAnalyticsStats(startDate, endDate),
+      getEventCountsByPlatform(startDate, endDate),
+    ])
 
     // Calculate current metrics (most recent day with data)
     const latestStats = stats.length > 0 ? stats[stats.length - 1] : null
@@ -96,6 +104,13 @@ export async function GET(req: NextRequest) {
             },
           }
         : null,
+      // All event metrics broken down by interface (web / mobile web / iOS / …)
+      // aggregated across the selected range.
+      eventsByPlatform: {
+        ...eventsByPlatform,
+        platformOrder: ANALYTICS_PLATFORM_ORDER,
+        eventOrder: ANALYTICS_EVENT_ORDER,
+      },
       meta: {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
