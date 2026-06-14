@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { KanbanSquare } from "lucide-react"
 import type { TaskList } from "@/types/task"
-import { useProjects } from "@/hooks/use-projects"
+import { useProjects, getProjectPrimaryListId } from "@/hooks/use-projects"
 import { useProjectsBeta } from "@/hooks/useProjectsBeta"
 
 interface BoardViewSectionProps {
@@ -39,6 +39,13 @@ export function BoardViewSection({
   // Projects the list could be attached to (board sub-task #2). Only fetched
   // when this is an unattached, editable list.
   const { projects } = useProjects(canEditSettings && !list.projectId)
+  // Only offer projects that are real boards (have a domain list), mirroring
+  // the sidebar filter. This hides empty/orphan projects — e.g. ones left
+  // behind when an earlier board-creation attached its list but the project
+  // itself was never populated — which otherwise show up as same-named dupes.
+  const attachableProjects = projects.filter(
+    (project) => getProjectPrimaryListId(project) !== null,
+  )
   // Projects is an opt-in Beta. Hide the create/attach affordance unless the
   // user has enabled it — but keep showing controls for a list that is ALREADY
   // a board so existing boards remain manageable.
@@ -105,6 +112,10 @@ export function BoardViewSection({
       })
 
       if (!listResponse.ok) {
+        // The project was created but the list didn't attach. Roll the project
+        // back so it can't linger as an empty, same-named orphan (which is how
+        // duplicate projects accumulated). Best-effort — ignore cleanup errors.
+        await fetch(`/api/projects/${project.id}`, { method: 'DELETE' }).catch(() => {})
         throw new Error(await listResponse.text())
       }
 
@@ -197,7 +208,7 @@ export function BoardViewSection({
             </Button>
           )}
         </div>
-        {!list.projectId && projects.length > 0 && (
+        {!list.projectId && attachableProjects.length > 0 && (
           <div className="flex items-center gap-2 pt-1" data-testid="attach-project-row">
             <span className="text-xs theme-text-muted shrink-0">or attach to</span>
             <select
@@ -208,7 +219,7 @@ export function BoardViewSection({
               className="flex-1 min-w-0 text-xs theme-comment-bg theme-border border theme-text-primary rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">an existing project…</option>
-              {projects.map((project) => (
+              {attachableProjects.map((project) => (
                 <option key={project.id} value={project.id}>{project.name}</option>
               ))}
             </select>
