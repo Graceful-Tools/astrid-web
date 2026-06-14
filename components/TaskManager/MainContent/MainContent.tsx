@@ -11,6 +11,7 @@ import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creatio
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
+import { TaskViewToggle } from "../Header/TaskViewToggle"
 import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
@@ -96,6 +97,7 @@ interface MainContentProps {
   justReturnedFromTaskDetail: boolean
   hasProjectBoard?: boolean
   taskViewMode?: 'list' | 'board'
+  onTaskViewModeChange?: (mode: 'list' | 'board') => void
 
   // Pull to refresh
   pullToRefresh: {
@@ -197,6 +199,7 @@ export function MainContent({
   isSessionReady,
   hasProjectBoard = false,
   taskViewMode = 'list',
+  onTaskViewModeChange,
   pullToRefresh,
   justReturnedFromTaskDetail,
   handleListImageClick,
@@ -403,7 +406,7 @@ export function MainContent({
       }}>
         <div
           className="px-4 py-5 theme-border border-b"
-          style={{ display: isMobile || (hasProjectBoard && taskViewMode === 'board') ? 'none' : 'block' }}
+          style={{ display: is3Column && !(hasProjectBoard && taskViewMode === 'board') ? 'block' : 'none' }}
         >
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4">
@@ -535,6 +538,19 @@ export function MainContent({
 
                     {/* Share and Settings Buttons */}
                     <div className="flex items-center space-x-2">
+                      {is3Column && hasProjectBoard && (
+                        <TaskViewToggle
+                          isOneColumn={false}
+                          hasProjectBoard={hasProjectBoard}
+                          chatAvailable={false}
+                          activeView="list"
+                          isSearching={Boolean(newFilterState.filters.search.trim())}
+                          activePanel="tasks"
+                          taskViewMode={taskViewMode}
+                          onTaskViewModeChange={onTaskViewModeChange}
+                          onToggleActivePanel={undefined}
+                        />
+                      )}
                       {(() => {
                         const isPublicList = currentList?.privacy === 'PUBLIC'
                         const isUserOwnerOrAdmin = currentList?.ownerId === effectiveSession?.user?.id ||
@@ -579,6 +595,19 @@ export function MainContent({
                   <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
                 </div>
                 <div className="flex items-center space-x-2">
+                  {is3Column && hasProjectBoard && (
+                    <TaskViewToggle
+                      isOneColumn={false}
+                      hasProjectBoard={hasProjectBoard}
+                      chatAvailable={false}
+                      activeView="list"
+                      isSearching={Boolean(newFilterState.filters.search.trim())}
+                      activePanel="tasks"
+                      taskViewMode={taskViewMode}
+                      onTaskViewModeChange={onTaskViewModeChange}
+                      onToggleActivePanel={undefined}
+                    />
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"

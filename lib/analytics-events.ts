@@ -330,3 +330,113 @@ export async function getAnalyticsStats(
     },
   })
 }
+
+/** Stable display order for the interface (platform) breakdown. */
+export const ANALYTICS_PLATFORM_ORDER: AnalyticsPlatformValue[] = [
+  AnalyticsPlatform.WEB_DESKTOP,
+  AnalyticsPlatform.WEB_IPHONE,
+  AnalyticsPlatform.WEB_ANDROID,
+  AnalyticsPlatform.IOS_APP,
+  AnalyticsPlatform.API_OTHER,
+  AnalyticsPlatform.UNKNOWN,
+]
+
+/** Stable display order for event metrics in the per-interface breakdown. */
+export const ANALYTICS_EVENT_ORDER: AnalyticsEventTypeValue[] = [
+  AnalyticsEventType.TASK_CREATED,
+  AnalyticsEventType.TASK_COMPLETED,
+  AnalyticsEventType.TASK_EDITED,
+  AnalyticsEventType.TASK_DELETED,
+  AnalyticsEventType.COMMENT_ADDED,
+  AnalyticsEventType.COMMENT_DELETED,
+  AnalyticsEventType.LIST_ADDED,
+  AnalyticsEventType.LIST_EDITED,
+  AnalyticsEventType.LIST_DELETED,
+  AnalyticsEventType.SETTINGS_UPDATED,
+]
+
+export interface EventCountsByPlatformRow {
+  platform: string
+  eventType: string
+  count: number
+}
+
+export interface EventCountsByPlatform {
+  /** platform → eventType → count, zero-filled for every known platform/event. */
+  byPlatform: Record<string, Record<string, number>>
+  /** eventType → total across all platforms. */
+  totalsByEvent: Record<string, number>
+  /** platform → total across all events. */
+  totalsByPlatform: Record<string, number>
+}
+
+/**
+ * Pure transform from grouped (platform, eventType) counts into a fully
+ * zero-filled breakdown. Unknown platforms/events are folded in too so the
+ * admin view never silently drops data. Kept pure so it's testable without a DB.
+ */
+export function buildEventCountsByPlatform(
+  rows: EventCountsByPlatformRow[]
+): EventCountsByPlatform {
+  // Seed with the known platforms/events so the table is stable and zero-filled.
+  const platforms = new Set<string>(ANALYTICS_PLATFORM_ORDER)
+  const events = new Set<string>(ANALYTICS_EVENT_ORDER)
+  for (const row of rows) {
+    platforms.add(row.platform)
+    events.add(row.eventType)
+  }
+
+  const byPlatform: Record<string, Record<string, number>> = {}
+  const totalsByEvent: Record<string, number> = {}
+  const totalsByPlatform: Record<string, number> = {}
+
+  for (const platform of platforms) {
+    byPlatform[platform] = {}
+    totalsByPlatform[platform] = 0
+    for (const eventType of events) {
+      byPlatform[platform][eventType] = 0
+    }
+  }
+  for (const eventType of events) {
+    totalsByEvent[eventType] = 0
+  }
+
+  for (const row of rows) {
+    byPlatform[row.platform][row.eventType] += row.count
+    totalsByEvent[row.eventType] += row.count
+    totalsByPlatform[row.platform] += row.count
+  }
+
+  return { byPlatform, totalsByEvent, totalsByPlatform }
+}
+
+/**
+ * Get event counts broken down by interface (platform) for a date range.
+ *
+ * Uses the per-event AnalyticsEvent rows (which already record `platform`),
+ * so no new instrumentation or migration is required — the daily rollup only
+ * stores per-platform DAU, not per-platform event counts.
+ */
+export async function getEventCountsByPlatform(
+  startDate: Date,
+  endDate: Date
+): Promise<EventCountsByPlatform> {
+  const grouped = await prisma.analyticsEvent.groupBy({
+    by: ['platform', 'eventType'],
+    where: {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+    _count: { _all: true },
+  })
+
+  const rows: EventCountsByPlatformRow[] = grouped.map((g) => ({
+    platform: g.platform,
+    eventType: g.eventType,
+    count: g._count._all,
+  }))
+
+  return buildEventCountsByPlatform(rows)
+}

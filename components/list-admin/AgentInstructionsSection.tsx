@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { FileText, Edit3, Eye, Bot, ChevronDown, ChevronRight, Sparkles, Check } from "lucide-react"
+import { FileText, Edit3, Eye, Bot, ChevronDown, ChevronRight, Sparkles, Check, Info } from "lucide-react"
 import { renderMarkdown, sanitizeTextToHtml } from "@/lib/markdown"
 import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
 import type { TaskList } from "@/types/task"
@@ -87,7 +87,13 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
       <div className="flex items-center justify-between">
         <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
           <FileText className="w-4 h-4" />
-          <span>Agent Instructions</span>
+          <span>List Description</span>
+          <Info
+            className="w-3.5 h-3.5 theme-text-muted"
+            aria-label="The list description is used as instructions for AI agents that work in this list"
+          >
+            <title>The list description is used as instructions for AI agents that work in this list</title>
+          </Info>
         </Label>
       </div>
       {editingListDescription ? (

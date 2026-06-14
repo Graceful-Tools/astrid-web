@@ -66,7 +66,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
           <DialogHeader>
             <DialogTitle className="theme-text-primary flex items-center space-x-2">
               <FileText className="w-5 h-5" />
-              <span>Agent Instructions</span>
+              <span>List Description</span>
               {currentList && (
                 <span className="text-sm font-normal theme-text-muted">— {currentList.name}</span>
               )}

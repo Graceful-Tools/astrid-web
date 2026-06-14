@@ -12,6 +12,10 @@ interface VirtualizedTaskListProps {
   renderRow: (task: Task) => React.ReactNode
   /** Estimated row height before measurement (px). */
   estimateSize?: number
+  /** Gap between rows (px) — match the non-virtual container's spacing. */
+  gap?: number
+  /** Override the test id (board columns reuse this primitive). */
+  testId?: string
 }
 
 /**
@@ -27,20 +31,22 @@ export function VirtualizedTaskList({
   scrollElementRef,
   renderRow,
   estimateSize = 84,
+  gap = 10,
+  testId = "virtualized-task-list",
 }: VirtualizedTaskListProps) {
   const virtualizer = useVirtualizer({
     count: tasks.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => estimateSize,
     overscan: 8,
-    gap: 10,
+    gap,
     getItemKey: (index) => tasks[index]?.id ?? index,
   })
 
   return (
     <div
       style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}
-      data-testid="virtualized-task-list"
+      data-testid={testId}
     >
       {virtualizer.getVirtualItems().map((virtualRow) => {
         const task = tasks[virtualRow.index]

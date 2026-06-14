@@ -124,7 +124,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
           <div>
             <Label htmlFor="description" className="theme-text-secondary text-sm font-medium flex items-center space-x-1.5">
               <FileText className="w-4 h-4" />
-              <span>Description / Agent Instructions</span>
+              <span>List Description</span>
               <span className="text-xs theme-text-muted font-normal">(optional)</span>
             </Label>
             <Textarea

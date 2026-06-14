@@ -167,12 +167,15 @@ describe('TaskManagerHeader - List Name Truncation', () => {
     expect(hasSettingsIcon).toBe(true)
   })
 
-  it('should not apply truncation to desktop logo view', () => {
-    render(<TaskManagerHeader {...defaultProps} isMobile={false} showHamburgerMenu={false} />)
+  it('renders no top header bar in 3-column/desktop view (logo moved to sidebar — task 3fa1be3a)', () => {
+    const { container } = render(
+      <TaskManagerHeader {...defaultProps} isMobile={false} showHamburgerMenu={false} />
+    )
 
-    const astridLogo = screen.getByText('astrid')
-    // Desktop logo should not have truncate class
-    expect(astridLogo).not.toHaveClass('truncate')
+    // The 3-column header is gone entirely; the astrid logo now lives at the
+    // top of the left sidebar, not in a top bar.
+    expect(container).toBeEmptyDOMElement()
+    expect(screen.queryByText('astrid')).not.toBeInTheDocument()
   })
 
   it('should handle empty list name gracefully', () => {

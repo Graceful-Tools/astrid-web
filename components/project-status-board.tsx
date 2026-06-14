@@ -26,6 +26,8 @@ import {
   scopeProjectBoardTasks,
 } from "@/lib/project-status"
 import { ManageStatusesDialog } from "@/components/ManageStatusesDialog"
+import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
+import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 
 interface ProjectStatusBoardProps {
   allTasks: Task[]
@@ -55,6 +57,51 @@ function getPriorityColor(priority: number): string {
     case 1: return 'rgb(59, 130, 246)'
     default: return 'rgb(107, 114, 128)'
   }
+}
+
+/**
+ * Scrollable body for a single board column (task a48b2d24). Each column owns
+ * its own vertical scroll container, so virtualization is wired per-column here
+ * (a hook can't live in the parent's `columns.map`). Above the shared threshold
+ * the column windows its cards via the same primitive the list view uses; below
+ * it — i.e. every normal board — the plain full render is kept, so there is zero
+ * regression risk for the common case. Board DnD is column-level (drop changes
+ * status; there is no within-column manual reorder), so windowing the cards is
+ * safe — the drop target is the always-mounted column, not a specific row.
+ */
+function BoardColumnBody({
+  tasks,
+  renderCard,
+  emptyState,
+}: {
+  tasks: Task[]
+  renderCard: (task: Task) => React.ReactNode
+  emptyState: React.ReactNode
+}) {
+  const scrollRef = React.useRef<HTMLDivElement | null>(null)
+  const virtualize = shouldVirtualizeTaskList(tasks.length, false)
+
+  return (
+    <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide p-2">
+      {virtualize ? (
+        <VirtualizedTaskList
+          tasks={tasks}
+          scrollElementRef={scrollRef}
+          renderRow={renderCard}
+          estimateSize={64}
+          gap={8}
+          testId="virtualized-board-column"
+        />
+      ) : (
+        <div className="space-y-2">
+          {tasks.map(task => (
+            <React.Fragment key={task.id}>{renderCard(task)}</React.Fragment>
+          ))}
+          {tasks.length === 0 ? emptyState : null}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function ProjectStatusBoard({
@@ -412,8 +459,14 @@ export function ProjectStatusBoard({
                 </span>
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto scrollbar-hide p-2">
-                {tasksForColumn.map(task => {
+              <BoardColumnBody
+                tasks={tasksForColumn}
+                emptyState={(
+                  <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed theme-border px-3 text-center text-xs theme-text-muted">
+                    Drop tasks here
+                  </div>
+                )}
+                renderCard={(task) => {
                   const isExpanded = expandedTaskId === task.id
                   const taskList = task.lists.find(list => list.projectId === projectId && list.listType !== "status")
                     || task.lists[0]
@@ -430,7 +483,6 @@ export function ProjectStatusBoard({
                   if (isExpanded && currentUser) {
                     return (
                       <div
-                        key={`${task.id}-expanded`}
                         data-testid={`status-card-${task.id}`}
                         className="relative rounded-md ring-2 ring-blue-500/40"
                         onClick={(event) => event.stopPropagation()}
@@ -455,7 +507,6 @@ export function ProjectStatusBoard({
 
                   return (
                     <div
-                      key={`${task.id}-collapsed`}
                       data-testid={`status-card-${task.id}`}
                       className={`task-row task-card transition-theme relative theme-surface theme-border cursor-grab ${
                         task.completed
@@ -499,13 +550,8 @@ export function ProjectStatusBoard({
                       />
                     </div>
                   )
-                })}
-                {tasksForColumn.length === 0 ? (
-                  <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed theme-border px-3 text-center text-xs theme-text-muted">
-                    Drop tasks here
-                  </div>
-                ) : null}
-              </div>
+                }}
+              />
 
               {isDoneColumn ? null : (
                 <form

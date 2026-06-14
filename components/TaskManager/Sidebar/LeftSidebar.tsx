@@ -4,6 +4,7 @@ import React, { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Plus, ExternalLink, Settings, Search, LayoutGrid } from "lucide-react"
+import Image from "next/image"
 import type { ProjectSummary } from "@/hooks/use-projects"
 import { getProjectPrimaryListId } from "@/hooks/use-projects"
 import { useRouter } from "next/navigation"
@@ -43,6 +44,7 @@ interface LeftSidebarProps {
   setShowPublicBrowser: (show: boolean) => void
   setShowSettingsPopover?: (listId: string | null) => void
   onNavigateSettings?: (page: string) => void
+  onLogoClick?: () => void
   activeView?: 'list' | 'settings' | 'search'
   onSelectSearch?: () => void
 
@@ -85,6 +87,7 @@ export function LeftSidebar({
   setShowPublicBrowser,
   setShowSettingsPopover,
   onNavigateSettings,
+  onLogoClick,
   activeView = 'list',
   onSelectSearch,
   sidebarSwipeToDismiss,
@@ -179,6 +182,24 @@ export function LeftSidebar({
     >
       {/* Scrollable Navigation */}
       <div ref={navigationRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide sidebar-navigation">
+        {/* Astrid brand header */}
+        <div className="px-3 pt-3">
+          <div
+            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+            title="Go to Home"
+            onClick={onLogoClick}
+          >
+            <Image
+              src="/icons/icon-96x96.png"
+              alt="Astrid"
+              width={28}
+              height={28}
+              className="rounded-sm"
+            />
+            <span className="text-lg font-semibold tracking-tight theme-text-primary">astrid</span>
+          </div>
+        </div>
+
         <div className="p-3">
           <div className="space-y-1">
             {/* Search */}
