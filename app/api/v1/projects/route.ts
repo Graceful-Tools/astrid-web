@@ -15,6 +15,7 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { createProjectForUser, listProjectsForUser } from '@/lib/projects-service'
+import { requireProjectsBeta } from '@/lib/feature-flags'
 
 const log = createLogger('v1.projects')
 
@@ -42,6 +43,11 @@ export const GET = withAuth(
 export const POST = withAuth(
   { scopes: ['projects:write'], tag: 'v1.projects' },
   async (req, auth) => {
+    // Projects is an opt-in Beta — only enrolled users can create boards.
+    if (!(await requireProjectsBeta(auth.userId))) {
+      return NextResponse.json({ error: 'Projects is in beta. Enable it in Settings to create boards.' }, { status: 403 })
+    }
+
     const body = await req.json().catch(() => ({}))
     const name = typeof body.name === 'string' ? body.name.trim() : ''
 

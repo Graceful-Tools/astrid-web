@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { KanbanSquare } from "lucide-react"
 import type { TaskList } from "@/types/task"
 import { useProjects } from "@/hooks/use-projects"
+import { useProjectsBeta } from "@/hooks/useProjectsBeta"
 
 interface BoardViewSectionProps {
   list: TaskList
@@ -38,6 +39,10 @@ export function BoardViewSection({
   // Projects the list could be attached to (board sub-task #2). Only fetched
   // when this is an unattached, editable list.
   const { projects } = useProjects(canEditSettings && !list.projectId)
+  // Projects is an opt-in Beta. Hide the create/attach affordance unless the
+  // user has enabled it — but keep showing controls for a list that is ALREADY
+  // a board so existing boards remain manageable.
+  const { enabled: projectsBetaEnabled } = useProjectsBeta()
 
   const handleAttachToProject = useCallback(async () => {
     if (!attachTargetId || list.projectId || isAttaching) return
@@ -148,6 +153,8 @@ export function BoardViewSection({
   }, [isRemovingProjectBoard, list, onProjectBoardRemoved, onUpdate])
 
   if (!canEditSettings) return null
+  // Beta off and not already a board → hide the section entirely.
+  if (!projectsBetaEnabled && !list.projectId) return null
 
   return (
     <>

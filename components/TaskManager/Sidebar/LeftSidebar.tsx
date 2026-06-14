@@ -11,6 +11,7 @@ import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
 import { isListAdminOrOwner } from "@/lib/list-member-utils"
 import { canUserEditTasks } from "@/lib/list-permissions"
+import { useProjectsBeta } from "@/hooks/useProjectsBeta"
 import type { TaskList } from "@/types/task"
 
 interface LeftSidebarProps {
@@ -99,6 +100,8 @@ export function LeftSidebar({
   const { t } = useTranslations()
   const navigationRef = useRef<HTMLDivElement>(null)
   const currentUser = effectiveSession?.user
+  // Projects is an opt-in Beta — only surface the section when enabled.
+  const { enabled: projectsBetaEnabled } = useProjectsBeta()
   // When not in list view, don't highlight any list
   const effectiveSelectedListId = activeView === 'list' ? selectedListId : ''
 
@@ -299,8 +302,8 @@ export function LeftSidebar({
           </div>
         </div>
 
-        {/* Projects (board sub-task #1) */}
-        {onOpenProject && projects.length > 0 && (
+        {/* Projects (board sub-task #1) — gated behind the Projects Beta opt-in */}
+        {projectsBetaEnabled && onOpenProject && projects.length > 0 && (
           <div className="p-3" data-testid="sidebar-projects-section">
             <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
               Projects

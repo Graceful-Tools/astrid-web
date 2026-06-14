@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import { createLogger } from "@/lib/logger"
 import { createProjectForUser, listProjectsForUser } from "@/lib/projects-service"
+import { requireProjectsBeta } from "@/lib/feature-flags"
 
 const log = createLogger("api.projects")
 
@@ -28,6 +29,11 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Projects is an opt-in Beta — only enrolled users can create boards.
+    if (!(await requireProjectsBeta(session.user.id))) {
+      return NextResponse.json({ error: "Projects is in beta. Enable it in Settings to create boards." }, { status: 403 })
     }
 
     const data = await request.json()

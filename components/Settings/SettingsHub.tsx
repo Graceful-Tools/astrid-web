@@ -16,7 +16,8 @@ import {
   Users,
   HelpCircle,
   RefreshCw,
-  LogOut
+  LogOut,
+  FlaskConical
 } from "lucide-react"
 
 interface SettingsHubProps {
@@ -103,6 +104,13 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       description: t("settingsPages.debug.description"),
       page: "debug",
       color: "text-green-500"
+    },
+    {
+      icon: FlaskConical,
+      title: "Beta Features",
+      description: "Try Projects and other features still in development",
+      page: "labs",
+      color: "text-amber-500"
     },
     {
       icon: HelpCircle,
