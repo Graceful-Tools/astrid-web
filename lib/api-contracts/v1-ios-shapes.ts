@@ -80,6 +80,9 @@ export interface V1List {
   defaultAssigneeId: string | null
   defaultIsPrivate: boolean | null
   defaultDueDate: string | null
+  // Only the PUT /lists/:id response currently emits this; optional so the
+  // GET/collection responses (which omit it) still satisfy the shape.
+  defaultDueTime?: string | null
   githubRepositoryId: string | null
   preferredAiProvider: string | null
   // Project status board fields. `null` for lists that don't belong to a

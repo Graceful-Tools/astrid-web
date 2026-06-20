@@ -11,6 +11,7 @@ import { LoadingScreen } from "./loading-screen"
 import { ImagePicker } from "./image-picker"
 import { TaskDetail } from "./task-detail"
 import { TaskDetailViewOnly } from "./task-detail-viewonly"
+import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Copy } from "lucide-react"
@@ -536,24 +537,12 @@ const TaskManagerView = memo(function TaskManagerView({
         const sidebarRect = sidebarRef.current.getBoundingClientRect()
         const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
 
-        // Layout-aware positioning:
-        // - 1-column: No task panel (handled by !is1Column condition)
-        // - 2-column: Task panel positioned after main content (sidebar hidden or hamburger)
-        // - 3-column: Task panel positioned after sidebar + main content
-        let leftOffset: number
-
-        if (is2Column) {
-          // 2-column layout: Sidebar is hamburger menu, task panel after main content
-          leftOffset = taskManagerRect.width + 20
-        } else if (is3Column) {
-          // 3-column layout: Task panel after visible sidebar + main content
-          leftOffset = sidebarRect.width + taskManagerRect.width + 20
-        } else {
-          // Fallback to original logic for edge cases
-          leftOffset = showHamburgerMenu
-            ? taskManagerRect.width + 20
-            : sidebarRect.width + taskManagerRect.width + 20
-        }
+        // Layout-aware positioning (pure math extracted to task-pane-position).
+        const leftOffset = computeTaskPaneLeftOffset(
+          sidebarRect.width,
+          taskManagerRect.width,
+          { is2Column, is3Column, showHamburgerMenu },
+        )
 
         // Update the task pane position
         setTaskPanePosition({ left: leftOffset })

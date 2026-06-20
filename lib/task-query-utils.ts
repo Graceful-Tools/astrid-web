@@ -38,6 +38,31 @@ export const TASK_FULL_INCLUDE = {
 } satisfies Prisma.TaskInclude
 
 /**
+ * Lean include for permission / state-diff checks performed BEFORE mutating a
+ * task (PUT / DELETE). Only the list-membership tree is needed to authorize the
+ * caller (owner + listMembers drive canAccessList) and to diff state-change
+ * fields; the full comment thread + nested replies + attachments are
+ * intentionally omitted so mutations don't over-fetch them.
+ *
+ * NOT for response bodies — those keep TASK_FULL_INCLUDE so the iOS-facing
+ * task shape is unchanged.
+ */
+export const TASK_PERMISSION_INCLUDE = {
+  assignee: true,
+  creator: true,
+  lists: {
+    include: {
+      owner: true,
+      listMembers: {
+        include: {
+          user: true
+        }
+      },
+    },
+  },
+} satisfies Prisma.TaskInclude
+
+/**
  * List include for operations that need member information.
  */
 export const LIST_WITH_MEMBERS_INCLUDE = {

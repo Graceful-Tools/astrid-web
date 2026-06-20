@@ -61,7 +61,6 @@ model User {
   emailToTaskEnabled           Boolean              @default(true)
   emailToTaskListId            String?
   smartTaskCreationEnabled     Boolean              @default(true)
-  projectsBetaEnabled          Boolean              @default(false)
   invitedBy                    String?
   isPlaceholder                Boolean              @default(false)
   statsCompletedTasks          Int                  @default(0)
@@ -778,7 +777,6 @@ enum InvitationType {
   TASK_ASSIGNMENT
   LIST_SHARING
   WORKSPACE_INVITE
-  PROJECT_SHARING
 }
 
 enum TaskListPrivacy {

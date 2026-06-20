@@ -99,9 +99,6 @@ async function fetchUserStatusLists(userId: string, client: PrismaLike = prisma)
 
 /** List every project the user owns or is a member of. */
 export async function listProjectsForUser(userId: string) {
-  // Lazily backfill the user's global status lists so existing boards
-  // (created before the per-user-status migration) still render columns.
-  await ensureUserStatusLists(userId)
   const [projects, statusLists] = await Promise.all([
     prisma.project.findMany({
       where: {
@@ -115,10 +112,28 @@ export async function listProjectsForUser(userId: string) {
     }),
     fetchUserStatusLists(userId),
   ])
+
+  // Lazy backfill of the per-user global status lists, gated to the rare case
+  // that actually needs it: the user has at least one board but is missing a
+  // default status column (a board created before the per-user-status
+  // migration). The hot path — no boards, or status lists already present —
+  // skips the write path and the second fetch entirely. Board creation
+  // (createProjectFromList / createProjectForUser) seeds these directly, so a
+  // board-less user never needs them pre-created here.
+  let effectiveStatusLists = statusLists
+  if (projects.length > 0) {
+    const haveRoles = new Set(statusLists.map(s => s.statusRole))
+    const missingDefault = DEFAULT_PROJECT_STATUSES.some(s => !haveRoles.has(s.role))
+    if (missingDefault) {
+      await ensureUserStatusLists(userId)
+      effectiveStatusLists = await fetchUserStatusLists(userId)
+    }
+  }
+
   // Embed the shared status columns into every project's list set.
   return projects.map(project => ({
     ...project,
-    lists: [...project.lists, ...statusLists],
+    lists: [...project.lists, ...effectiveStatusLists],
   }))
 }
 
