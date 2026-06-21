@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
+import {
+  findSecureFileByClientRequestId,
+  isUniqueConstraintError,
+} from "@/lib/secure-file-idempotency"
 
 const log = createLogger('secure-upload.upload-complete')
 
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Parse the token payload we sent when generating the upload URL
     const payload = JSON.parse(tokenPayload)
-    const { userId, fileId, fileName, fileType, fileSize, taskId, listId, commentId } = payload
+    const { userId, fileId, fileName, fileType, fileSize, taskId, listId, commentId, clientRequestId } = payload
 
     log.info({
       fileId,
@@ -46,20 +50,37 @@ export async function POST(request: NextRequest) {
       blobUrl: blob.url,
     }, '📦 [UploadComplete] Storing file metadata:')
 
+    // Idempotency: an Outbox retry of a large upload re-runs this callback with
+    // the same clientRequestId — don't create a second SecureFile record.
+    const existing = await findSecureFileByClientRequestId(
+      typeof clientRequestId === 'string' ? clientRequestId : null
+    )
+    if (existing) {
+      log.info({ fileId: existing.id }, '📦 [UploadComplete] Idempotent hit — file already stored')
+      return NextResponse.json({ success: true })
+    }
+
     // Store metadata in database
-    await prisma.secureFile.create({
-      data: {
-        id: fileId,
-        blobUrl: blob.url,
-        originalName: fileName,
-        mimeType: fileType || blob.contentType || 'application/octet-stream',
-        fileSize: fileSize || blob.size || 0,
-        uploadedBy: userId,
-        taskId: taskId || null,
-        listId: listId || null,
-        commentId: commentId || null,
-      }
-    })
+    try {
+      await prisma.secureFile.create({
+        data: {
+          id: fileId,
+          blobUrl: blob.url,
+          originalName: fileName,
+          mimeType: fileType || blob.contentType || 'application/octet-stream',
+          fileSize: fileSize || blob.size || 0,
+          uploadedBy: userId,
+          taskId: taskId || null,
+          listId: listId || null,
+          commentId: commentId || null,
+          clientRequestId: (typeof clientRequestId === 'string' ? clientRequestId : null),
+        }
+      })
+    } catch (createError) {
+      // Concurrent retry race — fine if the other one already stored it.
+      if (!isUniqueConstraintError(createError)) throw createError
+      log.info({ fileId }, '📦 [UploadComplete] Idempotent race — file already stored')
+    }
 
     log.info({ fileId }, '✅ [UploadComplete] File metadata stored successfully:')
 

@@ -4,6 +4,11 @@ import { authConfig } from "@/lib/auth-config"
 import { uploadFileToBlob } from "@/lib/secure-storage"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
+import {
+  clientRequestIdFromContext,
+  findSecureFileByClientRequestId,
+  isUniqueConstraintError,
+} from "@/lib/secure-file-idempotency"
 
 const log = createLogger('secure-upload.request-upload')
 
@@ -289,6 +294,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Idempotency: if the iOS Outbox already uploaded this file (same
+    // clientRequestId), return it instead of re-uploading a duplicate blob.
+    const clientRequestId = clientRequestIdFromContext(context)
+    const alreadyUploaded = await findSecureFileByClientRequestId(clientRequestId)
+    if (alreadyUploaded) {
+      return NextResponse.json({
+        fileId: alreadyUploaded.id,
+        fileName: alreadyUploaded.originalName,
+        fileSize: alreadyUploaded.fileSize,
+        mimeType: alreadyUploaded.mimeType,
+        success: true
+      })
+    }
+
     // Upload file directly to Vercel Blob
     const uploadRequest = {
       fileName: file.name,
@@ -303,25 +322,36 @@ export async function POST(request: NextRequest) {
     const { blobUrl, fileId } = await uploadFileToBlob(file, uploadRequest)
 
     // Store metadata in database
-    const secureFile = await prisma.secureFile.create({
-      data: {
-        id: fileId,
-        blobUrl,
-        originalName: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
-        uploadedBy: session.user.id,
-        taskId: context.taskId || null,
-        listId: context.listId || null,
-        commentId: context.commentId || null,
-      }
-    })
+    let secureFile
+    try {
+      secureFile = await prisma.secureFile.create({
+        data: {
+          id: fileId,
+          blobUrl,
+          originalName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          uploadedBy: session.user.id,
+          taskId: context.taskId || null,
+          listId: context.listId || null,
+          commentId: context.commentId || null,
+          clientRequestId,
+        }
+      })
+    } catch (createError) {
+      // A concurrent retry won the race — return the file it created.
+      const winner = isUniqueConstraintError(createError)
+        ? await findSecureFileByClientRequestId(clientRequestId)
+        : null
+      if (!winner) throw createError
+      secureFile = winner
+    }
 
     return NextResponse.json({
       fileId: secureFile.id,
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
+      fileName: secureFile.originalName,
+      fileSize: secureFile.fileSize,
+      mimeType: secureFile.mimeType,
       success: true
     })
 

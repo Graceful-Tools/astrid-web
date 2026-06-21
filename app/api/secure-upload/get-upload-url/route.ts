@@ -226,6 +226,9 @@ export async function POST(request: NextRequest) {
           taskId: context.taskId || null,
           listId: context.listId || null,
           commentId: context.commentId || null,
+          // Carry the idempotency key through to upload-complete so an Outbox
+          // retry of a large upload doesn't create a duplicate SecureFile.
+          clientRequestId: (typeof context.clientRequestId === 'string' ? context.clientRequestId : null),
         }),
       },
       maximumSizeInBytes: MAX_FILE_SIZE,
