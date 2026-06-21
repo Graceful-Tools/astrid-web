@@ -5,7 +5,6 @@ import { gotoWithRetry } from './utils/test-helpers'
 test.use({ ...devices['Pixel 5'] })
 
 type ApiList = { id: string }
-type ApiProject = { id: string }
 
 async function createJson<T>(request: APIRequestContext, url: string, data: unknown): Promise<T> {
   const response = await request.post(url, { data })
@@ -17,17 +16,16 @@ test.describe('Mobile 1-column unified header toggle (task a1e5c0ff)', () => {
   test('renders a single 3-way List / Board / Messages segmented control when a board is enabled', async ({ page, request }) => {
     const suffix = Date.now()
 
-    const project = await createJson<ApiProject>(request, '/api/projects', {
-      name: `Unified toggle ${suffix}`,
-      description: '',
-    })
-
+    // Create a plain list, then turn it into a board via the Create-Board flow.
     const list = await createJson<ApiList>(request, '/api/lists', {
       name: `Unified toggle host ${suffix}`,
       description: '',
       privacy: 'SHARED',
-      projectId: project.id,
       listType: 'regular',
+    })
+
+    await createJson(request, '/api/projects/from-list', {
+      listId: list.id,
     })
 
     await gotoWithRetry(page, `/lists/${list.id}`)

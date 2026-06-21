@@ -10,6 +10,7 @@ import { canUserEditTask } from "@/lib/list-permissions"
 import { invalidateUserStats } from "@/lib/user-stats"
 import {
   TASK_FULL_INCLUDE,
+  TASK_PERMISSION_INCLUDE,
   type TaskWithFullRelations,
   type ListWithMembers,
   type WorkflowMetadata
@@ -113,7 +114,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     log.info(`[DEBUG] Before existingTask lookup (DELETE): prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
-      include: TASK_FULL_INCLUDE,
+      include: TASK_PERMISSION_INCLUDE,
     })
     log.info(`[DEBUG] After existingTask lookup (DELETE): existingTask exists? ${!!existingTask}`);
     log.info(`[DEBUG] After existingTask lookup: existingTask exists? ${!!existingTask}`);

@@ -194,6 +194,12 @@ export async function closeRedis() {
 export class RedisCache {
   private static defaultTTL = 300 // 5 minutes default TTL
 
+  // In-flight fetches for getOrSet, keyed by cache key. Lets concurrent misses
+  // for the same key share a single fetchFn() call instead of each stampeding
+  // the database (thundering herd, e.g. many tabs reloading after an
+  // invalidation). Entries are removed as soon as the fetch settles.
+  private static inFlight = new Map<string, Promise<unknown>>()
+
   // Cache metrics
   private static metrics = {
     hits: 0,
@@ -360,28 +366,37 @@ export class RedisCache {
     ttl: number = this.defaultTTL
   ): Promise<T> {
     try {
-      // Check if Redis is available first
-      const isAvailable = await isRedisAvailable()
-      if (!isAvailable) {
-        log.info('Redis not available, using direct database fetch')
-        return await fetchFn()
-      }
-
-      // Try to get from cache first
+      // get() fails silently (returns null) when Redis is down or the circuit
+      // breaker is open, so a separate isRedisAvailable() precheck is redundant
+      // — a miss simply falls through to fetchFn. Dropping it saves a round-trip
+      // on every cached read.
       const cached = await this.get<T>(key)
       if (cached !== null) {
         log.info(`✅ Cache hit: ${key}`)
         return cached
       }
 
-      // Cache miss - fetch data
       log.info(`❌ Cache miss: ${key}`)
-      const data = await fetchFn()
-      
-      // Cache the result for next time
-      await this.set(key, data, ttl)
-      
-      return data
+
+      // Coalesce concurrent misses for the same key: the first caller fetches
+      // and caches; the rest await the same in-flight promise instead of each
+      // hitting the database.
+      const existing = this.inFlight.get(key) as Promise<T> | undefined
+      if (existing) {
+        return await existing
+      }
+
+      const promise = (async () => {
+        const data = await fetchFn()
+        await this.set(key, data, ttl)
+        return data
+      })()
+      this.inFlight.set(key, promise)
+      try {
+        return await promise
+      } finally {
+        this.inFlight.delete(key)
+      }
     } catch (error) {
       log.error({ err: error }, 'Redis getOrSet error:')
       // Fallback to direct fetch if Redis fails
@@ -406,11 +421,14 @@ export class RedisCache {
   static invalidate = {
     userTasks: async (userId: string, listIds?: string[]) => {
       await this.delPattern(`tasks:user:${userId}*`)
-      // Only invalidate specific list caches if known, otherwise fall back to all
+      // Invalidate only the affected per-list caches. The per-list key is global
+      // (shared across users), so the old `tasks:list:*` fallback wiped EVERY
+      // user's list caches on a single edit — a platform-wide cold reload. Pass
+      // listIds; if a caller omits them, warn rather than nuke the namespace.
       if (listIds && listIds.length > 0) {
         await Promise.all(listIds.map(id => this.del(this.keys.listTasks(id))))
       } else {
-        await this.delPattern(`tasks:list:*`)
+        log.warn('[Redis] invalidate.userTasks called without listIds — skipping per-list invalidation to avoid a global cache wipe')
       }
       await this.del(this.keys.publicTasks())
     },
@@ -420,11 +438,12 @@ export class RedisCache {
     },
     taskUpdate: async (taskId: string, userId: string, listIds?: string[]) => {
       await this.delPattern(`tasks:user:${userId}*`)
-      // Only invalidate specific list caches if known, otherwise fall back to all
+      // Same blast-radius guard as userTasks: only clear the affected per-list
+      // caches; never fall back to a global `tasks:list:*` wipe.
       if (listIds && listIds.length > 0) {
         await Promise.all(listIds.map(id => this.del(this.keys.listTasks(id))))
       } else {
-        await this.delPattern(`tasks:list:*`)
+        log.warn('[Redis] invalidate.taskUpdate called without listIds — skipping per-list invalidation to avoid a global cache wipe')
       }
       await this.delPattern(`comments:task:${taskId}*`)
       await this.del(this.keys.publicTasks())

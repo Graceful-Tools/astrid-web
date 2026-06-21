@@ -15,6 +15,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
+import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
 
 const log = createLogger('api.v1.lists.id')
 
@@ -105,15 +106,15 @@ export const GET = withAuth<RouteContext>(
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
           projectId: list.projectId ?? null,
-          listType: list.listType ?? 'regular',
-          statusRole: list.statusRole ?? null,
+          listType: (list.listType ?? 'regular') as V1List['listType'],
+          statusRole: (list.statusRole ?? null) as V1List['statusRole'],
           statusOrder: list.statusOrder ?? null,
           statusDescription: list.statusDescription ?? null,
           statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
-        },
+        } satisfies V1List,
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
@@ -222,6 +223,9 @@ export const PUT = withAuth<RouteContext>(
             user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
           }
         },
+        listInvites: {
+          select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
+        },
         _count: { select: { tasks: true } }
       },
     })
@@ -270,6 +274,7 @@ export const PUT = withAuth<RouteContext>(
           favoriteOrder: list.favoriteOrder,
           owner: list.owner,
           listMembers: list.listMembers,
+          invitations: list.listInvites,
           taskCount: list._count.tasks,
           isVirtual: list.isVirtual,
           virtualListType: list.virtualListType,
@@ -291,15 +296,15 @@ export const PUT = withAuth<RouteContext>(
           githubRepositoryId: list.githubRepositoryId,
           preferredAiProvider: list.preferredAiProvider,
           projectId: list.projectId ?? null,
-          listType: list.listType ?? 'regular',
-          statusRole: list.statusRole ?? null,
+          listType: (list.listType ?? 'regular') as V1List['listType'],
+          statusRole: (list.statusRole ?? null) as V1List['statusRole'],
           statusOrder: list.statusOrder ?? null,
           statusDescription: list.statusDescription ?? null,
           statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
-        },
+        } satisfies V1List,
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }

@@ -15,6 +15,7 @@ import { hydrateListFavorites } from '@/lib/favorites'
 import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
 
 const log = createLogger('v1.lists')
 
@@ -93,7 +94,9 @@ export const GET = withAuth(
 
     return NextResponse.json(
       {
-        lists: lists.map((list: any) => ({
+        // Bound to the iOS contract: if a future edit drops or renames a key
+        // iOS decodes, tsc fails here rather than the app breaking at runtime.
+        lists: lists.map((list: any): V1List => ({
           id: list.id,
           name: list.name,
           description: list.description || '',

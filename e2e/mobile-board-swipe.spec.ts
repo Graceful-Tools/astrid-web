@@ -20,17 +20,17 @@ async function createJson<T>(request: APIRequestContext, url: string, data: unkn
 test.describe('Mobile board view — body swipe does not change the header', () => {
   test('swipe-left on the board carousel keeps you on the board view', async ({ page, request }) => {
     const suffix = Date.now()
-    const project = await createJson<{ id: string; lists: ApiList[] }>(request, '/api/projects', {
-      name: `Mobile swipe gate ${suffix}`,
-      description: 'Regression for board carousel vs body swipe',
-    })
-
+    // Turn a plain list into a board via the Create-Board flow (the list is the
+    // management entity; "from-list" creates the backing project + status cols).
     const domainList = await createJson<ApiList>(request, '/api/lists', {
       name: `Mobile board host ${suffix}`,
       description: 'Domain list',
       privacy: 'SHARED',
-      projectId: project.id,
       listType: 'regular',
+    })
+
+    await createJson(request, '/api/projects/from-list', {
+      listId: domainList.id,
     })
 
     await createJson(request, '/api/tasks', {

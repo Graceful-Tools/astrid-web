@@ -85,6 +85,66 @@ function parseTypeScriptInterface(filePath: string, interfaceName: string): Map<
 }
 
 /**
+ * Parse every `enum X { ... }` block from the Prisma schema into a map of
+ * enum name -> set of member values. Used to resolve contract enum fields whose
+ * TypeScript type is a named alias (e.g. `repeatFrom: RepeatFromMode`) rather
+ * than an inline literal union.
+ */
+function parsePrismaEnums(): Map<string, Set<string>> {
+  const schemaPath = path.join(projectRoot, 'prisma/schema.prisma');
+  const content = fs.readFileSync(schemaPath, 'utf-8');
+  const enums = new Map<string, Set<string>>();
+
+  const enumRegex = /enum\s+(\w+)\s*\{([\s\S]*?)\}/g;
+  let match;
+  while ((match = enumRegex.exec(content)) !== null) {
+    const [, enumName, body] = match;
+    const values = new Set<string>();
+    for (const line of body.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('@@')) continue;
+      const valMatch = trimmed.match(/^(\w+)/);
+      if (valMatch) values.add(valMatch[1]);
+    }
+    enums.set(enumName, values);
+  }
+
+  return enums;
+}
+
+/**
+ * Resolve the set of allowed values for an enum-typed field from its current
+ * TypeScript type string. Handles inline literal unions ("a" | "b" | 0 | 1)
+ * and named aliases that map to a Prisma enum. Returns null when the values
+ * can't be determined (so the caller skips rather than false-flags).
+ */
+function extractEnumValues(
+  typeStr: string,
+  prismaEnums: Map<string, Set<string>>
+): Set<string> | null {
+  const t = typeStr.replace(/\?$/, '').trim();
+
+  // Bare identifier → resolve via a Prisma enum of the same name.
+  if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) {
+    const resolved = prismaEnums.get(t);
+    return resolved ? new Set(resolved) : null;
+  }
+
+  // Inline literal union: split on | and collect string/number literals.
+  const values = new Set<string>();
+  for (const partRaw of t.split('|')) {
+    const part = partRaw.trim();
+    if (!part || part === 'null' || part === 'undefined') continue;
+    const strLit = part.match(/^["'](.+)["']$/);
+    if (strLit) { values.add(strLit[1]); continue; }
+    if (/^-?\d+$/.test(part)) { values.add(part); continue; }
+    // A non-literal member (e.g. another type) — can't verify reliably.
+    return null;
+  }
+  return values.size > 0 ? values : null;
+}
+
+/**
  * Parse Prisma model from schema
  */
 function parsePrismaModel(modelName: string): Map<string, string> {
@@ -123,9 +183,20 @@ function parsePrismaModel(modelName: string): Map<string, string> {
 function checkBreakingChanges(
   entityName: string,
   contract: ContractFields,
-  currentFields: Map<string, string>
+  currentFields: Map<string, string>,
+  prismaEnums: Map<string, Set<string>>
 ): BreakingChange[] {
   const changes: BreakingChange[] = [];
+
+  // Contract scalar types we can compare against a TS type string. Object /
+  // array / enum are handled separately (named TS types make substring checks
+  // unreliable for object/array; enums get value-level checks below).
+  const SCALAR_TYPES: Record<string, string[]> = {
+    string: ['string'],
+    number: ['number', 'int', 'float'],
+    boolean: ['boolean'],
+    date: ['date', 'datetime'],
+  };
 
   for (const [fieldName, fieldDef] of Object.entries(contract)) {
     // Skip deprecated fields - they can be removed
@@ -142,36 +213,53 @@ function checkBreakingChanges(
           details: `Required field "${fieldName}" was removed from ${entityName}`,
         });
       }
-    } else {
-      // Field exists - check for type changes
-      const currentType = currentFields.get(fieldName)!;
-      const expectedType = fieldDef.type;
+      continue;
+    }
 
-      // Basic type compatibility check
-      // This is simplified - a full implementation would parse types properly
-      const typeMapping: Record<string, string[]> = {
-        string: ['string', 'String'],
-        number: ['number', 'Int', 'Float'],
-        boolean: ['boolean', 'Boolean'],
-        date: ['Date', 'DateTime'],
-        object: ['object', 'Object'],
-        array: ['array', 'Array'],
-        enum: ['enum'], // Special handling below
-      };
+    // Field exists — check for type changes / enum-value removals.
+    const currentType = currentFields.get(fieldName)!;
+    const expectedType = fieldDef.type;
+    const isNullableOrUnion =
+      currentType.includes('|') ||
+      currentType.toLowerCase().includes('null') ||
+      currentType.toLowerCase().includes('undefined');
 
-      if (expectedType !== 'enum') {
-        const validTypes = typeMapping[expectedType] || [expectedType];
-        const isCompatible = validTypes.some(
-          (t) =>
-            currentType.toLowerCase().includes(t.toLowerCase()) ||
-            currentType.includes('|') // Union types are complex, skip for now
-        );
-
-        if (!isCompatible && !currentType.includes('null') && !currentType.includes('undefined')) {
-          // Type might have changed - log as warning
-          // Full type checking would require a TypeScript parser
+    if (expectedType === 'enum') {
+      // Enum-value removal: every value the contract promises must still be a
+      // member of the current type's allowed values. Removing one breaks
+      // clients (e.g. iOS) that decode it.
+      if (!fieldDef.values || fieldDef.values.length === 0) continue;
+      const currentValues = extractEnumValues(currentType, prismaEnums);
+      if (!currentValues) continue; // can't determine — skip rather than false-flag
+      for (const v of fieldDef.values) {
+        if (v === null) continue; // null isn't an enum member
+        if (!currentValues.has(String(v))) {
+          changes.push({
+            entity: entityName,
+            field: fieldName,
+            type: 'enum_value_removed',
+            details: `Enum value "${String(v)}" was removed from ${entityName}.${fieldName} (current: ${currentType})`,
+          });
         }
       }
+      continue;
+    }
+
+    // Scalar type-change detection. Skip object/array (named TS types) and
+    // skip nullable/union types (intentionally lenient — these are not breaking
+    // on their own and substring-matching them is unreliable).
+    const validTypes = SCALAR_TYPES[expectedType];
+    if (!validTypes || isNullableOrUnion) continue;
+
+    const ct = currentType.toLowerCase();
+    const isCompatible = validTypes.some((t) => ct.includes(t));
+    if (!isCompatible) {
+      changes.push({
+        entity: entityName,
+        field: fieldName,
+        type: 'type_changed',
+        details: `Field "${fieldName}" type changed in ${entityName}: contract expects ${expectedType}, found "${currentType}"`,
+      });
     }
   }
 
@@ -190,31 +278,34 @@ function main() {
   // Get current contract
   const contract = API_CONTRACTS[CURRENT_API_VERSION as keyof typeof API_CONTRACTS];
 
+  // Prisma enums, used to resolve enum fields whose TS type is a named alias.
+  const prismaEnums = parsePrismaEnums();
+
   // Check Task interface
   console.log('📋 Checking Task interface...');
   const taskFields = parseTypeScriptInterface(typesPath, 'Task');
-  const taskChanges = checkBreakingChanges('Task', contract.Task, taskFields);
+  const taskChanges = checkBreakingChanges('Task', contract.Task, taskFields, prismaEnums);
   breakingChanges.push(...taskChanges);
   console.log(`   Found ${taskFields.size} fields in types/task.ts`);
 
   // Check TaskList interface
   console.log('📋 Checking TaskList interface...');
   const taskListFields = parseTypeScriptInterface(typesPath, 'TaskList');
-  const taskListChanges = checkBreakingChanges('TaskList', contract.TaskList, taskListFields);
+  const taskListChanges = checkBreakingChanges('TaskList', contract.TaskList, taskListFields, prismaEnums);
   breakingChanges.push(...taskListChanges);
   console.log(`   Found ${taskListFields.size} fields in types/task.ts`);
 
   // Check User interface
   console.log('📋 Checking User interface...');
   const userFields = parseTypeScriptInterface(typesPath, 'User');
-  const userChanges = checkBreakingChanges('User', contract.User, userFields);
+  const userChanges = checkBreakingChanges('User', contract.User, userFields, prismaEnums);
   breakingChanges.push(...userChanges);
   console.log(`   Found ${userFields.size} fields in types/task.ts`);
 
   // Check Comment interface
   console.log('📋 Checking Comment interface...');
   const commentFields = parseTypeScriptInterface(typesPath, 'Comment');
-  const commentChanges = checkBreakingChanges('Comment', contract.Comment, commentFields);
+  const commentChanges = checkBreakingChanges('Comment', contract.Comment, commentFields, prismaEnums);
   breakingChanges.push(...commentChanges);
   console.log(`   Found ${commentFields.size} fields in types/task.ts`);
 
