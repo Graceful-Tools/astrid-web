@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
     // Idempotency: if the iOS Outbox already uploaded this file (same
     // clientRequestId), return it instead of re-uploading a duplicate blob.
     const clientRequestId = clientRequestIdFromContext(context)
-    const alreadyUploaded = await findSecureFileByClientRequestId(clientRequestId)
+    const alreadyUploaded = await findSecureFileByClientRequestId(session.user.id, clientRequestId)
     if (alreadyUploaded) {
       return NextResponse.json({
         fileId: alreadyUploaded.id,
@@ -341,7 +341,7 @@ export async function POST(request: NextRequest) {
     } catch (createError) {
       // A concurrent retry won the race — return the file it created.
       const winner = isUniqueConstraintError(createError)
-        ? await findSecureFileByClientRequestId(clientRequestId)
+        ? await findSecureFileByClientRequestId(session.user.id, clientRequestId)
         : null
       if (!winner) throw createError
       secureFile = winner

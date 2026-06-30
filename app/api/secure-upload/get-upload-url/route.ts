@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
 import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
 import { createLogger } from '@/lib/logger'
+import { findSecureFileByClientRequestId } from "@/lib/secure-file-idempotency"
 
 const log = createLogger('secure-upload.get-upload-url')
 
@@ -200,8 +201,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate file ID and path
-    const fileId = randomUUID()
+    // Generate file ID and path. On an Outbox retry (same clientRequestId), reuse
+    // the canonical fileId of the already-created SecureFile so the client gets a
+    // real fileId back instead of a fresh one that the dedup-on-complete would
+    // orphan.
+    const retryClientRequestId = typeof context.clientRequestId === 'string' ? context.clientRequestId : null
+    const existingFile = await findSecureFileByClientRequestId(session.user.id, retryClientRequestId)
+    const fileId = existingFile?.id ?? randomUUID()
     const fileExtension = fileName.split('.').pop() || ''
     const pathname = `files/${session.user.id}/${fileId}.${fileExtension}`
 

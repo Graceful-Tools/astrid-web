@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     // Idempotency: an Outbox retry of a large upload re-runs this callback with
     // the same clientRequestId — don't create a second SecureFile record.
     const existing = await findSecureFileByClientRequestId(
+      userId,
       typeof clientRequestId === 'string' ? clientRequestId : null
     )
     if (existing) {

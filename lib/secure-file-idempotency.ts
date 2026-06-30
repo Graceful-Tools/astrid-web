@@ -19,10 +19,15 @@ export function clientRequestIdFromContext(context: unknown): string | null {
   return null
 }
 
-/** Existing SecureFile for this idempotency key, or null. */
-export async function findSecureFileByClientRequestId(clientRequestId: string | null) {
+/**
+ * Existing SecureFile for this idempotency key, scoped to the uploader so a
+ * client can't retrieve another user's file by reusing their clientRequestId.
+ */
+export async function findSecureFileByClientRequestId(uploadedBy: string, clientRequestId: string | null) {
   if (!clientRequestId) return null
-  return prisma.secureFile.findUnique({ where: { clientRequestId } })
+  return prisma.secureFile.findUnique({
+    where: { uploadedBy_clientRequestId: { uploadedBy, clientRequestId } },
+  })
 }
 
 /** True when a create failed because another concurrent retry won the race. */

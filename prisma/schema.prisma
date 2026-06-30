@@ -352,7 +352,7 @@ model SecureFile {
   listId         String?
   commentId      String?
   chatMessageId  String?
-  clientRequestId String?     @unique
+  clientRequestId String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   chatMessage    ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)
@@ -361,6 +361,9 @@ model SecureFile {
   task           Task?        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   uploader       User         @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 
+  // Idempotency key is unique PER UPLOADER (not globally) so a client can't
+  // reuse another user's clientRequestId to retrieve their file.
+  @@unique([uploadedBy, clientRequestId])
   @@index([uploadedBy])
   @@index([taskId])
   @@index([listId])
