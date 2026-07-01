@@ -139,6 +139,7 @@ export const POST = withAuth<RouteContext>(
         },
       })
       if (existing) {
+        log.info({ messageId: existing.id }, 'Idempotency hit (clientRequestId): returning existing chat message')
         return NextResponse.json({
           message: {
             ...existing,
