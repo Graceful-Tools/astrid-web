@@ -35,6 +35,22 @@ This will:
 
 **NEVER DEPLOY TO PRODUCTION WITHOUT EXPLICIT USER APPROVAL**
 
+> ### ⚠️ Vercel auto-deploy is intentionally OFF
+> **Pushing to `main` does NOT deploy.** Git auto-deploy on push is disabled on
+> purpose — `git push origin main` only updates the repo. A production deploy is a
+> **separate, explicit, manual step** (step 3 below). Don't assume a pushed commit
+> is live; check the latest deployment's commit SHA.
+>
+> **Ways to deploy (after approval):**
+> - `./scripts/deploy-preview.sh --production`
+> - Vercel dashboard → Deployments → **Promote to Production** (or **Redeploy**)
+> - Vercel API: `POST /v13/deployments` with `target: "production"` +
+>   `gitSource: { type:"github", repoId:<id>, ref:"main" }` (repoId via
+>   `gh api repos/Graceful-Tools/astrid-web --jq .id`)
+>
+> The build runs `prisma migrate deploy`, so **pending migrations only apply when
+> you deploy** — another reason a push alone isn't live.
+
 ### "Ship It" - Full Deployment
 
 When user says **"ship it"**, execute the complete deployment sequence:
