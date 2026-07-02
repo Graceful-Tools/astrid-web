@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
       <h2>Google Tasks connected ✓</h2><p>${info?.email ?? ''} — you can return to Astrid.</p>
     </body></html>`,
-    { headers: { 'Content-Type': 'text/html' } }
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
 }
 
@@ -44,6 +44,6 @@ function errorPage(message: string): NextResponse {
     `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
       <h2>Connection didn't complete</h2><p>${message}</p>
     </body></html>`,
-    { status: 200, headers: { 'Content-Type': 'text/html' } }
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
 }
