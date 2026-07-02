@@ -8,6 +8,7 @@ import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
 import { GithubIntegrationSection } from "@/components/list-admin/GithubIntegrationSection"
+import { ExternalSyncSection } from "./list-admin/ExternalSyncSection"
 import { ListNameSection } from "@/components/list-admin/ListNameSection"
 import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructionsSection"
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
@@ -81,6 +82,9 @@ export function ListAdminSettings({
         canEditSettings={canEditSettings}
         onUpdate={onUpdate}
       />
+
+      {/* External sync: GitHub Issues / Google Tasks list links */}
+      <ExternalSyncSection list={list} />
 
       {/* Advanced Settings: Recently Completed window */}
       <RecentlyCompletedWindowSection
