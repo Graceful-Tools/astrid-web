@@ -12,6 +12,7 @@ import { getDeprecationWarning, type AuthContext } from '@/lib/api-auth-middlewa
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
+import { validateParentTask } from '@/lib/subtasks'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
@@ -118,6 +119,7 @@ export const GET = withAuth(
           originalTaskId: true,
           sourceListId: true,
           clientRequestId: true,
+          parentTaskId: true,
           lists: {
             select: {
               id: true,
@@ -364,6 +366,15 @@ export const POST = withAuth(
       attachments: true,
     } as const
 
+    // ── Subtasks: validate parentTaskId if provided ────────────────────
+    const rawParentTaskId = typeof body.parentTaskId === 'string' && body.parentTaskId ? body.parentTaskId : null
+    if (rawParentTaskId) {
+      const parentError = await validateParentTask(rawParentTaskId)
+      if (parentError) {
+        return NextResponse.json({ error: parentError }, { status: 400 })
+      }
+    }
+
     // ── Idempotency: clientRequestId-based (preferred) ─────────────────
     const rawClientRequestId = typeof body.clientRequestId === 'string' ? body.clientRequestId.trim() : null
     if (rawClientRequestId !== null) {
@@ -400,6 +411,7 @@ export const POST = withAuth(
             assigneeId: body.assigneeId,
             creatorId: auth.userId,
             clientRequestId: rawClientRequestId,
+            parentTaskId: rawParentTaskId,
             dueDateTime,
             isAllDay,
             isPrivate: body.isPrivate ?? true,
@@ -476,6 +488,7 @@ export const POST = withAuth(
         assigneeId: body.assigneeId,
         creatorId: auth.userId,
         clientRequestId: rawClientRequestId,
+        parentTaskId: rawParentTaskId,
         dueDateTime,
         isAllDay,
         isPrivate: body.isPrivate ?? true,

@@ -274,6 +274,12 @@ model Task {
   repeatFrom      RepeatFromMode      @default(COMPLETION_DATE)
   timerDuration   Int?
   lastTimerValue  String?
+  // Subtasks: self-relation. SetNull on parent delete — subtasks promote to
+  // top-level rather than being silently destroyed. (originalTaskId/sourceListId
+  // are copy-lineage; do NOT overload them for hierarchy.)
+  parentTaskId    String?
+  parentTask      Task?               @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks        Task[]              @relation("TaskSubtasks")
   attachments     Attachment[]
   codingWorkflow  CodingTaskWorkflow?
   comments        Comment[]
@@ -298,6 +304,7 @@ model Task {
   @@index([reminderTime, reminderSent])
   @@index([repeating])
   @@index([creatorId, createdAt])
+  @@index([parentTaskId])
 }
 
 model Comment {

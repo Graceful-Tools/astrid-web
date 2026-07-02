@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server'
 import { requireTaskAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
+import { validateParentTask } from '@/lib/subtasks'
 import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -171,6 +172,20 @@ export const PUT = withAuth<RouteContext>(
 
     if (body.timerDuration !== undefined) data.timerDuration = body.timerDuration
     if (body.lastTimerValue !== undefined) data.lastTimerValue = body.lastTimerValue
+
+    // Subtasks: re-parent or promote to top-level (null). Validates existence,
+    // self-parenting, and cycles.
+    if (body.parentTaskId !== undefined) {
+      if (body.parentTaskId === null || body.parentTaskId === '') {
+        data.parentTaskId = null
+      } else if (typeof body.parentTaskId === 'string') {
+        const parentError = await validateParentTask(body.parentTaskId, taskId)
+        if (parentError) {
+          return NextResponse.json({ error: parentError }, { status: 400 })
+        }
+        data.parentTaskId = body.parentTaskId
+      }
+    }
 
     // SECURITY: validate caller has access to every list before connecting
     if (body.listIds !== undefined && Array.isArray(body.listIds)) {
