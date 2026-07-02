@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SecureAttachmentViewer } from "@/components/secure-attachment-viewer"
-import { Paperclip, Send, X, Image as ImageIcon, FileText, Loader2, RefreshCw, Copy, Reply, Trash2 } from "lucide-react"
+import { Paperclip, Send, X, Image as ImageIcon, FileText, Loader2, RefreshCw, Copy, Reply, Trash2, Pencil } from "lucide-react"
 import { format } from "date-fns"
 import { isMobileDevice } from "@/lib/layout-detection"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
@@ -135,6 +135,8 @@ export function CommentSection({
   agentTyping,
 }: CommentSectionProps) {
   const [showSystemComments, setShowSystemComments] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingText, setEditingText] = useState("")
   const [localUploadError, setLocalUploadError] = useState<string | null>(null)
   const [localReplyUploadError, setLocalReplyUploadError] = useState<string | null>(null)
   const [isRefreshingDesktop, setIsRefreshingDesktop] = useState(false)
@@ -433,6 +435,55 @@ export function CommentSection({
     }
   }
 
+  const handleEditComment = async (commentId: string, content: string) => {
+    const trimmed = content.trim()
+    if (!trimmed) return
+    try {
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content: trimmed }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update comment')
+      }
+
+      // Optimistically update the comment (top-level or nested reply)
+      // Use onLocalUpdate to avoid triggering full task PUT request
+      const applyEdit = (comments: any[]) => comments.map(comment => {
+        if (comment.id === commentId) {
+          return { ...comment, content: trimmed, updatedAt: new Date().toISOString() }
+        }
+        if (comment.replies?.some((reply: any) => reply.id === commentId)) {
+          return {
+            ...comment,
+            replies: comment.replies.map((reply: any) =>
+              reply.id === commentId
+                ? { ...reply, content: trimmed, updatedAt: new Date().toISOString() }
+                : reply
+            ),
+          }
+        }
+        return comment
+      })
+      if (onLocalUpdate) {
+        onLocalUpdate((taskId: string, currentTask: Task) => {
+          if (currentTask.id !== task.id) return currentTask
+          return { ...currentTask, comments: applyEdit(currentTask.comments || []) }
+        })
+      } else {
+        onUpdate({ ...task, comments: applyEdit(task.comments || []) })
+      }
+    } catch (error) {
+      console.error("Error updating comment:", error)
+    } finally {
+      setEditingCommentId(null)
+      setEditingText("")
+    }
+  }
+
   const handleDeleteReply = async (replyId: string, parentCommentId: string) => {
     try {
       const response = await fetch(`/api/comments/${replyId}`, {
@@ -706,6 +757,36 @@ export function CommentSection({
       type: file.mimeType,
     }))
 
+    // Inline editor replaces the bubble while editing
+    if (editingCommentId === comment.id) {
+      return (
+        <div key={comment.id} className="my-2" data-comment-actions>
+          <textarea
+            value={editingText}
+            onChange={(e) => setEditingText(e.target.value)}
+            className="w-full min-h-[80px] p-2 text-sm rounded-md border theme-border theme-bg-secondary theme-text-primary resize-y focus:outline-none focus:ring-1 focus:ring-blue-500"
+            autoFocus
+          />
+          <div className="flex items-center justify-end gap-2 mt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setEditingCommentId(null); setEditingText("") }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!editingText.trim()}
+              onClick={() => handleEditComment(comment.id, editingText)}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <MessageBubble
         key={comment.id}
@@ -747,6 +828,20 @@ export function CommentSection({
               >
                 <Reply className="w-3.5 h-3.5" />
                 <span>Reply</span>
+              </button>
+            )}
+            {isCurrentUser && (
+              <button
+                className="flex items-center gap-1 text-xs theme-text-muted hover:theme-text-secondary transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditingCommentId(comment.id)
+                  setEditingText(comment.content || '')
+                  setShowingActionsFor(null)
+                }}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Edit</span>
               </button>
             )}
             {isCurrentUser && (
