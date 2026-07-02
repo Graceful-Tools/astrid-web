@@ -30,6 +30,11 @@ export const PUT = withAuth(
     if (!astridTaskId || !remoteId || !remoteContainerId) {
       return NextResponse.json({ error: 'astridTaskId, remoteId, remoteContainerId required' }, { status: 400 })
     }
+    // The link row has an FK to Task — a client-side optimistic temp id would
+    // fail the FK deep in Prisma; reject it loudly instead.
+    if (astridTaskId.startsWith('temp_')) {
+      return NextResponse.json({ error: 'astridTaskId is an unsynced temp id — resolve it first' }, { status: 400 })
+    }
     const integration = await prisma.integration.findUnique({
       where: { userId_provider: { userId: auth.userId, provider: 'GOOGLE_TASKS' } },
     })
