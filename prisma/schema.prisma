@@ -49,6 +49,7 @@ model User {
   emailTokenExpiresAt          DateTime?
   aiAssistantSettings          String?
   defaultDueTime               String?              @default("17:00")
+  subtaskDisplay               String?              @default("indented") // "indented" (in lists) | "under_parent" (detail only)
   mcpEnabled                   Boolean              @default(true)
   mcpSettings                  String?
   aiAgentConfig                String?

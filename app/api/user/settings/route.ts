@@ -29,6 +29,7 @@ export async function GET() {
         defaultTaskDueOffset: true,
         defaultDueTime: true,
         smartTaskCreationEnabled: true,
+        subtaskDisplay: true,
       }
     })
 
@@ -54,13 +55,18 @@ export async function PATCH(request: NextRequest) {
     const data = await request.json()
 
     // Validate allowed fields
-    const allowedFields = ['emailToTaskEnabled', 'defaultTaskDueOffset', 'defaultDueTime', 'emailToTaskListId', 'smartTaskCreationEnabled']
+    const allowedFields = ['emailToTaskEnabled', 'defaultTaskDueOffset', 'defaultDueTime', 'emailToTaskListId', 'smartTaskCreationEnabled', 'subtaskDisplay']
     const updateData: any = {}
 
     for (const field of allowedFields) {
       if (field in data) {
         updateData[field] = data[field]
       }
+    }
+
+    // Validate subtaskDisplay values
+    if (updateData.subtaskDisplay && !['indented', 'under_parent'].includes(updateData.subtaskDisplay)) {
+      return NextResponse.json({ error: 'Invalid subtaskDisplay value' }, { status: 400 })
     }
 
     // Validate defaultTaskDueOffset values
@@ -113,6 +119,7 @@ export async function PATCH(request: NextRequest) {
         defaultTaskDueOffset: true,
         defaultDueTime: true,
         smartTaskCreationEnabled: true,
+        subtaskDisplay: true,
       }
     })
 
