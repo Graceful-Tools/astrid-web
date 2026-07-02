@@ -176,6 +176,7 @@ export interface Task {
   updatedAt: Date
   originalTaskId?: string
   parentTaskId?: string | null // Subtasks: parent task id (nil = top-level)
+  subtaskDepth?: number // Client-only: nesting depth annotated by the list splice
   sourceListId?: string // Which public list this was copied from
 }
 

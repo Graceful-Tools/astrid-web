@@ -110,9 +110,6 @@ export function TaskRow({
         ? 'task-row-selected theme-bg-selected'
         : 'theme-surface-hover'
   ]
-  if (isSubtask) {
-    classNames.push('ml-6')  // ~24px indent under the parent row
-  }
   if (isMobile) {
     classNames.push('mobile-task-item')
     if (!isTouchManualSort) {
@@ -249,7 +246,11 @@ export function TaskRow({
           onDragEnd()
           setDraggingTaskMetrics(null)
         }}
-        style={manualSortPreviewActive && isDragging ? { opacity: 0 } : undefined}
+        style={{
+          // Per-level subtask indent, capped at 4 levels (deeper still shows)
+          ...(task.subtaskDepth ? { marginLeft: Math.min(task.subtaskDepth, 4) * 24 } : {}),
+          ...(manualSortPreviewActive && isDragging ? { opacity: 0 } : {}),
+        }}
       >
         {manualSortPreviewActive && dragTargetTaskId === task.id && !isTouchManualSort && (
           <div className="pointer-events-none absolute -top-12 left-1/2 z-[1600] flex w-max -translate-x-1/2 items-center gap-2 rounded-full border border-blue-400/60 bg-blue-900/95 px-3 py-1.5 text-xs font-medium text-blue-50 shadow-2xl backdrop-blur">

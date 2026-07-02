@@ -331,18 +331,20 @@ export function useTaskManagerController({
         const window = (currentList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
         const mode = newFilterState.filters.completed as CompletionFilterMode
         const now = new Date()
+        // Depth-first: nested subtasks at ANY depth all render, each following
+        // the list's completion filter. Depth cap 10 guards data cycles.
         const withSubtasks: Task[] = []
-        for (const t of filtered) {
-          withSubtasks.push(t)
+        const appendSubtree = (t: Task, depth: number) => {
+          withSubtasks.push(depth > 0 ? { ...t, subtaskDepth: depth } : t)
+          if (depth >= 10) return
           const subs = subtasksByParent.get(t.id)
-          if (subs) {
-            withSubtasks.push(
-              ...subs
-                .filter(st => shouldShowCompletedByFilter(st, mode, window, now))
-                .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
-            )
-          }
+          if (!subs) return
+          const visible = subs
+            .filter(st => shouldShowCompletedByFilter(st, mode, window, now))
+            .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+          for (const sub of visible) appendSubtree(sub, depth + 1)
         }
+        for (const t of filtered) appendSubtree(t, 0)
         return withSubtasks
       }
 
