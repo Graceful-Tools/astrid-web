@@ -3,7 +3,10 @@ import { decryptField, encryptField } from '@/lib/field-encryption'
 
 /**
  * Google Tasks sync — server-side helpers (mirrors lib/sync/github.ts).
- * Requires env: GOOGLE_SYNC_CLIENT_ID / GOOGLE_SYNC_CLIENT_SECRET
+ * Uses GOOGLE_SYNC_CLIENT_ID / GOOGLE_SYNC_CLIENT_SECRET when set, falling
+ * back to the login/contacts client (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) —
+ * one Google OAuth client serves all flows; the sync just adds the tasks scope
+ * and its own redirect URI.
  * (OAuth client, scope https://www.googleapis.com/auth/tasks).
  * Google access tokens expire (~1h): refresh-on-use with the stored
  * refresh token; tokens never leave the server.
@@ -11,13 +14,21 @@ import { decryptField, encryptField } from '@/lib/field-encryption'
 
 const TASKS_API = 'https://tasks.googleapis.com/tasks/v1'
 
+function googleClientId(): string | undefined {
+  return process.env.GOOGLE_SYNC_CLIENT_ID || process.env.GOOGLE_CLIENT_ID
+}
+
+function googleClientSecret(): string | undefined {
+  return process.env.GOOGLE_SYNC_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET
+}
+
 export function googleSyncConfigured(): boolean {
-  return !!(process.env.GOOGLE_SYNC_CLIENT_ID && process.env.GOOGLE_SYNC_CLIENT_SECRET)
+  return !!(googleClientId() && googleClientSecret())
 }
 
 export function googleAuthorizeURL(state: string, redirectUri: string): string {
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_SYNC_CLIENT_ID!,
+    client_id: googleClientId()!,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/tasks',
@@ -34,8 +45,8 @@ export async function exchangeGoogleCode(code: string, redirectUri: string) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_SYNC_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_SYNC_CLIENT_SECRET!,
+      client_id: googleClientId()!,
+      client_secret: googleClientSecret()!,
       redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),
@@ -88,8 +99,8 @@ export async function googleTokenFor(userId: string): Promise<string | null> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       refresh_token: refreshToken,
-      client_id: process.env.GOOGLE_SYNC_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_SYNC_CLIENT_SECRET!,
+      client_id: googleClientId()!,
+      client_secret: googleClientSecret()!,
       grant_type: 'refresh_token',
     }),
   })
