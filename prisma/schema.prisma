@@ -96,6 +96,7 @@ model User {
   chatMessages                 ChatMessage[]
   addressBookContacts          AddressBookContact[] @relation("AddressBookContacts")
   userListFavorites            UserListFavorite[]   @relation("UserFavorites")
+  integrations                 Integration[]        @relation("UserIntegrations")
 
   @@index([email])
   @@index([emailVerified])
@@ -146,62 +147,63 @@ model AIAgent {
 }
 
 model TaskList {
-  id                  String          @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name                String
-  description         String?
-  color               String          @default("#3b82f6")
-  imageUrl            String?
-  projectId           String?
-  listType            String          @default("regular")
-  statusRole          String?
-  statusOrder         Int?
-  statusDescription   String?
-  statusCompleted     Boolean         @default(false)
-  privacy             TaskListPrivacy @default(PRIVATE)
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  ownerId             String
-  defaultAssigneeId   String?
-  defaultPriority     Int?            @default(0)
-  defaultRepeating    String?         @default("never")
-  defaultIsPrivate    Boolean?        @default(true)
-  defaultDueDate      String?         @default("none")
-  aiAstridEnabled     Boolean         @default(false)
-  copyCount           Int             @default(0)
-  defaultDueTime      String?
-  favoriteOrder       Int?
-  filterAssignedBy    String?
-  filterAssignee      String?
-  filterCompletion    String?
+  id                      String             @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name                    String
+  description             String?
+  color                   String             @default("#3b82f6")
+  imageUrl                String?
+  projectId               String?
+  listType                String             @default("regular")
+  statusRole              String?
+  statusOrder             Int?
+  statusDescription       String?
+  statusCompleted         Boolean            @default(false)
+  privacy                 TaskListPrivacy    @default(PRIVATE)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  ownerId                 String
+  defaultAssigneeId       String?
+  defaultPriority         Int?               @default(0)
+  defaultRepeating        String?            @default("never")
+  defaultIsPrivate        Boolean?           @default(true)
+  defaultDueDate          String?            @default("none")
+  aiAstridEnabled         Boolean            @default(false)
+  copyCount               Int                @default(0)
+  defaultDueTime          String?
+  favoriteOrder           Int?
+  filterAssignedBy        String?
+  filterAssignee          String?
+  filterCompletion        String?
   /// Per-list "Recently completed" window — null = legacy 24h default.
   /// Shape: see lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow Json?
-  filterDueDate       String?
-  filterInLists       String?
-  filterPriority      String?
-  filterRepeating     String?
-  isFavorite          Boolean         @default(false)
-  isVirtual           Boolean         @default(false)
-  sortBy              String?
-  virtualListType     String?
-  mcpAccessLevel      MCPAccessLevel  @default(WRITE)
-  mcpEnabled          Boolean         @default(false)
-  aiAgentsEnabled     Json?           @default("[]")
-  fallbackAiProvider  String?
-  githubRepositoryId  String?
-  preferredAiProvider String?
-  aiAgentConfiguredBy String?
-  manualSortOrder     Json?
-  publicListType      String?
-  listInvites         ListInvite[]
-  listMembers         ListMember[]
-  mcpTokens           MCPToken[]
-  secureFiles         SecureFile[]
-  chatChannel         ChatChannel?
-  userListFavorites   UserListFavorite[] @relation("ListFavorites")
-  owner               User            @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  project             Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  tasks               Task[]          @relation("TaskToTaskList")
+  filterDueDate           String?
+  filterInLists           String?
+  filterPriority          String?
+  filterRepeating         String?
+  isFavorite              Boolean            @default(false)
+  isVirtual               Boolean            @default(false)
+  sortBy                  String?
+  virtualListType         String?
+  mcpAccessLevel          MCPAccessLevel     @default(WRITE)
+  mcpEnabled              Boolean            @default(false)
+  aiAgentsEnabled         Json?              @default("[]")
+  fallbackAiProvider      String?
+  githubRepositoryId      String?
+  preferredAiProvider     String?
+  aiAgentConfiguredBy     String?
+  manualSortOrder         Json?
+  publicListType          String?
+  listInvites             ListInvite[]
+  listMembers             ListMember[]
+  mcpTokens               MCPToken[]
+  secureFiles             SecureFile[]
+  chatChannel             ChatChannel?
+  userListFavorites       UserListFavorite[] @relation("ListFavorites")
+  owner                   User               @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  project                 Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tasks                   Task[]             @relation("TaskToTaskList")
+  externalLinks           ExternalListLink[] @relation("ListExternalLinks")
 
   @@index([ownerId])
   @@index([projectId])
@@ -281,6 +283,7 @@ model Task {
   parentTaskId    String?
   parentTask      Task?               @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subtasks        Task[]              @relation("TaskSubtasks")
+  externalLinks   ExternalTaskLink[]  @relation("TaskExternalLinks")
   attachments     Attachment[]
   codingWorkflow  CodingTaskWorkflow?
   comments        Comment[]
@@ -350,24 +353,24 @@ model Attachment {
 }
 
 model SecureFile {
-  id             String       @id @default(cuid())
-  blobUrl        String       @unique
-  originalName   String
-  mimeType       String
-  fileSize       Int
-  uploadedBy     String
-  taskId         String?
-  listId         String?
-  commentId      String?
-  chatMessageId  String?
+  id              String       @id @default(cuid())
+  blobUrl         String       @unique
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  uploadedBy      String
+  taskId          String?
+  listId          String?
+  commentId       String?
+  chatMessageId   String?
   clientRequestId String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  chatMessage    ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)
-  comment        Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  list           TaskList?    @relation(fields: [listId], references: [id], onDelete: Cascade)
-  task           Task?        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  uploader       User         @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  chatMessage     ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)
+  comment         Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  list            TaskList?    @relation(fields: [listId], references: [id], onDelete: Cascade)
+  task            Task?        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader        User         @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   // Idempotency key is unique PER UPLOADER (not globally) so a client can't
   // reuse another user's clientRequestId to retrieve their file.
@@ -882,4 +885,94 @@ model AdminUser {
   createdAt DateTime @default(now())
 
   user User @relation("AdminUsers", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── Multi-provider external sync (spec: plan zippy-exploring-gray) ──────────
+// Client-side sync EXECUTION; the server stores per-user credentials + links
+// so the collaboration superset works (each member mirrors shared task content
+// to their own provider). Apple Reminders links stay device-local by design.
+
+enum ExternalSyncProvider {
+  APPLE_REMINDERS
+  GOOGLE_TASKS
+  GITHUB_ISSUES
+}
+
+enum ExternalSyncDirection {
+  EXPORT
+  IMPORT
+  BIDIRECTIONAL
+}
+
+/// Durable per-user OAuth credential store for sync providers (tokens encrypted
+/// at the app layer). Distinct from GitHubIntegration (AI coding-agent feature).
+model Integration {
+  id                String               @id @default(cuid())
+  userId            String
+  provider          ExternalSyncProvider
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  scopes            String[]
+  externalAccountId String? // Google email / GitHub login — identity mapping
+  metadata          Json?
+  revokedAt         DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  user              User                 @relation("UserIntegrations", fields: [userId], references: [id], onDelete: Cascade)
+  listLinks         ExternalListLink[]
+  taskLinks         ExternalTaskLink[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+/// One Astrid list ↔ one remote container (GitHub owner/repo, Google tasklist)
+/// for ONE user. Different members can bind the same list to different providers.
+model ExternalListLink {
+  id                  String                @id @default(cuid())
+  integrationId       String
+  userId              String
+  astridListId        String
+  provider            ExternalSyncProvider
+  remoteContainerId   String // "owner/repo" / Google tasklist id
+  remoteContainerName String?
+  direction           ExternalSyncDirection @default(BIDIRECTIONAL)
+  includeCompleted    Boolean               @default(true)
+  cursor              String? // GitHub "issues since" watermark / Google syncToken
+  lastReconciledAt    DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  integration         Integration           @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  list                TaskList              @relation("ListExternalLinks", fields: [astridListId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, astridListId, provider])
+  @@index([astridListId])
+  @@index([integrationId])
+}
+
+/// The superset key: per-(user, task, provider) external identity with dual
+/// watermarks for echo suppression and a metadata blob for provider extras
+/// (labels, milestone, issue number, state_reason, parent...).
+model ExternalTaskLink {
+  id                String               @id @default(cuid())
+  integrationId     String
+  userId            String
+  astridTaskId      String
+  provider          ExternalSyncProvider
+  remoteId          String // GitHub issue number ("owner/repo#123") / Google task id
+  remoteContainerId String
+  astridUpdatedAt   DateTime?
+  remoteUpdatedAt   DateTime?
+  lastSyncedAt      DateTime?
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  integration       Integration          @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  task              Task                 @relation("TaskExternalLinks", fields: [astridTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, astridTaskId, provider])
+  @@unique([provider, remoteId, userId])
+  @@index([astridTaskId])
+  @@index([remoteContainerId])
 }
