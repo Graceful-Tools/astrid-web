@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const userId = state ? verifyOAuthState(state) : null
   if (!code || !userId) {
-    return NextResponse.json({ error: 'Invalid or expired OAuth state' }, { status: 400 })
+    return errorPage('This connect link has expired. Go back to Astrid and tap Connect again.')
   }
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
   const accessToken = tokenJson?.access_token as string | undefined
   if (!accessToken) {
     log.error({ tokenJson }, 'GitHub token exchange failed')
-    return NextResponse.json({ error: 'GitHub token exchange failed' }, { status: 502 })
+    return errorPage('The sign-in code expired before it could be used. Go back to Astrid and tap Connect again.')
   }
 
   const { status, json: user } = await githubRequest(accessToken, 'GET', '/user')
   if (status !== 200 || !user?.login) {
-    return NextResponse.json({ error: 'Could not read GitHub account' }, { status: 502 })
+    return errorPage('Connected, but the account lookup failed. Go back to Astrid and tap Connect again.')
   }
   const scopes = (tokenJson?.scope as string | undefined)?.split(',').filter(Boolean) ?? []
   await storeGithubIntegration(userId, accessToken, user.login, scopes)
@@ -50,5 +50,16 @@ export async function GET(request: NextRequest) {
       <h2>GitHub connected ✓</h2><p>Signed in as <b>${user.login}</b>. You can return to Astrid.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html' } }
+  )
+}
+
+/** Human-readable failure page: Cloudflare replaces raw 5xx responses with its
+ *  own error page, so OAuth failures must render as 200 HTML to be seen. */
+function errorPage(message: string): NextResponse {
+  return new NextResponse(
+    `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
+      <h2>Connection didn't complete</h2><p>${message}</p>
+    </body></html>`,
+    { status: 200, headers: { 'Content-Type': 'text/html' } }
   )
 }

@@ -11,7 +11,7 @@
 
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { TaskActivitySection } from '@/components/task-detail/TaskActivitySection'
 import type { Task } from '@/types/task'
 
@@ -57,11 +57,9 @@ describe('TaskActivitySection (Stage 22 / task 900732d2)', () => {
     expect(viewers[1]).toHaveAttribute('data-file-id', 'f2')
   })
 
-  it('opens the timer when the Timer button is clicked', () => {
-    const setShowTimer = vi.fn()
-    render(<TaskActivitySection task={makeTask()} showTimer={false} setShowTimer={setShowTimer} onUpdate={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: /Timer/ }))
-    expect(setShowTimer).toHaveBeenCalledWith(true)
+  it('renders no Timer button — the timer moved to the comment footer (5cf4005e)', () => {
+    render(<TaskActivitySection task={makeTask()} showTimer={false} setShowTimer={vi.fn()} onUpdate={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /Timer/ })).not.toBeInTheDocument()
   })
 
   it('renders the TaskTimer modal only when showTimer is true', () => {

@@ -14,13 +14,13 @@ export async function GET(request: NextRequest) {
   const state = url.searchParams.get('state')
   const userId = state ? verifyOAuthState(state) : null
   if (!code || !userId) {
-    return NextResponse.json({ error: 'Invalid or expired OAuth state' }, { status: 400 })
+    return errorPage('This connect link has expired. Go back to Astrid and tap Connect again.')
   }
   const redirectUri = `${url.origin}/api/v1/integrations/google/callback`
   const tokens = await exchangeGoogleCode(code, redirectUri)
   if (!tokens.access_token) {
     log.error({ tokens }, 'Google token exchange failed')
-    return NextResponse.json({ error: 'Google token exchange failed' }, { status: 502 })
+    return errorPage('The sign-in code expired before it could be used. Go back to Astrid and tap Connect again.')
   }
   // Identify the account (userinfo via tasklists owner isn't available; use id_token-less userinfo endpoint)
   const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -34,5 +34,16 @@ export async function GET(request: NextRequest) {
       <h2>Google Tasks connected ✓</h2><p>${info?.email ?? ''} — you can return to Astrid.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html' } }
+  )
+}
+
+/** Human-readable failure page: Cloudflare replaces raw 5xx responses with its
+ *  own error page, so OAuth failures must render as 200 HTML to be seen. */
+function errorPage(message: string): NextResponse {
+  return new NextResponse(
+    `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
+      <h2>Connection didn't complete</h2><p>${message}</p>
+    </body></html>`,
+    { status: 200, headers: { 'Content-Type': 'text/html' } }
   )
 }

@@ -75,7 +75,7 @@ describe('Secure Upload API', () => {
         blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.jpg',
         originalName: 'test.jpg',
         mimeType: 'image/jpeg',
-        fileSize: 1024,
+        fileSize: 12, // matches the 'test content' upload — the route echoes the stored row
         uploadedBy: 'test-user-id',
         taskId: 'test-task-id',
         listId: null,
@@ -115,6 +115,7 @@ describe('Secure Upload API', () => {
           taskId: 'test-task-id',
           listId: null,
           commentId: null,
+          clientRequestId: null, // idempotency key — null when the uploader doesn't send one
         }
       })
     })
@@ -136,7 +137,7 @@ describe('Secure Upload API', () => {
         blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.jpg',
         originalName: 'test.jpg',
         mimeType: 'image/jpeg',
-        fileSize: 1024,
+        fileSize: 12, // matches the 'test content' upload — the route echoes the stored row
         uploadedBy: 'test-user-id',
         taskId: null,
         listId: 'test-list-id',
@@ -258,7 +259,7 @@ describe('Secure Upload API', () => {
         blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.mp4',
         originalName: 'test.mp4',
         mimeType: 'video/mp4',
-        fileSize: 1024,
+        fileSize: 12, // matches the 'test content' upload — the route echoes the stored row
         uploadedBy: 'test-user-id',
         taskId: 'test-task-id',
         listId: null,
