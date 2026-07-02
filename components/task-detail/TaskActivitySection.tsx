@@ -1,8 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Timer } from "lucide-react"
 import type { Task } from "@/types/task"
 import { SecureAttachmentViewer } from "../secure-attachment-viewer"
 import { TaskTimer } from "../task-timer"
@@ -63,22 +61,13 @@ export function TaskActivitySection({
         </div>
       )}
 
-      {/* Timer Button (before comments, matching iOS order) */}
-      <div className="mt-4 px-4">
-        <Button
-          variant="outline"
-          className="w-full flex items-center justify-center gap-2 py-6 text-lg"
-          onClick={() => setShowTimer(true)}
-        >
-          <Timer className="w-5 h-5" />
-          Timer
-        </Button>
-        {task.lastTimerValue && (
-          <p className="mt-2 text-sm theme-text-muted text-center">
-            Last: {task.lastTimerValue}
-          </p>
-        )}
-      </div>
+      {/* Timer button moved into the comment footer (send slot while empty);
+          only the last-timer caption remains inline. */}
+      {task.lastTimerValue && (
+        <p className="mt-2 px-4 text-sm theme-text-muted text-center">
+          Last: {task.lastTimerValue}
+        </p>
+      )}
 
       {showTimer && (
         <TaskTimer

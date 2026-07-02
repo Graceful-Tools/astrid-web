@@ -600,18 +600,19 @@ interface FileAttachment {
           setShowingActionsFor={setShowingActionsFor}
         />
 
-        {/* Timer Button */}
-        <div className="mt-4 px-4">
+        {/* Timer Button (compact — no comment footer here to host it) */}
+        <div className="mt-4 px-4 flex items-center justify-center gap-3">
           <Button
             variant="outline"
-            className="w-full flex items-center justify-center gap-2 py-6 text-lg"
+            size="sm"
+            className="flex items-center gap-2"
             onClick={() => setShowTimer(true)}
           >
-            <Timer className="w-5 h-5" />
+            <Timer className="w-4 h-4" />
             Timer
           </Button>
           {task.lastTimerValue && (
-            <p className="mt-2 text-sm theme-text-muted text-center">
+            <p className="text-sm theme-text-muted">
               Last: {task.lastTimerValue}
             </p>
           )}

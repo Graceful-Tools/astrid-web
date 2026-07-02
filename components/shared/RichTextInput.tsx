@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Send, Hash, CheckCircle2, Circle, Users, Globe, Paperclip, Loader2, X, Image as ImageIcon, FileText } from 'lucide-react'
+import { Send, Hash, CheckCircle2, Circle, Users, Globe, Paperclip, Loader2, X, Image as ImageIcon, FileText, Timer } from 'lucide-react'
 import { useChatMentions, type AutocompleteItem, type AutocompleteType } from '@/hooks/use-chat-mentions'
 import type { User, TaskList, Task } from '@/types/task'
 import type { FileAttachment } from '@/components/shared/FileUploadButton'
@@ -94,6 +94,8 @@ export interface RichTextInputProps {
   disabled?: boolean
   /** Hide the send button (e.g. for inline comment bars that have their own) */
   hideSendButton?: boolean
+  /** Task detail only: show a timer button in the send slot while the input is empty */
+  onTimerClick?: () => void
   /** Custom class for the wrapper */
   className?: string
   /** Accept file types for upload */
@@ -122,6 +124,7 @@ export const RichTextInput = React.memo(function RichTextInput({
   placeholder = 'Type a message...',
   disabled = false,
   hideSendButton = false,
+  onTimerClick,
   className = '',
   accept = 'image/*,video/*,.pdf,.doc,.docx,.txt,.zip',
   isSending = false,
@@ -406,15 +409,26 @@ export const RichTextInput = React.memo(function RichTextInput({
           />
         </div>
 
-        {/* Send button */}
+        {/* Send button — or timer while the input is empty (task detail) */}
         {!hideSendButton && (
-          <button
-            onClick={onSend}
-            disabled={!canSend}
-            className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-blue-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          onTimerClick && !value.trim() && !attachedFile ? (
+            <button
+              onClick={onTimerClick}
+              disabled={disabled}
+              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full border theme-border theme-text-secondary hover:theme-text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title="Timer"
+            >
+              <Timer className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={onSend}
+              disabled={!canSend}
+              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-blue-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          )
         )}
       </div>
     </div>

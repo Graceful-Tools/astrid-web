@@ -23,6 +23,8 @@ export interface CommentInputBarProps {
   setAttachedFile: (value: FileAttachment | null) => void
   uploadError?: string | null
   setUploadError?: (value: string | null) => void
+  /** Show a timer button in the send slot while the input is empty */
+  onTimerClick?: () => void
 }
 
 /**
@@ -47,6 +49,7 @@ export function CommentInputBar({
   setAttachedFile,
   uploadError,
   setUploadError,
+  onTimerClick,
 }: CommentInputBarProps) {
   // Fetch Astrid agent so it's available in the @-mention list.
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
@@ -235,6 +238,7 @@ export function CommentInputBar({
         onAttachedFileChange={setAttachedFile}
         uploadError={uploadError}
         onUploadErrorChange={setUploadError}
+        onTimerClick={onTimerClick}
       />
     </div>
   )
