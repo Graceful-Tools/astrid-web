@@ -4,6 +4,11 @@ import { useToast } from "@/hooks/use-toast"
 import { useTaskOperations } from "@/hooks/useTaskOperations"
 import { playTaskCompleteSound } from "@/lib/task-sounds"
 import { useFilterState } from "@/hooks/useFilterState"
+import {
+  shouldShowCompletedByFilter,
+  type RecentlyCompletedWindow,
+  type CompletionFilterMode
+} from "@/lib/recently-completed-window"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
@@ -85,7 +90,7 @@ export function useTaskManagerController({
   const myTasksPreferences = useMyTasksPreferences()
 
   // User settings (synced across devices via SSE)
-  const { smartTaskCreationEnabled } = useUserSettings()
+  const { smartTaskCreationEnabled, subtaskDisplay } = useUserSettings()
 
   // Layout state (managed externally by useTaskManagerLayout)
   const isMobile = externalIsMobile || false
@@ -269,6 +274,18 @@ export function useTaskManagerController({
       const currentList = listState.lists.find(l => l.id === navigationState.selectedListId)
       let filtered = [...listState.finalTasks]
 
+      // Subtasks never render as top-level rows; in "indented" display mode
+      // they're spliced under their parent after filtering (below).
+      const subtasksByParent = new Map<string, Task[]>()
+      for (const t of listState.finalTasks) {
+        if (t.parentTaskId) {
+          const arr = subtasksByParent.get(t.parentTaskId) || []
+          arr.push(t)
+          subtasksByParent.set(t.parentTaskId, arr)
+        }
+      }
+      filtered = filtered.filter(t => !t.parentTaskId)
+
       // Check if we're in universal search mode
       const isUniversalSearch = newFilterState.filters.search.trim().length > 0
 
@@ -307,12 +324,34 @@ export function useTaskManagerController({
         false
       )
 
+      // Indented display (default): splice each visible parent's subtasks
+      // directly after it, following the SAME completion filter as the list
+      // (per-list recentlyCompletedWindow + the active completed filter).
+      if (subtaskDisplay !== 'under_parent' && subtasksByParent.size > 0) {
+        const window = (currentList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
+        const mode = newFilterState.filters.completed as CompletionFilterMode
+        const now = new Date()
+        const withSubtasks: Task[] = []
+        for (const t of filtered) {
+          withSubtasks.push(t)
+          const subs = subtasksByParent.get(t.id)
+          if (subs) {
+            withSubtasks.push(
+              ...subs
+                .filter(st => shouldShowCompletedByFilter(st, mode, window, now))
+                .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+            )
+          }
+        }
+        return withSubtasks
+      }
+
       return filtered
     } catch (error) {
       console.error("Error filtering tasks:", error)
       return listState.finalTasks
     }
-  }, [listState.finalTasks, listState.lists, navigationState.selectedListId, effectiveSession?.user?.id, newFilterState])
+  }, [listState.finalTasks, listState.lists, navigationState.selectedListId, effectiveSession?.user?.id, newFilterState, subtaskDisplay])
 
   // Selected task
   const selectedTask = useMemo(() => {

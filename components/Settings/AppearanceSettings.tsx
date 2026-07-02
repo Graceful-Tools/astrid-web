@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "@/contexts/theme-context"
 import { KeyboardShortcutsMenu } from "@/components/keyboard-shortcuts-menu"
 import { useTranslations } from "@/lib/i18n/client"
@@ -15,7 +16,8 @@ import {
   Waves,
   Keyboard,
   Mail,
-  Sparkles
+  Sparkles,
+  ListTree
 } from "lucide-react"
 
 interface AppearanceSettingsProps {
@@ -26,6 +28,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
   const { theme, setTheme } = useTheme()
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   const [smartTaskCreationEnabled, setSmartTaskCreationEnabled] = useState(true)
+  const [subtaskDisplay, setSubtaskDisplay] = useState('indented')
   const { t } = useTranslations()
 
   // Load smart task creation setting
@@ -36,6 +39,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
         if (response.ok) {
           const data = await response.json()
           setSmartTaskCreationEnabled(data.smartTaskCreationEnabled ?? true)
+          setSubtaskDisplay(data.subtaskDisplay ?? 'indented')
         }
       } catch (error) {
         console.error('Error loading settings:', error)
@@ -43,6 +47,20 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
     }
     loadSetting()
   }, [])
+
+  // Save subtask display setting
+  const handleSubtaskDisplayChange = async (value: string) => {
+    setSubtaskDisplay(value)
+    try {
+      await fetch('/api/user/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subtaskDisplay: value })
+      })
+    } catch (error) {
+      console.error('Error saving setting:', error)
+    }
+  }
 
   // Save smart task creation setting
   const handleSmartTaskCreationChange = async (enabled: boolean) => {
@@ -263,6 +281,38 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <span><strong>Lists:</strong> &quot;#shopping Buy groceries&quot;, &quot;#work Finish report&quot;</span>
                   </li>
                 </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sub tasks display */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex items-center space-x-2">
+                <ListTree className="w-5 h-5 text-blue-500" />
+                <span>Sub tasks</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                How sub tasks appear in your lists (synced across devices)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div className="flex-1">
+                  <Label className="font-medium theme-text-primary">Show sub tasks</Label>
+                  <p className="text-sm theme-text-muted">
+                    Indented in lists, or only inside the parent task
+                  </p>
+                </div>
+                <Select value={subtaskDisplay} onValueChange={handleSubtaskDisplayChange}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indented">In lists, indented</SelectItem>
+                    <SelectItem value="under_parent">Inside parent task only</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

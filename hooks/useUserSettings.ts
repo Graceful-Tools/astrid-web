@@ -14,6 +14,8 @@ export interface UserSettings {
   emailToTaskEnabled: boolean
   defaultTaskDueOffset: string
   defaultDueTime: string
+  /** "indented" (subtasks in lists, indented) | "under_parent" (detail only) */
+  subtaskDisplay: string
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -21,6 +23,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   emailToTaskEnabled: true,
   defaultTaskDueOffset: '1_week',
   defaultDueTime: '17:00',
+  subtaskDisplay: 'indented',
 }
 
 export function useUserSettings() {
@@ -97,5 +100,6 @@ export function useUserSettings() {
     setSmartTaskCreationEnabled,
     // Convenience getter for smart task creation
     smartTaskCreationEnabled: settings.smartTaskCreationEnabled,
+    subtaskDisplay: settings.subtaskDisplay,
   }
 }

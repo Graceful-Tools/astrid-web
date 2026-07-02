@@ -174,7 +174,8 @@ export interface Task {
   comments: Comment[]
   createdAt: Date
   updatedAt: Date
-  originalTaskId?: string // For copied tasks
+  originalTaskId?: string
+  parentTaskId?: string | null // Subtasks: parent task id (nil = top-level)
   sourceListId?: string // Which public list this was copied from
 }
 

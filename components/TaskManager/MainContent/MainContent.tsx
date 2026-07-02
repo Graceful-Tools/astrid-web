@@ -364,6 +364,7 @@ export function MainContent({
     <TaskRow
       key={task.id}
       task={task}
+      isSubtask={!!task.parentTaskId}
       controller={rowController}
       isMobile={isMobile}
       isTouchManualSort={isTouchManualSort}

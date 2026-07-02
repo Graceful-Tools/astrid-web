@@ -36,6 +36,8 @@ export type TaskRowControllerSlice = Pick<
 
 export interface TaskRowProps {
   task: Task
+  /** Indent under the parent row (subtask display mode "indented"). */
+  isSubtask?: boolean
   controller: TaskRowControllerSlice
   isMobile: boolean
   isTouchManualSort: boolean
@@ -79,6 +81,7 @@ export function TaskRow({
   renderManualPlaceholderRow,
   setDraggingTaskMetrics,
   startMobileDrag,
+  isSubtask,
 }: TaskRowProps) {
   const {
     selectedTaskId,
@@ -107,6 +110,9 @@ export function TaskRow({
         ? 'task-row-selected theme-bg-selected'
         : 'theme-surface-hover'
   ]
+  if (isSubtask) {
+    classNames.push('ml-6')  // ~24px indent under the parent row
+  }
   if (isMobile) {
     classNames.push('mobile-task-item')
     if (!isTouchManualSort) {

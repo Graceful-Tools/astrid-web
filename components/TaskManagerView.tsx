@@ -1107,7 +1107,7 @@ const TaskManagerView = memo(function TaskManagerView({
       })()}
 
       {/* Enhanced Fixed Mobile Add Task at Bottom — hidden when chat is active or sidebar is open */}
-      {isMobile && mobileView === 'list' && activePanel !== 'chat' && taskViewMode !== 'board' && !showMobileSidebar && (() => {
+      {isMobile && mobileView === 'list' && !isSettingsActive && activePanel !== 'chat' && taskViewMode !== 'board' && !showMobileSidebar && (() => {
         const selectedList = lists.find(list => list.id === selectedListId)
         const isPublicList = selectedList?.privacy === 'PUBLIC'
         const isCollaborative = selectedList?.publicListType === 'collaborative'
