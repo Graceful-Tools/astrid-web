@@ -58,3 +58,26 @@ export const POST = withAuth(
     return NextResponse.json({ id: String(json.id) })
   }
 )
+
+/** PATCH — edit an issue comment. Body: { linkId, commentId, body } */
+export const PATCH = withAuth(
+  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  async (req, auth) => {
+    const body = await req.json().catch(() => null)
+    const { linkId, commentId } = body || {}
+    const text = (body?.body as string | undefined)?.trim()
+    if (!linkId || !commentId || !text) {
+      return NextResponse.json({ error: 'linkId, commentId, body required' }, { status: 400 })
+    }
+    const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
+    if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const token = await githubTokenFor(auth.userId)
+    if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
+
+    const { status, json } = await githubRequest(
+      token, 'PATCH', `/repos/${link.remoteContainerId}/issues/comments/${commentId}`, { body: text }
+    )
+    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+    return NextResponse.json({ id: String(json.id) })
+  }
+)
