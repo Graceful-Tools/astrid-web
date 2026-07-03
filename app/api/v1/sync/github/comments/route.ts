@@ -81,3 +81,26 @@ export const PATCH = withAuth(
     return NextResponse.json({ id: String(json.id) })
   }
 )
+
+/** DELETE ?linkId&commentId — delete an issue comment (404 = already gone). */
+export const DELETE = withAuth(
+  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  async (req, auth) => {
+    const url = new URL(req.url)
+    const linkId = url.searchParams.get('linkId')
+    const commentId = url.searchParams.get('commentId')
+    if (!linkId || !commentId) return NextResponse.json({ error: 'linkId and commentId required' }, { status: 400 })
+    const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
+    if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const token = await githubTokenFor(auth.userId)
+    if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
+
+    const { status, json } = await githubRequest(
+      token, 'DELETE', `/repos/${link.remoteContainerId}/issues/comments/${commentId}`
+    )
+    if (status !== 204 && status !== 404 && status !== 410) {
+      return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+    }
+    return NextResponse.json({ success: true })
+  }
+)

@@ -21,7 +21,7 @@ export const GET = withAuth(
     const updatedMin = !full && link.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
     const { status, json } = await googleRequest(
       token, 'GET',
-      `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true${updatedMin}`
+      `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true&showDeleted=true${updatedMin}`
     )
     if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
 
@@ -92,5 +92,31 @@ export const POST = withAuth(
       remoteId: `${link.remoteContainerId}:${json.id}`,
       remoteUpdatedAt: json.updated,
     })
+  }
+)
+
+/** DELETE ?linkId&remoteId — delete a Google task (404/410 = already gone). */
+export const DELETE = withAuth(
+  { scopes: ['tasks:write'], tag: 'v1.sync.google' },
+  async (req, auth) => {
+    const url = new URL(req.url)
+    const linkId = url.searchParams.get('linkId')
+    const remoteId = url.searchParams.get('remoteId')
+    if (!linkId || !remoteId) return NextResponse.json({ error: 'linkId and remoteId required' }, { status: 400 })
+    const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
+    if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const token = await googleTokenFor(auth.userId)
+    if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
+
+    const taskId = String(remoteId).split(':').pop()
+    const { status, json } = await googleRequest(
+      token, 'DELETE',
+      `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks/${encodeURIComponent(taskId as string)}`
+    )
+    // 204 = deleted; 404/410 = already gone — both success for our purposes.
+    if (status !== 204 && status !== 404 && status !== 410) {
+      return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+    }
+    return NextResponse.json({ success: true })
   }
 )
