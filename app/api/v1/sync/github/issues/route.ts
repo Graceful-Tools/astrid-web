@@ -23,7 +23,7 @@ export const GET = withAuth(
       token, 'GET',
       `/repos/${link.remoteContainerId}/issues?state=all&per_page=100&sort=updated&direction=asc${since}`
     )
-    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: 502 })
+    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
 
     const items = (json as any[])
       .filter(i => !i.pull_request) // issues only, not PRs
@@ -73,7 +73,7 @@ export const POST = withAuth(
         token, 'PATCH', `/repos/${link.remoteContainerId}/issues/${number}`,
         { title, body: body.body, state: body.state }
       )
-      if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: 502 })
+      if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
       return NextResponse.json({ remoteId, remoteUpdatedAt: json.updated_at })
     }
 
@@ -81,7 +81,7 @@ export const POST = withAuth(
     const { status, json } = await githubRequest(
       token, 'POST', `/repos/${link.remoteContainerId}/issues`, { title, body: body.body }
     )
-    if (status !== 201) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: 502 })
+    if (status !== 201) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     return NextResponse.json({
       remoteId: `${link.remoteContainerId}#${json.number}`,
       remoteUpdatedAt: json.updated_at,

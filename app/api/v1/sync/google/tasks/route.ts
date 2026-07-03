@@ -23,7 +23,7 @@ export const GET = withAuth(
       token, 'GET',
       `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true${updatedMin}`
     )
-    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: 502 })
+    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
 
     const items = ((json.items as any[]) || []).map(t => ({
       remoteId: `${link.remoteContainerId}:${t.id}`,
@@ -79,7 +79,7 @@ export const POST = withAuth(
     if (remoteId) {
       const googleTaskId = String(remoteId).split(':').pop()
       const { status, json } = await googleRequest(token, 'PATCH', `${listPath}/${googleTaskId}`, payload)
-      if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: 502 })
+      if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
       return NextResponse.json({ remoteId, remoteUpdatedAt: json.updated })
     }
 
@@ -87,7 +87,7 @@ export const POST = withAuth(
       ? `?parent=${encodeURIComponent(String(body.parentRemoteId).split(':').pop() as string)}`
       : ''
     const { status, json } = await googleRequest(token, 'POST', `${listPath}${parentQuery}`, payload)
-    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: 502 })
+    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     return NextResponse.json({
       remoteId: `${link.remoteContainerId}:${json.id}`,
       remoteUpdatedAt: json.updated,
