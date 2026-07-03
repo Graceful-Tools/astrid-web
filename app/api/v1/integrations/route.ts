@@ -8,9 +8,35 @@ export const GET = withAuth(
   async (_req, auth) => {
     const integrations = await prisma.integration.findMany({
       where: { userId: auth.userId, revokedAt: null },
-      select: { provider: true, externalAccountId: true, createdAt: true },
+      select: { provider: true, externalAccountId: true, createdAt: true, metadata: true },
     })
     return NextResponse.json({ integrations })
+  }
+)
+
+/**
+ * PATCH /api/v1/integrations — update a provider's sync settings.
+ * Body: { provider, metadata } — metadata is merged over the existing value
+ * (client settings like googleSyncMode / listSuffix live here so they follow
+ * the account across devices).
+ */
+export const PATCH = withAuth(
+  { scopes: ['tasks:write'], tag: 'v1.integrations' },
+  async (req, auth) => {
+    const body = await req.json().catch(() => null)
+    const { provider, metadata } = body || {}
+    if ((provider !== 'GITHUB_ISSUES' && provider !== 'GOOGLE_TASKS') || typeof metadata !== 'object' || !metadata) {
+      return NextResponse.json({ error: 'provider and metadata object required' }, { status: 400 })
+    }
+    const existing = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: auth.userId, provider } },
+    })
+    if (!existing || existing.revokedAt) {
+      return NextResponse.json({ error: 'Not connected' }, { status: 404 })
+    }
+    const merged = { ...(existing.metadata as object || {}), ...metadata }
+    await prisma.integration.update({ where: { id: existing.id }, data: { metadata: merged } })
+    return NextResponse.json({ success: true, metadata: merged })
   }
 )
 
