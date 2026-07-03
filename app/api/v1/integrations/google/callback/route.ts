@@ -18,6 +18,14 @@ export async function GET(request: NextRequest) {
   }
   const redirectUri = `${url.origin}/api/v1/integrations/google/callback`
   const tokens = await exchangeGoogleCode(code, redirectUri)
+  // Granular consent: the user can UNCHECK the Tasks permission on Google's
+  // consent screen. A token without the tasks scope 403s on every call —
+  // catch it here with a clear message instead of an empty tasklist picker.
+  if (tokens.access_token && tokens.scope && !tokens.scope.includes('auth/tasks')) {
+    return errorPage(
+      'Google connected, but Tasks access was not granted. Reconnect and make sure the "Create, edit, organize, and delete all your tasks" box is CHECKED on the Google consent screen.'
+    )
+  }
   if (!tokens.access_token) {
     log.error({ tokens }, 'Google token exchange failed')
     return errorPage('The sign-in code expired before it could be used. Go back to Astrid and tap Connect again.')

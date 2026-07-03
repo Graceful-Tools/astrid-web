@@ -52,7 +52,7 @@ export async function exchangeGoogleCode(code: string, redirectUri: string) {
     }),
   })
   return res.json() as Promise<{
-    access_token?: string; refresh_token?: string; expires_in?: number; error?: string
+    access_token?: string; refresh_token?: string; expires_in?: number; scope?: string; error?: string
   }>
 }
 
