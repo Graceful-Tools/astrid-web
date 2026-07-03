@@ -41,6 +41,15 @@ export const PUT = withAuth(
     if (!integration || integration.revokedAt) {
       return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
     }
+    // Merge metadata over the existing value: partial upserts (watermark-only
+    // pushes, comment-map updates) must not clobber other keys.
+    const existingLink = await prisma.externalTaskLink.findUnique({
+      where: { userId_astridTaskId_provider: { userId: auth.userId, astridTaskId, provider: 'GITHUB_ISSUES' } },
+    })
+    const mergedMetadata = body.metadata
+      ? { ...(existingLink?.metadata as object || {}), ...body.metadata }
+      : undefined
+
     const link = await prisma.externalTaskLink.upsert({
       where: { userId_astridTaskId_provider: { userId: auth.userId, astridTaskId, provider: 'GITHUB_ISSUES' } },
       create: {
@@ -53,7 +62,7 @@ export const PUT = withAuth(
         astridUpdatedAt: body.astridUpdatedAt ? new Date(body.astridUpdatedAt) : null,
         remoteUpdatedAt: body.remoteUpdatedAt ? new Date(body.remoteUpdatedAt) : null,
         lastSyncedAt: new Date(),
-        metadata: body.metadata ?? undefined,
+        metadata: mergedMetadata,
       },
       update: {
         remoteId,
@@ -61,7 +70,7 @@ export const PUT = withAuth(
         astridUpdatedAt: body.astridUpdatedAt ? new Date(body.astridUpdatedAt) : undefined,
         remoteUpdatedAt: body.remoteUpdatedAt ? new Date(body.remoteUpdatedAt) : undefined,
         lastSyncedAt: new Date(),
-        metadata: body.metadata ?? undefined,
+        metadata: mergedMetadata,
       },
     })
     return NextResponse.json({ link })

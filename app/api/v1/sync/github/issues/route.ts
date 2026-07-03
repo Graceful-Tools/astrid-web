@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
-import { githubRequest, githubTokenFor } from '@/lib/sync/github'
+import { githubGraphQL, githubRequest, githubTokenFor } from '@/lib/sync/github'
 
 /**
  * GET /api/v1/sync/github/issues?linkId — pull issues changed since the link's
@@ -35,11 +35,34 @@ export const GET = withAuth(
         remoteUpdatedAt: i.updated_at as string,
         metadata: {
           number: String(i.number),
+          parent: '', // parent issue number, filled from GraphQL below
+          commentCount: String(i.comments ?? 0),
           labels: (i.labels as any[]).map(l => (typeof l === 'string' ? l : l.name)).join(','),
           assignees: (i.assignees as any[]).map(a => a.login).join(','),
           state_reason: i.state_reason ?? '',
         },
       }))
+
+    // Sub-issue parent lookup: REST issue objects don't expose the parent, so
+    // batch one GraphQL query for the pulled numbers. metadata.parent carries
+    // the parent's issue number ('' = top-level).
+    if (items.length) {
+      const [owner, name] = link.remoteContainerId.split('/')
+      const aliases = items
+        .map((i, idx) => `i${idx}: issue(number: ${Number(i.metadata.number)}) { number parent { number } }`)
+        .join(' ')
+      const gql = await githubGraphQL(
+        token,
+        `query { repository(owner: "${owner}", name: "${name}") { ${aliases} } }`
+      )
+      const repo = gql?.data?.repository
+      if (repo) {
+        for (let idx = 0; idx < items.length; idx++) {
+          const parentNumber = repo[`i${idx}`]?.parent?.number
+          items[idx].metadata.parent = parentNumber ? String(parentNumber) : ''
+        }
+      }
+    }
 
     const newCursor = full ? link.cursor : (items.length ? items[items.length - 1].remoteUpdatedAt : link.cursor)
     if (newCursor && newCursor !== link.cursor) {
@@ -82,6 +105,18 @@ export const POST = withAuth(
       token, 'POST', `/repos/${link.remoteContainerId}/issues`, { title, body: body.body }
     )
     if (status !== 201) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+
+    // Sub-issue: attach the new issue under its parent. Best-effort — a
+    // failure leaves a top-level issue rather than failing the push.
+    if (body.parentRemoteId) {
+      const parentNumber = String(body.parentRemoteId).split('#').pop()
+      await githubRequest(
+        token, 'POST',
+        `/repos/${link.remoteContainerId}/issues/${parentNumber}/sub_issues`,
+        { sub_issue_id: json.id }
+      )
+    }
+
     return NextResponse.json({
       remoteId: `${link.remoteContainerId}#${json.number}`,
       remoteUpdatedAt: json.updated_at,

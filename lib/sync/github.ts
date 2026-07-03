@@ -108,3 +108,16 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
     return false
   }
 }
+
+/** GraphQL call (sub-issue parent lookups — REST doesn't expose an issue's parent). */
+export async function githubGraphQL(token: string, query: string): Promise<any> {
+  const res = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query }),
+  })
+  return res.json().catch(() => null)
+}
