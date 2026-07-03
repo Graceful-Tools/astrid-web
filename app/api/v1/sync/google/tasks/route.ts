@@ -17,7 +17,8 @@ export const GET = withAuth(
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
 
-    const updatedMin = link.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
+    const full = new URL(req.url).searchParams.get('full') === '1'
+    const updatedMin = !full && link.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
     const { status, json } = await googleRequest(
       token, 'GET',
       `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true${updatedMin}`
@@ -40,7 +41,9 @@ export const GET = withAuth(
     }))
 
     let newCursor = link.cursor
-    for (const i of items) if (!newCursor || i.remoteUpdatedAt > newCursor) newCursor = i.remoteUpdatedAt
+    if (!full) {
+      for (const i of items) if (!newCursor || i.remoteUpdatedAt > newCursor) newCursor = i.remoteUpdatedAt
+    }
     if (newCursor && newCursor !== link.cursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },

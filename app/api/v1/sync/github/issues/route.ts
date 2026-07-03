@@ -17,7 +17,8 @@ export const GET = withAuth(
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
-    const since = link.cursor ? `&since=${encodeURIComponent(link.cursor)}` : ''
+    const full = new URL(req.url).searchParams.get('full') === '1'
+    const since = !full && link.cursor ? `&since=${encodeURIComponent(link.cursor)}` : ''
     const { status, json } = await githubRequest(
       token, 'GET',
       `/repos/${link.remoteContainerId}/issues?state=all&per_page=100&sort=updated&direction=asc${since}`
@@ -40,7 +41,7 @@ export const GET = withAuth(
         },
       }))
 
-    const newCursor = items.length ? items[items.length - 1].remoteUpdatedAt : link.cursor
+    const newCursor = full ? link.cursor : (items.length ? items[items.length - 1].remoteUpdatedAt : link.cursor)
     if (newCursor && newCursor !== link.cursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },
