@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
       {/* Content */}
       <main className="container mx-auto px-4 py-12 max-w-3xl">
         <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 mb-10">Last updated: January 3, 2026</p>
+        <p className="text-gray-500 mb-10">Last updated: July 3, 2026</p>
 
         <div className="space-y-10">
           <section>
@@ -50,6 +50,33 @@ export default function PrivacyPolicy() {
             <p className="text-gray-300 leading-relaxed">
               We share data only with infrastructure providers necessary to operate the service,
               when you explicitly share content with others, or when required by law.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-white mb-3">Google User Data</h2>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              If you connect Google Tasks sync, Astrid accesses your Google Tasks data
+              (task lists, tasks, due dates, and completion status) solely to mirror
+              tasks two-way between Astrid and Google Tasks at your request. We do not
+              use this data for advertising, we do not sell it, and no humans read it
+              except with your explicit permission, for security purposes, or to comply
+              with law. OAuth tokens are stored encrypted on our servers and are deleted
+              when you disconnect the integration, which you can do at any time from
+              Settings or at{" "}
+              <a href="https://myaccount.google.com/permissions" className="text-blue-400 hover:underline">
+                myaccount.google.com/permissions
+              </a>.
+            </p>
+            <p className="text-gray-300 leading-relaxed">
+              Astrid&apos;s use of information received from Google APIs adheres to the{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                className="text-blue-400 hover:underline"
+              >
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements.
             </p>
           </section>
 
