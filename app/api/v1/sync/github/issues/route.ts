@@ -22,13 +22,26 @@ export const GET = withAuth(
 
     const full = new URL(req.url).searchParams.get('full') === '1'
     const since = !full && link.cursor ? `&since=${encodeURIComponent(link.cursor)}` : ''
-    const { status, json } = await githubRequest(
-      token, 'GET',
-      `/repos/${link.remoteContainerId}/issues?state=all&per_page=100&sort=updated&direction=asc${since}`
-    )
-    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+    // Paginate to exhaustion (page cap as a runaway guard). One page per pass
+    // starved busy org repos: with PRs sharing the page, open issues beyond
+    // the first hundred rows took many passes to appear at all.
+    const rawArr: any[] = []
+    let page = 1
+    let sawFullLastPage = false
+    for (;;) {
+      const { status, json } = await githubRequest(
+        token, 'GET',
+        `/repos/${link.remoteContainerId}/issues?state=all&per_page=100&sort=updated&direction=asc&page=${page}${since}`
+      )
+      if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+      const batch = json as any[]
+      rawArr.push(...batch)
+      sawFullLastPage = batch.length >= 100
+      if (!sawFullLastPage || page >= 10) break
+      page += 1
+    }
 
-    const items = (json as any[])
+    const items = (rawArr as any[])
       .filter(i => !i.pull_request) // issues only, not PRs
       .map(i => ({
         remoteId: `${link.remoteContainerId}#${i.number}`,
@@ -87,14 +100,13 @@ export const GET = withAuth(
       }
     }
 
-    // Cursor advances from the RAW page (issues + PRs): a page of pure PRs
-    // must still move the window forward or the pull stalls forever.
-    const rawArr = json as any[]
+    // Cursor advances from the RAW listing (issues + PRs): pure-PR pages must
+    // still move the window forward or the pull stalls forever.
     const rawLast = rawArr.length ? (rawArr[rawArr.length - 1].updated_at as string) : null
     const newCursor = full ? link.cursor : (rawLast ?? link.cursor)
-    // A full raw page means the listing may be incomplete — clients must not
-    // run absence-based deletion against it.
-    const truncated = rawArr.length >= 100
+    // Truncated only when the page cap cut a still-full listing — clients
+    // must not run absence-based deletion against an incomplete listing.
+    const truncated = sawFullLastPage
     if (newCursor && newCursor !== link.cursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },
