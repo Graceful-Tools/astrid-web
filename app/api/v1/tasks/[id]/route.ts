@@ -461,6 +461,18 @@ export const PUT = withAuth<RouteContext>(
       )
     }
 
+    // Completion stamp + provenance. Sync may backdate completedAt to the
+    // provider's real completion time; completedSource records where it
+    // happened (astrid | google | github | apple). Uncompleting clears both.
+    if (data.completed === true) {
+      data.completedAt = body.completedAt ? new Date(body.completedAt) : new Date()
+      data.completedSource = typeof body.completedSource === 'string' && body.completedSource
+        ? body.completedSource : 'astrid'
+    } else if (data.completed === false) {
+      data.completedAt = null
+      data.completedSource = null
+    }
+
     const task = await prisma.task.update({
       where: { id: taskId },
       data,

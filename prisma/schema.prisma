@@ -260,6 +260,12 @@ model Task {
   repeatingData   Json?
   isPrivate       Boolean             @default(true)
   completed       Boolean             @default(false)
+  /// When the task was completed. Backdatable by sync (a task completed in
+  /// Google/GitHub keeps its real completion time). Null for legacy rows —
+  /// consumers fall back to updatedAt.
+  completedAt     DateTime?
+  /// Where the completion happened: astrid | google | github | apple.
+  completedSource String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   assigneeId      String?

@@ -114,6 +114,8 @@ export const GET = withAuth(
           priority: true,
           isPrivate: true,
           completed: true,
+          completedAt: true,
+          completedSource: true,
           createdAt: true,
           updatedAt: true,
           originalTaskId: true,

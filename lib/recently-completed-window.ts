@@ -92,6 +92,8 @@ export function getRecentlyCompletedCutoff(
 export interface CompletableTask {
   completed: boolean
   updatedAt: Date | string | null | undefined
+  /** Real completion time (backdatable by sync); falls back to updatedAt. */
+  completedAt?: Date | string | null
 }
 
 /**
@@ -105,11 +107,12 @@ export function isTaskRecentlyCompleted(
   now: Date,
 ): boolean {
   if (!task.completed) return false
-  if (!task.updatedAt) return false
-  const updated = task.updatedAt instanceof Date ? task.updatedAt : new Date(task.updatedAt)
-  if (Number.isNaN(updated.getTime())) return false
+  const stamp = task.completedAt ?? task.updatedAt
+  if (!stamp) return false
+  const completed = stamp instanceof Date ? stamp : new Date(stamp)
+  if (Number.isNaN(completed.getTime())) return false
   const cutoff = getRecentlyCompletedCutoff(window, now)
-  return updated.getTime() >= cutoff.getTime()
+  return completed.getTime() >= cutoff.getTime()
 }
 
 export type CompletionFilterMode = 'all' | 'completed' | 'incomplete' | 'default'

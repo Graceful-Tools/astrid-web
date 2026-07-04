@@ -35,6 +35,7 @@ export const GET = withAuth(
         title: i.title as string,
         notes: (i.body as string | null) ?? null,
         completed: i.state === 'closed',
+        completedAt: (i.closed_at as string | null) ?? null,
         remoteUpdatedAt: i.updated_at as string,
         metadata: {
           number: String(i.number),

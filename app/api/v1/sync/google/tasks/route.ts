@@ -45,6 +45,7 @@ export const GET = withAuth(
       notes: (t.notes as string | null) ?? null,
       completed: t.status === 'completed',
       dueDate: (t.due as string | null) ?? null,   // RFC3339, date-only semantics
+      completedAt: (t.completed as string | null) ?? null,  // Google's completion timestamp
       remoteUpdatedAt: t.updated as string,
       metadata: {
         googleTaskId: String(t.id),

@@ -366,6 +366,11 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       data: {
         ...updateData,
         completed: requestedCompleted,
+        ...(requestedCompleted === true
+          ? { completedAt: new Date(), completedSource: 'astrid' }
+          : requestedCompleted === false
+            ? { completedAt: null, completedSource: null }
+            : {}),
         dueDateTime: sanitizedDueDateTime,
         isAllDay: data.isAllDay ?? false,
         assigneeId: finalAssigneeId,
