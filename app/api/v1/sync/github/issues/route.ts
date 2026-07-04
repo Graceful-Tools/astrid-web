@@ -36,6 +36,7 @@ export const GET = withAuth(
         metadata: {
           number: String(i.number),
           parent: '', // parent issue number, filled from GraphQL below
+          assigneeUserId: '', // Astrid user mapped from GitHub assignees below
           commentCount: String(i.comments ?? 0),
           labels: (i.labels as any[]).map(l => (typeof l === 'string' ? l : l.name)).join(','),
           assignees: (i.assignees as any[]).map(a => a.login).join(','),
@@ -61,6 +62,24 @@ export const GET = withAuth(
           const parentNumber = repo[`i${idx}`]?.parent?.number
           items[idx].metadata.parent = parentNumber ? String(parentNumber) : ''
         }
+      }
+    }
+
+    // Assignee mapping: GitHub logins → Astrid users, via each user's own
+    // GITHUB_ISSUES integration (externalAccountId = their login). First
+    // resolvable assignee wins; unresolvable assignees stay unmapped.
+    const allLogins = Array.from(new Set(
+      items.flatMap(i => String(i.metadata.assignees || '').split(',').filter(Boolean))
+    ))
+    if (allLogins.length) {
+      const assigneeIntegrations = await prisma.integration.findMany({
+        where: { provider: 'GITHUB_ISSUES', externalAccountId: { in: allLogins }, revokedAt: null },
+        select: { externalAccountId: true, userId: true },
+      })
+      const byLogin = new Map(assigneeIntegrations.map(i => [i.externalAccountId, i.userId]))
+      for (const item of items) {
+        const match = String(item.metadata.assignees || '').split(',').find(l => byLogin.has(l))
+        item.metadata.assigneeUserId = match ? (byLogin.get(match) as string) : ''
       }
     }
 
@@ -90,11 +109,26 @@ export const POST = withAuth(
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
+    // Astrid assignee → GitHub login (the assignee's own connected account);
+    // undefined = leave assignees untouched, [] = explicit unassign.
+    let assignees: string[] | undefined
+    if (body.assigneeUserId !== undefined) {
+      if (body.assigneeUserId) {
+        const assigneeIntegration = await prisma.integration.findUnique({
+          where: { userId_provider: { userId: body.assigneeUserId, provider: 'GITHUB_ISSUES' } },
+        })
+        assignees = assigneeIntegration?.externalAccountId && !assigneeIntegration.revokedAt
+          ? [assigneeIntegration.externalAccountId] : undefined
+      } else {
+        assignees = []
+      }
+    }
+
     if (remoteId) {
       const number = String(remoteId).split('#').pop()
       const { status, json } = await githubRequest(
         token, 'PATCH', `/repos/${link.remoteContainerId}/issues/${number}`,
-        { title, body: body.body, state: body.state }
+        { title, body: body.body, state: body.state, ...(assignees !== undefined ? { assignees } : {}) }
       )
       if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
       return NextResponse.json({ remoteId, remoteUpdatedAt: json.updated_at })
@@ -102,7 +136,8 @@ export const POST = withAuth(
 
     if (!title) return NextResponse.json({ error: 'title required' }, { status: 400 })
     const { status, json } = await githubRequest(
-      token, 'POST', `/repos/${link.remoteContainerId}/issues`, { title, body: body.body }
+      token, 'POST', `/repos/${link.remoteContainerId}/issues`,
+      { title, body: body.body, ...(assignees?.length ? { assignees } : {}) }
     )
     if (status !== 201) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
 
