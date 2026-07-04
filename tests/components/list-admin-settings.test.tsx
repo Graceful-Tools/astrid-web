@@ -117,9 +117,9 @@ describe('ListAdminSettings - Delete List Modal', () => {
 
       // Modal should appear - check by looking for h3 with "Delete List"
       await waitFor(() => {
-        const modalHeading = container.querySelector('h3')
+        const modalHeading = Array.from(container.querySelectorAll('h3'))
+          .find(h => h.textContent === 'Delete List')
         expect(modalHeading).toBeInTheDocument()
-        expect(modalHeading?.textContent).toBe('Delete List')
       })
     })
 

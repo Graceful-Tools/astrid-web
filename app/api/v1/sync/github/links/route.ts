@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
+import { isValidRepoId } from '@/lib/sync/github'
 
 /** GET /api/v1/sync/github/links[?listId] — the caller's GitHub list links. */
 export const GET = withAuth(
@@ -22,6 +23,9 @@ export const POST = withAuth(
     const { astridListId, remoteContainerId } = body || {}
     if (!astridListId || !remoteContainerId) {
       return NextResponse.json({ error: 'astridListId and remoteContainerId are required' }, { status: 400 })
+    }
+    if (!isValidRepoId(remoteContainerId)) {
+      return NextResponse.json({ error: 'remoteContainerId must be owner/repo' }, { status: 400 })
     }
     const list = await prisma.taskList.findFirst({
       where: {

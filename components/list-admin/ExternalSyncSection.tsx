@@ -41,6 +41,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
+      try {
       const integrations = await fetch("/api/v1/integrations", { credentials: "include" })
         .then(r => (r.ok ? r.json() : { integrations: [] }))
         .then(d => d.integrations || [])
@@ -66,6 +67,11 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
       ])
       setGithub(gh)
       setGoogle(g)
+      } catch {
+        // Offline / test environments: render nothing rather than crash.
+        setGithub(EMPTY)
+        setGoogle(EMPTY)
+      }
     } finally {
       setLoading(false)
     }

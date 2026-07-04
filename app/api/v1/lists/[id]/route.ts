@@ -332,7 +332,8 @@ export const DELETE = withAuth<RouteContext>(
       )
     }
 
-    await recordGoogleOptOutsForDeletedList(id)
+    // Best-effort sync bookkeeping — must never block the delete itself.
+    try { await recordGoogleOptOutsForDeletedList(id) } catch { /* tombstoning is belt-and-braces */ }
     await prisma.taskList.delete({ where: { id } })
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_DELETED, { listId: id })
@@ -371,7 +372,7 @@ async function recordGoogleOptOutsForDeletedList(listId: string) {
     excluded.add(link.remoteContainerId)
     await prisma.integration.update({
       where: { id: integration.id },
-      data: { metadata: { ...meta, excludedTasklists: Array.from(excluded).join(',') } },
+      data: { metadata: { ...meta, excludedTasklists: Array.from(excluded).slice(-500).join(',') } },
     })
   }
 }

@@ -725,7 +725,8 @@ export const DELETE = withAuth<RouteContext>(
       recipientIds.delete(auth.userId)
     }
 
-    await mirrorExternalDeletesForTask(taskId)
+    // Best-effort sync bookkeeping — must never block the delete itself.
+    try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }
     await prisma.task.delete({ where: { id: taskId } })
 
     try {

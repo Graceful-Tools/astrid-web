@@ -9,7 +9,7 @@ export const GET = withAuth(
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
     const { status, json } = await googleRequest(token, 'GET', '/users/@me/lists?maxResults=100')
-    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: 502 })
+    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     const tasklists = ((json.items as any[]) || []).map(l => ({ id: l.id, name: l.title }))
     return NextResponse.json({ tasklists })
   }
@@ -25,7 +25,7 @@ export const POST = withAuth(
     const title = (body?.title as string | undefined)?.trim()
     if (!title) return NextResponse.json({ error: 'title required' }, { status: 400 })
     const { status, json } = await googleRequest(token, 'POST', '/users/@me/lists', { title })
-    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: 502 })
+    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     return NextResponse.json({ tasklist: { id: json.id, name: json.title } })
   }
 )

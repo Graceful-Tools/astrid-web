@@ -20,8 +20,14 @@ export function githubSyncConfigured(): boolean {
 
 // ── OAuth state (HMAC-signed, no storage) ───────────────────────────────────
 
+/** owner/repo — safe for path + GraphQL interpolation (no quotes/slashes beyond the separator). */
+export function isValidRepoId(id: string): boolean {
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(id)
+}
+
 export function mintOAuthState(userId: string): string {
-  const secret = process.env.NEXTAUTH_SECRET || ''
+  const secret = process.env.NEXTAUTH_SECRET
+  if (!secret) throw new Error('NEXTAUTH_SECRET is required to mint OAuth state')
   const expires = Date.now() + 10 * 60 * 1000
   const payload = `${userId}.${expires}`
   const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
@@ -30,7 +36,8 @@ export function mintOAuthState(userId: string): string {
 
 export function verifyOAuthState(state: string): string | null {
   try {
-    const secret = process.env.NEXTAUTH_SECRET || ''
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) return null
     const decoded = Buffer.from(state, 'base64url').toString()
     const [userId, expiresStr, sig] = decoded.split('.')
     if (!userId || !expiresStr || !sig) return null

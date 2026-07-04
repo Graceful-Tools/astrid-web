@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   return new NextResponse(
     `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>GitHub connected ✓</h2><p>Signed in as <b>${user.login}</b>. You can return to Astrid.</p>
+      <h2>GitHub connected ✓</h2><p>Signed in as <b>${escapeHtml(String(user.login))}</b>. You can return to Astrid.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
@@ -62,4 +62,8 @@ function errorPage(message: string): NextResponse {
     </body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
+}
+
+function escapeHtml(v: string): string {
+  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
+import { requireTaskAccess } from '@/lib/api-auth-middleware'
 
 /** GET /api/v1.sync.google/task-links?listId — the caller's task links for a list. */
 export const GET = withAuth(
@@ -32,6 +33,16 @@ export const PUT = withAuth(
     }
     // The link row has an FK to Task — a client-side optimistic temp id would
     // fail the FK deep in Prisma; reject it loudly instead.
+    if (typeof astridTaskId !== 'string' || typeof remoteId !== 'string' || typeof remoteContainerId !== 'string') {
+      return NextResponse.json({ error: 'Invalid body types' }, { status: 400 })
+    }
+    // The link row FK-attaches to the task — the caller must actually have
+    // access to it (otherwise this is a task-id oracle + foreign-task linker).
+    try {
+      await requireTaskAccess(auth.userId, astridTaskId)
+    } catch {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
     if (astridTaskId.startsWith('temp_')) {
       return NextResponse.json({ error: 'astridTaskId is an unsynced temp id — resolve it first' }, { status: 400 })
     }

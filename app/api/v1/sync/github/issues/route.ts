@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
-import { githubGraphQL, githubRequest, githubTokenFor } from '@/lib/sync/github'
+import { githubGraphQL, githubRequest, githubTokenFor, isValidRepoId } from '@/lib/sync/github'
 
 /**
  * GET /api/v1/sync/github/issues?linkId — pull issues changed since the link's
@@ -14,6 +14,9 @@ export const GET = withAuth(
     if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
     if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    if (!isValidRepoId(link.remoteContainerId)) {
+      return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
+    }
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
@@ -83,14 +86,21 @@ export const GET = withAuth(
       }
     }
 
-    const newCursor = full ? link.cursor : (items.length ? items[items.length - 1].remoteUpdatedAt : link.cursor)
+    // Cursor advances from the RAW page (issues + PRs): a page of pure PRs
+    // must still move the window forward or the pull stalls forever.
+    const rawArr = json as any[]
+    const rawLast = rawArr.length ? (rawArr[rawArr.length - 1].updated_at as string) : null
+    const newCursor = full ? link.cursor : (rawLast ?? link.cursor)
+    // A full raw page means the listing may be incomplete — clients must not
+    // run absence-based deletion against it.
+    const truncated = rawArr.length >= 100
     if (newCursor && newCursor !== link.cursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },
         data: { cursor: newCursor, lastReconciledAt: new Date() },
       })
     }
-    return NextResponse.json({ items, cursor: newCursor })
+    return NextResponse.json({ items, cursor: newCursor, truncated })
   }
 )
 
@@ -124,8 +134,12 @@ export const POST = withAuth(
       }
     }
 
+    if (!isValidRepoId(link.remoteContainerId)) {
+      return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
+    }
     if (remoteId) {
       const number = String(remoteId).split('#').pop()
+      if (!number || !/^\d+$/.test(number)) return NextResponse.json({ error: 'Invalid remoteId' }, { status: 400 })
       const { status, json } = await githubRequest(
         token, 'PATCH', `/repos/${link.remoteContainerId}/issues/${number}`,
         { title, body: body.body, state: body.state, ...(assignees !== undefined ? { assignees } : {}) }
@@ -145,6 +159,12 @@ export const POST = withAuth(
     // failure leaves a top-level issue rather than failing the push.
     if (body.parentRemoteId) {
       const parentNumber = String(body.parentRemoteId).split('#').pop()
+      if (!parentNumber || !/^\d+$/.test(parentNumber)) {
+        return NextResponse.json({
+          remoteId: `${link.remoteContainerId}#${json.number}`,
+          remoteUpdatedAt: json.updated_at,
+        })
+      }
       await githubRequest(
         token, 'POST',
         `/repos/${link.remoteContainerId}/issues/${parentNumber}/sub_issues`,

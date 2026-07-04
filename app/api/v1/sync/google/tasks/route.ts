@@ -19,13 +19,27 @@ export const GET = withAuth(
 
     const full = new URL(req.url).searchParams.get('full') === '1'
     const updatedMin = !full && link.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
-    const { status, json } = await googleRequest(
-      token, 'GET',
-      `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true&showDeleted=true${updatedMin}`
-    )
-    if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+    // Paginate to exhaustion (page cap as a runaway guard): the cursor is
+    // computed from MAX(updated), so a dropped page would permanently skip
+    // items whose updated < cursor.
+    const rawItems: any[] = []
+    let pageToken = ''
+    let pages = 0
+    let truncated = false
+    do {
+      const tokenParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''
+      const { status, json } = await googleRequest(
+        token, 'GET',
+        `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true&showDeleted=true${updatedMin}${tokenParam}`
+      )
+      if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+      rawItems.push(...((json.items as any[]) || []))
+      pageToken = (json.nextPageToken as string | undefined) || ''
+      pages += 1
+      if (pageToken && pages >= 10) { truncated = true; break }
+    } while (pageToken)
 
-    const items = ((json.items as any[]) || []).map(t => ({
+    const items = rawItems.map(t => ({
       remoteId: `${link.remoteContainerId}:${t.id}`,
       title: (t.title as string) || '',
       notes: (t.notes as string | null) ?? null,
@@ -41,7 +55,7 @@ export const GET = withAuth(
     }))
 
     let newCursor = link.cursor
-    if (!full) {
+    if (!full && !truncated) {
       for (const i of items) if (!newCursor || i.remoteUpdatedAt > newCursor) newCursor = i.remoteUpdatedAt
     }
     if (newCursor && newCursor !== link.cursor) {
@@ -50,7 +64,7 @@ export const GET = withAuth(
         data: { cursor: newCursor, lastReconciledAt: new Date() },
       })
     }
-    return NextResponse.json({ items, cursor: newCursor })
+    return NextResponse.json({ items, cursor: newCursor, truncated })
   }
 )
 

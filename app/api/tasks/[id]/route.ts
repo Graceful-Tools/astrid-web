@@ -769,7 +769,8 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       // Continue with deletion even if workflow cancellation fails
     }
 
-    await mirrorExternalDeletesForTask(taskId)
+    // Best-effort sync bookkeeping — must never block the delete itself.
+    try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }
     await prisma.task.delete({
       where: { id: taskId },
     })

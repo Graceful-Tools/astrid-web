@@ -20,6 +20,7 @@ export const GET = withAuth(
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
     const number = String(remoteId).split('#').pop()
+    if (!number || !/^\d+$/.test(number)) return NextResponse.json({ error: 'Invalid remoteId' }, { status: 400 })
     const { status, json } = await githubRequest(
       token, 'GET', `/repos/${link.remoteContainerId}/issues/${number}/comments?per_page=100`
     )
@@ -51,6 +52,7 @@ export const POST = withAuth(
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
     const number = String(remoteId).split('#').pop()
+    if (!number || !/^\d+$/.test(number)) return NextResponse.json({ error: 'Invalid remoteId' }, { status: 400 })
     const { status, json } = await githubRequest(
       token, 'POST', `/repos/${link.remoteContainerId}/issues/${number}/comments`, { body: text }
     )
@@ -74,6 +76,7 @@ export const PATCH = withAuth(
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
+    if (!/^\d+$/.test(String(commentId))) return NextResponse.json({ error: 'Invalid commentId' }, { status: 400 })
     const { status, json } = await githubRequest(
       token, 'PATCH', `/repos/${link.remoteContainerId}/issues/comments/${commentId}`, { body: text }
     )
@@ -95,6 +98,7 @@ export const DELETE = withAuth(
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
+    if (!/^\d+$/.test(String(commentId))) return NextResponse.json({ error: 'Invalid commentId' }, { status: 400 })
     const { status, json } = await githubRequest(
       token, 'DELETE', `/repos/${link.remoteContainerId}/issues/comments/${commentId}`
     )

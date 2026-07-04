@@ -13,7 +13,7 @@ export const GET = withAuth(
       // 'collaborator' repos even for org admins.
       token, 'GET', '/user/repos?sort=updated&per_page=100&affiliation=owner,collaborator,organization_member'
     )
-    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: 502 })
+    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     const repos = (json as any[]).map(r => ({ id: r.full_name, name: r.full_name, private: r.private }))
     return NextResponse.json({ repos })
   }

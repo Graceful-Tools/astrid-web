@@ -55,3 +55,7 @@ function errorPage(message: string): NextResponse {
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
 }
+
+function escapeHtml(v: string): string {
+  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
