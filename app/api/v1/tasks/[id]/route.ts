@@ -16,6 +16,7 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 
@@ -724,6 +725,7 @@ export const DELETE = withAuth<RouteContext>(
       recipientIds.delete(auth.userId)
     }
 
+    await mirrorExternalDeletesForTask(taskId)
     await prisma.task.delete({ where: { id: taskId } })
 
     try {

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { RedisCache, isRedisAvailable } from "@/lib/redis"
@@ -768,6 +769,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       // Continue with deletion even if workflow cancellation fails
     }
 
+    await mirrorExternalDeletesForTask(taskId)
     await prisma.task.delete({
       where: { id: taskId },
     })
