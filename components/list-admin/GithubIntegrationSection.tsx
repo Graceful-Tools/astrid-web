@@ -83,7 +83,7 @@ export function GithubIntegrationSection({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <Bot className="w-4 h-4 text-blue-600" />
-            <Label className="text-sm font-medium theme-text-primary">GitHub Integration</Label>
+            <Label className="text-sm font-medium theme-text-primary">AI Coding Agent</Label>
           </div>
           <Button
             variant="ghost"
@@ -101,7 +101,7 @@ export function GithubIntegrationSection({
         </div>
 
         <div className="flex items-center justify-between">
-          <Label className="text-sm theme-text-secondary">GitHub Repository</Label>
+          <Label className="text-sm theme-text-secondary">Repository the AI coding agent works in</Label>
           <Select
             value={tempGithubRepositoryId || "none"}
             onValueChange={(value) => {
