@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
+import { googleRequest, googleTokenFor } from '@/lib/sync/google'
 
 /** GET /api/v1.sync.google/links[?listId] — the caller's GitHub list links. */
 export const GET = withAuth(
@@ -39,6 +40,16 @@ export const POST = withAuth(
     if (!integration || integration.revokedAt) {
       return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
     }
+    // Store the tasklist's human name — clients must never have to render
+    // the opaque Google tasklist id.
+    let remoteContainerName: string | null = null
+    const token = await googleTokenFor(auth.userId)
+    if (token) {
+      const { status, json } = await googleRequest(
+        token, 'GET', `/users/@me/lists/${encodeURIComponent(remoteContainerId)}`)
+      if (status === 200 && json?.title) remoteContainerName = String(json.title)
+    }
+
     const link = await prisma.externalListLink.upsert({
       where: { userId_astridListId_provider: { userId: auth.userId, astridListId, provider: 'GOOGLE_TASKS' } },
       create: {
@@ -47,9 +58,9 @@ export const POST = withAuth(
         astridListId,
         provider: 'GOOGLE_TASKS',
         remoteContainerId,
-        remoteContainerName: remoteContainerId,
+        remoteContainerName,
       },
-      update: { remoteContainerId, remoteContainerName: remoteContainerId, cursor: null },
+      update: { remoteContainerId, remoteContainerName, cursor: null },
     })
     return NextResponse.json({ link })
   }
