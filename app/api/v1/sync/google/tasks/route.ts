@@ -10,15 +10,22 @@ import { googleRequest, googleTokenFor } from '@/lib/sync/google'
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.sync.google' },
   async (req, auth) => {
-    const linkId = new URL(req.url).searchParams.get('linkId')
-    if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
-    const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
-    if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const url0 = new URL(req.url)
+    const linkId = url0.searchParams.get('linkId')
+    const directTasklistId = url0.searchParams.get('tasklistId')
+    if (!linkId && !directTasklistId) return NextResponse.json({ error: 'linkId or tasklistId required' }, { status: 400 })
+    // Direct-tasklist mode (Astrid "My Tasks" ↔ Google default list): no
+    // ExternalListLink row exists, so no server cursor — always a full pull.
+    const link = linkId
+      ? await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
+      : null
+    if (linkId && !link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const containerId: string = link ? link.remoteContainerId : (directTasklistId as string)
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
 
-    const full = new URL(req.url).searchParams.get('full') === '1'
-    const updatedMin = !full && link.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
+    const full = !link || url0.searchParams.get('full') === '1'
+    const updatedMin = !full && link?.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
     // Paginate to exhaustion (page cap as a runaway guard): the cursor is
     // computed from MAX(updated), so a dropped page would permanently skip
     // items whose updated < cursor.
@@ -30,7 +37,7 @@ export const GET = withAuth(
       const tokenParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''
       const { status, json } = await googleRequest(
         token, 'GET',
-        `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true&showDeleted=true${updatedMin}${tokenParam}`
+        `/lists/${encodeURIComponent(containerId)}/tasks?maxResults=100&showCompleted=true&showHidden=true&showDeleted=true${updatedMin}${tokenParam}`
       )
       if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
       rawItems.push(...((json.items as any[]) || []))
@@ -40,7 +47,7 @@ export const GET = withAuth(
     } while (pageToken)
 
     const items = rawItems.map(t => ({
-      remoteId: `${link.remoteContainerId}:${t.id}`,
+      remoteId: `${containerId}:${t.id}`,
       title: (t.title as string) || '',
       notes: (t.notes as string | null) ?? null,
       completed: t.status === 'completed',
@@ -55,11 +62,11 @@ export const GET = withAuth(
       },
     }))
 
-    let newCursor = link.cursor
-    if (!full && !truncated) {
+    let newCursor = link?.cursor ?? null
+    if (link && !full && !truncated) {
       for (const i of items) if (!newCursor || i.remoteUpdatedAt > newCursor) newCursor = i.remoteUpdatedAt
     }
-    if (newCursor && newCursor !== link.cursor) {
+    if (link && newCursor && newCursor !== link.cursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },
         data: { cursor: newCursor, lastReconciledAt: new Date() },
@@ -77,14 +84,17 @@ export const POST = withAuth(
   { scopes: ['tasks:write'], tag: 'v1.sync.google' },
   async (req, auth) => {
     const body = await req.json()
-    const { linkId, remoteId } = body || {}
-    if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
-    const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
-    if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const { linkId, remoteId, tasklistId: directTasklistId } = body || {}
+    if (!linkId && !directTasklistId) return NextResponse.json({ error: 'linkId or tasklistId required' }, { status: 400 })
+    const link = linkId
+      ? await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
+      : null
+    if (linkId && !link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const containerId: string = link ? link.remoteContainerId : String(directTasklistId)
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
 
-    const listPath = `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks`
+    const listPath = `/lists/${encodeURIComponent(containerId)}/tasks`
     const payload: Record<string, unknown> = {}
     if (body.title !== undefined) payload.title = body.title
     if (body.notes !== undefined) payload.notes = body.notes
@@ -104,7 +114,7 @@ export const POST = withAuth(
     const { status, json } = await googleRequest(token, 'POST', `${listPath}${parentQuery}`, payload)
     if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     return NextResponse.json({
-      remoteId: `${link.remoteContainerId}:${json.id}`,
+      remoteId: `${containerId}:${json.id}`,
       remoteUpdatedAt: json.updated,
     })
   }
@@ -116,17 +126,21 @@ export const DELETE = withAuth(
   async (req, auth) => {
     const url = new URL(req.url)
     const linkId = url.searchParams.get('linkId')
+    const directTasklistId = url.searchParams.get('tasklistId')
     const remoteId = url.searchParams.get('remoteId')
-    if (!linkId || !remoteId) return NextResponse.json({ error: 'linkId and remoteId required' }, { status: 400 })
-    const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
-    if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    if ((!linkId && !directTasklistId) || !remoteId) return NextResponse.json({ error: 'linkId (or tasklistId) and remoteId required' }, { status: 400 })
+    const link = linkId
+      ? await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
+      : null
+    if (linkId && !link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    const containerId: string = link ? link.remoteContainerId : String(directTasklistId)
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
 
     const taskId = String(remoteId).split(':').pop()
     const { status, json } = await googleRequest(
       token, 'DELETE',
-      `/lists/${encodeURIComponent(link.remoteContainerId)}/tasks/${encodeURIComponent(taskId as string)}`
+      `/lists/${encodeURIComponent(containerId)}/tasks/${encodeURIComponent(taskId as string)}`
     )
     // 204 = deleted; 404/410 = already gone — both success for our purposes.
     if (status !== 204 && status !== 404 && status !== 410) {

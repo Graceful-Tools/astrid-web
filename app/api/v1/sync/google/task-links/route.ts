@@ -7,12 +7,18 @@ import { requireTaskAccess } from '@/lib/api-auth-middleware'
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.sync.google' },
   async (req, auth) => {
-    const listId = new URL(req.url).searchParams.get('listId')
+    const url = new URL(req.url)
+    const listId = url.searchParams.get('listId')
+    // containerId mode: links by remote tasklist (Astrid My Tasks ↔ Google
+    // default list has no Astrid list to filter by).
+    const containerId = url.searchParams.get('containerId')
     const links = await prisma.externalTaskLink.findMany({
       where: {
         userId: auth.userId,
         provider: 'GOOGLE_TASKS',
-        ...(listId ? { task: { lists: { some: { id: listId } } } } : {}),
+        ...(containerId
+          ? { remoteContainerId: containerId }
+          : listId ? { task: { lists: { some: { id: listId } } } } : {}),
       },
     })
     return NextResponse.json({ links })

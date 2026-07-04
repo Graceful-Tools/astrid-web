@@ -11,7 +11,12 @@ export const GET = withAuth(
     const { status, json } = await googleRequest(token, 'GET', '/users/@me/lists?maxResults=100')
     if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
     const tasklists = ((json.items as any[]) || []).map(l => ({ id: l.id, name: l.title }))
-    return NextResponse.json({ tasklists })
+    // The default list's REAL id ("@default" is an API alias only) — clients
+    // map it to Astrid's My Tasks (unlisted, assigned-to-me).
+    let defaultId: string | null = null
+    const def = await googleRequest(token, 'GET', '/users/@me/lists/@default')
+    if (def.status === 200 && def.json?.id) defaultId = String(def.json.id)
+    return NextResponse.json({ tasklists, defaultId })
   }
 )
 
