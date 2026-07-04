@@ -420,6 +420,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       ...allMembers.map(member => member.id) // All members/admins
     ]
 
+    await recordGoogleOptOutsForDeletedList(listId)
     await prisma.taskList.delete({
       where: { id: listId },
     })
@@ -469,5 +470,28 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
   } catch (error) {
     log.error({ err: error }, "Error deleting list:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+/**
+ * A deleted list may mirror a Google tasklist that survives the delete — a
+ * client in an all-lists auto-link mode would faithfully resurrect the list
+ * from it. Record the tasklist as opted-out on every affected user's
+ * integration BEFORE the cascade removes the link rows.
+ */
+async function recordGoogleOptOutsForDeletedList(listId: string) {
+  const googleLinks = await prisma.externalListLink.findMany({
+    where: { astridListId: listId, provider: 'GOOGLE_TASKS' },
+  })
+  for (const link of googleLinks) {
+    const integration = await prisma.integration.findUnique({ where: { id: link.integrationId } })
+    if (!integration || integration.revokedAt) continue
+    const meta = (integration.metadata as Record<string, string> | null) || {}
+    const excluded = new Set(String(meta.excludedTasklists || '').split(',').filter(Boolean))
+    excluded.add(link.remoteContainerId)
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: { metadata: { ...meta, excludedTasklists: Array.from(excluded).join(',') } },
+    })
   }
 }
