@@ -298,6 +298,16 @@ export const POST = withAuth(
         }
       }
 
+      // The assignee (if not the creator) must be a member/owner of one of the
+      // task's lists — otherwise arbitrary users could be assigned tasks.
+      if (body.assigneeId && body.assigneeId !== auth.userId
+          && !lists.some(l => hasListAccess(l as any, body.assigneeId))) {
+        return NextResponse.json(
+          { error: 'Assignee must be a member of one of the task lists' },
+          { status: 400 }
+        )
+      }
+
       // Virtual lists are saved-filter views, not real containers
       validatedListIds = lists
         .filter(list => !list.isVirtual)

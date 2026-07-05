@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { prisma } from "@/lib/prisma"
+import { verifyGoogleIdentity } from "@/lib/auth/google-identity"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { withRateLimitHandler, authRateLimiter } from "@/lib/rate-limiter"
 import { safeResponseJson } from "@/lib/safe-parse"
@@ -32,7 +33,7 @@ async function googleSignInHandler(request: NextRequest) {
       const timeoutId = setTimeout(() => abortController.abort(), 10000)
 
       const googleResponse = await fetch(
-        `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
         { signal: abortController.signal }
       )
 
@@ -51,6 +52,8 @@ async function googleSignInHandler(request: NextRequest) {
         sub?: string
         name?: string
         picture?: string
+        aud?: string
+        email_verified?: string | boolean
       }>(googleResponse, null)
 
       if (!googleData) {
@@ -68,18 +71,16 @@ async function googleSignInHandler(request: NextRequest) {
       )
     }
 
-    if (!googleData.email) {
-      log.error('❌ [GoogleAuth] Email not provided by Google')
-      return NextResponse.json({ error: "Email not provided by Google" }, { status: 400 })
+    // SECURITY: verify aud (issued for our client) + email_verified — see
+    // lib/auth/google-identity.ts.
+    const identity = verifyGoogleIdentity(googleData)
+    if (!identity.ok) {
+      log.error({ reason: identity.reason }, '❌ [GoogleAuth] identity check failed')
+      return NextResponse.json({ error: "Invalid Google ID token" }, { status: 401 })
     }
 
-    if (!googleData.sub) {
-      log.error('❌ [GoogleAuth] User ID (sub) not provided by Google')
-      return NextResponse.json({ error: "Invalid Google user data" }, { status: 400 })
-    }
-
-    const userEmail = googleData.email
-    const googleUserId = googleData.sub
+    const userEmail = identity.email!
+    const googleUserId = googleData.sub!
     const name = googleData.name || userEmail.split('@')[0]
     const picture = googleData.picture
 

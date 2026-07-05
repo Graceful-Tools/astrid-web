@@ -16,6 +16,7 @@ export async function GET(
     const auth = await authenticateAPI(request)
 
     const { userId } = await context.params
+    const isOwnProfile = userId === auth.userId
     log.info(`[User Profile API] Fetching profile for userId: ${userId}, requested by: ${auth.userId} (${auth.user.email || 'no email'})`)
 
     // Get the profile user's information
@@ -89,7 +90,6 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
             image: true,
           },
         },
@@ -97,7 +97,6 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
             image: true,
           },
         },
@@ -121,7 +120,8 @@ export async function GET(
       user: {
         id: profileUser.id,
         name: profileUser.name,
-        email: profileUser.email,
+        // Own-profile only (info-disclosure otherwise).
+        ...(isOwnProfile ? { email: profileUser.email } : {}),
         image: profileUser.image,
         createdAt: profileUser.createdAt,
         isAIAgent: profileUser.isAIAgent,

@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { verifyGoogleIdentity } from "@/lib/auth/google-identity"
 import { createDefaultListsForUser } from '@/lib/default-lists'
 import { withRateLimitHandler, authRateLimiter } from '@/lib/rate-limiter'
 import { safeResponseJson } from '@/lib/safe-parse'
@@ -30,12 +31,12 @@ async function googleSignInHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Missing ID token' }, { status: 400 })
     }
 
-    let googleData: { email?: string; sub?: string; name?: string; picture?: string } | null
+    let googleData: { email?: string; sub?: string; name?: string; picture?: string; aud?: string; email_verified?: string | boolean } | null
     try {
       const abortController = new AbortController()
       const timeoutId = setTimeout(() => abortController.abort(), 10000)
       const googleResponse = await fetch(
-        `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
         { signal: abortController.signal }
       )
       clearTimeout(timeoutId)
@@ -53,6 +54,8 @@ async function googleSignInHandler(request: NextRequest) {
         sub?: string
         name?: string
         picture?: string
+        aud?: string
+        email_verified?: string | boolean
       }>(googleResponse, null)
 
       if (!googleData) {
@@ -70,15 +73,17 @@ async function googleSignInHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to verify Google ID token' }, { status: 500 })
     }
 
-    if (!googleData.email) {
-      return NextResponse.json({ error: 'Email not provided by Google' }, { status: 400 })
-    }
-    if (!googleData.sub) {
-      return NextResponse.json({ error: 'Invalid Google user data' }, { status: 400 })
+    // SECURITY: verify the token was issued for OUR client (aud) and the
+    // email is verified — tokeninfo alone would accept a token minted for the
+    // victim's email by any other Google OAuth client (replay/takeover).
+    const identity = verifyGoogleIdentity(googleData)
+    if (!identity.ok) {
+      log.error({ reason: identity.reason }, 'Google identity check failed')
+      return NextResponse.json({ error: 'Invalid Google ID token' }, { status: 401 })
     }
 
-    const userEmail = googleData.email
-    const googleUserId = googleData.sub
+    const userEmail = identity.email!
+    const googleUserId = googleData.sub!
     const name = googleData.name || userEmail.split('@')[0]
     const picture = googleData.picture
 

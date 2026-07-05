@@ -21,6 +21,7 @@ export const GET = withAuth<RouteContext>(
   async (_req, auth, { params }) => {
     try {
       const { userId } = await params
+      const isOwnProfile = userId === auth.userId
 
       const profileUser = await prisma.user.findUnique({
         where: { id: userId },
@@ -44,8 +45,8 @@ export const GET = withAuth<RouteContext>(
           isPrivate: false,
         },
         include: {
-          assignee: { select: { id: true, name: true, email: true, image: true } },
-          creator: { select: { id: true, name: true, email: true, image: true } },
+          assignee: { select: { id: true, name: true, image: true } },
+          creator: { select: { id: true, name: true, image: true } },
           lists: { select: { id: true, name: true, color: true, privacy: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -58,6 +59,9 @@ export const GET = withAuth<RouteContext>(
           name: profileUser.name,
           email: profileUser.email,
           image: profileUser.image,
+          // Email is disclosed only on your OWN profile — returning any user's
+          // email to any authenticated caller is an info-disclosure.
+          ...(isOwnProfile ? { email: profileUser.email } : {}),
           createdAt: profileUser.createdAt,
           isAIAgent: profileUser.isAIAgent,
           aiAgentType: profileUser.aiAgentType,

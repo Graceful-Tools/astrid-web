@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireTaskAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
+import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { prisma } from '@/lib/prisma'
 import { validateParentTask } from '@/lib/subtasks'
 import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
@@ -166,7 +167,8 @@ export const PUT = withAuth<RouteContext>(
       data.repeatFrom = body.repeatFrom
     }
 
-    // assigneeId can be null to unassign
+    // assigneeId can be null to unassign (membership validated after the
+    // existingTask fetch below, once we know the task's lists).
     if (body.assigneeId !== undefined) {
       data.assigneeId = body.assigneeId || null
     }
@@ -286,6 +288,17 @@ export const PUT = withAuth<RouteContext>(
         },
       },
     })
+
+    // SECURITY: a non-self assignee must be a member of one of the task's lists.
+    if (data.assigneeId && data.assigneeId !== auth.userId) {
+      const listIds = (existingTask?.lists ?? []).map(l => l.id)
+      if (!(await assigneeCanBeAssigned(data.assigneeId, listIds))) {
+        return NextResponse.json(
+          { error: 'Assignee must be a member of one of the task lists' },
+          { status: 400 }
+        )
+      }
+    }
 
     // Optimistic concurrency control (opt-in via If-Unmodified-Since header)
     const ifUnmodifiedSince = req.headers.get('If-Unmodified-Since')

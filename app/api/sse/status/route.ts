@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth"
+import { isAdmin } from "@/lib/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { authConfig } from "@/lib/auth-config"
 import { createLogger } from '@/lib/logger'
@@ -25,11 +26,13 @@ export async function GET(request: NextRequest) {
 
     const connectionsStatus = await getConnections()
     
+    const admin = await isAdmin(session.user.id)
     return NextResponse.json({
       status: "SSE service running",
       timestamp: new Date().toISOString(),
       userId: session.user.id,
-      activeConnections: connectionsStatus?.activeUserIds || [],
+      // Full active-user list is admin-only (info-disclosure otherwise).
+      ...(admin ? { activeConnections: connectionsStatus?.activeUserIds || [] } : {}),
       totalConnections: connectionsStatus?.total || 0
     })
   } catch (error) {
