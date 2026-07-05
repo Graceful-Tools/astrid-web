@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { collectListRecipientUserIds } from '@/lib/task-recipients'
 import { requireTaskAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { prisma } from '@/lib/prisma'
@@ -339,6 +340,7 @@ export const PUT = withAuth<RouteContext>(
           lists: {
             select: {
               id: true,
+              ownerId: true,
               name: true,
               description: true,
               color: true,
@@ -399,16 +401,7 @@ export const PUT = withAuth<RouteContext>(
       try {
         const userIds = new Set<string>()
 
-        for (const list of task.lists) {
-          const fullList = await prisma.taskList.findUnique({
-            where: { id: list.id },
-            include: { listMembers: { select: { userId: true } } },
-          })
-          if (fullList) {
-            userIds.add(fullList.ownerId)
-            fullList.listMembers.forEach(m => userIds.add(m.userId))
-          }
-        }
+        collectListRecipientUserIds(task.lists).forEach(id => userIds.add(id))
         if (task.assigneeId) userIds.add(task.assigneeId)
         if (task.creatorId) userIds.add(task.creatorId)
         userIds.delete(auth.userId)
@@ -433,16 +426,7 @@ export const PUT = withAuth<RouteContext>(
           const affectedUserIds = new Set<string>()
           if (task.assigneeId) affectedUserIds.add(task.assigneeId)
           if (task.creatorId) affectedUserIds.add(task.creatorId)
-          for (const list of task.lists) {
-            const fullList = await prisma.taskList.findUnique({
-              where: { id: list.id },
-              include: { listMembers: { select: { userId: true } } },
-            })
-            if (fullList) {
-              affectedUserIds.add(fullList.ownerId)
-              fullList.listMembers.forEach(m => affectedUserIds.add(m.userId))
-            }
-          }
+          collectListRecipientUserIds(task.lists).forEach(id => affectedUserIds.add(id))
           await Promise.all(
             Array.from(affectedUserIds).map(userId =>
               RedisCache.del(RedisCache.keys.userTasks(userId))
@@ -493,6 +477,7 @@ export const PUT = withAuth<RouteContext>(
         lists: {
           select: {
             id: true,
+            ownerId: true,
             name: true,
             description: true,
             color: true,
@@ -578,16 +563,7 @@ export const PUT = withAuth<RouteContext>(
     try {
       const userIds = new Set<string>()
 
-      for (const list of task.lists) {
-        const fullList = await prisma.taskList.findUnique({
-          where: { id: list.id },
-          include: { listMembers: { select: { userId: true } } },
-        })
-        if (fullList) {
-          userIds.add(fullList.ownerId)
-          fullList.listMembers.forEach(m => userIds.add(m.userId))
-        }
-      }
+      collectListRecipientUserIds(task.lists).forEach(id => userIds.add(id))
 
       if (task.assigneeId) userIds.add(task.assigneeId)
       if (task.creatorId) userIds.add(task.creatorId)
@@ -663,16 +639,7 @@ export const PUT = withAuth<RouteContext>(
           affectedUserIds.add(existingTask.assigneeId)
         }
         if (task.creatorId) affectedUserIds.add(task.creatorId)
-        for (const list of task.lists) {
-          const fullList = await prisma.taskList.findUnique({
-            where: { id: list.id },
-            include: { listMembers: { select: { userId: true } } },
-          })
-          if (fullList) {
-            affectedUserIds.add(fullList.ownerId)
-            fullList.listMembers.forEach(m => affectedUserIds.add(m.userId))
-          }
-        }
+        collectListRecipientUserIds(task.lists).forEach(id => affectedUserIds.add(id))
         await Promise.all(
           Array.from(affectedUserIds).map(userId =>
             RedisCache.del(RedisCache.keys.userTasks(userId))
@@ -725,26 +692,13 @@ export const DELETE = withAuth<RouteContext>(
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        lists: { select: { id: true, name: true } },
+        lists: { select: { id: true, name: true, ownerId: true, listMembers: { select: { userId: true } } } },
       },
     })
 
     const recipientIds = new Set<string>()
     if (task) {
-      for (const list of task.lists) {
-        const memberIds = await getListMemberIds(
-          await prisma.taskList.findUnique({
-            where: { id: list.id },
-            include: {
-              owner: { select: { id: true, name: true, email: true, image: true } },
-              listMembers: {
-                include: { user: { select: { id: true, name: true, email: true, image: true } } },
-              },
-            },
-          }) as any
-        )
-        memberIds.forEach((id: string) => recipientIds.add(id))
-      }
+      collectListRecipientUserIds(task.lists).forEach(id => recipientIds.add(id))
       if (task.assigneeId) recipientIds.add(task.assigneeId)
       if (task.creatorId) recipientIds.add(task.creatorId)
       recipientIds.delete(auth.userId)

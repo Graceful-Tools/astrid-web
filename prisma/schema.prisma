@@ -305,6 +305,8 @@ model Task {
   @@index([creatorId])
   @@index([completed])
   @@index([createdAt])
+  @@index([updatedAt])
+  @@index([completed, priority, createdAt])
   @@index([dueDateTime])
   @@index([reminderTime])
   @@index([priority])
@@ -981,4 +983,5 @@ model ExternalTaskLink {
   @@unique([provider, remoteId, userId])
   @@index([astridTaskId])
   @@index([remoteContainerId])
+  @@index([userId, provider, remoteContainerId])
 }

@@ -173,6 +173,9 @@ export const GET = withAuth(
                 },
               },
               orderBy: { createdAt: 'desc' },
+              // Bound the fetch — previously unbounded, so a task with hundreds
+              // of comments bloated the collection payload × every task.
+              take: 20,
             },
           }),
         },

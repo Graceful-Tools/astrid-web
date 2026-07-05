@@ -66,18 +66,25 @@ export const GET = withAuth(
     // the parent's issue number ('' = top-level).
     if (items.length) {
       const [owner, name] = link.remoteContainerId.split('/')
-      const aliases = items
-        .map((i, idx) => `i${idx}: issue(number: ${Number(i.metadata.number)}) { number parent { number } }`)
-        .join(' ')
-      const gql = await githubGraphQL(
-        token,
-        `query { repository(owner: "${owner}", name: "${name}") { ${aliases} } }`
-      )
-      const repo = gql?.data?.repository
-      if (repo) {
-        for (let idx = 0; idx < items.length; idx++) {
-          const parentNumber = repo[`i${idx}`]?.parent?.number
-          items[idx].metadata.parent = parentNumber ? String(parentNumber) : ''
+      // Chunk the aliased lookups: a single query with up to ~1000 aliases can
+      // hit GitHub's GraphQL node limit / time out (5-10s, ~30s cap on cold
+      // Neon). ~100 per request is still 100× better than per-issue REST.
+      const CHUNK = 100
+      for (let start = 0; start < items.length; start += CHUNK) {
+        const chunk = items.slice(start, start + CHUNK)
+        const aliases = chunk
+          .map((i, j) => `i${j}: issue(number: ${Number(i.metadata.number)}) { number parent { number } }`)
+          .join(' ')
+        const gql = await githubGraphQL(
+          token,
+          `query { repository(owner: "${owner}", name: "${name}") { ${aliases} } }`
+        )
+        const repo = gql?.data?.repository
+        if (repo) {
+          for (let j = 0; j < chunk.length; j++) {
+            const parentNumber = repo[`i${j}`]?.parent?.number
+            items[start + j].metadata.parent = parentNumber ? String(parentNumber) : ''
+          }
         }
       }
     }
