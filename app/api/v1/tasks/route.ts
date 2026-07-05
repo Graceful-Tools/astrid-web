@@ -48,6 +48,11 @@ export const GET = withAuth(
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000)
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const includeComments = url.searchParams.get('includeComments') === 'true'
+    // Lean mode: omit per-task embedded listMembers (clients resolve membership
+    // from the lists endpoint). Big payload win — the same members were
+    // duplicated across every task sharing a list. Backward-compatible: absent
+    // param → full members as before.
+    const leanListMembers = url.searchParams.get('leanListMembers') === '1'
 
     const where: any = {}
 
@@ -128,14 +133,16 @@ export const GET = withAuth(
               name: true,
               color: true,
               githubRepositoryId: true,
-              listMembers: {
-                select: {
-                  id: true,
-                  listId: true,
-                  userId: true,
-                  role: true,
-                }
-              },
+              ...(leanListMembers ? {} : {
+                listMembers: {
+                  select: {
+                    id: true,
+                    listId: true,
+                    userId: true,
+                    role: true,
+                  }
+                },
+              }),
             },
           },
           assignee: {
