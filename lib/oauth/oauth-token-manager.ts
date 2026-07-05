@@ -46,6 +46,15 @@ export function hashClientSecret(secret: string): string {
 }
 
 /**
+ * Hash a bearer/refresh token for storage + lookup. Tokens are 32+ random
+ * bytes (high entropy), so an unsalted SHA-256 is adequate and lets us look
+ * up by hash. A DB/backup leak no longer yields usable bearer credentials.
+ */
+export function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+/**
  * Verify client secret against hash
  */
 export function verifyClientSecret(secret: string, hash: string): boolean {
@@ -75,7 +84,7 @@ export async function generateAccessToken(
 
   await prisma.oAuthToken.create({
     data: {
-      accessToken,
+      accessToken: hashToken(accessToken), // stored hashed; plaintext returned to caller
       tokenType: 'Bearer',
       clientId,
       userId,
@@ -115,8 +124,8 @@ export async function generateAccessAndRefreshToken(
 
   await prisma.oAuthToken.create({
     data: {
-      accessToken,
-      refreshToken,
+      accessToken: hashToken(accessToken),   // stored hashed
+      refreshToken: hashToken(refreshToken), // stored hashed
       tokenType: 'Bearer',
       clientId,
       userId,
@@ -151,7 +160,7 @@ export async function refreshAccessToken(
   // Find and validate refresh token
   const existingToken = await prisma.oAuthToken.findFirst({
     where: {
-      refreshToken,
+      refreshToken: { in: [hashToken(refreshToken), refreshToken] },
       clientId,
       revokedAt: null,
       refreshExpiresAt: {
@@ -195,13 +204,12 @@ export async function validateAccessToken(
   }
 } | null> {
   log.info({
-    tokenPrefix: token.substring(0, 20) + '...',
-    tokenLength: token.length,
+    tokenFp: hashToken(token).slice(0, 12), // fingerprint, not the token itself
   }, '[OAuth] validateAccessToken called:')
 
   const oauthToken = await prisma.oAuthToken.findFirst({
     where: {
-      accessToken: token,
+      accessToken: { in: [hashToken(token), token] },
       expiresAt: {
         gt: new Date(),
       },
@@ -223,7 +231,7 @@ export async function validateAccessToken(
     log.info('[OAuth] Token not found or expired')
     // Debug: Check if token exists at all
     const anyToken = await prisma.oAuthToken.findFirst({
-      where: { accessToken: token },
+      where: { accessToken: { in: [hashToken(token), token] } },
       select: { id: true, expiresAt: true, revokedAt: true },
     })
     if (anyToken) {
@@ -258,7 +266,7 @@ export async function validateAccessToken(
 export async function revokeAccessToken(token: string): Promise<boolean> {
   const result = await prisma.oAuthToken.updateMany({
     where: {
-      accessToken: token,
+      accessToken: { in: [hashToken(token), token] },
       revokedAt: null,
     },
     data: {
