@@ -3,7 +3,12 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  const token = 'astrid_mcp_238e219da271cfb80fdb21e3022c6a81e738adbc03bbfc8b75afe7fa50c3f70d'
+  // Token comes from the env/CLI, never hardcoded (this file is committed).
+  const token = process.env.MCP_TOKEN || process.argv[2]
+  if (!token) {
+    console.error('Usage: MCP_TOKEN=<token> tsx <script>  (or pass as argv[2])')
+    process.exit(1)
+  }
   
   console.log('\n🔍 Checking MCP token in local database...')
   

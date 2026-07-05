@@ -51,7 +51,19 @@ export class RateLimiter {
     resetTime: number
     total: number
   }> {
-    const key = this.getClientKey(request)
+    return this.checkRateLimitByKeyAsync(this.getClientKey(request))
+  }
+
+  /**
+   * Redis-backed rate-limit check against an explicit key (e.g. a user id),
+   * for handlers that key on identity rather than IP.
+   */
+  public async checkRateLimitByKeyAsync(key: string): Promise<{
+    allowed: boolean
+    remaining: number
+    resetTime: number
+    total: number
+  }> {
     const store = await this.getStore()
 
     // Get current entry
@@ -151,6 +163,14 @@ export const oauthTokenRateLimiter = new RateLimiter({
                request.headers.get('x-real-ip') || 'unknown'
     return `oauth:${ip}`
   }
+})
+
+// Per-user invite rate limit (keyed by user id via checkRateLimitByKeyAsync):
+// invites send mail to arbitrary addresses from the Astrid domain, so cap the
+// spam blast radius.
+export const inviteRateLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 30,
 })
 
 // Preset configurations for different endpoints

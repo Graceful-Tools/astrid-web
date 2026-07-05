@@ -75,8 +75,8 @@ This guide shows you how to set up this workflow for your own project.
    - ⚠️ **The secret is shown only once!** Store it securely
    - Example format:
      ```
-     Client ID:     astrid_client_99a4fc4a5b04d5a5542e97f83df729a0
-     Client Secret: e83e218210d8ec7b7103912f2049eeb3893e13c324b5ef80933163de62d489b5
+     Client ID:     astrid_client_<your-client-id>
+     Client Secret: <shown-once-store-securely>
      ```
 
 ---

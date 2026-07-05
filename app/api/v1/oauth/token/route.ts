@@ -72,7 +72,9 @@ function oauthError(
  */
 export async function POST(req: NextRequest) {
   // Check rate limit to prevent brute force attacks
-  const rateLimitResult = oauthTokenRateLimiter.checkRateLimit(req)
+  // Redis-backed (survives cold starts / spans instances), unlike the
+  // per-instance in-memory checkRateLimit.
+  const rateLimitResult = await oauthTokenRateLimiter.checkRateLimitAsync(req)
   const rateLimitHeaders = createRateLimitHeaders(rateLimitResult)
 
   if (!rateLimitResult.allowed) {

@@ -141,7 +141,16 @@ export async function POST(request: NextRequest) {
 
         parsedEmail = parseResendWebhook(payload as ResendInboundEmailWebhook)
       } else {
-        // Assume Cloudflare Email Worker format
+        // Assume Cloudflare Email Worker format. The isCloudflare detection is
+        // by user-agent/cf-ray (both attacker-settable), so require a shared
+        // secret before trusting this unsigned branch — otherwise anyone can
+        // POST to create tasks + placeholder users.
+        const expected = process.env.CLOUDFLARE_EMAIL_WEBHOOK_SECRET
+        const provided = request.headers.get('x-astrid-webhook-secret')
+        if (!expected || provided !== expected) {
+          log.error('❌ Cloudflare email webhook: missing/invalid shared secret')
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
         log.info('📧 Received Cloudflare Email Worker webhook')
         parsedEmail = parseCloudflareWebhook(payload as CloudflareEmailWebhook)
       }

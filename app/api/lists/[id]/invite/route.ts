@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { inviteRateLimiter } from "@/lib/rate-limiter"
 import { randomBytes } from "crypto"
 import { getServerSession } from "next-auth/next"
 import { authConfig } from "@/lib/auth-config"
@@ -28,6 +29,15 @@ export async function POST(
     const session = await getServerSession(authConfig)
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Per-user invite rate limit (spam guard — invites email arbitrary addresses).
+    const inviteRate = await inviteRateLimiter.checkRateLimitByKeyAsync(`invite:${session.user.id}`)
+    if (!inviteRate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many invitations. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': Math.ceil((inviteRate.resetTime - Date.now()) / 1000).toString() } }
+      )
     }
 
     const { id: listId } = await context.params
