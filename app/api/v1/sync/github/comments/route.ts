@@ -21,12 +21,24 @@ export const GET = withAuth(
 
     const number = String(remoteId).split('#').pop()
     if (!number || !/^\d+$/.test(number)) return NextResponse.json({ error: 'Invalid remoteId' }, { status: 400 })
-    const { status, json } = await githubRequest(
-      token, 'GET', `/repos/${link.remoteContainerId}/issues/${number}/comments?per_page=100`
-    )
-    if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
 
-    const comments = (json as any[]).map(c => ({
+    // Paginate to exhaustion: a single ?per_page=100 page silently drops the
+    // newest comments on issues with >100 comments, which the client then
+    // treats as remote-deleted and deletes their Astrid twins (permanent local
+    // loss). Page cap as a runaway guard.
+    const raw: any[] = []
+    for (let page = 1; page <= 20; page++) {
+      const { status, json } = await githubRequest(
+        token, 'GET',
+        `/repos/${link.remoteContainerId}/issues/${number}/comments?per_page=100&page=${page}`
+      )
+      if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
+      const batch = json as any[]
+      raw.push(...batch)
+      if (batch.length < 100) break
+    }
+
+    const comments = raw.map(c => ({
       id: String(c.id),
       body: (c.body as string) ?? '',
       author: c.user?.login ?? 'unknown',
