@@ -102,6 +102,13 @@ export const POST = withAuth(
     if (body.completed !== undefined) payload.status = body.completed ? 'completed' : 'needsAction'
 
     if (remoteId) {
+      // Defense in depth: remoteId is `tasklistId:taskId`. Reject a mismatch so
+      // a wrong (linkId/tasklistId, remoteId) pair can't PATCH another list's
+      // task. The client also guards this (SyncContainerGuard).
+      const remoteContainer = String(remoteId).split(':')[0]
+      if (remoteContainer !== containerId) {
+        return NextResponse.json({ error: 'remoteId container does not match link' }, { status: 400 })
+      }
       const googleTaskId = String(remoteId).split(':').pop()
       const { status, json } = await googleRequest(token, 'PATCH', `${listPath}/${googleTaskId}`, payload)
       if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })

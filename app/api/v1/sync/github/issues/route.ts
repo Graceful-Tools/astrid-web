@@ -151,6 +151,14 @@ export const POST = withAuth(
       return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
     }
     if (remoteId) {
+      // Defense in depth: the remoteId embeds its own container
+      // (owner/repo#number). Reject if it doesn't match the link's container —
+      // otherwise a mismatched (linkId, remoteId) pair PATCHes the wrong repo's
+      // issue number. The client also guards this (SyncContainerGuard).
+      const [remoteContainer] = String(remoteId).split('#')
+      if (remoteContainer !== link.remoteContainerId) {
+        return NextResponse.json({ error: 'remoteId container does not match link' }, { status: 400 })
+      }
       const number = String(remoteId).split('#').pop()
       if (!number || !/^\d+$/.test(number)) return NextResponse.json({ error: 'Invalid remoteId' }, { status: 400 })
       const { status, json } = await githubRequest(
