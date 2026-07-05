@@ -25,6 +25,11 @@ export const GET = withAuth(
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
 
     const full = !link || url0.searchParams.get('full') === '1'
+    // Client-acknowledged cursor: when set, DON'T advance the stored cursor on
+    // GET — the client commits it (POST action:commitCursor) only AFTER it has
+    // applied the pulled changes, so a kill mid-pass re-pulls instead of
+    // permanently skipping unapplied remote edits. Backward-compatible.
+    const deferCursor = url0.searchParams.get('deferCursor') === '1'
     const updatedMin = !full && link?.cursor ? `&updatedMin=${encodeURIComponent(link.cursor)}` : ''
     // Paginate to exhaustion (page cap as a runaway guard): the cursor is
     // computed from MAX(updated), so a dropped page would permanently skip
@@ -66,7 +71,7 @@ export const GET = withAuth(
     if (link && !full && !truncated) {
       for (const i of items) if (!newCursor || i.remoteUpdatedAt > newCursor) newCursor = i.remoteUpdatedAt
     }
-    if (link && newCursor && newCursor !== link.cursor) {
+    if (link && newCursor && newCursor !== link.cursor && !deferCursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },
         data: { cursor: newCursor, lastReconciledAt: new Date() },
@@ -84,6 +89,18 @@ export const POST = withAuth(
   { scopes: ['tasks:write'], tag: 'v1.sync.google' },
   async (req, auth) => {
     const body = await req.json()
+    // Client-acknowledged cursor commit: persist the cursor the client applied.
+    if (body?.action === 'commitCursor') {
+      const link = await prisma.externalListLink.findFirst({ where: { id: body.linkId, userId: auth.userId } })
+      if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+      if (body.cursor && body.cursor !== link.cursor) {
+        await prisma.externalListLink.update({
+          where: { id: link.id },
+          data: { cursor: String(body.cursor), lastReconciledAt: new Date() },
+        })
+      }
+      return NextResponse.json({ ok: true })
+    }
     const { linkId, remoteId, tasklistId: directTasklistId } = body || {}
     if (!linkId && !directTasklistId) return NextResponse.json({ error: 'linkId or tasklistId required' }, { status: 400 })
     const link = linkId

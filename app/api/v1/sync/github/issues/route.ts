@@ -21,6 +21,9 @@ export const GET = withAuth(
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
     const full = new URL(req.url).searchParams.get('full') === '1'
+    // Client-acknowledged cursor (see google/tasks route): defer the DB advance
+    // to a post-apply commit so a kill mid-pass re-pulls instead of skipping.
+    const deferCursor = new URL(req.url).searchParams.get('deferCursor') === '1'
     const since = !full && link.cursor ? `&since=${encodeURIComponent(link.cursor)}` : ''
     // Paginate to exhaustion (page cap as a runaway guard). One page per pass
     // starved busy org repos: with PRs sharing the page, open issues beyond
@@ -114,7 +117,7 @@ export const GET = withAuth(
     // Truncated only when the page cap cut a still-full listing — clients
     // must not run absence-based deletion against an incomplete listing.
     const truncated = sawFullLastPage
-    if (newCursor && newCursor !== link.cursor) {
+    if (newCursor && newCursor !== link.cursor && !deferCursor) {
       await prisma.externalListLink.update({
         where: { id: link.id },
         data: { cursor: newCursor, lastReconciledAt: new Date() },
@@ -132,6 +135,18 @@ export const POST = withAuth(
   { scopes: ['tasks:write'], tag: 'v1.sync.github' },
   async (req, auth) => {
     const body = await req.json()
+    // Client-acknowledged cursor commit.
+    if (body?.action === 'commitCursor') {
+      const link = await prisma.externalListLink.findFirst({ where: { id: body.linkId, userId: auth.userId } })
+      if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+      if (body.cursor && body.cursor !== link.cursor) {
+        await prisma.externalListLink.update({
+          where: { id: link.id },
+          data: { cursor: String(body.cursor), lastReconciledAt: new Date() },
+        })
+      }
+      return NextResponse.json({ ok: true })
+    }
     const { linkId, title, remoteId } = body || {}
     if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
