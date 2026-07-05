@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { decryptField, encryptField } from '@/lib/field-encryption'
+import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
 
 /**
  * Google Tasks sync — server-side helpers (mirrors lib/sync/github.ts).
@@ -86,13 +86,13 @@ export async function googleTokenFor(userId: string): Promise<string | null> {
 
   const notExpired = integration.expiresAt && integration.expiresAt.getTime() > Date.now() + 60_000
   if (notExpired) {
-    try { return decryptField(integration.accessToken) } catch { return null }
+    try { return decryptFieldStrict(integration.accessToken) } catch { return null }
   }
 
   // Refresh
   if (!integration.refreshToken) return null
   let refreshToken: string | null = null
-  try { refreshToken = decryptField(integration.refreshToken) } catch { return null }
+  try { refreshToken = decryptFieldStrict(integration.refreshToken) } catch { return null }
   if (!refreshToken) return null
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

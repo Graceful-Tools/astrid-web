@@ -81,6 +81,22 @@ export function decryptField(value: string | null | undefined): string | null {
 }
 
 /**
+ * Strict decrypt for columns that are ALWAYS written through encryptField
+ * (e.g. sync-provider Integration tokens). Unlike decryptField, a non-null
+ * value that lacks the enc:v1: prefix is a bug — a write site forgot to
+ * encrypt — so this throws instead of silently returning plaintext, which
+ * would otherwise persist an unencrypted secret forever undetected.
+ * Use ONLY on columns with a guaranteed-encrypted invariant.
+ */
+export function decryptFieldStrict(value: string | null | undefined): string | null {
+  if (value == null || value === '') return null
+  if (!isEncrypted(value)) {
+    throw new Error('decryptFieldStrict: value is not encrypted (a write site skipped encryptField)')
+  }
+  return decryptField(value)
+}
+
+/**
  * Encrypt an object's specified fields
  * Returns a new object with encrypted fields
  */

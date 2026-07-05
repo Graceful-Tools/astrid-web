@@ -3,20 +3,12 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
-import crypto from "crypto"
+import { encryptCredential, decryptCredential } from "@/lib/ai/credential-cipher"
 import { MCPSettingsSchema, parseUserAIConfig } from "@/lib/ai/user-config-schemas"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('user.ai-api-keys')
 
-
-function getEncryptionKey(): string {
-  const key = process.env.ENCRYPTION_KEY
-  if (!key) {
-    throw new Error('ENCRYPTION_KEY environment variable is required')
-  }
-  return key
-}
 
 const SaveAPIKeySchema = z.object({
   serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
@@ -34,27 +26,6 @@ const SaveAPIKeySchema = z.object({
 const DeleteAPIKeySchema = z.object({
   serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw'])
 })
-
-// Encryption functions
-function encrypt(text: string): { encrypted: string; iv: string } {
-  const algorithm = 'aes-256-cbc'
-  const key = Buffer.from(getEncryptionKey(), 'hex')
-  const iv = crypto.randomBytes(16)
-  const cipher = crypto.createCipheriv(algorithm, key, iv)
-  let encrypted = cipher.update(text, 'utf8', 'hex')
-  encrypted += cipher.final('hex')
-  return { encrypted, iv: iv.toString('hex') }
-}
-
-function decrypt(encryptedData: { encrypted: string; iv: string }): string {
-  const algorithm = 'aes-256-cbc'
-  const key = Buffer.from(getEncryptionKey(), 'hex')
-  const iv = Buffer.from(encryptedData.iv, 'hex')
-  const decipher = crypto.createDecipheriv(algorithm, key, iv)
-  let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8')
-  decrypted += decipher.final('utf8')
-  return decrypted
-}
 
 function getKeyPreview(key: string): string {
   if (key.length <= 8) return '***'
@@ -114,7 +85,7 @@ export async function GET(request: NextRequest) {
     for (const [serviceId, keyInfo] of Object.entries(apiKeys)) {
       if (typeof keyInfo === 'object' && keyInfo && 'encrypted' in keyInfo) {
         try {
-          const decryptedValue = decrypt(keyInfo as any)
+          const decryptedValue = decryptCredential(keyInfo as any)
           const isGateway = (keyInfo as any).isGateway === true
           keyData[serviceId] = {
             hasKey: true,
@@ -196,8 +167,8 @@ export async function PUT(request: NextRequest) {
     // Encrypt and store based on service type
     if (validatedData.serviceId === 'openclaw') {
       // Gateway service: encrypt URL and optional auth token
-      const encryptedUrl = encrypt(validatedData.gatewayUrl!)
-      const encryptedToken = validatedData.authToken ? encrypt(validatedData.authToken) : null
+      const encryptedUrl = encryptCredential(validatedData.gatewayUrl!)
+      const encryptedToken = validatedData.authToken ? encryptCredential(validatedData.authToken) : null
 
       apiKeys[validatedData.serviceId] = {
         ...encryptedUrl,
@@ -210,7 +181,7 @@ export async function PUT(request: NextRequest) {
       }
     } else {
       // Standard API key service
-      const encryptedKey = encrypt(validatedData.apiKey!)
+      const encryptedKey = encryptCredential(validatedData.apiKey!)
 
       apiKeys[validatedData.serviceId] = {
         ...encryptedKey,

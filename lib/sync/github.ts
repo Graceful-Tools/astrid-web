@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { decryptField, encryptField } from '@/lib/field-encryption'
+import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
 
 /**
  * GitHub Issues sync — server-side helpers.
@@ -58,7 +58,7 @@ export async function githubTokenFor(userId: string): Promise<string | null> {
   })
   if (!integration?.accessToken || integration.revokedAt) return null
   try {
-    return decryptField(integration.accessToken)
+    return decryptFieldStrict(integration.accessToken)
   } catch {
     return null
   }
