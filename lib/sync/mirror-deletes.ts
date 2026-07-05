@@ -5,7 +5,8 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('sync.mirror-deletes')
 
-const TOMBSTONE_CAP = 500
+const TOMBSTONE_CAP = 2000 // raised: GitHub twins are only closed (not deleted),
+// so an evicted tombstone can resurrect a deleted task via completed-backfill
 
 /**
  * A mirrored task is being deleted: its ExternalTaskLink rows cascade away

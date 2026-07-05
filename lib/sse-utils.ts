@@ -433,11 +433,18 @@ async function cacheEventForUser(userId: string, event: any) {
   const redis = getRedisForSSE()
 
   if (redis) {
-    // Production: Store in Redis for cross-instance sharing
+    // Production: one sorted set per user (score = timestamp). Replaces the
+    // former one-key-per-event scheme, whose retrieval SCANned the ENTIRE
+    // Redis keyspace per connection every 15s (hundreds of REST round trips).
+    // Now: one ZADD + a bounded ZREMRANGEBYSCORE prune per event.
     try {
-      const key = `sse:events:${userId}:${timestamp}`
-      await redis.setex(key, REDIS_EVENT_TTL_SECONDS, JSON.stringify({ event, timestamp }))
-      log.info(`[SSE] Cached event in Redis for user ${userId}`)
+      const key = `sse:events:${userId}`
+      // Unique member so two same-ms events don't collide/dedup in the set.
+      const member = JSON.stringify({ event, timestamp, n: globalThis.crypto.randomUUID() })
+      await redis.zadd(key, { score: timestamp, member })
+      // Prune events older than the TTL window + set a whole-key expiry backstop.
+      await redis.zremrangebyscore(key, 0, timestamp - REDIS_EVENT_TTL_SECONDS * 1000)
+      await redis.expire(key, REDIS_EVENT_TTL_SECONDS)
     } catch (error) {
       log.error({ err: error }, '[SSE] Failed to cache event in Redis:')
       // Fall back to in-memory
@@ -472,34 +479,17 @@ export async function getMissedEvents(userId: string, sinceTimestamp: number): P
 
   if (redis) {
     try {
-      // Scan for user's events in Redis
-      const pattern = `sse:events:${userId}:*`
-      let cursor: number | string = 0
-      const events: Array<{ event: any; timestamp: number }> = []
-
-      do {
-        const result: [string | number, string[]] = await redis.scan(cursor, { match: pattern, count: 100 })
-        cursor = result[0]
-        const keys = result[1]
-
-        if (keys.length > 0) {
-          // Fetch all events in parallel
-          const values = await Promise.all(keys.map(key => redis.get(key)))
-          for (const value of values) {
-            if (value) {
-              const parsed = typeof value === 'string' ? JSON.parse(value) : value
-              if (parsed.timestamp > sinceTimestamp) {
-                events.push(parsed)
-              }
-            }
-          }
-        }
-      } while (cursor !== 0 && cursor !== '0')
-
-      // Sort by timestamp
-      events.sort((a, b) => a.timestamp - b.timestamp)
+      // One O(log n) range read from the user's sorted set — no keyspace scan.
+      const key = `sse:events:${userId}`
+      const members = await redis.zrange<string[]>(
+        key, `(${sinceTimestamp}`, '+inf', { byScore: true }
+      )
+      const events = members
+        .map(m => (typeof m === 'string' ? JSON.parse(m) : m))
+        .filter((p: any) => p.timestamp > sinceTimestamp)
+        .map((p: any) => p.event)
       log.info(`[SSE] getMissedEvents from Redis for user ${userId}: ${events.length} events`)
-      return events.map(e => e.event)
+      return events
     } catch (error) {
       log.error({ err: error }, '[SSE] Failed to get events from Redis:')
       // Fall back to in-memory

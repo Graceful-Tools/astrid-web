@@ -67,29 +67,43 @@ export const PUT = withAuth(
       ? { ...(existingLink?.metadata as object || {}), ...body.metadata }
       : undefined
 
-    const link = await prisma.externalTaskLink.upsert({
-      where: { userId_astridTaskId_provider: { userId: auth.userId, astridTaskId, provider: 'GOOGLE_TASKS' } },
-      create: {
-        integrationId: integration.id,
-        userId: auth.userId,
-        astridTaskId,
-        provider: 'GOOGLE_TASKS',
-        remoteId,
-        remoteContainerId,
-        astridUpdatedAt: body.astridUpdatedAt ? new Date(body.astridUpdatedAt) : null,
-        remoteUpdatedAt: body.remoteUpdatedAt ? new Date(body.remoteUpdatedAt) : null,
-        lastSyncedAt: new Date(),
-        metadata: mergedMetadata,
-      },
-      update: {
-        remoteId,
-        remoteContainerId,
-        astridUpdatedAt: body.astridUpdatedAt ? new Date(body.astridUpdatedAt) : undefined,
-        remoteUpdatedAt: body.remoteUpdatedAt ? new Date(body.remoteUpdatedAt) : undefined,
-        lastSyncedAt: new Date(),
-        metadata: mergedMetadata,
-      },
-    })
+    let link
+    try {
+      link = await prisma.externalTaskLink.upsert({
+        where: { userId_astridTaskId_provider: { userId: auth.userId, astridTaskId, provider: 'GOOGLE_TASKS' } },
+        create: {
+          integrationId: integration.id,
+          userId: auth.userId,
+          astridTaskId,
+          provider: 'GOOGLE_TASKS',
+          remoteId,
+          remoteContainerId,
+          astridUpdatedAt: body.astridUpdatedAt ? new Date(body.astridUpdatedAt) : null,
+          remoteUpdatedAt: body.remoteUpdatedAt ? new Date(body.remoteUpdatedAt) : null,
+          lastSyncedAt: new Date(),
+          metadata: mergedMetadata,
+        },
+        update: {
+          remoteId,
+          remoteContainerId,
+          astridUpdatedAt: body.astridUpdatedAt ? new Date(body.astridUpdatedAt) : undefined,
+          remoteUpdatedAt: body.remoteUpdatedAt ? new Date(body.remoteUpdatedAt) : undefined,
+          lastSyncedAt: new Date(),
+          metadata: mergedMetadata,
+        },
+      })
+    } catch (e: unknown) {
+      // Multi-device race: another device already linked this remoteId to a
+      // DIFFERENT task (violates @@unique([provider, remoteId, userId])).
+      // Return the existing row so the caller can adopt/dedup instead of a 500.
+      if ((e as { code?: string })?.code === 'P2002') {
+        const existing = await prisma.externalTaskLink.findFirst({
+          where: { provider: 'GOOGLE_TASKS', remoteId, userId: auth.userId },
+        })
+        if (existing) return NextResponse.json({ link: existing, adopted: true })
+      }
+      throw e
+    }
     return NextResponse.json({ link })
   }
 )
