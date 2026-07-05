@@ -146,6 +146,25 @@ export function validateScopes(scopes: string[]): OAuthScope[] {
 }
 
 /**
+ * The wildcard scope grants full account access and must NEVER be
+ * registerable from a user-supplied request body — otherwise any caller who
+ * can create an OAuth client could mint one with `['*']` and self-escalate.
+ * It is reserved for session-based/internal auth only.
+ */
+export function isRegisterableScope(scope: string): scope is OAuthScope {
+  return scope !== '*' && isValidScope(scope)
+}
+
+/**
+ * Validate scopes supplied by a client-registration request. Strips the
+ * wildcard and any unknown scopes. Use this (not `validateScopes`) for any
+ * scope list that originates from a request body.
+ */
+export function validateRegisterableScopes(scopes: string[]): OAuthScope[] {
+  return scopes.filter(isRegisterableScope)
+}
+
+/**
  * Check if requested scopes are satisfied by granted scopes
  * Handles wildcard scope ('*') which grants all permissions
  */

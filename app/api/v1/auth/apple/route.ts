@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose'
 import { prisma } from '@/lib/prisma'
+import { resolveAppleIdentity, appleAllowedAudiences } from '@/lib/auth/apple-identity'
 import { createDefaultListsForUser } from '@/lib/default-lists'
 import { withRateLimitHandler, authRateLimiter } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
@@ -38,6 +39,7 @@ interface AppleJWTPayload extends JWTPayload {
 async function verifyAppleToken(identityToken: string): Promise<AppleJWTPayload> {
   const { payload } = await jwtVerify(identityToken, appleJWKS, {
     issuer: 'https://appleid.apple.com',
+    audience: appleAllowedAudiences(),
   })
   if (!payload.sub || typeof payload.sub !== 'string') {
     throw new Error("Missing or invalid 'sub' claim")
@@ -47,7 +49,7 @@ async function verifyAppleToken(identityToken: string): Promise<AppleJWTPayload>
 
 async function appleSignInHandler(request: NextRequest) {
   try {
-    const { identityToken, email, fullName } = await request.json()
+    const { identityToken, fullName } = await request.json()
 
     if (!identityToken) {
       return NextResponse.json({ error: 'Missing identity token' }, { status: 400 })
@@ -62,58 +64,86 @@ async function appleSignInHandler(request: NextRequest) {
     }
 
     const appleUserId = verifiedPayload.sub
-    const userEmail = email || verifiedPayload.email
-    if (!userEmail) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
-    }
+    // Identity comes ONLY from the verified token. The body `email` was
+    // previously trusted over the claim, which allowed account takeover:
+    // an attacker's valid token + a victim's email linked the attacker's
+    // Apple id onto the victim's account. Body email is display-only now
+    // (and unused); body fullName is fine (Apple provides the name only
+    // client-side on first auth).
+    const { email: tokenEmail, emailVerified } = resolveAppleIdentity(verifiedPayload)
 
-    let existingUser = await prisma.user.findUnique({
-      where: { email: userEmail.toLowerCase() },
-      include: { accounts: true },
+    // Returning user: the Apple account row is the primary key. This also
+    // fixes logins after Apple stops sending the email claim consistently.
+    const linkedAccount = await prisma.account.findFirst({
+      where: { provider: 'apple', providerAccountId: appleUserId },
     })
 
-    if (existingUser) {
-      const appleAccount = existingUser.accounts.find(acc => acc.provider === 'apple')
-      if (!appleAccount) {
-        await prisma.account.create({
-          data: {
-            userId: existingUser.id,
-            type: 'oauth',
-            provider: 'apple',
-            providerAccountId: appleUserId,
-            id_token: identityToken,
-          },
-        })
-      } else if (appleAccount.providerAccountId !== appleUserId) {
-        log.error({ email: userEmail }, 'Apple user ID mismatch for email')
-        return NextResponse.json({ error: 'Account verification failed' }, { status: 401 })
-      }
+    let existingUser =
+      linkedAccount
+        ? await prisma.user.findUnique({
+            where: { id: linkedAccount.userId },
+            include: { accounts: true },
+          })
+        : null
 
-      if (fullName && !existingUser.name) {
-        existingUser = await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { name: fullName, emailVerified: new Date() },
-          include: { accounts: true },
-        })
+    if (!existingUser) {
+      if (!tokenEmail) {
+        return NextResponse.json({ error: 'Email is required' }, { status: 400 })
       }
-    } else {
-      existingUser = await prisma.user.create({
-        data: {
-          email: userEmail.toLowerCase(),
-          name: fullName || userEmail.split('@')[0],
-          emailVerified: new Date(),
-          accounts: {
-            create: {
+      existingUser = await prisma.user.findUnique({
+        where: { email: tokenEmail },
+        include: { accounts: true },
+      })
+
+      if (existingUser) {
+        // Linking onto an EXISTING account requires Apple to affirm the
+        // email is verified — otherwise reject rather than merge.
+        if (!emailVerified) {
+          log.error({ appleUserId }, 'Apple link refused: email not verified by token')
+          return NextResponse.json({ error: 'Account verification failed' }, { status: 401 })
+        }
+        const appleAccount = existingUser.accounts.find(acc => acc.provider === 'apple')
+        if (!appleAccount) {
+          await prisma.account.create({
+            data: {
+              userId: existingUser.id,
               type: 'oauth',
               provider: 'apple',
               providerAccountId: appleUserId,
               id_token: identityToken,
             },
+          })
+        } else if (appleAccount.providerAccountId !== appleUserId) {
+          log.error({ appleUserId }, 'Apple user ID mismatch for email')
+          return NextResponse.json({ error: 'Account verification failed' }, { status: 401 })
+        }
+      } else {
+        existingUser = await prisma.user.create({
+          data: {
+            email: tokenEmail,
+            name: fullName || tokenEmail.split('@')[0],
+            emailVerified: new Date(),
+            accounts: {
+              create: {
+                type: 'oauth',
+                provider: 'apple',
+                providerAccountId: appleUserId,
+                id_token: identityToken,
+              },
+            },
           },
-        },
+          include: { accounts: true },
+        })
+        await createDefaultListsForUser(existingUser.id)
+      }
+    }
+
+    if (existingUser && fullName && !existingUser.name) {
+      existingUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { name: fullName },
         include: { accounts: true },
       })
-      await createDefaultListsForUser(existingUser.id)
     }
 
     if (!existingUser) {

@@ -7,7 +7,7 @@
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { hashClientSecret, verifyClientSecret } from './oauth-token-manager'
-import { validateScopes, type OAuthScope } from './oauth-scopes'
+import { validateRegisterableScopes, type OAuthScope } from './oauth-scopes'
 
 /**
  * Generate client ID
@@ -53,7 +53,8 @@ export async function createOAuthClient(
   const clientSecret = generateClientSecret()
   const clientSecretHash = hashClientSecret(clientSecret)
 
-  const validScopes = params.scopes ? validateScopes(params.scopes) : [
+  // Registration input must never yield the wildcard scope (self-escalation).
+  const validScopes = params.scopes ? validateRegisterableScopes(params.scopes) : [
     'tasks:read',
     'tasks:write',
     'lists:read',
@@ -217,7 +218,7 @@ export async function updateOAuthClient(
   if (updates.description !== undefined) data.description = updates.description
   if (updates.redirectUris !== undefined) data.redirectUris = updates.redirectUris
   if (updates.scopes !== undefined) {
-    data.scopes = validateScopes(updates.scopes)
+    data.scopes = validateRegisterableScopes(updates.scopes)
   }
   if (updates.isActive !== undefined) data.isActive = updates.isActive
 

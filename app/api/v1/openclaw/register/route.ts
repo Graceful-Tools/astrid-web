@@ -98,6 +98,24 @@ export const POST = withAuth(
 
     if (listIds && Array.isArray(listIds)) {
       for (const listId of listIds) {
+        if (typeof listId !== 'string') continue
+        // IDOR guard: only add the agent to a list the CALLER owns or admins.
+        // Previously any caller-supplied listId was honored, granting the new
+        // agent (whose credentials are returned to the caller) member access
+        // to arbitrary lists.
+        const list = await prisma.taskList.findUnique({
+          where: { id: listId },
+          select: {
+            ownerId: true,
+            listMembers: { where: { userId: auth.userId }, select: { role: true } },
+          },
+        })
+        const callerRole =
+          list?.ownerId === auth.userId ? 'owner' : list?.listMembers[0]?.role
+        if (callerRole !== 'owner' && callerRole !== 'admin') {
+          log.error({ listId, userId: auth.userId }, 'Refused agent list-add: caller is not owner/admin')
+          continue
+        }
         try {
           await prisma.listMember.create({
             data: {

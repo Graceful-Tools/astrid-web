@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
 import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
@@ -78,23 +79,29 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     const timestamp = Date.now()
     const pathname = `files/${session.user.id}/${fileId}-${timestamp}.${fileExtension}`
 
-    // Get the Vercel Blob token
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN
-
-    if (!blobToken) {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
       log.error("BLOB_READ_WRITE_TOKEN not configured")
       return NextResponse.json({ error: "Storage not configured" }, { status: 500 })
     }
 
-    // Return the upload URL and headers for direct PUT to Vercel Blob
-    // Vercel Blob supports direct PUT with the token
+    // SECURITY: never hand out the store-wide read/write token — mint a
+    // client token scoped to this single pathname with size/type limits.
+    // The previous implementation returned BLOB_READ_WRITE_TOKEN verbatim,
+    // giving any authenticated user read/write/delete over every blob.
+    const clientToken = await generateClientTokenFromReadWriteToken({
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      pathname,
+      maximumSizeInBytes: 100 * 1024 * 1024,
+      allowedContentTypes: [mimeType],
+    })
+
     const uploadUrl = `https://blob.vercel-storage.com/${pathname}`
 
     return NextResponse.json({
       uploadUrl,
       pathname,
       headers: {
-        "Authorization": `Bearer ${blobToken}`,
+        "Authorization": `Bearer ${clientToken}`,
         "x-api-version": "7",
         "Content-Type": mimeType,
         "x-content-type": mimeType,

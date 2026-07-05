@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
+import { verifyBlobCallbackSignature } from "@/lib/blob-callback-signature"
 import {
   findSecureFileByClientRequestId,
   isUniqueConstraintError,
@@ -22,7 +23,19 @@ const log = createLogger('secure-upload.upload-complete')
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // SECURITY: verify the Vercel Blob callback signature over the RAW body
+    // before trusting anything in it. Without this, anyone could POST a forged
+    // tokenPayload and attach an arbitrary blob URL onto any victim's
+    // task/comment/list. The tokenPayload itself is trustworthy only because
+    // get-upload-url validated the caller's access to the target at mint time.
+    const rawBody = await request.text()
+    const signature = request.headers.get('x-vercel-signature')
+    if (!verifyBlobCallbackSignature(rawBody, signature, process.env.BLOB_READ_WRITE_TOKEN)) {
+      log.error('❌ [UploadComplete] Invalid or missing callback signature')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+
+    const body = JSON.parse(rawBody)
 
     log.info({ body }, '📦 [UploadComplete] Received callback')
 

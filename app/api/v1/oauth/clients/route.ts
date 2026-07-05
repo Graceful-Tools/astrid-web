@@ -52,6 +52,16 @@ export const GET = withAuth(
 export const POST = withAuth(
   { tag: 'v1.oauth.clients' },
   async (req, auth) => {
+    // Client registration must come from an interactive session, never a
+    // delegated OAuth/MCP token — otherwise a leaked narrow-scope token could
+    // register a new client and self-escalate.
+    if (auth.source !== 'session') {
+      return NextResponse.json(
+        { error: 'Client registration requires an interactive session' },
+        { status: 403 }
+      )
+    }
+
     const body = await req.json()
 
     if (!body.name || typeof body.name !== 'string') {
