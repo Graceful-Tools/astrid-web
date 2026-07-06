@@ -50,6 +50,12 @@ vi.mock('@/lib/agent-protocol', () => ({
   enrichTaskForAgent: vi.fn((task: any) => task),
 }))
 
+// Assignee membership validation (PUT/POST reject a non-member assignee):
+// allow it so assignment paths reach the cache-invalidation logic.
+vi.mock('@/lib/task-assignee', () => ({
+  assigneeCanBeAssigned: vi.fn().mockResolvedValue(true),
+}))
+
 const mockRedisDel = vi.fn().mockResolvedValue(undefined)
 const mockIsRedisAvailable = vi.fn().mockResolvedValue(true)
 

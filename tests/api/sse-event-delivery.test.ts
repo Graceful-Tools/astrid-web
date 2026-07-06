@@ -66,6 +66,12 @@ vi.mock('@/lib/list-member-utils', () => ({
   hasListAccess: vi.fn(() => true),
 }))
 
+// Assignee membership validation (PUT rejects a non-member assignee with 400):
+// allow it so the assignee-change path reaches the broadcast.
+vi.mock('@/lib/task-assignee', () => ({
+  assigneeCanBeAssigned: vi.fn().mockResolvedValue(true),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     task: {
@@ -168,15 +174,12 @@ describe('SSE Event Delivery — DELETE /api/v1/tasks/:id', () => {
   it('should broadcast task_deleted event to list members', async () => {
     const { prisma } = await import('@/lib/prisma')
 
+    // The DELETE route computes SSE recipients from listMembers fetched WITH
+    // the task (N+1 removal) — not a separate taskList.findUnique — so the
+    // mocked task must carry ownerId + listMembers on its lists.
     vi.mocked(prisma.task.findUnique).mockResolvedValue({
       ...mockTask,
-      lists: [{ id: 'list-1', name: 'Work' }],
-    } as any)
-
-    vi.mocked(prisma.taskList.findUnique).mockResolvedValue({
-      id: 'list-1',
-      ownerId: 'user-1',
-      listMembers: [{ userId: 'member-1' }],
+      lists: [{ id: 'list-1', name: 'Work', ownerId: 'user-1', listMembers: [{ userId: 'member-1' }] }],
     } as any)
 
     vi.mocked(prisma.task.delete).mockResolvedValue(mockTask as any)
@@ -205,13 +208,7 @@ describe('SSE Event Delivery — DELETE /api/v1/tasks/:id', () => {
       ...mockTask,
       creatorId: 'user-1',
       assigneeId: 'agent-1',
-      lists: [{ id: 'list-1', name: 'Work' }],
-    } as any)
-
-    vi.mocked(prisma.taskList.findUnique).mockResolvedValue({
-      id: 'list-1',
-      ownerId: 'user-1',
-      listMembers: [],
+      lists: [{ id: 'list-1', name: 'Work', ownerId: 'user-1', listMembers: [] }],
     } as any)
 
     vi.mocked(prisma.task.delete).mockResolvedValue(mockTask as any)
@@ -311,13 +308,13 @@ describe('SSE Event Delivery — PUT /api/v1/tasks/:id', () => {
     const existingTask = { ...mockTask, assigneeId: null }
     const updatedTask = { ...mockTask, assigneeId: 'agent-1' }
 
-    vi.mocked(prisma.task.findUnique).mockResolvedValue(existingTask as any)
+    // PUT fetches twice: the pre-update task (assignee null → drives
+    // assigneeChanged) then the enriched re-fetch AFTER update (assignee
+    // agent-1 → drives the task_assigned broadcast target/payload).
+    vi.mocked(prisma.task.findUnique)
+      .mockResolvedValueOnce(existingTask as any)
+      .mockResolvedValueOnce(updatedTask as any)
     vi.mocked(prisma.task.update).mockResolvedValue(updatedTask as any)
-    vi.mocked(prisma.taskList.findUnique).mockResolvedValue({
-      id: 'list-1',
-      ownerId: 'user-1',
-      listMembers: [{ userId: 'member-1' }],
-    } as any)
 
     const { PUT } = await import('@/app/api/v1/tasks/[id]/route')
     const req = new NextRequest('http://localhost/api/v1/tasks/task-1', {
@@ -629,12 +626,7 @@ describe('SSE Event Delivery — Error Handling', () => {
 
     vi.mocked(prisma.task.findUnique).mockResolvedValue({
       ...mockTask,
-      lists: [{ id: 'list-1', name: 'Work' }],
-    } as any)
-    vi.mocked(prisma.taskList.findUnique).mockResolvedValue({
-      id: 'list-1',
-      ownerId: 'user-1',
-      listMembers: [{ userId: 'member-1' }],
+      lists: [{ id: 'list-1', name: 'Work', ownerId: 'user-1', listMembers: [{ userId: 'member-1' }] }],
     } as any)
     vi.mocked(prisma.task.delete).mockResolvedValue(mockTask as any)
     vi.mocked(broadcastToUsers).mockImplementation(() => { throw new Error('SSE failed') })

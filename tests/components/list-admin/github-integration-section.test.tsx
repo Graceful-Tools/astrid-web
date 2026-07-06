@@ -65,7 +65,7 @@ describe('GithubIntegrationSection', () => {
 
   it('renders the section once AI providers are loaded', async () => {
     render(<GithubIntegrationSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
-    expect(await screen.findByText('GitHub Integration')).toBeInTheDocument()
+    expect(await screen.findByText('AI Coding Agent')).toBeInTheDocument()
   })
 
   it('stays hidden when the account has no AI providers configured', async () => {
@@ -75,7 +75,7 @@ describe('GithubIntegrationSection', () => {
     )
     // Give the mount fetches a tick to settle.
     await new Promise((r) => setTimeout(r, 0))
-    expect(screen.queryByText('GitHub Integration')).not.toBeInTheDocument()
+    expect(screen.queryByText('AI Coding Agent')).not.toBeInTheDocument()
     expect(container).toBeEmptyDOMElement()
   })
 
@@ -89,7 +89,7 @@ describe('GithubIntegrationSection', () => {
     })
     render(<GithubIntegrationSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
 
-    expect(await screen.findByText('GitHub Integration')).toBeInTheDocument()
+    expect(await screen.findByText('AI Coding Agent')).toBeInTheDocument()
     await new Promise((r) => setTimeout(r, 0))
     expect(screen.queryByText(/No repositories found/)).not.toBeInTheDocument()
   })
@@ -98,7 +98,7 @@ describe('GithubIntegrationSection', () => {
     mockGithubFetch({ aiProviders: ['claude'], repositories: [] })
     render(<GithubIntegrationSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
 
-    expect(await screen.findByText('GitHub Integration')).toBeInTheDocument()
+    expect(await screen.findByText('AI Coding Agent')).toBeInTheDocument()
     expect(await screen.findByText(/No repositories found/)).toBeInTheDocument()
   })
 })

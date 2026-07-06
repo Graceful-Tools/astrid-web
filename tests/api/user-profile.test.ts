@@ -440,7 +440,10 @@ describe('User Profile API', () => {
       expect(data.user).toBeDefined()
       expect(data.user.id).toBe('profile-user-id')
       expect(data.user.name).toBe('Profile User')
-      expect(data.user.email).toBe('profile@example.com')
+      // Email is privacy-gated: the route returns it only for the viewer's OWN
+      // profile (isOwnProfile). This request is for another user, so email is
+      // withheld. (Own-profile email presence is covered by the isOwnProfile tests.)
+      expect(data.user.email).toBeUndefined()
     })
 
     it('should indicate when viewing own profile', async () => {
