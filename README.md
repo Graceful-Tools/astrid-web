@@ -19,7 +19,7 @@ A modern, production-ready task management application built with Next.js, NextA
 - **Styling**: Tailwind CSS + Shadcn/ui components (Radix UI)
 - **Testing**: Vitest (unit/integration) + Playwright (E2E)
 - **Email**: Resend + Cloudflare Email Routing
-- **AI Integration**: Claude/OpenAI/Gemini with MCP support
+- **AI Integration**: Claude/OpenAI/Gemini/GitHub Copilot with MCP support
 - **Deployment**: Vercel with automated migrations
 
 ## Getting Started

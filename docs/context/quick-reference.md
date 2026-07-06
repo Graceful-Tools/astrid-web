@@ -168,6 +168,7 @@ ANTHROPIC_API_KEY=your-claude-api-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_AI_API_KEY=your-gemini-key
 ```
+GitHub Copilot is also supported as an OpenAI-compatible provider (base URL `https://api.githubcopilot.com`). Its credential (a GitHub token / OpenAI-compatible key) is stored per-user via the app's AI-key manager rather than as an env var.
 
 ### Storage & Caching
 ```bash
@@ -188,6 +189,12 @@ VAPID_SUBJECT=mailto:noreply@yourdomain.com
 ENCRYPTION_KEY=your-32-byte-hex-string
 CRON_SECRET=your-cron-secret
 ```
+
+### Inbound Email Webhook
+```bash
+CLOUDFLARE_EMAIL_WEBHOOK_SECRET=shared-secret
+```
+Shared secret for the Cloudflare inbound-email webhook; verified against the `x-astrid-webhook-secret` request header. Must be set in Vercel Production.
 
 ## File Structure
 

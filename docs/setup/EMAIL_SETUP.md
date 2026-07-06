@@ -5,7 +5,7 @@ This guide explains how to set up email delivery for your task management applic
 ## Current Setup
 
 The application uses a **dual email system**:
-- **Cloudflare Email Routing**: For receiving emails (e.g., `remindme@astrid.cc`)
+- **Cloudflare Email Routing**: For receiving emails (e.g., `remindme@astrid.cc`). The webhook now **requires** the `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` shared secret — the Email Worker sends it as the `x-astrid-webhook-secret` header, and the same value must be set in Vercel Production or inbound email is rejected with HTTP 401 (see [CLOUDFLARE_EMAIL_SETUP.md](./CLOUDFLARE_EMAIL_SETUP.md)).
 - **Resend**: For sending emails (verification, invitations, reminders)
 
 > **New**: For complete Cloudflare + Resend setup, see [CLOUDFLARE_EMAIL_SETUP.md](./CLOUDFLARE_EMAIL_SETUP.md)

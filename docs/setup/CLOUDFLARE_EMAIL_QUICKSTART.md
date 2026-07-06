@@ -6,6 +6,17 @@
 - ✅ Webhook endpoint updated to support Cloudflare
 - ✅ Code committed and pushed
 
+## 🔐 Required: Shared Secret
+
+The webhook is fail-closed — it rejects any request without a matching secret (HTTP 401). Before it will accept email, you must:
+
+1. Generate a secret: `openssl rand -hex 32`
+2. Add it as an **encrypted variable** named `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` in the Email Worker (the Worker sends it as the `x-astrid-webhook-secret` header).
+3. Add the **same value** to Vercel as env var `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` for the **Production** environment.
+4. Trigger a fresh production deployment so Vercel picks up the new var.
+
+The value must be byte-identical in Cloudflare and Vercel (watch for a trailing newline or space).
+
 ## ⚠️ One DNS Change Required
 
 **Update SPF Record** in Cloudflare Dashboard:
@@ -55,7 +66,8 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Cloudflare-Email-Worker/2.0'
+          'User-Agent': 'Cloudflare-Email-Worker/2.0',
+          'x-astrid-webhook-secret': env.CLOUDFLARE_EMAIL_WEBHOOK_SECRET
         },
         body: JSON.stringify(emailData)
       });
@@ -169,6 +181,13 @@ dig TXT astrid.cc | grep spf1
 # Should show: include:_spf.resend.com
 ```
 
+### Issue: Webhook response: 401 / Unauthorized
+**Cause**: The `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` shared secret is missing or mismatched.
+**Fix**:
+1. Confirm the Worker has an encrypted `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` variable and sends it as the `x-astrid-webhook-secret` header.
+2. Confirm the same value is set in Vercel Production (byte-identical — no trailing newline/space).
+3. If you just added the Vercel var, trigger a fresh production deployment so it takes effect.
+
 ### Issue: Task not created
 **Check**:
 1. Email from address is valid user OR enable placeholder users
@@ -211,9 +230,10 @@ All astrid.cc emails forward to `jon@gracefultools.com`:
 
 **Status**: ✅ Code ready, just need to:
 1. Update SPF record (add Resend)
-2. Deploy Cloudflare Email Worker
-3. Configure email forwarding routes
-4. Test!
+2. Set `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` in the Worker (encrypted var) AND in Vercel Production, then redeploy
+3. Deploy Cloudflare Email Worker
+4. Configure email forwarding routes
+5. Test!
 
 ---
 

@@ -8,7 +8,7 @@ The app uses **NextAuth.js** with the following authentication methods:
 
 1. **Google OAuth**: Sign in with Google account (automatic email verification)
 2. **WebAuthn passkeys**: Passwordless sign-in/sign-up with platform authenticator
-3. **Apple Sign-In** (iOS only): Custom endpoint at `/api/auth/apple` that verifies Apple identity tokens
+3. **Apple Sign-In** (iOS only): Custom endpoint at `/api/auth/apple` that verifies Apple identity tokens against Apple's JWKS (issuer + signature) plus `aud` (must equal our client id), `email`, and `email_verified`. The iOS Google path (`/api/auth/google`) similarly verifies the Google `idToken` (`aud` + `email_verified`).
 4. **Invitations**: Users can be invited to lists via email (creates placeholder users if email not registered)
 
 Email/password authentication was removed in 2026-04. See `docs/AUTHENTICATION.md` for the full architecture.

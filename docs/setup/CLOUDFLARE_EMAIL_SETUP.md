@@ -93,7 +93,8 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Cloudflare-Email-Worker/2.0'
+          'User-Agent': 'Cloudflare-Email-Worker/2.0',
+          'x-astrid-webhook-secret': env.CLOUDFLARE_EMAIL_WEBHOOK_SECRET
         },
         body: JSON.stringify(emailData)
       });
@@ -118,6 +119,10 @@ export default {
 - ✅ **Better error handling** - Full server logs and debugging
 - ✅ **Testable** - Can write unit tests for the MIME parser
 - ✅ **Version control** - Parser changes tracked in git
+
+**Required — add the webhook secret variable:**
+
+In the Worker's **Settings → Variables**, add an **encrypted** variable named `CLOUDFLARE_EMAIL_WEBHOOK_SECRET`. The Worker sends its value as the `x-astrid-webhook-secret` header. The webhook is fail-closed: without a matching secret it returns HTTP 401. Generate the value with `openssl rand -hex 32` and use the **same value** in Vercel Production (see Step 3.2).
 
 5. Click **Save and Deploy**
 6. Return to Routes and finish creating the route
@@ -189,7 +194,10 @@ RESEND_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 2. Add:
    - `RESEND_API_KEY`: Your Resend API key
    - `FROM_EMAIL`: `noreply@astrid.cc`
+   - `CLOUDFLARE_EMAIL_WEBHOOK_SECRET`: the **same** value set in the Email Worker (byte-identical — no trailing newline/space)
 3. Redeploy application
+
+> **Important**: Vercel binds env vars at deploy time. After adding `CLOUDFLARE_EMAIL_WEBHOOK_SECRET`, trigger a fresh production deployment or the running deployment will keep rejecting inbound email with HTTP 401.
 
 ## Step 4: Testing Both Services
 
@@ -260,6 +268,15 @@ TXT _dmarc v=DMARC1; p=none; rua=mailto:dmarc@astrid.cc
 - ✅ **FIXED**: Webhook now supports Cloudflare Email Worker format
 - The webhook automatically detects Cloudflare via `User-Agent` or `cf-ray` headers
 - Ensure you're using the updated webhook code
+
+### Issue: 401 Unauthorized
+
+**Symptom**: Worker logs show "401" response from webhook; no task created
+
+**Solution**: The `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` shared secret is missing or mismatched.
+- Confirm the Worker has an encrypted `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` variable and sends it as the `x-astrid-webhook-secret` header
+- Confirm the same value is set in Vercel Production, byte-identical (no trailing newline/space)
+- If you just added the Vercel var, trigger a fresh production deployment so it takes effect
 
 ### Issue: Emails Not Received
 
@@ -354,32 +371,38 @@ support@astrid.cc → Forward to jon@gracefultools.com
 *@astrid.cc → Catch-all forward to jon@gracefultools.com
 ```
 
-### Webhook Security
+### Webhook Security (Required)
 
-Add authentication to your Email Worker:
+The webhook is **fail-closed**: the Cloudflare Email Worker branch requires a shared secret. If the secret is unset or mismatched, the webhook responds with HTTP 401 `{"error":"Unauthorized"}` and no task is created.
+
+The Email Worker must send the secret as the `x-astrid-webhook-secret` header:
 
 ```javascript
-// In Worker code
-const WEBHOOK_SECRET = env.WEBHOOK_SECRET; // Set in Worker environment variables
-
+// In Worker code — CLOUDFLARE_EMAIL_WEBHOOK_SECRET is an encrypted Worker variable
 const response = await fetch(webhookUrl, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-Webhook-Secret': WEBHOOK_SECRET
+    'x-astrid-webhook-secret': env.CLOUDFLARE_EMAIL_WEBHOOK_SECRET
   },
   body: JSON.stringify(emailData)
 });
 ```
 
-Update webhook to verify secret:
+The webhook verifies the secret:
 ```typescript
 // In app/api/webhooks/email/route.ts
-const secret = request.headers.get('x-webhook-secret');
-if (secret !== process.env.CLOUDFLARE_WEBHOOK_SECRET) {
-  return new Response('Unauthorized', { status: 401 });
+const secret = request.headers.get('x-astrid-webhook-secret');
+if (secret !== process.env.CLOUDFLARE_EMAIL_WEBHOOK_SECRET) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 ```
+
+**Setup:**
+1. Generate the value: `openssl rand -hex 32`
+2. Add it as an encrypted `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` variable in the Email Worker.
+3. Set the **same** value in Vercel as `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` (Production), byte-identical.
+4. Trigger a fresh production deployment so Vercel picks up the var.
 
 ## Monitoring & Maintenance
 

@@ -82,9 +82,11 @@ GoogleProvider({
 })
 ```
 
+On iOS, the app posts a Google `idToken` to `/api/auth/google` instead of going through the web OAuth flow. That endpoint verifies the id token against Google's JWKS (issuer + signature) and additionally checks `aud` (must equal our client id) and `email_verified`. See `lib/auth/google-identity.ts`.
+
 ### Apple Sign-In (iOS only)
 
-iOS apps post their Apple identity token to `/api/auth/apple`. The endpoint verifies the token against Apple's JWKS at `https://appleid.apple.com/auth/keys` and creates or links the user account directly via Prisma. This route does **not** go through NextAuth — it issues its own session cookie.
+iOS apps post their Apple identity token to `/api/auth/apple`. The endpoint verifies the token against Apple's JWKS at `https://appleid.apple.com/auth/keys` (issuer + signature) and additionally checks `aud` (must equal our client id), `email`, and `email_verified`, then creates or links the user account directly via Prisma. This route does **not** go through NextAuth — it issues its own session cookie. See `lib/auth/apple-identity.ts`.
 
 ### WebAuthn / Passkeys (web)
 
@@ -125,7 +127,9 @@ There is no `password` column.
 - Email addresses are normalized to lowercase
 - JWT tokens are encrypted with `NEXTAUTH_SECRET`
 - CSRF protection is enabled by default
-- Apple identity tokens are verified against Apple's JWKS (issuer + signature checks)
+- Apple and Google identity/id tokens are verified against the provider's JWKS (issuer + signature) plus `aud` (must equal our client id), `email`, and `email_verified` — closing an account-takeover gap
+- OAuth access/refresh tokens are stored hashed at rest (SHA-256) with dual-read (lookup matches the hash or legacy plaintext during migration); see `lib/oauth/oauth-token-manager.ts`
+- MCP tokens are dual-stored: the `token` column holds the SHA-256 hash (used for lookup) and `tokenEncrypted` holds the AES-256-GCM ciphertext (used to reveal/reuse the plaintext); see `lib/mcp-token.ts`
 - WebAuthn challenges are signed and time-bound
 
 ## Debugging

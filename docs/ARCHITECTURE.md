@@ -22,7 +22,7 @@ Astrid is a task management application built with clean separation of concerns 
 ### AI & Automation
 - **Model Context Protocol (MCP)** for external AI tool access
 - **AI Coding Agent** with GitHub integration
-- Support for Claude, OpenAI, and Gemini APIs
+- Support for Claude, OpenAI, Gemini, and GitHub Copilot APIs
 - **AI Orchestration Service** for multi-provider failover
 
 ### Email & Notifications
@@ -137,7 +137,7 @@ export function TaskManager() {
 ### AI Integration
 - **AI Coding Agent**: Automated code generation and GitHub PR creation
 - **MCP Integration**: External AI tools can access tasks via token-based API
-- **Multiple AI Providers**: Claude, OpenAI, Gemini support
+- **Multiple AI Providers**: Claude, OpenAI, Gemini, GitHub Copilot support
 
 ### Responsive Design
 - **Layout System**: 1-column, 2-column, 3-column responsive breakpoints
@@ -233,10 +233,10 @@ tests/
    - Cache versioning: `astrid-static-v1.0.2`, `astrid-dynamic-v1.0.2`
 
 2. **API Key Cache** ([lib/api-key-cache.ts](../lib/api-key-cache.ts))
-   - In-memory cache for decrypted AI service API keys (Claude, OpenAI, Gemini)
+   - In-memory cache for decrypted AI service API keys (Claude, OpenAI, Gemini, GitHub Copilot)
    - 5-minute TTL to avoid repeated database queries and decryption
    - Automatic cache invalidation on key updates
-   - Secure decryption using AES-256-CBC encryption
+   - Secure decryption using AES-256-GCM encryption ([lib/ai/credential-cipher.ts](../lib/ai/credential-cipher.ts); reads legacy AES-256-CBC rows for backward compatibility)
 
 3. **Redis Cache** ([lib/redis.ts](../lib/redis.ts))
    - Production: Upstash Redis (serverless-friendly REST API)
@@ -469,7 +469,7 @@ POST /api/cron/reminders
 6. **Review & Merge** → User reviews and merges via comment ("merge")
 
 ### **AI Orchestration Service** ([services/implementations/ai-orchestration.service.ts](../services/implementations/ai-orchestration.service.ts))
-- Multi-provider support (Claude, OpenAI, Gemini)
+- Multi-provider support (Claude, OpenAI, Gemini, GitHub Copilot)
 - Automatic provider failover
 - Cached API keys for performance
 - Tool calling and function execution
@@ -496,9 +496,10 @@ POST /api/cron/reminders
 9. `get_task_comments`: Get all comments
 10. `get_context`: Get user and workspace context
 
-#### **Token Management**
+#### **Token Management** ([lib/mcp-token.ts](../lib/mcp-token.ts))
 - `MCPToken` model: User-specific access tokens
 - Access levels: `READ`, `WRITE`, `ADMIN`
+- Dual storage: the `token` column stores a SHA-256 hash (used for constant-time lookup), and the `tokenEncrypted` column stores the AES-256-GCM ciphertext of the raw token (so it can be re-displayed/reused)
 - Token expiration and revocation support
 - API endpoints:
   - `GET /api/mcp/tokens`: List user's tokens
@@ -671,14 +672,17 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 
 #### **Apple Sign-In (iOS)**
 - Custom endpoint at `/api/auth/apple`
-- Verifies Apple identity tokens against Apple's JWKS
+- Verifies Apple identity tokens against Apple's JWKS ([lib/auth/apple-identity.ts](../lib/auth/apple-identity.ts))
+- Beyond issuer + JWKS signature, verifies the token's `aud` (audience), `email`, and `email_verified` claims to prevent account-takeover
+- Google iOS sign-in performs the same `aud` + `email` + `email_verified` verification ([lib/auth/google-identity.ts](../lib/auth/google-identity.ts))
 - Issues a session cookie directly (does not go through NextAuth)
 - Password reset functionality
 
 #### **Encryption**
-- API keys encrypted with AES-256-CBC
+- AI credentials / API keys encrypted with AES-256-GCM ([lib/ai/credential-cipher.ts](../lib/ai/credential-cipher.ts); reads legacy AES-256-CBC rows for backward compatibility)
 - Environment-based encryption keys
 - Secure token generation (nanoid)
+- OAuth access/refresh tokens are hashed at rest with SHA-256 (dual-read for existing plaintext rows) ([lib/oauth/oauth-token-manager.ts](../lib/oauth/oauth-token-manager.ts))
 - VAPID keys for push notifications
 
 #### **Rate Limiting** ([lib/rate-limiter.ts](../lib/rate-limiter.ts))
@@ -758,13 +762,16 @@ npm run predeploy:quick  # TypeScript + ESLint only
 - Migrations: `npx prisma migrate dev` (development)
 - Migrations: `npx prisma migrate deploy` (production)
 - Schema sync: `npx prisma db push` (development only)
+- Recent migrations:
+  - `perf_indexes` — adds performance indexes for frequently queried fields
+  - `mcp_token_encrypted` — adds the `MCPToken.tokenEncrypted` column for AES-256-GCM token storage
 
 #### **Key Models**
 - `User`: Authentication and user settings
 - `Task`: Task data with assignments and metadata
 - `TaskList`: List organization and permissions
 - `Comment`: Task comments with file attachments
-- `MCPToken`: External API access tokens
+- `MCPToken`: External API access tokens (`token` = SHA-256 hash for lookup, `tokenEncrypted` = AES-256-GCM ciphertext)
 - `ReminderQueue`: Scheduled reminder queue
 - `PushSubscription`: Web push notification subscriptions
 - `GitHubIntegration`: GitHub App installation data
@@ -808,7 +815,7 @@ npm run predeploy:quick  # TypeScript + ESLint only
 - **Offline Sync**: Client-side queue prevents data loss during network issues
 
 ### Security Benefits
-- **Encrypted API Keys**: AES-256-CBC encryption for sensitive credentials
+- **Encrypted API Keys**: AES-256-GCM encryption for sensitive credentials (legacy AES-256-CBC rows still readable)
 - **Rate Limiting**: Protection against abuse and DDoS
 - **JWT Sessions**: Secure authentication with NextAuth.js
 - **CORS Protection**: Configured security headers
@@ -909,7 +916,7 @@ This architecture provides a **production-ready, scalable, and maintainable** fo
 - ✅ **Offline-first** capabilities with IndexedDB and service workers
 - ✅ **Real-time collaboration** via Server-Sent Events and Redis pub/sub
 - ✅ **Multi-layer caching** for optimal performance
-- ✅ **AI integration** with Claude, OpenAI, and Gemini
+- ✅ **AI integration** with Claude, OpenAI, Gemini, and GitHub Copilot
 - ✅ **Email integration** (bidirectional) for task creation and notifications
 - ✅ **Push notifications** for reminders and digests
 - ✅ **Automated background jobs** via Vercel Cron

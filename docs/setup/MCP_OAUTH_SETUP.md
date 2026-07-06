@@ -459,6 +459,11 @@ Enable detailed logging:
 - **Token expiry:** Tokens expire and are refreshed automatically
 - **Revocation:** Disable OAuth client in Astrid to revoke access immediately
 
+### Token Storage at Rest
+
+- **MCP tokens (dual storage):** the `token` column stores a SHA-256 hash (used for lookup) and a separate `tokenEncrypted` column stores the AES-256-GCM ciphertext (used to reveal/reuse the plaintext).
+- **OAuth access/refresh tokens:** stored hashed at rest (SHA-256) with dual-read — lookup matches either the hash or legacy plaintext during migration.
+
 ## Advanced Configuration
 
 ### Multiple Lists

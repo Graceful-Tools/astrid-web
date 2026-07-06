@@ -12,7 +12,7 @@ Before you begin, ensure you have:
 - [ ] An Astrid account with admin access
 - [ ] A GitHub repository you want to work with
 - [ ] GitHub repository admin permissions
-- [ ] API key for at least one AI service (Claude, OpenAI, or Gemini)
+- [ ] API key for at least one AI service (Claude, OpenAI, Gemini, or GitHub Copilot)
 
 ---
 
@@ -25,6 +25,7 @@ Before you begin, ensure you have:
    - **Claude**: Get API key from [console.anthropic.com](https://console.anthropic.com)
    - **OpenAI**: Get API key from [platform.openai.com](https://platform.openai.com)
    - **Gemini**: Get API key from [aistudio.google.com](https://aistudio.google.com)
+   - **GitHub Copilot**: OpenAI-compatible provider (base URL `https://api.githubcopilot.com`)
 3. **Save and test** the connection
 
 ### **Step 2: Create GitHub App**

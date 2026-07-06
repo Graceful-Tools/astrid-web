@@ -122,7 +122,7 @@ The `archive/` directory contains historical documentation preserved for referen
 - ✅ **Simplified AI Agent System** - Single coding agent (removed the Astrid Alpha / Gemini *agent* personas; the Gemini API key option remains — see Multi-AI Support below)
 - ✅ **Token-Level MCP Permissions** - Simplified access control at token provisioning level
 - ✅ **GitHub Integration** - Full coding agent with PR workflows
-- ✅ **Multi-AI Support** - Claude, OpenAI, and Gemini APIs
+- ✅ **Multi-AI Support** - Claude, OpenAI, Gemini, and GitHub Copilot APIs
 - ✅ **Production Ready** - All migrations deployed and tested
 
 **Documentation Status:** ✅ **Up to Date** (Last reviewed: 2026-04-11)

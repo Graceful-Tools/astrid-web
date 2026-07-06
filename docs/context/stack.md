@@ -19,7 +19,7 @@
 - **Provider**: NextAuth.js (latest)
 - **Strategies**: Google OAuth + WebAuthn passkeys; Apple Sign-In on iOS
 - **Adapter**: @next-auth/prisma-adapter
-- **Encryption**: Node.js crypto (AES-256-CBC)
+- **Encryption**: Node.js crypto (AES-256-GCM for AI credentials; legacy AES-256-CBC rows still readable)
 - **Rate Limiting**: Custom implementation with IP/user tracking
 
 ## Testing Stack
@@ -44,6 +44,7 @@
 - **OpenAI**: 5.15.0 (GPT-4, GPT-3.5)
 - **Anthropic**: Claude API (Sonnet, Opus)
 - **Google**: Gemini API
+- **GitHub Copilot**: OpenAI-compatible API (base URL `https://api.githubcopilot.com`)
 - **MCP**: Model Context Protocol for external tools
 - **GitHub Integration**: Octokit for repository access
 

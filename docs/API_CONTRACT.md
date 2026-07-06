@@ -48,6 +48,8 @@ When building mobile or external integrations, always use `/api/v1/` routes. The
 ### POST `/api/auth/apple`
 Sign in with Apple.
 
+The `identityToken` is verified against Apple's JWKS (issuer + signature) and additionally checked for `aud` (must equal our client id), `email`, and `email_verified`.
+
 **Request:**
 ```json
 {
@@ -61,6 +63,8 @@ Sign in with Apple.
 
 ### POST `/api/auth/google`
 Sign in with Google.
+
+The `idToken` is verified against Google's JWKS (issuer + signature) and additionally checked for `aud` (must equal our client id), `email`, and `email_verified`.
 
 **Request:**
 ```json
@@ -352,7 +356,7 @@ Search for users by name or email.
 ```
 
 ### GET `/api/users/{userId}/profile`
-Get a user's public profile.
+Get a user's public profile. The `email` field is returned only when the requester is viewing their own profile; for other users' profiles it is omitted.
 
 ---
 
@@ -490,7 +494,7 @@ Server-Sent Events endpoint for real-time updates.
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | id | string | yes | UUID |
-| email | string | yes | |
+| email | string | own profile only | Returned only when viewing your own profile; omitted for other users |
 | name | string | no | |
 | image | string | no | Avatar URL |
 

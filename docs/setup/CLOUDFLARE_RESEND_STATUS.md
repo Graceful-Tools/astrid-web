@@ -9,6 +9,7 @@
 - ✅ **CRLF line ending support** - Fixed bodyStart index: -1 issue
 - ✅ **Tasks created from emails** - `remindme@astrid.cc` fully functional
 - ✅ **Testing confirmed** - "test 10 - should work now!" worked perfectly
+- ⚠️ **Required shared secret** - The webhook is now fail-closed. The Worker must send the `x-astrid-webhook-secret` header (from its encrypted `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` variable) and the same `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` value must exist in Vercel Production, or inbound email is rejected with HTTP 401. Vercel binds env vars at deploy time, so redeploy after adding it.
 
 ### Code & Documentation
 - ✅ **Webhook endpoint** supports Cloudflare, Resend, and Mailgun

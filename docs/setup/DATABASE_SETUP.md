@@ -80,6 +80,8 @@ npx prisma db push
 npx prisma migrate deploy
 ```
 
+> **Recent migrations:** `perf_indexes` adds performance indexes for frequently queried fields, and `mcp_token_encrypted` adds the `MCPToken.tokenEncrypted` column (AES-256-GCM ciphertext for token reuse, alongside the SHA-256 `token` hash used for lookup). Both are applied by `npx prisma migrate deploy`.
+
 ## 🔄 **Migration Commands**
 
 ### Development
