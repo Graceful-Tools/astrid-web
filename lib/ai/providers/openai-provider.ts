@@ -90,6 +90,10 @@ export interface OpenAIProviderOptions extends AIProviderCallOptions {
   hasRepository?: boolean
   /** Model to use (optional, uses API default if not specified) */
   model?: string
+  /** Override the API base (OpenAI-compatible providers, e.g. GitHub Copilot) */
+  baseUrl?: string
+  /** Extra headers required by the provider (e.g. Copilot integration id) */
+  extraHeaders?: Record<string, string>
 }
 
 /**
@@ -124,6 +128,8 @@ export async function callOpenAI(options: OpenAIProviderOptions): Promise<AIProv
     hasRepository = false,
     logger = defaultLogger,
     model,
+    baseUrl = 'https://api.openai.com/v1',
+    extraHeaders,
   } = options
 
   const useTools = hasRepository && !jsonOnly && !!executeToolCallback
@@ -156,11 +162,12 @@ export async function callOpenAI(options: OpenAIProviderOptions): Promise<AIProv
       requestBody.response_format = { type: 'json_object' }
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
+        ...(extraHeaders ?? {}),
       },
       body: JSON.stringify(requestBody),
     })

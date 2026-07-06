@@ -21,7 +21,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('v1.users.me.ai-credentials')
 
 const SaveSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
   apiKey: z.string().min(1).optional(),
   gatewayUrl: z.string().min(1).optional(),
   authToken: z.string().optional(),
@@ -31,7 +31,7 @@ const SaveSchema = z.object({
 )
 
 const DeleteSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
 })
 
 const getKeyPreview = (k: string) =>

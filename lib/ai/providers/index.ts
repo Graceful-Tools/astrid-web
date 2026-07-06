@@ -34,10 +34,17 @@ export {
   type GeminiProviderOptions,
 } from './gemini-provider'
 
+export {
+  callCopilot,
+  COPILOT_REPOSITORY_TOOLS,
+  type CopilotProviderOptions,
+} from './copilot-provider'
+
 // Import providers for the unified interface
 import { callClaude, type ClaudeProviderOptions } from './claude-provider'
 import { callOpenAI, type OpenAIProviderOptions } from './openai-provider'
 import { callGemini, type GeminiProviderOptions } from './gemini-provider'
+import { callCopilot, type CopilotProviderOptions } from './copilot-provider'
 import type { AIServiceType, AIProviderResponse, ToolExecutionCallback } from './types'
 import type { ClaudeSystemBlock } from '../clients/claude'
 import type { AILogger } from '../types/logger'
@@ -147,6 +154,21 @@ export async function callProvider(options: UnifiedProviderOptions): Promise<AIP
         model,
       }
       return callGemini(geminiOptions)
+    }
+
+    case 'copilot': {
+      const copilotOptions: CopilotProviderOptions = {
+        apiKey,
+        prompt,
+        maxTokens,
+        jsonOnly,
+        userId,
+        logger,
+        hasRepository,
+        executeToolCallback,
+        model,
+      }
+      return callCopilot(copilotOptions)
     }
 
     default:

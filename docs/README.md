@@ -60,8 +60,6 @@ The native iOS app is maintained in a separate repository:
 - **iOS Documentation:** See the iOS repository for development guides and architecture
 
 ### 🔒 Security & Files
-- **[Secure File Migration](./SECURE_FILE_MIGRATION.md)** - File handling security
-- **[Secure Upload Example](./SECURE_UPLOAD_EXAMPLE.md)** - Secure file upload implementation
 
 ### 🤖 AI Prompts
 - **[Planning Mode](./prompts/01-plan.md)** - AI planning prompts
@@ -121,7 +119,7 @@ The `archive/` directory contains historical documentation preserved for referen
 - ✅ **Chat Messaging** - Per-list and My Tasks channels with real-time SSE, file attachments, @mentions
 - ✅ **Astrid AI Assistant** - Built-in agent with chat history, task context, file reading, and API tool access
 - ✅ **Agent Typing Indicators** - Real-time "thinking..." indicators via SSE for both web and iOS
-- ✅ **Simplified AI Agent System** - Single coding agent (removed Astrid Alpha, Google Gemini)
+- ✅ **Simplified AI Agent System** - Single coding agent (removed the Astrid Alpha / Gemini *agent* personas; the Gemini API key option remains — see Multi-AI Support below)
 - ✅ **Token-Level MCP Permissions** - Simplified access control at token provisioning level
 - ✅ **GitHub Integration** - Full coding agent with PR workflows
 - ✅ **Multi-AI Support** - Claude, OpenAI, and Gemini APIs

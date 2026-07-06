@@ -10,12 +10,12 @@ const log = createLogger('user.ai-model-preferences')
 
 
 const UpdateModelSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
   model: z.string().min(1).max(100)
 })
 
 const ResetModelSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw'])
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw'])
 })
 
 /**

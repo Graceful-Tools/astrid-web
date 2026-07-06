@@ -30,7 +30,7 @@ const WebhookSettingsSchema = z.object({
     'comment.created',
     'task.updated'
   ])).optional(),
-  agents: z.array(z.enum(['claude', 'openai', 'gemini'])).optional(),
+  agents: z.array(z.enum(['claude', 'openai', 'gemini', 'copilot'])).optional(),
   regenerateSecret: z.boolean().optional()
 })
 

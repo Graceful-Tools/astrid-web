@@ -81,6 +81,19 @@ const AI_SERVICES: AIServiceConfig[] = [
     },
     documentation: 'https://aistudio.google.com/apikey'
   },
+  {
+    id: 'copilot',
+    name: 'GitHub Copilot',
+    description: 'GitHub Copilot (OpenAI-compatible chat API; requires an active Copilot subscription token)',
+    icon: '',
+    baseUrl: 'https://api.githubcopilot.com',
+    testEndpoint: '/models',
+    keyFormat: {
+      prefix: '',
+      pattern: /^.+$/
+    },
+    documentation: 'https://docs.github.com/en/copilot'
+  },
 ]
 
 interface APIKeyData {

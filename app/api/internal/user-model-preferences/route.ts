@@ -10,7 +10,7 @@ const log = createLogger('internal.user-model-preferences')
 
 const RequestSchema = z.object({
   userId: z.string(),
-  service: z.enum(['claude', 'openai', 'gemini'])
+  service: z.enum(['claude', 'openai', 'gemini', 'copilot'])
 })
 
 /**

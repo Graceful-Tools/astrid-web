@@ -20,7 +20,7 @@ const log = createLogger('v1.users.me.ai-credentials.test')
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
 
 const TestSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
 })
 
 function decrypt(d: { encrypted: string; iv: string }): string {

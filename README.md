@@ -162,11 +162,6 @@ Open [http://localhost:3000](http://localhost:3000)
 
 The application uses NextAuth.js with JWT sessions for authentication:
 
-**Test the authentication system:**
-```bash
-./scripts/check-auth.sh
-```
-
 **Important:** The system uses JWT sessions (not database sessions). See [`docs/AUTHENTICATION.md`](./docs/AUTHENTICATION.md) for details.
 
 ## Database Setup
@@ -251,9 +246,9 @@ Astrid includes a comprehensive reminder system with multiple layers (database, 
 
 ### Debug Interface
 
-Navigate to `/debug-reminders` when running the development server:
+Navigate to `/[locale]/debug-reminders` (e.g. `/en/debug-reminders`) when running the development server:
 ```
-http://localhost:3000/debug-reminders
+http://localhost:3000/en/debug-reminders
 ```
 
 ### Quick Testing Steps
@@ -341,7 +336,7 @@ ORDER BY r."scheduledFor";
 
 ### Testing Files
 
-- **Debug Interface**: `/app/debug-reminders/page.tsx`
+- **Debug Interface**: `app/[locale]/debug-reminders/page.tsx`
 - **Service Worker**: `/public/sw.js`
 
 ## Documentation
@@ -444,7 +439,7 @@ POST /api/tasks/[id]/copy          # Copy individual task
 **Public Lists Discovery:**
 ```bash
 GET /api/lists/public              # Get popular public lists
-GET /api/lists/public/search       # Search public lists
+GET /api/lists/public?q=<term>     # Search public lists (q param)
 GET /api/lists/[id]/preview        # Preview public list details
 ```
 

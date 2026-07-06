@@ -13,7 +13,7 @@ const log = createLogger('user.ai-api-keys.test')
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
 
 const TestAPIKeySchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'openclaw'])
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw'])
 })
 
 // Decryption function
