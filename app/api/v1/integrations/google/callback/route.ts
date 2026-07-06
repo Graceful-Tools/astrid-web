@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   log.info({ userId, email: info?.email }, 'Google Tasks sync connected')
   return new NextResponse(
     `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>Google Tasks connected ✓</h2><p>${info?.email ?? ''} — you can return to Astrid.</p>
+      <h2>Google Tasks connected ✓</h2><p>${escapeHtml(info?.email ?? '')} — you can return to Astrid.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )

@@ -127,7 +127,7 @@ export const POST = withAuth(
         return NextResponse.json({ error: 'remoteId container does not match link' }, { status: 400 })
       }
       const googleTaskId = String(remoteId).split(':').pop()
-      const { status, json } = await googleRequest(token, 'PATCH', `${listPath}/${googleTaskId}`, payload)
+      const { status, json } = await googleRequest(token, 'PATCH', `${listPath}/${encodeURIComponent(googleTaskId as string)}`, payload)
       if (status !== 200) return NextResponse.json({ error: 'Google error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
       return NextResponse.json({ remoteId, remoteUpdatedAt: json.updated })
     }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
-import { githubRequest, githubTokenFor } from '@/lib/sync/github'
+import { githubRequest, githubTokenFor, isValidRepoId } from '@/lib/sync/github'
 
 /**
  * GET /api/v1/sync/github/comments?linkId&remoteId — an issue's comments.
@@ -16,6 +16,7 @@ export const GET = withAuth(
     if (!linkId || !remoteId) return NextResponse.json({ error: 'linkId and remoteId required' }, { status: 400 })
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
     if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    if (!isValidRepoId(link.remoteContainerId)) return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
@@ -60,6 +61,7 @@ export const POST = withAuth(
     }
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
     if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    if (!isValidRepoId(link.remoteContainerId)) return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
@@ -85,6 +87,7 @@ export const PATCH = withAuth(
     }
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
     if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    if (!isValidRepoId(link.remoteContainerId)) return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
@@ -107,6 +110,7 @@ export const DELETE = withAuth(
     if (!linkId || !commentId) return NextResponse.json({ error: 'linkId and commentId required' }, { status: 400 })
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
     if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
+    if (!isValidRepoId(link.remoteContainerId)) return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 

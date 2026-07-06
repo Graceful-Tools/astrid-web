@@ -242,9 +242,9 @@ export async function broadcastToUsers(userIds: string[], event: any) {
     }
 
     const userConnections = connections.get(userId)
-    log.info(`[SSE] User ${userId} has ${userConnections?.size || 0} connections`)
+    log.debug(`[SSE] User ${userId} has ${userConnections?.size || 0} connections`)
     if (userConnections && userConnections.size > 0) {
-      log.info(`[SSE] Broadcasting ${event.type} to ${userConnections.size} connections for user ${userId}`)
+      log.debug(`[SSE] Broadcasting ${event.type} to ${userConnections.size} connections for user ${userId}`)
 
       userConnections.forEach((connection, connectionId) => {
         if (connection.isAlive) {
@@ -252,7 +252,7 @@ export async function broadcastToUsers(userIds: string[], event: any) {
             connection.controller.enqueue(encoder.encode(sseMessage))
             connection.lastPing = Date.now()
             connection.lastEventCheck = Date.now()
-            log.info(`[SSE] ✅ Sent ${event.type} to connection ${connectionId}`)
+            log.debug(`[SSE] ✅ Sent ${event.type} to connection ${connectionId}`)
           } catch (error) {
             log.error({ err: error }, `[SSE] ❌ Failed to send SSE to user ${userId} connection ${connectionId}:`)
             // Mark connection as dead for cleanup
@@ -260,12 +260,12 @@ export async function broadcastToUsers(userIds: string[], event: any) {
             deadConnectionIds.push({userId, connectionId})
           }
         } else {
-          log.info(`[SSE] ⚠️  Connection ${connectionId} is not alive, skipping`)
+          log.debug(`[SSE] ⚠️  Connection ${connectionId} is not alive, skipping`)
           deadConnectionIds.push({userId, connectionId})
         }
       })
     } else {
-      log.info(`[SSE] ⚠️  No active connections for user ${userId} (event cached for reconnection)`)
+      log.debug(`[SSE] ⚠️  No active connections for user ${userId} (event cached for reconnection)`)
     }
   })
 

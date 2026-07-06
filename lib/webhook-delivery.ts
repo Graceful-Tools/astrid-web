@@ -8,6 +8,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { decryptField } from "@/lib/field-encryption"
 import { generateWebhookSignature } from './webhook-signature'
 import { createLogger } from '@/lib/logger'
 
@@ -411,8 +412,8 @@ export async function retryDelivery(
       userId: log.userId,
       taskId: log.taskId,
       event: log.event,
-      url: config.webhookUrl,
-      secret: config.webhookSecret,
+      url: decryptField(config.webhookUrl) || config.webhookUrl,
+      secret: decryptField(config.webhookSecret) || config.webhookSecret,
       payload: newPayload
     })
   } catch (error) {
