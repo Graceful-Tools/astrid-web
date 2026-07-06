@@ -23,6 +23,7 @@
  */
 
 import type { PrismaClient } from '@prisma/client'
+import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
@@ -147,7 +148,7 @@ export async function notifyTaskAssignment(
       if (!mcpToken) {
         mcpToken = await prisma.mCPToken.create({
           data: {
-            token: `ai-agent-${agentUser.id}-${Date.now()}`,
+            ...mcpTokenStorageFields(`ai-agent-${agentUser.id}-${Date.now()}`),
             userId: agentUser.id,
             permissions: ['read', 'write'],
             description: `Auto-generated token for ${agentName}`,
@@ -186,7 +187,7 @@ export async function notifyTaskAssignment(
       mcp: {
         baseUrl: getBaseUrl(),
         operationsEndpoint: '/api/mcp/operations',
-        accessToken: mcpToken?.token || 'no-mcp-token',
+        accessToken: (mcpToken && resolveMCPPlaintext(mcpToken)) || 'no-mcp-token',
         availableOperations: [
           'get_shared_lists',
           'get_list_tasks',

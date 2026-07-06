@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
 import { prisma } from "@/lib/prisma"
 import { generateMCPToken } from "@/lib/mcp-token-utils"
 import { createLogger } from '@/lib/logger'
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (existingToken) {
       return NextResponse.json({
-        token: existingToken.token,
+        token: resolveMCPPlaintext(existingToken),
         userId: existingToken.userId
       })
     }
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     const mcpToken = await prisma.mCPToken.create({
       data: {
-        token,
+        ...mcpTokenStorageFields(token),
         userId,
         permissions: ["read", "write"], // Full permissions for user's own data
         description: "Mobile App Token",
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({
-      token: mcpToken.token,
+      token, // plaintext (stored hashed + encrypted)
       userId: mcpToken.userId
     })
 

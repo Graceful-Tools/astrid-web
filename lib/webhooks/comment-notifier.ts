@@ -17,6 +17,7 @@
  */
 
 import type { PrismaClient } from '@prisma/client'
+import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
@@ -109,7 +110,7 @@ export async function notifyCommentOnAssignedTask(
     if (!mcpToken) {
       mcpToken = await prisma.mCPToken.create({
         data: {
-          token: `ai-agent-${task.assignee.id}-${Date.now()}`,
+          ...mcpTokenStorageFields(`ai-agent-${task.assignee.id}-${Date.now()}`),
           userId: task.assignee.id,
           permissions: ['read', 'write'],
           description: `Auto-generated token for ${task.assignee.name}`,
@@ -147,7 +148,7 @@ export async function notifyCommentOnAssignedTask(
       mcp: {
         baseUrl: getBaseUrl(),
         operationsEndpoint: '/api/mcp/operations',
-        accessToken: mcpToken?.token || 'no-mcp-token',
+        accessToken: (mcpToken && resolveMCPPlaintext(mcpToken)) || 'no-mcp-token',
         availableOperations: [
           'get_shared_lists',
           'get_list_tasks',

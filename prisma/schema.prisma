@@ -606,7 +606,8 @@ model PushSubscription {
 
 model MCPToken {
   id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
-  token       String    @unique
+  token       String    @unique  // SHA-256 hash (lookup key); plaintext never stored
+  tokenEncrypted String? // AES-256-GCM of the plaintext, for the return/reuse path
   listId      String?
   userId      String
   permissions String[]

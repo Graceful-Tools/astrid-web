@@ -8,6 +8,7 @@
  */
 
 import { type NextRequest } from 'next/server'
+import { mcpTokenLookup } from "@/lib/mcp-token"
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
@@ -112,7 +113,7 @@ async function validateMCPToken(token: string): Promise<{
 } | null> {
   const mcpToken = await prisma.mCPToken.findFirst({
     where: {
-      token,
+      token: { in: mcpTokenLookup(token) },
       isActive: true,
       OR: [
         { expiresAt: null },

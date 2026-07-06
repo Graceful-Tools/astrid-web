@@ -1,0 +1,1 @@
+ALTER TABLE "MCPToken" ADD COLUMN IF NOT EXISTS "tokenEncrypted" TEXT;

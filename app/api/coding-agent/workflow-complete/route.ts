@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { mcpTokenLookup } from "@/lib/mcp-token"
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { createLogger } from '@/lib/logger'
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Find the MCP token and associated user
     const mcpToken = await prisma.mCPToken.findFirst({
       where: {
-        token,
+        token: { in: mcpTokenLookup(token) },
         isActive: true,
         OR: [
           { expiresAt: null },
