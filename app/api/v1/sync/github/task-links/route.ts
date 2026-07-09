@@ -20,6 +20,36 @@ export const GET = withAuth(
 )
 
 /**
+ * DELETE — detach one exact task/issue link.
+ *
+ * This is intentionally additive to v1: existing GET and PUT clients keep
+ * their original contract, while newer clients can persist transfer/removal
+ * handling without deleting another device's replacement link.
+ */
+export const DELETE = withAuth(
+  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  async (req, auth) => {
+    const params = new URL(req.url).searchParams
+    const astridTaskId = params.get('astridTaskId')
+    const remoteId = params.get('remoteId')
+    if (!astridTaskId || !remoteId) {
+      return NextResponse.json({ error: 'astridTaskId and remoteId required' }, { status: 400 })
+    }
+
+    const result = await prisma.externalTaskLink.deleteMany({
+      where: {
+        userId: auth.userId,
+        provider: 'GITHUB_ISSUES',
+        astridTaskId,
+        remoteId,
+      },
+    })
+
+    return NextResponse.json({ success: true, detached: result.count > 0 })
+  }
+)
+
+/**
  * PUT — upsert a task link after a push/pull.
  * Body: { astridTaskId, remoteId, remoteContainerId, astridUpdatedAt?, remoteUpdatedAt?, metadata? }
  */
