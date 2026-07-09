@@ -250,6 +250,9 @@
   },
   "overrides": {
     "bn.js": ">=5.2.3",
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "next-auth": {
+      "uuid": "$uuid"
+    }
   }
 }
