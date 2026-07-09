@@ -18,6 +18,7 @@ import {
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { getUnifiedSession } from "@/lib/session-utils"
+import { recordTaskCreationComment } from "@/lib/task-update-handler"
 
 const log = createLogger('api.tasks')
 
@@ -544,6 +545,14 @@ export async function POST(request: NextRequest) {
       }
       throw err
     }
+
+    // System comment recording the creation (authorId: null), rendered behind
+    // the task-detail "Show system" toggle. Placed after the successful create
+    // and outside the P2002 catch so an idempotent retry never double-posts.
+    await recordTaskCreationComment({
+      taskId: task.id,
+      creatorName: session.user.name || session.user.email || "Someone",
+    })
 
     if (nonVirtualListIds.length > 0) {
       // Batch-fetch all candidate lists in one round-trip instead of N findUniques.

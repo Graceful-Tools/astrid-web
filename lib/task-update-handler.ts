@@ -144,3 +144,46 @@ export async function recordStateChangeComment(args: {
     return null
   }
 }
+
+/**
+ * Persist a system-authored comment recording that a task was created, e.g.
+ * "Jon Paris created this task". Mirrors recordStateChangeComment: a "system"
+ * comment is simply one with authorId: null (there is no dedicated comment
+ * type), and it renders in the task-detail thread behind the "Show system"
+ * toggle. Call this only from the genuine create paths — never from an
+ * idempotent duplicate-return branch, or a retry would double-post.
+ *
+ * Errors are logged but never thrown — a failed creation comment must never
+ * fail the surrounding task creation.
+ */
+export async function recordTaskCreationComment(args: {
+  taskId: string
+  creatorName: string
+}) {
+  const { taskId, creatorName } = args
+
+  try {
+    const comment = await prisma.comment.create({
+      data: {
+        taskId,
+        authorId: null,
+        content: `${creatorName} created this task`,
+        type: "TEXT",
+      },
+      include: {
+        author: true,
+        secureFiles: true,
+        replies: {
+          include: { author: true, secureFiles: true },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    })
+
+    log.info({ taskId }, "Created task creation comment")
+    return comment
+  } catch (err) {
+    log.error({ err, taskId }, "Failed to create task creation comment")
+    return null
+  }
+}

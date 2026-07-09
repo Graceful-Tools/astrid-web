@@ -19,6 +19,7 @@ import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
+import { recordTaskCreationComment } from '@/lib/task-update-handler'
 
 const log = createLogger('v1.tasks')
 
@@ -532,6 +533,14 @@ export const POST = withAuth(
  * cache invalidation, analytics, response.
  */
 async function handleTaskCreated(req: NextRequest, task: any, auth: AuthContext) {
+  // System comment recording the creation (authorId: null), rendered behind the
+  // task-detail "Show system" toggle. Only genuine creations reach here — the
+  // idempotent duplicate-return branches short-circuit before calling this.
+  await recordTaskCreationComment({
+    taskId: task.id,
+    creatorName: task.creator?.name || task.creator?.email || "Someone",
+  })
+
   if (task.assigneeId && task.assigneeId !== auth.userId) {
     try {
       broadcastToUsers([task.assigneeId], {
