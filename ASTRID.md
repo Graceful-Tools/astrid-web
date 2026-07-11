@@ -395,6 +395,25 @@ Build and all tests pass.
 
 ---
 
+## Agent Working Agreements
+
+Distilled from recurring friction across sessions. These apply to **every** AI agent (Claude, Codex, and others) working in this repo.
+
+### Testing / Workflow
+- **Always use TDD:** write a RED test first, then implement to green. All tests must pass before considering a task complete. (See the detailed RED-GREEN flow in *Coding Workflow → Step 3*.)
+- **Auth is high-risk:** after modifying auth-related files, run the **full web test suite** (`npm run predeploy`) before committing. Behavior-changing "clean" refactors have silently broken auth tests. Prefer the minimal, behavior-preserving change over a broad rewrite.
+
+### Deployment
+- When diagnosing webhook / worker **401** errors, verify environment variables are set **at deploy time** (not just build time) before anything else — recurring 401s traced to deploy-time env-var gaps and were fixed by redeploying with the var present.
+
+### Task Management / Tooling
+- When filing/updating Astrid tasks, use the correct **`listIds`** array field (not `listId`), and double-check **list ID vs task ID** before closing a task. The wrong field orphans tasks and causes `400`s on comment posts.
+
+### Communication Style
+- Keep responses concise; avoid exceeding output token limits during long deploys or multi-file work (overlong turns have truncated sessions). Lead with the outcome, then supporting detail.
+
+---
+
 ## Self-Healing Build System
 
 The codebase includes an agentic self-healing build system that automatically detects, fixes, and escalates issues.
