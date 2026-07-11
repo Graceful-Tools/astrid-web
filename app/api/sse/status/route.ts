@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { isAdmin } from "@/lib/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
-import { authConfig } from "@/lib/auth-config"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('sse.status')
@@ -18,7 +17,7 @@ async function getConnections() {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

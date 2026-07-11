@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { POST } from '@/app/api/lists/[id]/transfer-ownership/route'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth/next'
+import { getServerSession } from 'next-auth'
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
@@ -18,7 +18,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('next-auth/next', () => ({
+vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
 }))
 

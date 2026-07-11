@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
@@ -11,7 +10,7 @@ const log = createLogger('secure-files.[fileId].upload-url')
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
-  const jwtSession = await getServerSession(authConfig)
+  const jwtSession = await getUnifiedSession()
   if (jwtSession?.user?.id) {
     return { user: { id: jwtSession.user.id } }
   }

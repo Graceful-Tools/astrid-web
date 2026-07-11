@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { NextRequest } from "next/server"
-import { authConfig } from "@/lib/auth-config"
 import { authenticateAPI, type AuthContext } from "@/lib/api-auth-middleware"
 import { hasRequiredScopes } from "@/lib/oauth/oauth-scopes"
 import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from "@/lib/sse-utils"
@@ -56,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     // Priority 2: Session-based auth (existing web UI flow)
     if (!session) {
-      session = await getServerSession(authConfig) as SSESession
+      session = await getUnifiedSession() as SSESession
       log.debug({ email: session?.user?.email ?? null }, 'Session result')
 
       // If JWT session validation failed, try database session (for mobile apps)

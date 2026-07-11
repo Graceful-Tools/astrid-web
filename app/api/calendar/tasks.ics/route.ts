@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { createLogger } from '@/lib/logger'
@@ -28,7 +27,7 @@ function generateUID(taskId: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     
     if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 })

@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { hasListAccess } from "@/lib/list-member-utils"
@@ -15,7 +14,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { NextRequest, NextResponse } from "next/server"
-import { authConfig } from "@/lib/auth-config"
 import { getConnectionsStatus } from "@/lib/sse-utils"
 import { isAdmin } from "@/lib/admin-auth"
 import { createLogger } from '@/lib/logger'
@@ -12,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
