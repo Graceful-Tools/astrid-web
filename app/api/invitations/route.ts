@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { inviteRateLimiter } from "@/lib/rate-limiter"
 import { randomBytes } from "crypto"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { sendInvitationEmail } from "@/lib/email"
 import { createLogger } from '@/lib/logger'
@@ -25,7 +24,7 @@ interface CreateInvitationData {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -227,7 +226,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

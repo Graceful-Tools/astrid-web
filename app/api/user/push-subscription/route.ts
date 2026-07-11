@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
@@ -20,7 +19,7 @@ const PushSubscriptionSchema = z.object({
 // POST /api/user/push-subscription - Subscribe to push notifications
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/user/push-subscription - Unsubscribe from push notifications
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -127,7 +126,7 @@ export async function DELETE(request: NextRequest) {
 // GET /api/user/push-subscription - Get user's active push subscriptions
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(

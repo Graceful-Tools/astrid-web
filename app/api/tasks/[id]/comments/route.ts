@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { Prisma } from "@prisma/client"
-import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import type { CreateCommentData } from "@/types/api"
 import { hasListAccess } from "@/lib/list-member-utils"
@@ -28,7 +27,7 @@ function canAccessList(list: any, userId: string): boolean {
 
 export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -102,7 +101,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
 
 export async function POST(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

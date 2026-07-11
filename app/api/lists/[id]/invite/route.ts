@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { inviteRateLimiter } from "@/lib/rate-limiter"
 import { randomBytes } from "crypto"
-import { getServerSession } from "next-auth/next"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { canUserManageMembers, canAssignRole, prismaToTaskList } from "@/lib/list-permissions"
 import { sendListInvitationEmail } from "@/lib/email"
@@ -26,7 +25,7 @@ export async function POST(
   context: RouteContextParams<{ id: string }>
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

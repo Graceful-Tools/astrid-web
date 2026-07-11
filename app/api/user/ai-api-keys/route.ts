@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { encryptCredential, decryptCredential } from "@/lib/ai/credential-cipher"
@@ -34,7 +33,7 @@ function getKeyPreview(key: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    let session = await getServerSession(authConfig)
+    let session = await getUnifiedSession()
 
     // If JWT session validation failed, try database session (for mobile apps)
     if (!session?.user) {
@@ -55,7 +54,6 @@ export async function GET(request: NextRequest) {
                 name: dbSession.user.name,
                 image: dbSession.user.image,
               },
-              expires: dbSession.expires.toISOString()
             }
           }
         }
@@ -116,7 +114,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    let session = await getServerSession(authConfig)
+    let session = await getUnifiedSession()
 
     // If JWT session validation failed, try database session (for mobile apps)
     if (!session?.user) {
@@ -137,7 +135,6 @@ export async function PUT(request: NextRequest) {
                 name: dbSession.user.name,
                 image: dbSession.user.image,
               },
-              expires: dbSession.expires.toISOString()
             }
           }
         }
@@ -219,7 +216,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    let session = await getServerSession(authConfig)
+    let session = await getUnifiedSession()
 
     // If JWT session validation failed, try database session (for mobile apps)
     if (!session?.user) {
@@ -240,7 +237,6 @@ export async function DELETE(request: NextRequest) {
                 name: dbSession.user.name,
                 image: dbSession.user.image,
               },
-              expires: dbSession.expires.toISOString()
             }
           }
         }

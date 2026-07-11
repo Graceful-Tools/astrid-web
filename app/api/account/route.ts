@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { sendEmailVerification, checkEmailVerificationStatus } from "@/lib/email-verification"
 import { createLogger } from '@/lib/logger'
@@ -20,7 +19,7 @@ interface UpdateAccountData {
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
   // Try JWT session first (web app)
-  const jwtSession = await getServerSession(authConfig)
+  const jwtSession = await getUnifiedSession()
   if (jwtSession?.user?.id) {
     return { user: { id: jwtSession.user.id } }
   }

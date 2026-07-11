@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { hasValidApiKey } from "@/lib/api-key-cache"
@@ -14,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    let session = await getServerSession(authConfig)
+    let session = await getUnifiedSession()
 
     // If JWT session validation failed, try database session (for mobile apps)
     if (!session?.user) {
@@ -39,7 +38,6 @@ export async function GET(request: NextRequest) {
                 name: dbSession.user.name,
                 image: dbSession.user.image,
               },
-              expires: dbSession.expires.toISOString()
             }
           }
         }

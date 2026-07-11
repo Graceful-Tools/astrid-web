@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
@@ -54,7 +53,7 @@ export async function POST(
 ) {
   try {
     // Authentication check
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -224,7 +223,7 @@ export async function POST(
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },

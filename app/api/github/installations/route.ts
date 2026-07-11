@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { App } from '@octokit/app'
 import { createLogger } from '@/lib/logger'
@@ -18,7 +17,7 @@ const log = createLogger('github.installations')
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

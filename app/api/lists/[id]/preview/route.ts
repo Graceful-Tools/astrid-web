@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { getPublicListPreview } from "@/lib/copy-utils"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
@@ -13,7 +12,7 @@ export async function GET(
   context: RouteContextParams<{ id: string }>
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json(

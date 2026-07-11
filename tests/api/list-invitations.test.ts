@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { POST } from '@/app/api/lists/[id]/invite/route'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth/next'
+import { getServerSession } from 'next-auth'
 import { sendListInvitationEmail } from '@/lib/email'
 import { canUserManageMembers, canAssignRole, prismaToTaskList } from '@/lib/list-permissions'
 
@@ -21,7 +21,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('next-auth/next', () => ({
+vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
 }))
 

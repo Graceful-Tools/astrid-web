@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 
@@ -25,7 +24,7 @@ export interface MyTasksPreferences {
 
 export async function GET(request: NextRequest) {
   try {
-    let session = await getServerSession(authConfig)
+    let session = await getUnifiedSession()
 
     // Fallback to database session for mobile apps
     if (!session?.user) {
@@ -47,7 +46,6 @@ export async function GET(request: NextRequest) {
               name: dbSession.user.name,
               image: dbSession.user.image,
             },
-            expires: dbSession.expires.toISOString()
           }
         }
       }
@@ -90,7 +88,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    let session = await getServerSession(authConfig)
+    let session = await getUnifiedSession()
 
     // Fallback to database session for mobile apps
     if (!session?.user) {
@@ -112,7 +110,6 @@ export async function PATCH(request: NextRequest) {
               name: dbSession.user.name,
               image: dbSession.user.image,
             },
-            expires: dbSession.expires.toISOString()
           }
         }
       }

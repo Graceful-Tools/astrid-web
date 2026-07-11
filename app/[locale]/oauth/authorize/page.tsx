@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import {
   buildErrorRedirect,
   createAuthorizationRedirect,
@@ -43,7 +42,7 @@ function buildQueryString(params: SearchParamMap): string {
 
 export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams
-  const session = await getServerSession(authConfig)
+  const session = await getUnifiedSession()
   const queryString = buildQueryString(resolvedSearchParams)
   const callbackPath = `/oauth/authorize${queryString ? `?${queryString}` : ""}`
 
@@ -108,7 +107,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   async function authorizeApp(formData: FormData) {
     "use server"
 
-    const currentSession = await getServerSession(authConfig)
+    const currentSession = await getUnifiedSession()
     if (!currentSession?.user?.id) {
       redirect(`/auth/signin?callbackUrl=${encodeURIComponent(callbackPath)}`)
     }

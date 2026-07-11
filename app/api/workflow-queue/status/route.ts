@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { workflowQueue } from '@/lib/workflow-queue'
 import { createLogger } from '@/lib/logger'
 
@@ -13,7 +12,7 @@ const log = createLogger('workflow-queue.status')
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

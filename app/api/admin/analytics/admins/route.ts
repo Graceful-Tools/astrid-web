@@ -6,8 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { isAdmin, listAdmins, addAdminByEmail, AdminAuthError } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
 
@@ -20,7 +19,7 @@ const log = createLogger('admin.analytics.admins')
  */
 export async function GET() {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -57,7 +56,7 @@ export async function GET() {
  */
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

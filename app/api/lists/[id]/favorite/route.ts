@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authConfig } from "@/lib/auth-config"
+import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { toggleFavorite, hydrateSingleListFavorite } from "@/lib/favorites"
 import type { RouteContextParams } from "@/types/next"
@@ -11,7 +10,7 @@ const log = createLogger('lists.[id].favorite')
 
 export async function PATCH(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
 
     if (!session?.user?.id) {
       return NextResponse.json(

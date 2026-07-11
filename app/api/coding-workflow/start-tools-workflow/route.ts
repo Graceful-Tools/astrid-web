@@ -9,8 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth-config'
+import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { createLogger } from '@/lib/logger'
@@ -21,7 +20,7 @@ const log = createLogger('api.coding-workflow.start-tools-workflow')
 export async function POST(request: NextRequest) {
   try {
     // Verify user session
-    const session = await getServerSession(authConfig)
+    const session = await getUnifiedSession()
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
