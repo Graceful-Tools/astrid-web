@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { shouldReloadForControllerChange } from '@/lib/pwa-update-policy'
 
 export function PWARegistration() {
   const router = useRouter()
@@ -16,20 +17,6 @@ export function PWARegistration() {
             console.log('✅ Service Worker registered:', registration.scope)
           }
           
-          // Check for updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New content is available, show update notification
-                  if (confirm('New version available! Reload to update?')) {
-                    window.location.reload()
-                  }
-                }
-              })
-            }
-          })
         })
         .catch((error) => {
           // Only log in development - in production, SW failures are expected on some browsers
@@ -39,12 +26,16 @@ export function PWARegistration() {
         })
 
       // Handle service worker updates
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+      let reloadingForUpdate = false
+      const handleControllerChange = () => {
+        if (!shouldReloadForControllerChange(reloadingForUpdate)) return
+        reloadingForUpdate = true
         window.location.reload()
-      })
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
 
       // Handle messages from service worker for navigation
-      navigator.serviceWorker.addEventListener('message', (event) => {
+      const handleMessage = (event: MessageEvent) => {
         if (event.data && event.data.type === 'NAVIGATE') {
           try {
             // Use Next.js router to navigate
@@ -67,22 +58,32 @@ export function PWARegistration() {
             }
           }
         }
-      })
+      }
+      navigator.serviceWorker.addEventListener('message', handleMessage)
 
       // Handle beforeinstallprompt for custom install button
       let deferredPrompt: any = null
 
-      window.addEventListener('beforeinstallprompt', (e) => {
+      const handleBeforeInstallPrompt = (e: Event) => {
         // Prevent the mini-infobar from appearing on mobile
         e.preventDefault()
         // Stash the event so it can be triggered later
         deferredPrompt = e
-      })
+      }
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
       // Handle app installed
-      window.addEventListener('appinstalled', () => {
+      const handleAppInstalled = () => {
         deferredPrompt = null
-      })
+      }
+      window.addEventListener('appinstalled', handleAppInstalled)
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
+        navigator.serviceWorker.removeEventListener('message', handleMessage)
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+        window.removeEventListener('appinstalled', handleAppInstalled)
+      }
     }
   }, [router])
 

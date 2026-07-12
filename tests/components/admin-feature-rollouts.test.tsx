@@ -39,7 +39,28 @@ describe('FeatureRolloutsPage', () => {
     render(<FeatureRolloutsPage />)
     await waitFor(() => expect(screen.getAllByText('Off for everyone. Saved overrides are retained but inactive.')).toHaveLength(2))
     expect(screen.getByText(/Excluded always wins/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Always include')).toBeInTheDocument()
+    expect(screen.getByLabelText('Include when active')).toBeInTheDocument()
     expect(screen.getByLabelText('Always exclude')).toBeInTheDocument()
+  })
+
+  it('warns that saved inclusions are paused and offers an activation action', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        flags: [{
+          ...response.flags[0],
+          rolloutMode: 'SELECTED_USERS',
+          targets: [{ treatment: 'INCLUDE', user: { email: 'tester@astrid.cc' } }],
+        }],
+      }),
+    }))
+
+    render(<FeatureRolloutsPage />)
+
+    await waitFor(() => expect(screen.getByText('Rollout paused')).toBeInTheDocument())
+    expect(screen.getByText(/tester@astrid.cc will not receive Google Tasks until master availability is on/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Activate rollout' })).toBeInTheDocument()
+    expect(screen.getByText(/will receive the feature whenever master availability is on/i)).toBeInTheDocument()
   })
 })

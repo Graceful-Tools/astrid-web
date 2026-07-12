@@ -120,6 +120,7 @@ export default function FeatureRolloutsPage() {
 
   const saveDisabled = saving || !dirty || draft.invalidEmails.length > 0
   const effectiveSummary = describeEffectiveRollout(flag.enabled, flag.rolloutMode, flag.rolloutPercentage, draft.includedEmails.length, draft.excludedEmails.length)
+  const pausedIncludedUser = !flag.enabled ? draft.includedEmails[0] : undefined
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-6 sm:py-8">
@@ -152,6 +153,15 @@ export default function FeatureRolloutsPage() {
             <AlertDescription>{effectiveSummary}</AlertDescription>
           </Alert>
 
+          {pausedIncludedUser && <Alert className="border-amber-500/50 bg-amber-500/10">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Rollout paused</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>{pausedIncludedUser}{draft.includedEmails.length > 1 ? ` and ${draft.includedEmails.length - 1} other included user${draft.includedEmails.length === 2 ? '' : 's'}` : ''} will not receive Google Tasks until master availability is on.</p>
+              <Button type="button" size="sm" onClick={() => setFlag({ ...flag, enabled: true })}>Activate rollout</Button>
+            </AlertDescription>
+          </Alert>}
+
           <section className="space-y-3">
             <div><h2 className="font-semibold">1. Choose the base rollout</h2><p className="text-sm text-muted-foreground">This rule applies after the master switch and before per-user overrides.</p></div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -168,7 +178,7 @@ export default function FeatureRolloutsPage() {
           <section className="space-y-3">
             <div><h2 className="font-semibold">2. Add user overrides</h2><p className="text-sm text-muted-foreground"><strong>Excluded always wins</strong>, then Included, then the base rollout above. Enter one email per line or separate with commas.</p></div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 rounded-lg border border-green-500/30 p-4"><Label htmlFor="included-users" className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-green-600" />Always include</Label><Textarea id="included-users" value={includedEmails} onChange={event => setIncludedEmails(event.target.value)} placeholder={'tester@astrid.cc\nanother@astrid.cc'} rows={5} /><p className="text-xs text-muted-foreground">{draft.includedEmails.length} valid user{draft.includedEmails.length === 1 ? '' : 's'} will always receive the feature.</p></div>
+              <div className="space-y-2 rounded-lg border border-green-500/30 p-4"><Label htmlFor="included-users" className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-green-600" />Include when active</Label><Textarea id="included-users" value={includedEmails} onChange={event => setIncludedEmails(event.target.value)} placeholder={'tester@astrid.cc\nanother@astrid.cc'} rows={5} /><p className="text-xs text-muted-foreground">{draft.includedEmails.length} valid user{draft.includedEmails.length === 1 ? '' : 's'} will receive the feature whenever master availability is on.</p></div>
               <div className="space-y-2 rounded-lg border border-red-500/30 p-4"><Label htmlFor="excluded-users" className="flex items-center gap-2"><UserX className="h-4 w-4 text-red-600" />Always exclude</Label><Textarea id="excluded-users" value={excludedEmails} onChange={event => setExcludedEmails(event.target.value)} placeholder="user@astrid.cc" rows={5} /><p className="text-xs text-muted-foreground">{draft.excludedEmails.length} valid user{draft.excludedEmails.length === 1 ? '' : 's'} will never receive the feature.</p></div>
             </div>
             {draft.invalidEmails.length > 0 && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Fix invalid email addresses before saving</AlertTitle><AlertDescription>{draft.invalidEmails.join(', ')}</AlertDescription></Alert>}
