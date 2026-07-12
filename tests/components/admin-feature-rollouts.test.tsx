@@ -31,7 +31,7 @@ describe('FeatureRolloutsPage', () => {
     await waitFor(() => expect(screen.getByText('Effective access')).toBeInTheDocument())
     expect(screen.getAllByRole('button', { name: 'Save changes' })).toHaveLength(2)
     expect(screen.getByText('All changes saved')).toBeInTheDocument()
-    expect(screen.getByTestId('admin-save-header')).toHaveClass('sticky', 'top-0')
+    expect(screen.getByTestId('admin-save-header')).not.toHaveClass('sticky')
     expect(screen.getByTestId('admin-bottom-actions')).not.toHaveClass('sticky')
   })
 

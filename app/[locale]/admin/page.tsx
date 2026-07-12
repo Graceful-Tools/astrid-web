@@ -1,3 +1,5 @@
-// /admin is the canonical feature-rollout console. Keep /admin/features as a
-// compatible deep link while sharing the same client implementation.
-export { default } from './features/page'
+import { redirect } from 'next/navigation'
+
+export default function AdminPage() {
+  redirect('/admin/features')
+}

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronLeft, UserPlus, Trash2, Shield } from 'lucide-react'
+import { UserPlus, Trash2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Admin {
@@ -139,9 +139,6 @@ export default function AdminManagement() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/admin/analytics')}>
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
         <div>
           <h1 className="text-2xl font-bold">Admin Management</h1>
           <p className="text-muted-foreground">Manage users with admin access to analytics</p>

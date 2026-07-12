@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { AlertTriangle, Check, ChevronLeft, Flag, Percent, Power, Save, UserCheck, Users, UserX } from 'lucide-react'
+import { AlertTriangle, Check, Flag, Percent, Power, Save, UserCheck, Users, UserX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -124,9 +124,8 @@ export default function FeatureRolloutsPage() {
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-6 sm:py-8">
-      <header data-testid="admin-save-header" className="sticky top-0 z-20 -mx-4 mb-6 flex flex-col gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <header data-testid="admin-save-header" className="mb-6 flex flex-col gap-4 border-b bg-background/95 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/admin/analytics')} aria-label="Back to analytics"><ChevronLeft /></Button>
           <div><h1 className="text-2xl font-bold">Feature Rollouts</h1><p className="text-sm text-muted-foreground">Control availability without shipping another client build.</p></div>
         </div>
         <div className="flex items-center gap-3 self-end sm:self-auto">

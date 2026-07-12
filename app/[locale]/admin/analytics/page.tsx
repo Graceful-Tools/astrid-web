@@ -19,8 +19,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowUpIcon, ArrowDownIcon, Users, Calendar, TrendingUp, Settings, ChevronLeft, Flag } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowUpIcon, ArrowDownIcon, Users, Calendar, TrendingUp } from 'lucide-react'
 
 interface DailyStats {
   date: string
@@ -250,9 +249,6 @@ export default function AnalyticsDashboard() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="shrink-0">
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold truncate">Analytics Dashboard</h1>
             <p className="text-sm text-muted-foreground truncate">User activity and engagement metrics</p>
@@ -268,18 +264,6 @@ export default function AnalyticsDashboard() {
             <option value={30}>Last 30 days</option>
             <option value={90}>Last 90 days</option>
           </select>
-          <Link href="/admin/analytics/admins" className="shrink-0">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Manage Admins
-            </Button>
-          </Link>
-          <Link href="/admin" className="shrink-0">
-            <Button variant="outline" size="sm">
-              <Flag className="h-4 w-4 mr-2" />
-              Feature Rollouts
-            </Button>
-          </Link>
         </div>
       </div>
 
