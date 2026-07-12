@@ -274,7 +274,7 @@ export default function AnalyticsDashboard() {
               Manage Admins
             </Button>
           </Link>
-          <Link href="/admin/features" className="shrink-0">
+          <Link href="/admin" className="shrink-0">
             <Button variant="outline" size="sm">
               <Flag className="h-4 w-4 mr-2" />
               Feature Rollouts
