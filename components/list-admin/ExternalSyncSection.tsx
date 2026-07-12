@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RefreshCw } from "lucide-react"
 import type { TaskList } from "@/types/task"
+import { useFeatureFlags } from "@/contexts/feature-flag-context"
 
 interface ExternalSyncSectionProps {
   list: TaskList
@@ -34,6 +35,8 @@ const EMPTY: ProviderState = { connected: false, link: null, containers: [] }
  * session cookies).
  */
 export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
+  const { isEnabled } = useFeatureFlags()
+  const googleTasksEnabled = isEnabled('google_tasks')
   const [github, setGithub] = useState<ProviderState>(EMPTY)
   const [google, setGoogle] = useState<ProviderState>(EMPTY)
   const [loading, setLoading] = useState(true)
@@ -63,7 +66,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
 
       const [gh, g] = await Promise.all([
         loadProvider("GITHUB_ISSUES", "github", "repos"),
-        loadProvider("GOOGLE_TASKS", "google", "tasklists"),
+        googleTasksEnabled ? loadProvider("GOOGLE_TASKS", "google", "tasklists") : Promise.resolve(EMPTY),
       ])
       setGithub(gh)
       setGoogle(g)
@@ -75,7 +78,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
     } finally {
       setLoading(false)
     }
-  }, [list.id])
+  }, [googleTasksEnabled, list.id])
 
   useEffect(() => { load() }, [load])
 
@@ -155,7 +158,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
         </p>
       </div>
       {renderProvider("GitHub Issues", "github", github)}
-      {renderProvider("Google Tasks", "google", google)}
+      {googleTasksEnabled && renderProvider("Google Tasks", "google", google)}
     </div>
   )
 }

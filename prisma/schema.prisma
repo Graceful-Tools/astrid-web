@@ -896,6 +896,52 @@ model AdminUser {
   user User @relation("AdminUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// Server-owned rollout configuration. Unknown or missing flags always
+/// evaluate to disabled; clients receive only their effective values.
+model FeatureFlag {
+  id                String              @id @default(cuid())
+  key               String              @unique
+  displayName       String
+  description       String?
+  enabled           Boolean             @default(false)
+  rolloutMode       String              @default("OFF")
+  rolloutPercentage Int                 @default(0)
+  version           Int                 @default(1)
+  updatedByUserId   String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  targets           FeatureFlagTarget[]
+  audits            FeatureFlagAudit[]
+
+  @@index([enabled])
+}
+
+model FeatureFlagTarget {
+  id              String      @id @default(cuid())
+  featureFlagId   String
+  userId          String
+  treatment       String
+  createdByUserId String?
+  createdAt       DateTime    @default(now())
+  featureFlag     FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+
+  @@unique([featureFlagId, userId])
+  @@index([userId])
+}
+
+model FeatureFlagAudit {
+  id              String      @id @default(cuid())
+  featureFlagId   String
+  changedByUserId String
+  before          Json
+  after           Json
+  createdAt       DateTime    @default(now())
+  featureFlag     FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+
+  @@index([featureFlagId, createdAt])
+  @@index([changedByUserId])
+}
+
 // ── Multi-provider external sync (spec: plan zippy-exploring-gray) ──────────
 // Client-side sync EXECUTION; the server stores per-user credentials + links
 // so the collaboration superset works (each member mirrors shared task content

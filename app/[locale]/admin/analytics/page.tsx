@@ -19,7 +19,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowUpIcon, ArrowDownIcon, Users, Calendar, TrendingUp, Settings, ChevronLeft } from 'lucide-react'
+import { ArrowUpIcon, ArrowDownIcon, Users, Calendar, TrendingUp, Settings, ChevronLeft, Flag } from 'lucide-react'
 import Link from 'next/link'
 
 interface DailyStats {
@@ -272,6 +272,12 @@ export default function AnalyticsDashboard() {
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
               Manage Admins
+            </Button>
+          </Link>
+          <Link href="/admin/features" className="shrink-0">
+            <Button variant="outline" size="sm">
+              <Flag className="h-4 w-4 mr-2" />
+              Feature Rollouts
             </Button>
           </Link>
         </div>

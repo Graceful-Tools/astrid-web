@@ -12,11 +12,13 @@ import { PWAStatus } from "@/components/pwa-status"
 import { CodingWorkflowProvider } from "@/components/coding-workflow-provider"
 import { PostHogProvider } from "@/components/posthog-provider"
 import { OfflineProvider } from "@/components/offline-provider"
+import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <PostHogProvider>
+      <FeatureFlagProvider>
+       <PostHogProvider>
         <ThemeProvider>
           <SettingsProvider>
             <OfflineProvider>
@@ -30,7 +32,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </OfflineProvider>
           </SettingsProvider>
         </ThemeProvider>
-      </PostHogProvider>
+       </PostHogProvider>
+      </FeatureFlagProvider>
     </SessionProvider>
   )
 }
