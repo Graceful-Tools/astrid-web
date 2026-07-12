@@ -1,9 +1,11 @@
 # Gemini AI Agent Context
 
-*Configuration for Google Gemini-powered coding agent*
+*Configuration for the Google Gemini-powered cloud coding agent (`gemini@astrid.cc`).*
 
-**Service:** Google Gemini 1.5 Pro
-**Capabilities:** Code generation, code review, planning, GitHub operations
+**Service:** Google Gemini API. For the current default model, see [ASTRID.md](./ASTRID.md) →
+"AI Agent System" and `lib/ai/agent-config.ts` (do not hard-code a model version here —
+it drifts).
+**Capabilities:** Code generation, code review, planning, GitHub operations.
 
 ---
 

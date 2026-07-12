@@ -1,9 +1,14 @@
 # OpenAI Codex Agent Context
 
-*Configuration for OpenAI-powered coding agent*
+*Configuration for the OpenAI-powered cloud coding agent (`openai@astrid.cc`).*
 
-**Service:** OpenAI GPT-4o
-**Capabilities:** Code generation, code review, planning, GitHub operations
+**Service:** OpenAI API. For the current default model, see [ASTRID.md](./ASTRID.md) →
+"AI Agent System" and `lib/ai/agent-config.ts` (do not hard-code a model version here —
+it drifts).
+**Capabilities:** Code generation, code review, planning, GitHub operations.
+
+> **Note:** This is the *cloud* OpenAI agent. The *local* Codex CLI reads
+> [AGENTS.md](./AGENTS.md) instead.
 
 ---
 
