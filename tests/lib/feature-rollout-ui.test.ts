@@ -30,6 +30,7 @@ describe('feature rollout admin UI policy', () => {
   it('describes master-off and selected-user behavior plainly', () => {
     expect(describeEffectiveRollout(false, 'ALL', 100, 2, 1)).toBe('Off for everyone. Saved overrides are retained but inactive.')
     expect(describeEffectiveRollout(true, 'SELECTED_USERS', 0, 2, 1)).toBe('On for 2 explicitly included users, except 1 explicitly excluded user.')
+    expect(describeEffectiveRollout(true, 'OFF', 0, 2, 1)).toBe('Off for everyone. Saved overrides are retained but inactive in Nobody mode.')
   })
 
   it('detects unsaved changes independently of email ordering', () => {

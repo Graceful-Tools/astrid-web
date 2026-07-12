@@ -30,6 +30,14 @@ describe('feature flag evaluation', () => {
     }, 'user-1')).toBe(true)
   })
 
+  it('makes nobody mode absolute even when inclusions are saved', () => {
+    expect(evaluateFeatureFlag({
+      ...base,
+      rolloutMode: 'OFF',
+      targets: [{ userId: 'user-1', treatment: 'INCLUDE' }],
+    }, 'user-1')).toBe(false)
+  })
+
   it('uses stable deterministic percentage buckets', () => {
     const first = stableRolloutBucket('google_tasks', 'user-1')
     expect(first).toBe(stableRolloutBucket('google_tasks', 'user-1'))

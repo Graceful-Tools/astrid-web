@@ -52,9 +52,10 @@ export function describeEffectiveRollout(
   excludedCount: number
 ): string {
   if (!enabled) return 'Off for everyone. Saved overrides are retained but inactive.'
+  if (mode === 'OFF') return 'Off for everyone. Saved overrides are retained but inactive in Nobody mode.'
   const except = excludedCount ? `, except ${excludedCount} explicitly excluded user${excludedCount === 1 ? '' : 's'}` : ''
   if (mode === 'ALL') return `On for all users${except}.`
   if (mode === 'PERCENTAGE') return `On for a stable ${percentage}% of users plus ${includedCount} explicitly included user${includedCount === 1 ? '' : 's'}${except}.`
   if (mode === 'SELECTED_USERS') return `On for ${includedCount} explicitly included user${includedCount === 1 ? '' : 's'}${except}.`
-  return `Off by rollout mode${includedCount ? `, with ${includedCount} explicit inclusion${includedCount === 1 ? '' : 's'}` : ''}${except}.`
+  return 'Off for everyone.'
 }

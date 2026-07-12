@@ -21,6 +21,9 @@ export function stableRolloutBucket(featureKey: string, userId: string): number 
 
 export function evaluateFeatureFlag(flag: EvaluatedFeatureFlag | null, userId: string): boolean {
   if (!flag?.enabled) return false
+  // OFF is an absolute rollout mode. Saved targets remain available for a
+  // later Selected Users rollout, but cannot punch through Nobody.
+  if (flag.rolloutMode === 'OFF') return false
   const target = flag.targets.find(item => item.userId === userId)
   if (target?.treatment === 'EXCLUDE') return false
   if (target?.treatment === 'INCLUDE') return true
