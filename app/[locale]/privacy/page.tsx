@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
       {/* Content */}
       <main className="container mx-auto px-4 py-12 max-w-3xl">
         <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 mb-10">Last updated: July 3, 2026</p>
+        <p className="text-gray-500 mb-10">Last updated: July 18, 2026</p>
 
         <div className="space-y-10">
           <section>
@@ -67,6 +67,28 @@ export default function PrivacyPolicy() {
               <a href="https://myaccount.google.com/permissions" className="text-blue-400 hover:underline">
                 myaccount.google.com/permissions
               </a>.
+            </p>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              <strong className="text-white">How we protect Google user data.</strong>{" "}
+              All Google user data is encrypted in transit (TLS 1.2+) and encrypted at rest in our
+              database. OAuth access and refresh tokens are stored encrypted and are never exposed
+              to the client or logged. Access is restricted to the automated sync service and to a
+              small number of authorized personnel under strict access controls, only as needed for
+              security or to comply with law. We never sell Google user data, use it for
+              advertising, or share it with third parties.
+            </p>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              <strong className="text-white">Retention and deletion of Google user data.</strong>{" "}
+              Google Tasks data mirrored into your Astrid account is retained only while the Google
+              Tasks integration is connected, and is kept in sync with your Google account. You can
+              delete it at any time: disconnecting the integration (in Settings, or at{" "}
+              <a href="https://myaccount.google.com/permissions" className="text-blue-400 hover:underline">
+                myaccount.google.com/permissions
+              </a>
+              ) immediately deletes your stored OAuth tokens and stops all further access. Deleting
+              your Astrid account permanently removes all of your data, including any data
+              synchronized from Google, from our systems. Backups containing this data are purged on
+              a rolling 30-day cycle.
             </p>
             <p className="text-gray-300 leading-relaxed">
               Astrid&apos;s use of information received from Google APIs adheres to the{" "}
