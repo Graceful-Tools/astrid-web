@@ -27,7 +27,11 @@ export function appleAllowedAudiences(env: string | undefined = process.env.APPL
     .split(',')
     .map(s => s.trim())
     .filter(Boolean)
-  return fromEnv.length > 0 ? fromEnv : ['Graceful-Tools-Inc.Astrid-App']
+  // Default: accept both the iOS and Mac app bundle ids (each app's Apple identity token
+  // carries its own bundle id as `aud`). Override with APPLE_CLIENT_IDS (e.g. to add a Services ID).
+  return fromEnv.length > 0
+    ? fromEnv
+    : ['Graceful-Tools-Inc.Astrid-App', 'Graceful-Tools-Inc.Astrid-Mac']
 }
 
 export function isEmailVerified(claim: string | boolean | undefined): boolean {

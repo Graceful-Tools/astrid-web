@@ -45,9 +45,16 @@ describe('resolveAppleIdentity', () => {
 })
 
 describe('appleAllowedAudiences', () => {
-  it('defaults to the iOS bundle id', () => {
-    expect(appleAllowedAudiences(undefined)).toEqual(['Graceful-Tools-Inc.Astrid-App'])
-    expect(appleAllowedAudiences('')).toEqual(['Graceful-Tools-Inc.Astrid-App'])
+  it('defaults to the iOS and Mac app bundle ids', () => {
+    // Each app's Apple identity token carries its own bundle id as `aud`; both must be accepted.
+    expect(appleAllowedAudiences(undefined)).toEqual([
+      'Graceful-Tools-Inc.Astrid-App',
+      'Graceful-Tools-Inc.Astrid-Mac',
+    ])
+    expect(appleAllowedAudiences('')).toEqual([
+      'Graceful-Tools-Inc.Astrid-App',
+      'Graceful-Tools-Inc.Astrid-Mac',
+    ])
   })
 
   it('parses the comma-separated env override', () => {
