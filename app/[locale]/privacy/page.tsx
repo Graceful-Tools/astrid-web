@@ -53,7 +53,7 @@ export default function PrivacyPolicy() {
             </p>
           </section>
 
-          <section>
+          <section id="google-user-data" className="scroll-mt-24">
             <h2 className="text-xl font-semibold text-white mb-3">Google User Data</h2>
             <p className="text-gray-300 leading-relaxed mb-3">
               If you connect Google Tasks sync, Astrid accesses your Google Tasks data
