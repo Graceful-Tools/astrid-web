@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react"
 import { INTEGRATION_METHODS, WELL_KNOWN_ENDPOINTS } from "@/lib/integration-registry"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Code2: <Code2 className="w-6 h-6 text-blue-500" />,
@@ -32,7 +33,7 @@ export default function IntegrationGuidePage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen theme-bg-primary">
+    <div className={`${scrollShellClassName} theme-bg-primary`}>
       {/* Header */}
       <div className="theme-header theme-border app-header">
         <div className="flex items-center space-x-4">

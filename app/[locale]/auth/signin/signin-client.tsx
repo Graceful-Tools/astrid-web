@@ -14,6 +14,7 @@ import { useWebAuthn } from "@/hooks/use-webauthn"
 import Link from "next/link"
 import { createLogger } from '@/lib/logger'
 import { planGoogleSignIn } from "@/lib/auth-host"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 const log = createLogger('[locale].auth.signin.signin-client.tsx')
 
@@ -174,7 +175,8 @@ export function SignInContent() {
   const displayError = error || urlError || passkeyError
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className={`${scrollShellClassName} bg-black`}>
+      <div className="min-h-full flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header - Logo and Tagline (matching iOS) */}
         <div className="flex items-center justify-center gap-4 mb-4">
@@ -378,6 +380,7 @@ export function SignInContent() {
             <p className="text-gray-400 text-sm">Browse and copy tasks from public lists shared by the community</p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

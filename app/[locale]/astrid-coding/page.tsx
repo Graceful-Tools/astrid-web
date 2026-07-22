@@ -21,6 +21,7 @@ import {
   Star,
   Play
 } from "lucide-react"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 export default function AstridCodingPage() {
   const handleGetStarted = () => {
@@ -32,7 +33,7 @@ export default function AstridCodingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className={`${scrollShellClassName} bg-gradient-to-br from-blue-50 via-white to-purple-50`}>
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">

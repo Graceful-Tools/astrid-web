@@ -1,5 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
+import { scrollShellClassName } from "@/components/scroll-shell"
 import { RefreshCw, LogOut, Trash2, Download, Settings, RotateCcw, Smartphone, Globe, ChevronRight } from "lucide-react"
 
 export const metadata = {
@@ -9,7 +10,7 @@ export const metadata = {
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-black text-gray-100">
+    <div className={`${scrollShellClassName} bg-black text-gray-100`}>
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900">
         <div className="container mx-auto px-4 py-6">
