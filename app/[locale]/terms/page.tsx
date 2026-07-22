@@ -1,9 +1,10 @@
 import Link from "next/link"
 import Image from "next/image"
+import { ScrollShell } from "@/components/scroll-shell"
 
 export default function TermsOfService() {
   return (
-    <div className="min-h-screen bg-black text-gray-100">
+    <ScrollShell className="bg-black text-gray-100">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900">
         <div className="container mx-auto px-4 py-6">
@@ -124,6 +125,6 @@ export default function TermsOfService() {
           </div>
         </div>
       </main>
-    </div>
+    </ScrollShell>
   )
 }

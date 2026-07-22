@@ -15,6 +15,7 @@ import {
   Shield,
   Wrench,
 } from "lucide-react"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 export default function MCPDocsPage() {
   const router = useRouter()
@@ -28,7 +29,7 @@ export default function MCPDocsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen theme-bg-primary">
+    <div className={`${scrollShellClassName} theme-bg-primary`}>
       {/* Header */}
       <div className="theme-header theme-border app-header">
         <div className="flex items-center space-x-4">

@@ -15,6 +15,7 @@ import {
   BookOpen,
   MessageSquare
 } from "lucide-react"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 export default function APIDocsPage() {
   const router = useRouter()
@@ -32,7 +33,7 @@ export default function APIDocsPage() {
   const redirectUri = "https://chat.openai.com/aip/api/v1/oauth/callback"
 
   return (
-    <div className="min-h-screen theme-bg-primary">
+    <div className={`${scrollShellClassName} theme-bg-primary`}>
       {/* Header */}
       <div className="theme-header theme-border app-header">
         <div className="flex items-center space-x-4">
