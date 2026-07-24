@@ -37,22 +37,37 @@ export async function GET(request: NextRequest) {
   const info = await infoRes.json().catch(() => null)
   await storeGoogleIntegration(userId, tokens.access_token, tokens.refresh_token, tokens.expires_in, info?.email ?? null)
   log.info({ userId, email: info?.email }, 'Google Tasks sync connected')
-  return new NextResponse(
-    `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>Google Tasks connected ✓</h2><p>${escapeHtml(info?.email ?? '')} — you can return to Astrid.</p>
-    </body></html>`,
-    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  return returnToApp(
+    'astrid://google-tasks/connected',
+    'Google Tasks connected ✓',
+    `${info?.email ?? ''} — returning to Astrid…`
   )
 }
 
-/** Human-readable failure page: Cloudflare replaces raw 5xx responses with its
- *  own error page, so OAuth failures must render as 200 HTML to be seen. */
-function errorPage(message: string): NextResponse {
+/** Redirect the browser back to the Astrid app via its custom scheme so an in-app
+ *  ASWebAuthenticationSession auto-dismisses and reopens the app (matching Google sign-in).
+ *  Renders as 200 HTML with a meta/JS redirect + a visible fallback link for a plain browser. */
+function returnToApp(appUrl: string, heading: string, message: string): NextResponse {
   return new NextResponse(
-    `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>Connection didn't complete</h2><p>${message}</p>
+    `<html><head>
+      <meta http-equiv="refresh" content="0;url=${escapeHtml(appUrl)}">
+      <script>window.location.replace(${JSON.stringify(appUrl)})</script>
+    </head><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
+      <h2>${escapeHtml(heading)}</h2><p>${escapeHtml(message)}</p>
+      <p><a href="${escapeHtml(appUrl)}">Return to Astrid</a></p>
     </body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  )
+}
+
+/** Human-readable failure that ALSO returns to the app (scheme carries the message) so the
+ *  in-app session closes and Astrid can surface the error natively. Cloudflare replaces raw
+ *  5xx responses, so this stays 200 HTML. */
+function errorPage(message: string): NextResponse {
+  return returnToApp(
+    `astrid://google-tasks/error?message=${encodeURIComponent(message)}`,
+    "Connection didn't complete",
+    message
   )
 }
 
