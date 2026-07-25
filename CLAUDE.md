@@ -32,6 +32,10 @@ lives in exactly one place:
    Auth changes → run the full suite before committing. (ASTRID.md → Coding Workflow)
 5. **Tasks use the `listIds` array field** (not `listId`); the API uses the `X-OAuth-Token`
    header (not `Authorization: Bearer`).
+6. **Reuse before you write.** Never inline owner/admin checks or hardcode user-facing
+   copy — use the `lib/list-permissions.ts` helpers and i18n keys. Run `npm run check:reuse`.
+   Full rules: ASTRID.md → *Agent Working Agreements → Code Reuse & Consistency* and
+   [docs/CODE_REUSE_AND_CONSISTENCY.md](./docs/CODE_REUSE_AND_CONSISTENCY.md).
 
 ---
 
