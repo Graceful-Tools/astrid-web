@@ -66,18 +66,26 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
   // My Tasks persistent filters (synced across devices)
   const myTasksPreferences = useMyTasksPreferences()
 
-  // Update filter states when currentList changes
+  // Load a list's saved completion/sort defaults when you switch lists or when
+  // the list's saved default actually changes. Keyed on the primitive values —
+  // NOT the currentList object — because currentList is `lists.find(...)`, which
+  // returns a new reference on every task update / SSE push / refetch. Depending
+  // on the object reference re-fired these effects on every refetch and reset
+  // the user's in-session filter back to the list default (task 61ecf56b — the
+  // "filter resets back to All tasks" bug).
+   
   useEffect(() => {
     if (currentList && !isMyTasks) {
       setFilterCompleted(getValidFilterCompletion(currentList.filterCompletion))
     }
-  }, [currentList, isMyTasks])
+  }, [currentList?.id, currentList?.filterCompletion, isMyTasks])
 
+   
   useEffect(() => {
     if (currentList && !isMyTasks) {
       setSortBy(getValidSortBy(currentList.sortBy))
     }
-  }, [currentList, isMyTasks])
+  }, [currentList?.id, currentList?.sortBy, isMyTasks])
   
   const activeFilters = useMemo(() => {
     if (isMyTasks) {

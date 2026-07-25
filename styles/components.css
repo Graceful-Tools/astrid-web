@@ -111,9 +111,9 @@ html, body {
 }
 
 .task-row-selected {
-  @apply shadow-md;
-  /* iOS-style selection: 2pt blue border */
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  /* Selection reads via the tinted background (theme-bg-selected). Keep the
+     same thin border + subtle shadow as incomplete rows — no blue glow ring,
+     no heavier shadow (task 37464d1f). */
 }
 
 .task-row-completed {
