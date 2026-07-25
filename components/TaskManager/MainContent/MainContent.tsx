@@ -378,6 +378,71 @@ export function MainContent({
     />
   )
 
+  // Add-task input (or Copy-List button for read-only public/featured lists).
+  // Shared by the 3-column header block and the dedicated 2-column row so both
+  // desktop layouts get task creation. Commit bdb5f40 hid the whole 3-col header
+  // block in 2-column to de-dupe the list title, which also removed this input.
+  const renderAddTaskInput = () => {
+    const selectedList = lists.find(list => list.id === selectedListId)
+    const isPublicList = selectedList?.privacy === 'PUBLIC'
+    const isCollaborative = selectedList?.publicListType === 'collaborative'
+    const isUserOwnerOrAdmin = selectedList?.ownerId === effectiveSession?.user?.id ||
+                              selectedList?.admins?.some(admin => admin.id === effectiveSession?.user?.id)
+
+    // For collaborative lists, always show task creation (even when viewing from featured)
+    if (isCollaborative || isUserOwnerOrAdmin) {
+      return (
+        <div>
+          <EnhancedTaskCreation
+            layoutType={layoutType}
+            selectedListId={selectedListId}
+            availableLists={lists}
+            quickTaskInput={quickTaskInput}
+            setQuickTaskInput={setQuickTaskInput}
+            onCreateTask={handleQuickCreateTask}
+            onKeyDown={handleQuickTaskKeyDown}
+            isMobile={isMobilePhoneDevice()}
+            isSessionReady={isSessionReady}
+            className="w-full"
+          />
+        </div>
+      )
+    }
+
+    // For featured lists OR copy-only public lists (not owner/admin), show Copy List button
+    if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
+      return (
+        <div>
+          <Button
+            onClick={() => selectedList && handleCopyList(selectedList.id)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Copy List
+          </Button>
+        </div>
+      )
+    }
+
+    // Default: show task creation
+    return (
+      <div>
+        <EnhancedTaskCreation
+          layoutType={layoutType}
+          selectedListId={selectedListId}
+          availableLists={lists}
+          quickTaskInput={quickTaskInput}
+          setQuickTaskInput={setQuickTaskInput}
+          onCreateTask={handleQuickCreateTask}
+          onKeyDown={handleQuickTaskKeyDown}
+          isMobile={isMobilePhoneDevice()}
+          isSessionReady={isSessionReady}
+          className="w-full"
+        />
+      </div>
+    )
+  }
+
   return (
     <>
     <div className={`flex-1 min-w-0 ${isMobile ? 'relative' : 'flex'}`}>
@@ -431,7 +496,7 @@ export function MainContent({
                     <img
                       src={getListImageUrl(currentList)}
                       alt={currentList.name}
-                      className={`w-16 h-16 rounded-xl object-cover ${canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                      className={`w-16 h-16 rounded-xl object-cover flex-shrink-0 ${canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
                       onClick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
                       title={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Click to change image" : currentList.name}
                       onError={(e) => {
@@ -445,7 +510,7 @@ export function MainContent({
                     />
 
                     {/* Editable List Name and Description */}
-                    <div className="text-left flex-1">
+                    <div className="text-left flex-1 min-w-0">
                       {editingListName ? (
                         <div className="flex items-center justify-start space-x-2">
                           <Input
@@ -467,7 +532,7 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left truncate ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
                           {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
@@ -544,7 +609,7 @@ export function MainContent({
                     </div>
 
                     {/* Share and Settings Buttons */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 flex-shrink-0">
                       {is3Column && hasProjectBoard && (
                         <TaskViewToggle
                           labelClassName="hidden min-[1300px]:inline"
@@ -598,11 +663,11 @@ export function MainContent({
             {/* Default view titles for system lists */}
             {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
               <div className="flex items-center justify-start space-x-4 mb-4">
-                <div className="text-left flex-1">
-                  <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
-                  <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
+                <div className="text-left flex-1 min-w-0">
+                  <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
+                  <p className="theme-text-muted text-sm truncate">{getSelectedListInfo().description}</p>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   {is3Column && hasProjectBoard && (
                     <TaskViewToggle
                       labelClassName="hidden min-[1300px]:inline"
@@ -716,68 +781,21 @@ export function MainContent({
             </div>
           )}
 
-          {/* Enhanced Task Input - Desktop only (mobile version is fixed at bottom) */}
-          {!isSearchActive && !isMobile && !(hasProjectBoard && taskViewMode === 'board') && (() => {
-            const selectedList = lists.find(list => list.id === selectedListId)
-            const isPublicList = selectedList?.privacy === 'PUBLIC'
-            const isCollaborative = selectedList?.publicListType === 'collaborative'
-            const isUserOwnerOrAdmin = selectedList?.ownerId === effectiveSession?.user?.id ||
-                                      selectedList?.admins?.some(admin => admin.id === effectiveSession?.user?.id)
-
-            // For collaborative lists, always show task creation (even when viewing from featured)
-            if (isCollaborative || isUserOwnerOrAdmin) {
-              return (
-                <div>
-                  <EnhancedTaskCreation
-                    layoutType={layoutType}
-                    selectedListId={selectedListId}
-                    availableLists={lists}
-                    quickTaskInput={quickTaskInput}
-                    setQuickTaskInput={setQuickTaskInput}
-                    onCreateTask={handleQuickCreateTask}
-                    onKeyDown={handleQuickTaskKeyDown}
-                    isMobile={isMobilePhoneDevice()}
-                    isSessionReady={isSessionReady}
-                    className="w-full"
-                  />
-                </div>
-              )
-            }
-
-            // For featured lists OR copy-only public lists (not owner/admin), show Copy List button
-            if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
-              return (
-                <div>
-                  <Button
-                    onClick={() => selectedList && handleCopyList(selectedList.id)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy List
-                  </Button>
-                </div>
-              )
-            }
-
-            // Default: show task creation
-            return (
-              <div>
-                <EnhancedTaskCreation
-                  layoutType={layoutType}
-                  selectedListId={selectedListId}
-                  availableLists={lists}
-                  quickTaskInput={quickTaskInput}
-                  setQuickTaskInput={setQuickTaskInput}
-                  onCreateTask={handleQuickCreateTask}
-                  onKeyDown={handleQuickTaskKeyDown}
-                  isMobile={isMobilePhoneDevice()}
-                  isSessionReady={isSessionReady}
-                  className="w-full"
-                />
-              </div>
-            )
-          })()}
+          {/* Enhanced Task Input - 3-column header block (2-column renders it in
+              its own row below; mobile version is fixed at bottom). Gated on
+              is3Column so there is no hidden duplicate in the 2-column DOM. */}
+          {!isSearchActive && is3Column && !(hasProjectBoard && taskViewMode === 'board') && renderAddTaskInput()}
         </div>
+
+        {/* 2-column add-task row. The header block above is display:none in
+            2-column (its list title/gear are shown by TaskManagerHeader), which
+            also hid task creation — TaskManagerHeader has no add-task input.
+            Render it here so 2-column can add tasks. */}
+        {is2Column && !isSearchActive && !(hasProjectBoard && taskViewMode === 'board') && (
+          <div className="px-4 py-5 theme-border border-b">
+            {renderAddTaskInput()}
+          </div>
+        )}
 
         {recentlyChangedList && !(isMobile && mobileView === 'list') ? (
           // Show blank task rows during list transitions using expected count

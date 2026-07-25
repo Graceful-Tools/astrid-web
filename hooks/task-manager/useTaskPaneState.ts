@@ -30,11 +30,17 @@ export function useTaskPaneState({
   })
 
   const closeTaskPaneAnimated = useCallback(() => {
+    // Already sliding out — ignore repeat close requests. Momentum scroll fires
+    // closeTaskDetail (→ here) on every scroll event; without this guard each
+    // repeat restarts the unmount timer, the CSS slide-out finishes with nothing
+    // holding the end state, and the still-mounted pane snaps back into view
+    // (it "reappears" until scrolling stops).
+    if (isClosing) return
     runAnimatedClose(() => {
       setSelectedTaskId("")
       setSelectedTaskElement(null)
     })
-  }, [runAnimatedClose, setSelectedTaskId, setSelectedTaskElement])
+  }, [isClosing, runAnimatedClose, setSelectedTaskId, setSelectedTaskElement])
 
   const setIsTaskPaneClosing: React.Dispatch<React.SetStateAction<boolean>> = useCallback(
     (value) => {
