@@ -177,4 +177,37 @@ describe('Add-task input visibility across desktop layouts', () => {
     const input = screen.getByPlaceholderText(/add task/i)
     expect(input).toBeVisible()
   })
+
+  // Reuse pilot (docs/CODE_REUSE_AND_CONSISTENCY.md): the add-task gate must
+  // trust the single permission source (canEditListSettingsMemo) instead of
+  // re-deriving owner/admin from raw list fields. On a PUBLIC list, a user who
+  // is admin via listMembers — but not the owner and not in the legacy `admins`
+  // array — should see the add-task input, not the "Copy List" button. The old
+  // inline check (ownerId === / admins.some) got this wrong.
+  it('shows add-task (not Copy List) for an admin whom the permission source approves on a public list', () => {
+    const publicListAdminViaMembers: TaskList = {
+      ...ownedList,
+      id: 'list-2',
+      ownerId: 'someone-else',
+      privacy: 'PUBLIC',
+      publicListType: 'copy_only',
+      admins: [], // legacy array does NOT list the user
+      listMembers: [{ userId: 'user-1', role: 'admin', user: mockUser } as any],
+    }
+
+    render(
+      <MainContent
+        {...baseProps}
+        is2Column={false}
+        is3Column={true}
+        lists={[publicListAdminViaMembers]}
+        selectedListId="list-2"
+        // The canonical permission helper approves this user (admin via members).
+        canEditListSettingsMemo={() => true}
+      />,
+    )
+
+    expect(screen.getByPlaceholderText(/add task/i)).toBeVisible()
+    expect(screen.queryByText(/copy list/i)).toBeNull()
+  })
 })
