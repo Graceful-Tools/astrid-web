@@ -195,6 +195,41 @@ Because OAuth clients are scoped per Astrid user, share these instructions with 
 2. Paste their Client ID, Client Secret, and preferred List ID into the `mcp_config.json`
 3. Restart ChatGPT and start issuing Astrid commands (e.g., “List my Astrid bugs”)
 
+### For GitHub Copilot / VS Code
+
+VS Code (GitHub Copilot agent mode) connects to the **hosted** Astrid MCP server
+over OAuth — no local build, no manual token. VS Code discovers the OAuth server
+from Astrid's RFC 9728 metadata and opens a browser to sign you in on first
+connect.
+
+**1. Add the server to `.vscode/mcp.json`** (workspace) — or your user `mcp.json`
+via the *MCP: Open User Configuration* command:
+
+```json
+{
+  "servers": {
+    "astrid": {
+      "type": "sse",
+      "url": "https://www.astrid.cc/mcp"
+    }
+  }
+}
+```
+
+**2. Start it & sign in** — click **Start** on the server in `mcp.json` (or run
+*MCP: List Servers*). A browser opens for Astrid sign-in; approve the requested
+scopes. The Astrid tools then appear in Copilot agent mode's tool picker.
+
+Notes:
+- **Use `https://www.astrid.cc/mcp`** — the apex `astrid.cc` 308-redirects to
+  `www`, and some MCP clients don't follow that on the MCP handshake.
+- Astrid serves the **SSE** transport, so use `"type": "sse"`. (Newer VS Code
+  builds accept `"type": "http"` and auto-fall back to SSE; `"sse"` is explicit.)
+- Prefer **workspace `.vscode/mcp.json`** over a repo-root `.mcp.json` — VS Code
+  has a known bug where custom `headers` in `.mcp.json` are silently dropped. You
+  don't need `headers` here anyway (OAuth is automatic), but keep to
+  `.vscode/mcp.json` to avoid surprises.
+
 ### Remote HTTP/SSE MCP server (OpenAI Responses API & connectors)
 
 You now have two options:
