@@ -7,6 +7,7 @@ import {
   buildLegacyApiHit,
   buildDeprecationHeaders,
 } from '@/lib/api-deprecation'
+import { shouldBypassIntlRouting } from '@/lib/middleware-bypass'
 
 // Create next-intl middleware
 const intlMiddleware = createMiddleware(routing)
@@ -49,13 +50,10 @@ export function middleware(request: NextRequest) {
     return response
   }
 
-  // Skip i18n for API routes, .well-known, and static PWA files
-  if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/.well-known') ||
-    pathname === '/sw.js' ||
-    pathname === '/manifest.json'
-  ) {
+  // Skip i18n for API routes, .well-known, MCP endpoints, and static PWA files.
+  // Without this the request is rewritten to a /[locale]/... page that 404s,
+  // which also shadows the next.config `/mcp -> /api/mcp` rewrite (task a0e0808c).
+  if (shouldBypassIntlRouting(pathname)) {
     return NextResponse.next()
   }
 
