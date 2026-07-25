@@ -386,8 +386,12 @@ export function MainContent({
     const selectedList = lists.find(list => list.id === selectedListId)
     const isPublicList = selectedList?.privacy === 'PUBLIC'
     const isCollaborative = selectedList?.publicListType === 'collaborative'
-    const isUserOwnerOrAdmin = selectedList?.ownerId === effectiveSession?.user?.id ||
-                              selectedList?.admins?.some(admin => admin.id === effectiveSession?.user?.id)
+    // Trust the single permission source instead of re-deriving owner/admin from
+    // raw list fields (docs/CODE_REUSE_AND_CONSISTENCY.md). canEditListSettingsMemo
+    // is owner-or-admin across all member sources (listMembers + legacy admins),
+    // so an admin-via-members on a public list correctly gets task creation
+    // rather than the Copy-List button.
+    const isUserOwnerOrAdmin = selectedList ? canEditListSettingsMemo(selectedList) : false
 
     // For collaborative lists, always show task creation (even when viewing from featured)
     if (isCollaborative || isUserOwnerOrAdmin) {

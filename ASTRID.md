@@ -399,6 +399,23 @@ Build and all tests pass.
 
 Distilled from recurring friction across sessions. These apply to **every** AI agent (Claude, Codex, and others) working in this repo.
 
+### Code Reuse & Consistency (reuse before you write)
+- **Search for an existing helper/key/component before writing new logic.** Good
+  abstractions already exist and get bypassed, which is how Web drifted (54 inline
+  owner/admin checks; 6+ hardcoded "add task" strings). See
+  [docs/CODE_REUSE_AND_CONSISTENCY.md](./docs/CODE_REUSE_AND_CONSISTENCY.md).
+- **Permission logic** lives in `lib/list-permissions.ts` /
+  `lib/list-member-utils.ts`. **Never inline** `list.ownerId === user.id` or
+  `list.admins.some(...)` — call `canUserManageList` / `canUserEditTasks` /
+  `isListAdminOrOwner`, or reuse a `canEdit*` value already in scope.
+- **User-facing copy** lives in i18n locale files (`lib/i18n/locales/*.json`) —
+  use `t("…")`, never a string literal in JSX. Keep key names mirrored with the
+  Apple app's `Localizable.strings` where the string is shared.
+- **Guardrails:** `npm run check:reuse` reports the backlog; ESLint
+  `no-restricted-syntax` warns on the inline patterns. If no helper/key fits, add
+  it to the shared home — don't inline. Cite the helper/key you reused (or why
+  you added a new one) in your strategy comment.
+
 ### Testing / Workflow
 - **Always use TDD:** write a RED test first, then implement to green. All tests must pass before considering a task complete. (See the detailed RED-GREEN flow in *Coding Workflow → Step 3*.)
 - **Auth is high-risk:** after modifying auth-related files, run the **full web test suite** (`npm run predeploy`) before committing. Behavior-changing "clean" refactors have silently broken auth tests. Prefer the minimal, behavior-preserving change over a broad rewrite.
