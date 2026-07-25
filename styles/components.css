@@ -703,7 +703,10 @@ html, body {
 }
 
 .task-panel-animate-out {
-  animation: slideOutToLeft 0.3s ease-out;
+  /* forwards: hold the off-screen end state until React unmounts the pane, so
+     the panel can't snap back to visible if the animation finishes a frame
+     before the unmount (scroll-to-close "reappear" bug). */
+  animation: slideOutToLeft 0.3s ease-out forwards;
 }
 
 @keyframes slideInFromLeft {
