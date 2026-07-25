@@ -431,7 +431,7 @@ export function MainContent({
                     <img
                       src={getListImageUrl(currentList)}
                       alt={currentList.name}
-                      className={`w-16 h-16 rounded-xl object-cover ${canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                      className={`w-16 h-16 rounded-xl object-cover flex-shrink-0 ${canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
                       onClick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
                       title={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Click to change image" : currentList.name}
                       onError={(e) => {
@@ -445,7 +445,7 @@ export function MainContent({
                     />
 
                     {/* Editable List Name and Description */}
-                    <div className="text-left flex-1">
+                    <div className="text-left flex-1 min-w-0">
                       {editingListName ? (
                         <div className="flex items-center justify-start space-x-2">
                           <Input
@@ -467,7 +467,7 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left truncate ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
                           {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
@@ -544,7 +544,7 @@ export function MainContent({
                     </div>
 
                     {/* Share and Settings Buttons */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 flex-shrink-0">
                       {is3Column && hasProjectBoard && (
                         <TaskViewToggle
                           labelClassName="hidden min-[1300px]:inline"
@@ -598,11 +598,11 @@ export function MainContent({
             {/* Default view titles for system lists */}
             {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
               <div className="flex items-center justify-start space-x-4 mb-4">
-                <div className="text-left flex-1">
-                  <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{getSelectedListInfo().name}</h1>
-                  <p className="theme-text-muted text-sm">{getSelectedListInfo().description}</p>
+                <div className="text-left flex-1 min-w-0">
+                  <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
+                  <p className="theme-text-muted text-sm truncate">{getSelectedListInfo().description}</p>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   {is3Column && hasProjectBoard && (
                     <TaskViewToggle
                       labelClassName="hidden min-[1300px]:inline"
