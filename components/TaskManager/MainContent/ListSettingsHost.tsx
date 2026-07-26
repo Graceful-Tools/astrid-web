@@ -17,12 +17,10 @@
 import { ListSettingsPopover } from "../../list-settings-popover"
 import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
 
-/** Lists Astrid provides itself; they get the fixed (filter-only) popover. */
-export const SYSTEM_LIST_IDS = ["my-tasks", "today", "not-in-list", "public", "assigned"] as const
-
-export function isSystemList(listId: string): boolean {
-  return (SYSTEM_LIST_IDS as readonly string[]).includes(listId)
-}
+// Lists Astrid provides itself get the fixed (filter-only) popover. The id set
+// is owned by lib/list-permissions (task e2803305) — do not re-spell it here.
+export { SYSTEM_LIST_IDS, isSystemListId as isSystemList } from "@/lib/list-permissions"
+import { isSystemListId } from "@/lib/list-permissions"
 
 type DueDateFilter = "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date" | "all"
 type CompletionFilter = "completed" | "incomplete" | "all" | "default"
@@ -83,7 +81,7 @@ export function ListSettingsHost(props: ListSettingsHostProps) {
 
   const keySuffix = variant === "mobile" ? "-mobile" : ""
 
-  if (isSystemList(selectedListId)) {
+  if (isSystemListId(selectedListId)) {
     return (
       <FixedListSettingsPopover
         key={`fixed-settings${keySuffix}-${selectedListId}`}

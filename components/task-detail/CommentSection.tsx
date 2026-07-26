@@ -15,6 +15,7 @@ import { MessageBubble } from "@/components/shared/MessageBubble"
 import { uploadCommentFile as uploadCommentFileImpl } from "@/lib/comment-file-upload"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 // Helper function to display author name/email with fallback for system/deleted users
 function getAuthorDisplay(author: User | null | undefined, isSystemComment: boolean = false): string {
@@ -264,11 +265,7 @@ export function CommentSection({
 
     // Check if user has edit permissions (owner, admin, or member)
     // For collaborative public lists, non-members can comment but shouldn't trigger optimistic updates
-    const isOwner = taskList?.ownerId === currentUser.id
-    const isAdmin = taskList?.admins?.some(admin => admin.id === currentUser.id) ?? false
-    const isMember = taskList?.members?.some(member => member.id === currentUser.id) ?? false
-    const isListMember = taskList?.listMembers?.some((lm: any) => lm.userId === currentUser.id) ?? false
-    const hasEditPermissions = isOwner || isAdmin || isMember || isListMember
+    const hasEditPermissions = hasExplicitListRole(currentUser, taskList as never)
 
     // Skip optimistic update for collaborative public lists where user doesn't have edit permissions
     // The comment will appear via onLocalUpdate instead, avoiding 403 errors on task update

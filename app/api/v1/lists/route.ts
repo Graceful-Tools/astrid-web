@@ -187,7 +187,7 @@ export const POST = withAuth(
           ? {
               create: body.memberIds.map((userId: string) => ({
                 userId,
-                role: 'MEMBER' as const,
+                role: 'member' as const,
               })),
             }
           : undefined,

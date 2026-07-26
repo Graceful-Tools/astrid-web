@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 export interface CommentInputBarProps {
   task: Task
@@ -135,11 +136,7 @@ export function CommentInputBar({
 
     const taskList = task.lists?.[0]
     const isCollaborativePublic = taskList?.privacy === "PUBLIC" && taskList?.publicListType === "collaborative"
-    const isOwner = taskList?.ownerId === currentUser.id
-    const isAdmin = taskList?.admins?.some(admin => admin.id === currentUser.id) ?? false
-    const isMember = taskList?.members?.some(member => member.id === currentUser.id) ?? false
-    const isListMember = taskList?.listMembers?.some((lm: any) => lm.userId === currentUser.id) ?? false
-    const hasEditPermissions = isOwner || isAdmin || isMember || isListMember
+    const hasEditPermissions = hasExplicitListRole(currentUser, taskList as never)
     const shouldSkipOptimisticUpdate = isCollaborativePublic && !hasEditPermissions
 
     if (!shouldSkipOptimisticUpdate) {

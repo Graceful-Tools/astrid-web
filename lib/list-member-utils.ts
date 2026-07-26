@@ -8,6 +8,7 @@
 import type { TaskList, User, ListMember } from "@/types/task"
 import type { ListWithMembers } from "@/lib/task-query-utils"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('list-member-utils')
 
@@ -118,13 +119,15 @@ export function hasListAccess(list: ListLike, userId: string): boolean {
 }
 
 /**
- * Check if a user is an admin or owner of a list
+ * Check if a user is an admin or owner of a list.
+ *
+ * Delegates to the canonical role lookup (task e2803305). This used to derive
+ * the answer from the assembled member list, which missed owners on payloads
+ * that carry `ownerId` without a matching member row — the owner of their own
+ * list was told they were not an admin.
  */
 export function isListAdminOrOwner(list: ListLike, userId: string): boolean {
-  const allMembers = getAllListMembers(list)
-  const member = allMembers.find(m => m.id === userId)
-
-  return member ? (member.isOwner || member.isAdmin) : false
+  return canUserManageList({ id: userId }, list as never)
 }
 
 /**

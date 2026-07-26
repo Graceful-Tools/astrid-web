@@ -19,6 +19,8 @@ interface UserLike {
  * Accepts both TaskList and Prisma query results.
  */
 interface ListLike {
+  // Needed to recognise built-in virtual lists (see isSystemListId).
+  id?: string
   ownerId: string
   privacy?: string
   publicListType?: string | null
@@ -28,6 +30,14 @@ interface ListLike {
     user?: { id: string; name?: string | null; email: string } | null
   }> | null
   owner?: { id: string; name?: string | null; email: string } | null
+  // Legacy denormalized admins array. Some payloads carry only this (not
+  // listMembers); ~8 inline call sites read it. getUserRoleInList unions it so
+  // those sites can converge on this single source of truth (task e2803305).
+  admins?: Array<{ id: string }> | null
+  // Legacy denormalized members array, the sibling of `admins` above. Call
+  // sites in task-detail read it directly; union it here so they can converge
+  // on getUserRoleInList without losing access for those payloads.
+  members?: Array<{ id: string }> | null
 }
 
 /**
@@ -63,15 +73,31 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
   if (!user || !list) return null
 
-  // The list owner always has full control.
-  if (list.ownerId === user.id) {
+  // The list owner always has full control — match via ownerId OR the owner
+  // relation object (some payloads carry `owner` but not `ownerId`).
+  if (list.ownerId === user.id || list.owner?.id === user.id) {
     return "owner"
   }
 
-  // Access comes from list membership.
-  const membership = list.listMembers?.find((lm) => lm.userId === user.id)
-  if (membership?.role === "admin") return "admin"
-  if (membership?.role === "member") return "member"
+  // Access comes from list membership (with or without the user relation loaded).
+  const membership = list.listMembers?.find(
+    (lm) => lm.userId === user.id || lm.user?.id === user.id
+  )
+  // Role casing must never decide access. Most writes are lowercase, but
+  // app/api/v1/lists created members as 'MEMBER', so uppercase rows exist in
+  // the database already and those users would otherwise resolve to no access
+  // at all (task e2803305).
+  const membershipRole = membership?.role?.toLowerCase()
+  if (membershipRole === "admin") return "admin"
+
+  // Legacy denormalized admins array grants admin (same precedence as the
+  // inline `admins.some(...)` checks this consolidates), before member.
+  if (list.admins?.some((a) => a?.id === user.id)) return "admin"
+
+  if (membershipRole === "member") return "member"
+
+  // Legacy denormalized members array (same precedence as membership member).
+  if (list.members?.some((m) => m?.id === user.id)) return "member"
 
   // For public lists, users have viewer access
   if (list.privacy === "PUBLIC") {
@@ -152,6 +178,20 @@ export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike):
 
   // For non-public lists, members can edit
   return role === "member"
+}
+
+/**
+ * Does the user hold an explicit role on this list (owner, admin or member)?
+ *
+ * Distinct from canUserEditTasks, which additionally grants viewers on public
+ * collaborative lists. Several call sites need the narrower question — e.g.
+ * "should we apply an optimistic update?", where a collaborative-list viewer
+ * must be excluded or the write 403s. They spelled it out inline as
+ * `isOwner || isAdmin || isMember || isListMember` (task e2803305).
+ */
+export function hasExplicitListRole(user: UserLike, list: ListLike): boolean {
+  const role = getUserRoleInList(user, list)
+  return role === "owner" || role === "admin" || role === "member"
 }
 
 export function canUserManageList(user: UserLike, list: ListLike): boolean {
@@ -246,4 +286,33 @@ export function getTaskPrivacyForList(list: ListLike): boolean {
   // If list is shared with others, tasks should default to not private
   // If list is private to owner only, tasks should default to private
   return list.privacy === "PRIVATE" && !isListShared(list)
+}
+/**
+ * Built-in virtual lists. These are views Astrid provides, not lists anyone
+ * owns, so their settings are never editable.
+ *
+ * Previously spelled out in three places — task-manager-utils.isVirtualListId,
+ * MainContent's popover guards, and ListSettingsHost — which is how the set
+ * drifts (task e2803305).
+ */
+export const SYSTEM_LIST_IDS = ["my-tasks", "today", "not-in-list", "public", "assigned"] as const
+
+export function isSystemListId(listId: string): boolean {
+  return (SYSTEM_LIST_IDS as readonly string[]).includes(listId)
+}
+
+/**
+ * May this user change a list's settings?
+ *
+ * Canonical home for what task-manager-utils.canEditListSettings used to do
+ * independently. It layered its own owner fallback on top of
+ * list-member-utils.isListAdminOrOwner, which disagreed with getUserRoleInList
+ * for lists carrying `ownerId` without a matching member row — the owner was
+ * denied. Built on the single role lookup, that whole class of disagreement
+ * disappears.
+ */
+export function canEditListSettings(list: ListLike | null | undefined, userId?: string | null): boolean {
+  if (!list || !userId) return false
+  if (isSystemListId(String(list.id))) return false
+  return canUserManageList({ id: userId }, list)
 }

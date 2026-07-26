@@ -4,6 +4,7 @@ import { applyVirtualListFilter } from '@/lib/virtual-list-utils'
 import type { WeeklyRepeatingPattern, Weekday } from '@/types/repeating'
 import { getNLPKeywords, type NLPKeywords } from '@/lib/i18n/nlp-keywords'
 import { createLogger } from '@/lib/logger'
+import { isSystemListId } from "@/lib/list-permissions"
 
 const log = createLogger('task-manager-utils')
 
@@ -71,8 +72,8 @@ function mapLocalizedDay(dayStr: string, keywords: NLPKeywords): Weekday | null 
  * Check if a list ID represents a virtual/built-in list
  */
 function isVirtualListId(listId: string): boolean {
-  const virtualListIds = ['my-tasks', 'today', 'not-in-list', 'public', 'assigned']
-  return virtualListIds.includes(listId)
+  // Single source of truth for the built-in list ids (task e2803305).
+  return isSystemListId(listId)
 }
 
 /**
@@ -401,45 +402,8 @@ export function getSavedFilterTaskCount(tasks: Task[], list: TaskList, userId?: 
 /**
  * Check if user can edit list settings
  */
-export function canEditListSettings(list: TaskList, userId?: string): boolean {
-  if (!list || !userId) return false
+export { canEditListSettings } from "@/lib/list-permissions"
 
-  // Built-in virtual lists (like "my-tasks", "today") cannot be edited
-  if (isVirtualListId(list.id)) {
-    if (process.env.NODE_ENV === 'development') {
-      log.info({ listId: list.id }, '🔧 canEditListSettings: Built-in virtual list, returning false')
-    }
-    return false
-  }
-
-  // User-created virtual lists (saved filters) can be edited by their creator/admin
-  // Note: We don't check list.isVirtual here because saved filters should be editable
-
-  const { isListAdminOrOwner } = require("@/lib/list-member-utils")
-  const canEdit = isListAdminOrOwner(list, userId)
-
-  // Fallback: Check if user is the owner of the list
-  const isOwner = list.ownerId === userId
-
-  const finalCanEdit = canEdit || isOwner
-
-  if (process.env.NODE_ENV === 'development') {
-    log.info({
-      listId: list.id,
-      listName: list.name,
-      isVirtual: list.isVirtual,
-      virtualListType: list.virtualListType,
-      hasOwner: !!list.owner,
-      ownerId: list.ownerId,
-      userId,
-      isOwner,
-      canEditFromMemberUtils: canEdit,
-      finalCanEdit
-    }, '🔧 canEditListSettings debug:')
-  }
-
-  return finalCanEdit
-}
 
 /**
  * Get fixed list task count (for built-in lists like "my-tasks", "today", etc.)

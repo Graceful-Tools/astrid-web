@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Copy, Share2, Trash2, Bug, MoreVertical } from "lucide-react"
 import type { Task, User } from "../../types/task"
+import { canUserManageList } from "@/lib/list-permissions"
 
 /**
  * Action dropdown menu (the "..." button on the task detail header).
@@ -37,9 +38,7 @@ export function TaskActionMenu({
 }: TaskActionMenuProps) {
   const taskList = task.lists?.[0]
   const isPublicListTask = taskList?.privacy === 'PUBLIC'
-  const isUserOwnerOrAdmin =
-    taskList?.ownerId === currentUser.id ||
-    taskList?.admins?.some((admin) => admin.id === currentUser.id)
+  const isUserOwnerOrAdmin = canUserManageList(currentUser, taskList as never)
   const showDelete = !(isPublicListTask && !isUserOwnerOrAdmin)
 
   return (
