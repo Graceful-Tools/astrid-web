@@ -58,6 +58,12 @@ const AGENT_CONFIG: Record<string, {
     selectedClass: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
     dotClass: 'bg-blue-500',
     badgeClass: 'text-blue-400 border-blue-500/50'
+  },
+  copilot: {
+    label: 'GitHub Copilot',
+    selectedClass: 'bg-slate-500/20 text-slate-300 border-slate-500/50',
+    dotClass: 'bg-slate-400',
+    badgeClass: 'text-slate-300 border-slate-500/50'
   }
 }
 

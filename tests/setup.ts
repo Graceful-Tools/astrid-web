@@ -209,6 +209,15 @@ export const mockPrisma = {
     delete: vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  copilotCredential: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findFirst: vi.fn().mockResolvedValue(null),
+    create: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({}),
+    upsert: vi.fn().mockResolvedValue({}),
+    delete: vi.fn().mockResolvedValue({}),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
   gitHubIntegration: {
     findUnique: vi.fn().mockResolvedValue(null),
     findFirst: vi.fn().mockResolvedValue(null),
