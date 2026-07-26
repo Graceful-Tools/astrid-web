@@ -42,6 +42,43 @@ describe('List Permissions - getUserRoleInList', () => {
 
       expect(getUserRoleInList(mockUser, list)).toBe('owner')
     })
+
+    // Reuse Phase 1 (task e2803305): getUserRoleInList must be the single source
+    // of truth, unioning every data source the inline checks used — including the
+    // owner relation object (some payloads carry `owner` but not `ownerId`).
+    it('should return owner when matched via the owner relation object', () => {
+      const list = {
+        id: 'list-1',
+        name: 'Test List',
+        ownerId: 'someone-else',
+        owner: { id: mockUser.id, email: 'o@example.com' },
+        privacy: 'PRIVATE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as unknown as TaskList
+
+      expect(getUserRoleInList(mockUser, list)).toBe('owner')
+    })
+  })
+
+  // Reuse Phase 1 (task e2803305): the legacy denormalized `admins` array is used
+  // by ~8 inline call sites. The canonical helper must recognize it so those
+  // sites can be converted safely.
+  describe('Legacy admins array', () => {
+    it('should return admin for a user only present in the legacy admins array', () => {
+      const list = {
+        id: 'list-1',
+        name: 'Test List',
+        ownerId: 'someone-else',
+        admins: [{ id: 'admin-user' }],
+        listMembers: [],
+        privacy: 'PRIVATE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as unknown as TaskList
+
+      expect(getUserRoleInList({ id: 'admin-user' }, list)).toBe('admin')
+    })
   })
 
   describe('ListMember table with role field', () => {

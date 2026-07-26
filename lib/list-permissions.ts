@@ -28,6 +28,10 @@ interface ListLike {
     user?: { id: string; name?: string | null; email: string } | null
   }> | null
   owner?: { id: string; name?: string | null; email: string } | null
+  // Legacy denormalized admins array. Some payloads carry only this (not
+  // listMembers); ~8 inline call sites read it. getUserRoleInList unions it so
+  // those sites can converge on this single source of truth (task e2803305).
+  admins?: Array<{ id: string }> | null
 }
 
 /**
@@ -63,14 +67,22 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
   if (!user || !list) return null
 
-  // The list owner always has full control.
-  if (list.ownerId === user.id) {
+  // The list owner always has full control — match via ownerId OR the owner
+  // relation object (some payloads carry `owner` but not `ownerId`).
+  if (list.ownerId === user.id || list.owner?.id === user.id) {
     return "owner"
   }
 
-  // Access comes from list membership.
-  const membership = list.listMembers?.find((lm) => lm.userId === user.id)
+  // Access comes from list membership (with or without the user relation loaded).
+  const membership = list.listMembers?.find(
+    (lm) => lm.userId === user.id || lm.user?.id === user.id
+  )
   if (membership?.role === "admin") return "admin"
+
+  // Legacy denormalized admins array grants admin (same precedence as the
+  // inline `admins.some(...)` checks this consolidates), before member.
+  if (list.admins?.some((a) => a?.id === user.id)) return "admin"
+
   if (membership?.role === "member") return "member"
 
   // For public lists, users have viewer access
