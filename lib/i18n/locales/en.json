@@ -415,36 +415,47 @@
       "description": "OAuth applications and API integrations"
     },
     "chatgpt": {
-      "title": "ChatGPT Integration",
-      "description": "Connect Astrid to custom GPT actions",
-      "loading": "Loading ChatGPT integration...",
-      "breadcrumb": "ChatGPT Integration",
+      "title": "AI Assistant Integrations",
+      "description": "Connect Astrid to Copilot, Claude, ChatGPT and other AI tools",
+      "loading": "Loading integrations...",
+      "breadcrumb": "AI Integrations",
       "howItWorks": {
         "title": "How It Works",
-        "description": "Connect Astrid to ChatGPT using OAuth 2.0 and OpenAPI",
+        "description": "Connect any MCP-capable assistant, or use OAuth + OpenAPI for GPT actions",
         "oauth": {
           "title": "Secure OAuth 2.0",
           "description": "Authenticate securely without sharing your password"
         },
         "openapi": {
-          "title": "OpenAPI Specification",
-          "description": "Standard API format that ChatGPT understands"
+          "title": "Open standards",
+          "description": "MCP and OpenAPI — formats every major assistant understands"
         },
         "shareable": {
-          "title": "Shareable Integration",
-          "description": "Share your custom GPT with others"
+          "title": "Works across tools",
+          "description": "The same connection serves Copilot, Claude and ChatGPT"
         }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
       },
       "step1": {
         "badge": "Step 1",
         "title": "Create OAuth Client",
-        "description": "Create an OAuth client to authenticate your GPT with Astrid",
+        "description": "For OpenAPI-based integrations such as custom GPT actions",
         "manageButton": "Manage Clients",
         "instructions": {
           "step1": "Go to API Access settings",
           "step2": "Click 'Create OAuth Client'",
           "step3": "Set grant type to 'authorization_code'",
-          "step4": "Add the redirect URI below",
+          "step4": "Add the redirect URI for your assistant",
           "step5": "Copy your Client ID and Secret"
         },
         "redirectUri": "Redirect URI",
@@ -452,15 +463,31 @@
       },
       "step2": {
         "badge": "Step 2",
-        "title": "Configure Your GPT",
-        "description": "Use these URLs in your custom GPT configuration",
+        "title": "Configure Your Assistant",
+        "description": "Use these URLs in your assistant's action configuration",
         "manifestUrl": "Plugin Manifest URL",
         "openapiSpec": "OpenAPI Specification",
         "authUrl": "Authorization URL",
         "tokenUrl": "Token URL",
-        "note": "Copy these URLs into your GPT's action configuration",
+        "note": "Copy these URLs into your assistant's action configuration",
         "viewDocsButton": "View Docs",
         "testApiButton": "Test API"
+      },
+      "step3": {
+        "badge": "Step 3",
+        "title": "Start Using It",
+        "description": "Try these example prompts once connected",
+        "examples": {
+          "example1": "Show me my tasks for today",
+          "example2": "Create a new task: Review quarterly report",
+          "example3": "What's on my shopping list?"
+        },
+        "shareNote": "The same connection works across your assistants"
+      },
+      "moreDetails": {
+        "title": "Learn More",
+        "reviewButton": "Review OAuth Settings",
+        "openBuilderButton": "Open GPT Builder"
       },
       "step2b": {
         "badge": "Alt",
@@ -469,22 +496,6 @@
         "serverUrl": "MCP Server URL",
         "postEndpoint": "POST Endpoint",
         "note": "MCP provides a standardized way to connect AI models to external tools"
-      },
-      "step3": {
-        "badge": "Step 3",
-        "title": "Start Using Your GPT",
-        "description": "Try these example prompts with your connected GPT",
-        "examples": {
-          "example1": "Show me my tasks for today",
-          "example2": "Create a new task: Review quarterly report",
-          "example3": "What's on my shopping list?"
-        },
-        "shareNote": "You can share your custom GPT with others"
-      },
-      "moreDetails": {
-        "title": "Learn More",
-        "reviewButton": "Review OAuth Settings",
-        "openBuilderButton": "Open GPT Builder"
       }
     },
     "contacts": {
@@ -835,6 +846,90 @@
         "disclaimer": "Note: OpenClaw is a separate project with its own security model. Refer to the",
         "openclawDocsLink": "OpenClaw documentation",
         "disclaimerSuffix": "for security best practices."
+      }
+    },
+    "aiIntegrations": {
+      "title": "AI Assistant Integrations",
+      "description": "Connect Astrid to Copilot, Claude, ChatGPT and other AI tools",
+      "loading": "Loading integrations...",
+      "breadcrumb": "AI Integrations",
+      "howItWorks": {
+        "title": "How It Works",
+        "description": "Connect any MCP-capable assistant, or use OAuth + OpenAPI for GPT actions",
+        "oauth": {
+          "title": "Secure OAuth 2.0",
+          "description": "Authenticate securely without sharing your password"
+        },
+        "openapi": {
+          "title": "Open standards",
+          "description": "MCP and OpenAPI — formats every major assistant understands"
+        },
+        "shareable": {
+          "title": "Works across tools",
+          "description": "The same connection serves Copilot, Claude and ChatGPT"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "Step 1",
+        "title": "Create OAuth Client",
+        "description": "For OpenAPI-based integrations such as custom GPT actions",
+        "manageButton": "Manage Clients",
+        "instructions": {
+          "step1": "Go to API Access settings",
+          "step2": "Click 'Create OAuth Client'",
+          "step3": "Set grant type to 'authorization_code'",
+          "step4": "Add the redirect URI for your assistant",
+          "step5": "Copy your Client ID and Secret"
+        },
+        "redirectUri": "Redirect URI",
+        "scopes": "Scopes"
+      },
+      "step2": {
+        "badge": "Step 2",
+        "title": "Configure Your Assistant",
+        "description": "Use these URLs in your assistant's action configuration",
+        "manifestUrl": "Plugin Manifest URL",
+        "openapiSpec": "OpenAPI Specification",
+        "authUrl": "Authorization URL",
+        "tokenUrl": "Token URL",
+        "note": "Copy these URLs into your assistant's action configuration",
+        "viewDocsButton": "View Docs",
+        "testApiButton": "Test API"
+      },
+      "step3": {
+        "badge": "Step 3",
+        "title": "Start Using It",
+        "description": "Try these example prompts once connected",
+        "examples": {
+          "example1": "Show me my tasks for today",
+          "example2": "Create a new task: Review quarterly report",
+          "example3": "What's on my shopping list?"
+        },
+        "shareNote": "The same connection works across your assistants"
+      },
+      "moreDetails": {
+        "title": "Learn More",
+        "reviewButton": "Review OAuth Settings",
+        "openBuilderButton": "Open GPT Builder"
+      },
+      "step2b": {
+        "badge": "Alt",
+        "title": "MCP Server (Alternative)",
+        "description": "Use the Model Context Protocol for direct integration",
+        "serverUrl": "MCP Server URL",
+        "postEndpoint": "POST Endpoint",
+        "note": "MCP provides a standardized way to connect AI models to external tools"
       }
     }
   }

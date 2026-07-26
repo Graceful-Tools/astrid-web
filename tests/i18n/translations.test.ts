@@ -65,7 +65,9 @@ describe('I18n Translations', () => {
       expect(enTranslations.settingsPages.remindersNotifications.title).toBe('Reminders & Notifications')
       expect(enTranslations.settingsPages.contacts.title).toBe('Contacts')
       expect(enTranslations.settingsPages.apiAccess.title).toBe('API Access')
-      expect(enTranslations.settingsPages.chatgpt.title).toBe('ChatGPT Integration')
+      // The integrations page is assistant-neutral: it serves Copilot, Claude
+      // and ChatGPT through MCP/OAuth, so the copy is no longer ChatGPT-specific.
+      expect(enTranslations.settingsPages.aiIntegrations.title).toBe('AI Assistant Integrations')
       expect(enTranslations.settingsPages.debug.title).toBe('Debug')
     })
 

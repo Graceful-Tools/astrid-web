@@ -85,7 +85,6 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
   const redirectUri = "https://chat.openai.com/aip/api/v1/oauth/callback"
   const scopes = "tasks:read tasks:write lists:read comments:write"
   const remoteMcpUrl = `${hostOrigin}/mcp`
-  const remoteMcpPostUrl = `${hostOrigin}/mcp/messages`
 
   return (
     <div className="p-2 sm:p-4">
@@ -125,9 +124,9 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
                   <MessageSquare className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="theme-text-primary">{t("settingsPages.chatgpt.title")}</CardTitle>
+                  <CardTitle className="theme-text-primary">{t("settingsPages.aiIntegrations.title")}</CardTitle>
                   <CardDescription className="theme-text-muted">
-                    {t("settingsPages.chatgpt.description")}
+                    {t("settingsPages.aiIntegrations.description")}
                   </CardDescription>
                 </div>
               </div>
@@ -144,27 +143,27 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
                 <div className="flex items-center space-x-3">
                   <Shield className="w-5 h-5 text-green-500" />
                   <div>
-                    <div className="font-semibold theme-text-primary">{t("settingsPages.chatgpt.howItWorks.oauth.title")}</div>
+                    <div className="font-semibold theme-text-primary">{t("settingsPages.aiIntegrations.howItWorks.oauth.title")}</div>
                     <p className="text-sm theme-text-muted">
-                      {t("settingsPages.chatgpt.howItWorks.oauth.description")}
+                      {t("settingsPages.aiIntegrations.howItWorks.oauth.description")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Sparkles className="w-5 h-5 text-purple-500" />
                   <div>
-                    <div className="font-semibold theme-text-primary">{t("settingsPages.chatgpt.howItWorks.openapi.title")}</div>
+                    <div className="font-semibold theme-text-primary">{t("settingsPages.aiIntegrations.howItWorks.openapi.title")}</div>
                     <p className="text-sm theme-text-muted">
-                      {t("settingsPages.chatgpt.howItWorks.openapi.description")}
+                      {t("settingsPages.aiIntegrations.howItWorks.openapi.description")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <LinkIcon className="w-5 h-5 text-blue-500" />
                   <div>
-                    <div className="font-semibold theme-text-primary">{t("settingsPages.chatgpt.howItWorks.shareable.title")}</div>
+                    <div className="font-semibold theme-text-primary">{t("settingsPages.aiIntegrations.howItWorks.shareable.title")}</div>
                     <p className="text-sm theme-text-muted">
-                      {t("settingsPages.chatgpt.howItWorks.shareable.description")}
+                      {t("settingsPages.aiIntegrations.howItWorks.shareable.description")}
                     </p>
                   </div>
                 </div>
@@ -173,22 +172,22 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
               {/* Step 1: Create OAuth App */}
               <div className="border-t theme-border pt-4">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Badge variant="outline" className="text-xs">{t("settingsPages.chatgpt.step1.badge")}</Badge>
-                  <span className="font-medium theme-text-primary">{t("settingsPages.chatgpt.step1.title")}</span>
+                  <Badge variant="outline" className="text-xs">{t("settingsPages.aiIntegrations.step1.badge")}</Badge>
+                  <span className="font-medium theme-text-primary">{t("settingsPages.aiIntegrations.step1.title")}</span>
                 </div>
                 <p className="text-sm theme-text-muted mb-3">
-                  {t("settingsPages.chatgpt.step1.description")}
+                  {t("settingsPages.aiIntegrations.step1.description")}
                 </p>
                 <div className="grid gap-3">
                   <CopyField
-                    label={t("settingsPages.chatgpt.step1.redirectUri")}
+                    label={t("settingsPages.aiIntegrations.step1.redirectUri")}
                     value={redirectUri}
                     field="redirect"
                     onCopy={copyValue}
                     copiedField={copiedField}
                   />
                   <CopyField
-                    label={t("settingsPages.chatgpt.step1.scopes")}
+                    label={t("settingsPages.aiIntegrations.step1.scopes")}
                     value={scopes}
                     field="scopes"
                     onCopy={copyValue}
@@ -200,36 +199,36 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
               {/* Step 2: URLs */}
               <div className="border-t theme-border pt-4">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Badge variant="outline" className="text-xs">{t("settingsPages.chatgpt.step2.badge")}</Badge>
-                  <span className="font-medium theme-text-primary">{t("settingsPages.chatgpt.step2.title")}</span>
+                  <Badge variant="outline" className="text-xs">{t("settingsPages.aiIntegrations.step2.badge")}</Badge>
+                  <span className="font-medium theme-text-primary">{t("settingsPages.aiIntegrations.step2.title")}</span>
                 </div>
                 <p className="text-sm theme-text-muted mb-3">
-                  {t("settingsPages.chatgpt.step2.description")}
+                  {t("settingsPages.aiIntegrations.step2.description")}
                 </p>
                 <div className="grid gap-3">
                   <CopyField
-                    label={t("settingsPages.chatgpt.step2.manifestUrl")}
+                    label={t("settingsPages.aiIntegrations.step2.manifestUrl")}
                     value={manifestUrl}
                     field="manifest"
                     onCopy={copyValue}
                     copiedField={copiedField}
                   />
                   <CopyField
-                    label={t("settingsPages.chatgpt.step2.openapiSpec")}
+                    label={t("settingsPages.aiIntegrations.step2.openapiSpec")}
                     value={openApiUrl}
                     field="openapi"
                     onCopy={copyValue}
                     copiedField={copiedField}
                   />
                   <CopyField
-                    label={t("settingsPages.chatgpt.step2.authUrl")}
+                    label={t("settingsPages.aiIntegrations.step2.authUrl")}
                     value={authUrl}
                     field="authUrl"
                     onCopy={copyValue}
                     copiedField={copiedField}
                   />
                   <CopyField
-                    label={t("settingsPages.chatgpt.step2.tokenUrl")}
+                    label={t("settingsPages.aiIntegrations.step2.tokenUrl")}
                     value={tokenUrl}
                     field="tokenUrl"
                     onCopy={copyValue}
@@ -238,41 +237,57 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
                 </div>
               </div>
 
-              {/* Step 2b: MCP */}
+              {/* MCP — the assistant-neutral path, and the one to reach for first */}
               <div className="border-t theme-border pt-4">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Badge variant="outline" className="text-xs">{t("settingsPages.chatgpt.step2b.badge")}</Badge>
-                  <span className="font-medium theme-text-primary">{t("settingsPages.chatgpt.step2b.title")}</span>
+                  <Badge variant="outline" className="text-xs">{t("settingsPages.aiIntegrations.mcp.badge")}</Badge>
+                  <span className="font-medium theme-text-primary">{t("settingsPages.aiIntegrations.mcp.title")}</span>
                 </div>
                 <p className="text-sm theme-text-muted mb-3">
-                  {t("settingsPages.chatgpt.step2b.description")}
+                  {t("settingsPages.aiIntegrations.mcp.description")}
                 </p>
                 <div className="grid gap-3">
                   <CopyField
-                    label={t("settingsPages.chatgpt.step2b.serverUrl")}
+                    label={t("settingsPages.aiIntegrations.mcp.serverUrl")}
                     value={remoteMcpUrl}
                     field="mcpServer"
                     onCopy={copyValue}
                     copiedField={copiedField}
                   />
+                </div>
+                <p className="text-xs theme-text-muted mt-2">
+                  {t("settingsPages.aiIntegrations.mcp.note")}
+                </p>
+
+                <div className="mt-4">
+                  <p className="text-sm font-medium theme-text-primary mb-1">
+                    {t("settingsPages.aiIntegrations.mcp.vscodeTitle")}
+                  </p>
+                  <p className="text-xs theme-text-muted mb-2">
+                    {t("settingsPages.aiIntegrations.mcp.vscodeNote")}
+                  </p>
                   <CopyField
-                    label={t("settingsPages.chatgpt.step2b.postEndpoint")}
-                    value={remoteMcpPostUrl}
-                    field="mcpPost"
+                    label=".vscode/mcp.json"
+                    value={`{"servers":{"astrid":{"type":"http","url":"${remoteMcpUrl}"}}}`}
+                    field="mcpVscode"
                     onCopy={copyValue}
                     copiedField={copiedField}
                   />
                 </div>
+
+                <p className="text-xs theme-text-muted mt-3">
+                  {t("settingsPages.aiIntegrations.mcp.legacyNote")}
+                </p>
               </div>
 
               {/* Links */}
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/settings/api-testing">{t("settingsPages.chatgpt.step2.testApiButton")}</Link>
+                  <Link href="/settings/api-testing">{t("settingsPages.aiIntegrations.step2.testApiButton")}</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="https://chat.openai.com/gpts/editor" target="_blank" rel="noreferrer">
-                    {t("settingsPages.chatgpt.moreDetails.openBuilderButton")}
+                    {t("settingsPages.aiIntegrations.moreDetails.openBuilderButton")}
                   </Link>
                 </Button>
               </div>

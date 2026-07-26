@@ -1,0 +1,27 @@
+[
+  {
+    "title": "[mac] surface errors instead of failing silently (7 `try?` call sites)",
+    "priority": 2,
+    "description": "Seven writes swallow their error with `try?` and show the user nothing: menu-bar complete + quick-add (MacMenuBarView:38,60), move-to-list (MacRootView:93), toggle favourite (:112), complete task (:327, :637) and quick-add create (:799). When the server rejects one, the optimistic row silently reverts on the next fetch and the user is never told — which is exactly how the dead-checkbox bug (652edb22) hid for so long. Everything else already routes through MacActions.perform, which surfaces failures; these should too. RED test: assert each path reports through MacActions rather than discarding the error."
+  },
+  {
+    "title": "[mac] add Undo (⌘Z) for complete / delete / move",
+    "priority": 2,
+    "description": "There is no UndoManager registration anywhere in the Mac target, so ⌘Z does nothing after completing, deleting or moving tasks. On macOS that is a baseline expectation — Finder, Mail and Notes all undo destructive actions — and the app already has a canonical service layer to invert against (completeTask(completed:false), updateTask(listIds:), and the delete path). Start with complete and move (cleanly invertible), then delete."
+  },
+  {
+    "title": "[mac] localize the remaining dialog + toolbar strings",
+    "priority": 1,
+    "description": "A few user-facing strings are still hardcoded English after the localization pass: the delete-list confirmation title (\"Delete this list?\", MacRootView:1061), the favourite toggle labels (\"Remove Favorite\"/\"Favorite\", :138) and the complete/incomplete context-menu labels (\"Mark Incomplete\"/\"Complete\", :521). They sit inside confirmationDialog/contextMenu builders, which the earlier grep for Text(\"…\") did not cover. Add keys in all 12 languages and a test that fails on a raw literal in those builders."
+  },
+  {
+    "title": "[mac] menu-bar shortcuts are thinner than the web's",
+    "priority": 1,
+    "description": "The menu bar defines only five shortcuts: ⌘N, ⌘⏎, ⌘⌫, ⌘K, ⌘/. The ⌘/ help sheet advertises the full bare-key set, but the MENU has no ⌘F (search), no ⌘1/⌘2/⌘3 for list/board/chat, and no shortcut for the filter sheet — all of which the web offers. Menu items are also where macOS users discover shortcuts, so anything not in the menu is effectively hidden. Mirror the web's set via the shared KeyboardShortcutHandler so the two cannot drift."
+  },
+  {
+    "title": "[mac] task list allocates an id array on every render",
+    "priority": 1,
+    "description": "MacRootView's task list uses `rows.map(\\.id)` as the key for BOTH `.animation(value:)` and `.onChange(of:)`, so every body evaluation allocates a fresh [String] of every visible row (MacRootView:469-470 and the animation modifier). It is small next to the pipeline work but it is pure churn on the hottest path in the app, and it grows with list size. Use a cheap stable key (count + first/last id, or a hash) and confirm row insert/delete animations still fire."
+  }
+]

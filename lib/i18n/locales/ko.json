@@ -435,6 +435,17 @@
           "description": "맞춤 GPT를 다른 사람과 공유"
         }
       },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
       "step1": {
         "badge": "단계 1",
         "title": "OAuth 클라이언트 생성",
@@ -462,14 +473,6 @@
         "viewDocsButton": "문서 보기",
         "testApiButton": "API 테스트"
       },
-      "step2b": {
-        "badge": "대안",
-        "title": "MCP 서버 (대안)",
-        "description": "직접 통합을 위해 Model Context Protocol 사용",
-        "serverUrl": "MCP 서버 URL",
-        "postEndpoint": "POST 엔드포인트",
-        "note": "MCP는 AI 모델을 외부 도구에 연결하는 표준화된 방법을 제공"
-      },
       "step3": {
         "badge": "단계 3",
         "title": "GPT 사용 시작",
@@ -485,6 +488,14 @@
         "title": "자세히 보기",
         "reviewButton": "OAuth 설정 검토",
         "openBuilderButton": "GPT 빌더 열기"
+      },
+      "step2b": {
+        "badge": "대안",
+        "title": "MCP 서버 (대안)",
+        "description": "직접 통합을 위해 Model Context Protocol 사용",
+        "serverUrl": "MCP 서버 URL",
+        "postEndpoint": "POST 엔드포인트",
+        "note": "MCP는 AI 모델을 외부 도구에 연결하는 표준화된 방법을 제공"
       }
     },
     "contacts": {
@@ -677,6 +688,90 @@
         "configure": "이메일 설정 구성",
         "configureDesc": "기본 마감일 사용자 지정, 기능 활성화/비활성화 등",
         "proTip": "이메일 제목이 작업 제목이 되고 본문이 설명이 됩니다. 받은 편지함에서 빠른 작업 캡처에 완벽합니다!"
+      }
+    },
+    "aiIntegrations": {
+      "title": "ChatGPT 통합",
+      "description": "Astrid를 맞춤 GPT 액션에 연결",
+      "loading": "ChatGPT 통합 로딩 중...",
+      "breadcrumb": "ChatGPT 통합",
+      "howItWorks": {
+        "title": "작동 방식",
+        "description": "OAuth 2.0 및 OpenAPI를 사용하여 Astrid를 ChatGPT에 연결",
+        "oauth": {
+          "title": "안전한 OAuth 2.0",
+          "description": "비밀번호를 공유하지 않고 안전하게 인증"
+        },
+        "openapi": {
+          "title": "OpenAPI 사양",
+          "description": "ChatGPT가 이해하는 표준 API 형식"
+        },
+        "shareable": {
+          "title": "공유 가능한 통합",
+          "description": "맞춤 GPT를 다른 사람과 공유"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "단계 1",
+        "title": "OAuth 클라이언트 생성",
+        "description": "GPT를 Astrid로 인증하기 위한 OAuth 클라이언트 생성",
+        "manageButton": "클라이언트 관리",
+        "instructions": {
+          "step1": "API 액세스 설정으로 이동",
+          "step2": "'OAuth 클라이언트 생성' 클릭",
+          "step3": "권한 부여 유형을 'authorization_code'로 설정",
+          "step4": "아래 리디렉션 URI 추가",
+          "step5": "클라이언트 ID와 시크릿 복사"
+        },
+        "redirectUri": "리디렉션 URI",
+        "scopes": "범위"
+      },
+      "step2": {
+        "badge": "단계 2",
+        "title": "GPT 구성",
+        "description": "맞춤 GPT 구성에서 이 URL 사용",
+        "manifestUrl": "플러그인 매니페스트 URL",
+        "openapiSpec": "OpenAPI 사양",
+        "authUrl": "인증 URL",
+        "tokenUrl": "토큰 URL",
+        "note": "이 URL을 GPT 액션 구성에 복사",
+        "viewDocsButton": "문서 보기",
+        "testApiButton": "API 테스트"
+      },
+      "step3": {
+        "badge": "단계 3",
+        "title": "GPT 사용 시작",
+        "description": "연결된 GPT로 이 샘플 프롬프트 시도",
+        "examples": {
+          "example1": "오늘 내 작업 보여줘",
+          "example2": "새 작업 생성: 분기별 보고서 검토",
+          "example3": "쇼핑 목록에 뭐가 있어?"
+        },
+        "shareNote": "맞춤 GPT를 다른 사람과 공유할 수 있습니다"
+      },
+      "moreDetails": {
+        "title": "자세히 보기",
+        "reviewButton": "OAuth 설정 검토",
+        "openBuilderButton": "GPT 빌더 열기"
+      },
+      "step2b": {
+        "badge": "대안",
+        "title": "MCP 서버 (대안)",
+        "description": "직접 통합을 위해 Model Context Protocol 사용",
+        "serverUrl": "MCP 서버 URL",
+        "postEndpoint": "POST 엔드포인트",
+        "note": "MCP는 AI 모델을 외부 도구에 연결하는 표준화된 방법을 제공"
       }
     }
   }

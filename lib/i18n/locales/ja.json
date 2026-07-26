@@ -435,6 +435,17 @@
           "description": "カスタムGPTを他の人と共有"
         }
       },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
       "step1": {
         "badge": "ステップ1",
         "title": "OAuthクライアントを作成",
@@ -462,14 +473,6 @@
         "viewDocsButton": "ドキュメントを見る",
         "testApiButton": "APIをテスト"
       },
-      "step2b": {
-        "badge": "代替",
-        "title": "MCPサーバー（代替）",
-        "description": "直接連携のためにModel Context Protocolを使用",
-        "serverUrl": "MCPサーバーURL",
-        "postEndpoint": "POSTエンドポイント",
-        "note": "MCPはAIモデルを外部ツールに接続する標準化された方法を提供"
-      },
       "step3": {
         "badge": "ステップ3",
         "title": "GPTの使用を開始",
@@ -485,6 +488,14 @@
         "title": "詳細を見る",
         "reviewButton": "OAuth設定を確認",
         "openBuilderButton": "GPTビルダーを開く"
+      },
+      "step2b": {
+        "badge": "代替",
+        "title": "MCPサーバー（代替）",
+        "description": "直接連携のためにModel Context Protocolを使用",
+        "serverUrl": "MCPサーバーURL",
+        "postEndpoint": "POSTエンドポイント",
+        "note": "MCPはAIモデルを外部ツールに接続する標準化された方法を提供"
       }
     },
     "contacts": {
@@ -677,6 +688,90 @@
         "configure": "メール設定を構成",
         "configureDesc": "デフォルトの期限日をカスタマイズ、機能の有効化/無効化など",
         "proTip": "メールの件名がタスクのタイトルになり、本文が説明になります。受信トレイからの素早いタスク取り込みに最適！"
+      }
+    },
+    "aiIntegrations": {
+      "title": "ChatGPT連携",
+      "description": "AstridをカスタムGPTアクションに接続",
+      "loading": "ChatGPT連携を読み込み中...",
+      "breadcrumb": "ChatGPT連携",
+      "howItWorks": {
+        "title": "仕組み",
+        "description": "OAuth 2.0とOpenAPIを使用してAstridをChatGPTに接続",
+        "oauth": {
+          "title": "安全なOAuth 2.0",
+          "description": "パスワードを共有せずに安全に認証"
+        },
+        "openapi": {
+          "title": "OpenAPI仕様",
+          "description": "ChatGPTが理解する標準APIフォーマット"
+        },
+        "shareable": {
+          "title": "共有可能な連携",
+          "description": "カスタムGPTを他の人と共有"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "ステップ1",
+        "title": "OAuthクライアントを作成",
+        "description": "GPTをAstridで認証するためのOAuthクライアントを作成",
+        "manageButton": "クライアントを管理",
+        "instructions": {
+          "step1": "APIアクセス設定に移動",
+          "step2": "「OAuthクライアントを作成」をクリック",
+          "step3": "グラントタイプを「authorization_code」に設定",
+          "step4": "以下のリダイレクトURIを追加",
+          "step5": "クライアントIDとシークレットをコピー"
+        },
+        "redirectUri": "リダイレクトURI",
+        "scopes": "スコープ"
+      },
+      "step2": {
+        "badge": "ステップ2",
+        "title": "GPTを設定",
+        "description": "カスタムGPT設定でこれらのURLを使用",
+        "manifestUrl": "プラグインマニフェストURL",
+        "openapiSpec": "OpenAPI仕様",
+        "authUrl": "認証URL",
+        "tokenUrl": "トークンURL",
+        "note": "これらのURLをGPTのアクション設定にコピー",
+        "viewDocsButton": "ドキュメントを見る",
+        "testApiButton": "APIをテスト"
+      },
+      "step3": {
+        "badge": "ステップ3",
+        "title": "GPTの使用を開始",
+        "description": "接続されたGPTでこれらのサンプルプロンプトを試す",
+        "examples": {
+          "example1": "今日のタスクを見せて",
+          "example2": "新しいタスクを作成：四半期レポートを確認",
+          "example3": "買い物リストには何がある？"
+        },
+        "shareNote": "カスタムGPTを他の人と共有できます"
+      },
+      "moreDetails": {
+        "title": "詳細を見る",
+        "reviewButton": "OAuth設定を確認",
+        "openBuilderButton": "GPTビルダーを開く"
+      },
+      "step2b": {
+        "badge": "代替",
+        "title": "MCPサーバー（代替）",
+        "description": "直接連携のためにModel Context Protocolを使用",
+        "serverUrl": "MCPサーバーURL",
+        "postEndpoint": "POSTエンドポイント",
+        "note": "MCPはAIモデルを外部ツールに接続する標準化された方法を提供"
       }
     }
   }
