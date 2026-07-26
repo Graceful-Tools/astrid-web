@@ -10,11 +10,10 @@
  * Run with: npx tsx scripts/validate-secrets.ts
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
 import crypto from 'crypto'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 interface ValidationResult {
   name: string

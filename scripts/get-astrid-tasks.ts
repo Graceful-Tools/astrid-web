@@ -5,11 +5,9 @@
  * Includes comprehensive comment analysis for AI-assisted development
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 interface TaskComment {
   id: string

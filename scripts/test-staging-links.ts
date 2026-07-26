@@ -6,8 +6,9 @@
 
 import * as dotenv from 'dotenv'
 import * as path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
 

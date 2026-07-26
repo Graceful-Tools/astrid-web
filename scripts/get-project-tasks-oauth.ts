@@ -7,12 +7,10 @@
  * This replaces the legacy MCP-based task retrieval
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
 import { OAuthAPIClient } from '../lib/oauth-api-client'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function getProjectTasks() {
   console.log('📋 Pulling tasks from your project list using OAuth API...\n')

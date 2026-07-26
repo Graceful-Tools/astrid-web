@@ -6,10 +6,9 @@
  * to identify where the token validation is failing.
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const PROD_API = 'https://astrid.cc'
 

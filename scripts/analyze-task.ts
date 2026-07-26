@@ -5,11 +5,9 @@
  * Shows full task details, comments, and PR analysis
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 interface TaskComment {
   id: string

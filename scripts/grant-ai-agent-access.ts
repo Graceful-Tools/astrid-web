@@ -5,12 +5,10 @@
  * This script helps make lists accessible to the AI agent
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
 import { PrismaClient } from '@prisma/client'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function grantAIAgentAccess() {
   console.log('🤖 Granting AI agent access to existing lists...\n')

@@ -3,10 +3,9 @@
  * Assign a task to an AI agent
  * Usage: npx tsx scripts/assign-to-agent.ts <taskId> [agentEmail]
  */
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+loadScriptEnv()
 
 const ASTRID_API_BASE = 'https://astrid.cc';
 

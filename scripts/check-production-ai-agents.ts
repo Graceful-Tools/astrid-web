@@ -3,9 +3,10 @@
 import { PrismaClient } from '@prisma/client'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
 // Load .env.local for production DB URL
-dotenv.config({ path: path.join(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 // Use production DB if available, otherwise local
 const productionDbUrl = process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL

@@ -5,11 +5,10 @@
  * Usage: npx tsx scripts/complete-task-with-workflow.ts <taskId>
  */
 
-import dotenv from 'dotenv'
 import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function completeTaskWithWorkflow(taskId?: string) {
   const args = process.argv.slice(2)

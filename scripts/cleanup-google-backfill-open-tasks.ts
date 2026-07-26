@@ -18,10 +18,9 @@
  * before 2024 — ancient Todoroo/Astrid.com-era leftovers that flood My Tasks.
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const BASE = 'https://astrid.cc'
 const APPLY = process.argv.includes('--apply')

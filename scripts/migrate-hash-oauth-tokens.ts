@@ -10,12 +10,11 @@
  * long-lived refresh tokens. Run against prod after deploy:
  *   DATABASE_URL_PROD=... npx tsx scripts/migrate-hash-oauth-tokens.ts --apply
  */
-import dotenv from 'dotenv'
-import path from 'path'
 import crypto from 'crypto'
 import { PrismaClient } from '@prisma/client'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const APPLY = process.argv.includes('--apply')
 const prisma = new PrismaClient({

@@ -1,8 +1,9 @@
 #!/usr/bin/env npx tsx
 import * as dotenv from 'dotenv'
 import * as path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const ASTRID_API_URL = 'https://astrid.cc'
 const CLIENT_ID = process.env.ASTRID_OAUTH_CLIENT_ID

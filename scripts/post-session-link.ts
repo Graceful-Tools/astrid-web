@@ -8,12 +8,12 @@
  * Usage: npx tsx scripts/post-session-link.ts <taskId>
  */
 
-import dotenv from 'dotenv'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 function getSessionInfo(): { bridgeSessionId: string; name: string } | null {
   const sessionsDir = path.join(os.homedir(), '.claude', 'sessions')

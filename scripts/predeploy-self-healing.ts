@@ -20,13 +20,13 @@
 import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
-import dotenv from 'dotenv'
+import { loadScriptEnv } from './lib/load-env'
 
 // Save original environment BEFORE dotenv loads, to use for build commands
 // This prevents dotenv-loaded variables from affecting the Next.js build
 const originalEnv = { ...process.env }
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 // Configuration - customize for your project
 const CONFIG = {

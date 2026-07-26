@@ -6,10 +6,9 @@
  * Run with: npx tsx scripts/restart-ai-tasks.ts [--dry-run]
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const DRY_RUN = process.argv.includes('--dry-run')
 const BASE_URL = process.env.ASTRID_API_URL || 'https://astrid.cc'
