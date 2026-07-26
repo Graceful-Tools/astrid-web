@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ListSettingsHost } from "./ListSettingsHost"
-import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creation"
+import { useLayoutType } from "../../enhanced-task-creation"
+import { AddTaskInput } from "../../add-task-input"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
@@ -396,7 +397,8 @@ export function MainContent({
     if (isCollaborative || isUserOwnerOrAdmin) {
       return (
         <div>
-          <EnhancedTaskCreation
+          <AddTaskInput
+            variant="inline"
             layoutType={layoutType}
             selectedListId={selectedListId}
             availableLists={lists}
@@ -430,7 +432,8 @@ export function MainContent({
     // Default: show task creation
     return (
       <div>
-        <EnhancedTaskCreation
+        <AddTaskInput
+            variant="inline"
           layoutType={layoutType}
           selectedListId={selectedListId}
           availableLists={lists}

@@ -16,8 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Copy } from "lucide-react"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
-import { EnhancedTaskCreation } from "./enhanced-task-creation"
-import { MobileQuickAdd } from "./mobile-quick-add"
+import { AddTaskInput } from "./add-task-input"
 import { KeyboardShortcutsMenu } from "./keyboard-shortcuts-menu"
 import { ChatPanel } from "./chat/ChatPanel"
 import { ChatToggle } from "./chat/ChatToggle"
@@ -1117,7 +1116,8 @@ const TaskManagerView = memo(function TaskManagerView({
         // For collaborative lists, always show task creation (even when viewing from featured)
         if (isCollaborative || isUserOwnerOrAdmin) {
           return (
-            <MobileQuickAdd
+            <AddTaskInput
+              variant="footer"
               selectedListId={selectedListId}
               availableLists={lists}
               availableUsers={availableUsers}
@@ -1148,7 +1148,8 @@ const TaskManagerView = memo(function TaskManagerView({
 
         // Default: show task creation
         return (
-          <MobileQuickAdd
+          <AddTaskInput
+              variant="footer"
             selectedListId={selectedListId}
             availableLists={lists}
             availableUsers={availableUsers}
