@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
+import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { ensureAstridAgent, ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { createLogger } from '@/lib/logger'
 
@@ -47,13 +48,13 @@ export async function GET(req: NextRequest) {
       const hasKey = await hasValidApiKey(auth.userId, agent.service)
       if (hasKey) {
         hasAnyKey = true
-        // Try to find the agent's User record for the real ID
-        const agentUser = await prisma.user.findFirst({
-          where: { email: agent.email, isAIAgent: true },
-          select: { id: true },
-        })
+        // Creates the row if the environment was never seeded. Skip the agent
+        // rather than returning its email as the id — Task.assigneeId is FK'd
+        // to User.id, so a fake id lists an agent that fails on assignment.
+        const agentUser = await ensureAgentUser(agent.email, agent.image)
+        if (!agentUser) continue
         available.push({
-          id: agentUser?.id || agent.email,
+          id: agentUser.id,
           name: agent.name,
           email: agent.email,
           image: agent.image,

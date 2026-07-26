@@ -105,7 +105,7 @@ export async function getAIServiceCredential(
  * Clear cache for a user (useful when keys are updated)
  */
 export function clearApiKeyCache(userId: string): void {
-  const services = ['claude', 'openai', 'gemini']
+  const services = ['claude', 'openai', 'gemini', 'openclaw']
   services.forEach(service => {
     apiKeyCache.delete(`${userId}-${service}`)
   })

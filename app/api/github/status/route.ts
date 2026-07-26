@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
+import { hasCopilotCredential } from '@/lib/copilot/oauth'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('github.status')
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
     const configuredProviders = Object.keys(apiKeys).filter(provider =>
       apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini'].includes(provider)
     )
+    // Copilot authenticates via GitHub OAuth, so its credential lives in
+    // CopilotCredential rather than mcpSettings.apiKeys and must be checked
+    // separately — same as lib/ai/orchestrator/factory.ts does.
+    if (await hasCopilotCredential(session.user.id)) configuredProviders.push('copilot')
 
     // Check if user has MCP tokens
     const mcpTokens = await prisma.mCPToken.findMany({
@@ -60,7 +65,7 @@ export async function GET(request: NextRequest) {
     // For coding workflows (GitHub connected), all agents are available via worker's API keys
     // For non-coding workflows (no GitHub), only user's configured API keys work
     const availableProviders = isGitHubConnected
-      ? ['claude', 'openai', 'gemini'] // Worker has all provider keys
+      ? ['claude', 'openai', 'gemini', ...(configuredProviders.includes('copilot') ? ['copilot'] : [])] // Worker has all provider keys except Copilot, which is per-user OAuth
       : configuredProviders // User's personal API keys
 
     log.info({ userId: session.user.id }, '🔍 [GitHub Status] Checking status for user')

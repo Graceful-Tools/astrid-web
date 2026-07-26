@@ -64,6 +64,10 @@ export default function CodingAgentsSettings({ onNavigate }: CodingAgentsSetting
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     gemini@astrid.cc
                   </span>
+                  <span className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 px-2 py-1 rounded">
+                    <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
+                    copilot@astrid.cc
+                  </span>
                 </div>
                 <div className="mt-3">
                   <Link href="/docs/integrate" className="text-xs text-blue-500 hover:underline">
