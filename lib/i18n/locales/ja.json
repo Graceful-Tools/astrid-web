@@ -87,7 +87,9 @@
       "taskName": "何をする必要がありますか？",
       "description": "説明を追加...",
       "comment": "コメントを書く..."
-    }
+    },
+    "addTaskPlaceholder": "タスクを追加",
+    "addTaskToList": "{listName} にタスクを追加..."
   },
   "lists": {
     "list": "リスト",

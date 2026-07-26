@@ -7,6 +7,7 @@ import { Plus } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
 import type { User, TaskList } from '@/types/task'
+import { useTranslations } from "@/lib/i18n/client"
 
 interface MobileQuickAddProps {
   selectedListId: string
@@ -40,6 +41,7 @@ export function MobileQuickAdd({
   isSessionReady,
   className = ""
 }: MobileQuickAddProps) {
+  const { t } = useTranslations()
   const [isCreating, setIsCreating] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [selectedPriority, setSelectedPriority] = useState<number>(0)
@@ -228,7 +230,7 @@ export function MobileQuickAdd({
             <div className="flex-1 relative flex items-center">
               <textarea
                 ref={textareaRef}
-                placeholder="Add a task"
+                placeholder={t("tasks.addTaskPlaceholder")}
                 value={quickTaskInput}
                 onChange={(e) => setQuickTaskInput(e.target.value)}
                 onKeyDown={handleKeyDown}

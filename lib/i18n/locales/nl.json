@@ -87,7 +87,9 @@
       "taskName": "Wat moet er gebeuren?",
       "description": "Beschrijving toevoegen...",
       "comment": "Schrijf een opmerking..."
-    }
+    },
+    "addTaskPlaceholder": "Taak toevoegen",
+    "addTaskToList": "Taak toevoegen aan {listName}..."
   },
   "lists": {
     "list": "Lijst",

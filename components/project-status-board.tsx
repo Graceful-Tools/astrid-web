@@ -24,6 +24,7 @@ import {
 } from "@/lib/project-status"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface ProjectStatusBoardProps {
   allTasks: Task[]
@@ -111,6 +112,7 @@ export function ProjectStatusBoard({
   onCreateTask,
   isOneColumn = false,
 }: ProjectStatusBoardProps) {
+  const { t } = useTranslations()
   const projectId = getProjectIdForBoard(lists, selectedListId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
     () => (projectId ? getProjectBoardColumns(lists) : []),
@@ -469,7 +471,7 @@ export function ProjectStatusBoard({
                   <Input
                     value={drafts[column.id] || ""}
                     onChange={(event) => setDrafts(prev => ({ ...prev, [column.id]: event.target.value }))}
-                    placeholder="Add task"
+                    placeholder={t("tasks.addTaskPlaceholder")}
                     className="h-9 min-w-0 theme-input theme-text-primary"
                     disabled={creatingColumnId === column.id}
                   />
