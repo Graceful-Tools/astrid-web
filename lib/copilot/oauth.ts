@@ -156,20 +156,41 @@ export async function revokeCopilotCredential(userId: string) {
   })
 }
 
-/** True if the user has a live (non-revoked) Copilot credential. */
+/**
+ * A GitHub token the user pasted into settings, stored in the same encrypted
+ * vault as the other providers' API keys.
+ *
+ * Copilot entitlement follows the user's Copilot subscription rather than the
+ * OAuth app that minted the token, so an ordinary GitHub token (e.g. the output
+ * of `gh auth token`) authenticates against the Copilot API. This keeps Copilot
+ * usable on servers where no GitHub OAuth App has been registered.
+ */
+async function pastedCopilotToken(userId: string): Promise<string | null> {
+  const { getCachedApiKey } = await import('@/lib/api-key-cache')
+  return getCachedApiKey(userId, 'copilot')
+}
+
+/**
+ * True if the user has a live Copilot credential from either source.
+ *
+ * This gates whether Copilot appears in the agent picker
+ * (lib/ai/orchestrator/factory.ts and both github/status routes), so it must
+ * agree with copilotTokenFor — otherwise Copilot authenticates but stays hidden.
+ */
 export async function hasCopilotCredential(userId: string): Promise<boolean> {
   const cred = await prisma.copilotCredential.findUnique({ where: { userId } })
-  return !!cred && !cred.revokedAt
+  if (cred && !cred.revokedAt) return true
+  return !!(await pastedCopilotToken(userId))
 }
 
 /**
  * Return a usable access token for the user, refreshing transparently when it
- * has expired and a refresh token is on file. Returns null when disconnected,
- * revoked, or expired-with-no-refresh (caller should prompt re-auth).
+ * has expired and a refresh token is on file. Prefers a connected OAuth account
+ * and falls back to a pasted token. Returns null when neither source has one.
  */
 export async function copilotTokenFor(userId: string): Promise<string | null> {
   const cred = await prisma.copilotCredential.findUnique({ where: { userId } })
-  if (!cred?.accessToken || cred.revokedAt) return null
+  if (!cred?.accessToken || cred.revokedAt) return pastedCopilotToken(userId)
 
   const expired = !!cred.expiresAt && cred.expiresAt.getTime() - REFRESH_SKEW_MS <= Date.now()
   if (expired) {

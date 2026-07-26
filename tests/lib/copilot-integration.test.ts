@@ -5,41 +5,40 @@
  * request takes —
  *   email → service (getAgentService)
  *   service → provider caller (dispatchToolCall)
- *   provider call → GitHub's supported Copilot SDK in locked-down empty mode.
+ *   provider call → Copilot's OpenAI-compatible REST API.
  *
- * This locks the supported SDK contract and prevents a regression back to
- * private OpenAI-compatible endpoints or ambient CLI tools.
+ * This previously locked the provider to @github/copilot-sdk and explicitly
+ * forbade "regression back to private OpenAI-compatible endpoints". That was
+ * reversed deliberately, on evidence:
+ *
+ *   - The SDK spawns a platform CLI binary. That binary (@github/copilot-<plat>)
+ *     is ~253 MB on its own — larger than Vercel's 250 MB unzipped serverless
+ *     function limit — and was traced into zero functions, so it could never
+ *     have run in production.
+ *   - api.githubcopilot.com is not a private endpoint. A live probe with an
+ *     ordinary `gh auth token` returned 200 from both GET /models and
+ *     POST /chat/completions, with usage accounting.
+ *
+ * So this now locks the REST contract instead: the Copilot base URL, the
+ * integration headers Copilot requires, and per-user token auth.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-
-const sdk = vi.hoisted(() => ({
-  clientOptions: undefined as Record<string, unknown> | undefined,
-  sessionConfig: undefined as Record<string, any> | undefined,
-  start: vi.fn(),
-  stop: vi.fn(),
-  disconnect: vi.fn(),
-  sendAndWait: vi.fn(),
-}))
-
-vi.mock('@github/copilot-sdk', () => ({
-  CopilotClient: class {
-    constructor(options: Record<string, unknown>) { sdk.clientOptions = options }
-    start = sdk.start
-    stop = sdk.stop
-    async createSession(config: Record<string, unknown>) {
-      sdk.sessionConfig = config
-      return { sendAndWait: sdk.sendAndWait, disconnect: sdk.disconnect }
-    }
-  },
-  defineTool: (name: string, config: Record<string, unknown>) => ({ name, ...config }),
-  RuntimeConnection: { forUri: (url: string) => ({ kind: 'uri', url }) },
-}))
 
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 import { dispatchToolCall, type ProviderCallers } from '@/lib/astrid-agent/dispatch-ai-service'
 import { getAgentService } from '@/lib/ai/agent-config'
 
 const COPILOT_EMAIL = 'copilot@astrid.cc'
+
+/** Minimal OpenAI-compatible completion body. */
+function completion(content: string) {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({ choices: [{ message: { content, role: 'assistant' } }] }),
+    text: async () => '',
+  }
+}
 
 describe('GitHub Copilot end-to-end routing (task eed98c5f)', () => {
   it('entry: resolves copilot@astrid.cc to the copilot service', () => {
@@ -72,67 +71,68 @@ describe('GitHub Copilot end-to-end routing (task eed98c5f)', () => {
     expect(out).toBe('copilot-response')
   })
 
-  describe('provider: supported Copilot SDK', () => {
+  describe('provider: Copilot REST API', () => {
+    let fetchSpy: ReturnType<typeof vi.fn>
+
     beforeEach(() => {
-      sdk.clientOptions = undefined
-      sdk.sessionConfig = undefined
-      sdk.start.mockReset().mockResolvedValue(undefined)
-      sdk.stop.mockReset().mockResolvedValue(undefined)
-      sdk.disconnect.mockReset().mockResolvedValue(undefined)
-      sdk.sendAndWait.mockReset().mockResolvedValue({ data: { content: 'Hello from Copilot' } })
+      fetchSpy = vi.fn().mockResolvedValue(completion('Hello from Copilot'))
+      vi.stubGlobal('fetch', fetchSpy)
     })
     afterEach(() => {
       vi.unstubAllGlobals()
     })
 
-    it('uses a per-user token and empty mode with no ambient CLI capabilities', async () => {
+    it('calls the Copilot chat endpoint with a per-user token', async () => {
       const res = await callCopilot({ apiKey: 'copilot-token-xyz', prompt: 'hi', userId: 'u1' })
 
       expect(res.content).toBe('Hello from Copilot')
-      expect(sdk.clientOptions).toMatchObject({
-        mode: 'empty',
-        gitHubToken: 'copilot-token-xyz',
-        useLoggedInUser: false,
-      })
-      expect(sdk.sessionConfig).toMatchObject({
-        model: 'gpt-4.1',
-        gitHubToken: 'copilot-token-xyz',
-        skipEmbeddingRetrieval: true,
-        availableTools: [],
-        skipCustomInstructions: true,
-      })
-      expect(sdk.sendAndWait).toHaveBeenCalledWith({ prompt: 'hi' }, 60_000)
-      expect(sdk.disconnect).toHaveBeenCalledOnce()
-      expect(sdk.stop).toHaveBeenCalledOnce()
+
+      const [url, init] = fetchSpy.mock.calls[0]
+      expect(String(url)).toBe('https://api.githubcopilot.com/chat/completions')
+      const headers = init.headers as Record<string, string>
+      expect(headers.Authorization).toBe('Bearer copilot-token-xyz')
     })
 
-    it('registers repository tools through SDK handlers', async () => {
-      const executed: string[] = []
+    it('sends the integration headers Copilot requires', async () => {
+      await callCopilot({ apiKey: 'tok', prompt: 'hi', userId: 'u1' })
+
+      const headers = fetchSpy.mock.calls[0][1].headers as Record<string, string>
+      // Copilot rejects requests without an integration id.
+      expect(headers['Copilot-Integration-Id']).toBe('vscode-chat')
+      expect(headers['Editor-Version']).toBe('Astrid/1.0')
+    })
+
+    it('defaults to a model Copilot actually serves', async () => {
+      await callCopilot({ apiKey: 'tok', prompt: 'hi', userId: 'u1' })
+
+      const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string)
+      expect(body.model).toBe('gpt-4.1')
+    })
+
+    it('offers repository tools when the task has a repository', async () => {
       await callCopilot({
         apiKey: 'tok',
         prompt: 'read the readme',
         userId: 'u1',
         hasRepository: true,
-        executeToolCallback: async (name: string) => {
-          executed.push(name)
-          return 'file contents'
-        },
+        executeToolCallback: async () => 'file contents',
       })
 
-      expect(sdk.sessionConfig?.availableTools).toEqual([
-        'custom:get_repository_file',
-        'custom:list_repository_files',
-      ])
-      const tool = sdk.sessionConfig?.tools[0]
-      await tool.handler({ path: 'README.md' })
-      expect(executed).toEqual(['get_repository_file'])
+      const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string)
+      const toolNames = (body.tools ?? []).map((t: { function: { name: string } }) => t.function.name)
+      expect(toolNames).toContain('get_repository_file')
+      expect(toolNames).toContain('list_repository_files')
     })
 
-    it('rejects an empty SDK response and still cleans up', async () => {
-      sdk.sendAndWait.mockResolvedValueOnce(undefined)
-      await expect(callCopilot({ apiKey: 'bad', prompt: 'hi', userId: 'u1' })).rejects.toThrow(/empty response/)
-      expect(sdk.disconnect).toHaveBeenCalledOnce()
-      expect(sdk.stop).toHaveBeenCalledOnce()
+    it('surfaces an API error rather than returning empty content', async () => {
+      fetchSpy.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: async () => 'bad credentials',
+      })
+
+      await expect(callCopilot({ apiKey: 'bad', prompt: 'hi', userId: 'u1' })).rejects.toThrow(/401/)
     })
   })
 })

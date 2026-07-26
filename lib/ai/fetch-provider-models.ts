@@ -41,9 +41,7 @@ export async function fetchProviderModels(
         models = await fetchGeminiModels(apiKey)
         break
       case 'copilot':
-        // Model enumeration through the SDK would start a CLI runtime during a
-        // settings-page request. Use the reviewed static list instead.
-        models = []
+        models = await fetchCopilotModels(apiKey)
         break
       default:
         return []
@@ -72,6 +70,28 @@ async function fetchClaudeModels(apiKey: string): Promise<string[]> {
     .filter((id: string) => !id.includes('claude-2') && !id.includes('claude-instant'))
     .sort((a: string, b: string) => b.localeCompare(a)) // Newest first (alphabetically desc)
   return models
+}
+
+/**
+ * Copilot's model list is a plain GET with the integration headers — no SDK and
+ * no CLI runtime, contrary to an earlier assumption here. Copilot proxies models
+ * from several vendors (gpt-*, claude-*, gemini-*), so this filters out only the
+ * non-chat entries (embeddings and internal helper models) rather than
+ * allowlisting one vendor's prefixes.
+ */
+async function fetchCopilotModels(apiKey: string): Promise<string[]> {
+  const { COPILOT_BASE_URL, COPILOT_HEADERS } = await import('./providers/copilot-provider')
+  const res = await fetch(`${COPILOT_BASE_URL}/models`, {
+    headers: { 'Authorization': `Bearer ${apiKey}`, ...COPILOT_HEADERS },
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  const EXCLUDED = /^(text-embedding|copilot-search|exec-agent|trajectory-|mai-code)/
+  const models: string[] = (data.data || [])
+    .map((m: { id: string }) => m.id)
+    .filter((id: string) => id && !EXCLUDED.test(id))
+    .sort((a: string, b: string) => a.localeCompare(b))
+  return Array.from(new Set(models))
 }
 
 async function fetchOpenAIModels(apiKey: string): Promise<string[]> {

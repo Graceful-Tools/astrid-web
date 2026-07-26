@@ -16,7 +16,7 @@ import { createLogger } from '@/lib/logger'
 import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
 import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
 import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
-import { callCopilot } from '@/lib/ai/providers/copilot-provider'
+import { COPILOT_BASE_URL, COPILOT_HEADERS } from '@/lib/ai/providers/copilot-provider'
 
 const log = createLogger('astrid-agent-runtime')
 
@@ -316,27 +316,20 @@ async function callOpenAIWithTools(
 }
 
 /**
- * GitHub Copilot tool-calling through the supported Copilot SDK. Empty SDK mode
- * exposes only Astrid's authenticated api_request tool.
+ * GitHub Copilot tool-calling. Copilot's chat API is OpenAI-compatible, so this
+ * reuses callOpenAIWithTools with the Copilot base URL and integration headers
+ * rather than maintaining a second tool-calling loop.
  */
 async function callCopilotWithTools(
   apiKey: string, systemPrompt: string, userMessage: string,
   context: { userId: string }, model?: string
 ): Promise<string> {
-  const response = await callCopilot({
-    apiKey,
-    prompt: userMessage,
-    userId: context.userId,
-    model,
-    systemPrompt,
-    tools: [{
-      name: 'api_request',
-      description: TOOLS_CLAUDE[0].description,
-      parameters: TOOLS_CLAUDE[0].input_schema,
-      handler: input => executeTool('api_request', input, context),
-    }],
-  })
-  return response.content
+  return callOpenAIWithTools(
+    apiKey, systemPrompt, userMessage, context,
+    model || 'gpt-4.1',
+    COPILOT_BASE_URL,
+    COPILOT_HEADERS,
+  )
 }
 
 async function callGeminiWithTools(

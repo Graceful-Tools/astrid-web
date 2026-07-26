@@ -512,7 +512,8 @@ export function AIAPIKeyManager() {
                     <div>
                       <Label className="font-medium">GitHub authorization</Label>
                       <p className="text-sm text-muted-foreground">
-                        Astrid stores the OAuth token encrypted and uses GitHub&apos;s supported Copilot SDK.
+                        Connect your GitHub account so Astrid can use your Copilot subscription.
+                        The token is stored encrypted and can be revoked from GitHub at any time.
                       </p>
                     </div>
                     <Button
@@ -524,7 +525,7 @@ export function AIAPIKeyManager() {
                   </div>
                 )}
 
-                {!service.isOAuth && data?.hasKey ? (
+                {data?.hasKey ? (
                   <div className="space-y-4">
                     <div className="p-4 border rounded-lg bg-muted/50">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -587,17 +588,21 @@ export function AIAPIKeyManager() {
                   </div>
                 ) : null}
 
-                {!service.isOAuth && <div className="space-y-4">
+                <div className="space-y-4">
                   <div>
                     <Label htmlFor={`key-${service.id}`} className="font-medium">
-                      {service.isGateway
-                        ? (data?.hasKey ? 'Update Gateway URL' : 'Enter Gateway URL')
-                        : (data?.hasKey ? 'Update API Key' : 'Enter API Key')}
+                      {service.isOAuth
+                        ? (data?.hasKey ? 'Update GitHub token' : 'Or paste a GitHub token')
+                        : service.isGateway
+                          ? (data?.hasKey ? 'Update Gateway URL' : 'Enter Gateway URL')
+                          : (data?.hasKey ? 'Update API Key' : 'Enter API Key')}
                     </Label>
                     <p className="text-sm text-muted-foreground mb-2">
-                      {service.isGateway
-                        ? 'WebSocket URL for your OpenClaw Gateway (ws:// or wss://).'
-                        : <>Key should start with &quot;{service.keyFormat.prefix}&quot;{service.keyFormat.length ? ` and be ${service.keyFormat.length} characters long` : ''}.</>}
+                      {service.isOAuth
+                        ? <>Any GitHub token for an account with an active Copilot subscription works — for example the output of <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">gh auth token</code>. Use this if the server has no GitHub OAuth App configured.</>
+                        : service.isGateway
+                          ? 'WebSocket URL for your OpenClaw Gateway (ws:// or wss://).'
+                          : <>Key should start with &quot;{service.keyFormat.prefix}&quot;{service.keyFormat.length ? ` and be ${service.keyFormat.length} characters long` : ''}.</>}
                     </p>
                     <div className="flex flex-wrap sm:flex-nowrap gap-2">
                       <Input
@@ -640,7 +645,7 @@ export function AIAPIKeyManager() {
                       />
                     </div>
                   )}
-                </div>}
+                </div>
 
                 {/* Model Selection */}
                 {modelData && (
