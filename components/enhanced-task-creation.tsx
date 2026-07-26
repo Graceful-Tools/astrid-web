@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Keyboard, Hash } from "lucide-react"
 import type { TaskList } from '@/types/task'
+import { useTranslations } from "@/lib/i18n/client"
 
 export type LayoutType = '1-column' | '2-column' | '3-column'
 
@@ -48,6 +49,7 @@ export function EnhancedTaskCreation({
   isSessionReady,
   className = ""
 }: EnhancedTaskCreationProps) {
+  const { t } = useTranslations()
   const [isCreating, setIsCreating] = useState(false)
   const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
   const [hashtagSuggestions, setHashtagSuggestions] = useState<TaskList[]>([])
@@ -101,7 +103,7 @@ export function EnhancedTaskCreation({
     const baseConfig = getOptimalInputConfig()
 
     if (layoutType === '3-column' && contextualDefaults.listName !== 'My Tasks') {
-      return `Add task to ${contextualDefaults.listName}...`
+      return t("tasks.addTaskToList", { listName: contextualDefaults.listName })
     }
 
     return baseConfig.placeholder

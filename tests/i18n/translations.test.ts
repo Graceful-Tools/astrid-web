@@ -6,6 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import fs from 'fs'
+import path from 'path'
 import enTranslations from '@/lib/i18n/locales/en.json'
 import esTranslations from '@/lib/i18n/locales/es.json'
 import frTranslations from '@/lib/i18n/locales/fr.json'
@@ -221,5 +223,50 @@ describe('I18n Translations', () => {
       expect(deTranslations.listHeaders.myTasks).not.toBe(enTranslations.listHeaders.myTasks)
       expect(deTranslations.listHeaders.today).not.toBe(enTranslations.listHeaders.today)
     })
+  })
+})
+
+/**
+ * Reuse Phase 2 (task 5fac84e8): the add-task placeholder was hardcoded English
+ * in several components ("Add a task", "Add task"), so non-English users saw
+ * English there regardless of locale. One key now backs all of them, mirroring
+ * the iOS key name (iOS: tasks.add_task_placeholder).
+ */
+describe('add-task placeholder is a single translated key (task 5fac84e8)', () => {
+  const locales = fs.readdirSync(path.join(process.cwd(), 'lib/i18n/locales'))
+    .filter(f => f.endsWith('.json'))
+
+  it('exists in every locale', () => {
+    for (const file of locales) {
+      const messages = JSON.parse(
+        fs.readFileSync(path.join(process.cwd(), 'lib/i18n/locales', file), 'utf8'),
+      )
+      expect(messages.tasks?.addTaskPlaceholder, `${file} is missing tasks.addTaskPlaceholder`).toBeTruthy()
+    }
+  })
+
+  it('is actually translated, not the English string copied everywhere', () => {
+    const read = (f: string) => JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), 'lib/i18n/locales', f), 'utf8'),
+    ).tasks.addTaskPlaceholder
+    const en = read('en.json')
+    for (const file of locales.filter(f => f !== 'en.json')) {
+      expect(read(file), `${file} still holds the English string`).not.toBe(en)
+    }
+  })
+
+  it('leaves no hardcoded add-task placeholder in components', () => {
+    const offenders: string[] = []
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name)
+        if (entry.isDirectory()) { walk(full); continue }
+        if (!/\.tsx?$/.test(entry.name)) continue
+        const src = fs.readFileSync(full, 'utf8')
+        if (/placeholder=["'](Add a task|Add task)["']/.test(src)) offenders.push(full)
+      }
+    }
+    walk(path.join(process.cwd(), 'components'))
+    expect(offenders, `hardcoded placeholder in: ${offenders.join(', ')}`).toEqual([])
   })
 })

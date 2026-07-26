@@ -87,7 +87,9 @@
       "taskName": "需要做什么？",
       "description": "添加描述...",
       "comment": "写评论..."
-    }
+    },
+    "addTaskPlaceholder": "添加任务",
+    "addTaskToList": "添加任务到 {listName}..."
   },
   "lists": {
     "list": "列表",

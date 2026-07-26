@@ -87,7 +87,9 @@
       "taskName": "需要做什麼？",
       "description": "新增描述...",
       "comment": "寫留言..."
-    }
+    },
+    "addTaskPlaceholder": "新增工作",
+    "addTaskToList": "新增工作到 {listName}..."
   },
   "lists": {
     "list": "列表",

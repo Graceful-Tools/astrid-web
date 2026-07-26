@@ -87,7 +87,9 @@
       "taskName": "Was muss erledigt werden?",
       "description": "Beschreibung hinzufügen...",
       "comment": "Kommentar schreiben..."
-    }
+    },
+    "addTaskPlaceholder": "Aufgabe hinzufügen",
+    "addTaskToList": "Aufgabe zu {listName} hinzufügen..."
   },
   "lists": {
     "list": "Liste",

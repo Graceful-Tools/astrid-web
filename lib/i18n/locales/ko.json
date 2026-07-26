@@ -87,7 +87,9 @@
       "taskName": "무엇을 해야 하나요?",
       "description": "설명 추가...",
       "comment": "댓글 작성..."
-    }
+    },
+    "addTaskPlaceholder": "작업 추가",
+    "addTaskToList": "{listName}에 작업 추가..."
   },
   "lists": {
     "list": "목록",
