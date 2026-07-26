@@ -4,8 +4,7 @@ import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ListSettingsPopover } from "../../list-settings-popover"
-import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
+import { ListSettingsHost } from "./ListSettingsHost"
 import { QuickTaskCreate } from "../../quick-task-create"
 import { EnhancedTaskCreation, useLayoutType } from "../../enhanced-task-creation"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
@@ -706,65 +705,30 @@ export function MainContent({
             )}
           </div>
 
-          {/* List Settings Popover for Current List - Desktop Only */}
-          {!isMobile && selectedListId && !["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
-            (() => {
-              const currentList = lists.find(list => list.id === selectedListId) || listMetadata
-              if (!currentList) return null
-
-              return showSettingsPopover === currentList.id && (
-                <ListSettingsPopover
-                  key={`settings-current-${currentList.id}`}
-                  list={currentList}
-                  currentUser={effectiveSession?.user}
-                  availableUsers={availableUsers}
-                  canEditSettings={canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
-                  open={showSettingsPopover === selectedListId}
-                  onOpenChange={(open) => setShowSettingsPopover(open ? selectedListId : null)}
-                  onEditImage={() => handleListImageClick(currentList.id)}
-                  onLeave={(list, isOwnerLeaving) => handleLeaveList(list, isOwnerLeaving)}
-                  onUpdate={onListUpdate}
-                  onFavoriteToggle={onFavoriteToggle}
-                  onProjectBoardCreated={onProjectBoardCreated}
-                  onProjectBoardRemoved={onProjectBoardRemoved}
-                  statuses={getProjectStatusLists(lists)}
-                  onStatusesChanged={onStatusesChanged}
-                  onDelete={(listId) => {
-                    onListDelete(listId)
-                    setShowSettingsPopover(null)
-                  }}
-                >
-                  <div />
-                </ListSettingsPopover>
-              )
-            })()
-          )}
-
-          {/* Fixed List Settings Popover for System Lists - Desktop Only */}
-          {!isMobile && ["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
-            <FixedListSettingsPopover
-              key={`fixed-settings-${selectedListId}`}
-              listId={selectedListId}
-              listName={getSelectedListInfo().name}
-              listDescription={getSelectedListInfo().description}
+          {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
+          <ListSettingsHost
+              variant="desktop"
+              selectedListId={selectedListId}
+              lists={lists}
+              listMetadata={listMetadata}
               currentUser={effectiveSession?.user}
               availableUsers={availableUsers}
-              open={showSettingsPopover === selectedListId}
-              onOpenChange={(open) => setShowSettingsPopover(open ? selectedListId : null)}
-              filterPriority={newFilterState.filters.priority}
-              setFilterPriority={newFilterState.setPriority}
-              filterAssignee={newFilterState.filters.assignee}
-              setFilterAssignee={newFilterState.setAssignee}
-              filterDueDate={newFilterState.filters.dueDate}
-              setFilterDueDate={newFilterState.setDueDate}
-              filterCompletion={newFilterState.filters.completed}
-              setFilterCompletion={newFilterState.setCompleted}
-              sortBy={newFilterState.filters.sortBy}
-              setSortBy={newFilterState.setSortBy}
-              hasActiveFilters={newFilterState.hasActiveFilters}
-              clearAllFilters={newFilterState.clearAllFilters}
+              showSettingsPopover={showSettingsPopover}
+              setShowSettingsPopover={setShowSettingsPopover}
+              canEditListSettings={canEditListSettingsMemo}
+              isViewingFromFeatured={isViewingFromFeatured}
+              selectedListInfo={getSelectedListInfo()}
+              filterState={newFilterState}
+              statuses={getProjectStatusLists(lists)}
+              onEditImage={handleListImageClick}
+              onLeave={handleLeaveList}
+              onListUpdate={onListUpdate}
+              onFavoriteToggle={onFavoriteToggle}
+              onProjectBoardCreated={onProjectBoardCreated}
+              onProjectBoardRemoved={onProjectBoardRemoved}
+              onStatusesChanged={onStatusesChanged}
+              onListDelete={onListDelete}
             />
-          )}
           </>
           )}
 
@@ -993,65 +957,30 @@ export function MainContent({
         )}
       </div>
 
-      {/* List Settings Popover for Current List - Mobile Only */}
-      {isMobile && selectedListId && !["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
-        (() => {
-          const currentList = lists.find(list => list.id === selectedListId) || listMetadata
-          if (!currentList) return null
-
-          return showSettingsPopover === currentList.id && (
-            <ListSettingsPopover
-              key={`settings-current-mobile-${currentList.id}`}
-              list={currentList}
+      {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
+      <ListSettingsHost
+              variant="mobile"
+              selectedListId={selectedListId}
+              lists={lists}
+              listMetadata={listMetadata}
               currentUser={effectiveSession?.user}
               availableUsers={availableUsers}
-              canEditSettings={canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
-              open={showSettingsPopover === selectedListId}
-              onOpenChange={(open) => setShowSettingsPopover(open ? selectedListId : null)}
-              onEditImage={() => handleListImageClick(currentList.id)}
-              onLeave={(list, isOwnerLeaving) => handleLeaveList(list, isOwnerLeaving)}
-              onUpdate={onListUpdate}
+              showSettingsPopover={showSettingsPopover}
+              setShowSettingsPopover={setShowSettingsPopover}
+              canEditListSettings={canEditListSettingsMemo}
+              isViewingFromFeatured={isViewingFromFeatured}
+              selectedListInfo={getSelectedListInfo()}
+              filterState={newFilterState}
+              statuses={getProjectStatusLists(lists)}
+              onEditImage={handleListImageClick}
+              onLeave={handleLeaveList}
+              onListUpdate={onListUpdate}
               onFavoriteToggle={onFavoriteToggle}
               onProjectBoardCreated={onProjectBoardCreated}
               onProjectBoardRemoved={onProjectBoardRemoved}
-              statuses={getProjectStatusLists(lists)}
               onStatusesChanged={onStatusesChanged}
-              onDelete={(listId) => {
-                onListDelete(listId)
-                setShowSettingsPopover(null)
-              }}
-            >
-              <div />
-            </ListSettingsPopover>
-          )
-        })()
-      )}
-
-      {/* Fixed List Settings Popover for System Lists - Mobile Only */}
-      {isMobile && ["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
-        <FixedListSettingsPopover
-          key={`fixed-settings-mobile-${selectedListId}`}
-          listId={selectedListId}
-          listName={getSelectedListInfo().name}
-          listDescription={getSelectedListInfo().description}
-          currentUser={effectiveSession?.user}
-          availableUsers={availableUsers}
-          open={showSettingsPopover === selectedListId}
-          onOpenChange={(open) => setShowSettingsPopover(open ? selectedListId : null)}
-          filterPriority={newFilterState.filters.priority}
-          setFilterPriority={newFilterState.setPriority}
-          filterAssignee={newFilterState.filters.assignee}
-          setFilterAssignee={newFilterState.setAssignee}
-          filterDueDate={newFilterState.filters.dueDate}
-          setFilterDueDate={newFilterState.setDueDate}
-          filterCompletion={newFilterState.filters.completed}
-          setFilterCompletion={newFilterState.setCompleted}
-          sortBy={newFilterState.filters.sortBy}
-          setSortBy={newFilterState.setSortBy}
-          hasActiveFilters={newFilterState.hasActiveFilters}
-          clearAllFilters={newFilterState.clearAllFilters}
-        />
-      )}
+              onListDelete={onListDelete}
+            />
     </div>
 
     {/* Description Viewer/Editor Dialog */}
