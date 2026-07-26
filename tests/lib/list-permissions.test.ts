@@ -12,7 +12,7 @@ import {
   isSystemListId,
   SYSTEM_LIST_IDS,
 } from '@/lib/list-permissions'
-import { isListAdminOrOwner } from '@/lib/list-member-utils'
+import { isListAdminOrOwner, hasListAccess } from '@/lib/list-member-utils'
 import type { TaskList, User } from '@/types/task'
 
 describe('List Permissions - getUserRoleInList', () => {
@@ -546,5 +546,32 @@ describe('role casing is not a permission boundary (task e2803305)', () => {
   it('still rejects an unrelated role string', () => {
     const list = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'spectator' }] }
     expect(getUserRoleInList(user, list as never)).toBeNull()
+  })
+})
+
+/**
+ * Task e2803305: hasListAccess had the same defect as isListAdminOrOwner — it
+ * derived access from getAllListMembers, which only records the owner when the
+ * payload carries the `owner` relation object. A list fetched with just
+ * `ownerId` therefore reported its own owner as having no access.
+ *
+ * Several API routes wrapped it in try/catch with a hand-rolled fallback doing
+ * the ownerId compare — but the helper returns false rather than throwing, so
+ * the fallback never ran and access was simply denied.
+ */
+describe('hasListAccess covers owners on ownerId-only payloads (task e2803305)', () => {
+  it('grants the owner access without an owner relation object', () => {
+    expect(hasListAccess({ id: 'l1', ownerId: 'u1' } as never, 'u1')).toBe(true)
+  })
+
+  it('still grants members and refuses strangers', () => {
+    expect(hasListAccess({ id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'member' }] } as never, 'u1')).toBe(true)
+    expect(hasListAccess({ id: 'l1', ownerId: 'u2' } as never, 'u1')).toBe(false)
+  })
+
+  it('does not treat a public-list viewer as having access', () => {
+    // Public lists are readable, but that is not membership; routes gating
+    // writes on hasListAccess must not be widened here.
+    expect(hasListAccess({ id: 'l1', ownerId: 'u2', privacy: 'PUBLIC' } as never, 'u1')).toBe(false)
   })
 })
