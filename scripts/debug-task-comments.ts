@@ -4,11 +4,9 @@
  * Debug script to see task comments and understand why filtering is happening
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const CONFIG = {
   astridApiUrl: process.env.ASTRID_API_URL || 'https://astrid.cc',

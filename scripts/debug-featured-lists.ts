@@ -4,11 +4,9 @@
  * Debug script to check the actual API response for featured lists
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function debugFeaturedLists() {
   console.log('🔍 Debugging featured lists API response...\n')

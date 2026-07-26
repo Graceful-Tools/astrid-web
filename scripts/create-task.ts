@@ -4,11 +4,9 @@
  * Usage: npx tsx scripts/create-task.ts "Task title" "Optional description"
  */
 
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+loadScriptEnv()
 
 const ASTRID_API_BASE = 'https://astrid.cc';
 

@@ -5,10 +5,9 @@
  * Usage: npx tsx scripts/complete-task-oauth.ts <taskId> "<summary>"
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function completeTask() {
   const args = process.argv.slice(2)

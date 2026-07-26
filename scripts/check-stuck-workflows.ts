@@ -1,9 +1,7 @@
-import dotenv from 'dotenv'
-import path from 'path'
 import { PrismaClient } from '@prisma/client'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables from .env.local
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const prisma = new PrismaClient()
 

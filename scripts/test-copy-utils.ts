@@ -4,11 +4,9 @@
  * Test the actual copy-utils functions after the fix
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function testCopyUtils() {
   console.log('🧪 Testing copy-utils functions after the fix...\n')

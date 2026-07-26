@@ -3,11 +3,10 @@
  * Manually trigger a webhook to test the Claude Code Remote flow
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
 import { generateWebhookHeaders } from '../lib/webhook-signature'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const webhookUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
 const webhookSecret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET

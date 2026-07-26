@@ -12,12 +12,11 @@
  *   tsx scripts/validate-mcp-oauth.ts
  */
 
-import dotenv from 'dotenv'
 import path from 'path'
 import fs from 'fs'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 interface ValidationResult {
   success: boolean

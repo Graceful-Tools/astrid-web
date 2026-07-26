@@ -8,11 +8,9 @@
  * from the AI agent, not from the OAuth client owner.
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 /**
  * Get the Claude agent user ID from env or by looking up assigned tasks

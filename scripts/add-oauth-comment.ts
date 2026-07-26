@@ -5,11 +5,9 @@
  * Usage: npx tsx scripts/add-oauth-comment.ts <taskId> "<comment content>"
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 async function getOAuthToken(): Promise<string> {
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID

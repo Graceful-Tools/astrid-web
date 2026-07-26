@@ -4,9 +4,10 @@ import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
 // Load .env.local for database URL
-dotenv.config({ path: path.join(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const prisma = new PrismaClient()
 

@@ -26,13 +26,13 @@
  *   - seenFeedbackTaskIds   rolling dedupe window for feedback-list tasks
  */
 
-import dotenv from 'dotenv'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
 import crypto from 'crypto'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const ASTRID_API_BASE = 'https://astrid.cc'
 const ASC_API_BASE = 'https://api.appstoreconnect.apple.com'

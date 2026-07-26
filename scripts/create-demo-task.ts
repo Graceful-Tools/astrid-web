@@ -2,10 +2,9 @@
 /**
  * Create a demo task assigned to Claude for terminal mode testing
  */
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+loadScriptEnv()
 
 const ASTRID_API_BASE = 'https://astrid.cc';
 

@@ -14,10 +14,10 @@
 import { execSync } from 'child_process'
 import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
 import path from 'path'
-import dotenv from 'dotenv'
 import { PrismaClient } from '@prisma/client'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 const prisma = new PrismaClient({
   log: ['error'],

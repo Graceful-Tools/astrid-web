@@ -15,10 +15,9 @@
  *   npm run deploy:canary -- --retries 5     # Custom retry count
  */
 
-import dotenv from 'dotenv'
-import path from 'path'
+import { loadScriptEnv } from './lib/load-env'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+loadScriptEnv()
 
 interface HealthResponse {
   status: 'healthy' | 'unhealthy'
