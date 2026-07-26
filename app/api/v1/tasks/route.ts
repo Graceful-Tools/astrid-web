@@ -35,6 +35,7 @@ const log = createLogger('v1.tasks')
  * - limit: Max results (default: 100)
  * - offset: Pagination offset (default: 0)
  * - includeComments: true/false (default: false)
+ * - updatedSince: ISO timestamp; return only tasks updated after it (delta sync)
  */
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.tasks' },
@@ -54,6 +55,12 @@ export const GET = withAuth(
     // duplicated across every task sharing a list. Backward-compatible: absent
     // param → full members as before.
     const leanListMembers = url.searchParams.get('leanListMembers') === '1'
+    // Delta sync: return only tasks touched since this instant. Optional and
+    // purely additive — omitting it leaves the query exactly as it was, which
+    // is what keeps this from being a breaking change for existing clients.
+    const updatedSinceParam = url.searchParams.get('updatedSince')
+    const updatedSince = updatedSinceParam ? new Date(updatedSinceParam) : null
+    const hasValidUpdatedSince = !!updatedSince && !Number.isNaN(updatedSince.getTime())
 
     const where: any = {}
 
@@ -87,6 +94,13 @@ export const GET = withAuth(
           },
         },
       ]
+    }
+
+    // Narrows an already-built visibility clause; never widens it. An
+    // unparseable cursor is ignored rather than applied, so a bad value cannot
+    // silently empty the caller's task list.
+    if (hasValidUpdatedSince) {
+      where.updatedAt = { gt: updatedSince }
     }
 
     if (completed !== undefined) {
