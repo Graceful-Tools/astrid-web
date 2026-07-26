@@ -74,7 +74,8 @@ export const config = {
      * - sw.js (service worker)
      * - manifest.json (PWA manifest)
      * - Static asset extensions (.png, .jpg, .ico, .svg, .webp)
+     * - .md (public docs such as ASTRID_WORKFLOW.md, which users download)
      */
-    "/((?!_next/static|_next/image|favicon|apple-touch-icon|apple-icon|icons/|images/|screenshots/|sounds/|sw\\.js|manifest\\.json|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.webp$|.*\\.wav$).*)",
+    "/((?!_next/static|_next/image|favicon|apple-touch-icon|apple-icon|icons/|images/|screenshots/|sounds/|sw\\.js|manifest\\.json|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.webp$|.*\\.wav$|.*\\.md$).*)",
   ],
 }

@@ -35,6 +35,16 @@ const nextConfig = {
     domains: ['lh3.googleusercontent.com', 'images.unsplash.com'],
   },
   serverExternalPackages: ['@prisma/client', 'pino', 'pino-pretty', 'thread-stream'],
+  // /api/downloads reads these out of public/ at request time. Next only ships
+  // files it can statically trace into a serverless function, and public/ is
+  // served by the CDN rather than bundled — without this the read throws and
+  // the route 404s in production while working fine locally.
+  outputFileTracingIncludes: {
+    '/api/downloads/[filename]': [
+      'public/ASTRID_WORKFLOW.md',
+      'public/get-project-tasks-oauth.ts',
+    ],
+  },
   async redirects() {
     return [
       {
