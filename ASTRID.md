@@ -252,6 +252,11 @@ Agents deploy feature branches to preview subdomains for review before merging:
 
 **CRITICAL**: This workflow is MANDATORY for all AI agents when implementing code changes.
 
+> This section is the astrid-web expansion of the portable workflow in
+> [ASTRID_WORKFLOW.md](./ASTRID_WORKFLOW.md) — same process, with this repo's
+> commands filled in. The two must not diverge: if you change the process here,
+> change it there (and in `public/ASTRID_WORKFLOW.md`, which users download).
+
 ### Step 1: Analysis & Planning
 
 1. Understand the task requirements
