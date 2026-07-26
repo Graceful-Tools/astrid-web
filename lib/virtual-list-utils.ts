@@ -170,6 +170,20 @@ export function applyVirtualListFilter(
     })
   }
 
+  // Apply filterRepeating filter — mirrors applyRepeatingFilter in the iOS/Mac shared engine
+  // (Astrid App/Core/Filters/ListTaskFiltering.swift). "all"/absent keeps everything,
+  // "not_repeating" keeps tasks with NO rule (null or "never"), and a cadence keeps only that
+  // cadence. An unrecognised value keeps everything, so a newer client can never blank a list.
+  if (list.filterRepeating && list.filterRepeating !== "all") {
+    const REPEAT_CADENCES = ["daily", "weekly", "monthly", "yearly", "custom"]
+    const filterValue = list.filterRepeating
+    if (filterValue === "not_repeating") {
+      filtered = filtered.filter(task => !task.repeating || task.repeating === "never")
+    } else if (REPEAT_CADENCES.includes(filterValue)) {
+      filtered = filtered.filter(task => task.repeating === filterValue)
+    }
+  }
+
   // Apply filterInLists filter
   if (list.filterInLists && list.filterInLists !== "dont_filter") {
     filtered = filtered.filter(task => {
