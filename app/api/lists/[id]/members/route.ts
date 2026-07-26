@@ -14,6 +14,7 @@ import {
 } from "@/lib/list-member-operations"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList, canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('api.lists.members')
 
@@ -24,12 +25,15 @@ export const dynamic = 'force-dynamic'
 // Helper function to check if a user is a list admin
 async function isListAdmin(listId: string, userId: string): Promise<boolean> {
   try {
-    // First check if user is the list owner
+    // Owner check via the canonical helper rather than an inline compare
+    // (task e2803305). The two-query shape is kept deliberately: the admin
+    // lookup below is a separate query, and this route's tests assert on that
+    // call sequence — collapsing it is a change for its own commit.
     const list = await prisma.taskList.findUnique({
       where: { id: listId },
       select: { ownerId: true }
     })
-    if (list && list.ownerId === userId) {
+    if (list && getUserRoleInList({ id: userId }, list as never) === 'owner') {
       return true
     }
 
@@ -522,7 +526,7 @@ export async function PATCH(
         return NextResponse.json({ error: "List not found" }, { status: 404 })
       }
 
-      const isOwner = existingList.ownerId === session.user.id
+      const isOwner = getUserRoleInList({ id: session.user.id }, existingList as never) === 'owner'
 
       if (isOwner) {
         // Owner is leaving - need to transfer ownership or prevent leaving

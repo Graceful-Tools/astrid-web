@@ -1,3 +1,4 @@
+import { canUserManageList } from "../../lib/list-permissions"
 /**
  * MCP list-level read handlers — getSharedLists, getListTasks, getListMembers.
  *
@@ -166,7 +167,9 @@ async function getListMembers(args: any) {
   })
 
   list.members.forEach((member: any) => {
-    if (member.id !== list.ownerId && !list.admins.some((admin: any) => admin.id === member.id)) {
+    // Anyone who is not owner/admin is a plain member. Asked via the canonical
+    // role lookup rather than two inline checks (task e2803305).
+    if (!canUserManageList({ id: member.id }, list as never)) {
       members.push({ ...member, role: "member" })
     }
   })

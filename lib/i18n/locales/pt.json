@@ -89,7 +89,11 @@
       "comment": "Escrever um comentário..."
     },
     "addTaskPlaceholder": "Adicionar uma tarefa",
-    "addTaskToList": "Adicionar tarefa a {listName}..."
+    "addTaskToList": "Adicionar tarefa a {listName}...",
+    "addTaskToCurrentList": "Adicionar tarefa à lista atual...",
+    "addTaskShort": "Adicionar tarefa...",
+    "quickAdd": "Adição rápida...",
+    "addNewTask": "Adicionar uma nova tarefa..."
   },
   "lists": {
     "list": "Lista",

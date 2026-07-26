@@ -9,6 +9,7 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { copyListWithTasks } from '@/lib/copy-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -38,7 +39,10 @@ export const POST = withAuth<RouteContext>(
       include: {
         owner: {
           select: { id: true, name: true, email: true }
-        }
+        },
+        // Membership travels with the list so access can be decided from this
+        // payload rather than a second query (task e2803305).
+        listMembers: { select: { userId: true, role: true } }
       }
     })
 
@@ -52,13 +56,7 @@ export const POST = withAuth<RouteContext>(
     // Check if list is public or user has access
     if (sourceList.privacy !== 'PUBLIC') {
       // Check if user is owner or member
-      const isMember = sourceList.ownerId === auth.userId ||
-        await prisma.listMember.findFirst({
-          where: {
-            listId: id,
-            userId: auth.userId
-          }
-        })
+      const isMember = hasExplicitListRole({ id: auth.userId }, sourceList as never)
 
       if (!isMember) {
         return NextResponse.json(

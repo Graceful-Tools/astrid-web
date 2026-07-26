@@ -10,11 +10,11 @@
  * legacy v2 server can share one definition.
  */
 function hasListAccess(list: any, userId: string): boolean {
-  if (list.ownerId === userId) return true
-  if (list.admins && list.admins.some((admin: any) => admin.id === userId)) return true
-  if (list.members && list.members.some((member: any) => member.id === userId)) return true
-  if (list.listMembers && list.listMembers.some((member: any) => member.userId === userId)) return true
-  return false
+  // Delegates to the canonical role lookup (task e2803305). This had restated
+  // it in full — ownerId, legacy admins[], legacy members[], listMembers — and
+  // so was a fourth copy free to drift from the other three.
+  const { hasExplicitListRole } = require("../lib/list-permissions")
+  return hasExplicitListRole({ id: userId }, list)
 }
 
 module.exports = { hasListAccess }

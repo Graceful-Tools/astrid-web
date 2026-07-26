@@ -17,7 +17,7 @@
     "db:backup": "tsx scripts/backup-database.ts",
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
-    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('✅ Database connected')).catch(e => console.error('❌ Database failed:', e)).finally(() => prisma.$disconnect())\"",
+    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('\u2705 Database connected')).catch(e => console.error('\u274c Database failed:', e)).finally(() => prisma.$disconnect())\"",
     "db:setup-production": "tsx scripts/setup-production-db.ts",
     "db:deploy-production": "tsx scripts/deploy-production-migration.js",
     "db:push-production": "tsx scripts/deploy-production-migration.js",
@@ -29,7 +29,7 @@
     "test:rate-limit": "vitest tests/auth/rate-limit-simple.test.ts",
     "predeploy:check": "tsx scripts/predeploy-check.ts",
     "check:model-sync": "tsx scripts/check-model-sync.ts",
-    "check:reuse": "tsx scripts/check-reuse.ts",
+    "check:reuse": "tsx scripts/check-reuse.ts --strict",
     "check:api-breaking": "tsx scripts/check-api-breaking-changes.ts",
     "predeploy": "tsx scripts/predeploy-self-healing.ts",
     "predeploy:simple": "npm run check:model-sync && npm run check:api-breaking && npm run test:run && npx tsc --noEmit && npm run lint && echo 'All predeploy checks passed!'",
@@ -110,7 +110,8 @@
     "predeploy:dry": "tsx scripts/predeploy-self-healing.ts --dry",
     "predeploy:ci": "tsx scripts/predeploy-self-healing.ts --ci",
     "deploy:canary": "tsx scripts/deploy-canary.ts",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "check:reuse:warn": "tsx scripts/check-reuse.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

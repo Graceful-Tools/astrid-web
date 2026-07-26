@@ -61,26 +61,26 @@ export function EnhancedTaskCreation({
       case '3-column':
         return {
           width: 'w-full',
-          placeholder: 'Add task to current list...',
+          placeholder: t('tasks.addTaskToCurrentList'),
           buttonText: isMobile ? '' : 'Add Task',
           showKeyboardHint: false
         }
       case '2-column':
         return {
           width: 'w-full',
-          placeholder: 'Add task...',
+          placeholder: t('tasks.addTaskShort'),
           buttonText: isMobile ? '' : 'Add Task',
           showKeyboardHint: false
         }
       case '1-column':
         return {
           width: 'w-full',
-          placeholder: isMobile ? 'Quick add...' : 'Add a new task...',
+          placeholder: isMobile ? t('tasks.quickAdd') : t('tasks.addNewTask'),
           buttonText: isMobile ? '' : 'Add Task',
           showKeyboardHint: false
         }
     }
-  }, [layoutType, isMobile])
+  }, [layoutType, isMobile, t])
 
   // Get contextual defaults based on selected list
   const getContextualDefaults = useCallback((): ContextualDefaults => {
@@ -107,7 +107,7 @@ export function EnhancedTaskCreation({
     }
 
     return baseConfig.placeholder
-  }, [layoutType, contextualDefaults.listName, getOptimalInputConfig])
+  }, [layoutType, contextualDefaults.listName, getOptimalInputConfig, t])
 
   // Handle task creation with enhanced context
   const handleCreateTask = useCallback(async () => {

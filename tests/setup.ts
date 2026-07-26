@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 import 'fake-indexeddb/auto'
+import enMessages from '@/lib/i18n/locales/en.json'
 
 // Mock NextAuth
 global.jest = {
@@ -450,8 +451,15 @@ vi.mock('@/lib/i18n/client', () => ({
         'emptyState.addTaskHint': 'Add task',
         'emptyState.noLists': 'No lists yet. Create your first list to get started!',
       }
-      // Handle interpolation for {listName} and other params
-      let value = translations[key] || key
+      // Fall back to the real en.json before giving up and echoing the key.
+      // The map above only covers keys someone remembered to add; without this,
+      // any newly translated string silently renders as "tasks.addTaskShort"
+      // and every test asserting on that copy breaks for no real reason.
+      const fromLocale = key.split('.').reduce<unknown>(
+        (node, part) => (node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined),
+        enMessages as unknown,
+      )
+      let value = translations[key] || (typeof fromLocale === 'string' ? fromLocale : key)
       if (params) {
         Object.entries(params).forEach(([paramKey, paramValue]) => {
           value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), paramValue)

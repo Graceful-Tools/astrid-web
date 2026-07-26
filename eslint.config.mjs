@@ -57,16 +57,15 @@ const eslintConfig = [
       "lib/chat-access.ts",
       "lib/chat-channel-eligibility.ts",
       "lib/public-list-utils.ts",
-      // The add-task input components own the placeholder until it moves to i18n.
-      "components/enhanced-task-creation.tsx",
-      "components/mobile-quick-add.tsx",
-      "components/quick-task-create.tsx",
       // Tests assert against these patterns intentionally.
       "tests/**",
-      "e2e/**"
+      "e2e/**",
+      // Diagnostic scripts print ownership for humans; they make no access
+      // decisions, so the permission selectors do not apply.
+      "scripts/**"
     ],
     rules: {
-      "no-restricted-syntax": ["warn",
+      "no-restricted-syntax": ["error",
         {
           selector: "CallExpression[callee.type='MemberExpression'][callee.property.name='some'][callee.object.property.name='admins']",
           message: "Don't inline an admin check (list.admins.some(...)). Use a helper from lib/list-permissions.ts / lib/list-member-utils.ts (e.g. isListAdminOrOwner, canUserManageList), or a canEdit* prop already in scope. See docs/CODE_REUSE_AND_CONSISTENCY.md."

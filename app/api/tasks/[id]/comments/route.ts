@@ -9,6 +9,7 @@ import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-event
 import { broadcastCommentCreatedNotification, broadcastToUsers } from "@/lib/sse-utils"
 import { dispatchPostCommentSideEffects } from "@/lib/comments/post-comment-side-effects"
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('tasks.[id].comments')
 
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
         index,
         listId: list.id,
         access: listAccess,
-        isOwner: list.ownerId === session.user.id,
+        isOwner: getUserRoleInList({ id: session.user.id }, list as never) === 'owner',
         listMemberCount: list.listMembers?.length || 0,
       }, '🔍 List access')
     })

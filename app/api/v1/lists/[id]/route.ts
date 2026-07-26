@@ -16,6 +16,7 @@ import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('api.v1.lists.id')
 
@@ -149,7 +150,10 @@ export const PUT = withAuth<RouteContext>(
               { ownerId: auth.userId },
               { listMembers: { some: { userId: auth.userId, role: 'admin' } } }
             ]
-      }
+      },
+      // Load membership so the role can be decided from this payload rather
+      // than a second round-trip (task e2803305).
+      include: { listMembers: { select: { userId: true, role: true } } }
     })
 
     if (!existingList) {
@@ -159,10 +163,7 @@ export const PUT = withAuth<RouteContext>(
       )
     }
 
-    const isOwnerOrAdmin = existingList.ownerId === auth.userId ||
-      await prisma.listMember.findFirst({
-        where: { listId: id, userId: auth.userId, role: 'admin' }
-      })
+    const isOwnerOrAdmin = canUserManageList({ id: auth.userId }, existingList as never)
 
     const updateData: any = {}
 

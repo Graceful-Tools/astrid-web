@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('secure-files.[fileId]')
 
@@ -188,11 +189,8 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
 
       if (!hasAccess && chatMessage.channel?.list) {
         const list = chatMessage.channel.list
-        if (list.ownerId === session.user.id) {
-          hasAccess = true
-        } else if (list.listMembers?.some((m: any) => m.userId === session.user.id)) {
-          hasAccess = true
-        } else if (list.privacy === 'PUBLIC') {
+        // Owner/admin/member, or any public list (task e2803305).
+        if (hasExplicitListRole({ id: session.user.id }, list as never) || list.privacy === 'PUBLIC') {
           hasAccess = true
         }
       }

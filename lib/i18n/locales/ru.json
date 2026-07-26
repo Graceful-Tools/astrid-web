@@ -89,7 +89,11 @@
       "comment": "Написать комментарий..."
     },
     "addTaskPlaceholder": "Добавить задачу",
-    "addTaskToList": "Добавить задачу в {listName}..."
+    "addTaskToList": "Добавить задачу в {listName}...",
+    "addTaskToCurrentList": "Добавить задачу в текущий список...",
+    "addTaskShort": "Добавить задачу...",
+    "quickAdd": "Быстрое добавление...",
+    "addNewTask": "Добавить новую задачу..."
   },
   "lists": {
     "list": "Список",

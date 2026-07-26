@@ -5,9 +5,11 @@
  * Reports where the codebase inlines logic that has a canonical home, so drift
  * is visible instead of silent. See docs/CODE_REUSE_AND_CONSISTENCY.md.
  *
- * Phase 0: WARN mode — prints the backlog and always exits 0 (never blocks a
- * deploy). Pass --strict (or CHECK_REUSE_STRICT=1) to exit non-zero when any
- * violation is found; wire that into predeploy per-category as each backlog is
+ * The backlog is CLEARED (task e2803305 / 5fac84e8): `npm run check:reuse` now
+ * runs --strict and exits non-zero on any violation, and the ESLint
+ * no-restricted-syntax rules are at "error". Use `npm run check:reuse:warn` for
+ * the old non-blocking view. Historical note: this began as WARN mode while the
+ * backlog was worked down; --strict was wired in per-category as each backlog is
  * cleared (Phase 1+).
  *
  * The authoritative machine-enforced version is the ESLint `no-restricted-syntax`
@@ -50,11 +52,10 @@ const RULES: Rule[] = [
     fix: "Use an i18n key (e.g. t('tasks.addTaskPlaceholder')) from lib/i18n/locales/*.json.",
     pattern: String.raw`(placeholder|Text)[[:space:]]*[:=].{0,20}[Aa]dd (a )?task|Quick add`,
     globs: ["components", "app"],
-    exclude: [
-      "enhanced-task-creation.tsx",
-      "mobile-quick-add.tsx",
-      "quick-task-create.tsx",
-    ],
+    // No exemptions: every add-task input now reads its placeholder from
+    // tasks.addTaskPlaceholder / tasks.addTaskToList (task 5fac84e8).
+    // quick-task-create.tsx was dead code and has been deleted.
+    exclude: [],
   },
 ]
 

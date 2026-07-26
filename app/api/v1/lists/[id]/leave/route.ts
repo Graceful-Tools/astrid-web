@@ -10,6 +10,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.lists.leave')
 
@@ -39,7 +40,7 @@ export const POST = withAuth<RouteContext>(
         )
       }
 
-      const isUserAdmin = userMember.role === 'admin' || list.ownerId === auth.userId
+      const isUserAdmin = userMember.role === 'admin' || canUserManageList({ id: auth.userId }, list as never)
 
       if (isUserAdmin) {
         const adminCount = await prisma.listMember.count({

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { RedisCache } from "@/lib/redis"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('lists.[id].leave')
 
@@ -51,7 +52,7 @@ export async function POST(
     }
 
     // Check if user is an admin or the owner (both are considered admins for leave purposes)
-    const isUserAdmin = userMember.role === 'admin' || list.ownerId === session.user.id
+    const isUserAdmin = userMember.role === 'admin' || canUserManageList({ id: session.user.id }, list as never)
 
     if (isUserAdmin) {
       // Count all admins (including the owner if they're in the members table)

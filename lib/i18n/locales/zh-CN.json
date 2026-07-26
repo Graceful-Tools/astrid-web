@@ -89,7 +89,11 @@
       "comment": "写评论..."
     },
     "addTaskPlaceholder": "添加任务",
-    "addTaskToList": "添加任务到 {listName}..."
+    "addTaskToList": "添加任务到 {listName}...",
+    "addTaskToCurrentList": "添加任务到当前列表...",
+    "addTaskShort": "添加任务...",
+    "quickAdd": "快速添加...",
+    "addNewTask": "添加新任务..."
   },
   "lists": {
     "list": "列表",

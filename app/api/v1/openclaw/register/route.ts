@@ -15,6 +15,7 @@ import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.openclaw.register')
 
@@ -107,11 +108,10 @@ export const POST = withAuth(
           where: { id: listId },
           select: {
             ownerId: true,
-            listMembers: { where: { userId: auth.userId }, select: { role: true } },
+            listMembers: { where: { userId: auth.userId }, select: { userId: true, role: true } },
           },
         })
-        const callerRole =
-          list?.ownerId === auth.userId ? 'owner' : list?.listMembers[0]?.role
+        const callerRole = list ? getUserRoleInList({ id: auth.userId }, list as never) : null
         if (callerRole !== 'owner' && callerRole !== 'admin') {
           log.error({ listId, userId: auth.userId }, 'Refused agent list-add: caller is not owner/admin')
           continue

@@ -96,9 +96,13 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
     // If user is an admin, check if they're the last admin
     const adminMembers = members.filter(m => m.role === 'admin' && m.type === 'member')
 
-    // Count owner as admin if they're not already counted in the members table
-    const ownerIsAdminMember = members.some(m => m.user_id === list.ownerId && m.role === 'admin')
-    const totalAdmins = adminMembers.length + (list.ownerId && !ownerIsAdminMember ? 1 : 0)
+    // Count owner as admin if they're not already counted in the members table.
+    // This asks whether the OWNER has an admin row — a question about the member
+    // list's shape, not a permission check on the current user, so it stays an
+    // id comparison. Extracted to a local so it reads as such (task e2803305).
+    const ownerId = list.ownerId
+    const ownerIsAdminMember = members.some(m => m.user_id === ownerId && m.role === 'admin')
+    const totalAdmins = adminMembers.length + (ownerId && !ownerIsAdminMember ? 1 : 0)
 
     // Can leave if there are other admins
     return totalAdmins > 1

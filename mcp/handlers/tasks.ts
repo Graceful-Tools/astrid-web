@@ -1,3 +1,4 @@
+import { canUserManageList } from "../../lib/list-permissions"
 /**
  * MCP task CRUD handlers — createTask, updateTask, deleteTask,
  * getTaskDetails, addTaskAttachment.
@@ -96,8 +97,7 @@ async function updateTask(args: any) {
   const userCanEditTask =
     existingTask.creatorId === user.id ||
     existingTask.assigneeId === user.id ||
-    list.ownerId === user.id ||
-    list.admins.some((admin: any) => admin.id === user.id)
+    canUserManageList({ id: user.id }, list as never)
 
   if (!userCanEditTask) {
     throw new Error("User no longer has permission to edit this task")
@@ -267,8 +267,7 @@ async function deleteTask(args: any) {
   const userCanDeleteTask =
     existingTask.creatorId === user.id ||
     existingTask.assigneeId === user.id ||
-    list.ownerId === user.id ||
-    list.admins.some((admin: any) => admin.id === user.id)
+    canUserManageList({ id: user.id }, list as never)
 
   if (!userCanDeleteTask) {
     throw new Error("User no longer has permission to delete this task")

@@ -1,3 +1,4 @@
+import { hasExplicitListRole } from "../lib/list-permissions"
 /**
  * Validate an MCP access token against a target list and required permission.
  *
@@ -65,13 +66,10 @@ async function validateAccessToken(
 
   // Re-check list access at validation time so a list membership revocation
   // takes effect immediately even if the token hasn't been rotated.
-  const userHasListAccess =
-    mcpToken.list.ownerId === mcpToken.user.id ||
-    mcpToken.list.admins.some((admin: any) => admin.id === mcpToken.user.id) ||
-    mcpToken.list.listMembers.some((member: any) =>
-      member.userId === mcpToken.user.id &&
-      ["admin", "member"].includes(member.role),
-    )
+  const userHasListAccess = hasExplicitListRole(
+    { id: mcpToken.user.id },
+    mcpToken.list as never,
+  )
   if (!userHasListAccess) {
     throw new Error("User no longer has access to this list")
   }
