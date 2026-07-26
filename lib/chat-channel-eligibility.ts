@@ -1,4 +1,5 @@
 import type { TaskList } from '@/types/task'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 type ListChatFields = Pick<TaskList, 'id' | 'ownerId' | 'privacy' | 'publicListType'> & {
   listMembers?: { userId: string }[] | null
@@ -15,8 +16,8 @@ export function userCanRequestListChatChannel(
   if (!userId) return false
   if (!list) return true
 
-  if (list.ownerId === userId) return true
-  if (list.listMembers?.some((m) => m.userId === userId)) return true
+  // Owner/admin/member via the canonical lookup (task e2803305).
+  if (hasExplicitListRole({ id: userId }, list as never)) return true
 
   const pt = String(list.publicListType || '').toLowerCase()
   if (list.privacy === 'PUBLIC' && pt === 'collaborative') return true

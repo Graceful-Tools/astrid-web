@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 import { validateMCPToken } from "./shared"
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 export async function getListMembers(accessToken: string, listId: string, userId: string) {
   const mcpToken = await validateMCPToken(accessToken, listId)
@@ -96,7 +97,7 @@ export async function addListMember(accessToken: string, listId: string, email: 
 
   if (existingUser) {
     // Check if user is the list owner
-    if (list.ownerId === existingUser.id) {
+    if (getUserRoleInList({ id: existingUser.id }, list as never) === 'owner') {
       throw new Error('Cannot add the list owner as a member (they already have full access)')
     }
 

@@ -8,6 +8,7 @@ import { hydrateSingleListFavorite } from "@/lib/favorites"
 import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('api.lists.id')
 
@@ -108,9 +109,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     }
 
     // Check if user is owner or admin (via list membership).
-    const canUpdate =
-      existingList.ownerId === session.user.id ||
-      existingList.listMembers?.some((lm: any) => lm.userId === session.user.id && lm.role === 'admin')
+    const canUpdate = canUserManageList({ id: session.user.id }, existingList as never)
 
     if (!canUpdate) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })

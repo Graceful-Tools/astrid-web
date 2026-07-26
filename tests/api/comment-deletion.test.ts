@@ -286,6 +286,11 @@ describe('Comment Deletion API', () => {
           lists: [{
             ...mockComment.task.lists[0],
             ownerId: 'other-user-id',
+            // Must override the owner relation too — the spread above carries
+            // the base fixture's owner (test-user-id). Leaving it made the
+            // fixture self-contradictory: ownerId said one user, the relation
+            // said another, and the permission helper honours both.
+            owner: { id: 'other-user-id' },
             admins: [], // Current user is not admin
             members: [], // Current user is not member
             listMembers: [] // Current user is not list member

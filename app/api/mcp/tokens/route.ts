@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { randomBytes } from "crypto"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('mcp.tokens')
 
@@ -199,11 +200,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Verify user has permission to delete this token
-    const userCanDelete =
-      mcpToken.list?.ownerId === session.user.id ||
-      mcpToken.list?.listMembers?.some(member =>
-        member.userId === session.user.id && member.role === "admin"
-      )
+    const userCanDelete = !!mcpToken.list &&
+      canUserManageList({ id: session.user.id }, mcpToken.list as never)
 
     if (!userCanDelete) {
       return NextResponse.json(

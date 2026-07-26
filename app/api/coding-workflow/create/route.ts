@@ -7,6 +7,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('coding-workflow.create')
 
@@ -57,10 +58,7 @@ export async function POST(request: NextRequest) {
     const userHasAccess =
       task.creatorId === session.user.id ||
       task.assigneeId === session.user.id ||
-      task.lists.some(list =>
-        list.ownerId === session.user.id ||
-        list.listMembers?.some((lm: any) => lm.userId === session.user.id)
-      )
+      task.lists.some(list => hasExplicitListRole({ id: session.user.id }, list as never))
 
     if (!userHasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })

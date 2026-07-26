@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { CopyTaskData } from "@/types/api"
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('tasks.copy')
 
@@ -42,10 +43,7 @@ export async function POST(request: NextRequest) {
       const hasAccess =
         originalTask.assigneeId === session.user.id ||
         originalTask.creatorId === session.user.id ||
-        originalTask.lists.some((list: any) =>
-          list.ownerId === session.user.id ||
-          list.listMembers?.some((lm: any) => lm.userId === session.user.id)
-        )
+        originalTask.lists.some((list: any) => hasExplicitListRole({ id: session.user.id }, list))
 
       if (!hasAccess) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })

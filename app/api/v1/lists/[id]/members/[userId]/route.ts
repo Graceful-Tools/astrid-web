@@ -12,6 +12,7 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.lists.members.id')
 
@@ -64,7 +65,7 @@ export const PUT = withAuth<RouteContext>(
       )
     }
 
-    if (list.ownerId === userId) {
+    if (getUserRoleInList({ id: userId }, list as never) === 'owner') {
       return NextResponse.json(
         { error: 'Cannot change the owner\'s role' },
         { status: 400 }
@@ -163,7 +164,7 @@ export const DELETE = withAuth<RouteContext>(
       )
     }
 
-    if (list.ownerId === userId) {
+    if (getUserRoleInList({ id: userId }, list as never) === 'owner') {
       return NextResponse.json(
         { error: 'Cannot remove the list owner' },
         { status: 400 }

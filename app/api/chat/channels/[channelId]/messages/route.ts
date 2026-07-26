@@ -15,6 +15,7 @@ import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
 import { processAstridMessage } from '@/lib/astrid-agent-runtime'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('chat.channels.[channelId].messages')
 
@@ -303,7 +304,7 @@ export async function POST(
               },
             })
             if (list) {
-              const isOwner = list.ownerId === auth.userId
+              const isOwner = getUserRoleInList({ id: auth.userId }, list as never) === 'owner'
               const otherMembers = list.listMembers.filter(m => m.userId !== auth.userId)
               isPersonalChannel = isOwner && otherMembers.length === 0 && list.privacy !== 'PUBLIC'
             }

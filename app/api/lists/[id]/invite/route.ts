@@ -3,7 +3,7 @@ import { inviteRateLimiter } from "@/lib/rate-limiter"
 import { randomBytes } from "crypto"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
-import { canUserManageMembers, canAssignRole, prismaToTaskList } from "@/lib/list-permissions"
+import { canUserManageMembers, canAssignRole, prismaToTaskList, getUserRoleInList } from "@/lib/list-permissions"
 import { sendListInvitationEmail } from "@/lib/email"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
@@ -86,7 +86,7 @@ export async function POST(
 
     // If user exists, check if they're already a member
     if (existingUser) {
-      const isOwner = list.ownerId === existingUser.id
+      const isOwner = getUserRoleInList({ id: existingUser.id }, list as never) === 'owner'
       const isAlreadyMember = list.listMembers?.some((lm: any) => lm.userId === existingUser.id)
 
       if (isOwner || isAlreadyMember) {

@@ -12,7 +12,7 @@ import {
   isSystemListId,
   SYSTEM_LIST_IDS,
 } from '@/lib/list-permissions'
-import { isListAdminOrOwner, hasListAccess } from '@/lib/list-member-utils'
+import { isListAdminOrOwner, hasListAccess, isListOwner } from '@/lib/list-member-utils'
 import type { TaskList, User } from '@/types/task'
 
 describe('List Permissions - getUserRoleInList', () => {
@@ -543,9 +543,13 @@ describe('role casing is not a permission boundary (task e2803305)', () => {
     expect(canUserManageList(user, list as never)).toBe(true)
   })
 
-  it('still rejects an unrelated role string', () => {
-    const list = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'spectator' }] }
-    expect(getUserRoleInList(user, list as never)).toBeNull()
+  it('treats an unrecognised or missing role as membership, not exclusion', () => {
+    // Presence in listMembers is membership; role only refines capability. The
+    // schema defaults role to "member", and the inline checks this replaces were
+    // role-agnostic — requiring a known role would silently revoke access for
+    // payloads that select userId without role.
+    expect(getUserRoleInList(user, { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'spectator' }] } as never)).toBe('member')
+    expect(getUserRoleInList(user, { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1' }] } as never)).toBe('member')
   })
 })
 
@@ -573,5 +577,25 @@ describe('hasListAccess covers owners on ownerId-only payloads (task e2803305)',
     // Public lists are readable, but that is not membership; routes gating
     // writes on hasListAccess must not be widened here.
     expect(hasListAccess({ id: 'l1', ownerId: 'u2', privacy: 'PUBLIC' } as never, 'u1')).toBe(false)
+  })
+})
+
+/**
+ * Task e2803305 — third instance of the same defect family. isListOwner
+ * compared only `list.owner?.id`, so a list fetched with `ownerId` and no
+ * `owner` relation reported that nobody owned it.
+ */
+describe('isListOwner covers both owner shapes (task e2803305)', () => {
+  it('recognises the owner via ownerId alone', () => {
+    expect(isListOwner({ id: 'l1', ownerId: 'u1' } as never, 'u1')).toBe(true)
+  })
+
+  it('recognises the owner via the owner relation alone', () => {
+    expect(isListOwner({ id: 'l1', owner: { id: 'u1' } } as never, 'u1')).toBe(true)
+  })
+
+  it('does not promote admins or members to owner', () => {
+    expect(isListOwner({ id: 'l1', ownerId: 'u2', admins: [{ id: 'u1' }] } as never, 'u1')).toBe(false)
+    expect(isListOwner({ id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'member' }] } as never, 'u1')).toBe(false)
   })
 })

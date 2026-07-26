@@ -94,7 +94,11 @@ export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "ad
   // inline `admins.some(...)` checks this consolidates), before member.
   if (list.admins?.some((a) => a?.id === user.id)) return "admin"
 
-  if (membershipRole === "member") return "member"
+  // Presence in listMembers IS membership. The role refines what the member may
+  // do; a missing or unrecognised role must not revoke access. ListMember.role
+  // defaults to "member" in the schema, and every inline check this replaces
+  // treated any listMembers row as membership (task e2803305).
+  if (membership) return "member"
 
   // Legacy denormalized members array (same precedence as membership member).
   if (list.members?.some((m) => m?.id === user.id)) return "member"

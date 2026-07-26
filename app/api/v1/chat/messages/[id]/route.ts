@@ -13,6 +13,7 @@ import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-acces
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.chat.messages.id')
 
@@ -209,12 +210,12 @@ export const DELETE = withAuth<RouteContext>(
     }
 
     const isAuthor = existingMessage.authorId === auth.userId
-    const isListOwner = existingMessage.channel.list?.ownerId === auth.userId
-    const isListAdmin = existingMessage.channel.list?.listMembers?.some(
-      m => m.userId === auth.userId && m.role === 'admin'
+    const isListOwnerOrAdmin = canUserManageList(
+      { id: auth.userId },
+      existingMessage.channel.list as never,
     )
 
-    if (!isAuthor && !isListOwner && !isListAdmin) {
+    if (!isAuthor && !isListOwnerOrAdmin) {
       return NextResponse.json(
         { error: 'You can only delete your own messages or messages in lists you manage' },
         { status: 403 }
