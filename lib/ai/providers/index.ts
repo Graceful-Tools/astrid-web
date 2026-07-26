@@ -188,6 +188,8 @@ export function getRepositoryTools(service: AIServiceType): any[] {
       return require('./openai-provider').OPENAI_REPOSITORY_TOOLS
     case 'gemini':
       return require('./gemini-provider').GEMINI_REPOSITORY_TOOLS
+    case 'copilot':
+      return require('./copilot-provider').COPILOT_REPOSITORY_TOOLS
     default:
       return []
   }

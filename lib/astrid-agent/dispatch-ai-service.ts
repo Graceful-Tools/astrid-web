@@ -25,6 +25,7 @@ export interface ProviderCallers {
   claude: ToolCallFn
   openai: ToolCallFn
   gemini: ToolCallFn
+  copilot: ToolCallFn
 }
 
 /**
@@ -48,6 +49,8 @@ export async function dispatchToolCall(args: {
       return args.callers.openai(args.apiKey, args.systemPrompt, args.userMessage, args.toolContext, args.model)
     case 'gemini':
       return args.callers.gemini(args.apiKey, args.systemPrompt, args.userMessage, args.toolContext, args.model)
+    case 'copilot':
+      return args.callers.copilot(args.apiKey, args.systemPrompt, args.userMessage, args.toolContext, args.model)
     default:
       return null
   }

@@ -31,7 +31,7 @@ interface UserSearchResult {
 }
 
 const AI_AGENT_EMAILS = [
-  'claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc', 'openclaw@astrid.cc',
+  'claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc', 'copilot@astrid.cc', 'openclaw@astrid.cc',
 ]
 
 export const dynamic = 'force-dynamic'
@@ -124,16 +124,18 @@ export const GET = withAuth(
       }
 
       if (includeAIAgents && aiAgents.length === 0) {
-        const [hasClaude, hasOpenAI, hasGemini, hasOpenClaw] = await Promise.all([
+        const [hasClaude, hasOpenAI, hasGemini, hasCopilot, hasOpenClaw] = await Promise.all([
           hasValidApiKey(auth.userId, 'claude'),
           hasValidApiKey(auth.userId, 'openai'),
           hasValidApiKey(auth.userId, 'gemini'),
+          hasValidApiKey(auth.userId, 'copilot'),
           hasValidApiKey(auth.userId, 'openclaw'),
         ])
         const availableEmails: string[] = []
         if (hasClaude) availableEmails.push('claude@astrid.cc')
         if (hasOpenAI) availableEmails.push('openai@astrid.cc')
         if (hasGemini) availableEmails.push('gemini@astrid.cc')
+        if (hasCopilot) availableEmails.push('copilot@astrid.cc')
         if (hasOpenClaw) availableEmails.push('openclaw@astrid.cc')
 
         if (availableEmails.length > 0) {

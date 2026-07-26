@@ -8,7 +8,7 @@
  * - What context file to load (all cloud agents use ASTRID.md)
  */
 
-export type AIService = 'claude' | 'openai' | 'gemini' | 'openclaw'
+export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
 
 /** On-device model sentinel IDs — handled client-side, never processed by the server */
 export const ON_DEVICE_MODEL_IDS = ['apple-foundation-model'] as const
@@ -59,6 +59,12 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
     'gemini-2.0-flash',
     'gemini-1.5-pro',
   ],
+  // Copilot exposes an OpenAI-compatible chat API, so the model names mirror
+  // the OpenAI models GitHub proxies through the Copilot endpoint.
+  copilot: [
+    'gpt-4.1',
+    'gpt-5',
+  ],
 }
 
 /**
@@ -68,6 +74,7 @@ export const DEFAULT_MODELS: Partial<Record<AIService, string>> = {
   claude: 'claude-sonnet-4-6',
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
+  copilot: 'gpt-4.1',
 }
 
 export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
@@ -101,6 +108,14 @@ export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = {
     model: 'gemini-2.5-flash',
     displayName: 'Gemini Agent',
     agentType: 'gemini_agent',
+    contextFile: 'ASTRID.md',
+    capabilities: ['code_generation', 'code_review', 'planning', 'github_operations'],
+  },
+  'copilot@astrid.cc': {
+    service: 'copilot',
+    model: 'gpt-4.1',
+    displayName: 'GitHub Copilot Agent',
+    agentType: 'copilot_agent',
     contextFile: 'ASTRID.md',
     capabilities: ['code_generation', 'code_review', 'planning', 'github_operations'],
   },

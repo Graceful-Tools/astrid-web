@@ -9,7 +9,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
-import { getCachedApiKey } from '@/lib/api-key-cache'
+import { getAIServiceCredential } from '@/lib/api-key-cache'
 import { fetchProviderModels } from '@/lib/ai/fetch-provider-models'
 import { SUGGESTED_MODELS, type AIService } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
@@ -17,7 +17,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('user.ai-available-models')
 
 
-const VALID_SERVICES = ['claude', 'openai', 'gemini'] as const
+const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot'] as const
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
 
     const service = request.nextUrl.searchParams.get('service') as typeof VALID_SERVICES[number] | null
     if (!service || !VALID_SERVICES.includes(service)) {
-      return NextResponse.json({ error: 'Invalid service. Use: claude, openai, gemini' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid service. Use: claude, openai, gemini, copilot' }, { status: 400 })
     }
 
     // Get user's API key for this service
-    const apiKey = await getCachedApiKey(session.user.id, service)
+    const apiKey = await getAIServiceCredential(session.user.id, service)
     if (!apiKey) {
       // No API key — return static suggestions only
       return NextResponse.json({

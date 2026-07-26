@@ -79,9 +79,11 @@ export async function createAIAgentComment(
           ? 'claude@astrid.cc'
           : task.aiAgent.service === 'gemini'
             ? 'gemini@astrid.cc'
-            : task.aiAgent.service === 'openclaw'
-              ? 'openclaw@astrid.cc'
-              : null
+            : task.aiAgent.service === 'copilot'
+              ? 'copilot@astrid.cc'
+              : task.aiAgent.service === 'openclaw'
+                ? 'openclaw@astrid.cc'
+                : null
 
       if (targetEmail) {
         const agentByEmail = await prisma.user.findUnique({
@@ -100,7 +102,9 @@ export async function createAIAgentComment(
             ? 'claude_agent'
             : task.aiAgent.service === 'gemini'
               ? 'gemini_agent'
-              : undefined
+              : task.aiAgent.service === 'copilot'
+                ? 'copilot_agent'
+                : undefined
 
         if (targetAgentType) {
           const agentByType = await prisma.user.findFirst({
@@ -130,7 +134,8 @@ export async function createAIAgentComment(
         const emailMap: Record<string, string> = {
           'claude': 'claude@astrid.cc',
           'openai': 'openai@astrid.cc',
-          'gemini': 'gemini@astrid.cc'
+          'gemini': 'gemini@astrid.cc',
+          'copilot': 'copilot@astrid.cc'
         }
         const targetEmail = emailMap[workflow.aiService]
 

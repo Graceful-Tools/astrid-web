@@ -33,6 +33,7 @@ interface AIServiceConfig {
   baseUrl?: string
   testEndpoint?: string
   isGateway?: boolean
+  isOAuth?: boolean
   keyFormat: {
     prefix: string
     length?: number
@@ -84,10 +85,9 @@ const AI_SERVICES: AIServiceConfig[] = [
   {
     id: 'copilot',
     name: 'GitHub Copilot',
-    description: 'GitHub Copilot (OpenAI-compatible chat API; requires an active Copilot subscription token)',
+    description: 'GitHub Copilot through your GitHub account and active Copilot subscription',
     icon: '',
-    baseUrl: 'https://api.githubcopilot.com',
-    testEndpoint: '/models',
+    isOAuth: true,
     keyFormat: {
       prefix: '',
       pattern: /^.+$/
@@ -135,6 +135,7 @@ export function AIAPIKeyManager() {
   const [loadingModels, setLoadingModels] = useState<{ [serviceId: string]: boolean }>({})
   const [defaultAgentId, setDefaultAgentId] = useState<string | null>(null)
   const [agentUserIds, setAgentUserIds] = useState<{ [service: string]: string }>({}) // service → agent user ID
+  const [copilotConnected, setCopilotConnected] = useState(false)
 
   const fetchAPIKeys = async () => {
     try {
@@ -200,6 +201,9 @@ export function AIAPIKeyManager() {
             map[agent.service] = agent.id
           }
           setAgentUserIds(map)
+        }).catch(() => {}),
+        fetch('/api/v1/integrations/copilot/status').then(r => r.json()).then(data => {
+          setCopilotConnected(data.connected === true)
         }).catch(() => {}),
       ])
       setLoading(false)
@@ -331,6 +335,27 @@ export function AIAPIKeyManager() {
     }
   }
 
+  const handleCopilotConnect = async () => {
+    try {
+      const response = await fetch('/api/v1/integrations/copilot/authorize')
+      const data = await response.json()
+      if (!response.ok || !data.url) throw new Error(data.error || 'Unable to start GitHub authorization')
+      window.location.assign(data.url)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to connect GitHub Copilot')
+    }
+  }
+
+  const handleCopilotDisconnect = async () => {
+    const response = await fetch('/api/v1/integrations/copilot/status', { method: 'DELETE' })
+    if (!response.ok) {
+      toast.error('Unable to disconnect GitHub Copilot')
+      return
+    }
+    setCopilotConnected(false)
+    toast.success('GitHub Copilot disconnected')
+  }
+
   const handleModelChange = (serviceId: string, value: string) => {
     setModelInputs(prev => ({ ...prev, [serviceId]: value }))
   }
@@ -385,6 +410,11 @@ export function AIAPIKeyManager() {
   }
 
   const getStatusBadge = (serviceId: string) => {
+    if (serviceId === 'copilot') {
+      return copilotConnected
+        ? <Badge variant="default" className="bg-green-600">✓ Connected</Badge>
+        : <Badge variant="outline">Not connected</Badge>
+    }
     const data = keyData[serviceId]
     if (!data?.hasKey) {
       return <Badge variant="outline">Not configured</Badge>
@@ -477,7 +507,24 @@ export function AIAPIKeyManager() {
                   <p className="text-sm text-muted-foreground">{service.description}</p>
                 </div>
 
-                {data?.hasKey ? (
+                {service.isOAuth && (
+                  <div className="p-4 border rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <Label className="font-medium">GitHub authorization</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Astrid stores the OAuth token encrypted and uses GitHub&apos;s supported Copilot SDK.
+                      </p>
+                    </div>
+                    <Button
+                      variant={copilotConnected ? "outline" : "default"}
+                      onClick={copilotConnected ? handleCopilotDisconnect : handleCopilotConnect}
+                    >
+                      {copilotConnected ? 'Disconnect' : 'Connect GitHub Copilot'}
+                    </Button>
+                  </div>
+                )}
+
+                {!service.isOAuth && data?.hasKey ? (
                   <div className="space-y-4">
                     <div className="p-4 border rounded-lg bg-muted/50">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -540,7 +587,7 @@ export function AIAPIKeyManager() {
                   </div>
                 ) : null}
 
-                <div className="space-y-4">
+                {!service.isOAuth && <div className="space-y-4">
                   <div>
                     <Label htmlFor={`key-${service.id}`} className="font-medium">
                       {service.isGateway
@@ -593,7 +640,7 @@ export function AIAPIKeyManager() {
                       />
                     </div>
                   )}
-                </div>
+                </div>}
 
                 {/* Model Selection */}
                 {modelData && (

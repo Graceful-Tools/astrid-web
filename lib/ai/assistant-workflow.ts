@@ -6,7 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { getCachedApiKey, getCachedModelPreference } from '@/lib/api-key-cache'
+import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import type { AIService } from './agent-config'
 import { getAgentService } from './agent-config'
 import { createLogger } from '@/lib/logger'
@@ -19,6 +19,7 @@ const FALLBACK_MODELS: Record<AIService, string> = {
   claude: 'claude-sonnet-4-6',
   openai: 'gpt-4o',  // Use gpt-4o as reliable default
   gemini: 'gemini-2.5-flash',
+  copilot: 'gpt-4.1',
   openclaw: 'anthropic/claude-opus-4-5',
 }
 
@@ -244,7 +245,7 @@ export async function executeAssistantWorkflow(
   }
 
   // Get API key from the user who configured the AI agent
-  const apiKey = await getCachedApiKey(configuredByUserId, service)
+  const apiKey = await getAIServiceCredential(configuredByUserId, service)
 
   if (!apiKey) {
     log.error(`❌ [ASSISTANT] No ${service} API key configured for user ${configuredByUserId}`)

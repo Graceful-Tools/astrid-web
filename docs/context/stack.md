@@ -44,7 +44,7 @@
 - **OpenAI**: 5.15.0 (GPT-4, GPT-3.5)
 - **Anthropic**: Claude API (Sonnet, Opus)
 - **Google**: Gemini API
-- **GitHub Copilot**: OpenAI-compatible API (base URL `https://api.githubcopilot.com`)
+- **GitHub Copilot**: Official `@github/copilot-sdk` with per-user GitHub OAuth
 - **MCP**: Model Context Protocol for external tools
 - **GitHub Integration**: Octokit for repository access
 

@@ -143,6 +143,7 @@ export async function processCommentForWorkflowAction(
             status: 'FAILED',
             aiService: task.assignee.email?.includes('openai') ? 'openai'
               : task.assignee.email?.includes('gemini') ? 'gemini'
+              : task.assignee.email?.includes('copilot') ? 'copilot'
               : 'claude',
             metadata: {
               error: 'Previous failure (no workflow record)',

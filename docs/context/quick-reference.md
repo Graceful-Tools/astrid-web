@@ -168,7 +168,9 @@ ANTHROPIC_API_KEY=your-claude-api-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_AI_API_KEY=your-gemini-key
 ```
-GitHub Copilot is also supported as an OpenAI-compatible provider (base URL `https://api.githubcopilot.com`). Its credential (a GitHub token / OpenAI-compatible key) is stored per-user via the app's AI-key manager rather than as an env var.
+GitHub Copilot is supported through GitHub's official Copilot SDK. Users connect
+their GitHub account with OAuth; tokens are encrypted server-side and are not
+pasted into the AI-key manager.
 
 ### Storage & Caching
 ```bash

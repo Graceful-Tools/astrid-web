@@ -8,14 +8,14 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { getCachedApiKey } from '@/lib/api-key-cache'
+import { getAIServiceCredential } from '@/lib/api-key-cache'
 import { fetchProviderModels } from '@/lib/ai/fetch-provider-models'
 import { SUGGESTED_MODELS, type AIService } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.users.me.available-models')
 
-const VALID_SERVICES = ['claude', 'openai', 'gemini'] as const
+const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot'] as const
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.available-models' },
@@ -25,12 +25,12 @@ export const GET = withAuth(
         typeof VALID_SERVICES[number] | null
       if (!service || !VALID_SERVICES.includes(service)) {
         return NextResponse.json(
-          { error: 'Invalid service. Use: claude, openai, gemini' },
+          { error: 'Invalid service. Use: claude, openai, gemini, copilot' },
           { status: 400 }
         )
       }
 
-      const apiKey = await getCachedApiKey(auth.userId, service)
+      const apiKey = await getAIServiceCredential(auth.userId, service)
       if (!apiKey) {
         return NextResponse.json({
           models: SUGGESTED_MODELS[service as AIService] || [],
