@@ -74,11 +74,17 @@ async function fetchClaudeModels(apiKey: string): Promise<string[]> {
 
 /**
  * Copilot's model list is a plain GET with the integration headers — no SDK and
- * no CLI runtime, contrary to an earlier assumption here. Copilot proxies models
- * from several vendors (gpt-*, claude-*, gemini-*), so this filters out only the
- * non-chat entries (embeddings and internal helper models) rather than
- * allowlisting one vendor's prefixes.
+ * no CLI runtime, contrary to an earlier assumption here.
+ *
+ * The list is advertised, not usable: probing every id showed that the
+ * OpenAI-compatible chat endpoint we call accepts only the GPT-4-era subset.
+ * claude-*, gemini-* and gpt-5* are all advertised and all return 400
+ * model_not_supported — they are presumably reachable only through Copilot's
+ * editor protocol. Offering them would let a user pick a model that always
+ * fails, so this narrows the live list to the families that actually answer.
  */
+const COPILOT_CHAT_MODEL = /^gpt-(3\.5|4)/
+
 async function fetchCopilotModels(apiKey: string): Promise<string[]> {
   const { COPILOT_BASE_URL, COPILOT_HEADERS } = await import('./providers/copilot-provider')
   const res = await fetch(`${COPILOT_BASE_URL}/models`, {
@@ -86,11 +92,10 @@ async function fetchCopilotModels(apiKey: string): Promise<string[]> {
   })
   if (!res.ok) return []
   const data = await res.json()
-  const EXCLUDED = /^(text-embedding|copilot-search|exec-agent|trajectory-|mai-code)/
   const models: string[] = (data.data || [])
     .map((m: { id: string }) => m.id)
-    .filter((id: string) => id && !EXCLUDED.test(id))
-    .sort((a: string, b: string) => a.localeCompare(b))
+    .filter((id: string) => id && COPILOT_CHAT_MODEL.test(id))
+    .sort((a: string, b: string) => b.localeCompare(a))
   return Array.from(new Set(models))
 }
 

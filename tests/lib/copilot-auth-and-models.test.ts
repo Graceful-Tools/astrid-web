@@ -42,23 +42,34 @@ beforeEach(() => {
 })
 
 /**
- * Bug 1: SUGGESTED_MODELS.copilot offered "gpt-5", which is not a real Copilot
- * model id — the live list has gpt-5-mini / gpt-5.4 / gpt-5.5 / gpt-5.6-*, but
- * no bare gpt-5. Selecting it failed at inference time.
+ * Bug 1: SUGGESTED_MODELS.copilot offered "gpt-5", which Copilot does not serve.
+ *
+ * Being *listed* is not enough. GET /models advertises 44 ids, but the
+ * OpenAI-compatible chat endpoint we actually call accepts only 10 of them —
+ * claude-*, gemini-* and gpt-5* all return 400 model_not_supported. The fixture
+ * records the probed result, so this pins usability rather than advertisement.
  */
-describe('Copilot model ids match what the API actually serves', () => {
-  const live = new Set(liveModels.ids)
+describe('Copilot model ids are ones the chat endpoint accepts', () => {
+  const usable = new Set(liveModels.usable)
 
-  it('suggests only models present in the live model list', () => {
+  it('suggests only models that answered a real completion', () => {
     for (const model of SUGGESTED_MODELS.copilot ?? []) {
-      expect(live.has(model), `"${model}" is not a real Copilot model id`).toBe(true)
+      expect(usable.has(model), `"${model}" is rejected by Copilot's chat endpoint`).toBe(true)
     }
   })
 
-  it('defaults to a model that exists and is suggested', () => {
+  it('defaults to a usable model that is also suggested', () => {
     const dflt = DEFAULT_MODELS.copilot!
-    expect(live.has(dflt), `default "${dflt}" is not a real Copilot model id`).toBe(true)
+    expect(usable.has(dflt), `default "${dflt}" is rejected by Copilot's chat endpoint`).toBe(true)
     expect(SUGGESTED_MODELS.copilot).toContain(dflt)
+  })
+
+  it('suggests nothing from the advertised-but-rejected set', () => {
+    // Guards the specific mistake: picking ids out of GET /models without
+    // checking whether chat/completions will serve them.
+    for (const model of SUGGESTED_MODELS.copilot ?? []) {
+      expect(liveModels.listedButRejected).not.toContain(model)
+    }
   })
 })
 
@@ -116,17 +127,23 @@ describe('Copilot live model enumeration', () => {
   const realFetch = globalThis.fetch
   afterEach(() => { globalThis.fetch = realFetch })
 
-  it('returns ids from the models endpoint', async () => {
+  it('returns chat-capable ids and drops advertised-but-unusable ones', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ data: [{ id: 'gpt-4.1' }, { id: 'claude-sonnet-5' }] }),
+      json: async () => ({
+        data: [{ id: 'gpt-4.1' }, { id: 'gpt-4o-mini' }, { id: 'claude-sonnet-5' }, { id: 'gpt-5.5' }],
+      }),
     }) as never
 
     const models = await fetchProviderModels('copilot', 'gho_token')
 
     expect(models).toContain('gpt-4.1')
-    expect(models).toContain('claude-sonnet-5')
+    expect(models).toContain('gpt-4o-mini')
+    // Advertised by GET /models, but chat/completions returns model_not_supported —
+    // offering them would hand the user a model that always fails.
+    expect(models).not.toContain('claude-sonnet-5')
+    expect(models).not.toContain('gpt-5.5')
   })
 
   it('sends the Copilot integration headers', async () => {
