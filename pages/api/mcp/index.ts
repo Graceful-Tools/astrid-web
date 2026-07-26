@@ -29,15 +29,95 @@ const securityOptions =
       }
     : undefined
 
+/**
+ * Minimal MCP transport carrying one request/response pair (task a0e0808c).
+ *
+ * The SSE transport below keeps a long-lived stream and expects clients to POST
+ * to a separate /mcp/messages URL. Streamable HTTP — what current MCP clients
+ * (Copilot, Claude) speak — POSTs JSON-RPC to this single URL and reads the
+ * reply from the response body. Each POST gets its own server and transport.
+ */
+class SingleRequestTransport {
+  onmessage?: (message: unknown) => void
+  onerror?: (error: Error) => void
+  onclose?: () => void
+
+  private settle!: (message: unknown) => void
+  readonly response: Promise<unknown>
+
+  constructor() {
+    this.response = new Promise(resolve => {
+      this.settle = resolve
+    })
+  }
+
+  async start(): Promise<void> {}
+  async send(message: unknown): Promise<void> {
+    this.settle(message)
+  }
+  async close(): Promise<void> {
+    this.onclose?.()
+  }
+}
+
+/** bodyParser is disabled for SSE, so read the POST body ourselves. */
+async function readJsonBody(req: NextApiRequest): Promise<unknown> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) chunks.push(chunk as Buffer)
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"))
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
-    res.setHeader("Allow", "GET,OPTIONS")
+    res.setHeader("Allow", "GET,POST,OPTIONS")
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-OAuth-Token")
     res.status(200).end()
     return
   }
 
+  // Streamable HTTP: one JSON-RPC request in, one response out, same URL.
+  if (req.method === "POST") {
+    const postAuth = extractAuthContext(req)
+    if (!postAuth) {
+      res.status(401).json({
+        error:
+          "Provide Authorization: Bearer <astrid_access_token> or Basic <base64(clientId:secret)> (or X-Astrid-* headers)",
+      })
+      return
+    }
+
+    let message: { id?: unknown }
+    try {
+      message = (await readJsonBody(req)) as { id?: unknown }
+    } catch {
+      res.status(400).json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })
+      return
+    }
+
+    try {
+      const transport = new SingleRequestTransport()
+      const serverInstance = new AstridMCPServerOAuth(postAuth.options)
+      await serverInstance.startWithTransport(transport, "streamable-http")
+
+      transport.onmessage?.(message)
+      const reply = await transport.response
+      await transport.close()
+
+      res.status(200).json(reply)
+    } catch (error) {
+      console.error("[MCP] Streamable HTTP request failed:", error)
+      res.status(500).json({
+        jsonrpc: "2.0",
+        id: message.id ?? null,
+        error: { code: -32603, message: "Internal error" },
+      })
+    }
+    return
+  }
+
   if (req.method !== "GET") {
-    res.setHeader("Allow", "GET,OPTIONS")
+    res.setHeader("Allow", "GET,POST,OPTIONS")
     res.status(405).json({ error: "Method Not Allowed" })
     return
   }
