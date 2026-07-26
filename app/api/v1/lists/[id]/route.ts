@@ -147,7 +147,7 @@ export const PUT = withAuth<RouteContext>(
             ]
           : [
               { ownerId: auth.userId },
-              { listMembers: { some: { userId: auth.userId, role: 'ADMIN' } } }
+              { listMembers: { some: { userId: auth.userId, role: 'admin' } } }
             ]
       }
     })
@@ -161,7 +161,7 @@ export const PUT = withAuth<RouteContext>(
 
     const isOwnerOrAdmin = existingList.ownerId === auth.userId ||
       await prisma.listMember.findFirst({
-        where: { listId: id, userId: auth.userId, role: 'ADMIN' }
+        where: { listId: id, userId: auth.userId, role: 'admin' }
       })
 
     const updateData: any = {}

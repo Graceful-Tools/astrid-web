@@ -83,13 +83,18 @@ export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "ad
   const membership = list.listMembers?.find(
     (lm) => lm.userId === user.id || lm.user?.id === user.id
   )
-  if (membership?.role === "admin") return "admin"
+  // Role casing must never decide access. Most writes are lowercase, but
+  // app/api/v1/lists created members as 'MEMBER', so uppercase rows exist in
+  // the database already and those users would otherwise resolve to no access
+  // at all (task e2803305).
+  const membershipRole = membership?.role?.toLowerCase()
+  if (membershipRole === "admin") return "admin"
 
   // Legacy denormalized admins array grants admin (same precedence as the
   // inline `admins.some(...)` checks this consolidates), before member.
   if (list.admins?.some((a) => a?.id === user.id)) return "admin"
 
-  if (membership?.role === "member") return "member"
+  if (membershipRole === "member") return "member"
 
   // Legacy denormalized members array (same precedence as membership member).
   if (list.members?.some((m) => m?.id === user.id)) return "member"

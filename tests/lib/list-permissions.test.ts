@@ -513,3 +513,38 @@ describe('hasExplicitListRole vs canUserEditTasks (task e2803305)', () => {
     expect(hasExplicitListRole(user, { id: 'l', ownerId: 'u2' } as never)).toBe(false)
   })
 })
+
+/**
+ * Task e2803305 — found while converging the inline checks.
+ *
+ * ListMember.role defaults to "member" and is written lowercase in 31 places,
+ * but three sites used uppercase:
+ *   app/api/v1/lists/route.ts        wrote  role: 'MEMBER' at list creation
+ *   app/api/v1/lists/[id]/route.ts   queried role: 'ADMIN'  (x2)
+ *
+ * So members added when a list was created got a role no lowercase comparison
+ * matches — they had no access at all — and list admins could not update the
+ * list because the query never found them. Rows written by the first bug are
+ * already in the database, so the canonical lookup has to tolerate either
+ * casing to repair those users, not just prevent new ones.
+ */
+describe('role casing is not a permission boundary (task e2803305)', () => {
+  const user = { id: 'u1' }
+
+  it('honours an uppercase MEMBER row written by the list-creation bug', () => {
+    const list = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'MEMBER' }] }
+    expect(getUserRoleInList(user, list as never)).toBe('member')
+    expect(canUserEditTasks(user, list as never)).toBe(true)
+  })
+
+  it('honours an uppercase ADMIN row', () => {
+    const list = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'ADMIN' }] }
+    expect(getUserRoleInList(user, list as never)).toBe('admin')
+    expect(canUserManageList(user, list as never)).toBe(true)
+  })
+
+  it('still rejects an unrelated role string', () => {
+    const list = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'spectator' }] }
+    expect(getUserRoleInList(user, list as never)).toBeNull()
+  })
+})
