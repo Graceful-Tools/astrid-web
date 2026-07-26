@@ -41,9 +41,7 @@ export async function fetchProviderModels(
         models = await fetchGeminiModels(apiKey)
         break
       case 'copilot':
-        // Model enumeration through the SDK would start a CLI runtime during a
-        // settings-page request. Use the reviewed static list instead.
-        models = []
+        models = await fetchCopilotModels(apiKey)
         break
       default:
         return []
@@ -72,6 +70,33 @@ async function fetchClaudeModels(apiKey: string): Promise<string[]> {
     .filter((id: string) => !id.includes('claude-2') && !id.includes('claude-instant'))
     .sort((a: string, b: string) => b.localeCompare(a)) // Newest first (alphabetically desc)
   return models
+}
+
+/**
+ * Copilot's model list is a plain GET with the integration headers — no SDK and
+ * no CLI runtime, contrary to an earlier assumption here.
+ *
+ * The list is advertised, not usable: probing every id showed that the
+ * OpenAI-compatible chat endpoint we call accepts only the GPT-4-era subset.
+ * claude-*, gemini-* and gpt-5* are all advertised and all return 400
+ * model_not_supported — they are presumably reachable only through Copilot's
+ * editor protocol. Offering them would let a user pick a model that always
+ * fails, so this narrows the live list to the families that actually answer.
+ */
+const COPILOT_CHAT_MODEL = /^gpt-(3\.5|4)/
+
+async function fetchCopilotModels(apiKey: string): Promise<string[]> {
+  const { COPILOT_BASE_URL, COPILOT_HEADERS } = await import('./providers/copilot-provider')
+  const res = await fetch(`${COPILOT_BASE_URL}/models`, {
+    headers: { 'Authorization': `Bearer ${apiKey}`, ...COPILOT_HEADERS },
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  const models: string[] = (data.data || [])
+    .map((m: { id: string }) => m.id)
+    .filter((id: string) => id && COPILOT_CHAT_MODEL.test(id))
+    .sort((a: string, b: string) => b.localeCompare(a))
+  return Array.from(new Set(models))
 }
 
 async function fetchOpenAIModels(apiKey: string): Promise<string[]> {

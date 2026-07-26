@@ -84,10 +84,18 @@ export async function getCachedApiKey(
 }
 
 /**
- * Return the credential used to invoke an AI service. Copilot is authorized
- * with a per-user GitHub OAuth token; other providers retain their encrypted
- * API-key storage. Keeping this distinction here prevents callers from
- * accidentally reintroducing pasted Copilot tokens.
+ * Return the credential used to invoke an AI service.
+ *
+ * Copilot resolves through copilotTokenFor, which prefers a connected GitHub
+ * OAuth account and falls back to a token the user pasted into settings.
+ *
+ * This previously routed to OAuth only, on the assumption that pasted Copilot
+ * tokens were invalid. That assumption was wrong: Copilot entitlement follows
+ * the user's Copilot subscription, not the OAuth app that minted the token, so
+ * an ordinary GitHub token authenticates fine (verified live against
+ * api.githubcopilot.com). OAuth remains preferred — it is revocable and
+ * refreshable — but requiring it made Copilot unusable on any server without a
+ * registered GitHub OAuth App.
  */
 export async function getAIServiceCredential(
   userId: string,

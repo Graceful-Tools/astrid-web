@@ -61,9 +61,14 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
   ],
   // Copilot exposes an OpenAI-compatible chat API, so the model names mirror
   // the OpenAI models GitHub proxies through the Copilot endpoint.
+  // Copilot's GET /models advertises 44 ids, but its OpenAI-compatible chat
+  // endpoint — the one we call — accepts only the GPT-4-era subset. Every id
+  // here was verified with a live completion; claude-*, gemini-* and gpt-5*
+  // are advertised yet return 400 model_not_supported, so they are excluded.
   copilot: [
     'gpt-4.1',
-    'gpt-5',
+    'gpt-4o',
+    'gpt-4o-mini',
   ],
 }
 
