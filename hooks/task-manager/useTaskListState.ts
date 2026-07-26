@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { apiGet } from "@/lib/api"
+import { seedFromCache } from "./load-from-cache"
 import { preloadUserAvatars } from "@/lib/image-cache"
 import type { Task, TaskList } from "@/types/task"
 
@@ -92,15 +93,31 @@ export function useTaskListState({
   // Load data function
   const loadData = useCallback(async () => {
     try {
-      setLoading(true)
+      // Paint from IndexedDB first. The offline layer and DataSyncManager
+      // already keep this populated; the render path simply never read it, so
+      // every visit waited on a full download (~1.9 MB of tasks in production).
+      const seeded = await seedFromCache()
+      if (seeded.hasData) {
+        setTasks(prev => (prev.length > 0 ? prev : seeded.tasks))
+        setLists(prev => (prev.length > 0 ? prev : seeded.lists))
+        setLoading(false)
+      } else {
+        setLoading(true)
+        // Only announce loading when there is genuinely nothing to show.
+        toast({
+          title: "Loading your data...",
+          description: "Getting your tasks and lists ready",
+          duration: 2000,
+        })
+      }
 
-      // Show loading toast for better UX
-      toast({
-        title: "Loading your data...",
-        description: "Getting your tasks and lists ready",
-        duration: 2000,
-      })
-
+      // Reconcile against the server. Deliberately a FULL fetch, not a delta:
+      // neither /api/tasks nor DataSyncManager reports deletions on the
+      // incremental path (deletedIds is always []), so merging a delta into
+      // state would leave deleted tasks on screen until the next full sync.
+      // Wrong data is worse than slow data — and the cached paint above is
+      // what actually fixes the wait. See buildTaskSyncUrl for the delta helper
+      // this should use once the API reports deletions.
       const [tasksResponse, listsResponse, publicTasksResponse, publicListsResponse] = await Promise.all([
         apiGet("/api/tasks"),
         apiGet("/api/lists"),
