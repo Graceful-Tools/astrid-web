@@ -7,7 +7,11 @@ import {
   canUserManageList,
   canUserManageMembers,
   canUserDeleteList,
+  canEditListSettings,
+  isSystemListId,
+  SYSTEM_LIST_IDS,
 } from '@/lib/list-permissions'
+import { isListAdminOrOwner } from '@/lib/list-member-utils'
 import type { TaskList, User } from '@/types/task'
 
 describe('List Permissions - getUserRoleInList', () => {
@@ -402,4 +406,72 @@ describe('List Permissions - Permission Functions', () => {
     })
   })
 
+})
+
+/**
+ * Reuse Phase 1 (task e2803305): three modules independently answered
+ * "may this user change this list?" —
+ *   lib/list-permissions.ts        (getUserRoleInList + canUser* helpers)
+ *   lib/task-manager-utils.ts      (canEditListSettings)
+ *   lib/list-member-utils.ts       (isListAdminOrOwner)
+ * plus ~53 inline `ownerId === user.id || admins.some(...)` checks across 16
+ * files. Three implementations of one rule means three ways to disagree.
+ *
+ * These pin that the surviving entry points give the same answer, so the
+ * inline call sites can converge on them safely.
+ */
+describe('permission helpers agree (task e2803305)', () => {
+  const user = { id: 'u1' }
+  const other = { id: 'u2' }
+
+  const asOwner = { id: 'l1', ownerId: 'u1' }
+  const asOwnerRelation = { id: 'l1', owner: { id: 'u1' } }
+  const asLegacyAdmin = { id: 'l1', ownerId: 'u2', admins: [{ id: 'u1' }] }
+  const asMemberAdmin = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'admin' }] }
+  const asPlainMember = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'member' }] }
+  const asStranger = { id: 'l1', ownerId: 'u2' }
+
+  it('treats owner, legacy admins[] and listMembers admin as manage-capable', () => {
+    for (const list of [asOwner, asOwnerRelation, asLegacyAdmin, asMemberAdmin]) {
+      expect(canUserManageList(user, list as never), JSON.stringify(list)).toBe(true)
+    }
+  })
+
+  it('does not grant management to plain members or strangers', () => {
+    expect(canUserManageList(user, asPlainMember as never)).toBe(false)
+    expect(canUserManageList(user, asStranger as never)).toBe(false)
+    expect(canUserManageList(other, asOwner as never)).toBe(false)
+  })
+
+  it('canEditListSettings matches canUserManageList for real lists', () => {
+    for (const list of [asOwner, asOwnerRelation, asLegacyAdmin, asMemberAdmin, asPlainMember, asStranger]) {
+      expect(
+        canEditListSettings(list as never, user.id),
+        `disagreement on ${JSON.stringify(list)}`,
+      ).toBe(canUserManageList(user, list as never))
+    }
+  })
+
+  it('refuses settings edits on built-in system lists regardless of role', () => {
+    // These are virtual views, not lists anyone owns.
+    for (const id of SYSTEM_LIST_IDS) {
+      expect(canEditListSettings({ id, ownerId: 'u1' } as never, user.id)).toBe(false)
+      expect(isSystemListId(id)).toBe(true)
+    }
+    expect(isSystemListId('a-real-list-id')).toBe(false)
+  })
+
+  it('isListAdminOrOwner agrees with the canonical role lookup', () => {
+    for (const list of [asOwner, asLegacyAdmin, asMemberAdmin, asPlainMember, asStranger]) {
+      expect(
+        isListAdminOrOwner(list as never, user.id),
+        `disagreement on ${JSON.stringify(list)}`,
+      ).toBe(canUserManageList(user, list as never))
+    }
+  })
+
+  it('returns false for a missing user or list instead of throwing', () => {
+    expect(canEditListSettings(asOwner as never, undefined)).toBe(false)
+    expect(canUserManageList(user, null as never)).toBe(false)
+  })
 })

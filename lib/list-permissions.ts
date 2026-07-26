@@ -19,6 +19,8 @@ interface UserLike {
  * Accepts both TaskList and Prisma query results.
  */
 interface ListLike {
+  // Needed to recognise built-in virtual lists (see isSystemListId).
+  id?: string
   ownerId: string
   privacy?: string
   publicListType?: string | null
@@ -258,4 +260,33 @@ export function getTaskPrivacyForList(list: ListLike): boolean {
   // If list is shared with others, tasks should default to not private
   // If list is private to owner only, tasks should default to private
   return list.privacy === "PRIVATE" && !isListShared(list)
+}
+/**
+ * Built-in virtual lists. These are views Astrid provides, not lists anyone
+ * owns, so their settings are never editable.
+ *
+ * Previously spelled out in three places — task-manager-utils.isVirtualListId,
+ * MainContent's popover guards, and ListSettingsHost — which is how the set
+ * drifts (task e2803305).
+ */
+export const SYSTEM_LIST_IDS = ["my-tasks", "today", "not-in-list", "public", "assigned"] as const
+
+export function isSystemListId(listId: string): boolean {
+  return (SYSTEM_LIST_IDS as readonly string[]).includes(listId)
+}
+
+/**
+ * May this user change a list's settings?
+ *
+ * Canonical home for what task-manager-utils.canEditListSettings used to do
+ * independently. It layered its own owner fallback on top of
+ * list-member-utils.isListAdminOrOwner, which disagreed with getUserRoleInList
+ * for lists carrying `ownerId` without a matching member row — the owner was
+ * denied. Built on the single role lookup, that whole class of disagreement
+ * disappears.
+ */
+export function canEditListSettings(list: ListLike | null | undefined, userId?: string | null): boolean {
+  if (!list || !userId) return false
+  if (isSystemListId(String(list.id))) return false
+  return canUserManageList({ id: userId }, list)
 }
