@@ -20,10 +20,16 @@ export function middleware(request: NextRequest) {
   // EXCEPT for:
   // - .well-known paths (needed for iOS passkeys/AASA)
   // - /api routes (iOS app uses astrid.cc directly for API calls)
+  // - /mcp (task a0e0808c): this redirect crosses hosts, and HTTP clients drop
+  //   the Authorization header when they follow it. MCP clients pointed at
+  //   https://astrid.cc/mcp therefore arrived unauthenticated and got a 401
+  //   that looked like a credentials problem. /mcp is an API surface, not a
+  //   page — it must not be canonicalised.
   if (
     host === "astrid.cc" &&
     !pathname.startsWith("/.well-known") &&
-    !pathname.startsWith("/api")
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/mcp")
   ) {
     const url = request.nextUrl.clone()
     url.host = "www.astrid.cc"

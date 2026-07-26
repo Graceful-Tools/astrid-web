@@ -221,10 +221,14 @@ via the *MCP: Open User Configuration* command:
 scopes. The Astrid tools then appear in Copilot agent mode's tool picker.
 
 Notes:
-- **Use `https://www.astrid.cc/mcp`** — the apex `astrid.cc` 308-redirects to
-  `www`, and some MCP clients don't follow that on the MCP handshake.
-- Astrid serves the **SSE** transport, so use `"type": "sse"`. (Newer VS Code
-  builds accept `"type": "http"` and auto-fall back to SSE; `"sse"` is explicit.)
+- **Either host works.** `astrid.cc/mcp` and `www.astrid.cc/mcp` are both fine —
+  `/mcp` is exempt from the apex→www redirect. It used to redirect, and clients
+  dropped the `Authorization` header when they followed it, producing a 401 that
+  looked like bad credentials (task a0e0808c).
+- Astrid serves **both transports**. Streamable HTTP (`"type": "http"`) posts
+  JSON-RPC to the single `/mcp` URL and is what current clients prefer. The older
+  **SSE** transport (`"type": "sse"`, a GET stream plus a separate
+  `/mcp/messages` POST URL) still works for clients that need it.
 - Prefer **workspace `.vscode/mcp.json`** over a repo-root `.mcp.json` — VS Code
   has a known bug where custom `headers` in `.mcp.json` are silently dropped. You
   don't need `headers` here anyway (OAuth is automatic), but keep to
@@ -236,7 +240,10 @@ You now have two options:
 
 #### Option A – Use the hosted Astrid endpoint
 
-- **Server URL:** `https://astrid.cc/mcp` (SSE path). The POST endpoint announced to clients is `https://astrid.cc/mcp/messages`.
+- **Server URL:** `https://astrid.cc/mcp` — one URL for Streamable HTTP: POST
+  your JSON-RPC there and read the reply from the response body. For the older
+  SSE transport, GET the same URL for the stream and POST messages to
+  `https://astrid.cc/mcp/messages`.
 - **Auth model:** bring your own Astrid OAuth credentials. Astrid never shares its own client ID/secret.
 
 Supported headers:
