@@ -15,6 +15,7 @@ import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-event
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('v1.tasks.comments')
 
@@ -49,10 +50,8 @@ function userHasStandardTaskAccess(task: any, userId: string): boolean {
     return true
   }
 
-  return (task.lists || []).some((list: any) => {
-    if (list.ownerId === userId) return true
-    return list.listMembers?.some((member: any) => member.userId === userId)
-  })
+  // Canonical role lookup rather than an inline owner/member compare (task e2803305).
+  return (task.lists || []).some((list: any) => hasExplicitListRole({ id: userId }, list))
 }
 
 function taskIsInPublicList(task: any): boolean {

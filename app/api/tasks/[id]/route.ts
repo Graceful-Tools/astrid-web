@@ -36,14 +36,9 @@ const log = createLogger('api.tasks.id')
 
 // Helper function to safely check list access with list-like object
 function canAccessList(list: ListWithMembers, userId: string): boolean {
-  try {
-    return hasListAccess(list, userId)
-  } catch {
-    // Fallback to manual check if type casting fails
-    if (list.ownerId === userId) return true
-    if (list.listMembers?.some((member) => member.userId === userId)) return true
-    return false
-  }
+  // hasListAccess covers owner/admin/member on every payload shape; the old
+  // try/catch fallback was unreachable (it returns false, never throws).
+  return hasListAccess(list, userId)
 }
 
 export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {

@@ -8,7 +8,7 @@
 import type { TaskList, User, ListMember } from "@/types/task"
 import type { ListWithMembers } from "@/lib/task-query-utils"
 import { createLogger } from '@/lib/logger'
-import { canUserManageList } from "@/lib/list-permissions"
+import { canUserManageList, hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('list-member-utils')
 
@@ -115,7 +115,10 @@ export function getAllListMembers(list: ListLike): ListMemberDefinition[] {
  * Check if a user has any access to a list (owner, admin, or member)
  */
 export function hasListAccess(list: ListLike, userId: string): boolean {
-  return getAllListMembers(list).some(member => member.id === userId)
+  // Delegates to the canonical role lookup (task e2803305). Deriving this from
+  // getAllListMembers missed owners on payloads carrying `ownerId` without the
+  // `owner` relation — the owner of a list was told they had no access to it.
+  return hasExplicitListRole({ id: userId }, list as never)
 }
 
 /**
