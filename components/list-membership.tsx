@@ -9,6 +9,7 @@ import { Globe, Lock, Bot, Sparkles, ExternalLink } from "lucide-react"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { UserLink } from "./user-link"
 import Link from "next/link"
+import { canUserDeleteList } from "@/lib/list-permissions"
 
 // AI agent type from the database
 interface AIAgent {
@@ -439,7 +440,7 @@ export function ListMembership({
       )}
 
       {/* Owner Leave List Button - with succession planning */}
-      {canEditSettings && list.ownerId === currentUser.id && onLeave && (
+      {canEditSettings && canUserDeleteList(currentUser, list as never) && onLeave && (
         <div className="border-t theme-border pt-4">
           <Button
             variant="destructive"

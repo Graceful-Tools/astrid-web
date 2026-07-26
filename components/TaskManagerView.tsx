@@ -28,7 +28,7 @@ import { didEnterBoardMode } from "@/lib/board-mode-transition"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
-import { canUserEditTask } from "@/lib/list-permissions"
+import { canUserEditTask, canUserManageList } from "@/lib/list-permissions"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
 
@@ -1111,8 +1111,8 @@ const TaskManagerView = memo(function TaskManagerView({
         const selectedList = lists.find(list => list.id === selectedListId)
         const isPublicList = selectedList?.privacy === 'PUBLIC'
         const isCollaborative = selectedList?.publicListType === 'collaborative'
-        const isUserOwnerOrAdmin = selectedList?.ownerId === effectiveSession?.user?.id ||
-                                  selectedList?.admins?.some(admin => admin.id === effectiveSession?.user?.id)
+        const isUserOwnerOrAdmin = !!effectiveSession?.user?.id &&
+          canUserManageList({ id: effectiveSession.user.id }, selectedList as never)
 
         // For collaborative lists, always show task creation (even when viewing from featured)
         if (isCollaborative || isUserOwnerOrAdmin) {

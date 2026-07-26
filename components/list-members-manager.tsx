@@ -13,6 +13,7 @@ import { Users, Plus, MoreVertical, Mail, UserCheck, UserMinus, Crown, Shield, U
 import { useToast } from "@/hooks/use-toast"
 import { UserLink } from "@/components/user-link"
 import type { TaskList, User } from "@/types/task"
+import { canUserManageList } from "@/lib/list-permissions"
 
 // New unified member type (matching quote_vote approach)
 interface Member {
@@ -43,8 +44,8 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member")
   const { toast } = useToast()
 
-  // Check if current user is admin (owner or has admin role)
-  const isAdmin = list.ownerId === currentUser.id
+  // Owner or admin — canonical helper, not an inline ownerId compare (task e2803305).
+  const isAdmin = canUserManageList(currentUser, list as never)
 
   const loadMembers = useCallback(async () => {
     try {
@@ -85,8 +86,9 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
     const currentUserMember = members.find(m => m.user_id === currentUser.id)
     if (!currentUserMember) return false
 
-    // Check if user is an admin (either has admin role or is the owner)
-    const isCurrentUserAdmin = currentUserMember.role === 'admin' || list.ownerId === currentUser.id
+    // Admin role on the loaded member row, or owner/admin per the canonical helper.
+    const isCurrentUserAdmin =
+      currentUserMember.role === 'admin' || canUserManageList(currentUser, list as never)
 
     // If user is not an admin, they can always leave
     if (!isCurrentUserAdmin) return true

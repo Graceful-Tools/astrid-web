@@ -34,6 +34,10 @@ interface ListLike {
   // listMembers); ~8 inline call sites read it. getUserRoleInList unions it so
   // those sites can converge on this single source of truth (task e2803305).
   admins?: Array<{ id: string }> | null
+  // Legacy denormalized members array, the sibling of `admins` above. Call
+  // sites in task-detail read it directly; union it here so they can converge
+  // on getUserRoleInList without losing access for those payloads.
+  members?: Array<{ id: string }> | null
 }
 
 /**
@@ -86,6 +90,9 @@ export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "ad
   if (list.admins?.some((a) => a?.id === user.id)) return "admin"
 
   if (membership?.role === "member") return "member"
+
+  // Legacy denormalized members array (same precedence as membership member).
+  if (list.members?.some((m) => m?.id === user.id)) return "member"
 
   // For public lists, users have viewer access
   if (list.privacy === "PUBLIC") {
@@ -166,6 +173,20 @@ export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike):
 
   // For non-public lists, members can edit
   return role === "member"
+}
+
+/**
+ * Does the user hold an explicit role on this list (owner, admin or member)?
+ *
+ * Distinct from canUserEditTasks, which additionally grants viewers on public
+ * collaborative lists. Several call sites need the narrower question — e.g.
+ * "should we apply an optimistic update?", where a collaborative-list viewer
+ * must be excluded or the write 403s. They spelled it out inline as
+ * `isOwner || isAdmin || isMember || isListMember` (task e2803305).
+ */
+export function hasExplicitListRole(user: UserLike, list: ListLike): boolean {
+  const role = getUserRoleInList(user, list)
+  return role === "owner" || role === "admin" || role === "member"
 }
 
 export function canUserManageList(user: UserLike, list: ListLike): boolean {

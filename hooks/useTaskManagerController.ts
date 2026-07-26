@@ -31,6 +31,7 @@ import { trackListCreated, trackListDeleted, trackListEdited } from "@/lib/analy
 import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
+import { canUserManageList } from "@/lib/list-permissions"
 import {
   useTaskListState,
   useTaskNavigation,
@@ -859,8 +860,8 @@ export function useTaskManagerController({
     try {
       const sourceList = [...listState.lists, ...listState.publicLists].find(l => l.id === listId)
       const isUserOwnerOrAdmin = sourceList && (
-        sourceList.ownerId === effectiveSession?.user?.id ||
-        sourceList.admins?.some(admin => admin.id === effectiveSession?.user?.id)
+        (!!effectiveSession?.user?.id &&
+          canUserManageList({ id: effectiveSession.user.id }, sourceList as never))
       )
 
       const shouldAssignToUser = !navigationState.isViewingFromFeatured || !isUserOwnerOrAdmin

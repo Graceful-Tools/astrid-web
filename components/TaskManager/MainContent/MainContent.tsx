@@ -29,6 +29,7 @@ import {
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import type { Task, TaskList } from "@/types/task"
+import { canUserManageList } from "@/lib/list-permissions"
 
 interface MainContentProps {
   // Layout and responsive props
@@ -629,8 +630,8 @@ export function MainContent({
                       )}
                       {(() => {
                         const isPublicList = currentList?.privacy === 'PUBLIC'
-                        const isUserOwnerOrAdmin = currentList?.ownerId === effectiveSession?.user?.id ||
-                                                  currentList?.admins?.some((admin: any) => admin.id === effectiveSession?.user?.id)
+                        const isUserOwnerOrAdmin = !!effectiveSession?.user?.id &&
+                          canUserManageList({ id: effectiveSession.user.id }, currentList as never)
 
                         // If viewing from featured lists, don't show settings regardless of ownership
                         // Or if it's a public list and user is not owner/admin

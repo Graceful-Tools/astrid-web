@@ -7,6 +7,7 @@ import {
   canUserManageList,
   canUserManageMembers,
   canUserDeleteList,
+  hasExplicitListRole,
   canEditListSettings,
   isSystemListId,
   SYSTEM_LIST_IDS,
@@ -473,5 +474,42 @@ describe('permission helpers agree (task e2803305)', () => {
   it('returns false for a missing user or list instead of throwing', () => {
     expect(canEditListSettings(asOwner as never, undefined)).toBe(false)
     expect(canUserManageList(user, null as never)).toBe(false)
+  })
+})
+
+describe('legacy denormalized payload shapes (task e2803305)', () => {
+  const user = { id: 'u1' }
+
+  it('grants member access via the legacy members[] array', () => {
+    // task-detail payloads carry `members`/`admins` rather than `listMembers`.
+    const list = { id: 'l1', ownerId: 'u2', members: [{ id: 'u1' }] }
+    expect(getUserRoleInList(user, list as never)).toBe('member')
+    expect(canUserEditTasks(user, list as never)).toBe(true)
+    expect(canUserManageList(user, list as never)).toBe(false)
+  })
+
+  it('still ranks admin above member when both arrays list the user', () => {
+    const list = { id: 'l1', ownerId: 'u2', admins: [{ id: 'u1' }], members: [{ id: 'u1' }] }
+    expect(getUserRoleInList(user, list as never)).toBe('admin')
+  })
+})
+
+describe('hasExplicitListRole vs canUserEditTasks (task e2803305)', () => {
+  const user = { id: 'u1' }
+  const collaborative = { id: 'l1', ownerId: 'u2', privacy: 'PUBLIC', publicListType: 'collaborative' }
+
+  it('excludes a viewer on a public collaborative list', () => {
+    // canUserEditTasks deliberately lets viewers add tasks there; the call sites
+    // that gate optimistic updates must NOT, or the write 403s.
+    expect(canUserEditTasks(user, collaborative as never)).toBe(true)
+    expect(hasExplicitListRole(user, collaborative as never)).toBe(false)
+  })
+
+  it('includes owner, admin and member across both payload shapes', () => {
+    expect(hasExplicitListRole(user, { id: 'l', ownerId: 'u1' } as never)).toBe(true)
+    expect(hasExplicitListRole(user, { id: 'l', ownerId: 'u2', admins: [{ id: 'u1' }] } as never)).toBe(true)
+    expect(hasExplicitListRole(user, { id: 'l', ownerId: 'u2', members: [{ id: 'u1' }] } as never)).toBe(true)
+    expect(hasExplicitListRole(user, { id: 'l', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'member' }] } as never)).toBe(true)
+    expect(hasExplicitListRole(user, { id: 'l', ownerId: 'u2' } as never)).toBe(false)
   })
 })
