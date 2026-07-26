@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { apiGet } from "@/lib/api"
-import { seedFromCache } from "./load-from-cache"
+import { seedFromCache, buildTaskSyncUrl } from "./load-from-cache"
+import { mergeTasks, mergeLists } from "./merge-tasks"
 import { preloadUserAvatars } from "@/lib/image-cache"
 import type { Task, TaskList } from "@/types/task"
 
@@ -111,16 +112,20 @@ export function useTaskListState({
         })
       }
 
-      // Reconcile against the server. Deliberately a FULL fetch, not a delta:
-      // neither /api/tasks nor DataSyncManager reports deletions on the
-      // incremental path (deletedIds is always []), so merging a delta into
-      // state would leave deleted tasks on screen until the next full sync.
-      // Wrong data is worse than slow data — and the cached paint above is
-      // what actually fixes the wait. See buildTaskSyncUrl for the delta helper
-      // this should use once the API reports deletions.
+      // Reconcile against the server. With a cursor on file this is a delta —
+      // the API now reports `deletedIds`, so a patch can be merged safely; it
+      // was a full ~1.9 MB fetch until that existed. Without a cursor (cold
+      // start) these are the same full URLs as before.
+      const [tasksUrl, listsUrl] = await Promise.all([
+        buildTaskSyncUrl("/api/tasks", "task"),
+        buildTaskSyncUrl("/api/lists", "list"),
+      ])
+      const tasksIsDelta = tasksUrl.includes("updatedSince=")
+      const listsIsDelta = listsUrl.includes("updatedSince=")
+
       const [tasksResponse, listsResponse, publicTasksResponse, publicListsResponse] = await Promise.all([
-        apiGet("/api/tasks"),
-        apiGet("/api/lists"),
+        apiGet(tasksUrl),
+        apiGet(listsUrl),
         apiGet("/api/public-tasks"),
         apiGet("/api/lists/public?limit=10"),
       ])
@@ -137,41 +142,20 @@ export function useTaskListState({
       const listsArray = Array.isArray(listsData) ? listsData : (listsData?.lists || [])
       const publicTasksArray = Array.isArray(publicTasksData) ? publicTasksData : (publicTasksData?.tasks || [])
 
-      // Smart merge: preserve optimistically added tasks and comments
-      setTasks(prev => {
-        const serverTaskIds = new Set(tasksArray.map((t: Task) => t.id))
-        const optimisticTasks = prev.filter((t: Task) => !serverTaskIds.has(t.id) && t.id.startsWith('temp-'))
-        const prevTaskMap = new Map(prev.map((t: Task) => [t.id, t]))
+      // A full response IS the truth; a delta is a patch. Conflating them would
+      // wipe every task the delta did not mention (see merge-tasks.ts).
+      const deletedTaskIds: string[] = tasksData?.deletedIds || []
+      const deletedListIds: string[] = listsData?.deletedIds || []
 
-        // Merge server tasks with preserved comments from existing state
-        const mergedTasks = tasksArray.map((serverTask: Task) => {
-          const existingTask = prevTaskMap.get(serverTask.id)
-          if (existingTask?.comments && existingTask.comments.length > 0 && !serverTask.comments) {
-            return { ...serverTask, comments: existingTask.comments }
-          }
-          return serverTask
-        })
+      setTasks(prev => mergeTasks(prev, tasksArray, {
+        isDelta: tasksIsDelta,
+        deletedIds: deletedTaskIds,
+      }))
 
-        if (optimisticTasks.length > 0) {
-          console.log(`[useTaskListState] Preserving ${optimisticTasks.length} optimistic tasks during loadData`)
-          return [...mergedTasks, ...optimisticTasks]
-        }
-
-        return mergedTasks
-      })
-
-      // Smart merge: preserve optimistically added lists
-      setLists(prev => {
-        const serverListIds = new Set(listsArray.map((l: TaskList) => l.id))
-        const optimisticLists = prev.filter((l: TaskList) => !serverListIds.has(l.id) && l.id.startsWith('temp-'))
-
-        if (optimisticLists.length > 0) {
-          console.log(`[useTaskListState] Preserving ${optimisticLists.length} optimistic lists during loadData`)
-          return [...listsArray, ...optimisticLists]
-        }
-
-        return listsArray
-      })
+      setLists(prev => mergeLists(prev, listsArray, {
+        isDelta: listsIsDelta,
+        deletedIds: deletedListIds,
+      }))
 
       setPublicTasks(publicTasksArray)
       setPublicLists(publicListsData.lists || [])
