@@ -8,7 +8,7 @@
 import type { TaskList, User, ListMember } from "@/types/task"
 import type { ListWithMembers } from "@/lib/task-query-utils"
 import { createLogger } from '@/lib/logger'
-import { canUserManageList, hasExplicitListRole } from "@/lib/list-permissions"
+import { canUserManageList, hasExplicitListRole, getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('list-member-utils')
 
@@ -137,7 +137,10 @@ export function isListAdminOrOwner(list: ListLike, userId: string): boolean {
  * Check if a user is the owner of a list
  */
 export function isListOwner(list: ListLike, userId: string): boolean {
-  return list.owner?.id === userId
+  // Delegates to the canonical lookup (task e2803305). Comparing only
+  // `list.owner?.id` meant a list fetched with `ownerId` and no owner relation
+  // reported that nobody owned it.
+  return getUserRoleInList({ id: userId }, list as never) === 'owner'
 }
 
 /**

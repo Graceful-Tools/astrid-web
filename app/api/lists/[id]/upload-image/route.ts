@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('lists.[id].upload-image')
 
@@ -94,10 +95,7 @@ export async function POST(
     }
 
     // Check if user can manage the list (owner or admin).
-    const isOwner = list.ownerId === session.user.id
-    const isAdmin = list.listMembers?.some((lm: any) => lm.userId === session.user.id && lm.role === 'admin')
-
-    if (!isOwner && !isAdmin) {
+    if (!canUserManageList({ id: session.user.id }, list as never)) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 

@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('comments.[id]')
 
@@ -160,11 +161,9 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
     const isCommentAuthor = existingComment.authorId === session.user.id
     const isTaskCreator = task.creatorId === session.user.id
     const isTaskAssignee = task.assigneeId === session.user.id
-    const isListOwnerOrAdmin = task.lists.some((list) => {
-      if (list.ownerId === session.user.id) return true
-      // Check if user is an admin via listMembers
-      return list.listMembers?.some((lm: any) => lm.userId === session.user.id && lm.role === 'admin')
-    })
+    const isListOwnerOrAdmin = task.lists.some(
+      (list) => canUserManageList({ id: session.user.id }, list as never),
+    )
 
     if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
       return NextResponse.json({ error: "You can only delete your own comments or comments on tasks you manage" }, { status: 403 })

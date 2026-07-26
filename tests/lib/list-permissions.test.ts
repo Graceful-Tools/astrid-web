@@ -12,7 +12,7 @@ import {
   isSystemListId,
   SYSTEM_LIST_IDS,
 } from '@/lib/list-permissions'
-import { isListAdminOrOwner, hasListAccess } from '@/lib/list-member-utils'
+import { isListAdminOrOwner, hasListAccess, isListOwner } from '@/lib/list-member-utils'
 import type { TaskList, User } from '@/types/task'
 
 describe('List Permissions - getUserRoleInList', () => {
@@ -573,5 +573,25 @@ describe('hasListAccess covers owners on ownerId-only payloads (task e2803305)',
     // Public lists are readable, but that is not membership; routes gating
     // writes on hasListAccess must not be widened here.
     expect(hasListAccess({ id: 'l1', ownerId: 'u2', privacy: 'PUBLIC' } as never, 'u1')).toBe(false)
+  })
+})
+
+/**
+ * Task e2803305 — third instance of the same defect family. isListOwner
+ * compared only `list.owner?.id`, so a list fetched with `ownerId` and no
+ * `owner` relation reported that nobody owned it.
+ */
+describe('isListOwner covers both owner shapes (task e2803305)', () => {
+  it('recognises the owner via ownerId alone', () => {
+    expect(isListOwner({ id: 'l1', ownerId: 'u1' } as never, 'u1')).toBe(true)
+  })
+
+  it('recognises the owner via the owner relation alone', () => {
+    expect(isListOwner({ id: 'l1', owner: { id: 'u1' } } as never, 'u1')).toBe(true)
+  })
+
+  it('does not promote admins or members to owner', () => {
+    expect(isListOwner({ id: 'l1', ownerId: 'u2', admins: [{ id: 'u1' }] } as never, 'u1')).toBe(false)
+    expect(isListOwner({ id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'member' }] } as never, 'u1')).toBe(false)
   })
 })

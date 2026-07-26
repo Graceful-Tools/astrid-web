@@ -9,6 +9,7 @@ import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { parseVirtualChatKey } from '@/lib/chat-channel-eligibility'
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('chat.channels')
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'List not found' }, { status: 404 })
       }
 
-      const isOwner = list.ownerId === auth.userId
+      const isOwner = getUserRoleInList({ id: auth.userId }, list as never) === 'owner'
       const isMember = list.listMembers?.some(m => m.userId === auth.userId)
       const publicType = String((list as { publicListType?: string | null }).publicListType || '').toLowerCase()
       const isPublicCollaborative = list.privacy === 'PUBLIC' && publicType === 'collaborative'

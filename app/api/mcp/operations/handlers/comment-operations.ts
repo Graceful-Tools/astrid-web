@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { validateMCPToken, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
+import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('mcp.comment-operations')
 
@@ -276,11 +277,9 @@ export async function deleteComment(accessToken: string, commentId: string, user
   const isCommentAuthor = existingComment.authorId === mcpToken.userId
   const isTaskCreator = task.creatorId === mcpToken.userId
   const isTaskAssignee = task.assigneeId === mcpToken.userId
-  const isListOwnerOrAdmin = task.lists.some((list) => {
-    if (list.ownerId === mcpToken.userId) return true
-    // Check if user is an admin via listMembers
-    return list.listMembers?.some((lm) => lm.userId === mcpToken.userId && lm.role === 'admin')
-  })
+  const isListOwnerOrAdmin = task.lists.some(
+    (list) => canUserManageList({ id: mcpToken.userId }, list as never),
+  )
 
   if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
     log.info(`[MCP deleteComment] Access denied for user ${mcpToken.userId} to delete comment ${commentId}`)

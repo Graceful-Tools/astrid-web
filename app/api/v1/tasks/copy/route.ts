@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('v1.tasks.copy.batch')
 
@@ -48,8 +49,7 @@ export const POST = withAuth(
           originalTask.creatorId === auth.userId ||
           originalTask.lists.some(
             (l: { ownerId: string; listMembers?: { userId: string }[] }) =>
-              l.ownerId === auth.userId ||
-              l.listMembers?.some(lm => lm.userId === auth.userId)
+              hasExplicitListRole({ id: auth.userId }, l as never)
           )
         if (!hasAccess) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

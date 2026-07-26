@@ -9,11 +9,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import {
-  canUserManageMembers,
-  canAssignRole,
-  prismaToTaskList,
-} from '@/lib/list-permissions'
+import { canUserManageMembers, canAssignRole, prismaToTaskList, getUserRoleInList } from "@/lib/list-permissions"
 import { sendListInvitationEmail } from '@/lib/email'
 import { createLogger } from '@/lib/logger'
 
@@ -71,7 +67,7 @@ export const POST = withAuth<RouteContext>(
 
       const existingUser = await prisma.user.findUnique({ where: { email } })
       if (existingUser) {
-        const isOwner = list.ownerId === existingUser.id
+        const isOwner = getUserRoleInList({ id: existingUser.id }, list as never) === 'owner'
         const isAlreadyMember = list.listMembers?.some(
           (lm: { userId: string }) => lm.userId === existingUser.id
         )

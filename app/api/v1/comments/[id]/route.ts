@@ -14,6 +14,7 @@ import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole, canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.comments.id')
 
@@ -63,9 +64,7 @@ export const GET = withAuth<RouteContext>(
       comment.task.creatorId === auth.userId ||
       comment.task.assigneeId === auth.userId ||
       comment.task.lists.some(
-        (list: any) =>
-          list.ownerId === auth.userId ||
-          list.listMembers.some((member: any) => member.userId === auth.userId)
+        (list: any) => hasExplicitListRole({ id: auth.userId }, list)
       )
 
     if (!hasAccess) {
@@ -216,9 +215,7 @@ export const DELETE = withAuth<RouteContext>(
     const isTaskCreator = task.creatorId === auth.userId
     const isTaskAssignee = task.assigneeId === auth.userId
     const isListOwnerOrAdmin = task.lists.some(
-      list =>
-        list.ownerId === auth.userId ||
-        list.listMembers.some(lm => lm.userId === auth.userId && lm.role === 'admin')
+      list => canUserManageList({ id: auth.userId }, list as never)
     )
 
     if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {

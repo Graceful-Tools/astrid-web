@@ -33,6 +33,11 @@ vi.mock('@/lib/list-permissions', () => ({
   canUserManageMembers: vi.fn(),
   canAssignRole: vi.fn(),
   prismaToTaskList: vi.fn(),
+  // The route asks the canonical helper whether the invitee is already the
+  // owner (task e2803305). Real implementation: owner is decided by ownerId or
+  // the owner relation, so mirror that rather than returning a constant.
+  getUserRoleInList: vi.fn((user: { id: string }, list: { ownerId?: string; owner?: { id: string } }) =>
+    list?.ownerId === user?.id || list?.owner?.id === user?.id ? 'owner' : null),
 }))
 
 const mockUser = {

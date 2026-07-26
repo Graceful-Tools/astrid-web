@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getListMemberIds } from "@/lib/list-member-utils"
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 /**
  * Mask a token for logging (show first 4 and last 4 chars)
@@ -119,11 +120,13 @@ export interface ListForPermissions {
 export function determinePermissions(list: ListForPermissions, userId: string): string[] {
   const permissions = ['read']
 
-  if (list.ownerId === userId) {
+  // Role -> permissions, off the canonical lookup rather than re-deriving it
+  // here (task e2803305). getUserRoleInList also honours the owner relation and
+  // the legacy admins[]/members[] arrays, and is case-insensitive on role.
+  const role = getUserRoleInList({ id: userId }, list as never)
+  if (role === 'owner' || role === 'admin') {
     permissions.push('write', 'admin')
-  } else if (list.listMembers?.some((member) => member.userId === userId && member.role === 'admin')) {
-    permissions.push('write', 'admin')
-  } else if (list.listMembers?.some((member) => member.userId === userId && member.role === 'member')) {
+  } else if (role === 'member') {
     permissions.push('write')
   }
 

@@ -7,6 +7,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('coding-workflow.status.[taskId]')
 
@@ -55,10 +56,7 @@ export async function GET(
     const userHasAccess =
       workflow.task.creatorId === session.user.id ||
       workflow.task.assigneeId === session.user.id ||
-      workflow.task.lists.some(list =>
-        list.ownerId === session.user.id ||
-        list.listMembers?.some((lm: any) => lm.userId === session.user.id)
-      )
+      workflow.task.lists.some(list => hasExplicitListRole({ id: session.user.id }, list as never))
 
     if (!userHasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
