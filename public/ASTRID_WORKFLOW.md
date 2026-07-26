@@ -2,6 +2,11 @@
 
 **Works with: Claude, ChatGPT, Gemini, Cursor, Copilot, and any AI coding assistant**
 
+> This is the canonical workflow for Astrid work. Drop it in your project root.
+> Repository-local agent files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, etc.)
+> may add platform commands and safety rules, but must not weaken or duplicate
+> this process.
+
 ---
 
 ## Quick Start
@@ -40,13 +45,62 @@ See ASTRID_WORKFLOW.md for "let's fix stuff" workflow.
 
 ---
 
-## Workflow
+## Required workflow
 
-1. **Fetch tasks** - Run the script above
-2. **User selects task** - Pick a task number
-3. **Implement** - Write code, tests, run quality checks
-4. **Commit** - Include task ID: `fix: description (Task: abc123)`
-5. **Update task** - Add comment with progress, mark complete when done
+### 1. Fetch and select the task
+
+Fetch the appropriate Astrid task list, review scope and constraints, and use
+the task ID in commit messages, tests, and task comments. Do not begin a
+materially different task merely because it appears nearby in the codebase.
+
+### 2. Analyze and post a strategy comment
+
+Before implementation, inspect the relevant code and tests, then post a short
+strategy comment on the Astrid task. State the affected area, the intended
+behavior, the regression-test plan, and any cross-platform or offline/API
+compatibility constraint. Pause for clarification when the task would require a
+meaningful product, architecture, or deployment decision.
+
+### 3. Implement bug fixes with RED–GREEN–refactor TDD
+
+Bug fixes are mandatory red–green TDD work:
+
+1. **RED:** write the smallest regression test that reproduces the reported
+   behavior. Run it and confirm that it fails for the expected reason.
+2. **GREEN:** make the smallest production change that makes that test pass.
+3. **REFACTOR:** improve the implementation only while all relevant tests stay
+   green.
+
+Name the test or add a doc-comment with the Astrid task ID, for example
+`regression for task abc123`. A feature may begin implementation before its
+test, but it must ship with focused regression coverage and edge-case tests.
+
+### 4. Verify and report
+
+Run the repository's required quality gates after implementation. Do not skip,
+mute, or rewrite a failing test to make it pass; identify and fix the cause.
+For user-visible flows, add or run an integration/E2E or UI test when a focused
+unit test cannot prove the behavior.
+
+Post a completion comment to the Astrid task with the behavior changed, tests
+run, and any follow-up risk. Mark it complete only after the quality gates pass
+and any required approval/deployment process has been satisfied.
+
+### 5. Platform adapters
+
+- **Web:** follow `CLAUDE.md` / `AGENTS.md` for local setup, API versioning,
+  deployment approval, and the web quality commands.
+- **iOS:** follow `astrid-ios/AGENTS.md` or `CLAUDE.md` for Xcode commands,
+  service-layer write paths, unified outbox/offline behavior, repeating-task
+  contracts, and old API-version compatibility.
+
+### Commit convention
+
+When committing completed work, include the task ID, for example:
+
+```text
+fix: preserve offline task completion (Task: abc123)
+```
 
 ---
 
