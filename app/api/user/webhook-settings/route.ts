@@ -18,7 +18,7 @@ const log = createLogger('user.webhook-settings')
 
 
 // Available AI agents that can be routed to webhook
-const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini'] as const
+const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot'] as const
 
 // Validation schema for webhook settings
 const WebhookSettingsSchema = z.object({

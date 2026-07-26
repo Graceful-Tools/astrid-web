@@ -18,7 +18,7 @@ export function getAgentType(email?: string, name?: string): string | null {
 
   if (email?.endsWith('@astrid.cc')) {
     const prefix = email.split('@')[0].toLowerCase()
-    if (['claude', 'openai', 'gemini', 'openclaw'].includes(prefix)) {
+    if (['claude', 'openai', 'gemini', 'copilot', 'openclaw'].includes(prefix)) {
       return prefix
     }
   }
@@ -28,6 +28,7 @@ export function getAgentType(email?: string, name?: string): string | null {
     if (lowerName.includes('claude')) return 'claude'
     if (lowerName.includes('openai') || lowerName.includes('gpt')) return 'openai'
     if (lowerName.includes('gemini')) return 'gemini'
+    if (lowerName.includes('copilot')) return 'copilot'
     if (lowerName.includes('openclaw') || lowerName.includes('claw')) return 'openclaw'
   }
 

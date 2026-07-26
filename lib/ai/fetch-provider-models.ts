@@ -18,7 +18,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
  * Returns sorted model IDs relevant for chat/completion use.
  */
 export async function fetchProviderModels(
-  service: 'claude' | 'openai' | 'gemini',
+  service: 'claude' | 'openai' | 'gemini' | 'copilot',
   apiKey: string
 ): Promise<string[]> {
   // Cache key uses first 8 chars of key to scope per-key without storing the full key
@@ -39,6 +39,11 @@ export async function fetchProviderModels(
         break
       case 'gemini':
         models = await fetchGeminiModels(apiKey)
+        break
+      case 'copilot':
+        // Model enumeration through the SDK would start a CLI runtime during a
+        // settings-page request. Use the reviewed static list instead.
+        models = []
         break
       default:
         return []

@@ -25,7 +25,7 @@ Before you begin, ensure you have:
    - **Claude**: Get API key from [console.anthropic.com](https://console.anthropic.com)
    - **OpenAI**: Get API key from [platform.openai.com](https://platform.openai.com)
    - **Gemini**: Get API key from [aistudio.google.com](https://aistudio.google.com)
-   - **GitHub Copilot**: OpenAI-compatible provider (base URL `https://api.githubcopilot.com`)
+   - **GitHub Copilot**: Official Copilot SDK with per-user GitHub OAuth
 3. **Save and test** the connection
 
 ### **Step 2: Create GitHub App**

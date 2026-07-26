@@ -39,6 +39,11 @@ const AGENT_ICONS: Record<string, AgentIconConfig> = {
     brandColor: '8E75B2',  // Google Gemini purple
     localFallback: 'gemini.svg',
   },
+  copilot: {
+    simpleIconSlug: 'githubcopilot',
+    brandColor: '000000',  // GitHub Copilot black
+    localFallback: 'copilot.svg',
+  },
 }
 
 // In-memory cache: slug -> { svg, fetchedAt }

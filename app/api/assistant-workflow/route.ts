@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCachedApiKey, getCachedModelPreference } from '@/lib/api-key-cache'
+import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
+import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
 
@@ -15,6 +16,7 @@ const DEFAULT_MODELS = {
   claude: 'claude-sonnet-4-6',
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
+  copilot: 'gpt-4.1',
 } as const
 
 interface AssistantWorkflowRequest {
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the creator's API key for this service
-    const apiKey = await getCachedApiKey(creatorId, service)
+    const apiKey = await getAIServiceCredential(creatorId, service)
     if (!apiKey) {
       log.info(`⚠️ [AssistantWorkflow] No ${service} API key for user ${creatorId}`)
 
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
     // Call the appropriate AI service
     let response: string
     try {
-      response = await callAIService(service, apiKey, prompt, model)
+      response = await callAIService(service, apiKey, prompt, model, creatorId)
     } catch (aiError: any) {
       log.error({ err: aiError }, `❌ [AssistantWorkflow] AI call failed:`)
 
@@ -212,10 +214,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getServiceFromEmail(email: string): 'claude' | 'openai' | 'gemini' | 'openclaw' | null {
+function getServiceFromEmail(email: string): 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw' | null {
   if (email === 'claude@astrid.cc') return 'claude'
   if (email === 'openai@astrid.cc') return 'openai'
   if (email === 'gemini@astrid.cc') return 'gemini'
+  if (email === 'copilot@astrid.cc') return 'copilot'
   if (email === 'openclaw@astrid.cc') return 'openclaw'
   // Match {name}.oc@astrid.cc pattern for OpenClaw agents
   if (email.match(/\.oc@astrid\.cc$/i)) return 'openclaw'
@@ -268,10 +271,11 @@ List: ${listName}`
  * For coding tasks, Astrid now dispatches to external runtimes via webhooks/SSE.
  */
 async function callAIService(
-  service: 'claude' | 'openai' | 'gemini',
+  service: 'claude' | 'openai' | 'gemini' | 'copilot',
   apiKey: string,
   prompt: string,
-  model: string
+  model: string,
+  userId: string,
 ): Promise<string> {
   switch (service) {
     case 'claude': {
@@ -320,6 +324,11 @@ async function callAIService(
 
       const data = await response.json()
       return data.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response.'
+    }
+
+    case 'copilot': {
+      const response = await callCopilot({ apiKey, prompt, userId, model })
+      return response.content
     }
 
     case 'gemini': {

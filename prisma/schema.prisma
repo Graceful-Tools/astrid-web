@@ -97,6 +97,7 @@ model User {
   addressBookContacts          AddressBookContact[] @relation("AddressBookContacts")
   userListFavorites            UserListFavorite[]   @relation("UserFavorites")
   integrations                 Integration[]        @relation("UserIntegrations")
+  copilotCredential            CopilotCredential?   @relation("UserCopilotCredential")
 
   @@index([email])
   @@index([emailVerified])
@@ -957,6 +958,29 @@ enum ExternalSyncDirection {
   EXPORT
   IMPORT
   BIDIRECTIONAL
+}
+
+/// Per-user GitHub Copilot OAuth credential for the copilot@astrid.cc agent.
+/// Deliberately separate from Integration (external content sync, with
+/// list/task links) and GitHubIntegration (coding-agent GitHub App): this is
+/// only an auth token for calling the user's own Copilot entitlement.
+/// Tokens are encrypted at the app layer (lib/field-encryption). refreshToken
+/// + expiresAt are populated only for GitHub App expiring tokens; a plain
+/// OAuth App token leaves them null and copilotTokenFor just returns it.
+model CopilotCredential {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  accessToken  String // encrypted
+  refreshToken String? // encrypted
+  expiresAt    DateTime?
+  scopes       String[]
+  githubLogin  String? // identity mapping
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation("UserCopilotCredential", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 /// Durable per-user OAuth credential store for sync providers (tokens encrypted

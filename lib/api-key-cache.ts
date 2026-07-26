@@ -20,7 +20,7 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
  */
 export async function getCachedApiKey(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'openclaw'
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
 ): Promise<string | null> {
   try {
     const cacheKey = `${userId}-${service}`
@@ -81,6 +81,23 @@ export async function getCachedApiKey(
     log.error({ err: error }, `Error getting ${service} API key for user ${userId}:`)
     return null
   }
+}
+
+/**
+ * Return the credential used to invoke an AI service. Copilot is authorized
+ * with a per-user GitHub OAuth token; other providers retain their encrypted
+ * API-key storage. Keeping this distinction here prevents callers from
+ * accidentally reintroducing pasted Copilot tokens.
+ */
+export async function getAIServiceCredential(
+  userId: string,
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+): Promise<string | null> {
+  if (service === 'copilot') {
+    const { copilotTokenFor } = await import('@/lib/copilot/oauth')
+    return copilotTokenFor(userId)
+  }
+  return getCachedApiKey(userId, service)
 }
 
 
@@ -159,10 +176,10 @@ function decryptApiKeyNew(encryptedData: { encrypted: string; iv: string }): str
  */
 export async function hasValidApiKey(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'openclaw'
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
 ): Promise<boolean> {
   try {
-    const key = await getCachedApiKey(userId, service)
+    const key = await getAIServiceCredential(userId, service)
     return key !== null && key.length > 0
   } catch (error) {
     // If we can't get the API key (e.g., decryption failed), it's not valid
@@ -175,7 +192,7 @@ export async function hasValidApiKey(
  */
 export async function getCachedModelPreference(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'openclaw'
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
 ): Promise<string | null> {
   try {
     // Fetch from database
@@ -211,7 +228,7 @@ export async function getCachedModelPreference(
 /**
  * Get the user's preferred AI service (with fallback)
  */
-export async function getPreferredAIService(userId: string): Promise<'claude' | 'openai' | 'gemini' | 'openclaw'> {
+export async function getPreferredAIService(userId: string): Promise<'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -231,7 +248,7 @@ export async function getPreferredAIService(userId: string): Promise<'claude' | 
 
     // Fallback: return the first service that has an API key
     // Note: openclaw uses gateway URLs, not API keys, so it's not included here
-    const services: Array<'claude' | 'openai' | 'gemini'> = ['claude', 'openai', 'gemini']
+    const services: Array<'claude' | 'openai' | 'gemini' | 'copilot'> = ['claude', 'openai', 'gemini', 'copilot']
 
     for (const service of services) {
       if (await hasValidApiKey(userId, service)) {

@@ -125,6 +125,7 @@
     "@anthropic-ai/claude-agent-sdk": "^0.3.144",
     "@anthropic-ai/claude-code": "^2.1.144",
     "@auth/core": "^0.41.2",
+    "@github/copilot-sdk": "1.0.6",
     "@gracefultools/astrid-sdk": "^0.8.2",
     "@hookform/resolvers": "^3.9.1",
     "@modelcontextprotocol/sdk": "^1.24.2",

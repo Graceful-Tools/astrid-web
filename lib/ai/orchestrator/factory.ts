@@ -15,6 +15,7 @@
 import { prisma } from '../../prisma'
 import { type AIService, getAgentService } from '../agent-config'
 import { createLogger } from '../../logger'
+import { hasCopilotCredential } from '../../copilot/oauth'
 
 const log = createLogger('ai-orchestrator/factory')
 
@@ -163,6 +164,7 @@ export async function createForTask<T extends AIOrchestratorLike>(
   const availableProviders = Object.keys(apiKeys).filter(
     provider => apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini'].includes(provider),
   )
+  if (await hasCopilotCredential(configuredByUserId)) availableProviders.push('copilot')
 
   let selectedProvider: AIService
 

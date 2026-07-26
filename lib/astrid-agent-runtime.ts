@@ -8,7 +8,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { getCachedApiKey, getPreferredAIService } from '@/lib/api-key-cache'
+import { getAIServiceCredential, getPreferredAIService } from '@/lib/api-key-cache'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { getTokenForUser, getBaseUrl } from '@/lib/astrid-api-client'
@@ -16,6 +16,7 @@ import { createLogger } from '@/lib/logger'
 import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
 import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
 import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
+import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 
 const log = createLogger('astrid-agent-runtime')
 
@@ -278,7 +279,11 @@ async function callClaudeWithTools(
 
 async function callOpenAIWithTools(
   apiKey: string, systemPrompt: string, userMessage: string,
-  context: { userId: string }, model?: string
+  context: { userId: string }, model?: string,
+  // OpenAI-compatible providers (e.g. GitHub Copilot) override the endpoint base
+  // and add provider-specific headers; the request/response shape is identical.
+  baseUrl: string = 'https://api.openai.com/v1',
+  extraHeaders: Record<string, string> = {},
 ): Promise<string> {
   let messages: Array<{ role: string; content: string | null; tool_calls?: unknown[]; tool_call_id?: string }> = [
     { role: 'system', content: systemPrompt },
@@ -286,12 +291,12 @@ async function callOpenAIWithTools(
   ]
 
   for (let i = 0; i < 5; i++) {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', ...extraHeaders },
       body: JSON.stringify({ model: model || 'gpt-4o', max_tokens: 1024, tools: TOOLS_OPENAI, messages }),
     })
-    if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`)
+    if (!res.ok) throw new Error(`OpenAI-compatible API error: ${res.status}`)
     const data = await res.json()
 
     const msg = data.choices?.[0]?.message
@@ -308,6 +313,30 @@ async function callOpenAIWithTools(
   }
 
   return 'I completed the actions requested.'
+}
+
+/**
+ * GitHub Copilot tool-calling through the supported Copilot SDK. Empty SDK mode
+ * exposes only Astrid's authenticated api_request tool.
+ */
+async function callCopilotWithTools(
+  apiKey: string, systemPrompt: string, userMessage: string,
+  context: { userId: string }, model?: string
+): Promise<string> {
+  const response = await callCopilot({
+    apiKey,
+    prompt: userMessage,
+    userId: context.userId,
+    model,
+    systemPrompt,
+    tools: [{
+      name: 'api_request',
+      description: TOOLS_CLAUDE[0].description,
+      parameters: TOOLS_CLAUDE[0].input_schema,
+      handler: input => executeTool('api_request', input, context),
+    }],
+  })
+  return response.content
 }
 
 async function callGeminiWithTools(
@@ -561,7 +590,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     }
 
     const service = await getPreferredAIService(userId)
-    const apiKey = await getCachedApiKey(userId, service)
+    const apiKey = await getAIServiceCredential(userId, service)
     if (!apiKey) {
       log.info(`[Astrid] No ${service} API key for user ${userId}, sending setup prompt`)
       const setupMessage = await prisma.chatMessage.create({
@@ -635,7 +664,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       userMessage: cleanMessage,
       toolContext,
       model,
-      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools },
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools },
     })
     if (response === null) return
 
@@ -710,7 +739,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     startTyping({ recipients, agentId: astridUser.id, agentName: 'Astrid', scope: taskScope })
 
     const service = await getPreferredAIService(userId)
-    const apiKey = await getCachedApiKey(userId, service)
+    const apiKey = await getAIServiceCredential(userId, service)
     if (!apiKey) {
       const setupComment = await prisma.comment.create({
         data: {
@@ -767,7 +796,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       userMessage: cleanComment,
       toolContext,
       model,
-      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools },
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools },
     })
     if (response === null) return
 

@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
 
     // Search for AI agents (like coding agent)
     let aiAgents: any[] = []
-    const aiAgentEmails = ['claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc', 'openclaw@astrid.cc']
+    const aiAgentEmails = ['claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc', 'copilot@astrid.cc', 'openclaw@astrid.cc']
     // Also match {name}.oc@astrid.cc pattern for OpenClaw agents
     const ocPattern = /^[a-z0-9._-]+\.oc@astrid\.cc$/i
 
@@ -187,10 +187,11 @@ export async function GET(request: NextRequest) {
     // Option 2: Include AI agents based on user's configured API keys (for My Tasks, etc.)
     if (includeAIAgents && aiAgents.length === 0) {
       // Check which API keys the user has configured
-      const [hasClaude, hasOpenAI, hasGemini, hasOpenClaw] = await Promise.all([
+      const [hasClaude, hasOpenAI, hasGemini, hasCopilot, hasOpenClaw] = await Promise.all([
         hasValidApiKey(session.user.id, 'claude'),
         hasValidApiKey(session.user.id, 'openai'),
         hasValidApiKey(session.user.id, 'gemini'),
+        hasValidApiKey(session.user.id, 'copilot'),
         hasValidApiKey(session.user.id, 'openclaw')
       ])
 
@@ -198,6 +199,7 @@ export async function GET(request: NextRequest) {
       if (hasClaude) availableAgentEmails.push('claude@astrid.cc')
       if (hasOpenAI) availableAgentEmails.push('openai@astrid.cc')
       if (hasGemini) availableAgentEmails.push('gemini@astrid.cc')
+      if (hasCopilot) availableAgentEmails.push('copilot@astrid.cc')
       if (hasOpenClaw) availableAgentEmails.push('openclaw@astrid.cc')
 
       if (availableAgentEmails.length > 0) {

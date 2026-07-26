@@ -28,10 +28,11 @@ interface AvailableAgent {
 }
 
 // Built-in agents — always available if user has the API key
-const BUILT_IN_AGENTS: Array<{ email: string; name: string; service: 'claude' | 'openai' | 'gemini'; image: string | null }> = [
+const BUILT_IN_AGENTS: Array<{ email: string; name: string; service: 'claude' | 'openai' | 'gemini' | 'copilot'; image: string | null }> = [
   { email: 'claude@astrid.cc', name: 'Claude', service: 'claude', image: '/api/v1/agent-icon/claude' },
   { email: 'openai@astrid.cc', name: 'OpenAI', service: 'openai', image: '/api/v1/agent-icon/openai' },
   { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini', image: '/api/v1/agent-icon/gemini' },
+  { email: 'copilot@astrid.cc', name: 'GitHub Copilot', service: 'copilot', image: '/api/v1/agent-icon/copilot' },
 ]
 
 export async function GET(req: NextRequest) {
