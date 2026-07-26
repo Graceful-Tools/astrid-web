@@ -26,6 +26,7 @@ import {
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from "@/lib/project-status"
 import { getUnifiedSession } from "@/lib/session-utils"
+import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.tasks.id')
 
@@ -771,9 +772,25 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     // Best-effort sync bookkeeping — must never block the delete itself.
     try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }
+    // Capture the audience before the relations go with the row. Wrapped
+    // because tombstoning must never be the reason a delete fails.
+    let taskAudience: string[] = []
+    try {
+      const taskForAudience = await prisma.task.findUnique({
+        where: { id: taskId },
+        select: {
+          creatorId: true,
+          assigneeId: true,
+          lists: { select: { ownerId: true, listMembers: { select: { userId: true } } } },
+        },
+      })
+      if (taskForAudience) taskAudience = audienceForTask(taskForAudience)
+    } catch { /* best effort */ }
+
     await prisma.task.delete({
       where: { id: taskId },
     })
+    await recordDeletion('task', taskId, taskAudience)
 
     // Batch-fetch the candidate lists in one query (only manual-sort ones)
     // and process updates in parallel — replaces the prior N+1 findUnique loop.

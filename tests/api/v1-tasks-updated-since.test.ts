@@ -27,6 +27,7 @@ vi.mock('@/lib/api-auth-middleware', () => ({
   requireScopes: vi.fn(),
   UnauthorizedError: class extends Error {},
   ForbiddenError: class extends Error {},
+  getDeprecationWarning: vi.fn(() => null),
 }))
 
 const mockAuthenticateAPI = vi.mocked(authenticateAPI)
@@ -34,6 +35,7 @@ const mockRequireScopes = vi.mocked(requireScopes)
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockPrisma.task.count.mockResolvedValue(0 as never)
   mockAuthenticateAPI.mockResolvedValue({
     userId: 'user-1', source: 'oauth', scopes: ['tasks:read'],
   } as never)
@@ -89,5 +91,52 @@ describe('GET /api/v1/tasks — updatedSince (delta sync)', () => {
     await get('?updatedSince=not-a-date')
 
     expect(whereFromLastCall()).not.toHaveProperty('updatedAt')
+  })
+})
+
+/**
+ * Delta sync must also report what disappeared. Tasks are hard-deleted, so a
+ * client syncing incrementally previously kept showing tasks that were already
+ * gone — on web, iOS and Mac alike. DeletionLog tombstones make the delta
+ * complete, which is what lets a client trust it.
+ */
+describe('GET /api/v1/tasks — deletedIds', () => {
+  it('reports ids deleted since the cursor', async () => {
+    mockPrisma.deletionLog.findMany.mockResolvedValue([
+      { entityId: 'gone-1' }, { entityId: 'gone-2' },
+    ] as never)
+
+    const res = await get('?updatedSince=2026-07-26T12:00:00.000Z')
+    const body = await res.json()
+
+    expect(body.deletedIds).toEqual(['gone-1', 'gone-2'])
+  })
+
+  it('scopes the query to this caller', async () => {
+    // A deletion id reveals the entity existed; it must not leak.
+    await get('?updatedSince=2026-07-26T12:00:00.000Z')
+
+    const where = mockPrisma.deletionLog.findMany.mock.calls[0][0].where
+    expect(where.audienceIds).toEqual({ has: 'user-1' })
+    expect(where.entity).toBe('task')
+  })
+
+  it('omits deletedIds entirely on a full fetch', async () => {
+    // Additive guarantee: a client that never sends updatedSince sees the exact
+    // response it saw before this feature existed.
+    const res = await get('?limit=10')
+    const body = await res.json()
+
+    expect(body).not.toHaveProperty('deletedIds')
+    expect(mockPrisma.deletionLog.findMany).not.toHaveBeenCalled()
+  })
+
+  it('still returns tasks when the tombstone query fails', async () => {
+    mockPrisma.deletionLog.findMany.mockRejectedValue(new Error('db down'))
+
+    const res = await get('?updatedSince=2026-07-26T12:00:00.000Z')
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toHaveProperty('tasks')
   })
 })
