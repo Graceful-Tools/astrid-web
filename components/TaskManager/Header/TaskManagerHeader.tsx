@@ -12,6 +12,7 @@ import { getMobileHeaderMode } from "@/lib/mobile-header-mode"
 import { getHeaderViewToggle } from "@/lib/header-view-toggle"
 import { TaskViewToggle } from "./TaskViewToggle"
 import type { Task, TaskList } from "@/types/task"
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 interface TaskManagerHeaderProps {
   // Layout and responsive
@@ -115,24 +116,11 @@ export function TaskManagerHeader({
     if (!selectedList || !effectiveSession?.user?.id) {
       return false
     }
-    const userId = effectiveSession.user.id
-    // Owner check
-    if (selectedList.ownerId === userId || selectedList.owner?.id === userId) {
-      return true
-    }
-    // Admin check via listMembers
-    if (selectedList.listMembers?.some(m => m.user?.id === userId && m.role === "admin")) {
-      return true
-    }
-    // Admin check via admins array (legacy)
-    if (selectedList.admins?.some(a => a.id === userId)) {
-      return true
-    }
-    // Member check - members need access to view membership and leave
-    if (selectedList.listMembers?.some(m => m.user?.id === userId)) {
-      return true
-    }
-    return false
+    // Owner, admin or member — this had re-implemented getUserRoleInList inline
+    // (ownerId, owner relation, listMembers admin, legacy admins[], member).
+    // The helper covers all of those and also matches listMembers by userId, not
+    // only the loaded user relation (task e2803305).
+    return hasExplicitListRole({ id: effectiveSession.user.id }, selectedList as never)
   })()
 
   // Effective filter values: use props if provided (for testing), otherwise use hook

@@ -4,6 +4,7 @@
 
 import { parseVirtualChatKey } from '@/lib/chat-channel-eligibility'
 import { prisma } from '@/lib/prisma'
+import { hasExplicitListRole } from "@/lib/list-permissions"
 
 /**
  * Check if a user can access a chat channel.
@@ -35,8 +36,8 @@ export async function canAccessChatChannel(
 
   // Real list channel: check list membership
   if (channel.list) {
-    if (channel.list.ownerId === userId) return true
-    if (channel.list.listMembers?.some(m => m.userId === userId)) return true
+    // Owner/admin/member via the canonical lookup (task e2803305).
+    if (hasExplicitListRole({ id: userId }, channel.list as never)) return true
     // Public collaborative lists allow access
     if (channel.list.privacy === 'PUBLIC' && channel.list.publicListType === 'collaborative') return true
     return false

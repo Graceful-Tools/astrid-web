@@ -543,9 +543,13 @@ describe('role casing is not a permission boundary (task e2803305)', () => {
     expect(canUserManageList(user, list as never)).toBe(true)
   })
 
-  it('still rejects an unrelated role string', () => {
-    const list = { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'spectator' }] }
-    expect(getUserRoleInList(user, list as never)).toBeNull()
+  it('treats an unrecognised or missing role as membership, not exclusion', () => {
+    // Presence in listMembers is membership; role only refines capability. The
+    // schema defaults role to "member", and the inline checks this replaces were
+    // role-agnostic — requiring a known role would silently revoke access for
+    // payloads that select userId without role.
+    expect(getUserRoleInList(user, { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'spectator' }] } as never)).toBe('member')
+    expect(getUserRoleInList(user, { id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1' }] } as never)).toBe('member')
   })
 })
 

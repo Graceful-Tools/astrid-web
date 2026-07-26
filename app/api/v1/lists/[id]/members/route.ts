@@ -14,6 +14,7 @@ import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.lists.members')
 
@@ -240,7 +241,7 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    if (list.ownerId === user.id) {
+    if (getUserRoleInList({ id: user.id }, list as never) === 'owner') {
       return NextResponse.json(
         { error: 'User is already the owner of this list' },
         { status: 400 }
