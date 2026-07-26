@@ -435,6 +435,17 @@
           "description": "Поделитесь своим GPT с другими"
         }
       },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
       "step1": {
         "badge": "Шаг 1",
         "title": "Создать OAuth-клиент",
@@ -462,14 +473,6 @@
         "viewDocsButton": "Документация",
         "testApiButton": "Тест API"
       },
-      "step2b": {
-        "badge": "Альт",
-        "title": "MCP-сервер (альтернатива)",
-        "description": "Используйте Model Context Protocol для прямой интеграции",
-        "serverUrl": "URL MCP-сервера",
-        "postEndpoint": "POST endpoint",
-        "note": "MCP предоставляет стандартизированный способ подключения ИИ-моделей к внешним инструментам"
-      },
       "step3": {
         "badge": "Шаг 3",
         "title": "Начните использовать GPT",
@@ -485,6 +488,14 @@
         "title": "Подробнее",
         "reviewButton": "Проверить настройки OAuth",
         "openBuilderButton": "Открыть GPT Builder"
+      },
+      "step2b": {
+        "badge": "Альт",
+        "title": "MCP-сервер (альтернатива)",
+        "description": "Используйте Model Context Protocol для прямой интеграции",
+        "serverUrl": "URL MCP-сервера",
+        "postEndpoint": "POST endpoint",
+        "note": "MCP предоставляет стандартизированный способ подключения ИИ-моделей к внешним инструментам"
       }
     },
     "contacts": {
@@ -677,6 +688,90 @@
         "configure": "Настроить email",
         "configureDesc": "Настройте сроки по умолчанию, включите/выключите функцию и многое другое",
         "proTip": "Тема письма становится названием задачи, а текст - описанием. Идеально для быстрого создания задач из почты!"
+      }
+    },
+    "aiIntegrations": {
+      "title": "Интеграция ChatGPT",
+      "description": "Подключите Astrid к пользовательским GPT-действиям",
+      "loading": "Загрузка интеграции ChatGPT...",
+      "breadcrumb": "Интеграция ChatGPT",
+      "howItWorks": {
+        "title": "Как это работает",
+        "description": "Подключите Astrid к ChatGPT через OAuth 2.0 и OpenAPI",
+        "oauth": {
+          "title": "Безопасный OAuth 2.0",
+          "description": "Аутентификация без передачи пароля"
+        },
+        "openapi": {
+          "title": "Спецификация OpenAPI",
+          "description": "Стандартный формат API, понятный ChatGPT"
+        },
+        "shareable": {
+          "title": "Общая интеграция",
+          "description": "Поделитесь своим GPT с другими"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "Шаг 1",
+        "title": "Создать OAuth-клиент",
+        "description": "Создайте OAuth-клиент для аутентификации GPT в Astrid",
+        "manageButton": "Управление клиентами",
+        "instructions": {
+          "step1": "Перейдите в настройки доступа к API",
+          "step2": "Нажмите 'Создать OAuth-клиент'",
+          "step3": "Установите тип гранта 'authorization_code'",
+          "step4": "Добавьте URI перенаправления ниже",
+          "step5": "Скопируйте ID клиента и секрет"
+        },
+        "redirectUri": "URI перенаправления",
+        "scopes": "Области доступа"
+      },
+      "step2": {
+        "badge": "Шаг 2",
+        "title": "Настройте свой GPT",
+        "description": "Используйте эти URL в настройках вашего GPT",
+        "manifestUrl": "URL манифеста плагина",
+        "openapiSpec": "Спецификация OpenAPI",
+        "authUrl": "URL авторизации",
+        "tokenUrl": "URL токена",
+        "note": "Скопируйте эти URL в настройки действий GPT",
+        "viewDocsButton": "Документация",
+        "testApiButton": "Тест API"
+      },
+      "step3": {
+        "badge": "Шаг 3",
+        "title": "Начните использовать GPT",
+        "description": "Попробуйте эти примеры запросов с подключенным GPT",
+        "examples": {
+          "example1": "Покажи мои задачи на сегодня",
+          "example2": "Создай новую задачу: Проверить квартальный отчет",
+          "example3": "Что в моем списке покупок?"
+        },
+        "shareNote": "Вы можете поделиться своим GPT с другими"
+      },
+      "moreDetails": {
+        "title": "Подробнее",
+        "reviewButton": "Проверить настройки OAuth",
+        "openBuilderButton": "Открыть GPT Builder"
+      },
+      "step2b": {
+        "badge": "Альт",
+        "title": "MCP-сервер (альтернатива)",
+        "description": "Используйте Model Context Protocol для прямой интеграции",
+        "serverUrl": "URL MCP-сервера",
+        "postEndpoint": "POST endpoint",
+        "note": "MCP предоставляет стандартизированный способ подключения ИИ-моделей к внешним инструментам"
       }
     }
   }

@@ -435,6 +435,17 @@
           "description": "与他人分享你的自定义GPT"
         }
       },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
       "step1": {
         "badge": "步骤1",
         "title": "创建OAuth客户端",
@@ -462,14 +473,6 @@
         "viewDocsButton": "查看文档",
         "testApiButton": "测试API"
       },
-      "step2b": {
-        "badge": "备选",
-        "title": "MCP服务器（备选方案）",
-        "description": "使用Model Context Protocol进行直接集成",
-        "serverUrl": "MCP服务器URL",
-        "postEndpoint": "POST端点",
-        "note": "MCP提供了一种标准化的方式将AI模型连接到外部工具"
-      },
       "step3": {
         "badge": "步骤3",
         "title": "开始使用你的GPT",
@@ -485,6 +488,14 @@
         "title": "了解更多",
         "reviewButton": "查看OAuth设置",
         "openBuilderButton": "打开GPT构建器"
+      },
+      "step2b": {
+        "badge": "备选",
+        "title": "MCP服务器（备选方案）",
+        "description": "使用Model Context Protocol进行直接集成",
+        "serverUrl": "MCP服务器URL",
+        "postEndpoint": "POST端点",
+        "note": "MCP提供了一种标准化的方式将AI模型连接到外部工具"
       }
     },
     "contacts": {
@@ -677,6 +688,90 @@
         "configure": "配置邮件设置",
         "configureDesc": "自定义默认截止日期，启用/禁用功能等",
         "proTip": "邮件主题变成任务标题，正文变成描述。非常适合从收件箱快速捕获任务！"
+      }
+    },
+    "aiIntegrations": {
+      "title": "ChatGPT集成",
+      "description": "将Astrid连接到自定义GPT操作",
+      "loading": "加载ChatGPT集成...",
+      "breadcrumb": "ChatGPT集成",
+      "howItWorks": {
+        "title": "工作原理",
+        "description": "使用OAuth 2.0和OpenAPI将Astrid连接到ChatGPT",
+        "oauth": {
+          "title": "安全的OAuth 2.0",
+          "description": "无需分享密码即可安全认证"
+        },
+        "openapi": {
+          "title": "OpenAPI规范",
+          "description": "ChatGPT理解的标准API格式"
+        },
+        "shareable": {
+          "title": "可分享集成",
+          "description": "与他人分享你的自定义GPT"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "步骤1",
+        "title": "创建OAuth客户端",
+        "description": "创建OAuth客户端以在Astrid中验证你的GPT",
+        "manageButton": "管理客户端",
+        "instructions": {
+          "step1": "前往API访问设置",
+          "step2": "点击'创建OAuth客户端'",
+          "step3": "将授权类型设为'authorization_code'",
+          "step4": "添加下面的重定向URI",
+          "step5": "复制你的客户端ID和密钥"
+        },
+        "redirectUri": "重定向URI",
+        "scopes": "权限范围"
+      },
+      "step2": {
+        "badge": "步骤2",
+        "title": "配置你的GPT",
+        "description": "在自定义GPT配置中使用这些URL",
+        "manifestUrl": "插件清单URL",
+        "openapiSpec": "OpenAPI规范",
+        "authUrl": "授权URL",
+        "tokenUrl": "令牌URL",
+        "note": "将这些URL复制到你的GPT操作配置中",
+        "viewDocsButton": "查看文档",
+        "testApiButton": "测试API"
+      },
+      "step3": {
+        "badge": "步骤3",
+        "title": "开始使用你的GPT",
+        "description": "用你连接的GPT尝试这些示例提示",
+        "examples": {
+          "example1": "显示我今天的任务",
+          "example2": "创建新任务：审查季度报告",
+          "example3": "我的购物清单上有什么？"
+        },
+        "shareNote": "你可以与他人分享你的自定义GPT"
+      },
+      "moreDetails": {
+        "title": "了解更多",
+        "reviewButton": "查看OAuth设置",
+        "openBuilderButton": "打开GPT构建器"
+      },
+      "step2b": {
+        "badge": "备选",
+        "title": "MCP服务器（备选方案）",
+        "description": "使用Model Context Protocol进行直接集成",
+        "serverUrl": "MCP服务器URL",
+        "postEndpoint": "POST端点",
+        "note": "MCP提供了一种标准化的方式将AI模型连接到外部工具"
       }
     }
   }

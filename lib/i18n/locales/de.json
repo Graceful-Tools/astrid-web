@@ -435,6 +435,17 @@
           "description": "Teilen Sie Ihr benutzerdefiniertes GPT mit anderen"
         }
       },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
       "step1": {
         "badge": "Schritt 1",
         "title": "OAuth-Client erstellen",
@@ -462,14 +473,6 @@
         "viewDocsButton": "Dokumentation anzeigen",
         "testApiButton": "API testen"
       },
-      "step2b": {
-        "badge": "Alt",
-        "title": "MCP-Server (Alternative)",
-        "description": "Verwenden Sie das Model Context Protocol für direkte Integration",
-        "serverUrl": "MCP-Server-URL",
-        "postEndpoint": "POST-Endpunkt",
-        "note": "MCP bietet eine standardisierte Möglichkeit, KI-Modelle mit externen Tools zu verbinden"
-      },
       "step3": {
         "badge": "Schritt 3",
         "title": "Beginnen Sie mit der Nutzung Ihres GPT",
@@ -485,6 +488,14 @@
         "title": "Mehr erfahren",
         "reviewButton": "OAuth-Einstellungen überprüfen",
         "openBuilderButton": "GPT-Builder öffnen"
+      },
+      "step2b": {
+        "badge": "Alt",
+        "title": "MCP-Server (Alternative)",
+        "description": "Verwenden Sie das Model Context Protocol für direkte Integration",
+        "serverUrl": "MCP-Server-URL",
+        "postEndpoint": "POST-Endpunkt",
+        "note": "MCP bietet eine standardisierte Möglichkeit, KI-Modelle mit externen Tools zu verbinden"
       }
     },
     "contacts": {
@@ -677,6 +688,90 @@
         "configure": "E-Mail-Einstellungen konfigurieren",
         "configureDesc": "Passen Sie Standard-Fälligkeitsdaten an, aktivieren/deaktivieren Sie die Funktion und mehr",
         "proTip": "Der E-Mail-Betreff wird zum Aufgabentitel und der Text zur Beschreibung. Perfekt für schnelle Aufgabenerfassung aus Ihrem Posteingang!"
+      }
+    },
+    "aiIntegrations": {
+      "title": "ChatGPT-Integration",
+      "description": "Astrid mit benutzerdefinierten GPT-Aktionen verbinden",
+      "loading": "ChatGPT-Integration wird geladen...",
+      "breadcrumb": "ChatGPT-Integration",
+      "howItWorks": {
+        "title": "So funktioniert es",
+        "description": "Verbinden Sie Astrid mit ChatGPT über OAuth 2.0 und OpenAPI",
+        "oauth": {
+          "title": "Sicheres OAuth 2.0",
+          "description": "Authentifizieren Sie sich sicher ohne Ihr Passwort zu teilen"
+        },
+        "openapi": {
+          "title": "OpenAPI-Spezifikation",
+          "description": "Standard-API-Format, das ChatGPT versteht"
+        },
+        "shareable": {
+          "title": "Teilbare Integration",
+          "description": "Teilen Sie Ihr benutzerdefiniertes GPT mit anderen"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "Schritt 1",
+        "title": "OAuth-Client erstellen",
+        "description": "Erstellen Sie einen OAuth-Client um Ihr GPT mit Astrid zu authentifizieren",
+        "manageButton": "Clients verwalten",
+        "instructions": {
+          "step1": "Gehen Sie zu API-Zugang Einstellungen",
+          "step2": "Klicken Sie auf 'OAuth-Client erstellen'",
+          "step3": "Setzen Sie den Berechtigungstyp auf 'authorization_code'",
+          "step4": "Fügen Sie die Weiterleitungs-URI unten hinzu",
+          "step5": "Kopieren Sie Ihre Client-ID und Ihr Secret"
+        },
+        "redirectUri": "Weiterleitungs-URI",
+        "scopes": "Berechtigungen"
+      },
+      "step2": {
+        "badge": "Schritt 2",
+        "title": "Konfigurieren Sie Ihr GPT",
+        "description": "Verwenden Sie diese URLs in der Konfiguration Ihres benutzerdefinierten GPT",
+        "manifestUrl": "Plugin-Manifest-URL",
+        "openapiSpec": "OpenAPI-Spezifikation",
+        "authUrl": "Autorisierungs-URL",
+        "tokenUrl": "Token-URL",
+        "note": "Kopieren Sie diese URLs in die Aktionskonfiguration Ihres GPT",
+        "viewDocsButton": "Dokumentation anzeigen",
+        "testApiButton": "API testen"
+      },
+      "step3": {
+        "badge": "Schritt 3",
+        "title": "Beginnen Sie mit der Nutzung Ihres GPT",
+        "description": "Probieren Sie diese Beispiel-Prompts mit Ihrem verbundenen GPT",
+        "examples": {
+          "example1": "Zeige mir meine Aufgaben für heute",
+          "example2": "Erstelle eine neue Aufgabe: Quartalsbericht überprüfen",
+          "example3": "Was steht auf meiner Einkaufsliste?"
+        },
+        "shareNote": "Sie können Ihr benutzerdefiniertes GPT mit anderen teilen"
+      },
+      "moreDetails": {
+        "title": "Mehr erfahren",
+        "reviewButton": "OAuth-Einstellungen überprüfen",
+        "openBuilderButton": "GPT-Builder öffnen"
+      },
+      "step2b": {
+        "badge": "Alt",
+        "title": "MCP-Server (Alternative)",
+        "description": "Verwenden Sie das Model Context Protocol für direkte Integration",
+        "serverUrl": "MCP-Server-URL",
+        "postEndpoint": "POST-Endpunkt",
+        "note": "MCP bietet eine standardisierte Möglichkeit, KI-Modelle mit externen Tools zu verbinden"
       }
     }
   }

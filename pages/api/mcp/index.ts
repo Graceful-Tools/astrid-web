@@ -67,6 +67,24 @@ async function readJsonBody(req: NextApiRequest): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"))
 }
 
+
+/**
+ * Per the MCP authorization spec, an unauthenticated response points the client
+ * at the resource metadata document; VS Code / Copilot and Claude Desktop read
+ * it and run the OAuth flow themselves. Without this header a client gets a
+ * bare 401 with nowhere to go, and connecting becomes a manual credential hunt.
+ */
+function sendAuthChallenge(req: NextApiRequest, res: NextApiResponse) {
+  const host = req.headers.host || "astrid.cc"
+  const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"
+  const metadata = `${proto}://${host}/.well-known/oauth-protected-resource/mcp`
+  res.setHeader("WWW-Authenticate", `Bearer resource_metadata="${metadata}"`)
+  res.status(401).json({
+    error:
+      "Provide Authorization: Bearer <astrid_access_token> or Basic <base64(clientId:secret)> (or X-Astrid-* headers)",
+  })
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
     res.setHeader("Allow", "GET,POST,OPTIONS")
@@ -80,10 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "POST") {
     const postAuth = extractAuthContext(req)
     if (!postAuth) {
-      res.status(401).json({
-        error:
-          "Provide Authorization: Bearer <astrid_access_token> or Basic <base64(clientId:secret)> (or X-Astrid-* headers)",
-      })
+      sendAuthChallenge(req, res)
       return
     }
 
@@ -124,10 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const authContext = extractAuthContext(req)
   if (!authContext) {
-    res.status(401).json({
-      error:
-        "Provide Authorization: Bearer <astrid_access_token> or Basic <base64(clientId:secret)> (or X-Astrid-* headers)",
-    })
+    sendAuthChallenge(req, res)
     return
   }
 

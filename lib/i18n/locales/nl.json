@@ -435,6 +435,17 @@
           "description": "Deel je aangepaste GPT met anderen"
         }
       },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
       "step1": {
         "badge": "Stap 1",
         "title": "OAuth Client Aanmaken",
@@ -462,14 +473,6 @@
         "viewDocsButton": "Bekijk Documentatie",
         "testApiButton": "Test API"
       },
-      "step2b": {
-        "badge": "Alt",
-        "title": "MCP Server (Alternatief)",
-        "description": "Gebruik Model Context Protocol voor directe integratie",
-        "serverUrl": "MCP Server URL",
-        "postEndpoint": "POST Endpoint",
-        "note": "MCP biedt een gestandaardiseerde manier om AI-modellen te verbinden met externe tools"
-      },
       "step3": {
         "badge": "Stap 3",
         "title": "Begin Je GPT Te Gebruiken",
@@ -485,6 +488,14 @@
         "title": "Meer Informatie",
         "reviewButton": "OAuth Instellingen Bekijken",
         "openBuilderButton": "GPT Builder Openen"
+      },
+      "step2b": {
+        "badge": "Alt",
+        "title": "MCP Server (Alternatief)",
+        "description": "Gebruik Model Context Protocol voor directe integratie",
+        "serverUrl": "MCP Server URL",
+        "postEndpoint": "POST Endpoint",
+        "note": "MCP biedt een gestandaardiseerde manier om AI-modellen te verbinden met externe tools"
       }
     },
     "contacts": {
@@ -677,6 +688,90 @@
         "configure": "E-mailinstellingen Configureren",
         "configureDesc": "Pas standaard vervaldatums aan, schakel de functie in/uit en meer",
         "proTip": "Het e-mailonderwerp wordt de taaktitel en de body wordt de beschrijving. Perfect voor snel taken vastleggen vanuit je inbox!"
+      }
+    },
+    "aiIntegrations": {
+      "title": "ChatGPT Integratie",
+      "description": "Verbind Astrid met aangepaste GPT-acties",
+      "loading": "ChatGPT integratie laden...",
+      "breadcrumb": "ChatGPT Integratie",
+      "howItWorks": {
+        "title": "Hoe Het Werkt",
+        "description": "Verbind Astrid met ChatGPT via OAuth 2.0 en OpenAPI",
+        "oauth": {
+          "title": "Veilige OAuth 2.0",
+          "description": "Authenticeer veilig zonder je wachtwoord te delen"
+        },
+        "openapi": {
+          "title": "OpenAPI Specificatie",
+          "description": "Standaard API-formaat dat ChatGPT begrijpt"
+        },
+        "shareable": {
+          "title": "Deelbare Integratie",
+          "description": "Deel je aangepaste GPT met anderen"
+        }
+      },
+      "mcp": {
+        "badge": "Recommended",
+        "title": "Connect via MCP",
+        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
+        "serverUrl": "MCP Server URL",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "vscodeTitle": "VS Code / GitHub Copilot",
+        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "claudeTitle": "Claude Desktop / Claude Code",
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+      },
+      "step1": {
+        "badge": "Stap 1",
+        "title": "OAuth Client Aanmaken",
+        "description": "Maak een OAuth-client om je GPT te authenticeren met Astrid",
+        "manageButton": "Clients Beheren",
+        "instructions": {
+          "step1": "Ga naar API Toegang instellingen",
+          "step2": "Klik op 'OAuth Client Aanmaken'",
+          "step3": "Stel grant type in op 'authorization_code'",
+          "step4": "Voeg de redirect URI hieronder toe",
+          "step5": "Kopieer je Client ID en Secret"
+        },
+        "redirectUri": "Redirect URI",
+        "scopes": "Scopes"
+      },
+      "step2": {
+        "badge": "Stap 2",
+        "title": "Configureer Je GPT",
+        "description": "Gebruik deze URLs in je aangepaste GPT configuratie",
+        "manifestUrl": "Plugin Manifest URL",
+        "openapiSpec": "OpenAPI Specificatie",
+        "authUrl": "Autorisatie URL",
+        "tokenUrl": "Token URL",
+        "note": "Kopieer deze URLs naar je GPT actie configuratie",
+        "viewDocsButton": "Bekijk Documentatie",
+        "testApiButton": "Test API"
+      },
+      "step3": {
+        "badge": "Stap 3",
+        "title": "Begin Je GPT Te Gebruiken",
+        "description": "Probeer deze voorbeeldprompts met je verbonden GPT",
+        "examples": {
+          "example1": "Toon mijn taken voor vandaag",
+          "example2": "Maak een nieuwe taak: Kwartaalrapport beoordelen",
+          "example3": "Wat staat er op mijn boodschappenlijst?"
+        },
+        "shareNote": "Je kunt je aangepaste GPT delen met anderen"
+      },
+      "moreDetails": {
+        "title": "Meer Informatie",
+        "reviewButton": "OAuth Instellingen Bekijken",
+        "openBuilderButton": "GPT Builder Openen"
+      },
+      "step2b": {
+        "badge": "Alt",
+        "title": "MCP Server (Alternatief)",
+        "description": "Gebruik Model Context Protocol voor directe integratie",
+        "serverUrl": "MCP Server URL",
+        "postEndpoint": "POST Endpoint",
+        "note": "MCP biedt een gestandaardiseerde manier om AI-modellen te verbinden met externe tools"
       }
     }
   }
