@@ -17,6 +17,7 @@ import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
 import { canUserManageList } from "@/lib/list-permissions"
+import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.v1.lists.id')
 
@@ -335,7 +336,19 @@ export const DELETE = withAuth<RouteContext>(
 
     // Best-effort sync bookkeeping — must never block the delete itself.
     try { await recordGoogleOptOutsForDeletedList(id) } catch { /* tombstoning is belt-and-braces */ }
+    // Capture who could see the list before the relations disappear. Wrapped
+    // because tombstoning must never be the reason a delete fails.
+    let listAudience: string[] = []
+    try {
+      const listForAudience = await prisma.taskList.findUnique({
+        where: { id },
+        select: { ownerId: true, listMembers: { select: { userId: true } } },
+      })
+      if (listForAudience) listAudience = audienceForList(listForAudience)
+    } catch { /* best effort */ }
+
     await prisma.taskList.delete({ where: { id } })
+    await recordDeletion('list', id, listAudience)
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_DELETED, { listId: id })
 

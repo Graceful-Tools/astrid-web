@@ -9,6 +9,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { hydrateListFavorites } from "@/lib/favorites"
 import { createLogger } from '@/lib/logger'
+import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('api.lists')
 
@@ -139,11 +140,18 @@ export async function GET(request: NextRequest) {
     }))
 
     // Return response with timestamp for next incremental sync
+    // Deltas also report deleted lists; the client already knows how to drop
+    // them (CacheManager.removeList), it just never received any.
+    const deletedIds = updatedSince
+      ? await getDeletionsSince('list', session.user.id, new Date(updatedSince))
+      : undefined
+
     const response = {
       lists: listsWithDefaultAssignees,
       timestamp: new Date().toISOString(),
       isIncremental: !!updatedSince,
-      count: listsWithDefaultAssignees.length
+      count: listsWithDefaultAssignees.length,
+      ...(deletedIds ? { deletedIds } : {})
     }
 
     return NextResponse.json(response)

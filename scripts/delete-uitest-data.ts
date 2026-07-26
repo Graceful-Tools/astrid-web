@@ -1,14 +1,30 @@
-// Remove UITest-created lists/tasks that leaked into prod via the shared outbox.
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 async function main() {
-  const tasks = await prisma.task.deleteMany({ where: { title: { startsWith: 'UITest task' } } })
-  const lists = await prisma.taskList.findMany({ where: { name: { startsWith: 'UITest List' } }, select: { id: true } })
-  for (const l of lists) {
-    await prisma.task.deleteMany({ where: { lists: { some: { id: l.id } } } })   // any stragglers in these lists
-    await prisma.taskList.delete({ where: { id: l.id } })
+  const lists = await prisma.taskList.findMany({
+    where: { name: { startsWith: 'UITest List' } },
+    select: { id: true, name: true },
+  })
+  const listIds = lists.map(l => l.id)
+  const tasks = await prisma.task.findMany({
+    where: { OR: [
+      { title: { startsWith: 'UITest ' } },
+      { title: { in: ['Alpha task', 'Beta task', 'Gamma task'] } },
+      // `lists` is a direct relation to TaskList, so match its id — there is
+      // no join-row `listId` to filter on.
+      ...(listIds.length ? [{ lists: { some: { id: { in: listIds } } } }] : []),
+    ] },
+    select: { id: true, title: true },
+  })
+  console.log(`found ${lists.length} UITest lists, ${tasks.length} test tasks`)
+  if (process.argv.includes('--delete')) {
+    for (const t of tasks) await prisma.task.delete({ where: { id: t.id } }).catch(() => {})
+    for (const l of lists) await prisma.taskList.delete({ where: { id: l.id } }).catch(() => {})
+    console.log(`deleted ${tasks.length} tasks and ${lists.length} lists`)
+  } else {
+    console.log(lists.map(l => l.name).join(', '))
+    console.log(tasks.slice(0, 12).map(t => t.title).join(' | '))
   }
-  console.log(`deleted ${tasks.count} UITest tasks + ${lists.length} UITest lists`)
   await prisma.$disconnect()
 }
-main().catch(async (e) => { console.error(e.message); await prisma.$disconnect(); process.exit(1) })
+main()

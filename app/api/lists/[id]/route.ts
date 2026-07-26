@@ -9,6 +9,7 @@ import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
+import { recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.lists.id')
 
@@ -423,6 +424,9 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
     await prisma.taskList.delete({
       where: { id: listId },
     })
+    // Reuse the audience already gathered above for cache invalidation — the
+    // same people are exactly who needs to hear the list is gone.
+    await recordDeletion('list', listId, userIdsToInvalidate.filter(Boolean) as string[])
 
     // Invalidate cache for all users who had access to this list
     log.info({ userCount: userIdsToInvalidate.length }, "🗄️ Invalidating cache for users after list deletion")

@@ -606,19 +606,19 @@ model PushSubscription {
 }
 
 model MCPToken {
-  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
-  token       String    @unique  // SHA-256 hash (lookup key); plaintext never stored
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  token          String    @unique // SHA-256 hash (lookup key); plaintext never stored
   tokenEncrypted String? // AES-256-GCM of the plaintext, for the return/reuse path
-  listId      String?
-  userId      String
-  permissions String[]
-  description String?
-  expiresAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  isActive    Boolean   @default(true)
-  list        TaskList? @relation(fields: [listId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listId         String?
+  userId         String
+  permissions    String[]
+  description    String?
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  isActive       Boolean   @default(true)
+  list           TaskList? @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([listId])
   @@index([userId])
@@ -1055,4 +1055,22 @@ model ExternalTaskLink {
   @@index([astridTaskId])
   @@index([remoteContainerId])
   @@index([userId, provider, remoteContainerId])
+}
+
+/// Tombstones for delta sync. Tasks and lists are hard-deleted, so an
+/// incremental sync (`updatedSince`) had no way to tell a client that something
+/// disappeared — deleted rows simply lingered on screen until a full refetch.
+///
+/// `audienceIds` captures who could see the entity at the moment it was
+/// deleted, so each client is told only about deletions it cares about. Rows
+/// are pruned well past the sync cursor's 24h validity window.
+model DeletionLog {
+  id          String   @id @default(cuid())
+  entity      String
+  entityId    String
+  deletedAt   DateTime @default(now())
+  audienceIds String[]
+
+  @@index([entity, deletedAt])
+  @@index([deletedAt])
 }

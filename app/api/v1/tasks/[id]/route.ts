@@ -21,6 +21,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
+import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('v1.tasks.id')
 
@@ -706,7 +707,12 @@ export const DELETE = withAuth<RouteContext>(
 
     // Best-effort sync bookkeeping — must never block the delete itself.
     try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }
+    // Audience captured from the pre-delete fetch above, and deliberately NOT
+    // recipientIds: that set excludes the deleter for SSE, but this user's OTHER
+    // devices still need to learn the task is gone (task: delta-sync deletions).
+    const deletionAudience = task ? audienceForTask(task) : []
     await prisma.task.delete({ where: { id: taskId } })
+    await recordDeletion('task', taskId, deletionAudience)
 
     try {
       const redisAvailable = await isRedisAvailable()

@@ -20,6 +20,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { recordTaskCreationComment } from '@/lib/task-update-handler'
+import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('v1.tasks')
 
@@ -224,9 +225,18 @@ export const GET = withAuth(
       listIds: task.lists?.map(list => list.id) || []
     }))
 
+    // Delta responses also carry what disappeared. Tasks are hard-deleted, so
+    // without this a client syncing incrementally keeps showing tasks that are
+    // already gone. Only present for delta requests, so a full fetch returns
+    // exactly the response shape it always did.
+    const deletedIds = hasValidUpdatedSince
+      ? await getDeletionsSince('task', auth.userId, updatedSince!)
+      : undefined
+
     return NextResponse.json(
       {
         tasks: tasksWithListIds,
+        ...(deletedIds ? { deletedIds } : {}),
         meta: {
           total,
           limit,

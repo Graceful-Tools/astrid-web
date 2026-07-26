@@ -19,6 +19,7 @@ import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { getUnifiedSession } from "@/lib/session-utils"
 import { recordTaskCreationComment } from "@/lib/task-update-handler"
+import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('api.tasks')
 
@@ -145,11 +146,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Return response with timestamp for next incremental sync
+    // Delta responses also carry what disappeared. Tasks are hard-deleted, so
+    // without this an incremental sync leaves deleted tasks on screen. Only
+    // present for delta requests, so a full sync keeps its exact prior shape.
+    const deletedIds = updatedSince
+      ? await getDeletionsSince('task', session.user.id, new Date(updatedSince))
+      : undefined
+
     const response = {
       tasks,
       timestamp: new Date().toISOString(),
       isIncremental: !!updatedSince,
-      count: tasks.length
+      count: tasks.length,
+      ...(deletedIds ? { deletedIds } : {})
     }
 
     return NextResponse.json(response)

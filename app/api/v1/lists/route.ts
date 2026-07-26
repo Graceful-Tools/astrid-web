@@ -16,6 +16,7 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
+import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('v1.lists')
 
@@ -92,6 +93,10 @@ export const GET = withAuth(
 
     const responseTimestamp = new Date().toISOString()
 
+    const deletedListIds = updatedSince
+      ? await getDeletionsSince('list', auth.userId, new Date(updatedSince))
+      : undefined
+
     return NextResponse.json(
       {
         // Bound to the iOS contract: if a future edit drops or renames a key
@@ -137,6 +142,10 @@ export const GET = withAuth(
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         })),
+        // Deltas report deleted lists so a client can drop them. Lists are
+        // hard-deleted, so without this an incremental sync leaves them on
+        // screen. Absent on a full fetch, keeping that response unchanged.
+        ...(deletedListIds ? { deletedIds: deletedListIds } : {}),
         meta: {
           total: lists.length,
           apiVersion: 'v1',
