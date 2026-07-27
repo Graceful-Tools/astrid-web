@@ -416,12 +416,12 @@
     },
     "chatgpt": {
       "title": "ChatGPT 통합",
-      "description": "Astrid를 맞춤 GPT 액션에 연결",
+      "description": "{appName}를 맞춤 GPT 액션에 연결",
       "loading": "ChatGPT 통합 로딩 중...",
       "breadcrumb": "ChatGPT 통합",
       "howItWorks": {
         "title": "작동 방식",
-        "description": "OAuth 2.0 및 OpenAPI를 사용하여 Astrid를 ChatGPT에 연결",
+        "description": "OAuth 2.0 및 OpenAPI를 사용하여 {appName}를 ChatGPT에 연결",
         "oauth": {
           "title": "안전한 OAuth 2.0",
           "description": "비밀번호를 공유하지 않고 안전하게 인증"
@@ -440,7 +440,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -449,7 +449,7 @@
       "step1": {
         "badge": "단계 1",
         "title": "OAuth 클라이언트 생성",
-        "description": "GPT를 Astrid로 인증하기 위한 OAuth 클라이언트 생성",
+        "description": "GPT를 {appName}로 인증하기 위한 OAuth 클라이언트 생성",
         "manageButton": "클라이언트 관리",
         "instructions": {
           "step1": "API 액세스 설정으로 이동",
@@ -677,14 +677,14 @@
       },
       "emailToTask": {
         "title": "이메일에서 작업",
-        "description": "remindme@astrid.cc로 이메일을 보내 즉시 작업 생성",
+        "description": "{inboundTaskEmail}로 이메일을 보내 즉시 작업 생성",
         "threeWays": "작업을 만드는 세 가지 방법",
         "selfTask": "자기 작업:",
-        "selfTaskDesc": "remindme@astrid.cc로 보내기",
+        "selfTaskDesc": "{inboundTaskEmail}로 보내기",
         "assignedTask": "할당된 작업:",
-        "assignedTaskDesc": "한 명의 수신자와 remindme@astrid.cc를 참조",
+        "assignedTaskDesc": "한 명의 수신자와 {inboundTaskEmail}를 참조",
         "groupTask": "그룹 작업:",
-        "groupTaskDesc": "여러 수신자와 remindme@astrid.cc를 참조",
+        "groupTaskDesc": "여러 수신자와 {inboundTaskEmail}를 참조",
         "configure": "이메일 설정 구성",
         "configureDesc": "기본 마감일 사용자 지정, 기능 활성화/비활성화 등",
         "proTip": "이메일 제목이 작업 제목이 되고 본문이 설명이 됩니다. 받은 편지함에서 빠른 작업 캡처에 완벽합니다!"
@@ -692,12 +692,12 @@
     },
     "aiIntegrations": {
       "title": "ChatGPT 통합",
-      "description": "Astrid를 맞춤 GPT 액션에 연결",
+      "description": "{appName}를 맞춤 GPT 액션에 연결",
       "loading": "ChatGPT 통합 로딩 중...",
       "breadcrumb": "ChatGPT 통합",
       "howItWorks": {
         "title": "작동 방식",
-        "description": "OAuth 2.0 및 OpenAPI를 사용하여 Astrid를 ChatGPT에 연결",
+        "description": "OAuth 2.0 및 OpenAPI를 사용하여 {appName}를 ChatGPT에 연결",
         "oauth": {
           "title": "안전한 OAuth 2.0",
           "description": "비밀번호를 공유하지 않고 안전하게 인증"
@@ -716,7 +716,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -725,7 +725,7 @@
       "step1": {
         "badge": "단계 1",
         "title": "OAuth 클라이언트 생성",
-        "description": "GPT를 Astrid로 인증하기 위한 OAuth 클라이언트 생성",
+        "description": "GPT를 {appName}로 인증하기 위한 OAuth 클라이언트 생성",
         "manageButton": "클라이언트 관리",
         "instructions": {
           "step1": "API 액세스 설정으로 이동",

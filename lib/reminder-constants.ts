@@ -1,13 +1,15 @@
 // Reminder strings from original Astrid app - now i18n-enabled
 // https://github.com/Graceful-Tools/astrid/blob/master/astrid/res/values/strings-reminders.xml
 
+import { applyBrandToMessages } from '@/lib/brand/i18n-values'
+
 // Import locale messages dynamically based on locale parameter
 async function getMessages(locale: string = 'en') {
   try {
-    return await import(`@/lib/i18n/locales/${locale}.json`).then(m => m.default)
+    return applyBrandToMessages(await import(`@/lib/i18n/locales/${locale}.json`).then(m => m.default))
   } catch {
     // Fallback to English
-    return await import('@/lib/i18n/locales/en.json').then(m => m.default)
+    return applyBrandToMessages(await import('@/lib/i18n/locales/en.json').then(m => m.default))
   }
 }
 

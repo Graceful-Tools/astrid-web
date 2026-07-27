@@ -4,6 +4,7 @@
  */
 
 import { getDevBaseUrl, isLocalDevelopment } from './port-detection'
+import { BRAND, brandOrigin } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('base-url')
@@ -40,7 +41,7 @@ export function getBaseUrl(): string {
 
     // Final fallback - ensure HTTPS in production to prevent insecure connection warnings
     const fallbackUrl = process.env.NODE_ENV === 'production'
-      ? 'https://astrid.cc' // Safe production fallback
+      ? brandOrigin() // Safe production fallback
       : 'http://localhost:3000'
 
     if (process.env.NODE_ENV === 'production') {
@@ -61,7 +62,7 @@ export function getBaseUrl(): string {
 
   // Fallback for edge cases - ensure HTTPS in production
   const edgeFallback = process.env.NODE_ENV === 'production'
-    ? 'https://astrid.cc'
+    ? brandOrigin()
     : 'http://localhost:3000'
 
   return process.env.NEXT_PUBLIC_BASE_URL || edgeFallback
@@ -134,12 +135,13 @@ export function isProduction(): boolean {
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   ].filter(Boolean) as string[]
 
-  if (envCandidates.some((url) => url.includes('astrid.cc') || url.includes('vercel.app'))) {
+  const isProdHost = (url: string) => url.includes(BRAND.domain) || url.includes('vercel.app')
+
+  if (envCandidates.some(isProdHost)) {
     return true
   }
 
-  const baseUrl = getBaseUrl()
-  return baseUrl.includes('astrid.cc') || baseUrl.includes('vercel.app')
+  return isProdHost(getBaseUrl())
 }
 
 /**

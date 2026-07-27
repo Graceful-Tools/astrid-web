@@ -97,6 +97,32 @@ function validateDatabaseUrl(value: string): { valid: boolean; message?: string 
   return { valid: true }
 }
 
+/** Bare apex/host, no scheme and no path — brandOrigin() prepends https://. */
+function validateBrandDomain(value: string): { valid: boolean; message?: string } {
+  if (/^https?:\/\//i.test(value)) {
+    return { valid: false, message: 'Must be a bare domain without a scheme (e.g. astrid.cc)' }
+  }
+  if (value.includes('/')) {
+    return { valid: false, message: 'Must be a bare domain without a path' }
+  }
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)) {
+    return { valid: false, message: 'Not a valid domain name' }
+  }
+  return { valid: true }
+}
+
+function validateEmail(value: string): { valid: boolean; message?: string } {
+  return /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(value)
+    ? { valid: true }
+    : { valid: false, message: 'Not a valid email address' }
+}
+
+function validateHexColor(value: string): { valid: boolean; message?: string } {
+  return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(value)
+    ? { valid: true }
+    : { valid: false, message: 'Must be a hex colour, e.g. #3b82f6' }
+}
+
 console.log('\n🔍 Validating Production Environment Variables\n')
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}\n`)
 
@@ -125,6 +151,19 @@ checkVariable('FROM_EMAIL', false)
 console.log('\n🤖 AI Services (optional):')
 checkVariable('ANTHROPIC_API_KEY', false)
 checkVariable('OPENAI_API_KEY', false)
+
+// Branding — every value falls back to the Astrid default in lib/brand/config.ts,
+// so these are informational: they show which brand a deployment is actually serving.
+console.log('\n🎨 Branding (optional — falls back to defaults in lib/brand/config.ts):')
+checkVariable('NEXT_PUBLIC_BRAND_NAME', false)
+checkVariable('NEXT_PUBLIC_BRAND_TITLE', false)
+checkVariable('NEXT_PUBLIC_BRAND_TAGLINE', false)
+checkVariable('NEXT_PUBLIC_BRAND_DOMAIN', false, validateBrandDomain)
+checkVariable('NEXT_PUBLIC_BRAND_SUPPORT_EMAIL', false, validateEmail)
+checkVariable('NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL', false, validateEmail)
+checkVariable('NEXT_PUBLIC_BRAND_ACCENT_COLOR', false, validateHexColor)
+checkVariable('NEXT_PUBLIC_BRAND_AGENT_NAME', false)
+checkVariable('BRAND_AGENT_EMAIL_DOMAIN', false, validateBrandDomain)
 
 // GitHub Integration
 console.log('\n🐙 GitHub Integration (optional):')

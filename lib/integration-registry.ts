@@ -1,10 +1,14 @@
 /**
- * Integration Registry — Single source of truth for all Astrid integration methods.
+ * Integration Registry — Single source of truth for all integration methods.
  * Used by both /llms.txt (machine-readable) and /docs/integrate (human-readable).
+ *
+ * Brand-bearing strings come from lib/brand/config.ts so a fork rebrands via env.
  */
 
+import { BRAND } from '@/lib/brand/config'
+
 export const ASTRID_DESCRIPTION =
-  'Astrid is a task management app with native AI agent integration. ' +
+  `${BRAND.appName} is a task management app with native AI agent integration. ` +
   'Families and teams use it for shared lists, and AI agents can be assigned tasks just like people.'
 
 export interface IntegrationMethod {
@@ -34,7 +38,7 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
     name: 'MCP (Model Context Protocol)',
     tagline: 'For Claude Desktop, Cursor, Windsurf, and other MCP clients',
     description:
-      'Connect any MCP-compatible AI tool to Astrid. Manage tasks, lists, and comments through the standardized Model Context Protocol.',
+      `Connect any MCP-compatible AI tool to ${BRAND.appName}. Manage tasks, lists, and comments through the standardized Model Context Protocol.`,
     audience: 'AI tool users (Claude Desktop, Cursor, Windsurf)',
     icon: 'Cpu',
     docsPath: '/docs/mcp',
@@ -44,7 +48,7 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
     name: 'OpenClaw',
     tagline: 'Build custom AI agents with SSE events',
     description:
-      'Open protocol for connecting autonomous AI agents. Your agent gets an @astrid.cc identity, OAuth credentials, and real-time SSE event stream.',
+      `Open protocol for connecting autonomous AI agents. Your agent gets an @${BRAND.agentEmailDomain} identity, OAuth credentials, and real-time SSE event stream.`,
     audience: 'AI agent developers, custom integrations',
     icon: 'Bot',
     docsPath: '/docs/openclaw',
@@ -52,16 +56,16 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   {
     id: 'chatgpt',
     name: 'ChatGPT Actions',
-    tagline: 'Power custom GPTs with Astrid data',
+    tagline: `Power custom GPTs with ${BRAND.appName} data`,
     description:
-      'Use Astrid\'s OpenAPI spec and OAuth consent screen to create custom GPT actions. Users connect via OAuth to manage tasks from ChatGPT.',
+      `Use ${BRAND.appName}'s OpenAPI spec and OAuth consent screen to create custom GPT actions. Users connect via OAuth to manage tasks from ChatGPT.`,
     audience: 'ChatGPT users, GPT builders',
     icon: 'MessageSquare',
     docsPath: '/docs',
   },
   {
     id: 'sdk',
-    name: 'Astrid SDK',
+    name: `${BRAND.appName} SDK`,
     tagline: 'Run AI coding agents locally or in the cloud',
     description:
       'npm package for running Claude, OpenAI, or Gemini coding agents. Supports terminal mode (local CLI), API mode (cloud), and webhook mode (servers).',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getBaseUrl } from '@/lib/base-url'
 import { ASTRID_DESCRIPTION, INTEGRATION_METHODS, WELL_KNOWN_ENDPOINTS } from '@/lib/integration-registry'
+import { BRAND } from '@/lib/brand/config'
 
 export async function GET() {
   const baseUrl = getBaseUrl()
@@ -14,7 +15,7 @@ export async function GET() {
     (ep) => `- [${ep.description}](${baseUrl}${ep.path})`
   ).join('\n')
 
-  const content = `# Astrid
+  const content = `# ${BRAND.appName}
 
 > ${ASTRID_DESCRIPTION}
 
@@ -37,7 +38,7 @@ ${wellKnownLinks}
 ## Key Concepts
 
 - **Lists as agent instructions**: Each list's description becomes the agent's system prompt
-- **Agent identities**: AI agents get \`name@astrid.cc\` email addresses and appear as list members
+- **Agent identities**: AI agents get \`name@${BRAND.agentEmailDomain}\` email addresses and appear as list members
 - **OAuth2 everywhere**: All integrations use the same OAuth2 client_credentials flow
 - **MCP operations**: POST to \`/api/mcp/operations\` with operation name and args
 - **Real-time events**: SSE stream at \`/api/v1/agent/events\` for task assignments and updates
