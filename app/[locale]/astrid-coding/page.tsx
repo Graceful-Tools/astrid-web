@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { Link } from "@/lib/i18n/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -64,7 +65,7 @@ export default function AstridCodingPage() {
             <Bot className="w-16 h-16 text-blue-500" />
             <div className="text-left">
               <h1 className="text-5xl font-bold text-gray-900 mb-2">
-                Astrid Agent
+                {BRAND.appName} Agent
               </h1>
               <p className="text-xl text-gray-600">
                 AI-powered coding assistant that writes code, creates PRs, and deploys automatically
@@ -94,7 +95,7 @@ export default function AstridCodingPage() {
             </Button>
             <Button size="lg" variant="outline" onClick={handleSignUp}>
               <ArrowRight className="w-5 h-5 mr-2" />
-              Try Astrid Free
+              Try {BRAND.appName} Free
             </Button>
           </div>
         </div>
@@ -153,7 +154,7 @@ export default function AstridCodingPage() {
           <CardContent className="p-8">
             <div className="space-y-6">
               {[
-                { step: 1, title: "Assign Task", desc: "Create a task and assign it to \"Astrid Agent\"" },
+                { step: 1, title: "Assign Task", desc: `Create a task and assign it to \"${BRAND.appName} Agent\"` },
                 { step: 2, title: "AI Planning", desc: "Agent analyzes requirements and creates implementation plan" },
                 { step: 3, title: "Review & Approve", desc: "Comment \"approve\" to start code generation" },
                 { step: 4, title: "Code Generation", desc: "Agent writes code, creates GitHub branch and PR" },
@@ -201,14 +202,14 @@ export default function AstridCodingPage() {
                 <Shield className="w-12 h-12 text-green-500 mx-auto mb-4" />
                 <h3 className="font-semibold text-gray-900 mb-2">Secure & Trusted</h3>
                 <p className="text-sm text-gray-600">
-                  Official app maintained by the Astrid team with proper security practices
+                  Official app maintained by the {BRAND.appName} team with proper security practices
                 </p>
               </div>
               <div className="text-center">
                 <Users className="w-12 h-12 text-purple-500 mx-auto mb-4" />
                 <h3 className="font-semibold text-gray-900 mb-2">Shared & Maintained</h3>
                 <p className="text-sm text-gray-600">
-                  Used by all Astrid users - no individual app management required
+                  Used by all {BRAND.appName} users - no individual app management required
                 </p>
               </div>
             </div>
@@ -284,7 +285,7 @@ export default function AstridCodingPage() {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-            <p>&copy; 2024 Astrid. All rights reserved. Powered by AI to accelerate your development workflow.</p>
+            <p>&copy; 2024 {BRAND.appName}. All rights reserved. Powered by AI to accelerate your development workflow.</p>
           </div>
         </div>
       </div>

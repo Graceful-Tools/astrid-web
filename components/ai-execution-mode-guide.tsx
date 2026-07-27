@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -49,7 +50,7 @@ const modes: ModeConfig[] = [
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
     bestFor: ["Mobile users", "Quick tasks", "Non-technical users"],
-    description: "Astrid processes tasks using AI APIs. Just assign to claude@astrid.cc and it works."
+    description: `${BRAND.appName} processes tasks using AI APIs. Just assign to claude@${BRAND.agentEmailDomain} and it works.`
   },
   {
     id: "local",
@@ -59,17 +60,17 @@ const modes: ModeConfig[] = [
     color: "text-green-500",
     bgColor: "bg-green-500/10",
     bestFor: ["Developers", "Privacy-focused users", "Local projects"],
-    description: "Run Claude Code CLI directly on your machine. Connect to Astrid tasks via MCP integration."
+    description: `Run Claude Code CLI directly on your machine. Connect to ${BRAND.appName} tasks via MCP integration.`
   },
   {
     id: "webhook",
-    name: "Astrid SDK",
+    name: `${BRAND.appName} SDK`,
     tagline: "Automated coding agent server",
     icon: Server,
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
     bestFor: ["Power users", "Teams", "24/7 availability"],
-    description: "Run the Astrid SDK on any device. Supports polling (local) or webhook mode (servers)."
+    description: `Run the ${BRAND.appName} SDK on any device. Supports polling (local) or webhook mode (servers).`
   }
 ]
 
@@ -158,7 +159,7 @@ function LocalSetupGuide() {
         <div>
           <h4 className="font-medium theme-text-primary">Best for developers who want full CLI power</h4>
           <p className="text-sm theme-text-muted mt-1">
-            Run Claude Code on your local machine and connect it to Astrid tasks.
+            Run Claude Code on your local machine and connect it to {BRAND.appName} tasks.
           </p>
         </div>
       </div>
@@ -201,9 +202,9 @@ function LocalSetupGuide() {
           <div className="flex items-start gap-3">
             <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-medium">3</div>
             <div className="flex-1">
-              <p className="font-medium theme-text-primary">Connect to Astrid via MCP</p>
+              <p className="font-medium theme-text-primary">Connect to {BRAND.appName} via MCP</p>
               <p className="text-sm theme-text-muted mt-1">
-                Configure the Astrid MCP server in your Claude Code settings to sync tasks.
+                Configure the {BRAND.appName} MCP server in your Claude Code settings to sync tasks.
               </p>
               <Button variant="outline" size="sm" className="mt-2" asChild>
                 <Link href="/settings/api-access" className="inline-flex items-center">
@@ -224,7 +225,7 @@ function LocalSetupGuide() {
                 </code>
               </div>
               <p className="text-sm theme-text-muted mt-2">
-                Claude can now see your Astrid tasks and work on them with full CLI access.
+                Claude can now see your {BRAND.appName} tasks and work on them with full CLI access.
               </p>
             </div>
           </div>
@@ -254,7 +255,7 @@ function CloudSetupGuide() {
           <div className="flex items-start gap-3">
             <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium">1</div>
             <div className="flex-1">
-              <p className="font-medium theme-text-primary">Create a task in Astrid</p>
+              <p className="font-medium theme-text-primary">Create a task in {BRAND.appName}</p>
               <p className="text-sm theme-text-muted mt-1">
                 Describe what you need done - writing, analysis, planning, etc.
               </p>
@@ -266,9 +267,9 @@ function CloudSetupGuide() {
             <div className="flex-1">
               <p className="font-medium theme-text-primary">Assign to an AI agent</p>
               <div className="mt-2 space-y-1">
-                <Badge variant="outline" className="font-mono">claude@astrid.cc</Badge>
-                <Badge variant="outline" className="font-mono ml-2">openai@astrid.cc</Badge>
-                <Badge variant="outline" className="font-mono ml-2">gemini@astrid.cc</Badge>
+                <Badge variant="outline" className="font-mono">claude@{BRAND.agentEmailDomain}</Badge>
+                <Badge variant="outline" className="font-mono ml-2">openai@{BRAND.agentEmailDomain}</Badge>
+                <Badge variant="outline" className="font-mono ml-2">gemini@{BRAND.agentEmailDomain}</Badge>
               </div>
             </div>
           </div>
@@ -332,7 +333,7 @@ function SDKSetupGuide() {
         <div>
           <h4 className="font-medium theme-text-primary">Run coding agents on any device</h4>
           <p className="text-sm theme-text-muted mt-1">
-            Install the Astrid SDK and run AI coding agents with full tool access (file editing, bash, git).
+            Install the {BRAND.appName} SDK and run AI coding agents with full tool access (file editing, bash, git).
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
             <Badge variant="outline" className="text-xs bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-700">Claude</Badge>
@@ -375,7 +376,7 @@ function SDKSetupGuide() {
           <div className="flex items-start gap-3">
             <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-medium">1</div>
             <div className="flex-1">
-              <p className="font-medium theme-text-primary">Install the Astrid SDK</p>
+              <p className="font-medium theme-text-primary">Install the {BRAND.appName} SDK</p>
               <div className="mt-2 flex items-center gap-2">
                 <code className="flex-1 p-2 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono">
                   npm install -g @gracefultools/astrid-sdk
@@ -401,7 +402,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 # OPENAI_API_KEY=sk-...
 # GEMINI_API_KEY=AIza...
 
-# Astrid OAuth (for polling)
+# ${BRAND.appName} OAuth (for polling)
 ASTRID_OAUTH_CLIENT_ID=your-client-id
 ASTRID_OAUTH_CLIENT_SECRET=your-secret
 ASTRID_OAUTH_LIST_ID=your-list-id` : `# AI Provider (at least one)
@@ -409,7 +410,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 # OPENAI_API_KEY=sk-...
 # GEMINI_API_KEY=AIza...
 
-# Webhook secret from Astrid settings
+# Webhook secret from ${BRAND.appName} settings
 ASTRID_WEBHOOK_SECRET=your-secret`}</code>
               </div>
             </div>
@@ -419,7 +420,7 @@ ASTRID_WEBHOOK_SECRET=your-secret`}</code>
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-medium">3</div>
               <div className="flex-1">
-                <p className="font-medium theme-text-primary">Configure webhook URL in Astrid</p>
+                <p className="font-medium theme-text-primary">Configure webhook URL in {BRAND.appName}</p>
                 <p className="text-sm theme-text-muted mt-1">
                   Go to Settings and enter your server&apos;s webhook URL.
                 </p>
@@ -638,7 +639,7 @@ export function AIExecutionModeGuide() {
             <div className="flex items-start gap-2">
               <Server className="w-5 h-5 text-purple-500 mt-0.5" />
               <div>
-                <p className="font-medium theme-text-primary">Astrid SDK</p>
+                <p className="font-medium theme-text-primary">{BRAND.appName} SDK</p>
                 <p className="theme-text-muted">Run coding agents on any device with full file/git access</p>
               </div>
             </div>

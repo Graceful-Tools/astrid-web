@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,7 +54,7 @@ export default function APIEndpointsPage() {
             <BookOpen className="w-8 h-8 text-blue-500" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">API Endpoints Reference</h1>
-              <p className="theme-text-muted">Complete reference for all Astrid API v1 endpoints</p>
+              <p className="theme-text-muted">Complete reference for all {BRAND.appName} API v1 endpoints</p>
             </div>
           </div>
 
@@ -64,7 +65,7 @@ export default function APIEndpointsPage() {
                 <div className="flex-1">
                   <div className="text-sm font-medium theme-text-primary mb-1">Base URL</div>
                   <code className="theme-bg-tertiary px-3 py-2 rounded text-sm block">
-                    https://astrid.cc/api/v1
+                    https://{BRAND.domain}/api/v1
                   </code>
                   <p className="text-xs theme-text-muted mt-2">
                     All endpoints listed below are relative to this base URL

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -182,7 +183,7 @@ export function SignInContent() {
         <div className="flex items-center justify-center gap-4 mb-4">
           <Image
             src="/images/astrid-character.png"
-            alt="Astrid"
+            alt={BRAND.appName}
             width={88}
             height={88}
             priority

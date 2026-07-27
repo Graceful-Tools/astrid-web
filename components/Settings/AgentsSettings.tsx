@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,18 +60,18 @@ function AstridAgentSelector() {
   if (agents.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register an OpenClaw agent below to power Astrid.
+        Add an API key or register an OpenClaw agent below to power {BRAND.appName}.
       </p>
     )
   }
 
   // Filter out Astrid itself — this selector picks the model that powers Astrid
-  const modelOptions = agents.filter(a => a.email !== 'astrid@astrid.cc')
+  const modelOptions = agents.filter(a => a.email !== `astrid@${BRAND.agentEmailDomain}`)
 
   if (modelOptions.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register an OpenClaw agent below to power Astrid.
+        Add an API key or register an OpenClaw agent below to power {BRAND.appName}.
       </p>
     )
   }
@@ -104,7 +105,7 @@ function AstridAgentSelector() {
         </button>
       ))}
       <p className="text-xs theme-text-muted pt-1">
-        Choose the model that powers Astrid for My Tasks and your private lists.
+        Choose the model that powers {BRAND.appName} for My Tasks and your private lists.
       </p>
     </div>
   )
@@ -127,12 +128,12 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>
             <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Image src="/icons/icon-96x96.png" alt="Astrid" width={24} height={24} className="rounded-full" />
-              <span>Astrid</span>
+              <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={24} height={24} className="rounded-full" />
+              <span>{BRAND.appName}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Choose a model to power Astrid. Mention <strong>@astrid</strong> in any chat or comment to get help.
-              Astrid can read tasks across your lists, respond to messages, and complete tasks before their due dates.
+              Choose a model to power {BRAND.appName}. Mention <strong>@astrid</strong> in any chat or comment to get help.
+              {BRAND.appName} can read tasks across your lists, respond to messages, and complete tasks before their due dates.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -187,7 +188,7 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
               <span>Agent API Keys</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Add your API keys to enable AI agents (claude/openai/gemini/copilot@astrid.cc).
+              Add your API keys to enable AI agents (claude/openai/gemini/copilot@{BRAND.agentEmailDomain}).
               You only need to configure one provider.
             </CardDescription>
           </CardHeader>

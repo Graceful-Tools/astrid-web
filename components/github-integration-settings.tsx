@@ -5,6 +5,7 @@
  * Allows users to connect their GitHub account and manage repositories
  */
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -189,7 +190,7 @@ export function GitHubIntegrationSettings() {
           GitHub Integration
         </CardTitle>
         <CardDescription>
-          Connect your GitHub repositories to enable the Astrid Agent to create branches,
+          Connect your GitHub repositories to enable the {BRAND.appName} Agent to create branches,
           commit changes, and manage pull requests.
         </CardDescription>
       </CardHeader>
@@ -200,7 +201,7 @@ export function GitHubIntegrationSettings() {
             <Alert>
               <Github className="h-4 w-4" />
               <AlertDescription>
-                To use the Astrid Agent, you need to install our GitHub App and
+                To use the {BRAND.appName} Agent, you need to install our GitHub App and
                 connect your repositories.
               </AlertDescription>
             </Alert>
@@ -325,7 +326,7 @@ export function GitHubIntegrationSettings() {
               <Github className="h-4 w-4" />
               <AlertDescription>
                 <strong>Ready for coding tasks!</strong> You can now assign tasks to the
-                Astrid Agent, and it will automatically create branches and pull requests.
+                {BRAND.appName} Agent, and it will automatically create branches and pull requests.
                 Configure the repository for each list in the list settings.
               </AlertDescription>
             </Alert>

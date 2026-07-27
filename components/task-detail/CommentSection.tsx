@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -148,7 +149,7 @@ export function CommentSection({
     fetch('/api/user/available-agents')
       .then(r => r.json())
       .then((data) => {
-        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === `astrid@${BRAND.agentEmailDomain}`)
         if (astrid) {
           setDefaultAgent({
             id: astrid.id, name: astrid.name, email: astrid.email,

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -577,7 +578,7 @@ export function OAuthAPITester() {
             API Testing
           </h1>
           <p className="theme-text-muted text-sm mt-1">
-            Test Astrid API endpoints
+            Test {BRAND.appName} API endpoints
           </p>
         </div>
         <Badge variant="outline" className="bg-blue-50 text-blue-700 self-start sm:self-auto">

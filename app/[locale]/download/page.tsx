@@ -1,10 +1,11 @@
+import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import Image from "next/image"
 import { ScrollShell } from "@/components/scroll-shell"
 
 export const metadata = {
-  title: "Download Astrid for Mac",
-  description: "Astrid for Mac — a native desktop app for your tasks, lists, and chat.",
+  title: `Download ${BRAND.appName} for Mac`,
+  description: `${BRAND.appName} for Mac — a native desktop app for your tasks, lists, and chat.`,
 }
 
 // The DMG lives on GitHub Releases (free bandwidth, versioned). We resolve the newest
@@ -49,14 +50,14 @@ export default async function DownloadPage() {
       <header className="border-b border-gray-800 bg-gray-900">
         <div className="container mx-auto px-4 py-6">
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <Image src="/icons/icon-96x96.png" alt="Astrid" width={32} height={32} className="rounded" />
+            <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={32} height={32} className="rounded" />
             <span className="text-2xl font-bold text-white">astrid</span>
           </Link>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-12 max-w-3xl">
-        <h1 className="text-4xl font-bold text-white mb-2">Download Astrid</h1>
+        <h1 className="text-4xl font-bold text-white mb-2">Download {BRAND.appName}</h1>
         <p className="text-gray-400 mb-10">
           Native apps that stay in sync with everything you have on the web.
         </p>
@@ -65,7 +66,7 @@ export default async function DownloadPage() {
         <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-white mb-1">Astrid for Mac</h2>
+              <h2 className="text-xl font-semibold text-white mb-1">{BRAND.appName} for Mac</h2>
               <p className="text-gray-400 text-sm">
                 {mac
                   ? `Version ${mac.version} · ${mac.size} · Released ${mac.published}`
@@ -86,7 +87,7 @@ export default async function DownloadPage() {
             <li>• Apple Reminders and Calendar integration</li>
           </ul>
           <p className="mt-5 text-xs text-gray-500">
-            Open the DMG and drag Astrid to your Applications folder. The app is signed and
+            Open the DMG and drag {BRAND.appName} to your Applications folder. The app is signed and
             notarized by Apple, so it opens without extra steps. macOS 14 or later.
           </p>
         </section>
@@ -95,7 +96,7 @@ export default async function DownloadPage() {
         <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-white mb-1">Astrid for iPhone &amp; iPad</h2>
+              <h2 className="text-xl font-semibold text-white mb-1">{BRAND.appName} for iPhone &amp; iPad</h2>
               <p className="text-gray-400 text-sm">Currently in TestFlight beta</p>
             </div>
             <a
@@ -110,7 +111,7 @@ export default async function DownloadPage() {
         <p className="mt-10 text-sm text-gray-500">
           Prefer the browser?{" "}
           <Link href="/" className="text-white underline underline-offset-4 hover:opacity-80">
-            Use Astrid on the web
+            Use {BRAND.appName} on the web
           </Link>
           .
         </p>

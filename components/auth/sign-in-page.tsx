@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,7 +82,7 @@ export function SignInPage() {
         {/* Sign In Card */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="text-center">
-            <CardTitle className="text-white">Welcome to Astrid</CardTitle>
+            <CardTitle className="text-white">Welcome to {BRAND.appName}</CardTitle>
             <CardDescription className="text-gray-400">
               Sign in to access your tasks and collaborate with others
             </CardDescription>

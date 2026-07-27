@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,7 +58,7 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
   const [showChatGPT, setShowChatGPT] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
-  const defaultOrigin = process.env.NEXT_PUBLIC_BASE_URL || "https://astrid.cc"
+  const defaultOrigin = process.env.NEXT_PUBLIC_BASE_URL || `https://${BRAND.domain}`
   const [hostOrigin, setHostOrigin] = useState(defaultOrigin)
 
   useEffect(() => {

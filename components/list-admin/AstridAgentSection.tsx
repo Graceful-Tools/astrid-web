@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -40,7 +41,7 @@ export function AstridAgentSection({ list, canEditSettings, onUpdate }: AstridAg
     <div className="space-y-2">
       <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
         <Bot className="w-4 h-4" />
-        <span>Astrid Agent</span>
+        <span>{BRAND.appName} Agent</span>
       </Label>
       <Select
         value={listDefaultAgentId || '_account_default'}
@@ -81,7 +82,7 @@ export function AstridAgentSection({ list, canEditSettings, onUpdate }: AstridAg
         </SelectContent>
       </Select>
       <p className="text-xs theme-text-muted">
-        Choose a model to power Astrid for this list. Astrid reads messages, acts on tasks, and completes tasks by their due dates.
+        Choose a model to power {BRAND.appName} for this list. {BRAND.appName} reads messages, acts on tasks, and completes tasks by their due dates.
       </p>
     </div>
   )

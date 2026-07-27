@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import Image from "next/image"
 import { ScrollShell } from "@/components/scroll-shell"
@@ -9,7 +10,7 @@ export default function TermsOfService() {
       <header className="border-b border-gray-800 bg-gray-900">
         <div className="container mx-auto px-4 py-6">
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <Image src="/icons/icon-96x96.png" alt="Astrid" width={32} height={32} className="rounded" />
+            <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={32} height={32} className="rounded" />
             <span className="text-2xl font-bold text-white">astrid</span>
           </Link>
         </div>
@@ -24,8 +25,8 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">The Service</h2>
             <p className="text-gray-300 leading-relaxed">
-              Astrid is a task management application operated by Graceful Tools LLC.
-              By using Astrid, you agree to these terms.
+              {BRAND.appName} is a task management application operated by Graceful Tools LLC.
+              By using {BRAND.appName}, you agree to these terms.
             </p>
           </section>
 
@@ -40,7 +41,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">Your Content</h2>
             <p className="text-gray-300 leading-relaxed">
-              You own everything you create in Astrid. We only use your content to
+              You own everything you create in {BRAND.appName}. We only use your content to
               provide the service—storing, syncing, and displaying it back to you.
             </p>
           </section>
@@ -48,7 +49,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">Acceptable Use</h2>
             <p className="text-gray-300 leading-relaxed mb-3">
-              Don&apos;t use Astrid to:
+              Don&apos;t use {BRAND.appName} to:
             </p>
             <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
               <li>Break any laws</li>
@@ -62,7 +63,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">External Services</h2>
             <p className="text-gray-300 leading-relaxed">
-              Astrid connects with Google and Apple for sign-in. When using these
+              {BRAND.appName} connects with Google and Apple for sign-in. When using these
               integrations, their respective terms apply.
             </p>
           </section>
@@ -78,7 +79,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">Warranty Disclaimer</h2>
             <p className="text-gray-300 leading-relaxed">
-              Astrid is provided &quot;as is&quot; without warranties of any kind. We don&apos;t
+              {BRAND.appName} is provided &quot;as is&quot; without warranties of any kind. We don&apos;t
               guarantee uptime, accuracy, or that the service will meet your specific needs.
             </p>
           </section>
@@ -103,8 +104,8 @@ export default function TermsOfService() {
             <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
             <p className="text-gray-300 leading-relaxed">
               Questions? Reach us at{" "}
-              <a href="mailto:legal@astrid.cc" className="text-blue-400 hover:text-blue-300">
-                legal@astrid.cc
+              <a href={`mailto:legal@${BRAND.domain}`} className="text-blue-400 hover:text-blue-300">
+                legal@{BRAND.domain}
               </a>
             </p>
           </section>

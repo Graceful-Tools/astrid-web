@@ -1,5 +1,6 @@
 "use server"
 
+import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getUnifiedSession } from "@/lib/session-utils"
@@ -147,7 +148,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             <Lock className="w-5 h-5 theme-text-primary" />
-            <span className="font-semibold theme-text-primary">Authorize Astrid Integration</span>
+            <span className="font-semibold theme-text-primary">Authorize {BRAND.appName} Integration</span>
           </div>
         </div>
       </div>
@@ -161,7 +162,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                 <Badge variant="secondary" className="text-xs">OAuth App</Badge>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                {context.client.description || "This application is requesting access to your Astrid account."}
+                {context.client.description || `This application is requesting access to your ${BRAND.appName} account.`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -172,7 +173,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                 </div>
               </div>
               <div className="text-xs theme-text-muted">
-                Developed by {context.client.owner.email || context.client.owner.name || "Astrid user"}
+                Developed by {context.client.owner.email || context.client.owner.name || `${BRAND.appName} user`}
               </div>
             </CardContent>
           </Card>
@@ -209,7 +210,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
             <CardHeader>
               <CardTitle>Grant Access</CardTitle>
               <CardDescription className="theme-text-muted">
-                Allow {context.client.name} to access your Astrid data with the permissions above.
+                Allow {context.client.name} to access your {BRAND.appName} data with the permissions above.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

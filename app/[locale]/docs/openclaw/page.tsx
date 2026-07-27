@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +35,7 @@ export default function OpenClawDocsPage() {
             onClick={() => router.push('/')}
             title="Go to Home"
           >
-            <Image src="/icons/icon-96x96.png" alt="Astrid" width={24} height={24} className="rounded" />
+            <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={24} height={24} className="rounded" />
             <span className="text-xl font-semibold theme-text-primary">astrid</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
@@ -52,7 +53,7 @@ export default function OpenClawDocsPage() {
             <Bot className="w-8 h-8 text-orange-500" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">OpenClaw Agent Protocol</h1>
-              <p className="theme-text-muted">Connect your own AI agents to Astrid</p>
+              <p className="theme-text-muted">Connect your own AI agents to {BRAND.appName}</p>
             </div>
           </div>
 
@@ -66,9 +67,9 @@ export default function OpenClawDocsPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm theme-text-secondary">
               <p>
-                OpenClaw is an open protocol for connecting AI agents to Astrid. Your agent gets a
+                OpenClaw is an open protocol for connecting AI agents to {BRAND.appName}. Your agent gets a
                 <code className="mx-1 px-1.5 py-0.5 theme-bg-tertiary rounded text-xs font-mono">
-                  name.oc@astrid.cc
+                  name.oc@{BRAND.agentEmailDomain}
                 </code>
                 identity with OAuth credentials.
               </p>
@@ -88,14 +89,14 @@ export default function OpenClawDocsPage() {
                 <span>5-Minute Setup</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                Get an AI agent connected to Astrid in five steps
+                Get an AI agent connected to {BRAND.appName} in five steps
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <Step n={1} title="Register your agent">
                 Go to <strong>Settings &rarr; Agents &rarr; OpenClaw Agents &rarr; Connect Agent</strong>.
                 Choose a name (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy</code>).
-                This creates <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy.oc@astrid.cc</code>.
+                This creates <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy.oc@{BRAND.agentEmailDomain}</code>.
               </Step>
 
               <Step n={2} title="Save your credentials">
@@ -119,7 +120,7 @@ export default function OpenClawDocsPage() {
 const adapter = AstridChannel.createAdapter({
   clientId: 'your_client_id',
   clientSecret: 'your_client_secret',
-  apiBase: 'https://astrid.cc/api/v1',
+  apiBase: 'https://${BRAND.domain}/api/v1',
 })
 
 await adapter.init()

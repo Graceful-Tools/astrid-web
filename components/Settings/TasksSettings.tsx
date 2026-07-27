@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -91,7 +92,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
               <CardTitle className="theme-text-primary">Email-to-Task</CardTitle>
             </div>
             <CardDescription className="theme-text-muted">
-              Create tasks by sending emails to remindme@astrid.cc
+              Create tasks by sending emails to {BRAND.inboundTaskEmail}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -143,15 +144,15 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
               <ul className="space-y-2 text-sm theme-text-muted">
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-500 mt-0.5">•</span>
-                  <span><strong>Self-task:</strong> Send TO remindme@astrid.cc</span>
+                  <span><strong>Self-task:</strong> Send TO {BRAND.inboundTaskEmail}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-500 mt-0.5">•</span>
-                  <span><strong>Assigned task:</strong> CC remindme@astrid.cc with one recipient in TO</span>
+                  <span><strong>Assigned task:</strong> CC {BRAND.inboundTaskEmail} with one recipient in TO</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-500 mt-0.5">•</span>
-                  <span><strong>Group task:</strong> CC remindme@astrid.cc with multiple recipients</span>
+                  <span><strong>Group task:</strong> CC {BRAND.inboundTaskEmail} with multiple recipients</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-purple-500 mt-0.5">•</span>

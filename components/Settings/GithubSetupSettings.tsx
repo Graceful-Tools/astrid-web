@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -135,7 +136,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
           </CardHeader>
           <CardContent>
             <p className="text-sm theme-text-muted mb-4">
-              You can now use the Astrid Agent to generate code and create pull requests.
+              You can now use the {BRAND.appName} Agent to generate code and create pull requests.
             </p>
             <Button onClick={handleContinue} className="w-full">
               <ArrowRight className="w-4 h-4 mr-2" />

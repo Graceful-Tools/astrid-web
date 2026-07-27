@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -182,7 +183,7 @@ export function LeftSidebar({
           >
             <Image
               src="/icons/icon-96x96.png"
-              alt="Astrid"
+              alt={BRAND.appName}
               width={28}
               height={28}
               className="rounded-sm"

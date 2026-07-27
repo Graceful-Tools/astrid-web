@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -200,7 +201,7 @@ export function AstridReminderPopover({
             <div className="flex-shrink-0" style={{ width: '33%' }}>
               <img
                 src="/icons/icon-512x512.png"
-                alt="Astrid"
+                alt={BRAND.appName}
                 className="w-full h-auto"
               />
             </div>

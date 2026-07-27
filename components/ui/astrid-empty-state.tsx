@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n/client'
@@ -73,7 +74,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
         <div className="flex-shrink-0" style={{ width: '33%' }}>
           <img
             src="/icons/icon-512x512.png"
-            alt="Astrid"
+            alt={BRAND.appName}
             className="w-full h-auto"
           />
         </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React from "react"
 import { createPortal } from "react-dom"
 import { useTaskManagerController } from "@/hooks/useTaskManagerController"
@@ -118,7 +119,7 @@ export function TaskManager({
       .then(r => r.json())
       .then((data) => {
         // Find Astrid (always first in the list if user has any API key)
-        const astrid = (data.agents || []).find((a: { email: string }) => a.email === 'astrid@astrid.cc')
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === `astrid@${BRAND.agentEmailDomain}`)
         if (astrid) {
           setDefaultAgentUser({
             id: astrid.id,

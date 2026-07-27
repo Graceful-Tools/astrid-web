@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { memo } from "react"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
@@ -833,7 +834,7 @@ const TaskManagerView = memo(function TaskManagerView({
                     <div className="flex-shrink-0 w-24">
                       <img
                         src="/icons/icon-512x512.png"
-                        alt="Astrid"
+                        alt={BRAND.appName}
                         className="w-full h-auto"
                       />
                     </div>

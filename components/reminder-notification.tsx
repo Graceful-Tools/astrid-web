@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -249,7 +250,7 @@ export function ReminderNotification({
             <div className="flex-shrink-0" style={{ width: '33%' }}>
               <Image
                 src="/icons/icon-512x512.png"
-                alt="Astrid"
+                alt={BRAND.appName}
                 width={200}
                 height={200}
                 className="w-full h-auto"

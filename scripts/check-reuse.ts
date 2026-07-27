@@ -27,6 +27,8 @@ interface Rule {
   globs: string[]
   // basenames exempted (canonical homes)
   exclude: string[]
+  // optional ERE applied to whole grep output lines; matches are dropped
+  reject?: string
 }
 
 const RULES: Rule[] = [
@@ -57,6 +59,22 @@ const RULES: Rule[] = [
     // quick-task-create.tsx was dead code and has been deleted.
     exclude: [],
   },
+  {
+    id: "hardcoded-brand-literal",
+    description: "Hardcoded brand literal (\"Astrid\" / astrid.cc) in UI code",
+    fix: "Use lib/brand/config.ts — BRAND.appName, BRAND.domain, BRAND.agentEmailDomain, BRAND.supportEmail, BRAND.inboundTaskEmail — or an i18n key with an {appName} token.",
+    // Word-boundary "Astrid" so identifiers (AstridEmptyState, astridPhrase) and the
+    // `astrid-signed` wire value are not flagged; plus the bare domain. Task 97208a72.
+    pattern: String.raw`\bAstrid\b|astrid\.cc`,
+    // Scoped to the surface Phase 1b actually cleared. app/api/** and lib/** still
+    // hold brand literals (agent emails, integration callback HTML); widen these
+    // globs in Phase 3 once lib/brand/agent-emails.ts replaces the domain matching.
+    globs: ["components", "app/[locale]"],
+    exclude: [],
+    // Comments are internal prose, deliberately left alone — renaming them is churn
+    // with no whitelabel benefit. Covers //, /* */, and JSX {/* */}.
+    reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,
+  },
 ]
 
 const strict = process.argv.includes("--strict") || process.env.CHECK_REUSE_STRICT === "1"
@@ -65,7 +83,9 @@ function search(rule: Rule): string[] {
   const dirs = rule.globs.map((g) => `'${g}'`).join(" ")
   const excludeArgs = rule.exclude.map((e) => `--exclude='${e}'`).join(" ")
   // POSIX grep (always on PATH, unlike rg). -r recursive, -E ERE, -n line #s.
-  const cmd = `grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e "${rule.pattern}" ${dirs} || true`
+  // Drop lines the rule considers out of scope (e.g. comments) before counting.
+  const rejectFilter = rule.reject ? ` | grep -Ev "${rule.reject}"` : ""
+  const cmd = `{ grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e "${rule.pattern}" ${dirs}${rejectFilter} ; } || true`
   try {
     const out = execSync(cmd, { encoding: "utf8", cwd: process.cwd() })
     return out.split("\n").filter(Boolean)

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,7 @@ import { scrollShellClassName } from "@/components/scroll-shell"
 
 export default function MCPDocsPage() {
   const router = useRouter()
-  const defaultOrigin = process.env.NEXT_PUBLIC_BASE_URL || "https://astrid.cc"
+  const defaultOrigin = process.env.NEXT_PUBLIC_BASE_URL || `https://${BRAND.domain}`
   const [hostOrigin, setHostOrigin] = useState(defaultOrigin)
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function MCPDocsPage() {
             onClick={() => router.push('/')}
             title="Go to Home"
           >
-            <Image src="/icons/icon-96x96.png" alt="Astrid" width={24} height={24} className="rounded" />
+            <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={24} height={24} className="rounded" />
             <span className="text-xl font-semibold theme-text-primary">astrid</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
@@ -83,7 +84,7 @@ export default function MCPDocsPage() {
                 Cursor, Windsurf, and other MCP-compatible clients.
               </p>
               <p>
-                Astrid&apos;s MCP server exposes task management operations &mdash; creating tasks,
+                {BRAND.appName}&apos;s MCP server exposes task management operations &mdash; creating tasks,
                 managing lists, adding comments &mdash; as structured tools that AI assistants can call directly.
               </p>
             </CardContent>
@@ -97,7 +98,7 @@ export default function MCPDocsPage() {
                 <span>Quick Setup</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                Connect your AI tool to Astrid in four steps
+                Connect your AI tool to {BRAND.appName} in four steps
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
@@ -157,7 +158,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
               </Step>
 
               <Step n={4} title="Test the connection">
-                Ask your AI tool to &ldquo;list my Astrid task lists&rdquo; or &ldquo;show my tasks&rdquo;.
+                Ask your AI tool to &ldquo;list my {BRAND.appName} task lists&rdquo; or &ldquo;show my tasks&rdquo;.
                 You can also test operations in{' '}
                 <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/settings/api-testing')}>
                   Settings &rarr; API Testing
@@ -347,7 +348,7 @@ Content-Type: application/json
                 className="w-full justify-between"
                 onClick={() => window.open('https://www.npmjs.com/package/@gracefultools/astrid-sdk', '_blank')}
               >
-                <span>Astrid SDK on npm</span>
+                <span>{BRAND.appName} SDK on npm</span>
                 <ExternalLink className="w-4 h-4" />
               </Button>
               <Button
