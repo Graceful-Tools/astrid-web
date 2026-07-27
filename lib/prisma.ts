@@ -1,3 +1,4 @@
+import { UNKNOWN_CREATOR_EMAIL } from '@/lib/brand/agent-emails'
 import { Prisma, PrismaClient } from "@prisma/client"
 import { createLogger } from '@/lib/logger'
 
@@ -125,7 +126,7 @@ async function handleTaskAssigneeChange(
         creator: {
           id: task.creatorId,
           name: task.creator?.name || undefined,
-          email: task.creator?.email || 'unknown@astrid.cc',
+          email: task.creator?.email || UNKNOWN_CREATOR_EMAIL,
         },
       }
 

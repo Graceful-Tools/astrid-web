@@ -8,6 +8,7 @@ import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { broadcastCommentCreatedNotification, broadcastToUsers } from "@/lib/sse-utils"
 import { dispatchPostCommentSideEffects } from "@/lib/comments/post-comment-side-effects"
+import { agentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
 import { getUserRoleInList } from "@/lib/list-permissions"
 
@@ -280,7 +281,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       await broadcastCommentCreatedNotification(task, comment, session.user.id)
 
       if (task.assigneeId && task.assignee?.email &&
-          (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
+          (isOpenClawAgentEmail(task.assignee.email) || task.assignee.email === agentEmail('openclaw')) &&
           session.user.id !== task.assigneeId) {
         broadcastToUsers([task.assigneeId], {
           type: 'agent_task_comment',

@@ -28,6 +28,7 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
+import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 
@@ -132,7 +133,7 @@ export async function notifyTaskAssignment(
     const aiAgentConfig = agentUser?.aiAgentConfig ? JSON.parse(agentUser.aiAgentConfig) : {}
     const agentName = agentRecord?.name || agentUser?.name || 'AI Agent'
     const webhookUrl = agentRecord?.webhookUrl || agentUser?.webhookUrl
-    const isInternalAgent = agentUser?.email?.endsWith('@astrid.cc')
+    const isInternalAgent = isBrandAgentEmail(agentUser?.email)
 
     if (!webhookUrl && !isInternalAgent) {
       log.info(`⚠️  No webhook URL configured for external AI agent ${agentName}`)

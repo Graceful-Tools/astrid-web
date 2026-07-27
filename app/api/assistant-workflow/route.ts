@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
+import { getAgentConfig, type AIService } from '@/lib/ai/agent-config'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
 
@@ -214,15 +215,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getServiceFromEmail(email: string): 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw' | null {
-  if (email === 'claude@astrid.cc') return 'claude'
-  if (email === 'openai@astrid.cc') return 'openai'
-  if (email === 'gemini@astrid.cc') return 'gemini'
-  if (email === 'copilot@astrid.cc') return 'copilot'
-  if (email === 'openclaw@astrid.cc') return 'openclaw'
-  // Match {name}.oc@astrid.cc pattern for OpenClaw agents
-  if (email.match(/\.oc@astrid\.cc$/i)) return 'openclaw'
-  return null
+/**
+ * Which AI service backs this agent address, or null if it is not a registered agent.
+ *
+ * This used to re-implement the registry's routing table with hardcoded addresses,
+ * which meant the two could disagree about a newly added agent. It now defers to
+ * lib/ai/agent-config.ts — including the {name}.oc@ OpenClaw pattern — so the enabled
+ * set and the agent-email domain are configuration in one place. Task 97208a72.
+ *
+ * Note getAgentService() falls back to 'claude' for unknown addresses; this wrapper
+ * must keep returning null so the caller can reject them.
+ */
+function getServiceFromEmail(email: string): AIService | null {
+  return getAgentConfig(email)?.service ?? null
 }
 
 function buildPrompt(task: any, isCommentResponse?: boolean, userComment?: string): string {

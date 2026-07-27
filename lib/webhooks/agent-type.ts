@@ -5,18 +5,20 @@
  * to its own module so the soon-to-be-extracted comment-notifier and
  * task-assignment-notifier can share it.
  *
- * Email-first matching: any *@astrid.cc address whose local part is one of
- * the four known prefixes routes deterministically. The {name}.oc@astrid.cc
- * suffix routes to OpenClaw regardless of the chosen prefix. Name fallback
- * is a substring match for users who have set a display name but whose
- * email doesn't follow the convention.
+ * Email-first matching: any address at the agent-identity domain whose local part
+ * is one of the four known prefixes routes deterministically. The {name}.oc@ suffix
+ * routes to OpenClaw regardless of the chosen prefix. Name fallback is a substring
+ * match for users who have set a display name but whose email doesn't follow the
+ * convention. The domain itself is configuration — see lib/brand/agent-emails.ts.
  */
+import { isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
+
 export function getAgentType(email?: string, name?: string): string | null {
-  if (email?.match(/^[a-z0-9._-]+\.oc@astrid\.cc$/i)) {
+  if (isOpenClawAgentEmail(email)) {
     return 'openclaw'
   }
 
-  if (email?.endsWith('@astrid.cc')) {
+  if (isBrandAgentEmail(email)) {
     const prefix = email.split('@')[0].toLowerCase()
     if (['claude', 'openai', 'gemini', 'copilot', 'openclaw'].includes(prefix)) {
       return prefix

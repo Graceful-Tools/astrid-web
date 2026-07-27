@@ -1,7 +1,7 @@
 /**
  * POST /api/v1/openclaw/register
  *
- * Register an OpenClaw agent identity. Creates a {name}.oc@astrid.cc user
+ * Register an OpenClaw agent identity. Creates a {name}.oc@<agent domain> user
  * and OAuth client credentials for the agent.
  *
  * Auth: OAuth Bearer token or session (user must be authenticated)
@@ -9,6 +9,7 @@
  * Returns: { agent, oauth, config }
  */
 
+import { openClawAgentEmail } from '@/lib/brand/agent-emails'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
@@ -59,7 +60,7 @@ export const POST = withAuth(
       )
     }
 
-    const agentEmail = `${name}.oc@astrid.cc`
+    const agentEmail = openClawAgentEmail(name)
 
     const existingUser = await prisma.user.findUnique({
       where: { email: agentEmail }

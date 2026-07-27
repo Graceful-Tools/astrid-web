@@ -1,3 +1,5 @@
+import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
+import { getAssignableAgentEmails, getKeyedAgentEmails } from '@/lib/ai/assignable-agents'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
@@ -130,9 +132,8 @@ export async function GET(request: NextRequest) {
 
     // Search for AI agents (like coding agent)
     let aiAgents: any[] = []
-    const aiAgentEmails = ['claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc', 'copilot@astrid.cc', 'openclaw@astrid.cc']
-    // Also match {name}.oc@astrid.cc pattern for OpenClaw agents
-    const ocPattern = /^[a-z0-9._-]+\.oc@astrid\.cc$/i
+    // Which agents exist is configuration; see lib/ai/assignable-agents.ts. Task 97208a72.
+    const aiAgentEmails = getAssignableAgentEmails()
 
     // Option 1: Include AI agents that are members of the relevant lists
     if (relevantListIds.length > 0) {
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
               {
                 OR: [
                   { email: { in: aiAgentEmails } },
-                  { email: { endsWith: '.oc@astrid.cc' } },  // Match {name}.oc@astrid.cc OpenClaw agents
+                  { email: { endsWith: openClawEmailSuffix() } },  // Match {name}.oc@ OpenClaw agents
                 ]
               },
               // Only include AI agents that are members of the relevant lists
@@ -187,20 +188,7 @@ export async function GET(request: NextRequest) {
     // Option 2: Include AI agents based on user's configured API keys (for My Tasks, etc.)
     if (includeAIAgents && aiAgents.length === 0) {
       // Check which API keys the user has configured
-      const [hasClaude, hasOpenAI, hasGemini, hasCopilot, hasOpenClaw] = await Promise.all([
-        hasValidApiKey(session.user.id, 'claude'),
-        hasValidApiKey(session.user.id, 'openai'),
-        hasValidApiKey(session.user.id, 'gemini'),
-        hasValidApiKey(session.user.id, 'copilot'),
-        hasValidApiKey(session.user.id, 'openclaw')
-      ])
-
-      const availableAgentEmails: string[] = []
-      if (hasClaude) availableAgentEmails.push('claude@astrid.cc')
-      if (hasOpenAI) availableAgentEmails.push('openai@astrid.cc')
-      if (hasGemini) availableAgentEmails.push('gemini@astrid.cc')
-      if (hasCopilot) availableAgentEmails.push('copilot@astrid.cc')
-      if (hasOpenClaw) availableAgentEmails.push('openclaw@astrid.cc')
+      const availableAgentEmails = await getKeyedAgentEmails(session.user.id)
 
       if (availableAgentEmails.length > 0) {
         const searchConditions: any[] = []
@@ -222,7 +210,7 @@ export async function GET(request: NextRequest) {
               {
                 OR: [
                   { email: { in: availableAgentEmails } },
-                  { email: { endsWith: '.oc@astrid.cc' } },  // Include OpenClaw agents
+                  { email: { endsWith: openClawEmailSuffix() } },  // Include OpenClaw agents
                 ]
               },
               ...searchConditions

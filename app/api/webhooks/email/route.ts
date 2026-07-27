@@ -10,6 +10,7 @@
  * - Resend (https://resend.com/docs/dashboard/webhooks/event-types)
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { emailToTaskService } from '@/lib/email-to-task-service'
 import type { ParsedEmail } from '@/lib/email-to-task-service'
@@ -465,7 +466,7 @@ function hexToBytes(hex: string): Uint8Array {
 export async function GET() {
   return NextResponse.json({
     message: 'Email webhook endpoint',
-    email: 'remindme@astrid.cc',
+    email: BRAND.inboundTaskEmail,
     status: 'active',
   })
 }

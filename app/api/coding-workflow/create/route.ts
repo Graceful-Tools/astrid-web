@@ -2,6 +2,7 @@
  * API endpoint to create a coding workflow for a task
  */
 
+import { agentEmail, UNKNOWN_CREATOR_EMAIL } from '@/lib/brand/agent-emails'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
           id: assigneeUser?.id || assigneeId,
           name: assigneeUser?.name || 'Claude Agent',
           type: assigneeUser?.aiAgentType || 'claude_agent',
-          email: assigneeUser?.email || 'claude@astrid.cc',
+          email: assigneeUser?.email || agentEmail('claude'),
         },
         task: {
           id: task.id,
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
         creator: {
           id: task.creatorId || session.user.id,
           name: task.creator?.name || session.user.name || undefined,
-          email: task.creator?.email || session.user.email || 'unknown@astrid.cc',
+          email: task.creator?.email || session.user.email || UNKNOWN_CREATOR_EMAIL,
         },
       }
 

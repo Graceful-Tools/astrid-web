@@ -4,6 +4,7 @@
  * instead of bypassing the controller with direct database calls.
  */
 
+import { agentEmailForService } from '@/lib/ai/agent-config'
 import { prisma } from './prisma'
 import { broadcastToUsers } from './sse-utils'
 import { createLogger } from '@/lib/logger'
@@ -73,17 +74,7 @@ export async function createAIAgentComment(
     }
 
     if (!agentUser && task.aiAgent) {
-      const targetEmail = task.aiAgent.service === 'openai'
-        ? 'openai@astrid.cc'
-        : task.aiAgent.service === 'claude'
-          ? 'claude@astrid.cc'
-          : task.aiAgent.service === 'gemini'
-            ? 'gemini@astrid.cc'
-            : task.aiAgent.service === 'copilot'
-              ? 'copilot@astrid.cc'
-              : task.aiAgent.service === 'openclaw'
-                ? 'openclaw@astrid.cc'
-                : null
+      const targetEmail = agentEmailForService(task.aiAgent.service)
 
       if (targetEmail) {
         const agentByEmail = await prisma.user.findUnique({
@@ -131,13 +122,7 @@ export async function createAIAgentComment(
       })
 
       if (workflow?.aiService) {
-        const emailMap: Record<string, string> = {
-          'claude': 'claude@astrid.cc',
-          'openai': 'openai@astrid.cc',
-          'gemini': 'gemini@astrid.cc',
-          'copilot': 'copilot@astrid.cc'
-        }
-        const targetEmail = emailMap[workflow.aiService]
+        const targetEmail = agentEmailForService(workflow.aiService)
 
         if (targetEmail) {
           const agentByEmail = await prisma.user.findUnique({

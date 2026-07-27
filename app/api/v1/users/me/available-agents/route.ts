@@ -14,7 +14,8 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
-import { ensureAstridAgent, ASTRID_EMAIL } from '@/lib/astrid-agent'
+import { ensureAstridAgent, ASTRID_EMAIL, ASTRID_NAME } from '@/lib/astrid-agent'
+import { getBuiltInAgents } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.users.me.available-agents')
@@ -27,14 +28,9 @@ interface AvailableAgent {
   service: string
 }
 
-const BUILT_IN_AGENTS: Array<{
-  email: string; name: string; service: 'claude' | 'openai' | 'gemini' | 'copilot'; image: string | null
-}> = [
-  { email: 'claude@astrid.cc', name: 'Claude', service: 'claude', image: '/api/v1/agent-icon/claude' },
-  { email: 'openai@astrid.cc', name: 'OpenAI', service: 'openai', image: '/api/v1/agent-icon/openai' },
-  { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini', image: '/api/v1/agent-icon/gemini' },
-  { email: 'copilot@astrid.cc', name: 'GitHub Copilot', service: 'copilot', image: '/api/v1/agent-icon/copilot' },
-]
+// Which built-ins exist is configuration (BRAND_ENABLED_AGENTS) and lives in the
+// routing registry — this route no longer keeps its own copy. Task 97208a72.
+const BUILT_IN_AGENTS = getBuiltInAgents()
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.available-agents' },
@@ -85,7 +81,7 @@ export const GET = withAuth(
         const astrid = await ensureAstridAgent()
         available.unshift({
           id: astrid.id,
-          name: 'Astrid',
+          name: ASTRID_NAME,
           email: ASTRID_EMAIL,
           image: astrid.image,
           service: 'astrid',
