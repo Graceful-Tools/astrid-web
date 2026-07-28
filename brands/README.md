@@ -29,6 +29,38 @@ enabled services.
 | `expect.capabilities` | Capability keys that must be on / off |
 | `expect.forbidLiterals` | Strings that must NOT appear in rendered output for this
   profile (e.g. a rebranded deployment must not leak "Astrid") |
+| `copy` | Optional. Brand *voice*: reminder nags and default-list captions |
+
+## Brand voice (`copy`)
+
+Some content is not a value but a personality. Astrid's reminder nags ("I die a little
+every time you ignore me") and its starter-list captions are written in a particular
+tone that a partner will usually want to replace outright rather than translate.
+
+```json
+"copy": {
+  "reminders": {
+    "general":   ["A moment, please.", "Your attention is requested."],
+    "due":       ["This item is now due."],
+    "responses": ["Ready when you are."]
+  },
+  "defaultLists": {
+    "today":       { "name": "Due Today", "description": "items scheduled for today" },
+    "not-in-list": { "name": "Unfiled" },
+    "assigned":    { "name": "Delegated" }
+  }
+}
+```
+
+Everything is optional and falls back per field, so a profile can rename a list without
+restating its description, or replace the nags while leaving lists alone. The block is
+serialised into `NEXT_PUBLIC_BRAND_COPY` by `lib/brand/profile.ts` — the same function
+the tests use, so a profile is applied identically whether it is deployed or asserted.
+
+Malformed JSON logs a warning and falls back to the built-in voice rather than throwing:
+bad brand copy should never take down reminders. An empty override array counts as *not
+supplied* — a brand that wants no nags should disable reminders rather than ship blank
+notifications.
 
 ## The two profiles that must always exist
 
