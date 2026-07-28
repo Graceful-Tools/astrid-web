@@ -1,0 +1,29 @@
+{
+  "name": "Astrid",
+  "description": "Production configuration. Nothing is set, so this profile proves the whitelabel refactor did not change today's behaviour: every value is the built-in default and every capability is on.",
+  "env": {},
+  "expect": {
+    "appName": "Astrid",
+    "productTitle": "Astrid Task Manager",
+    "domain": "astrid.cc",
+    "agentEmailDomain": "astrid.cc",
+    "supportEmail": "support@astrid.cc",
+    "inboundTaskEmail": "remindme@astrid.cc",
+    "accentColor": "#3b82f6",
+    "enabledAgents": ["astrid", "claude", "openai", "gemini", "copilot", "openclaw"],
+    "capabilities": {
+      "authGoogle": true,
+      "authApple": true,
+      "authPasskey": true,
+      "syncGoogleTasks": true,
+      "syncGithubIssues": true,
+      "integrationMcp": true,
+      "integrationOpenClaw": true,
+      "integrationChatGptActions": true,
+      "emailToTask": true,
+      "calendarFeed": true
+    },
+    "requireLiterals": ["Astrid"],
+    "forbidLiterals": []
+  }
+}

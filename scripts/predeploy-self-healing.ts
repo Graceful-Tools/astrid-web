@@ -222,6 +222,14 @@ class SelfHealingPredeploy {
         autoFixable: false, // Test failures need investigation
       },
       {
+        // Runs every brands/*.brand.json through the real route handlers. Separate from
+        // the Vitest gate so a whitelabel regression is reported as itself rather than
+        // as one failure among 3000. Task 97208a72.
+        name: 'Brand Profiles',
+        command: 'npm run check:brands',
+        autoFixable: false,
+      },
+      {
         name: 'Build',
         command: 'npm run build:next',
         autoFixable: true,
