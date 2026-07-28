@@ -1,3 +1,8 @@
+// @vitest-environment node
+//
+// Node, not the project default jsdom: these exercise SERVER route handlers, and under
+// jsdom `typeof window !== 'undefined'` sends getBaseUrl() down its client branch, so
+// it never reads NEXTAUTH_URL and the URL assertions below pass vacuously.
 /**
  * Brand matrix — every profile in brands/ must produce a coherent deployment.
  *
@@ -146,6 +151,40 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     // Agent identities must be advertised at this profile's agent domain.
     expect(rendered).toContain(`name@${profile.expect.agentEmailDomain}`)
     assertClean(rendered, profile, 'llms.txt')
+  })
+
+  it('emits no malformed URLs in llms.txt', async () => {
+    // Regression: NEXTAUTH_URL is written with a trailing slash in production, and every
+    // consumer concatenates a leading-slash path onto it, so /llms.txt shipped
+    // `https://www.astrid.cc//docs/endpoints`. Local dev sets no trailing slash, which
+    // is why only the preview deploy showed it. Task 97208a72.
+    const ORIGINAL = process.env.NEXTAUTH_URL
+    try {
+      process.env.NEXTAUTH_URL = 'https://example.test/'
+      vi.resetModules()
+      const { GET } = await import('@/app/llms.txt/route')
+      const rendered = await (await GET()).text()
+
+      const doubleSlashed = rendered.match(/https?:\/\/[^\s)]*[^:]\/\//g) ?? []
+      expect(doubleSlashed, `malformed URLs: ${doubleSlashed.join(', ')}`).toEqual([])
+    } finally {
+      if (ORIGINAL === undefined) delete process.env.NEXTAUTH_URL
+      else process.env.NEXTAUTH_URL = ORIGINAL
+    }
+  })
+
+  it('never points agents at an endpoint this profile disables', async () => {
+    // A deployment with MCP off told agents to "POST to /api/mcp/operations" in the
+    // Key Concepts prose, which 404s there. Caught on the Acme preview deploy.
+    const { GET } = await import('@/app/llms.txt/route')
+    const rendered = await (await GET()).text()
+
+    if (!profile.expect.capabilities.integrationMcp) {
+      expect(rendered).not.toContain('/api/mcp/')
+      expect(rendered).not.toMatch(/\bMCP\b/)
+    } else {
+      expect(rendered).toContain('/api/mcp/operations')
+    }
   })
 
   it('advertises only the integrations this profile enables', async () => {

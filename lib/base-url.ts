@@ -17,16 +17,30 @@ const log = createLogger('base-url')
  * IMPORTANT: In production, this will NEVER return an insecure http:// URL to prevent
  * mixed content warnings when the app is served over HTTPS
  */
+/**
+ * Strip trailing slashes so `${getBaseUrl()}${path}` cannot produce a double slash.
+ *
+ * NEXTAUTH_URL is commonly written with a trailing slash — production has it as
+ * `https://www.astrid.cc/` — and every consumer concatenates a leading-slash path onto
+ * it. That shipped `https://www.astrid.cc//docs/endpoints` in /llms.txt and the plugin
+ * manifest: still resolvable, but wrong in a document whose whole job is telling an
+ * agent where to go. Found on a live preview deploy; local dev sets no trailing slash,
+ * which is why it never showed up. Task 97208a72.
+ */
+function normalize(url: string): string {
+  return url.replace(/\/+$/, '')
+}
+
 export function getBaseUrl(): string {
   // Server-side: prioritize NEXTAUTH_URL (most reliable for production)
   if (typeof window === 'undefined') {
     // Check for explicit environment variables first
     if (process.env.NEXTAUTH_URL) {
-      return process.env.NEXTAUTH_URL
+      return normalize(process.env.NEXTAUTH_URL)
     }
 
     if (process.env.NEXT_PUBLIC_BASE_URL) {
-      return process.env.NEXT_PUBLIC_BASE_URL
+      return normalize(process.env.NEXT_PUBLIC_BASE_URL)
     }
 
     // Vercel deployment
@@ -65,7 +79,7 @@ export function getBaseUrl(): string {
     ? brandOrigin()
     : 'http://localhost:3000'
 
-  return process.env.NEXT_PUBLIC_BASE_URL || edgeFallback
+  return normalize(process.env.NEXT_PUBLIC_BASE_URL || edgeFallback)
 }
 
 /**
