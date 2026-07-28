@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from "jose"
@@ -56,6 +57,9 @@ async function verifyAppleToken(identityToken: string): Promise<AppleJWTPayload>
 
 // Apple Sign In endpoint for iOS
 async function appleSignInHandler(request: NextRequest) {
+  const blocked = capabilityGate('authApple')
+  if (blocked) return blocked
+
   try {
     const { identityToken, fullName } = await request.json()
 

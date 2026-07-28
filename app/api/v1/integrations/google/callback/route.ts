@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { verifyOAuthState } from '@/lib/sync/github'
@@ -6,6 +7,9 @@ import { exchangeGoogleCode, googleRequest, googleSyncConfigured, storeGoogleInt
 const log = createLogger('v1.integrations.google.callback')
 
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('syncGoogleTasks')
+  if (blocked) return blocked
+
   if (!googleSyncConfigured()) {
     return NextResponse.json({ error: 'Google Tasks sync is not configured' }, { status: 503 })
   }

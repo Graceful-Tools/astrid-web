@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -26,6 +27,9 @@ function generateUID(taskId: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('calendarFeed')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession()
     

@@ -5,7 +5,7 @@ import { isValidRepoId } from '@/lib/sync/github'
 
 /** GET /api/v1/sync/github/links[?listId] — the caller's GitHub list links. */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const listId = new URL(req.url).searchParams.get('listId')
     const links = await prisma.externalListLink.findMany({
@@ -17,7 +17,7 @@ export const GET = withAuth(
 
 /** POST — link an Astrid list to a repo. Body: { astridListId, remoteContainerId } */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const body = await req.json()
     const { astridListId, remoteContainerId } = body || {}
@@ -61,7 +61,7 @@ export const POST = withAuth(
 
 /** DELETE ?linkId — unlink. */
 export const DELETE = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const linkId = new URL(req.url).searchParams.get('linkId')
     if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })

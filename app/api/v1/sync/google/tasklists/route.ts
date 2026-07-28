@@ -4,7 +4,7 @@ import { googleRequest, googleTokenFor } from '@/lib/sync/google'
 
 /** GET — the caller's Google Tasks tasklists (remote containers). */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (_req, auth) => {
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })
@@ -22,7 +22,7 @@ export const GET = withAuth(
 
 /** POST — create a Google tasklist (auto-link modes). Body: { title } */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (req, auth) => {
     const token = await googleTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 401 })

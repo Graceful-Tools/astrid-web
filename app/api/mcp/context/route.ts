@@ -1,7 +1,11 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   const { searchParams } = new URL(request.url)
   const token = searchParams.get('token')
   const agentType = searchParams.get('agentType')

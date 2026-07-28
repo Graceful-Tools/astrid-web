@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAuthentication, getChallenge, deleteChallenge, isProduction } from "@/lib/webauthn"
 import { encode } from "next-auth/jwt"
@@ -8,6 +9,9 @@ const log = createLogger('auth.webauthn.authenticate.verify')
 
 
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('authPasskey')
+  if (blocked) return blocked
+
   try {
     const body = await request.json()
     const { sessionId, response } = body as {

@@ -16,7 +16,7 @@ const log = createLogger('v1.openclaw.agents.id')
 type RouteContext = { params: Promise<{ id: string }> }
 
 export const PATCH = withAuth<RouteContext>(
-  { tag: 'v1.openclaw.agents.id' },
+  { tag: 'v1.openclaw.agents.id', capability: 'integrationOpenClaw' },
   async (req, auth, { params }) => {
     const { id } = await params
 
@@ -62,7 +62,7 @@ export const PATCH = withAuth<RouteContext>(
 )
 
 export const DELETE = withAuth<RouteContext>(
-  { tag: 'v1.openclaw.agents.id' },
+  { tag: 'v1.openclaw.agents.id', capability: 'integrationOpenClaw' },
   async (_req, auth, { params }) => {
     const { id } = await params
 

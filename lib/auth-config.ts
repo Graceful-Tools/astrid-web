@@ -1,3 +1,4 @@
+import { hasCapability, assertUsableAuthConfiguration } from '@/lib/brand/capabilities'
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
@@ -127,10 +128,24 @@ const customAdapter = {
   }
 }
 
-const authConfig: NextAuthOptions = {
-  adapter: customAdapter,
-  providers: [
-    GoogleProvider({
+/**
+ * Sign-in providers this deployment offers.
+ *
+ * Google is omitted entirely when the capability is off, so NextAuth will not mint a
+ * callback route for it and `signIn("google")` is refused by the framework rather than
+ * by our own code. Task 97208a72.
+ *
+ * assertUsableAuthConfiguration() runs first: a build with no sign-in method at all is
+ * a total outage, not a degraded feature, and must fail at startup rather than at the
+ * first user's sign-in attempt.
+ */
+function buildProviders() {
+  assertUsableAuthConfiguration()
+
+  const providers: NextAuthOptions["providers"] = []
+
+  if (hasCapability('authGoogle')) {
+    providers.push(GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       // Ensure the callback URL is properly set
@@ -141,8 +156,15 @@ const authConfig: NextAuthOptions = {
           response_type: "code"
         }
       }
-    }),
-  ],
+    }))
+  }
+
+  return providers
+}
+
+const authConfig: NextAuthOptions = {
+  adapter: customAdapter,
+  providers: buildProviders(),
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       if (process.env.NODE_ENV === "development") {

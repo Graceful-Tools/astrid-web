@@ -1,6 +1,28 @@
+import { hasCapability } from '@/lib/brand/capabilities'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
+
+/**
+ * Sync providers this deployment supports. A provider disabled at build time must be
+ * rejected here too — the per-provider routes are guarded, but this endpoint takes the
+ * provider as *input*, so without this check a caller could still write settings for,
+ * or connect against, a provider the deployment does not offer. Task 97208a72.
+ */
+const PROVIDER_CAPABILITY = {
+  GITHUB_ISSUES: 'syncGithubIssues',
+  GOOGLE_TASKS: 'syncGoogleTasks',
+} as const
+
+type SyncProvider = keyof typeof PROVIDER_CAPABILITY
+
+function isEnabledProvider(provider: unknown): provider is SyncProvider {
+  return (
+    typeof provider === 'string' &&
+    provider in PROVIDER_CAPABILITY &&
+    hasCapability(PROVIDER_CAPABILITY[provider as SyncProvider])
+  )
+}
 
 /** GET /api/v1/integrations — the caller's connected sync providers. */
 export const GET = withAuth(
@@ -25,7 +47,7 @@ export const PATCH = withAuth(
   async (req, auth) => {
     const body = await req.json().catch(() => null)
     const { provider, metadata } = body || {}
-    if ((provider !== 'GITHUB_ISSUES' && provider !== 'GOOGLE_TASKS') || typeof metadata !== 'object' || !metadata) {
+    if (!isEnabledProvider(provider) || typeof metadata !== 'object' || !metadata) {
       return NextResponse.json({ error: 'provider and metadata object required' }, { status: 400 })
     }
     const existing = await prisma.integration.findUnique({
@@ -45,7 +67,7 @@ export const DELETE = withAuth(
   { scopes: ['tasks:write'], tag: 'v1.integrations' },
   async (req, auth) => {
     const provider = new URL(req.url).searchParams.get('provider')
-    if (provider !== 'GITHUB_ISSUES' && provider !== 'GOOGLE_TASKS') {
+    if (!isEnabledProvider(provider)) {
       return NextResponse.json({ error: 'Unknown provider' }, { status: 400 })
     }
     await prisma.integration.updateMany({

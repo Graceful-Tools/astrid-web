@@ -19,7 +19,7 @@ import {
   Terminal,
   Users,
 } from "lucide-react"
-import { INTEGRATION_METHODS, WELL_KNOWN_ENDPOINTS } from "@/lib/integration-registry"
+import { enabledIntegrationMethods, WELL_KNOWN_ENDPOINTS } from "@/lib/integration-registry"
 import { scrollShellClassName } from "@/components/scroll-shell"
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -107,7 +107,7 @@ export default function IntegrationGuidePage() {
           </Card>
 
           {/* Integration Method Cards */}
-          {INTEGRATION_METHODS.map((method) => (
+          {enabledIntegrationMethods().map((method) => (
             <Card
               key={method.id}
               className="theme-bg-secondary theme-border cursor-pointer hover:scale-[1.005] transition-transform"

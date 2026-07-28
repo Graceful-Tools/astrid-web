@@ -1,5 +1,6 @@
 "use client"
 
+import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -36,7 +37,10 @@ const EMPTY: ProviderState = { connected: false, link: null, containers: [] }
  */
 export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
   const { isEnabled } = useFeatureFlags()
-  const googleTasksEnabled = isEnabled('google_tasks')
+  // Build-time capability first: a deployment that does not ship Google Tasks sync has
+  // no route to call, so no runtime rollout flag can turn it on. Task 97208a72.
+  const googleTasksEnabled = CAPABILITIES.syncGoogleTasks && isEnabled('google_tasks')
+  const githubIssuesEnabled = CAPABILITIES.syncGithubIssues
   const [github, setGithub] = useState<ProviderState>(EMPTY)
   const [google, setGoogle] = useState<ProviderState>(EMPTY)
   const [loading, setLoading] = useState(true)
@@ -65,7 +69,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
       }
 
       const [gh, g] = await Promise.all([
-        loadProvider("GITHUB_ISSUES", "github", "repos"),
+        githubIssuesEnabled ? loadProvider("GITHUB_ISSUES", "github", "repos") : Promise.resolve(EMPTY),
         googleTasksEnabled ? loadProvider("GOOGLE_TASKS", "google", "tasklists") : Promise.resolve(EMPTY),
       ])
       setGithub(gh)
@@ -78,7 +82,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
     } finally {
       setLoading(false)
     }
-  }, [googleTasksEnabled, list.id])
+  }, [githubIssuesEnabled, googleTasksEnabled, list.id])
 
   useEffect(() => { load() }, [load])
 
@@ -157,7 +161,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
           Mirror this list to another service and back, through your connected account.
         </p>
       </div>
-      {renderProvider("GitHub Issues", "github", github)}
+      {githubIssuesEnabled && renderProvider("GitHub Issues", "github", github)}
       {googleTasksEnabled && renderProvider("Google Tasks", "google", google)}
     </div>
   )

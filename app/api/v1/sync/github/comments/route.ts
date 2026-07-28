@@ -8,7 +8,7 @@ import { githubRequest, githubTokenFor, isValidRepoId } from '@/lib/sync/github'
  * Provider-neutral shape: { comments: [{ id, body, author, createdAt }] }.
  */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const url = new URL(req.url)
     const linkId = url.searchParams.get('linkId')
@@ -51,7 +51,7 @@ export const GET = withAuth(
 
 /** POST — add a comment to an issue. Body: { linkId, remoteId, body } → { id } */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const body = await req.json().catch(() => null)
     const { linkId, remoteId } = body || {}
@@ -77,7 +77,7 @@ export const POST = withAuth(
 
 /** PATCH — edit an issue comment. Body: { linkId, commentId, body } */
 export const PATCH = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const body = await req.json().catch(() => null)
     const { linkId, commentId } = body || {}
@@ -102,7 +102,7 @@ export const PATCH = withAuth(
 
 /** DELETE ?linkId&commentId — delete an issue comment (404 = already gone). */
 export const DELETE = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const url = new URL(req.url)
     const linkId = url.searchParams.get('linkId')

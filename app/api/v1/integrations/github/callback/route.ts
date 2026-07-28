@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { githubRequest, githubSyncConfigured, storeGithubIntegration, verifyOAuthState } from '@/lib/sync/github'
@@ -10,6 +11,9 @@ const log = createLogger('v1.integrations.github.callback')
  * (encrypted) on the user's Integration, then shows a "return to app" page.
  */
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('syncGithubIssues')
+  if (blocked) return blocked
+
   if (!githubSyncConfigured()) {
     return NextResponse.json({ error: 'GitHub sync is not configured' }, { status: 503 })
   }

@@ -1,5 +1,6 @@
 "use server"
 
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { getBaseUrl } from "@/lib/base-url"
@@ -15,6 +16,9 @@ async function resolveBaseUrl() {
 }
 
 export async function GET() {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   const baseUrl = await resolveBaseUrl()
   const resourceUrl = `${baseUrl}/mcp`
 

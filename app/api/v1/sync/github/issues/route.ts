@@ -8,7 +8,7 @@ import { githubGraphQL, githubRequest, githubTokenFor, isValidRepoId } from '@/l
  * cursor (ISO timestamp). Returns provider-neutral items + advances the cursor.
  */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const linkId = new URL(req.url).searchParams.get('linkId')
     if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
@@ -132,7 +132,7 @@ export const GET = withAuth(
  * remoteId nil = create issue; non-nil = update (title/body/state).
  */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const body = await req.json()
     // Client-acknowledged cursor commit.

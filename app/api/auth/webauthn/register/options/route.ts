@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { getRegistrationOptions, storeChallenge } from "@/lib/webauthn"
@@ -9,6 +10,9 @@ const log = createLogger('auth.webauthn.register.options')
 
 
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('authPasskey')
+  if (blocked) return blocked
+
   try {
     // Check for authenticated session (for adding passkey to existing account)
     // Use getUnifiedSession to support both web (JWT) and mobile (database) sessions

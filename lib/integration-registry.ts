@@ -6,6 +6,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { CAPABILITIES, type CapabilityKey } from '@/lib/brand/capabilities'
 
 export const ASTRID_DESCRIPTION =
   `${BRAND.appName} is a task management app with native AI agent integration. ` +
@@ -13,6 +14,12 @@ export const ASTRID_DESCRIPTION =
 
 export interface IntegrationMethod {
   id: string
+  /**
+   * Capability this method depends on. When the deployment has it disabled the method
+   * is omitted from /llms.txt and /docs/integrate — advertising an endpoint that
+   * answers 404 sends agents and integrators down a dead end. Task 97208a72.
+   */
+  capability?: CapabilityKey
   name: string
   tagline: string
   description: string
@@ -35,6 +42,7 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   },
   {
     id: 'mcp',
+    capability: 'integrationMcp',
     name: 'MCP (Model Context Protocol)',
     tagline: 'For Claude Desktop, Cursor, Windsurf, and other MCP clients',
     description:
@@ -45,6 +53,7 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   },
   {
     id: 'openclaw',
+    capability: 'integrationOpenClaw',
     name: 'OpenClaw',
     tagline: 'Build custom AI agents with SSE events',
     description:
@@ -55,6 +64,7 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   },
   {
     id: 'chatgpt',
+    capability: 'integrationChatGptActions',
     name: 'ChatGPT Actions',
     tagline: `Power custom GPTs with ${BRAND.appName} data`,
     description:
@@ -75,9 +85,19 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   },
 ]
 
-export const WELL_KNOWN_ENDPOINTS = [
-  { path: '/.well-known/ai-plugin.json', description: 'ChatGPT plugin manifest' },
-  { path: '/.well-known/astrid-openapi.yaml', description: 'OpenAPI 3.0 specification' },
+const ALL_WELL_KNOWN_ENDPOINTS = [
+  { path: '/.well-known/ai-plugin.json', description: 'ChatGPT plugin manifest', capability: 'integrationChatGptActions' },
+  { path: '/.well-known/astrid-openapi.yaml', description: 'OpenAPI 3.0 specification', capability: 'integrationChatGptActions' },
   { path: '/llms.txt', description: 'LLM-readable integration guide' },
-  { path: '/api/mcp/context', description: 'MCP capabilities and operations' },
-] as const
+  { path: '/api/mcp/context', description: 'MCP capabilities and operations', capability: 'integrationMcp' },
+] as const satisfies ReadonlyArray<{ path: string; description: string; capability?: CapabilityKey }>
+
+/** Only what this deployment actually serves. */
+export const WELL_KNOWN_ENDPOINTS = ALL_WELL_KNOWN_ENDPOINTS.filter(
+  (endpoint) => !('capability' in endpoint) || CAPABILITIES[endpoint.capability as CapabilityKey]
+)
+
+/** Integration methods this deployment actually offers. */
+export function enabledIntegrationMethods(): IntegrationMethod[] {
+  return INTEGRATION_METHODS.filter((m) => !m.capability || CAPABILITIES[m.capability])
+}

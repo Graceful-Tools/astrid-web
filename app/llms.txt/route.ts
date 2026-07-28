@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getBaseUrl } from '@/lib/base-url'
-import { ASTRID_DESCRIPTION, INTEGRATION_METHODS, WELL_KNOWN_ENDPOINTS } from '@/lib/integration-registry'
+import { ASTRID_DESCRIPTION, enabledIntegrationMethods, WELL_KNOWN_ENDPOINTS } from '@/lib/integration-registry'
 import { BRAND } from '@/lib/brand/config'
 
 export async function GET() {
   const baseUrl = getBaseUrl()
 
-  const integrationLinks = INTEGRATION_METHODS.map((m) => {
+  const integrationLinks = enabledIntegrationMethods().map((m) => {
     const url = m.externalUrl || `${baseUrl}${m.docsPath}`
     return `- [${m.name}](${url}): ${m.tagline}`
   }).join('\n')

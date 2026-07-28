@@ -1,5 +1,6 @@
 "use client"
 
+import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { BRAND } from '@/lib/brand/config'
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
@@ -229,6 +230,9 @@ export function SignInContent() {
             {!showPasskeyEmailPrompt && (
               <div className="space-y-4">
                 {/* 1. Google - Most prominent (blue), rendered immediately for fast LCP */}
+                {/* Hidden when the deployment disables Google sign-in; the NextAuth
+                    provider is omitted too, so this is presentation, not the boundary. */}
+                {CAPABILITIES.authGoogle && (
                 <Button
                   type="button"
                   onClick={handleGoogleSignIn}
@@ -239,8 +243,11 @@ export function SignInContent() {
                   {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
                   {loading ? "Continuing..." : "Continue with Google"}
                 </Button>
+                )}
 
                 {/* 2. Passkey - Opens dialog with New/Returning options */}
+                {CAPABILITIES.authPasskey && (
+                <>
                 <Button
                   type="button"
                   onClick={() => {
@@ -262,6 +269,8 @@ export function SignInContent() {
                   <p className="text-xs text-gray-500 text-center -mt-2">
                     Passkeys not supported in this browser
                   </p>
+                )}
+                </>
                 )}
               </div>
             )}

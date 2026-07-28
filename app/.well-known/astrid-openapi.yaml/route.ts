@@ -1,6 +1,10 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { getBaseUrl } from '@/lib/base-url'
 
 export async function GET() {
+  const blocked = capabilityGate('integrationChatGptActions')
+  if (blocked) return blocked
+
   const baseUrl = getBaseUrl()
   const yaml = `openapi: 3.1.0
 info:

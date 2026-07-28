@@ -27,7 +27,7 @@ const RESERVED_NAMES = ['admin', 'system', 'test', 'api', 'support', 'root', 'op
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,30}[a-z0-9]$/
 
 export const POST = withAuth(
-  { tag: 'v1.openclaw.register' },
+  { tag: 'v1.openclaw.register', capability: 'integrationOpenClaw' },
   async (req, auth) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.REGISTRATION)
     if (rateCheck.response) return rateCheck.response

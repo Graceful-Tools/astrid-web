@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { getUserPasskeys, deletePasskey, renamePasskey } from "@/lib/webauthn"
@@ -7,6 +8,9 @@ const log = createLogger('auth.webauthn.passkeys')
 
 
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('authPasskey')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession(request)
 
@@ -30,6 +34,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const blocked = capabilityGate('authPasskey')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession(request)
 
@@ -70,6 +77,9 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const blocked = capabilityGate('authPasskey')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession(request)
 
