@@ -42,11 +42,66 @@ const isProduction = isProductionEnvironment()
  * on a live deployment invalidates every passkey already registered, because the
  * authenticator will not release a credential scoped to a different RP ID.
  */
-const rpID = isProduction ? BRAND.domain : "localhost"
+/**
+ * The host this deployment is actually served from, or null when it cannot be
+ * determined. NEXTAUTH_URL is authoritative; VERCEL_URL covers preview deployments
+ * that have no explicit NEXTAUTH_URL.
+ */
+function servingHost(): string | null {
+  const candidate = process.env.NEXTAUTH_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined)
+  if (!candidate) return null
+  try {
+    return new URL(candidate).hostname
+  } catch {
+    return null
+  }
+}
 
-// Support the apex, www, and any subdomain of the brand domain in production
+/**
+ * Resolve the Relying Party ID.
+ *
+ * WebAuthn requires the RP ID to equal the origin's host or be a registrable-domain
+ * suffix of it. `BRAND.domain` is the brand's NOMINAL domain and is not necessarily
+ * where the app is served — an enterprise preview, a staging host, or any deployment
+ * whose brand domain has not been pointed at it yet. Claiming an RP ID the browser is
+ * not on makes every passkey call fail with "invalid for this domain", which is exactly
+ * what the Acme preview did while serving from *.vercel.app.
+ *
+ * So: use the brand domain when the serving host really is that domain or a subdomain
+ * of it, and otherwise scope credentials to the serving host itself.
+ *
+ * For Astrid this is a no-op — served from www.astrid.cc, which is a subdomain of
+ * astrid.cc, so the RP ID stays astrid.cc and existing passkeys keep working. That
+ * matters: the RP ID is a CREDENTIAL BINDING, and changing it on a live deployment
+ * invalidates every passkey already registered.
+ *
+ * NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID overrides all of this, for a deployment that knows
+ * better than we can infer.
+ */
+function resolveRpID(): string {
+  const explicit = process.env.NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID?.trim()
+  if (explicit) return explicit
+  if (!isProduction) return "localhost"
+
+  const host = servingHost()
+  if (!host) return BRAND.domain
+
+  // Leading dot matters: without it `evil-astrid.cc` would also look like a subdomain.
+  const isBrandHost = host === BRAND.domain || host.endsWith(`.${BRAND.domain}`)
+  return isBrandHost ? BRAND.domain : host
+}
+
+const rpID = resolveRpID()
+
+// The brand's own origins, plus the host we are actually served from — otherwise a
+// deployment reachable at a non-brand host cannot complete a passkey ceremony.
 const baseOrigins = isProduction
-  ? [`https://${BRAND.domain}`, `https://www.${BRAND.domain}`]
+  ? Array.from(new Set([
+      `https://${BRAND.domain}`,
+      `https://www.${BRAND.domain}`,
+      ...(servingHost() ? [`https://${servingHost()}`] : []),
+    ]))
   : [`http://localhost:${process.env.PORT || 3000}`]
 
 /**

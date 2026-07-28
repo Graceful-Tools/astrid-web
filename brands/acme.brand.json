@@ -17,7 +17,8 @@
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_MCP": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS": "false",
-    "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false"
+    "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false",
+    "NEXT_PUBLIC_BRAND_LOGO": "/images/acme-logo.png"
   },
   "expect": {
     "appName": "Acme",
@@ -27,7 +28,10 @@
     "supportEmail": "helpdesk@acme.example",
     "inboundTaskEmail": "todo@acme.example",
     "accentColor": "#a855f7",
-    "enabledAgents": ["astrid", "claude"],
+    "enabledAgents": [
+      "astrid",
+      "claude"
+    ],
     "capabilities": {
       "authGoogle": false,
       "authApple": false,
@@ -40,7 +44,14 @@
       "emailToTask": false,
       "calendarFeed": true
     },
-    "requireLiterals": ["Acme"],
-    "forbidLiterals": ["Astrid", "astrid.cc"]
+    "requireLiterals": [
+      "Acme"
+    ],
+    "forbidLiterals": [
+      "Astrid",
+      "astrid.cc"
+    ],
+    "logo": "/images/acme-logo.png",
+    "icon": "/icons/icon-512x512.png"
   }
 }

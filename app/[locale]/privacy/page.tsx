@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
       <header className="border-b border-gray-800 bg-gray-900">
         <div className="container mx-auto px-4 py-6">
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={32} height={32} className="rounded" />
+            <Image src={BRAND.iconSmall} alt={BRAND.appName} width={32} height={32} className="rounded" />
             <span className="text-2xl font-bold text-white">astrid</span>
           </Link>
         </div>

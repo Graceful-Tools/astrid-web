@@ -200,7 +200,7 @@ export function AstridReminderPopover({
             {/* Astrid Icon - 1/3 of screen width */}
             <div className="flex-shrink-0" style={{ width: '33%' }}>
               <img
-                src="/icons/icon-512x512.png"
+                src={BRAND.icon}
                 alt={BRAND.appName}
                 className="w-full h-auto"
               />

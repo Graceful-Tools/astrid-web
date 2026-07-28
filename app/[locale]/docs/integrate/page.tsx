@@ -50,7 +50,7 @@ export default function IntegrationGuidePage() {
             onClick={() => router.push('/')}
             title="Go to Home"
           >
-            <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={24} height={24} className="rounded" />
+            <Image src={BRAND.iconSmall} alt={BRAND.appName} width={24} height={24} className="rounded" />
             <span className="text-xl font-semibold theme-text-primary">astrid</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">

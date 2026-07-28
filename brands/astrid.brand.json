@@ -10,7 +10,14 @@
     "supportEmail": "support@astrid.cc",
     "inboundTaskEmail": "remindme@astrid.cc",
     "accentColor": "#3b82f6",
-    "enabledAgents": ["astrid", "claude", "openai", "gemini", "copilot", "openclaw"],
+    "enabledAgents": [
+      "astrid",
+      "claude",
+      "openai",
+      "gemini",
+      "copilot",
+      "openclaw"
+    ],
     "capabilities": {
       "authGoogle": true,
       "authApple": true,
@@ -23,7 +30,11 @@
       "emailToTask": true,
       "calendarFeed": true
     },
-    "requireLiterals": ["Astrid"],
-    "forbidLiterals": []
+    "requireLiterals": [
+      "Astrid"
+    ],
+    "forbidLiterals": [],
+    "logo": "/images/astrid-character.png",
+    "icon": "/icons/icon-512x512.png"
   }
 }

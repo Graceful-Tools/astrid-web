@@ -91,3 +91,73 @@ describe('WebAuthn relying party (task 97208a72)', () => {
     expect(getExpectedOrigins('http://preview.astrid.cc')).not.toContain('http://preview.astrid.cc')
   })
 })
+
+/**
+ * Regression: the Acme preview failed every passkey call with "invalid for this domain".
+ *
+ * BRAND.domain is the brand's NOMINAL domain and is not necessarily where the app is
+ * served. The preview ran on *.vercel.app while claiming an RP ID of tasks.acme.example,
+ * and WebAuthn requires the RP ID to be the origin's host or a registrable suffix of it.
+ *
+ * The RP ID is a credential binding, so the fix must NOT move it for Astrid: served from
+ * www.astrid.cc, a subdomain of astrid.cc, it has to stay astrid.cc or every registered
+ * passkey stops working.
+ */
+describe('WebAuthn RP ID tracks the serving host (task 97208a72)', () => {
+  const ORIGINAL = { ...process.env }
+
+  async function rpIDFor(env: Record<string, string | undefined>) {
+    vi.resetModules()
+    for (const key of ['NEXTAUTH_URL', 'VERCEL_URL', 'NEXT_PUBLIC_BRAND_DOMAIN',
+                       'NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID', 'NODE_ENV']) {
+      delete (process.env as Record<string, string | undefined>)[key]
+    }
+    Object.assign(process.env, env)
+    return (await import('@/lib/webauthn')).rpID
+  }
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL }
+    vi.resetModules()
+  })
+
+  it('stays astrid.cc for production — passkeys must not be invalidated', async () => {
+    expect(await rpIDFor({ NODE_ENV: 'production', NEXTAUTH_URL: 'https://www.astrid.cc' }))
+      .toBe('astrid.cc')
+  })
+
+  it('uses the serving host when the brand domain is not where we are served', async () => {
+    // The exact Acme preview failure.
+    expect(await rpIDFor({
+      NODE_ENV: 'production',
+      NEXTAUTH_URL: 'https://astrid-abc123-gracefultools.vercel.app',
+      NEXT_PUBLIC_BRAND_DOMAIN: 'tasks.acme.example',
+    })).toBe('astrid-abc123-gracefultools.vercel.app')
+  })
+
+  it('uses the brand domain once the deployment is actually served from it', async () => {
+    expect(await rpIDFor({
+      NODE_ENV: 'production',
+      NEXTAUTH_URL: 'https://tasks.acme.example',
+      NEXT_PUBLIC_BRAND_DOMAIN: 'tasks.acme.example',
+    })).toBe('tasks.acme.example')
+  })
+
+  it('does not treat a lookalike host as the brand domain', async () => {
+    // evil-astrid.cc must scope credentials to itself, never to astrid.cc.
+    expect(await rpIDFor({ NODE_ENV: 'production', NEXTAUTH_URL: 'https://evil-astrid.cc' }))
+      .toBe('evil-astrid.cc')
+  })
+
+  it('honours an explicit override', async () => {
+    expect(await rpIDFor({
+      NODE_ENV: 'production',
+      NEXTAUTH_URL: 'https://astrid-abc.vercel.app',
+      NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID: 'tasks.acme.example',
+    })).toBe('tasks.acme.example')
+  })
+
+  it('stays localhost in development', async () => {
+    expect(await rpIDFor({ NODE_ENV: 'development' })).toBe('localhost')
+  })
+})

@@ -65,7 +65,11 @@ const RULES: Rule[] = [
     fix: "Use lib/brand/config.ts — BRAND.appName, BRAND.domain, BRAND.agentEmailDomain, BRAND.supportEmail, BRAND.inboundTaskEmail — or an i18n key with an {appName} token.",
     // Word-boundary "Astrid" so identifiers (AstridEmptyState, astridPhrase) and the
     // `astrid-signed` wire value are not flagged; plus the bare domain. Task 97208a72.
-    pattern: String.raw`\bAstrid\b|astrid\.cc`,
+    //
+    // Also brand-named ASSET paths ("/images/astrid-character.png"). Those slipped
+    // through the first pass: lowercase and hyphenated, so neither of the patterns above
+    // matched, and the Acme preview shipped an Astrid logo on its sign-in page.
+    pattern: String.raw`\bAstrid\b|astrid\.cc|/[a-z/]*astrid-[a-z0-9-]*\.(png|jpg|jpeg|svg|webp|ico)`,
     globs: ["components", "app", "hooks", "lib"],
     // Canonical homes and frozen wire values only:
     //   config.ts / capabilities.ts / agent-emails.ts — where the brand is defined

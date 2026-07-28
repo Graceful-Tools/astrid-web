@@ -183,7 +183,7 @@ export function SignInContent() {
         {/* Header - Logo and Tagline (matching iOS) */}
         <div className="flex items-center justify-center gap-4 mb-4">
           <Image
-            src="/images/astrid-character.png"
+            src={BRAND.logo}
             alt={BRAND.appName}
             width={88}
             height={88}

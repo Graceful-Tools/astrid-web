@@ -833,7 +833,7 @@ const TaskManagerView = memo(function TaskManagerView({
                   <div className="flex items-start space-x-4 w-full">
                     <div className="flex-shrink-0 w-24">
                       <img
-                        src="/icons/icon-512x512.png"
+                        src={BRAND.icon}
                         alt={BRAND.appName}
                         className="w-full h-auto"
                       />

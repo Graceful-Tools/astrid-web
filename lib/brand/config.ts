@@ -23,6 +23,9 @@ const DEFAULTS = {
   inboundTaskEmail: 'remindme@astrid.cc',
   accentColor: '#3b82f6',
   agentIdentityName: 'Astrid',
+  logo: '/images/astrid-character.png',
+  icon: '/icons/icon-512x512.png',
+  iconSmall: '/icons/icon-96x96.png',
 } as const
 
 /** Trim and treat an empty/whitespace-only env var as unset. */
@@ -70,6 +73,21 @@ export const BRAND = {
     process.env.NEXT_PUBLIC_BRAND_AGENT_NAME,
     env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.agentIdentityName)
   ),
+
+  /**
+   * Character / mascot artwork — the sign-in page, empty states and reminder popovers.
+   *
+   * A path, not a colour, because this is the one asset a fork cannot simply overwrite
+   * in place: it ships under a brand-specific filename. The square icons below use
+   * generic paths precisely so a fork CAN replace the files without touching config.
+   */
+  logo: env(process.env.NEXT_PUBLIC_BRAND_LOGO, DEFAULTS.logo),
+
+  /** Large square app mark. Generic path — a fork replaces public/icons/*. */
+  icon: env(process.env.NEXT_PUBLIC_BRAND_ICON, DEFAULTS.icon),
+
+  /** Small square app mark, used in page headers. */
+  iconSmall: env(process.env.NEXT_PUBLIC_BRAND_ICON_SMALL, DEFAULTS.iconSmall),
 } as const
 
 export type Brand = typeof BRAND

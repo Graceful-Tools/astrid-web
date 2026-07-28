@@ -182,7 +182,7 @@ export function LeftSidebar({
             onClick={onLogoClick}
           >
             <Image
-              src="/icons/icon-96x96.png"
+              src={BRAND.iconSmall}
               alt={BRAND.appName}
               width={28}
               height={28}

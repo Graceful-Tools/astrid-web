@@ -128,7 +128,7 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>
             <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Image src="/icons/icon-96x96.png" alt={BRAND.appName} width={24} height={24} className="rounded-full" />
+              <Image src={BRAND.iconSmall} alt={BRAND.appName} width={24} height={24} className="rounded-full" />
               <span>{BRAND.appName}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">

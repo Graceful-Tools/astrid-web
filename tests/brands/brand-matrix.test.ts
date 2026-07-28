@@ -35,6 +35,8 @@ interface BrandProfile {
     supportEmail: string
     inboundTaskEmail: string
     accentColor: string
+    logo: string
+    icon: string
     enabledAgents: string[]
     capabilities: Record<string, boolean>
     requireLiterals: string[]
@@ -86,6 +88,19 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(BRAND.inboundTaskEmail).toBe(profile.expect.inboundTaskEmail)
     expect(BRAND.accentColor).toBe(profile.expect.accentColor)
     expect(brandOrigin()).toBe(`https://${profile.expect.domain}`)
+  })
+
+  it('points at this profile’s artwork', async () => {
+    // The Acme preview shipped an Astrid logo on its sign-in page: the asset path was
+    // hardcoded, and being lowercase-hyphenated it matched none of the brand-literal
+    // patterns either. Task 97208a72.
+    const { BRAND } = await import('@/lib/brand/config')
+
+    expect(BRAND.logo).toBe(profile.expect.logo)
+    expect(BRAND.icon).toBe(profile.expect.icon)
+    for (const literal of profile.expect.forbidLiterals) {
+      expect(BRAND.logo, `logo path leaks "${literal}"`).not.toContain(literal.toLowerCase())
+    }
   })
 
   it('enables exactly the expected agents, at the expected domain', async () => {
