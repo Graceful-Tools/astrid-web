@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const options = await getRegistrationOptions(userId, userEmail)
+    const requestOrigin = request.headers.get("origin") || undefined
+    const options = await getRegistrationOptions(userId, userEmail, requestOrigin)
 
     // Store challenge with session ID for verification
     const sessionId = uuid()

@@ -106,14 +106,14 @@ describe('WebAuthn relying party (task 97208a72)', () => {
 describe('WebAuthn RP ID tracks the serving host (task 97208a72)', () => {
   const ORIGINAL = { ...process.env }
 
-  async function rpIDFor(env: Record<string, string | undefined>) {
+  async function rpIDFor(env: Record<string, string | undefined>, requestOrigin?: string) {
     vi.resetModules()
     for (const key of ['NEXTAUTH_URL', 'VERCEL_URL', 'NEXT_PUBLIC_BRAND_DOMAIN',
                        'NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID', 'NODE_ENV']) {
       delete (process.env as Record<string, string | undefined>)[key]
     }
     Object.assign(process.env, env)
-    return (await import('@/lib/webauthn')).rpID
+    return (await import('@/lib/webauthn')).resolveRpID(requestOrigin)
   }
 
   afterEach(() => {
@@ -147,6 +147,31 @@ describe('WebAuthn RP ID tracks the serving host (task 97208a72)', () => {
     // evil-astrid.cc must scope credentials to itself, never to astrid.cc.
     expect(await rpIDFor({ NODE_ENV: 'production', NEXTAUTH_URL: 'https://evil-astrid.cc' }))
       .toBe('evil-astrid.cc')
+  })
+
+  it('prefers the request origin over the environment', async () => {
+    // The failure this exists for: on a preview, NEXTAUTH_URL still points at
+    // production, so an env-derived RP ID does not match the host the browser is on and
+    // every passkey call is rejected. The request origin is the authority.
+    expect(await rpIDFor(
+      { NODE_ENV: 'production', NEXTAUTH_URL: 'https://www.astrid.cc',
+        NEXT_PUBLIC_BRAND_DOMAIN: 'tasks.acme.example' },
+      'https://astrid-preview-abc.vercel.app',
+    )).toBe('astrid-preview-abc.vercel.app')
+  })
+
+  it('still collapses a brand subdomain request to the brand domain', async () => {
+    // A request arriving on preview.astrid.cc must keep RP ID astrid.cc, or a passkey
+    // registered on the apex would not be offered.
+    expect(await rpIDFor(
+      { NODE_ENV: 'production', NEXTAUTH_URL: 'https://www.astrid.cc' },
+      'https://preview.astrid.cc',
+    )).toBe('astrid.cc')
+  })
+
+  it('falls back to the environment when there is no request origin', async () => {
+    expect(await rpIDFor({ NODE_ENV: 'production', NEXTAUTH_URL: 'https://www.astrid.cc' }))
+      .toBe('astrid.cc')
   })
 
   it('honours an explicit override', async () => {

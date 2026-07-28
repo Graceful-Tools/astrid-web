@@ -79,12 +79,24 @@ function servingHost(): string | null {
  * NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID overrides all of this, for a deployment that knows
  * better than we can infer.
  */
-function resolveRpID(): string {
+export function resolveRpID(requestOrigin?: string): string {
   const explicit = process.env.NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID?.trim()
   if (explicit) return explicit
   if (!isProduction) return "localhost"
 
-  const host = servingHost()
+  // The origin the browser is actually on wins. Environment variables describe the
+  // deployment's canonical URL, which is NOT necessarily where this request arrived:
+  // on a preview, NEXTAUTH_URL still points at production, so an env-derived RP ID
+  // fails the browser's check even though it looks right in logs.
+  let host: string | null = null
+  if (requestOrigin) {
+    try {
+      host = new URL(requestOrigin).hostname
+    } catch {
+      host = null
+    }
+  }
+  host = host ?? servingHost()
   if (!host) return BRAND.domain
 
   // Leading dot matters: without it `evil-astrid.cc` would also look like a subdomain.
@@ -92,6 +104,10 @@ function resolveRpID(): string {
   return isBrandHost ? BRAND.domain : host
 }
 
+/**
+ * Module-level default, used only for logging and for callers with no request in hand.
+ * Every ceremony resolves its own RP ID from the request origin — see resolveRpID.
+ */
 const rpID = resolveRpID()
 
 // The brand's own origins, plus the host we are actually served from — otherwise a
@@ -199,7 +215,7 @@ export async function deleteChallenge(sessionId: string) {
   await prisma.webAuthnChallenge.delete({ where: { id: sessionId } }).catch(() => {})
 }
 
-export async function getRegistrationOptions(userId: string, email: string) {
+export async function getRegistrationOptions(userId: string, email: string, requestOrigin?: string) {
   // Ensure prisma is available
   if (!prisma) {
     throw new Error("Database connection not available")
@@ -225,7 +241,7 @@ export async function getRegistrationOptions(userId: string, email: string) {
 
   const options = await generateRegistrationOptions({
     rpName,
-    rpID,
+    rpID: resolveRpID(requestOrigin),
     userID: userId,
     userName: email,
     userDisplayName: email.split("@")[0] || email,
@@ -252,7 +268,7 @@ export async function verifyRegistration(
       userId,
       expectedChallenge: expectedChallenge.substring(0, 20) + "...",
       expectedOrigin: origins,
-      expectedRPID: rpID,
+      expectedRPID: resolveRpID(requestOrigin),
       requestOrigin,
     }, "[WebAuthn] Verifying registration:")
 
@@ -260,7 +276,7 @@ export async function verifyRegistration(
       response,
       expectedChallenge,
       expectedOrigin: origins,
-      expectedRPID: rpID,
+      expectedRPID: resolveRpID(requestOrigin),
       requireUserVerification: false, // We use "preferred" in options, so don't require it
     })
 
@@ -292,7 +308,7 @@ export async function verifyRegistration(
   }
 }
 
-export async function getAuthenticationOptions(email?: string) {
+export async function getAuthenticationOptions(email?: string, requestOrigin?: string) {
   let allowCredentials: { id: Uint8Array; type: "public-key"; transports?: AuthenticatorTransportFuture[] }[] | undefined
 
   if (email) {
@@ -312,7 +328,7 @@ export async function getAuthenticationOptions(email?: string) {
   }
 
   const options = await generateAuthenticationOptions({
-    rpID,
+    rpID: resolveRpID(requestOrigin),
     userVerification: "preferred",
     allowCredentials,
   })
@@ -341,7 +357,7 @@ export async function verifyAuthentication(
       response,
       expectedChallenge,
       expectedOrigin: origins,
-      expectedRPID: rpID,
+      expectedRPID: resolveRpID(requestOrigin),
       requireUserVerification: false, // We use "preferred" in options, so don't require it
       authenticator: {
         credentialID: Buffer.from(authenticator.credentialID, "base64url"),

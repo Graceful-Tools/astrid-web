@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     const { email } = body
 
     // Get authentication options (optionally filtered by email)
-    const options = await getAuthenticationOptions(email)
+    const requestOrigin = request.headers.get("origin") || undefined
+    const options = await getAuthenticationOptions(email, requestOrigin)
 
     // Store challenge for verification
     const sessionId = uuid()
