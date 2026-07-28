@@ -36,3 +36,39 @@ enabled services.
   change today's behaviour: no env set, everything on, every value the Astrid default.
 - **`acme.brand.json`** — a fully rebranded deployment with several services disabled.
   Proves the whitelabelling actually works end to end rather than merely compiling.
+
+## Deploying a profile as a preview
+
+`NEXT_PUBLIC_*` values are inlined at build time, so a brand preview needs them passed as
+build env rather than set on the Vercel project:
+
+```bash
+npx tsx scripts/deploy-brand-preview.ts acme
+```
+
+That reads `brands/acme.brand.json` and deploys with its `env` applied.
+
+### One value is pinned, not taken from the profile
+
+`BRAND_AGENT_EMAIL_DOMAIN` is forced to `astrid.cc` on previews. Preview deployments
+share the production database, and `ensureAstridAgent()` / `ensureAgentUser()` create
+agent `User` rows on demand — so a preview at a different agent domain would write
+`astrid@agents.acme.example` and friends into production data the moment anyone opened
+the agent picker.
+
+**Pinned, not omitted.** `BRAND.agentEmailDomain` falls back to
+`NEXT_PUBLIC_BRAND_DOMAIN`, so merely leaving the variable out still moves agent
+identities — to the brand's *web* domain instead. That was the first attempt here, and
+checking the deployed preview showed it resolving agents at `tasks.acme.example`. An
+absent variable is not the same as a safe one.
+
+The agent-domain change is covered by unit tests and by
+`scripts/migrate-agent-email-domain.ts`. It should be exercised against a real partner
+database, not against production via a preview.
+
+### Links point at the project's NEXTAUTH_URL
+
+A preview inherits the Vercel project's `NEXTAUTH_URL`, so absolute links in `/llms.txt`
+and the plugin manifest reference the project's own host rather than the brand's. That is
+environment configuration, not a whitelabel gap — a real partner deployment sets its own
+`NEXTAUTH_URL` alongside the brand variables.
