@@ -40,6 +40,7 @@ interface BrandProfile {
     wordmark: string
     slogan: string
     appStoreUrl: string
+    githubAppSlug: string
     logo: string
     icon: string
     enabledAgents: string[]
@@ -107,6 +108,9 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(BRAND.wordmark).toBe(profile.expect.wordmark)
     expect(BRAND.slogan).toBe(profile.expect.slogan)
     expect(BRAND.appStoreUrl).toBe(profile.expect.appStoreUrl)
+    // A partner registers their own GitHub App; a hardcoded slug would send their users
+    // to install someone else's.
+    expect(BRAND.githubAppSlug).toBe(profile.expect.githubAppSlug)
 
     for (const literal of profile.expect.forbidLiterals) {
       expect(BRAND.wordmark.toLowerCase(), `wordmark leaks "${literal}"`)

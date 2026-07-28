@@ -21,7 +21,8 @@
     "NEXT_PUBLIC_BRAND_LOGO": "/images/acme-logo.png",
     "NEXT_PUBLIC_BRAND_WORDMARK": "ACME",
     "NEXT_PUBLIC_BRAND_SLOGAN": "Work, handled.",
-    "NEXT_PUBLIC_BRAND_APP_STORE_URL": ""
+    "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
+    "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant"
   },
   "expect": {
     "appName": "Acme",
@@ -58,7 +59,8 @@
     "icon": "/icons/icon-512x512.png",
     "wordmark": "ACME",
     "slogan": "Work, handled.",
-    "appStoreUrl": ""
+    "appStoreUrl": "",
+    "githubAppSlug": "acme-code-assistant"
   },
   "copy": {
     "reminders": {

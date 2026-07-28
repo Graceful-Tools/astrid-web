@@ -38,6 +38,7 @@
     "icon": "/icons/icon-512x512.png",
     "wordmark": "astrid",
     "slogan": "Get it done!",
-    "appStoreUrl": "https://apps.apple.com/app/astrid-tasks/id6755752694"
+    "appStoreUrl": "https://apps.apple.com/app/astrid-tasks/id6755752694",
+    "githubAppSlug": "astrid-code-assistant"
   }
 }

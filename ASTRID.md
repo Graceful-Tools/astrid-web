@@ -233,6 +233,23 @@ Agents deploy feature branches to preview subdomains for review before merging:
 
 ---
 
+## Whitelabeling
+
+Astrid deploys under a different brand, with a different set of back-end services,
+entirely through build-time configuration — no source changes.
+
+- **Identity** (name, wordmark, slogan, domain, emails, colours, artwork) —
+  `lib/brand/config.ts`
+- **Capabilities** (which auth methods, sync providers and integrations exist) —
+  `lib/brand/capabilities.ts`, enforced server-side, 404 when disabled
+- **Voice** (reminder nags, default-list captions) — `lib/brand/copy.ts`
+
+Never hardcode a brand literal, a brand-named asset path or a service assumption:
+`npm run check:reuse` fails the build on them. Partner profiles live in `brands/` and
+`npm run check:brands` runs every one as its own predeploy gate.
+
+Full reference: **[docs/WHITELABELING.md](./docs/WHITELABELING.md)**.
+
 ## Development Workflow
 
 ### Task-Based Development

@@ -106,7 +106,7 @@ export default function GitHubSetupPage() {
                   <div>
                     <strong>GitHub App name:</strong>
                     <code className="ml-2 bg-gray-100 px-2 py-1 rounded">
-                      astrid-code-assistant-{'{your-username}'}
+                      {BRAND.githubAppSlug}-{'{your-username}'}
                     </code>
                   </div>
                   <div>
@@ -217,7 +217,7 @@ export default function GitHubSetupPage() {
                 <h3 className="font-medium mb-2 text-white">💻 Terminal Commands:</h3>
                 <pre className="text-green-400 text-sm overflow-x-auto">
 {`# 1. Move the private key file
-cp ~/Downloads/astrid-code-assistant-*.private-key.pem ./github-app-private-key.pem
+cp ~/Downloads/${BRAND.githubAppSlug}-*.private-key.pem ./github-app-private-key.pem
 
 # 2. Format the key properly
 node scripts/setup-private-key.js
@@ -374,7 +374,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here`}
                 <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
                   <li>AI generates an implementation plan (appears as comment)</li>
                   <li>You reply with <code>&quot;approve&quot;</code></li>
-                  <li>AI creates a new branch: <code>astrid-code-assistant/[timestamp]-create-button</code></li>
+                  <li>AI creates a new branch: <code>{BRAND.githubAppSlug}/[timestamp]-create-button</code></li>
                   <li>AI generates and commits the component code</li>
                   <li>AI opens a pull request with detailed description</li>
                   <li>You can review the code and optionally comment <code>&quot;merge&quot;</code></li>

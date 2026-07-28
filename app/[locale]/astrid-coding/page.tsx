@@ -26,7 +26,7 @@ import { scrollShellClassName } from "@/components/scroll-shell"
 
 export default function AstridCodingPage() {
   const handleGetStarted = () => {
-    window.open('https://github.com/apps/astrid-code-assistant/installations/new', '_blank')
+    window.open(`https://github.com/apps/${BRAND.githubAppSlug}/installations/new`, '_blank')
   }
 
   const handleSignUp = () => {
@@ -273,7 +273,7 @@ export default function AstridCodingPage() {
               <span className="text-gray-400">Coding Agent</span>
             </div>
             <div className="flex items-center space-x-6">
-              <a href="https://github.com/apps/astrid-code-assistant" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+              <a href={`https://github.com/apps/${BRAND.githubAppSlug}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Github className="w-5 h-5" />
               </a>
               <Link href="/auth/signin" className="text-gray-400 hover:text-white transition-colors">

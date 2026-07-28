@@ -213,14 +213,14 @@ export function GitHubSetupGuide() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard('astrid-code-assistant-' + Math.random().toString(36).substr(2, 5))}
+                          onClick={() => copyToClipboard(`${BRAND.githubAppSlug}-` + Math.random().toString(36).substr(2, 5))}
                         >
                           <Copy className="w-3 h-3 mr-1" />
                           Copy
                         </Button>
                       </div>
                       <div className="bg-gray-100 p-2 rounded text-xs font-mono text-gray-800">
-                        astrid-code-assistant-[username]
+                        {BRAND.githubAppSlug}-[username]
                       </div>
 
                       <div className="flex items-center justify-between bg-gray-50 p-2 rounded">

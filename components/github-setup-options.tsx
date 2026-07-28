@@ -173,7 +173,7 @@ export function GitHubSetupOptions() {
                     If the button doesn&apos;t work, use this direct link:
                   </p>
                   <code className="block bg-gray-100 p-2 rounded text-xs break-all">
-                    https://github.com/apps/astrid-code-assistant/installations/new
+                    https://github.com/apps/{BRAND.githubAppSlug}/installations/new
                   </code>
                 </div>
 

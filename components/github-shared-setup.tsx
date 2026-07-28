@@ -91,7 +91,7 @@ export function GitHubSharedSetup() {
   const handleInstallApp = () => {
     // Open GitHub App installation page
     // After installation, GitHub redirects to /api/github/setup with the installation_id
-    window.location.href = 'https://github.com/apps/astrid-code-assistant/installations/new'
+    window.location.href = `https://github.com/apps/${BRAND.githubAppSlug}/installations/new`
   }
 
   const handleConnectInstallation = async (installationId: number) => {

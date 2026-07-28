@@ -351,6 +351,21 @@ ORDER BY r."scheduledFor";
 - **[MCP Testing](./docs/testing/MCP_TESTING_GUIDE.md)** - Model Context Protocol testing
 - **[Development Guidelines](./docs/guides/development-guidelines.md)** - Code quality standards
 
+### Whitelabeling
+
+Astrid deploys under a different brand — different name, artwork, domain, sign-in
+methods and sync providers — with no source changes. Everything is build-time
+configuration, and every value defaults to Astrid's, so an unconfigured deployment is
+unchanged.
+
+```bash
+npm run check:brands                            # verify every brand profile
+npx tsx scripts/deploy-brand-preview.ts acme    # deploy one as a preview
+```
+
+See **[docs/WHITELABELING.md](./docs/WHITELABELING.md)** for the full reference, and
+[brands/README.md](./brands/README.md) for adding a partner.
+
 ### Key Features Documentation
 - **[Quick Reference](./docs/context/quick-reference.md)** - Essential commands and patterns
 - **[API Contracts](./docs/context/api_contracts.md)** - Endpoint specifications

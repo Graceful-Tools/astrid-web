@@ -215,7 +215,7 @@ export default function HelpPage() {
                     <h3 className="font-semibold text-white mb-1">Clear Browser Cache and Cookies for {BRAND.appName}</h3>
                     <p className="text-gray-400 text-sm">
                       <strong>Chrome:</strong> Settings &rarr; Privacy &rarr; Clear browsing data &rarr; Select &quot;Cookies&quot; and &quot;Cached images&quot;<br />
-                      <strong>Safari:</strong> Preferences &rarr; Privacy &rarr; Manage Website Data &rarr; Search for &quot;astrid&quot; &rarr; Remove<br />
+                      <strong>Safari:</strong> Preferences &rarr; Privacy &rarr; Manage Website Data &rarr; Search for &quot;{BRAND.domain}&quot; &rarr; Remove<br />
                       <strong>Firefox:</strong> Settings &rarr; Privacy &rarr; Clear Data &rarr; Select Cookies and Cache
                     </p>
                   </div>
@@ -226,7 +226,7 @@ export default function HelpPage() {
                   <div>
                     <h3 className="font-semibold text-white mb-1">Clear IndexedDB Storage</h3>
                     <p className="text-gray-400 text-sm">
-                      In Chrome: Open DevTools (F12) &rarr; Application tab &rarr; Storage &rarr; IndexedDB &rarr; Right-click astrid entries &rarr; Delete database. Then refresh the page.
+                      In Chrome: Open DevTools (F12) &rarr; Application tab &rarr; Storage &rarr; IndexedDB &rarr; Right-click {BRAND.wordmark} entries &rarr; Delete database. Then refresh the page.
                     </p>
                   </div>
                 </div>

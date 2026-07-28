@@ -23,6 +23,7 @@ const DEFAULTS = {
   inboundTaskEmail: 'remindme@astrid.cc',
   accentColor: '#3b82f6',
   agentIdentityName: 'Astrid',
+  githubAppSlug: 'astrid-code-assistant',
   wordmark: 'astrid',
   slogan: 'Get it done!',
   appStoreUrl: 'https://apps.apple.com/app/astrid-tasks/id6755752694',
@@ -76,6 +77,15 @@ export const BRAND = {
     process.env.NEXT_PUBLIC_BRAND_AGENT_NAME,
     env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.agentIdentityName)
   ),
+
+  /**
+   * GitHub App slug backing the AI coding agent, as registered on GitHub.
+   *
+   * A partner registers their own App — the install URL, the generated branch prefix and
+   * the private-key filename in the setup instructions all derive from it, so a
+   * hardcoded slug sends their users to install someone else's App.
+   */
+  githubAppSlug: env(process.env.NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG, DEFAULTS.githubAppSlug),
 
   /**
    * The wordmark as drawn in the header lockup — lowercase for Astrid, which is a
