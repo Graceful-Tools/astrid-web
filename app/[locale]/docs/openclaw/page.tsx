@@ -36,7 +36,7 @@ export default function OpenClawDocsPage() {
             title="Go to Home"
           >
             <Image src={BRAND.iconSmall} alt={BRAND.appName} width={24} height={24} className="rounded" />
-            <span className="text-xl font-semibold theme-text-primary">astrid</span>
+            <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
             <div className="w-2 h-2 theme-bg-tertiary rounded-full"></div>

@@ -22,11 +22,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { profileEnv } from '@/lib/brand/profile'
 
 interface BrandProfile {
   name: string
   description: string
   env: Record<string, string>
+  copy?: { reminders?: Record<string, string[]>; defaultLists?: Record<string, unknown> }
   expect: {
     appName: string
     productTitle: string
@@ -35,6 +37,9 @@ interface BrandProfile {
     supportEmail: string
     inboundTaskEmail: string
     accentColor: string
+    wordmark: string
+    slogan: string
+    appStoreUrl: string
     logo: string
     icon: string
     enabledAgents: string[]
@@ -69,7 +74,9 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
   beforeEach(() => {
     vi.resetModules()
     clearBrandEnv()
-    Object.assign(process.env, profile.env)
+    // profileEnv, not profile.env — the same call the deploy script makes, so the
+    // suite cannot verify a different configuration from the one that ships.
+    Object.assign(process.env, profileEnv(profile as never))
   })
 
   afterEach(() => {
@@ -88,6 +95,50 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(BRAND.inboundTaskEmail).toBe(profile.expect.inboundTaskEmail)
     expect(BRAND.accentColor).toBe(profile.expect.accentColor)
     expect(brandOrigin()).toBe(`https://${profile.expect.domain}`)
+  })
+
+  it('renders this profile’s wordmark and slogan', async () => {
+    // The lowercase "astrid" wordmark survived every earlier sweep: the brand-literal
+    // rule is case-sensitive by design (so AstridEmptyState and astrid-signed are not
+    // flagged), so `<h1>astrid</h1>` matched nothing and the Acme sign-in page still
+    // said "astrid / Get it done!". Task 97208a72.
+    const { BRAND } = await import('@/lib/brand/config')
+
+    expect(BRAND.wordmark).toBe(profile.expect.wordmark)
+    expect(BRAND.slogan).toBe(profile.expect.slogan)
+    expect(BRAND.appStoreUrl).toBe(profile.expect.appStoreUrl)
+
+    for (const literal of profile.expect.forbidLiterals) {
+      expect(BRAND.wordmark.toLowerCase(), `wordmark leaks "${literal}"`)
+        .not.toContain(literal.toLowerCase())
+      expect(BRAND.slogan.toLowerCase(), `slogan leaks "${literal}"`)
+        .not.toContain(literal.toLowerCase())
+    }
+  })
+
+  it('uses this profile’s reminder voice', async () => {
+    const { brandReminders } = await import('@/lib/brand/copy')
+
+    for (const kind of ['general', 'due', 'responses'] as const) {
+      const override = brandReminders(kind)
+      if (profile.copy?.reminders?.[kind]) {
+        expect(override, `${kind} should come from the profile`)
+          .toEqual(profile.copy.reminders[kind])
+      } else {
+        // No override means the built-in set is used, not an empty one.
+        expect(override, `${kind} should fall back`).toBeNull()
+      }
+    }
+  })
+
+  it('captions default lists in this profile’s voice', async () => {
+    const { brandListCaption } = await import('@/lib/brand/copy')
+
+    for (const [type, expected] of Object.entries(profile.copy?.defaultLists ?? {})) {
+      expect(brandListCaption(type)).toEqual(expected)
+    }
+    // A type the profile says nothing about falls back rather than blanking out.
+    expect(brandListCaption('a-type-no-brand-defines')).toBeNull()
   })
 
   it('points at this profile’s artwork', async () => {

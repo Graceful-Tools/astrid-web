@@ -1,3 +1,4 @@
+import { brandListCaption } from './brand/copy'
 import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
 import { toggleFavorite } from "./favorites"
@@ -70,8 +71,17 @@ export async function createDefaultListsForUser(userId: string) {
     // Create the lists and assign consistent images
     const createdLists = []
     for (const listData of defaultLists) {
+      // A brand may caption its starter lists in its own voice. Applied here rather
+      // than in the literals above so an override is per-field: a partner can rename
+      // "I've Assigned" without also having to restate its description.
+      // Task 97208a72.
+      const caption = brandListCaption(listData.virtualListType)
       const list = await prisma.taskList.create({
-        data: listData
+        data: {
+          ...listData,
+          name: caption?.name?.trim() || listData.name,
+          description: caption?.description?.trim() || listData.description,
+        }
       })
 
       // Assign consistent default image based on list ID

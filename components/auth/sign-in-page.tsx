@@ -74,7 +74,7 @@ export function SignInPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Heart className="w-8 h-8 text-red-500 fill-red-500" />
-            <span className="text-3xl font-bold text-white">astrid</span>
+            <span className="text-3xl font-bold text-white">{BRAND.wordmark}</span>
           </div>
           <p className="text-gray-400">Your personal task management companion</p>
         </div>

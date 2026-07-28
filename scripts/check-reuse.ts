@@ -69,7 +69,12 @@ const RULES: Rule[] = [
     // Also brand-named ASSET paths ("/images/astrid-character.png"). Those slipped
     // through the first pass: lowercase and hyphenated, so neither of the patterns above
     // matched, and the Acme preview shipped an Astrid logo on its sign-in page.
-    pattern: String.raw`\bAstrid\b|astrid\.cc|/[a-z/]*astrid-[a-z0-9-]*\.(png|jpg|jpeg|svg|webp|ico)`,
+    // Also the lowercase wordmark as JSX text (`>astrid<`) and slogan copy. The main
+    // pattern is case-sensitive on purpose — otherwise AstridEmptyState, astridPhrase
+    // and the astrid-signed wire value would all trip it — which is exactly why
+    // `<h1>astrid</h1>` survived every earlier sweep and shipped on the Acme sign-in
+    // page. Matching it as a standalone JSX text node keeps identifiers exempt.
+    pattern: String.raw`\bAstrid\b|astrid\.cc|/[a-z/]*astrid-[a-z0-9-]*\.(png|jpg|jpeg|svg|webp|ico)|>[[:space:]]*astrid[[:space:]]*<|Get it done!`,
     globs: ["components", "app", "hooks", "lib"],
     // Canonical homes and frozen wire values only:
     //   config.ts / capabilities.ts / agent-emails.ts — where the brand is defined

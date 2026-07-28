@@ -191,15 +191,17 @@ export function SignInContent() {
             className="rounded-2xl"
           />
           <div className="text-left">
-            <h1 className="text-4xl font-bold text-white">astrid</h1>
-            <p className="text-gray-400 text-lg">Get it done!</p>
+            <h1 className="text-4xl font-bold text-white">{BRAND.wordmark}</h1>
+            <p className="text-gray-400 text-lg">{BRAND.slogan}</p>
           </div>
         </div>
 
-        {/* App Store Download Button */}
+        {/* App Store Download Button — hidden when the brand has no published app,
+            so a partner deployment does not advertise someone else's listing. */}
+        {BRAND.appStoreUrl && (
         <div className="flex justify-center mb-8">
           <a
-            href="https://apps.apple.com/app/astrid-tasks/id6755752694"
+            href={BRAND.appStoreUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-xl text-white text-sm font-medium transition-colors"
@@ -210,6 +212,7 @@ export function SignInContent() {
             Download on the App Store
           </a>
         </div>
+        )}
 
         {/* Authentication Card */}
         <Card className="bg-gray-900 border-gray-800 shadow-2xl">

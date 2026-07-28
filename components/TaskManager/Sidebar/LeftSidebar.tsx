@@ -188,7 +188,7 @@ export function LeftSidebar({
               height={28}
               className="rounded-sm"
             />
-            <span className="text-lg font-semibold tracking-tight theme-text-primary">astrid</span>
+            <span className="text-lg font-semibold tracking-tight theme-text-primary">{BRAND.wordmark}</span>
           </div>
         </div>
 

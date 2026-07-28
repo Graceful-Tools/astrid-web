@@ -34,6 +34,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
+import { profileEnv, type BrandProfile } from '../lib/brand/profile'
 
 loadScriptEnv()
 
@@ -65,11 +66,10 @@ if (!token) {
   process.exit(1)
 }
 
-const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as {
-  name: string
-  description: string
-  env: Record<string, string>
-}
+const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as BrandProfile
+
+// Shared with the brand matrix tests so a deploy and a test apply a profile identically.
+const resolvedEnv = profileEnv(profile)
 
 const applied: string[] = []
 const pinned: string[] = []
@@ -83,7 +83,7 @@ function pushEnv(key: string, value: string) {
   }
 }
 
-for (const [key, value] of Object.entries(profile.env)) {
+for (const [key, value] of Object.entries(resolvedEnv)) {
   if (key in PINNED_FOR_PREVIEW) continue
   applied.push(key)
   pushEnv(key, value)

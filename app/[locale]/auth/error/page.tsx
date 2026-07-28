@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -32,7 +33,7 @@ function AuthErrorContent() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Heart className="w-8 h-8 text-red-500 fill-red-500" />
-            <span className="text-3xl font-bold text-white">astrid</span>
+            <span className="text-3xl font-bold text-white">{BRAND.wordmark}</span>
           </div>
         </div>
 

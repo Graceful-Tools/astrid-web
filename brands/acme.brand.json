@@ -18,7 +18,10 @@
     "NEXT_PUBLIC_BRAND_ENABLE_MCP": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false",
-    "NEXT_PUBLIC_BRAND_LOGO": "/images/acme-logo.png"
+    "NEXT_PUBLIC_BRAND_LOGO": "/images/acme-logo.png",
+    "NEXT_PUBLIC_BRAND_WORDMARK": "ACME",
+    "NEXT_PUBLIC_BRAND_SLOGAN": "Work, handled.",
+    "NEXT_PUBLIC_BRAND_APP_STORE_URL": ""
   },
   "expect": {
     "appName": "Acme",
@@ -52,6 +55,42 @@
       "astrid.cc"
     ],
     "logo": "/images/acme-logo.png",
-    "icon": "/icons/icon-512x512.png"
+    "icon": "/icons/icon-512x512.png",
+    "wordmark": "ACME",
+    "slogan": "Work, handled.",
+    "appStoreUrl": ""
+  },
+  "copy": {
+    "reminders": {
+      "general": [
+        "A moment, please.",
+        "Your attention is requested.",
+        "Pending item."
+      ],
+      "due": [
+        "This item is now due.",
+        "Scheduled work is ready.",
+        "Due now."
+      ],
+      "responses": [
+        "Please review when convenient.",
+        "Ready when you are.",
+        "Awaiting action."
+      ]
+    },
+    "defaultLists": {
+      "today": {
+        "name": "Due Today",
+        "description": "items scheduled for today"
+      },
+      "not-in-list": {
+        "name": "Unfiled",
+        "description": "items not yet assigned to a project"
+      },
+      "assigned": {
+        "name": "Delegated",
+        "description": "items you have assigned to others"
+      }
+    }
   }
 }

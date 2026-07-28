@@ -23,6 +23,9 @@ const DEFAULTS = {
   inboundTaskEmail: 'remindme@astrid.cc',
   accentColor: '#3b82f6',
   agentIdentityName: 'Astrid',
+  wordmark: 'astrid',
+  slogan: 'Get it done!',
+  appStoreUrl: 'https://apps.apple.com/app/astrid-tasks/id6755752694',
   logo: '/images/astrid-character.png',
   icon: '/icons/icon-512x512.png',
   iconSmall: '/icons/icon-96x96.png',
@@ -73,6 +76,27 @@ export const BRAND = {
     process.env.NEXT_PUBLIC_BRAND_AGENT_NAME,
     env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.agentIdentityName)
   ),
+
+  /**
+   * The wordmark as drawn in the header lockup — lowercase for Astrid, which is a
+   * deliberate styling choice rather than the product name.
+   *
+   * Defaults to the lowercased app name, so setting NEXT_PUBLIC_BRAND_NAME alone gives a
+   * sensible wordmark; set this when the two should differ.
+   */
+  wordmark: env(
+    process.env.NEXT_PUBLIC_BRAND_WORDMARK,
+    (process.env.NEXT_PUBLIC_BRAND_NAME || DEFAULTS.appName).trim().toLowerCase()
+  ),
+
+  /** Short slogan beside the wordmark. Distinct from `tagline`, which is metadata prose. */
+  slogan: env(process.env.NEXT_PUBLIC_BRAND_SLOGAN, DEFAULTS.slogan),
+
+  /**
+   * App Store listing. Empty string hides the download button entirely — a partner
+   * without a published app should not advertise someone else's.
+   */
+  appStoreUrl: process.env.NEXT_PUBLIC_BRAND_APP_STORE_URL?.trim() ?? DEFAULTS.appStoreUrl,
 
   /**
    * Character / mascot artwork — the sign-in page, empty states and reminder popovers.

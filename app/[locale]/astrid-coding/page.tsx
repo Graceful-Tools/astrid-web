@@ -41,7 +41,7 @@ export default function AstridCodingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Heart className="w-8 h-8 text-red-500 fill-red-500" />
-              <span className="text-2xl font-bold text-gray-900">astrid</span>
+              <span className="text-2xl font-bold text-gray-900">{BRAND.wordmark}</span>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                 Coding Agent
               </Badge>
@@ -269,7 +269,7 @@ export default function AstridCodingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Heart className="w-6 h-6 text-red-500 fill-red-500" />
-              <span className="text-xl font-semibold">astrid</span>
+              <span className="text-xl font-semibold">{BRAND.wordmark}</span>
               <span className="text-gray-400">Coding Agent</span>
             </div>
             <div className="flex items-center space-x-6">
