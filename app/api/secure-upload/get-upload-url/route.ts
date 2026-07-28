@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
@@ -213,7 +214,7 @@ export async function POST(request: NextRequest) {
     // Determine callback URL for upload completion
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXTAUTH_URL || 'https://astrid.cc'
+      : process.env.NEXTAUTH_URL || `https://${BRAND.domain}`
     const callbackUrl = `${baseUrl}/api/secure-upload/upload-complete`
 
     // Generate client token for direct upload to Vercel Blob

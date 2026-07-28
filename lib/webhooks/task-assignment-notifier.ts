@@ -22,6 +22,8 @@
  * instance app-wide).
  */
 
+import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TIMESTAMP_HEADER, WEBHOOK_EVENT_HEADER } from './protocol-headers'
+import { BRAND } from '@/lib/brand/config'
 import type { PrismaClient } from '@prisma/client'
 import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -121,7 +123,7 @@ export async function notifyTaskAssignment(
     } else if (task.aiAgent && task.aiAgent.id === aiAgentId) {
       agentRecord = task.aiAgent
       agentUser = await prisma.user.findFirst({
-        where: { email: `${task.aiAgent.name.toLowerCase().replace(/\s+/g, '')}@astrid.cc` },
+        where: { email: `${task.aiAgent.name.toLowerCase().replace(/\s+/g, '')}@${BRAND.agentEmailDomain}` },
       })
     }
 
@@ -166,7 +168,7 @@ export async function notifyTaskAssignment(
         id: agentRecord?.id || agentUser?.id || aiAgentId,
         name: agentName,
         type: agentRecord?.service ? `${agentRecord.service}_agent` : (agentUser?.aiAgentType || 'unknown'),
-        email: agentUser?.email || `${agentName.toLowerCase().replace(/\s+/g, '')}@astrid.cc`,
+        email: agentUser?.email || `${agentName.toLowerCase().replace(/\s+/g, '')}@${BRAND.agentEmailDomain}`,
       },
       task: {
         id: task.id,
@@ -200,7 +202,7 @@ export async function notifyTaskAssignment(
         contextInstructions:
           task.lists[0]?.description ||
           aiAgentConfig.contextInstructions ||
-          `You have been assigned a task in Astrid. Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+          `You have been assigned a task in ${BRAND.appName}. Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
       },
       creator: {
         id: task.creator?.id || task.creatorId,
@@ -337,9 +339,9 @@ export async function sendWebhookNotification(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Astrid-Task-Manager/1.0',
-        'X-Astrid-Event': payload.event,
-        'X-Astrid-Timestamp': payload.timestamp,
+        'User-Agent': `${BRAND.appName}-Task-Manager/1.0`,
+        [WEBHOOK_EVENT_HEADER]: payload.event,
+        [WEBHOOK_TIMESTAMP_HEADER]: payload.timestamp,
       },
       body: JSON.stringify(payload),
     })

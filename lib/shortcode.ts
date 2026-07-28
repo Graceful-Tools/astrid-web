@@ -3,6 +3,7 @@
  * Creates short, shareable URLs for tasks and lists
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from "@/lib/prisma"
 import { customAlphabet } from "nanoid"
 import { createLogger } from '@/lib/logger'
@@ -229,7 +230,7 @@ export function buildShortcodeUrl(code: string, baseUrl?: string): string {
   }
 
   if (!base) {
-    base = process.env.NEXT_PUBLIC_BASE_URL || "https://astrid.cc"
+    base = process.env.NEXT_PUBLIC_BASE_URL || `https://${BRAND.domain}`
   }
 
   return `${base}/s/${code}`

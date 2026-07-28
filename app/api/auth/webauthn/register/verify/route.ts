@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
@@ -172,7 +173,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (isProduction) {
-        cookieOptions.domain = ".astrid.cc"
+        // Scoped to the brand domain and its subdomains (leading dot), so a session
+        // started on the apex is valid on preview subdomains. Task 97208a72.
+        cookieOptions.domain = `.${BRAND.domain}`
       }
 
       res.cookies.set(cookieName, token, cookieOptions)

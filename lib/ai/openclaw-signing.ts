@@ -11,6 +11,7 @@
  *  3. Gateway verifies the signature before accepting the connection
  */
 
+import { BRAND } from '@/lib/brand/config'
 import crypto from 'crypto'
 
 // Default max age for signature verification (5 minutes)
@@ -88,7 +89,7 @@ export function getPublicKeyInfo(): PublicKeyInfo {
     publicKey: publicKey.export({ type: 'spki', format: 'pem' }) as string,
     keyId,
     algorithm: 'Ed25519',
-    issuer: 'astrid.cc',
+    issuer: `${BRAND.domain}`,
     createdAt: new Date().toISOString(),
   }
 }

@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
@@ -56,7 +57,7 @@ export const GET = withAuth(
         metadata: {
           number: String(i.number),
           parent: '', // parent issue number, filled from GraphQL below
-          assigneeUserId: '', // Astrid user mapped from GitHub assignees below
+          assigneeUserId: '', // {BRAND.appName} user mapped from GitHub assignees below
           commentCount: String(i.comments ?? 0),
           labels: (i.labels as any[]).map(l => (typeof l === 'string' ? l : l.name)).join(','),
           assignees: (i.assignees as any[]).map(a => a.login).join(','),

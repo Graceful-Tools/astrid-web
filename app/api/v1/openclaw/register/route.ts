@@ -9,6 +9,7 @@
  * Returns: { agent, oauth, config }
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { openClawAgentEmail } from '@/lib/brand/agent-emails'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -32,7 +33,7 @@ export const POST = withAuth(
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.REGISTRATION)
     if (rateCheck.response) return rateCheck.response
 
-    const baseUrl = (process.env.NEXTAUTH_URL || 'https://www.astrid.cc').replace(/\/+$/, '')
+    const baseUrl = (process.env.NEXTAUTH_URL || `https://www.${BRAND.domain}`).replace(/\/+$/, '')
 
     const body = await req.json()
     const { agentName, listIds } = body

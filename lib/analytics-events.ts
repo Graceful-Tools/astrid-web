@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest } from 'next/server'
 import { prisma } from './prisma'
 import { Prisma } from '@prisma/client'
@@ -53,7 +54,7 @@ export function detectPlatform(request: NextRequest): AnalyticsPlatformValue {
   if (
     xPlatform === 'ios-app' ||
     userAgent.includes('AstridApp/') ||
-    userAgent.includes('Astrid/')
+    userAgent.includes(`${BRAND.appName}/`)
   ) {
     return AnalyticsPlatform.IOS_APP
   }

@@ -5,6 +5,7 @@
  * POST /api/chat/channels/[channelId]/messages — send a message
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
@@ -243,7 +244,7 @@ export async function POST(
               userName: senderName,
               channelId,
               listId: channel?.listId || null,
-            }).catch(err => log.error({ err: err }, '[Chat API] Astrid runtime error:'))
+            }).catch(err => log.error({ err: err }, `[Chat API] ${BRAND.appName} runtime error:`))
           } else {
             // Other AI agents — send chat_mention SSE event for external processing
             await broadcastToUsers([mentionedUserId], {
@@ -330,7 +331,7 @@ export async function POST(
                 userName: senderName,
                 channelId,
                 listId: channel?.listId || null,
-              }).catch(err => log.error({ err: err }, '[Chat API] Astrid default agent error:'))
+              }).catch(err => log.error({ err: err }, `[Chat API] ${BRAND.appName} default agent error:`))
             } else {
               // External agent — send SSE event
               await broadcastToUsers([defaultAgentId], {

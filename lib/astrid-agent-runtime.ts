@@ -7,6 +7,7 @@
  * apps and external agents use.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getPreferredAIService } from '@/lib/api-key-cache'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -26,7 +27,7 @@ const log = createLogger('astrid-agent-runtime')
 const TOOLS_CLAUDE = [
   {
     name: 'api_request',
-    description: 'Make an authenticated HTTP request to the Astrid API. Use this for ALL actions: creating tasks, updating tasks, listing tasks, creating lists, adding comments, etc. See the API documentation in your system prompt for available endpoints.',
+    description: `Make an authenticated HTTP request to the ${BRAND.appName} API. Use this for ALL actions: creating tasks, updating tasks, listing tasks, creating lists, adding comments, etc. See the API documentation in your system prompt for available endpoints.`,
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -116,7 +117,7 @@ async function executeTool(
 
     return JSON.stringify(responseBody)
   } catch (error) {
-    log.error({ err: error }, '[Astrid] api_request failed:')
+    log.error({ err: error }, `[${BRAND.appName}] api_request failed:`)
     return JSON.stringify({ error: error instanceof Error ? error.message : 'Request failed' })
   }
 }
@@ -141,10 +142,10 @@ function buildSystemPrompt(context: {
   const defaultAssigneeName = context.defaultAssigneeName || context.userName
   const defaultPriority = context.defaultPriority ?? 0
 
-  return `You are Astrid, a helpful task management assistant. You help ${context.userName} (${context.userEmail}) manage their tasks and lists.
+  return `You are ${BRAND.appName}, a helpful task management assistant. You help ${context.userName} (${context.userEmail}) manage their tasks and lists.
 
 ## API Access
-You have a tool called \`api_request\` that makes authenticated HTTP requests to the Astrid API. Use it for ALL actions.
+You have a tool called \`api_request\` that makes authenticated HTTP requests to the ${BRAND.appName} API. Use it for ALL actions.
 
 ### API Endpoints
 
@@ -342,7 +343,7 @@ async function callGeminiWithTools(
   const tools = [{
     functionDeclarations: [{
       name: 'api_request',
-      description: 'Make an authenticated HTTP request to the Astrid API. Use this for ALL actions.',
+      description: `Make an authenticated HTTP request to the ${BRAND.appName} API. Use this for ALL actions.`,
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -473,7 +474,7 @@ async function buildChatHistory(channelId: string): Promise<string> {
     const lines: string[] = []
 
     for (const m of messages) {
-      const authorName = m.author.isAIAgent ? 'Astrid' : (m.author.name || m.author.email)
+      const authorName = m.author.isAIAgent ? `${BRAND.appName}` : (m.author.name || m.author.email)
       const time = m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
       // Clean mention syntax to show IDs inline for the agent
@@ -564,7 +565,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     recipients = (await getChatChannelRecipients(channelId)).filter(id => id !== astridUser!.id)
 
     const channelScope = { scope: 'channel' as const, scopeId: channelId }
-    startTyping({ recipients, agentId: astridUser.id, agentName: astridUser.name || 'Astrid', scope: channelScope })
+    startTyping({ recipients, agentId: astridUser.id, agentName: astridUser.name || `${BRAND.appName}`, scope: channelScope })
 
     // Check if user has an on-device model selected (e.g. Apple Foundation Models)
     const userRecord = await prisma.user.findUnique({
@@ -576,7 +577,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const isOnDeviceModel = userSettings.defaultAgentId && (ON_DEVICE_MODEL_IDS as readonly string[]).includes(userSettings.defaultAgentId)
 
     if (isOnDeviceModel) {
-      log.info(`[Astrid] User ${userId} has on-device model selected — iOS handles response on-device`)
+      log.info(`[${BRAND.appName}] User ${userId} has on-device model selected — iOS handles response on-device`)
       // iOS will process on-device and post via /agent-response.
       stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
       return
@@ -585,7 +586,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const service = await getPreferredAIService(userId)
     const apiKey = await getAIServiceCredential(userId, service)
     if (!apiKey) {
-      log.info(`[Astrid] No ${service} API key for user ${userId}, sending setup prompt`)
+      log.info(`[${BRAND.appName}] No ${service} API key for user ${userId}, sending setup prompt`)
       const setupMessage = await prisma.chatMessage.create({
         data: {
           channelId,
@@ -680,9 +681,9 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
     }
 
-    log.info(`[Astrid] Responded in channel ${channelId} using ${service}/${model || 'default'}`)
+    log.info(`[${BRAND.appName}] Responded in channel ${channelId} using ${service}/${model || 'default'}`)
   } catch (error) {
-    log.error({ err: error }, '[Astrid] Error processing message:')
+    log.error({ err: error }, `[${BRAND.appName}] Error processing message:`)
     if (astridUser) {
       stopTyping({ recipients, agentId: astridUser.id, scope: { scope: 'channel', scopeId: channelId } })
     }
@@ -729,7 +730,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     }
 
     const taskScope = { scope: 'task' as const, scopeId: taskId }
-    startTyping({ recipients, agentId: astridUser.id, agentName: 'Astrid', scope: taskScope })
+    startTyping({ recipients, agentId: astridUser.id, agentName: `${BRAND.appName}`, scope: taskScope })
 
     const service = await getPreferredAIService(userId)
     const apiKey = await getAIServiceCredential(userId, service)
@@ -807,9 +808,9 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
     }
 
-    log.info(`[Astrid] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
+    log.info(`[${BRAND.appName}] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
   } catch (error) {
-    log.error({ err: error }, '[Astrid] Error processing comment:')
+    log.error({ err: error }, `[${BRAND.appName}] Error processing comment:`)
     if (astridUser) {
       stopTyping({ recipients, agentId: astridUser.id, scope: { scope: 'task', scopeId: taskId } })
     }

@@ -8,6 +8,7 @@
  * attributed to Astrid and broadcast to channel recipients via SSE.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
@@ -60,7 +61,7 @@ export async function POST(
       select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true },
     })
     if (!astridUser) {
-      return NextResponse.json({ error: 'Astrid agent not found' }, { status: 500 })
+      return NextResponse.json({ error: `${BRAND.appName} agent not found` }, { status: 500 })
     }
 
     // Create message as Astrid

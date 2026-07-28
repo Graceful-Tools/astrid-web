@@ -1,6 +1,7 @@
 // Reminder strings from original Astrid app - now i18n-enabled
 // https://github.com/Graceful-Tools/astrid/blob/master/astrid/res/values/strings-reminders.xml
 
+import { BRAND } from '@/lib/brand/config'
 import { applyBrandToMessages } from '@/lib/brand/i18n-values'
 
 // Import locale messages dynamically based on locale parameter
@@ -86,7 +87,7 @@ export const REMINDER_STRINGS = {
     "When you have a minute:",
     "On your agenda:",
     "Free for a moment?",
-    "Astrid here!",
+    `${BRAND.appName} here!`,
     "Hi! Can I bug you?",
     "A minute of your time?",
     "It's a great day to"

@@ -6,6 +6,7 @@
  * for secure communication.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -292,7 +293,7 @@ export async function POST(request: NextRequest) {
     const testPayload = {
       event: 'test.ping',
       timestamp: new Date().toISOString(),
-      message: 'This is a test webhook from Astrid',
+      message: `This is a test webhook from ${BRAND.appName}`,
       user: {
         id: session.user.id,
         email: session.user.email

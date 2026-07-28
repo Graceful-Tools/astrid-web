@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { hasCapability, assertUsableAuthConfiguration } from '@/lib/brand/capabilities'
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
@@ -355,7 +356,7 @@ const authConfig: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: true,
-        domain: ".astrid.cc", // Works for both astrid.cc and www.astrid.cc
+        domain: `.${BRAND.domain}`, // Works for both {BRAND.domain} and www.{BRAND.domain}
       },
     },
     callbackUrl: {
@@ -364,7 +365,7 @@ const authConfig: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: true,
-        domain: ".astrid.cc",
+        domain: `.${BRAND.domain}`,
       },
     },
     csrfToken: {

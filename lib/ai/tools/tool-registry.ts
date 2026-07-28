@@ -5,6 +5,7 @@
  * Each provider has its own format for tool declarations.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { execSync } from 'child_process'
@@ -732,7 +733,7 @@ async function executeRunBash(
 
     // Detect xcodebuild errors and provide helpful hints
     if (stderr.includes('Unknown build action') || errorMessage.includes('Unknown build action')) {
-      errorMessage += '\n\nHint: xcodebuild commands need proper quoting for scheme names with spaces. Use: -scheme "Astrid App" (with straight quotes, not curly)'
+      errorMessage += '\n\nHint: xcodebuild commands need proper quoting for scheme names with spaces. Use: -scheme "${BRAND.appName} App" (with straight quotes, not curly)'
     }
 
     return {

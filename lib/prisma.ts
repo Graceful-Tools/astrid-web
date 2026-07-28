@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { UNKNOWN_CREATOR_EMAIL } from '@/lib/brand/agent-emails'
 import { Prisma, PrismaClient } from "@prisma/client"
 import { createLogger } from '@/lib/logger'
@@ -121,7 +122,7 @@ async function handleTaskAssigneeChange(
           baseUrl,
           operationsEndpoint: `${baseUrl}/api/mcp/operations`,
           availableOperations: ['task.read', 'task.update', 'task.comment'],
-          contextInstructions: 'Use the Astrid MCP server to interact with tasks.',
+          contextInstructions: `Use the ${BRAND.appName} MCP server to interact with tasks.`,
         },
         creator: {
           id: task.creatorId,

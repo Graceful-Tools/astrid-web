@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -20,7 +21,7 @@ async function getAstridOAuthToken(): Promise<string | null> {
   }
 
   try {
-    const tokenResponse = await fetch('https://astrid.cc/api/v1/oauth/token', {
+    const tokenResponse = await fetch(`https://${BRAND.domain}/api/v1/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -148,7 +149,7 @@ export async function POST(
     const taskDescription = formatTaskDescriptionForClaude(task, shareReason, additionalNotes)
     const taskTitle = `🤖 ${task.title}`
 
-    const createTaskResponse = await fetch('https://astrid.cc/api/v1/tasks', {
+    const createTaskResponse = await fetch(`https://${BRAND.domain}/api/v1/tasks`, {
       method: 'POST',
       headers: {
         'X-OAuth-Token': accessToken,
@@ -166,7 +167,7 @@ export async function POST(
 
     if (!createTaskResponse.ok) {
       const error = await createTaskResponse.text()
-      log.error({ err: error }, '❌ Failed to create task on astrid.cc:')
+      log.error({ err: error }, `❌ Failed to create task on ${BRAND.domain}:`)
       return NextResponse.json(
         { error: 'Failed to create task on ASTRID.cc' },
         { status: 500 }
@@ -175,7 +176,7 @@ export async function POST(
 
     const createdTask = await createTaskResponse.json()
     const astridCCTaskId = createdTask.task?.id || createdTask.id
-    const taskUrl = `https://astrid.cc/tasks/${astridCCTaskId}`
+    const taskUrl = `https://${BRAND.domain}/tasks/${astridCCTaskId}`
 
     // Add a comment to local task indicating it was shared
     try {
@@ -255,7 +256,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Test the connection by fetching lists
-    const testResponse = await fetch('https://astrid.cc/api/v1/lists', {
+    const testResponse = await fetch(`https://${BRAND.domain}/api/v1/lists`, {
       headers: {
         'X-OAuth-Token': accessToken,
         'Content-Type': 'application/json'
@@ -268,7 +269,7 @@ export async function GET(request: NextRequest) {
       configured: true,
       connected,
       data: connected ? { message: 'OAuth connection successful' } : undefined,
-      error: connected ? undefined : 'Failed to connect to astrid.cc API'
+      error: connected ? undefined : `Failed to connect to ${BRAND.domain} API`
     })
 
   } catch (error) {
@@ -331,7 +332,7 @@ function formatTaskDescriptionForClaude(
     description += `\\n**Additional Context**: ${additionalNotes}\\n`
   }
 
-  description += '\\n*This task was shared from a local Astrid instance for AI assistance.*'
+  description += `\\n*This task was shared from a local ${BRAND.appName} instance for AI assistance.*`
 
   return description
 }

@@ -2,6 +2,7 @@
  * API endpoint to create a coding workflow for a task
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { agentEmail, UNKNOWN_CREATOR_EMAIL } from '@/lib/brand/agent-emails'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
           baseUrl,
           operationsEndpoint: `${baseUrl}/api/mcp/operations`,
           availableOperations: ['task.read', 'task.update', 'task.comment'],
-          contextInstructions: 'Use the Astrid MCP server to interact with tasks.',
+          contextInstructions: `Use the ${BRAND.appName} MCP server to interact with tasks.`,
         },
         creator: {
           id: task.creatorId || session.user.id,

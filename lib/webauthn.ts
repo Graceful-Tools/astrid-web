@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -16,7 +17,9 @@ const log = createLogger('webauthn')
 
 
 // Relying Party configuration
-const rpName = "Astrid"
+// Shown by the authenticator when the user creates or uses a passkey.
+// Unlike rpID this is a display label, so changing it does not invalidate credentials.
+const rpName = BRAND.appName
 
 // Robust production detection - check multiple signals
 function isProductionEnvironment(): boolean {
@@ -25,25 +28,42 @@ function isProductionEnvironment(): boolean {
   // Vercel production deployment
   if (process.env.VERCEL_ENV === "production") return true
   // Check if NEXTAUTH_URL points to production domain
-  if (process.env.NEXTAUTH_URL?.includes("astrid.cc")) return true
+  if (process.env.NEXTAUTH_URL?.includes(BRAND.domain)) return true
   return false
 }
 
 const isProduction = isProductionEnvironment()
-const rpID = isProduction ? "astrid.cc" : "localhost"
-// Support astrid.cc, www.astrid.cc, and any *.astrid.cc subdomain in production
+
+/**
+ * WebAuthn Relying Party ID — the domain credentials are scoped to.
+ *
+ * Brand-derived (task 97208a72), which is a no-op for Astrid since BRAND.domain
+ * defaults to astrid.cc. Note this is a CREDENTIAL BINDING, not cosmetic: changing it
+ * on a live deployment invalidates every passkey already registered, because the
+ * authenticator will not release a credential scoped to a different RP ID.
+ */
+const rpID = isProduction ? BRAND.domain : "localhost"
+
+// Support the apex, www, and any subdomain of the brand domain in production
 const baseOrigins = isProduction
-  ? ["https://astrid.cc", "https://www.astrid.cc"]
+  ? [`https://${BRAND.domain}`, `https://www.${BRAND.domain}`]
   : [`http://localhost:${process.env.PORT || 3000}`]
+
+/**
+ * Suffix for the subdomain check below. The LEADING DOT is load-bearing: matching on
+ * `endsWith(BRAND.domain)` alone would also accept `evil-astrid.cc`, letting an
+ * attacker-controlled host be treated as an expected WebAuthn origin.
+ */
+const SUBDOMAIN_SUFFIX = `.${BRAND.domain}`
 
 // Helper to get expected origins including the current request origin if it's a valid subdomain
 export function getExpectedOrigins(requestOrigin?: string): string[] {
   if (!isProduction || !requestOrigin) return baseOrigins
 
-  // Check if requestOrigin is a valid *.astrid.cc subdomain
+  // Check if requestOrigin is a valid subdomain of the brand domain
   try {
     const url = new URL(requestOrigin)
-    if (url.protocol === "https:" && url.hostname.endsWith(".astrid.cc")) {
+    if (url.protocol === "https:" && url.hostname.endsWith(SUBDOMAIN_SUFFIX)) {
       // Include this subdomain in expected origins
       return [...baseOrigins, requestOrigin]
     }

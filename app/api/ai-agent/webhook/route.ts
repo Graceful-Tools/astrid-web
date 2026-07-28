@@ -4,6 +4,7 @@
  * Receives task assignment notifications and delegates to AIAgentWebhookService.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { aiAgentWebhookService, type TaskAssignmentWebhookPayload } from '@/lib/ai-agent-webhook-service'
 import { RATE_LIMITS, withRateLimit } from '@/lib/rate-limiter'
@@ -141,7 +142,7 @@ export async function GET() {
     service: 'AI Agent Webhook',
     description: 'Receives task assignments and delegates to AIAgentWebhookService',
     version: '4.0.0',
-    endpoint: 'https://astrid.cc/api/ai-agent/webhook',
+    endpoint: `https://${BRAND.domain}/api/ai-agent/webhook`,
     method: 'POST',
     supportedEvents: [
       'task.assigned',
@@ -149,6 +150,6 @@ export async function GET() {
       'task.completed',
       'task.commented'
     ],
-    usage: 'Configure AI agent webhookUrl to: https://astrid.cc/api/ai-agent/webhook'
+    usage: `Configure AI agent webhookUrl to: https://${BRAND.domain}/api/ai-agent/webhook`
   })
 }

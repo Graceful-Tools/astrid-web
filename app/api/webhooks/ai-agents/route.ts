@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
@@ -54,7 +55,7 @@ async function ensureAIAgentExists(aiAgent: { id: string, type: string }): Promi
         email: `${aiAgent.id}@astrid.internal`,
         isAIAgent: true,
         aiAgentType: aiAgent.type === 'claude_agent' ? 'claude_agent' : 'coding_agent',
-        webhookUrl: 'https://astrid.cc/api/webhooks/ai-agents',
+        webhookUrl: `https://${BRAND.domain}/api/webhooks/ai-agents`,
         isActive: true
       }
     })
@@ -286,7 +287,7 @@ export async function GET(request: NextRequest) {
   const baseUrl = request.nextUrl.origin
 
   return NextResponse.json({
-    name: 'Astrid AI Agent Webhook Endpoint',
+    name: `${BRAND.appName} AI Agent Webhook Endpoint`,
     description: 'Receives updates from AI agents about task progress and completion',
     endpoint: `${baseUrl}/api/webhooks/ai-agents`,
     method: 'POST',

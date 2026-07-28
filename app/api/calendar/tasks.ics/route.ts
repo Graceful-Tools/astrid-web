@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
@@ -47,11 +48,11 @@ export async function GET(request: NextRequest) {
       const emptyCalendar = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//Astrid Tasks//Astrid Tasks//EN',
+        `PRODID:-//${BRAND.appName} Tasks//${BRAND.appName} Tasks//EN`,
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        'X-WR-CALNAME:Astrid Tasks',
-        'X-WR-CALDESC:Tasks from Astrid Task Manager',
+        `X-WR-CALNAME:${BRAND.appName} Tasks`,
+        `X-WR-CALDESC:Tasks from ${BRAND.appName} Task Manager`,
         'END:VCALENDAR'
       ].join('\r\n')
 
@@ -153,7 +154,7 @@ export async function GET(request: NextRequest) {
         description ? `DESCRIPTION:${description}` : '',
         `STATUS:${status}`,
         `PRIORITY:${priority}`,
-        'CATEGORIES:Astrid Tasks',
+        `CATEGORIES:${BRAND.appName} Tasks`,
         task.assignee?.email ? `ATTENDEE:mailto:${task.assignee.email}` : '',
         'END:VEVENT'
       ].filter(line => line !== '').join('\r\n')
@@ -165,11 +166,11 @@ export async function GET(request: NextRequest) {
     const calendar = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Astrid Tasks//Astrid Tasks//EN',
+      `PRODID:-//${BRAND.appName} Tasks//${BRAND.appName} Tasks//EN`,
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:Astrid Tasks',
-      'X-WR-CALDESC:Tasks from Astrid Task Manager',
+      `X-WR-CALNAME:${BRAND.appName} Tasks`,
+      `X-WR-CALDESC:Tasks from ${BRAND.appName} Task Manager`,
       'X-WR-TIMEZONE:UTC',
       'X-PUBLISHED-TTL:PT1H', // Refresh every hour
       ...events,

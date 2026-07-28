@@ -6,6 +6,7 @@
  * Security: Each user only sees their own installation or available unlinked installations
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         installations: [],
         detectedInstallations: [],
-        message: 'No GitHub installation connected. Install the Astrid Agent on GitHub first.'
+        message: `No GitHub installation connected. Install the ${BRAND.appName} Agent on GitHub first.`
       })
 
     } catch (detectError: any) {
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         installations: [],
         detectedInstallations: [],
-        message: 'No GitHub installation connected. Install the Astrid Agent on GitHub first.'
+        message: `No GitHub installation connected. Install the ${BRAND.appName} Agent on GitHub first.`
       })
     }
 

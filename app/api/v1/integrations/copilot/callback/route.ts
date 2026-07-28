@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import {
@@ -24,13 +25,13 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const userId = state ? verifyCopilotOAuthState(state) : null
   if (!code || !userId) {
-    return errorPage('This connect link has expired. Go back to Astrid and tap Connect again.')
+    return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
   const token = await exchangeCopilotCode(code)
   if (!token) {
     log.error('GitHub Copilot token exchange failed')
-    return errorPage('The sign-in code expired before it could be used. Go back to Astrid and tap Connect again.')
+    return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
   const login = await githubLoginFor(token.accessToken)
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
     `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
       <h2>GitHub Copilot connected ✓</h2><p>${
         login ? `Signed in as <b>${escapeHtml(String(login))}</b>. ` : ''
-      }You can return to Astrid.</p>
+      }You can return to ${BRAND.appName}.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } },
   )

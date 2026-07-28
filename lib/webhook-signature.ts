@@ -10,6 +10,8 @@
  * - Header format: `sha256=${signature}`
  */
 
+import { BRAND } from '@/lib/brand/config'
+import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TIMESTAMP_HEADER, WEBHOOK_EVENT_HEADER } from './webhooks/protocol-headers'
 import crypto from 'crypto'
 
 /**
@@ -50,10 +52,10 @@ export function generateWebhookHeaders(
 
   return {
     'Content-Type': 'application/json',
-    'X-Astrid-Signature': `sha256=${signature}`,
-    'X-Astrid-Timestamp': timestamp,
-    'X-Astrid-Event': event,
-    'User-Agent': 'Astrid-Webhooks/1.0',
+    [WEBHOOK_SIGNATURE_HEADER]: `sha256=${signature}`,
+    [WEBHOOK_TIMESTAMP_HEADER]: timestamp,
+    [WEBHOOK_EVENT_HEADER]: event,
+    'User-Agent': `${BRAND.appName}-Webhooks/1.0`,
   }
 }
 

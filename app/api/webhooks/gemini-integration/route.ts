@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { createLogger } from '@/lib/logger'
 
@@ -10,16 +11,16 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     service: "Gemini Integration Webhook",
     status: "ready",
-    message: "Astrid is ready to send task notifications to Gemini-based services",
+    message: `${BRAND.appName} is ready to send task notifications to Gemini-based services`,
     instructions: {
       setup: "Configure Gemini Function Calling with these endpoints",
-      mcpEndpoint: "https://astrid.cc/api/mcp/operations",
-      contextEndpoint: "https://astrid.cc/api/mcp/context?agentType=gemini",
-      webhookEndpoint: "https://astrid.cc/api/webhooks/ai-agents",
-      documentation: "https://astrid.cc/api/webhooks/ai-agents"
+      mcpEndpoint: `https://${BRAND.domain}/api/mcp/operations`,
+      contextEndpoint: `https://${BRAND.domain}/api/mcp/context?agentType=gemini`,
+      webhookEndpoint: `https://${BRAND.domain}/api/webhooks/ai-agents`,
+      documentation: `https://${BRAND.domain}/api/webhooks/ai-agents`
     },
     geminiIntegration: {
-      description: "Use Gemini Function Calling to interact with Astrid MCP API",
+      description: `Use Gemini Function Calling to interact with ${BRAND.appName} MCP API`,
       functionDeclarations: [
         {
           name: "astrid_get_task_details",
@@ -68,15 +69,15 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return NextResponse.json({
     service: "Gemini Integration Webhook",
-    description: "Integration point for Google Gemini AI services with Astrid Task Manager",
+    description: `Integration point for Google Gemini AI services with ${BRAND.appName} Task Manager`,
     status: "active",
     integration: {
       type: "Function Calling",
-      description: "Use Gemini's function calling capability to interact with Astrid MCP API",
-      endpoint: "https://astrid.cc/api/mcp/operations"
+      description: "Use Gemini's function calling capability to interact with {BRAND.appName} MCP API",
+      endpoint: `https://${BRAND.domain}/api/mcp/operations`
     },
     setup: {
-      step1: "Configure Gemini with function declarations for Astrid MCP operations",
+      step1: `Configure Gemini with function declarations for ${BRAND.appName} MCP operations`,
       step2: "Use provided MCP access token for authentication",
       step3: "Call functions to read task details, update status, and add comments"
     }

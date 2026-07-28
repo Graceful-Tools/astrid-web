@@ -66,11 +66,22 @@ const RULES: Rule[] = [
     // Word-boundary "Astrid" so identifiers (AstridEmptyState, astridPhrase) and the
     // `astrid-signed` wire value are not flagged; plus the bare domain. Task 97208a72.
     pattern: String.raw`\bAstrid\b|astrid\.cc`,
-    // Scoped to the surface Phase 1b actually cleared. app/api/** and lib/** still
-    // hold brand literals (agent emails, integration callback HTML); widen these
-    // globs in Phase 3 once lib/brand/agent-emails.ts replaces the domain matching.
-    globs: ["components", "app/[locale]"],
-    exclude: [],
+    globs: ["components", "app", "hooks", "lib"],
+    // Canonical homes and frozen wire values only:
+    //   config.ts / capabilities.ts / agent-emails.ts — where the brand is defined
+    //   i18n-values.ts                                — documents the message tokens
+    //   protocol-headers.ts / webhook-signature.ts    — published header names that
+    //     subscribers verify by exact string; renaming them breaks live integrations
+    //   apple-identity.ts                             — Apple bundle identifiers
+    exclude: [
+      "config.ts",
+      "capabilities.ts",
+      "agent-emails.ts",
+      "i18n-values.ts",
+      "protocol-headers.ts",
+      "webhook-signature.ts",
+      "apple-identity.ts",
+    ],
     // Comments are internal prose, deliberately left alone — renaming them is churn
     // with no whitelabel benefit. Covers //, /* */, and JSX {/* */}.
     reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,

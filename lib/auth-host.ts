@@ -1,3 +1,5 @@
+import { BRAND, brandOrigin } from '@/lib/brand/config'
+
 /**
  * Host routing for Google sign-in.
  *
@@ -18,8 +20,8 @@
 export function isCanonicalAuthHost(host: string): boolean {
   const hostname = host.toLowerCase().split(':')[0]
   return (
-    hostname === 'astrid.cc' ||
-    hostname === 'www.astrid.cc' ||
+    hostname === BRAND.domain ||
+    hostname === `www.${BRAND.domain}` ||
     hostname === 'localhost' ||
     hostname === '127.0.0.1'
   )
@@ -51,15 +53,18 @@ export function planGoogleSignIn(currentOrigin: string): GoogleSignInPlan {
   const returnOrigin = `${url.protocol}//${url.host}/`
   return {
     mode: 'redirect',
-    url: `https://astrid.cc/auth/signin?callbackUrl=${encodeURIComponent(returnOrigin)}`,
+    url: `${brandOrigin()}/auth/signin?callbackUrl=${encodeURIComponent(returnOrigin)}`,
   }
 }
 
 /**
- * True when `url` points at astrid.cc or any `*.astrid.cc` subdomain over
- * https. Used by the NextAuth redirect callback to allow returning a
- * signed-in user to a preview deploy. Strict enough to reject look-alike
- * domains so it cannot become an open redirect.
+ * True when `url` points at the brand domain or any of its subdomains over https.
+ * Used by the NextAuth redirect callback to allow returning a signed-in user to a
+ * preview deploy.
+ *
+ * This is an OPEN-REDIRECT boundary. The leading dot in the suffix is load-bearing:
+ * `endsWith(BRAND.domain)` alone would also accept `evil-astrid.cc`, turning the
+ * NextAuth redirect callback into an open redirect. Covered by tests.
  */
 export function isAstridSubdomainUrl(url: string): boolean {
   let parsed: URL
@@ -69,5 +74,5 @@ export function isAstridSubdomainUrl(url: string): boolean {
     return false
   }
   if (parsed.protocol !== 'https:') return false
-  return parsed.hostname === 'astrid.cc' || parsed.hostname.endsWith('.astrid.cc')
+  return parsed.hostname === BRAND.domain || parsed.hostname.endsWith(`.${BRAND.domain}`)
 }

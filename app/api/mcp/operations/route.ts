@@ -5,6 +5,7 @@
  * All operation logic has been extracted to handler modules in ./handlers/
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from "next/server"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
@@ -105,7 +106,7 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
     const headers: Record<string, string> = {}
     if (deprecationWarning) {
       headers['X-Deprecation-Warning'] = deprecationWarning
-      headers['X-Migration-Guide'] = 'https://astrid.cc/docs/api-migration'
+      headers['X-Migration-Guide'] = `https://${BRAND.domain}/docs/api-migration`
     }
 
     return NextResponse.json(result, { headers })

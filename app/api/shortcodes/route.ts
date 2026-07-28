@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { createShortcode, getShortcodesForTarget, buildShortcodeUrl } from "@/lib/shortcode"
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get base URL from request for localhost support
-    const host = request.headers.get("host") || "astrid.cc"
+    const host = request.headers.get("host") || `${BRAND.domain}`
     const protocol = host.includes("localhost") ? "http" : "https"
     const baseUrl = `${protocol}://${host}`
 
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get base URL from request for localhost support
-    const host = request.headers.get("host") || "astrid.cc"
+    const host = request.headers.get("host") || `${BRAND.domain}`
     const protocol = host.includes("localhost") ? "http" : "https"
     const baseUrl = `${protocol}://${host}`
 

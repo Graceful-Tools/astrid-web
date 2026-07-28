@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const userId = state ? verifyOAuthState(state) : null
   if (!code || !userId) {
-    return errorPage('This connect link has expired. Go back to Astrid and tap Connect again.')
+    return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
@@ -38,12 +39,12 @@ export async function GET(request: NextRequest) {
   const accessToken = tokenJson?.access_token as string | undefined
   if (!accessToken) {
     log.error({ tokenJson }, 'GitHub token exchange failed')
-    return errorPage('The sign-in code expired before it could be used. Go back to Astrid and tap Connect again.')
+    return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
   const { status, json: user } = await githubRequest(accessToken, 'GET', '/user')
   if (status !== 200 || !user?.login) {
-    return errorPage('Connected, but the account lookup failed. Go back to Astrid and tap Connect again.')
+    return errorPage(`Connected, but the account lookup failed. Go back to ${BRAND.appName} and tap Connect again.`)
   }
   const scopes = (tokenJson?.scope as string | undefined)?.split(',').filter(Boolean) ?? []
   await storeGithubIntegration(userId, accessToken, user.login, scopes)
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   return new NextResponse(
     `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>GitHub connected ✓</h2><p>Signed in as <b>${escapeHtml(String(user.login))}</b>. You can return to Astrid.</p>
+      <h2>GitHub connected ✓</h2><p>Signed in as <b>${escapeHtml(String(user.login))}</b>. You can return to ${BRAND.appName}.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
