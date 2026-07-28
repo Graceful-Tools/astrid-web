@@ -218,3 +218,45 @@ describe('discovery documents follow the capabilities (task 97208a72)', () => {
     expect(WELL_KNOWN_ENDPOINTS.map((e) => e.path)).toContain('/llms.txt')
   })
 })
+
+describe('GET /api/v1/capabilities (task 97208a72)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearCapabilityEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+  })
+
+  it('reports everything available by default', async () => {
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.auth).toEqual({ google: true, apple: true, passkey: true })
+    expect(body.sync).toEqual({ googleTasks: true, githubIssues: true })
+    expect(body.brand.appName).toBe('Astrid')
+  })
+
+  it('reflects what the deployment has turned off', async () => {
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS = 'false'
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE = 'false'
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.sync.googleTasks).toBe(false)
+    expect(body.sync.githubIssues).toBe(true)
+    expect(body.auth.google).toBe(false)
+    expect(body.auth.passkey).toBe(true)
+  })
+
+  it('never discloses the agent email domain', async () => {
+    // Clients compare agent identities the server returned; they must not build one.
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(JSON.stringify(body)).not.toContain('agentEmailDomain')
+  })
+})
