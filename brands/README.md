@@ -62,6 +62,37 @@ bad brand copy should never take down reminders. An empty override array counts 
 supplied* — a brand that wants no nags should disable reminders rather than ship blank
 notifications.
 
+## One profile, three platforms
+
+These files are **not web-only**. The iOS and Mac apps read the same profile:
+
+```bash
+cd ../astrid-ios
+./scripts/apply-brand.sh acme        # write the profile into both Info.plist files
+./scripts/check-brands.sh            # apply each profile, audit it, revert
+```
+
+`Astrid App/Utilities/BrandProfile.swift` maps the profile's variables onto the
+Info.plist keys `Brand` reads, and `BrandProfileTests` **parses `Brand.swift`** and fails
+if any key it reads has no mapping. So a brand value a partner cannot configure is a
+build failure rather than something they discover after shipping — that guard is what
+surfaced `NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR` and `NEXT_PUBLIC_BRAND_ACCENT_TEXT_COLOR`
+as missing.
+
+Those two are **consumed by the native apps only**, and that is fine: a shared profile
+describes more than one platform, so a key only one of them reads is normal. The web
+derives its hover and on-accent colours in CSS; SwiftUI has no cascade to derive them
+from, so the native apps need them as values.
+
+Variables the native apps consume: `NEXT_PUBLIC_BRAND_NAME`, `_DOMAIN`, `_WORDMARK`,
+`_SLOGAN`, `_SUPPORT_EMAIL`, `_INBOUND_TASK_EMAIL`, `_AGENT_NAME`, `_ACCENT_COLOR`,
+`_ACCENT_HOVER_COLOR`, `_ACCENT_TEXT_COLOR`, and `BRAND_AGENT_EMAIL_DOMAIN`. Everything
+else in `env` is web-only and is skipped, not rejected.
+
+The `copy` block reaches the native apps a different way — over the wire, from
+`GET /api/v1/capabilities`, cached locally so reminders scheduled offline still speak in
+the brand's voice. Nothing about it needs configuring per platform.
+
 ## The two profiles that must always exist
 
 - **`astrid.brand.json`** — the production configuration. Proves the refactor did not
