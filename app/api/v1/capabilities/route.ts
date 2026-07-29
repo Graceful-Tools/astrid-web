@@ -43,10 +43,24 @@ export async function GET() {
         emailToTask: CAPABILITIES.emailToTask,
         calendarFeed: CAPABILITIES.calendarFeed,
       },
+      // The brand this deployment presents itself as. TEXT ONLY, and deliberately so:
+      // one mobile binary can point at several deployments, so the brand cannot be a
+      // purely build-time value on the client any more than the capability set could be.
+      //
+      // No `domain` or `agentEmailDomain`: those are client-side trust boundaries. A
+      // server telling a client which domain is "its" brand would be telling it which
+      // cookies to clear and which Universal Links to claim. Clients must never
+      // construct an agent address either — only compare what the server returned. See
+      // AvailableAgent.isDefaultAssistant.
+      //
+      // No `accentColor`: the clients resolve colours once at launch so no render ever
+      // parses a hex string, and a server-driven accent would cost that on every colour
+      // read. Colour stays build-time on both sides.
       brand: {
         appName: BRAND.appName,
-        // No agent email domain here: clients must never construct an agent address,
-        // only compare what the server returned. See AvailableAgent.isDefaultAssistant.
+        wordmark: BRAND.wordmark,
+        slogan: BRAND.slogan,
+        agentName: BRAND.agentIdentityName,
       },
       meta: { apiVersion: 'v1' as const },
     },

@@ -259,4 +259,52 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
 
     expect(JSON.stringify(body)).not.toContain('agentEmailDomain')
   })
+
+  // The brand block is what makes the SERVER the authority on brand text. One mobile
+  // binary can point at several deployments, so a build-time-only brand on the client
+  // is wrong for the same reason a build-time-only capability set was.
+
+  it('serves the full brand text so a client can present the right brand', async () => {
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.brand).toEqual({
+      appName: 'Astrid',
+      wordmark: 'astrid',
+      slogan: 'Get it done!',
+      agentName: 'Astrid',
+    })
+  })
+
+  it('serves a rebranded deployment its own text', async () => {
+    process.env.NEXT_PUBLIC_BRAND_NAME = 'Acme'
+    process.env.NEXT_PUBLIC_BRAND_WORDMARK = 'ACME'
+    process.env.NEXT_PUBLIC_BRAND_SLOGAN = 'Ship it.'
+    process.env.NEXT_PUBLIC_BRAND_AGENT_NAME = 'Ada'
+
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.brand).toEqual({
+      appName: 'Acme',
+      wordmark: 'ACME',
+      slogan: 'Ship it.',
+      agentName: 'Ada',
+    })
+    expect(JSON.stringify(body)).not.toContain('Astrid')
+  })
+
+  it('never discloses the brand domain or the accent colour', async () => {
+    // Both are client-side decisions, not the server's to make:
+    //   domain — a server naming "its" brand domain would be telling a client which
+    //     cookies to clear and which Universal Links to claim.
+    //   accentColor — clients resolve colours once at launch so no render parses a hex
+    //     string; a server-driven accent would cost that on every colour read.
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(Object.keys(body.brand).sort()).toEqual(
+      ['agentName', 'appName', 'slogan', 'wordmark']
+    )
+  })
 })
