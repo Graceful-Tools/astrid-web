@@ -18,10 +18,16 @@
 import { NextResponse } from 'next/server'
 import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { BRAND } from '@/lib/brand/config'
+import { BRAND_COPY } from '@/lib/brand/copy'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  // Included ONLY when this deployment actually overrides the voice. Astrid overrides
+  // nothing, so the common case adds no bytes at all and clients keep their built-in
+  // set — the endpoint carries what DIFFERS, not the whole voice. Task 97208a72.
+  const hasBrandCopy = Object.keys(BRAND_COPY).length > 0
+
   return NextResponse.json(
     {
       // Grouped by concern so a client can consume one area without knowing every key.
@@ -62,6 +68,11 @@ export async function GET() {
         slogan: BRAND.slogan,
         agentName: BRAND.agentIdentityName,
       },
+      // The brand's VOICE — reminder nags and default-list captions. Native clients
+      // shipped their own copy of Astrid's set, so a partner had to replace it once per
+      // platform with nothing keeping the copies in step. Served here so it is
+      // configured exactly once, in the brand profile.
+      ...(hasBrandCopy ? { copy: BRAND_COPY } : {}),
       meta: { apiVersion: 'v1' as const },
     },
     {

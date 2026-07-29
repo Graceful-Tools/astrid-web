@@ -294,6 +294,44 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     expect(JSON.stringify(body)).not.toContain('Astrid')
   })
 
+  // The brand's VOICE. Native clients each shipped their own copy of Astrid's nags, so
+  // a partner replaced them once per platform with nothing keeping the copies in step.
+
+  it('omits the copy block entirely when the deployment overrides nothing', async () => {
+    // The common case — Astrid itself. The endpoint carries what DIFFERS, so the
+    // default deployment pays no bytes and clients keep their built-in set.
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.copy).toBeUndefined()
+  })
+
+  it('serves the voice a brand actually overrides', async () => {
+    process.env.NEXT_PUBLIC_BRAND_COPY = JSON.stringify({
+      reminders: { general: ['A moment, please.'], due: ['It is time.'] },
+    })
+
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.copy.reminders.general).toEqual(['A moment, please.'])
+    expect(body.copy.reminders.due).toEqual(['It is time.'])
+    // An unsupplied set is absent, not empty — clients must be able to tell "no
+    // override" from "an override that is empty", or they would fire blank reminders.
+    expect(body.copy.reminders.responses).toBeUndefined()
+  })
+
+  it('does not serve a copy block for malformed brand copy', async () => {
+    // Malformed copy degrades to the built-in voice rather than propagating garbage to
+    // every client. Bad brand copy must never take down reminders.
+    process.env.NEXT_PUBLIC_BRAND_COPY = '{not json'
+
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.copy).toBeUndefined()
+  })
+
   it('never discloses the brand domain or the accent colour', async () => {
     // Both are client-side decisions, not the server's to make:
     //   domain — a server naming "its" brand domain would be telling a client which
