@@ -184,11 +184,16 @@ cd ../astrid-ios
 |---|---|---|
 | **Identity** (name, host, emails, artwork) | Info.plist, from the profile | Needed before any network call — the sign-in screen renders first |
 | **Brand text** (appName, wordmark, slogan, agentName) | `GET /api/v1/capabilities` | One binary can point at several deployments; the build cannot know which brand it will serve |
-| **Voice** (reminder nags) | same endpoint, then **cached locally** | Reminders fire offline; reading live would revert a partner's app to Astrid's nags whenever the network was away |
+| **Voice** (reminder nags) | same endpoint, then **cached locally** | The in-app reminder view renders before a fetch necessarily lands, and offline; reading live would show a partner's users Astrid's nags |
 
 The server's values win where both exist, with the build's own as the fallback — so the
 lockup is right before the first fetch, right if the fetch fails, and right against an
 older server with no such endpoint.
+
+**Scope of the voice.** The nags reach the **in-app reminder view only**. Scheduled
+`UNNotification` bodies are the task's own title under a fixed "Task Due Soon" heading and
+do not read brand copy at all. Branding and localising that heading is separate work, not
+covered here.
 
 ### What the server is deliberately not allowed to set
 
