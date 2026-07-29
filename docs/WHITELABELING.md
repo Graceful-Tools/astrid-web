@@ -61,7 +61,7 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_ICON_SMALL` | `/icons/icon-96x96.png` | Header mark |
 | `NEXT_PUBLIC_BRAND_APP_STORE_URL` | Astrid's listing | **Empty string hides the button** |
 | `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG` | `astrid-code-assistant` | Your own registered GitHub App |
-| `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §6 |
+| `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §7 |
 
 ### Artwork
 
@@ -162,7 +162,66 @@ from a deploy will go green while shipping something else.
 
 ---
 
-## 6. What cannot be configured, and why
+## 6. The iOS and Mac apps
+
+The native apps read **the same `brands/*.brand.json` profile**. A partner describes
+their brand once.
+
+```bash
+cd ../astrid-ios
+./scripts/apply-brand.sh acme     # write the profile into both Info.plist files
+./scripts/check-brands.sh         # apply each profile, audit it, revert
+./scripts/check-brand.sh          # the brand-literal lint (mirrors check:reuse)
+```
+
+`Astrid App/Utilities/Brand.swift` is the native `lib/brand/config.ts`, and
+`BrandProfile.swift` maps profile variables onto the Info.plist keys it reads. See
+[`brands/README.md`](../brands/README.md) for which variables the native apps consume.
+
+### Three things arrive by three different routes, on purpose
+
+| What | How | Why not the others |
+|---|---|---|
+| **Identity** (name, host, emails, artwork) | Info.plist, from the profile | Needed before any network call — the sign-in screen renders first |
+| **Brand text** (appName, wordmark, slogan, agentName) | `GET /api/v1/capabilities` | One binary can point at several deployments; the build cannot know which brand it will serve |
+| **Voice** (reminder nags) | same endpoint, then **cached locally** | Reminders fire offline; reading live would revert a partner's app to Astrid's nags whenever the network was away |
+
+The server's values win where both exist, with the build's own as the fallback — so the
+lockup is right before the first fetch, right if the fetch fails, and right against an
+older server with no such endpoint.
+
+### What the server is deliberately not allowed to set
+
+- **`domain` / `agentEmailDomain`** — client-side trust boundaries. A server naming "its"
+  brand domain would be telling a client which cookies to clear and which Universal Links
+  to claim.
+- **`accentColor`** — clients resolve colours once at launch (`static let`) so no render
+  ever parses a hex string. A server-driven accent would mean an observable theme and a
+  cost on every colour read.
+
+Both are pinned by tests asserting the exact served key set, so adding one is deliberate.
+
+### Why the native tests are structured the way they are
+
+On an Astrid build, `XCTAssertEqual(Theme.accent, Brand.accentColor)` **passes even if
+someone puts the literal back** — the two are equal because Astrid *is* the configured
+brand. Verified by mutation. So the native suite has three layers, and only the last two
+can see a whitelabel regression:
+
+1. **Default-build tests** — prove the fallbacks. Necessarily vacuous about wiring.
+2. **`scripts/check-brand.sh`** — a source lint, the only thing that catches a
+   re-introduced literal while Astrid is the brand.
+3. **`BrandAuditTests`** — skip on an Astrid build, run under an applied partner profile.
+   These prove Info.plist configuration actually *reaches* `Brand`, and that no Astrid
+   value survives a rebrand.
+
+`BrandProfileTests` parses `Brand.swift` and fails if a key it reads has no profile
+mapping — a brand value a partner cannot configure is a build failure, not a discovery
+they make after shipping.
+
+---
+
+## 7. What cannot be configured, and why
 
 Not oversights. Changing any of these breaks something real.
 
@@ -195,7 +254,7 @@ accepts `evil-<brand>.cc`. Pinned by `tests/lib/brand-security-boundaries.test.t
 
 ---
 
-## 7. Adding a partner
+## 8. Adding a partner
 
 1. `cp brands/acme.brand.json brands/partner.brand.json` and edit it.
 2. Drop their artwork into `public/` and point `NEXT_PUBLIC_BRAND_LOGO` at it.
@@ -210,7 +269,7 @@ not: agent rows are created lazily at whatever domain is configured.
 
 ---
 
-## 8. Keeping it working
+## 9. Keeping it working
 
 `npm run check:reuse` fails the build on a hardcoded brand literal anywhere in
 `components`, `app`, `hooks` or `lib`. It matches `Astrid`, `astrid.cc`, brand-named
