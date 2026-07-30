@@ -123,7 +123,13 @@ describe('ImagePicker Upload Functionality', () => {
         result: 'data:image/jpeg;base64,testdata'
       }
 
-      vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any)
+      // A regular function, not an arrow: the component does `new FileReader()`, and
+      // vitest 4 invokes the mock implementation as a CONSTRUCTOR. An arrow function
+      // cannot be constructed, so it throws "is not a constructor". A function
+      // expression can, and returning an object makes that object the instance.
+      vi.spyOn(window, 'FileReader').mockImplementation(function () {
+        return mockFileReader as any
+      } as any)
 
       if (fileInput) {
         await user.upload(fileInput as HTMLInputElement, file)
@@ -168,7 +174,9 @@ describe('ImagePicker Upload Functionality', () => {
         result: 'data:image/jpeg;base64,fallbackdata'
       }
 
-      vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any)
+      vi.spyOn(window, 'FileReader').mockImplementation(function () {
+        return mockFileReader as any
+      } as any)
 
       // Upload file
       const fileInput = document.querySelector('input[type="file"]')
@@ -223,7 +231,9 @@ describe('ImagePicker Upload Functionality', () => {
         result: 'data:image/jpeg;base64,serverErrorFallback'
       }
 
-      vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any)
+      vi.spyOn(window, 'FileReader').mockImplementation(function () {
+        return mockFileReader as any
+      } as any)
 
       // Upload file
       const fileInput = document.querySelector('input[type="file"]')
@@ -282,7 +292,9 @@ describe('ImagePicker Upload Functionality', () => {
         result: 'data:image/jpeg;base64,malformedFallback'
       }
 
-      vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any)
+      vi.spyOn(window, 'FileReader').mockImplementation(function () {
+        return mockFileReader as any
+      } as any)
 
       // Upload file
       const fileInput = document.querySelector('input[type="file"]')

@@ -10,11 +10,14 @@ vi.stubGlobal('navigator', {
   get onLine() { return mockOnline }
 })
 
-// Mock URL.createObjectURL
-vi.stubGlobal('URL', {
-  createObjectURL: vi.fn((blob) => `blob:mock-url-${Math.random()}`),
-  revokeObjectURL: vi.fn()
-})
+// Mock URL.createObjectURL / revokeObjectURL — the two static helpers ONLY.
+//
+// This used to `vi.stubGlobal('URL', { ... })`, which replaced the entire global with a
+// plain object and so destroyed the URL *constructor*. That was always wrong; it merely
+// went unnoticed until vitest 4, where any `new URL(...)` in the code under test fails
+// with "URL is not a constructor". Stubbing the methods keeps the constructor intact.
+vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:mock-url-${Math.random()}`)
+vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
 
 // Mock OfflineAttachmentOperations
 const mockAttachments = new Map<string, any>()

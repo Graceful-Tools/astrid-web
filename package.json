@@ -17,7 +17,7 @@
     "db:backup": "tsx scripts/backup-database.ts",
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
-    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('\u2705 Database connected')).catch(e => console.error('\u274c Database failed:', e)).finally(() => prisma.$disconnect())\"",
+    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('✅ Database connected')).catch(e => console.error('❌ Database failed:', e)).finally(() => prisma.$disconnect())\"",
     "db:setup-production": "tsx scripts/setup-production-db.ts",
     "db:deploy-production": "tsx scripts/deploy-production-migration.js",
     "db:push-production": "tsx scripts/deploy-production-migration.js",
@@ -238,7 +238,7 @@
     "@types/web-push": "^3.6.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.0.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "^4.1.10",
     "canvas": "^3.2.3",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.22",
@@ -252,7 +252,7 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.22.2",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "bn.js": ">=5.2.3",
