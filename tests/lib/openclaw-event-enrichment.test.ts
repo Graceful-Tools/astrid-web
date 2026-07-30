@@ -31,8 +31,8 @@ describe('OpenClaw Event Enrichment', () => {
           githubRepositoryId: task.lists?.[0]?.githubRepositoryId,
           assignerName: task.creator?.name || task.creator?.email,
           assignerId: task.creator?.id,
-          // Legacy fields
-          taskId: task.id,
+          // Legacy fields (taskId is already set above — the route emits it once, and
+          // repeating it here made the fixture drift from the code it claims to mirror)
           taskTitle: task.title,
           taskPriority: task.priority,
           taskDueDateTime: task.dueDateTime,
