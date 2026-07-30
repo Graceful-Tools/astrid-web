@@ -295,29 +295,43 @@ ${platformInstructions}
 ${commentHistory}
 ${projectContext}
 
-## Workflow Requirements
+## CRITICAL Workflow Requirements
 
-1. **Verify platform**: Confirm you're modifying the correct codebase (iOS vs Web)
-2. **Analyze**: Understand the issue thoroughly before coding
-3. **Implement**: Make the fix in the correct files
-4. **Test locally**: Run relevant tests if possible
-5. **Create PR**: ALWAYS create a PR with \`gh pr create\` for code changes
-6. **Show diff**: Include the key changes in your summary
+1. **Understand the task FIRST**: Read the task title and description carefully. What EXACTLY is being asked?
+2. **Verify platform**: iOS tasks = \`ios-app/\` directory, Web tasks = \`components/\`, \`app/\` directories
+3. **Locate relevant code**: Find the files that actually implement what needs to change
+4. **Make ONLY the requested changes**: Do NOT make unrelated changes (no dependency updates, no refactoring)
+5. **Run predeploy tests**: ALWAYS run \`npm run predeploy\` to verify your changes don't break anything
+6. **Create PR**: Use \`gh pr create\` with a clear title describing the actual change
+7. **Verify your changes match the task**: Before completing, re-read the task and confirm your changes address it
+
+## Test Requirements (MANDATORY)
+
+Before creating a PR, you MUST run:
+\`\`\`bash
+npm run predeploy
+\`\`\`
+
+If tests fail, FIX the issues before creating the PR. Include the test results in your summary.
 
 ## Output Requirements
 
 Your response MUST include:
-1. **Platform confirmed**: Which codebase you modified (iOS/Web/etc.)
-2. **Root cause**: What was causing the issue
-3. **Solution**: What you changed and why
-4. **Files modified**: List each file path
+1. **Task understanding**: What exactly was requested (in your own words)
+2. **Actual changes made**: What you specifically changed and WHY it addresses the task
+3. **Files modified**: List each file path (ONLY files with substantive changes, not dependency files)
+4. **Test results**: Output from \`npm run predeploy\` showing tests pass
 5. **PR URL**: The pull request URL (REQUIRED for code changes)
-6. **Diff preview**: Show the key code changes
+6. **Preview URL**: The Vercel preview will be at \`https://astrid-res-www-git-{branch-name}-graceful-tools.vercel.app\`
 
-**CRITICAL**:
-- Do NOT modify web code for iOS issues or vice versa
-- ALWAYS create a PR - do not just commit locally
-- If unsure about platform, ASK before making changes`;
+## CRITICAL Warnings
+
+- **Do NOT make unrelated changes**: If task is about CSS padding, only change CSS/styling code
+- **Do NOT update dependencies** unless specifically asked
+- **Do NOT modify package.json** unless specifically required for the task
+- **VERIFY your changes match the task** before completing
+- If you realize you made wrong changes, UNDO them and start over
+- If unsure what to change, ASK before making any modifications`;
     }
     /**
      * Start a new Claude Code session
@@ -415,8 +429,8 @@ Your response MUST include:
             let lastOutputTime = Date.now();
             let heartbeatInterval = null;
             let initialTimeoutHandle = null;
-            const INITIAL_TIMEOUT = 300000; // 5 minutes for first output (complex tasks need time)
-            const STALL_TIMEOUT = 300000; // 5 minutes of no output = stalled
+            const INITIAL_TIMEOUT = 600000; // 10 minutes for first output (complex tasks need time to analyze)
+            const STALL_TIMEOUT = 600000; // 10 minutes of no output = stalled (Claude --print only outputs at end)
             console.log(`🤖 Running: claude ${args.map(a => a.includes(' ') ? `"${a}"` : a).join(' ')}`);
             console.log(`⏱️ Timeouts: initial=${INITIAL_TIMEOUT / 1000}s, stall=${STALL_TIMEOUT / 1000}s, max=${this.timeout / 1000}s`);
             // Log environment being passed (for debugging)
