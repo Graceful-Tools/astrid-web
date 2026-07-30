@@ -1,3 +1,4 @@
+import { hasCapability, type CapabilityKey } from '@/lib/brand/capabilities'
 import { NextResponse, type NextRequest } from 'next/server'
 import {
   authenticateAPI,
@@ -45,6 +46,15 @@ interface WithAuthOptions {
   scopes?: string[]
   /** Tag for the logger; defaults to "api". */
   tag?: string
+  /**
+   * Build-time capability this route belongs to. When the deployment has it disabled
+   * the route answers 404 and never reaches the handler. See lib/brand/capabilities.ts.
+   *
+   * 404 rather than 403 on purpose: a disabled capability does not exist in this
+   * deployment, and saying "forbidden" would confirm the endpoint is there and hint
+   * that some other caller could reach it.
+   */
+  capability?: CapabilityKey
 }
 
 type Handler<TContext> = (
@@ -59,7 +69,16 @@ export function withAuth<TContext = unknown>(
 ): (req: NextRequest, context: TContext) => Promise<NextResponse> {
   const log = createLogger(options.tag ?? 'api')
 
+  // Resolved once at module load: capabilities are build-time constants, so this costs
+  // nothing per request and a disabled route short-circuits before authentication —
+  // strictly less work than the previous path, never more.
+  const capabilityDisabled = options.capability ? !hasCapability(options.capability) : false
+
   return async (req, context) => {
+    if (capabilityDisabled) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
     let auth: AuthContext
     try {
       auth = await authenticateAPI(req)

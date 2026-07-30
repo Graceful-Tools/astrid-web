@@ -1,3 +1,4 @@
+import { hasCapability } from '@/lib/brand/capabilities'
 import type { NextApiRequest, NextApiResponse } from "next"
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"
 import AstridMCPServerOAuth from "../../../mcp/mcp-server-oauth"
@@ -86,6 +87,12 @@ function sendAuthChallenge(req: NextApiRequest, res: NextApiResponse) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Deployment does not offer MCP — answer as if the endpoint does not exist.
+  if (!hasCapability('integrationMcp')) {
+    res.status(404).json({ error: 'Not found' })
+    return
+  }
+
   if (req.method === "OPTIONS") {
     res.setHeader("Allow", "GET,POST,OPTIONS")
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS")

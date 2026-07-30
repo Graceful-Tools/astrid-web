@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { RefreshCw, LogOut, Trash2, Download, Settings, RotateCcw, Smartphone, Globe, ChevronRight } from "lucide-react"
 
 interface HelpPageProps {
@@ -57,7 +58,7 @@ export default function HelpPage({ onNavigate }: HelpPageProps) {
                   <div className="flex-shrink-0 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-sm font-bold">2</div>
                   <div>
                     <h3 className="font-semibold text-white mb-1">Force Quit and Reopen</h3>
-                    <p className="text-gray-400 text-sm">Swipe up from the bottom (or double-tap home button), swipe Astrid away, then reopen the app.</p>
+                    <p className="text-gray-400 text-sm">Swipe up from the bottom (or double-tap home button), swipe {BRAND.appName} away, then reopen the app.</p>
                   </div>
                 </div>
               </div>
@@ -83,7 +84,7 @@ export default function HelpPage({ onNavigate }: HelpPageProps) {
                   <div className="flex-shrink-0 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-sm font-bold">4</div>
                   <div>
                     <h3 className="font-semibold text-white mb-1">Check Your Internet Connection</h3>
-                    <p className="text-gray-400 text-sm">Astrid works offline but needs internet to sync. Make sure you&apos;re connected to WiFi or cellular data.</p>
+                    <p className="text-gray-400 text-sm">{BRAND.appName} works offline but needs internet to sync. Make sure you&apos;re connected to WiFi or cellular data.</p>
                   </div>
                 </div>
               </div>
@@ -198,7 +199,7 @@ export default function HelpPage({ onNavigate }: HelpPageProps) {
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-sm font-bold">6</div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">Clear Browser Cache and Cookies for Astrid</h3>
+                    <h3 className="font-semibold text-white mb-1">Clear Browser Cache and Cookies for {BRAND.appName}</h3>
                     <p className="text-gray-400 text-sm">
                       <strong>Chrome:</strong> Settings &rarr; Privacy &rarr; Clear browsing data &rarr; Select &quot;Cookies&quot; and &quot;Cached images&quot;<br />
                       <strong>Safari:</strong> Preferences &rarr; Privacy &rarr; Manage Website Data &rarr; Search for &quot;astrid&quot; &rarr; Remove<br />
@@ -283,7 +284,7 @@ export default function HelpPage({ onNavigate }: HelpPageProps) {
                 <ol className="list-decimal list-inside mt-2 space-y-1">
                   <li>Make sure cookies are enabled in your browser</li>
                   <li>Try signing in with an incognito/private window</li>
-                  <li>Clear cookies for astrid.cc specifically</li>
+                  <li>Clear cookies for {BRAND.domain} specifically</li>
                   <li>If using a passkey, make sure your device supports it</li>
                 </ol>
               </div>
@@ -298,7 +299,7 @@ export default function HelpPage({ onNavigate }: HelpPageProps) {
             If none of these solutions work, we&apos;re here to help.
           </p>
           <a
-            href="mailto:support@astrid.cc"
+            href={`mailto:${BRAND.supportEmail}`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
           >
             Contact Support

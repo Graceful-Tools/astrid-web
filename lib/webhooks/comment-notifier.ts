@@ -20,6 +20,7 @@ import type { PrismaClient } from '@prisma/client'
 import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
+import { isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
 
@@ -205,7 +206,7 @@ export async function notifyCommentOnAssignedTask(
       }
     }
 
-    const isInternalAgent = task.assignee.email?.endsWith('@astrid.cc')
+    const isInternalAgent = isBrandAgentEmail(task.assignee.email)
     const { isCodingAgent } = await import('@/lib/ai-agent-utils')
 
     if (isInternalAgent) {

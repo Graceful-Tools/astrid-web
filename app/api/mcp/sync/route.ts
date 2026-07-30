@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
@@ -27,6 +28,9 @@ const log = createLogger('mcp.sync')
  * }
  */
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   try {
     const { accessToken, lastSyncTimestamp } = await request.json()
 

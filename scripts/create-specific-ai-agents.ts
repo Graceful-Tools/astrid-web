@@ -1,137 +1,72 @@
 #!/usr/bin/env tsx
+/**
+ * Seed the User rows backing the built-in AI agents, plus an MCP token for each.
+ *
+ * Task 97208a72: this used to be five near-identical upsert blocks with hardcoded
+ * `claude@astrid.cc`-style addresses, so adding or renaming an agent meant editing the
+ * script, the routing registry, and two API routes in lockstep. It now iterates the
+ * registry, which means it also honours BRAND_ENABLED_AGENTS and the configured
+ * agent-email domain.
+ *
+ * Seeding remains optional — lib/ai/ensure-agent-user.ts creates rows lazily — but
+ * running it up front also issues each agent its MCP token.
+ */
 
 import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
-import * as dotenv from 'dotenv'
-import * as path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+import { ENABLED_AGENT_MAILBOXES, AI_AGENT_CONFIG } from '../lib/ai/agent-config'
+import { agentEmail } from '../lib/brand/agent-emails'
 
 // Load .env.local for database URL
 loadScriptEnv()
 
 const prisma = new PrismaClient()
 
+// AI agent profile images, uploaded via scripts/upload-ai-agent-images.ts
+const BLOB_BASE = 'https://uvq3rbgqrtvvavdq.public.blob.vercel-storage.com/ai-agents'
+
+/** Seed display name and image file per agent — distinct from the routing displayName. */
+const SEED_PROFILE: Record<string, { name: string; image: string }> = {
+  claude: { name: 'Claude Agent', image: 'claude.png' },
+  openai: { name: 'OpenAI Agent', image: 'openai.png' },
+  gemini: { name: 'Gemini Agent', image: 'gemini.png' },
+  copilot: { name: 'GitHub Copilot Agent', image: 'copilot.png' },
+  openclaw: { name: 'OpenClaw Worker', image: 'openclaw.svg' },
+}
+
 async function createSpecificAIAgents() {
   try {
     console.log('🤖 Creating specific AI agents...')
 
-    // Use Vercel Blob storage for AI agent profile images
-    // These images are uploaded via scripts/upload-ai-agent-images.ts
-    const blobBase = 'https://uvq3rbgqrtvvavdq.public.blob.vercel-storage.com/ai-agents'
+    // The default assistant is seeded by ensureAstridAgent() on first use and has no
+    // provider image of its own, so it is not seeded here.
+    const mailboxes = ENABLED_AGENT_MAILBOXES.filter((m) => m !== 'astrid' && m in SEED_PROFILE)
+    const agents = []
 
-    // Create Claude agent
-    const claudeAgent = await prisma.user.upsert({
-      where: { email: 'claude@astrid.cc' },
-      update: {
-        name: 'Claude Agent',
-        image: `${blobBase}/claude.png`,
+    for (const mailbox of mailboxes) {
+      const email = agentEmail(mailbox)
+      const profile = SEED_PROFILE[mailbox]
+      const fields = {
+        name: profile.name,
+        image: `${BLOB_BASE}/${profile.image}`,
         isAIAgent: true,
-        aiAgentType: 'claude_agent',
-        isActive: true
-      },
-      create: {
-        email: 'claude@astrid.cc',
-        name: 'Claude Agent',
-        image: `${blobBase}/claude.png`,
-        isAIAgent: true,
-        aiAgentType: 'claude_agent',
-        isActive: true
+        aiAgentType: AI_AGENT_CONFIG[email].agentType,
+        isActive: true,
       }
-    })
 
-    console.log('✅ Claude agent:', claudeAgent.name, '(' + claudeAgent.email + ')')
+      const agent = await prisma.user.upsert({
+        where: { email },
+        update: fields,
+        create: { email, ...fields },
+      })
 
-    // Create OpenAI agent
-    const openaiAgent = await prisma.user.upsert({
-      where: { email: 'openai@astrid.cc' },
-      update: {
-        name: 'OpenAI Agent',
-        image: `${blobBase}/openai.png`,
-        isAIAgent: true,
-        aiAgentType: 'openai_agent',
-        isActive: true
-      },
-      create: {
-        email: 'openai@astrid.cc',
-        name: 'OpenAI Agent',
-        image: `${blobBase}/openai.png`,
-        isAIAgent: true,
-        aiAgentType: 'openai_agent',
-        isActive: true
-      }
-    })
-
-    console.log('✅ OpenAI agent:', openaiAgent.name, '(' + openaiAgent.email + ')')
-
-    // Create Gemini agent
-    const geminiAgent = await prisma.user.upsert({
-      where: { email: 'gemini@astrid.cc' },
-      update: {
-        name: 'Gemini Agent',
-        image: `${blobBase}/gemini.png`,
-        isAIAgent: true,
-        aiAgentType: 'gemini_agent',
-        isActive: true
-      },
-      create: {
-        email: 'gemini@astrid.cc',
-        name: 'Gemini Agent',
-        image: `${blobBase}/gemini.png`,
-        isAIAgent: true,
-        aiAgentType: 'gemini_agent',
-        isActive: true
-      }
-    })
-
-    console.log('✅ Gemini agent:', geminiAgent.name, '(' + geminiAgent.email + ')')
-
-    // Create GitHub Copilot agent
-    const copilotAgent = await prisma.user.upsert({
-      where: { email: 'copilot@astrid.cc' },
-      update: {
-        name: 'GitHub Copilot Agent',
-        image: `${blobBase}/copilot.svg`,
-        isAIAgent: true,
-        aiAgentType: 'copilot_agent',
-        isActive: true
-      },
-      create: {
-        email: 'copilot@astrid.cc',
-        name: 'GitHub Copilot Agent',
-        image: `${blobBase}/copilot.svg`,
-        isAIAgent: true,
-        aiAgentType: 'copilot_agent',
-        isActive: true
-      }
-    })
-
-    console.log('✅ GitHub Copilot agent:', copilotAgent.name, '(' + copilotAgent.email + ')')
-
-    // Create OpenClaw agent
-    const openclawAgent = await prisma.user.upsert({
-      where: { email: 'openclaw@astrid.cc' },
-      update: {
-        name: 'OpenClaw Worker',
-        image: `${blobBase}/openclaw.svg`,
-        isAIAgent: true,
-        aiAgentType: 'openclaw_worker',
-        isActive: true
-      },
-      create: {
-        email: 'openclaw@astrid.cc',
-        name: 'OpenClaw Worker',
-        image: `${blobBase}/openclaw.svg`,
-        isAIAgent: true,
-        aiAgentType: 'openclaw_worker',
-        isActive: true
-      }
-    })
-
-    console.log('✅ OpenClaw agent:', openclawAgent.name, '(' + openclawAgent.email + ')')
+      agents.push(agent)
+      console.log(`✅ ${profile.name}:`, agent.name, '(' + agent.email + ')')
+    }
 
     // Create MCP tokens for each agent
-    for (const agent of [claudeAgent, openaiAgent, geminiAgent, copilotAgent, openclawAgent]) {
-      // Check if token already exists
+    for (const agent of agents) {
       const existingToken = await prisma.mCPToken.findFirst({
         where: { userId: agent.id }
       })
@@ -158,11 +93,9 @@ async function createSpecificAIAgents() {
 
     console.log('')
     console.log('🎯 AI Agent System Ready:')
-    console.log('  - Claude Agent: claude@astrid.cc')
-    console.log('  - OpenAI Agent: openai@astrid.cc')
-    console.log('  - Gemini Agent: gemini@astrid.cc')
-    console.log('  - GitHub Copilot Agent: copilot@astrid.cc')
-    console.log('  - OpenClaw Worker: openclaw@astrid.cc')
+    for (const agent of agents) {
+      console.log(`  - ${agent.name}: ${agent.email}`)
+    }
     console.log('')
     console.log('Now you can enable these agents in list settings!')
 

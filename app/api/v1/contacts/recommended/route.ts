@@ -11,6 +11,7 @@
  * signal that the person would be a good collaborator.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextResponse } from 'next/server'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
@@ -112,7 +113,7 @@ export const GET = withAuth(
     if (usersInMyContacts.length === 0) {
       return NextResponse.json({
         recommended: [],
-        message: 'None of your contacts are on Astrid yet.',
+        message: `None of your contacts are on ${BRAND.appName} yet.`,
         meta: { apiVersion: 'v1', authSource: auth.source }
       })
     }

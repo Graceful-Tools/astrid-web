@@ -1,0 +1,98 @@
+{
+  "name": "Acme",
+  "description": "A fully rebranded enterprise deployment running its own back end: passkey-only sign-in, no Google Tasks sync, no MCP or ChatGPT actions, and Claude as the only AI provider. Exercises every axis of the whitelabel configuration at once.",
+  "env": {
+    "NEXT_PUBLIC_BRAND_NAME": "Acme",
+    "NEXT_PUBLIC_BRAND_TITLE": "Acme Tasks",
+    "NEXT_PUBLIC_BRAND_TAGLINE": "Task management for Acme Corporation",
+    "NEXT_PUBLIC_BRAND_DOMAIN": "tasks.acme.example",
+    "NEXT_PUBLIC_BRAND_SUPPORT_EMAIL": "helpdesk@acme.example",
+    "NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL": "todo@acme.example",
+    "NEXT_PUBLIC_BRAND_ACCENT_COLOR": "#a855f7",
+    "NEXT_PUBLIC_BRAND_AGENT_NAME": "Acme Assistant",
+    "BRAND_AGENT_EMAIL_DOMAIN": "agents.acme.example",
+    "BRAND_ENABLED_AGENTS": "claude",
+    "NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_MCP": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false",
+    "NEXT_PUBLIC_BRAND_LOGO": "/images/acme-logo.png",
+    "NEXT_PUBLIC_BRAND_WORDMARK": "ACME",
+    "NEXT_PUBLIC_BRAND_SLOGAN": "Work, handled.",
+    "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
+    "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant"
+  },
+  "expect": {
+    "appName": "Acme",
+    "productTitle": "Acme Tasks",
+    "domain": "tasks.acme.example",
+    "agentEmailDomain": "agents.acme.example",
+    "supportEmail": "helpdesk@acme.example",
+    "inboundTaskEmail": "todo@acme.example",
+    "accentColor": "#a855f7",
+    "enabledAgents": [
+      "astrid",
+      "claude"
+    ],
+    "capabilities": {
+      "authGoogle": false,
+      "authApple": false,
+      "authPasskey": true,
+      "syncGoogleTasks": false,
+      "syncGithubIssues": true,
+      "integrationMcp": false,
+      "integrationOpenClaw": true,
+      "integrationChatGptActions": false,
+      "emailToTask": false,
+      "calendarFeed": true
+    },
+    "requireLiterals": [
+      "Acme"
+    ],
+    "forbidLiterals": [
+      "Astrid",
+      "astrid.cc"
+    ],
+    "logo": "/images/acme-logo.png",
+    "icon": "/icons/icon-512x512.png",
+    "wordmark": "ACME",
+    "slogan": "Work, handled.",
+    "appStoreUrl": "",
+    "githubAppSlug": "acme-code-assistant"
+  },
+  "copy": {
+    "reminders": {
+      "general": [
+        "A moment, please.",
+        "Your attention is requested.",
+        "Pending item."
+      ],
+      "due": [
+        "This item is now due.",
+        "Scheduled work is ready.",
+        "Due now."
+      ],
+      "responses": [
+        "Please review when convenient.",
+        "Ready when you are.",
+        "Awaiting action."
+      ]
+    },
+    "defaultLists": {
+      "today": {
+        "name": "Due Today",
+        "description": "items scheduled for today"
+      },
+      "not-in-list": {
+        "name": "Unfiled",
+        "description": "items not yet assigned to a project"
+      },
+      "assigned": {
+        "name": "Delegated",
+        "description": "items you have assigned to others"
+      }
+    }
+  }
+}

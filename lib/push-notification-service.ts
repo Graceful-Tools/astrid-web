@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import webpush from 'web-push'
 import { prisma as defaultPrisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
@@ -287,7 +288,7 @@ export class PushNotificationService {
   async sendTestNotification(userId: string): Promise<void> {
     const payload: PushNotificationPayload = {
       title: 'Test Notification',
-      body: 'This is a test notification from Astrid',
+      body: `This is a test notification from ${BRAND.appName}`,
       data: {
         action: 'test',
         url: '/',

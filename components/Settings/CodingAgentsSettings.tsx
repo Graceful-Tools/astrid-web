@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -48,25 +49,25 @@ export default function CodingAgentsSettings({ onNavigate }: CodingAgentsSetting
                   Run AI coding agents on your own infrastructure
                 </p>
                 <p className="text-sm theme-text-muted mt-1">
-                  The Astrid SDK lets you run Claude, OpenAI, or Gemini coding agents that can read/write files,
-                  run commands, and create GitHub pull requests. Agents process tasks assigned to them in Astrid.
+                  The {BRAND.appName} SDK lets you run Claude, OpenAI, or Gemini coding agents that can read/write files,
+                  run commands, and create GitHub pull requests. Agents process tasks assigned to them in {BRAND.appName}.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <span className="inline-flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
                     <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                    claude@astrid.cc
+                    claude@{BRAND.agentEmailDomain}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    openai@astrid.cc
+                    openai@{BRAND.agentEmailDomain}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    gemini@astrid.cc
+                    gemini@{BRAND.agentEmailDomain}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 px-2 py-1 rounded">
                     <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
-                    copilot@astrid.cc
+                    copilot@{BRAND.agentEmailDomain}
                   </span>
                 </div>
                 <div className="mt-3">
@@ -110,10 +111,10 @@ export default function CodingAgentsSettings({ onNavigate }: CodingAgentsSetting
           <CardHeader>
             <CardTitle className="theme-text-primary flex items-center gap-2">
               <Terminal className="w-5 h-5 text-green-500" />
-              Astrid SDK Quick Start
+              {BRAND.appName} SDK Quick Start
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Install the Astrid SDK and start running coding agents
+              Install the {BRAND.appName} SDK and start running coding agents
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -133,7 +134,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 # OPENAI_API_KEY=sk-...
 # GEMINI_API_KEY=AIza...
 
-# Astrid OAuth credentials (from API Access settings)
+# ${BRAND.appName} OAuth credentials (from API Access settings)
 ASTRID_OAUTH_CLIENT_ID=your-client-id
 ASTRID_OAUTH_CLIENT_SECRET=your-secret
 ASTRID_OAUTH_LIST_ID=your-list-id`}
@@ -148,7 +149,7 @@ ASTRID_OAUTH_LIST_ID=your-list-id`}
                       Terminal Mode (Recommended for local dev)
                     </p>
                     <p className="text-xs theme-text-muted mb-2">
-                      Uses your local Claude Code CLI. Remote control your local Claude Code from Astrid!
+                      Uses your local Claude Code CLI. Remote control your local Claude Code from {BRAND.appName}!
                     </p>
                     <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono">
                       npx astrid-agent --terminal
@@ -241,7 +242,7 @@ ASTRID_AGENT_TEST_COMMAND=npm run predeploy`}
 ASTRID_AGENT_VERCEL_DEPLOY=true
 
 # Custom domain for preview aliases (required for passkeys)
-# Example: task-abc123.astrid.cc instead of random.vercel.app
+# Example: task-abc123.${BRAND.domain} instead of random.vercel.app
 ASTRID_AGENT_PREVIEW_DOMAIN=yourdomain.com
 
 # Vercel credentials

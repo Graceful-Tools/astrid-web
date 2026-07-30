@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -92,7 +93,7 @@ export default function CodingIntegrationSettings({ onNavigate }: CodingIntegrat
           <Bot className="w-8 h-8 text-blue-500" />
           <div>
             <h1 className="text-2xl font-bold theme-text-primary">AI Coding Integration</h1>
-            <p className="theme-text-muted">Connect AI assistants to your Astrid tasks</p>
+            <p className="theme-text-muted">Connect AI assistants to your {BRAND.appName} tasks</p>
           </div>
         </div>
 
@@ -140,7 +141,7 @@ export default function CodingIntegrationSettings({ onNavigate }: CodingIntegrat
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span>Posts progress to Astrid</span>
+                <span>Posts progress to {BRAND.appName}</span>
               </div>
             </CardContent>
           </Card>
@@ -423,7 +424,7 @@ GEMINI_API_KEY=AIza...`, 'cloud-env')}
                 <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
                   <h4 className="font-semibold theme-text-primary mb-2">Usage</h4>
                   <div className="text-sm theme-text-muted space-y-1">
-                    <div>1. Create a task in Astrid</div>
+                    <div>1. Create a task in {BRAND.appName}</div>
                     <div>2. Assign to an AI agent (see below)</div>
                     <div>3. Worker picks up task and creates PR</div>
                     <div>4. Review, then comment <strong>&quot;ship it&quot;</strong> to deploy</div>
@@ -439,15 +440,15 @@ GEMINI_API_KEY=AIza...`, 'cloud-env')}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                     <div className="flex items-center space-x-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
                       <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xs">C</div>
-                      <span>claude@astrid.cc</span>
+                      <span>claude@{BRAND.agentEmailDomain}</span>
                     </div>
                     <div className="flex items-center space-x-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                       <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs">O</div>
-                      <span>openai@astrid.cc</span>
+                      <span>openai@{BRAND.agentEmailDomain}</span>
                     </div>
                     <div className="flex items-center space-x-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                       <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">G</div>
-                      <span>gemini@astrid.cc</span>
+                      <span>gemini@{BRAND.agentEmailDomain}</span>
                     </div>
                   </div>
                   <div className="text-xs theme-text-muted mt-2">
@@ -601,7 +602,7 @@ GEMINI_API_KEY=AIza...`, 'cloud-env')}
                 </div>
 
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs theme-text-muted">
-                  <strong>How it works:</strong> When cloud agents create PRs, the worker fetches preview URLs and posts them as comments on your Astrid task.
+                  <strong>How it works:</strong> When cloud agents create PRs, the worker fetches preview URLs and posts them as comments on your {BRAND.appName} task.
                 </div>
               </CardContent>
             </Card>

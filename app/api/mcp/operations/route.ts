@@ -5,6 +5,8 @@
  * All operation logic has been extracted to handler modules in ./handlers/
  */
 
+import { BRAND } from '@/lib/brand/config'
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from "next/server"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { authenticateAPI, getDeprecationWarning, UnauthorizedError } from "@/lib/api-auth-middleware"
@@ -104,7 +106,7 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
     const headers: Record<string, string> = {}
     if (deprecationWarning) {
       headers['X-Deprecation-Warning'] = deprecationWarning
-      headers['X-Migration-Guide'] = 'https://astrid.cc/docs/api-migration'
+      headers['X-Migration-Guide'] = `https://${BRAND.domain}/docs/api-migration`
     }
 
     return NextResponse.json(result, { headers })
@@ -128,6 +130,9 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
  * POST handler for MCP operations
  */
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   // Apply rate limiting for MCP operations
   const rateLimitCheck = withRateLimit(RATE_LIMITS.MCP_OPERATIONS)(request)
 
@@ -158,6 +163,9 @@ export async function POST(request: NextRequest) {
  * GET handler for MCP operations (query string based)
  */
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   const rateLimitCheck = withRateLimit(RATE_LIMITS.MCP_OPERATIONS)(request)
 
   if (!rateLimitCheck.allowed) {

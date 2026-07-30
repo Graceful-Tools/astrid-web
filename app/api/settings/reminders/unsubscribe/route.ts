@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Unsubscribed - Astrid</title>
+        <title>Unsubscribed - ${BRAND.appName}</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -87,9 +88,9 @@ export async function GET(request: NextRequest) {
       <body>
         <div class="container">
           <h1>You've been unsubscribed</h1>
-          <p>You will no longer receive email reminders from Astrid.</p>
+          <p>You will no longer receive email reminders from ${BRAND.appName}.</p>
           <p>You can re-enable email reminders at any time in your settings.</p>
-          <a href="/" class="button">Go to Astrid</a>
+          <a href="/" class="button">Go to ${BRAND.appName}</a>
         </div>
       </body>
       </html>`,

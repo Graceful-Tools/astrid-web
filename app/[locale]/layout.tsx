@@ -6,6 +6,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
+import { BRAND } from '@/lib/brand/config'
 import "../globals.css"
 import { Providers } from "@/components/providers"
 import { SoundInitializer } from "@/components/sound-initializer"
@@ -20,7 +21,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#3b82f6",
+  themeColor: BRAND.accentColor,
   // Shrink the layout viewport when the on-screen keyboard appears so a
   // position: fixed input sits naturally above the keyboard. Without this,
   // Mobile Safari auto-scrolls the underlying task list to reveal the focused
@@ -29,27 +30,27 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Astrid Task Manager",
-  description: "A modern task management application for organizing your life",
+  title: BRAND.productTitle,
+  description: BRAND.tagline,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Astrid"
+    title: BRAND.appName
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: "website",
-    siteName: "Astrid Task Manager",
-    title: "Astrid Task Manager",
-    description: "A modern task management application for organizing your life",
+    siteName: BRAND.productTitle,
+    title: BRAND.productTitle,
+    description: BRAND.tagline,
   },
   twitter: {
     card: "summary",
-    title: "Astrid Task Manager",
-    description: "A modern task management application for organizing your life",
+    title: BRAND.productTitle,
+    description: BRAND.tagline,
   },
   icons: {
     icon: [

@@ -8,7 +8,7 @@ import { googleRequest, googleTokenFor } from '@/lib/sync/google'
  * Google Tasks has no webhooks; clients poll on foreground/nudge.
  */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (req, auth) => {
     const url0 = new URL(req.url)
     const linkId = url0.searchParams.get('linkId')
@@ -86,7 +86,7 @@ export const GET = withAuth(
  * remoteId?, parentRemoteId? }. remoteId nil = insert (optionally under parent).
  */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (req, auth) => {
     const body = await req.json()
     // Client-acknowledged cursor commit: persist the cursor the client applied.
@@ -146,7 +146,7 @@ export const POST = withAuth(
 
 /** DELETE ?linkId&remoteId — delete a Google task (404/410 = already gone). */
 export const DELETE = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (req, auth) => {
     const url = new URL(req.url)
     const linkId = url.searchParams.get('linkId')

@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from "./prisma"
 import { createLogger } from '@/lib/logger'
 
@@ -14,7 +15,7 @@ const log = createLogger('system-tasks')
 
 // System task identifiers - use these to find/complete system tasks
 export const SYSTEM_TASK_TITLES = {
-  VERIFY_EMAIL: "Verify your email address with astrid.cc",
+  VERIFY_EMAIL: `Verify your email address with ${BRAND.domain}`,
 } as const
 
 export type SystemTaskType = keyof typeof SYSTEM_TASK_TITLES
@@ -69,9 +70,9 @@ export async function createVerifyEmailTask(userId: string): Promise<{ created: 
         title: SYSTEM_TASK_TITLES.VERIFY_EMAIL,
         description: `**Why:** Verified emails help us protect your account and enable collaboration.
 
-1. Check your inbox for an email from Astrid
+1. Check your inbox for an email from ${BRAND.appName}
 2. If you don't see it in your inbox, check your spam/junk folder
-3. If it still isn't there, go to Astrid.cc or the iOS app and go to Settings > Account & Access and resend the verification email`,
+3. If it still isn't there, go to ${BRAND.appName}.cc or the iOS app and go to Settings > Account & Access and resend the verification email`,
         assigneeId: userId,
         creatorId: null, // System-created task
         dueDateTime: today,

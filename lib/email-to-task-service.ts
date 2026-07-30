@@ -9,6 +9,7 @@
  * - CC: remindme@astrid.cc with multiple TO/CC → Group list with all recipients
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { placeholderUserService } from '@/lib/placeholder-user-service'
 import type { User, Task, TaskList } from '@prisma/client'
@@ -18,7 +19,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('email-to-task-service')
 
 
-const REMINDME_EMAIL = 'remindme@astrid.cc'
+const REMINDME_EMAIL = BRAND.inboundTaskEmail
 
 export interface ParsedEmail {
   from: string

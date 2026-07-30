@@ -5,7 +5,7 @@ import { requireTaskAccess } from '@/lib/api-auth-middleware'
 
 /** GET /api/v1.sync.google/task-links?listId — the caller's task links for a list. */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (req, auth) => {
     const url = new URL(req.url)
     const listId = url.searchParams.get('listId')
@@ -30,7 +30,7 @@ export const GET = withAuth(
  * Body: { astridTaskId, remoteId, remoteContainerId, astridUpdatedAt?, remoteUpdatedAt?, metadata? }
  */
 export const PUT = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.google' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.google', capability: 'syncGoogleTasks' },
   async (req, auth) => {
     const body = await req.json()
     const { astridTaskId, remoteId, remoteContainerId } = body || {}

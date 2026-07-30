@@ -1,7 +1,12 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 import 'fake-indexeddb/auto'
-import enMessages from '@/lib/i18n/locales/en.json'
+import rawEnMessages from '@/lib/i18n/locales/en.json'
+import { applyBrandToMessages } from '@/lib/brand/i18n-values'
+
+// Mirror lib/i18n/request.ts: copy stores `{appName}` and the brand is substituted at
+// load time, so tests asserting on rendered copy see the same strings the app renders.
+const enMessages = applyBrandToMessages(rawEnMessages)
 
 // Mock NextAuth
 global.jest = {

@@ -6,6 +6,7 @@
 
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -90,7 +91,7 @@ export function GitHubSharedSetup() {
   const handleInstallApp = () => {
     // Open GitHub App installation page
     // After installation, GitHub redirects to /api/github/setup with the installation_id
-    window.location.href = 'https://github.com/apps/astrid-code-assistant/installations/new'
+    window.location.href = `https://github.com/apps/${BRAND.githubAppSlug}/installations/new`
   }
 
   const handleConnectInstallation = async (installationId: number) => {
@@ -171,8 +172,8 @@ export function GitHubSharedSetup() {
                 <CardTitle className="text-lg">GitHub Connected</CardTitle>
                 <CardDescription>
                   {installations.length === 1
-                    ? 'Your GitHub account is linked to Astrid'
-                    : `${installations.length} GitHub accounts are linked to Astrid`}
+                    ? `Your GitHub account is linked to ${BRAND.appName}`
+                    : `${installations.length} GitHub accounts are linked to ${BRAND.appName}`}
                 </CardDescription>
               </div>
             </div>
@@ -262,7 +263,7 @@ export function GitHubSharedSetup() {
             <div>
               <CardTitle>GitHub Installation Detected</CardTitle>
               <CardDescription>
-                We found your GitHub App installation. Click to connect it to Astrid.
+                We found your GitHub App installation. Click to connect it to {BRAND.appName}.
               </CardDescription>
             </div>
           </div>
@@ -271,7 +272,7 @@ export function GitHubSharedSetup() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              You&apos;ve already installed the Astrid Agent on GitHub. Just click &quot;Connect&quot; below to link it to your Astrid account.
+              You&apos;ve already installed the {BRAND.appName} Agent on GitHub. Just click &quot;Connect&quot; below to link it to your {BRAND.appName} account.
             </AlertDescription>
           </Alert>
 
@@ -345,7 +346,7 @@ export function GitHubSharedSetup() {
           <div>
             <CardTitle>Connect GitHub</CardTitle>
             <CardDescription>
-              Install the Astrid Agent to enable AI coding features
+              Install the {BRAND.appName} Agent to enable AI coding features
             </CardDescription>
           </div>
         </div>
@@ -354,14 +355,14 @@ export function GitHubSharedSetup() {
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            This will open GitHub where you can install the Astrid Agent
+            This will open GitHub where you can install the {BRAND.appName} Agent
             and select which repositories to give access to.
           </AlertDescription>
         </Alert>
 
         <Button onClick={handleInstallApp} className="w-full" size="lg">
           <ExternalLink className="w-5 h-5 mr-2" />
-          Install Astrid Agent on GitHub
+          Install {BRAND.appName} Agent on GitHub
         </Button>
 
         <p className="text-sm text-gray-600 text-center">

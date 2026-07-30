@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -512,7 +513,7 @@ export function AIAPIKeyManager() {
                     <div>
                       <Label className="font-medium">GitHub authorization</Label>
                       <p className="text-sm text-muted-foreground">
-                        Connect your GitHub account so Astrid can use your Copilot subscription.
+                        Connect your GitHub account so {BRAND.appName} can use your Copilot subscription.
                         The token is stored encrypted and can be revoked from GitHub at any time.
                       </p>
                     </div>
@@ -710,9 +711,9 @@ export function AIAPIKeyManager() {
                 {keyData[service.id]?.isValid && agentUserIds[service.id] && (
                   <div className="flex items-center justify-between pt-3 border-t">
                     <div>
-                      <Label className="text-sm font-medium">Power Astrid</Label>
+                      <Label className="text-sm font-medium">Power {BRAND.appName}</Label>
                       <p className="text-xs text-muted-foreground">
-                        Use this model for Astrid across your private lists and My Tasks.
+                        Use this model for {BRAND.appName} across your private lists and My Tasks.
                       </p>
                     </div>
                     <Button

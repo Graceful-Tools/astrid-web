@@ -7,6 +7,7 @@
  * 3. Legacy MCP tokens (deprecated, backward compatibility)
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { type NextRequest } from 'next/server'
 import { mcpTokenLookup } from "@/lib/mcp-token"
 import { getServerSession } from 'next-auth'
@@ -260,7 +261,7 @@ export function requireScopes(
  */
 export function getDeprecationWarning(auth: AuthContext): string | null {
   if (auth.source === 'legacy_mcp') {
-    return 'MCP tokens are deprecated. Please migrate to OAuth 2.0. See https://astrid.cc/docs/api for migration guide.'
+    return `MCP tokens are deprecated. Please migrate to OAuth 2.0. See https://${BRAND.domain}/docs/api for migration guide.`
   }
   return null
 }

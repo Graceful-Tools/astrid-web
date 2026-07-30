@@ -416,12 +416,12 @@
     },
     "chatgpt": {
       "title": "ChatGPT連携",
-      "description": "AstridをカスタムGPTアクションに接続",
+      "description": "{appName}をカスタムGPTアクションに接続",
       "loading": "ChatGPT連携を読み込み中...",
       "breadcrumb": "ChatGPT連携",
       "howItWorks": {
         "title": "仕組み",
-        "description": "OAuth 2.0とOpenAPIを使用してAstridをChatGPTに接続",
+        "description": "OAuth 2.0とOpenAPIを使用して{appName}をChatGPTに接続",
         "oauth": {
           "title": "安全なOAuth 2.0",
           "description": "パスワードを共有せずに安全に認証"
@@ -440,7 +440,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -449,7 +449,7 @@
       "step1": {
         "badge": "ステップ1",
         "title": "OAuthクライアントを作成",
-        "description": "GPTをAstridで認証するためのOAuthクライアントを作成",
+        "description": "GPTを{appName}で認証するためのOAuthクライアントを作成",
         "manageButton": "クライアントを管理",
         "instructions": {
           "step1": "APIアクセス設定に移動",
@@ -677,14 +677,14 @@
       },
       "emailToTask": {
         "title": "メールからタスク",
-        "description": "remindme@astrid.ccにメールを送信してタスクを即座に作成",
+        "description": "{inboundTaskEmail}にメールを送信してタスクを即座に作成",
         "threeWays": "タスクを作成する3つの方法",
         "selfTask": "自分へのタスク：",
-        "selfTaskDesc": "remindme@astrid.cc宛に送信",
+        "selfTaskDesc": "{inboundTaskEmail}宛に送信",
         "assignedTask": "割り当てタスク：",
-        "assignedTaskDesc": "受信者1人とremindme@astrid.ccをCC",
+        "assignedTaskDesc": "受信者1人と{inboundTaskEmail}をCC",
         "groupTask": "グループタスク：",
-        "groupTaskDesc": "複数の受信者とremindme@astrid.ccをCC",
+        "groupTaskDesc": "複数の受信者と{inboundTaskEmail}をCC",
         "configure": "メール設定を構成",
         "configureDesc": "デフォルトの期限日をカスタマイズ、機能の有効化/無効化など",
         "proTip": "メールの件名がタスクのタイトルになり、本文が説明になります。受信トレイからの素早いタスク取り込みに最適！"
@@ -692,12 +692,12 @@
     },
     "aiIntegrations": {
       "title": "ChatGPT連携",
-      "description": "AstridをカスタムGPTアクションに接続",
+      "description": "{appName}をカスタムGPTアクションに接続",
       "loading": "ChatGPT連携を読み込み中...",
       "breadcrumb": "ChatGPT連携",
       "howItWorks": {
         "title": "仕組み",
-        "description": "OAuth 2.0とOpenAPIを使用してAstridをChatGPTに接続",
+        "description": "OAuth 2.0とOpenAPIを使用して{appName}をChatGPTに接続",
         "oauth": {
           "title": "安全なOAuth 2.0",
           "description": "パスワードを共有せずに安全に認証"
@@ -716,7 +716,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -725,7 +725,7 @@
       "step1": {
         "badge": "ステップ1",
         "title": "OAuthクライアントを作成",
-        "description": "GPTをAstridで認証するためのOAuthクライアントを作成",
+        "description": "GPTを{appName}で認証するためのOAuthクライアントを作成",
         "manageButton": "クライアントを管理",
         "instructions": {
           "step1": "APIアクセス設定に移動",

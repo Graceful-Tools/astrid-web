@@ -5,6 +5,8 @@
  * These callbacks are signed with HMAC-SHA256 using the user's webhook secret.
  */
 
+import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TIMESTAMP_HEADER, WEBHOOK_EVENT_HEADER } from '@/lib/webhooks/protocol-headers'
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!webhookHeaders) {
       return NextResponse.json(
-        { error: 'Missing signature headers (X-Astrid-Signature, X-Astrid-Timestamp)' },
+        { error: `Missing signature headers (${WEBHOOK_SIGNATURE_HEADER}, ${WEBHOOK_TIMESTAMP_HEADER})` },
         { status: 401 }
       )
     }
@@ -428,10 +430,10 @@ export async function GET() {
     service: 'Claude Code Remote Callback',
     description: 'Receives status updates from self-hosted Claude Code Remote servers',
     endpoint: '/api/remote-servers/callback',
-    authentication: 'HMAC-SHA256 signature via X-Astrid-Signature header',
+    authentication: `HMAC-SHA256 signature via ${WEBHOOK_SIGNATURE_HEADER} header`,
     headers: {
-      'X-Astrid-Signature': 'sha256=<hmac-signature>',
-      'X-Astrid-Timestamp': '<unix-timestamp-ms>',
+      [WEBHOOK_SIGNATURE_HEADER]: 'sha256=<hmac-signature>',
+      [WEBHOOK_TIMESTAMP_HEADER]: '<unix-timestamp-ms>',
       'Content-Type': 'application/json'
     },
     supportedEvents: [
@@ -445,7 +447,7 @@ export async function GET() {
       event: 'string (one of supportedEvents)',
       timestamp: 'string (ISO 8601)',
       sessionId: 'string (Claude Code session ID)',
-      taskId: 'string (Astrid task ID)',
+      taskId: `string (${BRAND.appName} task ID)`,
       data: {
         message: 'string (optional)',
         summary: 'string (optional)',

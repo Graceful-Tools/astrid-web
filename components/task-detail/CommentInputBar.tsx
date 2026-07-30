@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useMemo, useEffect } from "react"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import type { Task, User } from "@/types/task"
@@ -58,7 +59,7 @@ export function CommentInputBar({
     fetch("/api/user/available-agents")
       .then(r => r.json())
       .then(data => {
-        const astrid = (data.agents || []).find((a: { email: string }) => a.email === "astrid@astrid.cc")
+        const astrid = (data.agents || []).find((a: { email: string }) => a.email === `astrid@${BRAND.agentEmailDomain}`)
         if (astrid) {
           setDefaultAgent({
             id: astrid.id,

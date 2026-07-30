@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -567,7 +568,7 @@ export function WebhookSettingsManager() {
               <li>Deploy the Claude Code Remote server package</li>
               <li>Configure your webhook URL above</li>
               <li>Copy the webhook secret to your server&apos;s environment</li>
-              <li>Assign tasks to <code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@astrid.cc</code></li>
+              <li>Assign tasks to <code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code></li>
             </ol>
           </div>
 

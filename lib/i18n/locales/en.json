@@ -275,7 +275,7 @@
       "When you have a minute:",
       "On your agenda:",
       "Free for a moment?",
-      "Astrid here!",
+      "{appName} here!",
       "Hi! Can I bug you?",
       "A minute of your time?",
       "It's a great day to"
@@ -416,7 +416,7 @@
     },
     "chatgpt": {
       "title": "AI Assistant Integrations",
-      "description": "Connect Astrid to Copilot, Claude, ChatGPT and other AI tools",
+      "description": "Connect {appName} to Copilot, Claude, ChatGPT and other AI tools",
       "loading": "Loading integrations...",
       "breadcrumb": "AI Integrations",
       "howItWorks": {
@@ -440,7 +440,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -677,14 +677,14 @@
       },
       "emailToTask": {
         "title": "Email-to-Task",
-        "description": "Create tasks instantly by sending emails to remindme@astrid.cc",
+        "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",
         "threeWays": "Three Ways to Create Tasks",
         "selfTask": "Self-task:",
-        "selfTaskDesc": "Send TO remindme@astrid.cc",
+        "selfTaskDesc": "Send TO {inboundTaskEmail}",
         "assignedTask": "Assigned task:",
-        "assignedTaskDesc": "CC remindme@astrid.cc with one recipient",
+        "assignedTaskDesc": "CC {inboundTaskEmail} with one recipient",
         "groupTask": "Group task:",
-        "groupTaskDesc": "CC remindme@astrid.cc with multiple recipients",
+        "groupTaskDesc": "CC {inboundTaskEmail} with multiple recipients",
         "configure": "Configure Email Settings",
         "configureDesc": "Customize default due dates, enable/disable the feature, and more",
         "proTip": "The email subject becomes your task title, and the body becomes the description. Perfect for quick task capture from your inbox!"
@@ -692,28 +692,28 @@
     },
     "openclaw": {
       "title": "OpenClaw Integration",
-      "description": "Connect third-party OpenClaw workers to Astrid (advanced)",
+      "description": "Connect third-party OpenClaw workers to {appName} (advanced)",
       "loading": "Loading OpenClaw settings...",
       "breadcrumb": "OpenClaw Workers",
       "overview": {
         "title": "Third-party AI agent integration",
-        "description": "OpenClaw is a third-party open-source project that can run AI coding agents on your own infrastructure. It may use Claude Code CLI, or other AI backends. Astrid supports OpenClaw integration for tasks assigned to",
-        "agentEmail": "openclaw@astrid.cc"
+        "description": "OpenClaw is a third-party open-source project that can run AI coding agents on your own infrastructure. It may use Claude Code CLI, or other AI backends. {appName} supports OpenClaw integration for tasks assigned to",
+        "agentEmail": "openclaw@{brandDomain}"
       },
       "security": {
         "title": "Important: Understand the risks",
-        "description": "OpenClaw is not developed or maintained by Astrid or Anthropic. It is a community project that executes code on your machines with broad system access. Before using OpenClaw:",
+        "description": "OpenClaw is not developed or maintained by {appName} or Anthropic. It is a community project that executes code on your machines with broad system access. Before using OpenClaw:",
         "risks": {
           "review": "Review the OpenClaw source code and understand what it does",
           "isolate": "Run it in isolated environments (containers, VMs) when possible",
           "noPublic": "Never expose OpenClaw to the public internet without authentication",
           "mistakes": "Understand that AI agents can make mistakes and execute unintended actions"
         },
-        "disclaimer": "Astrid provides this integration for advanced users. We do not endorse or guarantee the security of third-party tools."
+        "disclaimer": "{appName} provides this integration for advanced users. We do not endorse or guarantee the security of third-party tools."
       },
       "workers": {
         "title": "Registered Workers",
-        "description": "Workers you've connected to Astrid",
+        "description": "Workers you've connected to {appName}",
         "addWorker": "Add Worker",
         "noWorkers": "No workers registered",
         "noWorkersHint": "Add an OpenClaw worker to start delegating tasks",
@@ -729,7 +729,7 @@
       },
       "addDialog": {
         "title": "Add OpenClaw Worker",
-        "description": "Connect a self-hosted OpenClaw Gateway to Astrid",
+        "description": "Connect a self-hosted OpenClaw Gateway to {appName}",
         "name": "Name",
         "namePlaceholder": "My MacBook Worker",
         "gatewayUrl": "Gateway URL",
@@ -742,24 +742,24 @@
         "add": "Add Worker"
       },
       "authModes": {
-        "astridSigned": "Astrid-Signed (Recommended)",
+        "astridSigned": "{appName}-Signed (Recommended)",
         "token": "Token",
         "tailscale": "Tailscale",
         "none": "None (local only)",
-        "astridSignedDesc": "Astrid cryptographically signs all requests. Your gateway verifies signatures using our public key.",
+        "astridSignedDesc": "{appName} cryptographically signs all requests. Your gateway verifies signatures using our public key.",
         "tokenDesc": "Shared secret token. You set the same token in your gateway and here.",
         "tailscaleDesc": "Uses Tailscale identity. Gateway must be on same Tailnet or exposed via Funnel.",
         "noneDesc": "No authentication. Only use for local development on trusted networks."
       },
       "astridSignedInfo": {
         "title": "How it works:",
-        "description": "Astrid signs each connection request. Your gateway fetches our public key from",
+        "description": "{appName} signs each connection request. Your gateway fetches our public key from",
         "publicKeyPath": "/.well-known/openclaw-public-key",
-        "suffix": "and verifies the signature. This proves the request came from astrid.cc."
+        "suffix": "and verifies the signature. This proves the request came from {brandDomain}."
       },
       "setup": {
         "title": "Setup Instructions",
-        "description": "Connect your OpenClaw instance to receive tasks from Astrid. OpenClaw can use various AI backends (Claude Code CLI, other agents) - see OpenClaw docs for configuration.",
+        "description": "Connect your OpenClaw instance to receive tasks from {appName}. OpenClaw can use various AI backends (Claude Code CLI, other agents) - see OpenClaw docs for configuration.",
         "optionA": {
           "title": "Register your OpenClaw worker (Push mode)",
           "prerequisite": "Prerequisite: You already have OpenClaw installed and the gateway running.",
@@ -774,8 +774,8 @@
             "title": "Configure authentication",
             "recommended": "Recommended:",
             "astridSignedMode": "astrid-signed",
-            "astridSignedHint": "mode. Your gateway will verify Astrid's cryptographic signatures automatically.",
-            "configureGateway": "Configure your gateway to fetch Astrid's public key:",
+            "astridSignedHint": "mode. Your gateway will verify {appName}'s cryptographic signatures automatically.",
+            "configureGateway": "Configure your gateway to fetch {appName}'s public key:",
             "alternative": "Alternative:",
             "tokenHint": "Use token auth if your gateway doesn't support signature verification:",
             "tokenCommand": "openclaw config get gateway.auth.token"
@@ -787,37 +787,37 @@
           "step4": {
             "title": "Assign tasks",
             "description": "Assign tasks to",
-            "suffix": "and Astrid will push them to your worker"
+            "suffix": "and {appName} will push them to your worker"
           }
         },
         "optionB": {
-          "title": "Configure Astrid as an OpenClaw channel (Pull mode)",
+          "title": "Configure {appName} as an OpenClaw channel (Pull mode)",
           "prerequisite": "Prerequisite: You already have OpenClaw installed.",
           "step1": {
-            "title": "Create OAuth credentials in Astrid",
+            "title": "Create OAuth credentials in {appName}",
             "description": "Go to",
             "linkText": "Settings → API Access",
             "suffix": "and create an OAuth client. Copy the Client ID and Client Secret."
           },
           "step2": {
-            "title": "Add Astrid channel to your OpenClaw config",
+            "title": "Add {appName} channel to your OpenClaw config",
             "description": "Add this to"
           },
           "step3": {
             "title": "Restart OpenClaw",
-            "description": "OpenClaw will poll Astrid every 30 seconds for tasks assigned to"
+            "description": "OpenClaw will poll {appName} every 30 seconds for tasks assigned to"
           }
         },
         "whichToUse": {
           "title": "Which should I use?",
           "optionA": {
             "title": "Option A (Push):",
-            "description": "Astrid connects to your OpenClaw gateway and pushes tasks.",
+            "description": "{appName} connects to your OpenClaw gateway and pushes tasks.",
             "bestFor": "Always-on servers, OpenClaw accessible via public URL or Tailscale."
           },
           "optionB": {
             "title": "Option B (Pull):",
-            "description": "OpenClaw polls Astrid's API for new tasks.",
+            "description": "OpenClaw polls {appName}'s API for new tasks.",
             "bestFor": "Laptops, machines behind NAT/firewall, intermittent connections."
           },
           "note": "OpenClaw handles code execution using its configured AI backend (Claude, GPT, etc.). See the",
@@ -828,18 +828,18 @@
       "connectionSecurity": {
         "title": "Connection Security",
         "astridSigned": {
-          "title": "Recommended: Astrid-Signed Authentication",
-          "description": "With astrid-signed mode, your gateway can cryptographically verify that connection requests really come from astrid.cc. No shared secrets needed.",
+          "title": "Recommended: {appName}-Signed Authentication",
+          "description": "With astrid-signed mode, your gateway can cryptographically verify that connection requests really come from {brandDomain}. No shared secrets needed.",
           "howItWorks": "How it works:",
-          "step1": "Astrid signs each connection request with its private key",
-          "step2": "Your gateway fetches Astrid's public key from:",
+          "step1": "{appName} signs each connection request with its private key",
+          "step2": "Your gateway fetches {appName}'s public key from:",
           "step3": "Gateway verifies the Ed25519 signature",
           "step4": "If valid + timestamp fresh → request is authentic",
           "devGuideLink": "Gateway Developer Guide"
         },
         "tips": {
           "wss": "Use wss:// for remote workers (Tailscale Funnel recommended)",
-          "encrypted": "Auth tokens stored by Astrid are encrypted at rest (AES-256)",
+          "encrypted": "Auth tokens stored by {appName} are encrypted at rest (AES-256)",
           "accountOnly": "Workers only receive tasks assigned to your account",
           "replay": "Signatures include timestamp (5-minute expiry) to prevent replay attacks"
         },
@@ -850,7 +850,7 @@
     },
     "aiIntegrations": {
       "title": "AI Assistant Integrations",
-      "description": "Connect Astrid to Copilot, Claude, ChatGPT and other AI tools",
+      "description": "Connect {appName} to Copilot, Claude, ChatGPT and other AI tools",
       "loading": "Loading integrations...",
       "breadcrumb": "AI Integrations",
       "howItWorks": {
@@ -874,7 +874,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",

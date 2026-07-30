@@ -5,6 +5,7 @@
  * Used by the AI Orchestrator to extract structured data from raw AI output.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import type { ParseLogger } from './types/logger'
 import type { ImplementationPlan } from './types'
 
@@ -410,7 +411,7 @@ export function parseGeneratedCode(
         files,
         commitMessage: 'Implement feature as requested',
         prTitle: 'Implement new feature',
-        prDescription: 'Automated implementation by Astrid Agent'
+        prDescription: `Automated implementation by ${BRAND.appName} Agent`
       }
     } catch (extractError) {
       // extractCodeFromMarkdown throws RETRY_WITH_FORMAT_ENFORCEMENT if no files found

@@ -1,13 +1,17 @@
 // Reminder strings from original Astrid app - now i18n-enabled
 // https://github.com/Graceful-Tools/astrid/blob/master/astrid/res/values/strings-reminders.xml
 
+import { brandReminders } from '@/lib/brand/copy'
+import { BRAND } from '@/lib/brand/config'
+import { applyBrandToMessages } from '@/lib/brand/i18n-values'
+
 // Import locale messages dynamically based on locale parameter
 async function getMessages(locale: string = 'en') {
   try {
-    return await import(`@/lib/i18n/locales/${locale}.json`).then(m => m.default)
+    return applyBrandToMessages(await import(`@/lib/i18n/locales/${locale}.json`).then(m => m.default))
   } catch {
     // Fallback to English
-    return await import('@/lib/i18n/locales/en.json').then(m => m.default)
+    return applyBrandToMessages(await import('@/lib/i18n/locales/en.json').then(m => m.default))
   }
 }
 
@@ -28,14 +32,18 @@ export function getRandomReminderString(
     return strings[0] || ""
   }
 
-  let strings: string[] = []
-  if (type === 'reminders') {
-    strings = messages.reminders?.general || []
-  } else if (type === 'reminders_due') {
-    strings = messages.reminders?.due || []
-  } else if (type === 'reminder_responses') {
-    strings = messages.reminders?.responses || []
-  }
+  // A brand may replace the nags wholesale — they carry a voice, not just words, so a
+  // partner usually wants its own set rather than a translation of Astrid's.
+  // Task 97208a72.
+  const KIND = {
+    reminders: 'general',
+    reminders_due: 'due',
+    reminder_responses: 'responses',
+  } as const
+
+  const kind = KIND[type]
+  const override = brandReminders(kind)
+  const strings: string[] = override ?? (messages.reminders?.[kind] || [])
 
   if (strings.length === 0) return ""
   return strings[Math.floor(Math.random() * strings.length)]
@@ -84,7 +92,7 @@ export const REMINDER_STRINGS = {
     "When you have a minute:",
     "On your agenda:",
     "Free for a moment?",
-    "Astrid here!",
+    `${BRAND.appName} here!`,
     "Hi! Can I bug you?",
     "A minute of your time?",
     "It's a great day to"

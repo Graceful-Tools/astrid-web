@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -388,10 +389,10 @@ export function ListMembership({
         <div className="border-t theme-border pt-4">
           <div className="flex items-center space-x-2 mb-2">
             <Bot className="w-4 h-4 text-blue-500" />
-            <Label className="text-sm font-medium theme-text-primary">Astrid Agent</Label>
+            <Label className="text-sm font-medium theme-text-primary">{BRAND.appName} Agent</Label>
           </div>
           <p className="text-xs theme-text-muted mb-2">
-            Choose a model for Astrid in this list. Astrid reads messages, acts on tasks, and completes tasks by their due dates.
+            Choose a model for {BRAND.appName} in this list. {BRAND.appName} reads messages, acts on tasks, and completes tasks by their due dates.
           </p>
           <select
             value={(() => {

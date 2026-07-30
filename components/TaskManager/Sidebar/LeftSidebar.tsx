@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -181,13 +182,13 @@ export function LeftSidebar({
             onClick={onLogoClick}
           >
             <Image
-              src="/icons/icon-96x96.png"
-              alt="Astrid"
+              src={BRAND.iconSmall}
+              alt={BRAND.appName}
               width={28}
               height={28}
               className="rounded-sm"
             />
-            <span className="text-lg font-semibold tracking-tight theme-text-primary">astrid</span>
+            <span className="text-lg font-semibold tracking-tight theme-text-primary">{BRAND.wordmark}</span>
           </div>
         </div>
 

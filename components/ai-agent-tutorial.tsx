@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,7 +54,7 @@ const CLAUDE_STEPS: TutorialStep[] = [
     link: "https://console.anthropic.com/"
   },
   {
-    title: "Add API Key to Astrid",
+    title: `Add API Key to ${BRAND.appName}`,
     description: "Navigate to Settings → AI Service API Keys → Claude tab",
     action: "Paste your API key starting with 'sk-ant-' and click Save"
   },
@@ -83,15 +84,15 @@ const OPENAI_STEPS: TutorialStep[] = [
     link: "https://platform.openai.com/api-keys"
   },
   {
-    title: "Add API Key to Astrid",
+    title: `Add API Key to ${BRAND.appName}`,
     description: "Navigate to Settings → AI Service API Keys → OpenAI tab",
     action: "Paste your API key starting with 'sk-' and click Save"
   },
   {
     title: "Create OpenAI Assistant",
-    description: "Set up an Assistant with Astrid integration functions",
+    description: `Set up an Assistant with ${BRAND.appName} integration functions`,
     action: "Create Assistant with the function tools provided in the integration guide",
-    code: `// OpenAI Assistant Function Tools for Astrid
+    code: `// OpenAI Assistant Function Tools for ${BRAND.appName}
 [
   {
     "type": "function",
@@ -148,15 +149,15 @@ const GEMINI_STEPS: TutorialStep[] = [
     link: "https://aistudio.google.com/app/apikey"
   },
   {
-    title: "Add API Key to Astrid",
+    title: `Add API Key to ${BRAND.appName}`,
     description: "Navigate to Settings → AI Service API Keys → Gemini tab",
     action: "Paste your API key starting with 'AIza' and click Save"
   },
   {
     title: "Configure Gemini Function Calling",
-    description: "Set up Gemini with Astrid integration functions",
+    description: `Set up Gemini with ${BRAND.appName} integration functions`,
     action: "Use the provided function declarations in your Gemini application",
-    code: `// Gemini Function Declarations for Astrid
+    code: `// Gemini Function Declarations for ${BRAND.appName}
 const functionDeclarations = [
   {
     name: "astrid_get_task_details",
@@ -302,7 +303,7 @@ export function AIAgentTutorial() {
             Set Up AI Agents to Help with Your Tasks
           </DialogTitle>
           <DialogDescription>
-            Follow these step-by-step guides to integrate Claude, OpenAI, or Gemini with your Astrid workspace.
+            Follow these step-by-step guides to integrate Claude, OpenAI, or Gemini with your {BRAND.appName} workspace.
             Once configured, you can assign tasks directly to AI agents and they&apos;ll help you complete them.
           </DialogDescription>
         </DialogHeader>
@@ -312,7 +313,7 @@ export function AIAgentTutorial() {
           <AlertDescription>
             <strong>How it works:</strong> AI agents receive task assignments via webhooks,
             can read task details, add progress comments, and mark tasks as complete using
-            Astrid&apos;s MCP (Model Context Protocol) API.
+            {BRAND.appName}&apos;s MCP (Model Context Protocol) API.
           </AlertDescription>
         </Alert>
 

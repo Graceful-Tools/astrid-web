@@ -5,6 +5,7 @@
 
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,7 +55,7 @@ export function GitHubSetupOptions() {
               </div>
               <div>
                 <CardTitle className="text-lg">Shared GitHub App</CardTitle>
-                <CardDescription>Use the main Astrid Agent app</CardDescription>
+                <CardDescription>Use the main {BRAND.appName} Agent app</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -65,7 +66,7 @@ export function GitHubSetupOptions() {
                 <ul className="text-sm text-green-700 space-y-1">
                   <li>• Simple one-click installation</li>
                   <li>• No GitHub App creation needed</li>
-                  <li>• Maintained by Astrid team</li>
+                  <li>• Maintained by {BRAND.appName} team</li>
                   <li>• Works immediately</li>
                 </ul>
               </div>
@@ -85,7 +86,7 @@ export function GitHubSetupOptions() {
                 {selectedOption === 'shared' && (
                   <Button className="w-full">
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Install Astrid Agent
+                    Install {BRAND.appName} Agent
                   </Button>
                 )}
               </div>
@@ -159,7 +160,7 @@ export function GitHubSetupOptions() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="font-medium text-blue-800 mb-2">📋 Quick Setup Steps</h3>
                   <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
-                    <li>Click the &quot;Install Astrid Agent&quot; button above</li>
+                    <li>Click the &quot;Install {BRAND.appName} Agent&quot; button above</li>
                     <li>Authorize the app for your repositories</li>
                     <li>Come back here and connect your installation</li>
                     <li>Start using AI-powered coding!</li>
@@ -172,7 +173,7 @@ export function GitHubSetupOptions() {
                     If the button doesn&apos;t work, use this direct link:
                   </p>
                   <code className="block bg-gray-100 p-2 rounded text-xs break-all">
-                    https://github.com/apps/astrid-code-assistant/installations/new
+                    https://github.com/apps/{BRAND.githubAppSlug}/installations/new
                   </code>
                 </div>
 
@@ -192,7 +193,7 @@ export function GitHubSetupOptions() {
                     <li>Create GitHub App with proper permissions</li>
                     <li>Configure environment variables</li>
                     <li>Install app on your repositories</li>
-                    <li>Connect to Astrid settings</li>
+                    <li>Connect to {BRAND.appName} settings</li>
                     <li>Test the integration</li>
                   </ol>
                 </div>

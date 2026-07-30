@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -216,7 +217,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                     <li>• <strong>Download:</strong> Import the .ics file once into Google Calendar, Apple Calendar, or Outlook</li>
                     <li>• <strong>Subscribe:</strong> Add the webcal URL to automatically sync changes (recommended)</li>
                     <li>• Your tasks will appear as all-day events or at their scheduled times</li>
-                    <li>• Updates to tasks in Astrid will be reflected in subscribed calendars</li>
+                    <li>• Updates to tasks in {BRAND.appName} will be reflected in subscribed calendars</li>
                   </ul>
                 </div>
               </div>

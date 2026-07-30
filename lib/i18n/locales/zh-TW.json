@@ -275,7 +275,7 @@
       "有空的時候：",
       "你的行程上：",
       "有空嗎？",
-      "Astrid在此！",
+      "{appName}在此！",
       "嗨！打擾一下？",
       "能佔用一分鐘嗎？",
       "今天是個好日子"
@@ -416,12 +416,12 @@
     },
     "chatgpt": {
       "title": "ChatGPT整合",
-      "description": "將Astrid連接到自訂GPT操作",
+      "description": "將{appName}連接到自訂GPT操作",
       "loading": "載入ChatGPT整合...",
       "breadcrumb": "ChatGPT整合",
       "howItWorks": {
         "title": "運作原理",
-        "description": "使用OAuth 2.0和OpenAPI將Astrid連接到ChatGPT",
+        "description": "使用OAuth 2.0和OpenAPI將{appName}連接到ChatGPT",
         "oauth": {
           "title": "安全的OAuth 2.0",
           "description": "無需分享密碼即可安全認證"
@@ -440,7 +440,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -449,7 +449,7 @@
       "step1": {
         "badge": "步驟1",
         "title": "建立OAuth用戶端",
-        "description": "建立OAuth用戶端以在Astrid中驗證你的GPT",
+        "description": "建立OAuth用戶端以在{appName}中驗證你的GPT",
         "manageButton": "管理用戶端",
         "instructions": {
           "step1": "前往API存取設定",
@@ -677,14 +677,14 @@
       },
       "emailToTask": {
         "title": "郵件建立任務",
-        "description": "透過傳送郵件到remindme@astrid.cc即時建立任務",
+        "description": "透過傳送郵件到{inboundTaskEmail}即時建立任務",
         "threeWays": "三種建立任務的方式",
         "selfTask": "自己的任務：",
-        "selfTaskDesc": "傳送到remindme@astrid.cc",
+        "selfTaskDesc": "傳送到{inboundTaskEmail}",
         "assignedTask": "指派的任務：",
-        "assignedTaskDesc": "副本抄送remindme@astrid.cc和一個收件人",
+        "assignedTaskDesc": "副本抄送{inboundTaskEmail}和一個收件人",
         "groupTask": "群組任務：",
-        "groupTaskDesc": "副本抄送remindme@astrid.cc和多個收件人",
+        "groupTaskDesc": "副本抄送{inboundTaskEmail}和多個收件人",
         "configure": "設定郵件設定",
         "configureDesc": "自訂預設截止日期，啟用/停用功能等",
         "proTip": "郵件主旨變成任務標題，內文變成描述。非常適合從收件匣快速擷取任務！"
@@ -692,12 +692,12 @@
     },
     "aiIntegrations": {
       "title": "ChatGPT整合",
-      "description": "將Astrid連接到自訂GPT操作",
+      "description": "將{appName}連接到自訂GPT操作",
       "loading": "載入ChatGPT整合...",
       "breadcrumb": "ChatGPT整合",
       "howItWorks": {
         "title": "運作原理",
-        "description": "使用OAuth 2.0和OpenAPI將Astrid連接到ChatGPT",
+        "description": "使用OAuth 2.0和OpenAPI將{appName}連接到ChatGPT",
         "oauth": {
           "title": "安全的OAuth 2.0",
           "description": "無需分享密碼即可安全認證"
@@ -716,7 +716,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -725,7 +725,7 @@
       "step1": {
         "badge": "步驟1",
         "title": "建立OAuth用戶端",
-        "description": "建立OAuth用戶端以在Astrid中驗證你的GPT",
+        "description": "建立OAuth用戶端以在{appName}中驗證你的GPT",
         "manageButton": "管理用戶端",
         "instructions": {
           "step1": "前往API存取設定",

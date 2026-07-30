@@ -10,6 +10,10 @@ This directory contains all technical documentation for the Astrid task manageme
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
 
+### 🎨 Whitelabeling
+- **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
+- **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
+
 ### 🚀 Setup & Deployment
 - **[Auth Setup](./setup/AUTH_SETUP.md)** - Authentication configuration
 - **[Database Setup](./setup/DATABASE_SETUP.md)** - Database configuration and migrations

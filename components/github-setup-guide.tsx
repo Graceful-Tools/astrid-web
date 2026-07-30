@@ -5,6 +5,7 @@
 
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,7 +62,7 @@ export function GitHubSetupGuide() {
     {
       id: "step4",
       title: "Connect in Settings",
-      description: "Link your GitHub App to Astrid",
+      description: `Link your GitHub App to ${BRAND.appName}`,
       completed: false
     },
     {
@@ -212,14 +213,14 @@ export function GitHubSetupGuide() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard('astrid-code-assistant-' + Math.random().toString(36).substr(2, 5))}
+                          onClick={() => copyToClipboard(`${BRAND.githubAppSlug}-` + Math.random().toString(36).substr(2, 5))}
                         >
                           <Copy className="w-3 h-3 mr-1" />
                           Copy
                         </Button>
                       </div>
                       <div className="bg-gray-100 p-2 rounded text-xs font-mono text-gray-800">
-                        astrid-code-assistant-[username]
+                        {BRAND.githubAppSlug}-[username]
                       </div>
 
                       <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
@@ -439,7 +440,7 @@ GITHUB_WEBHOOK_SECRET=your_secret_here`)}
             content: (
               <div className="space-y-4">
                 <p className="text-sm text-gray-700">
-                  Install your GitHub App on the repositories you want to use with Astrid.
+                  Install your GitHub App on the repositories you want to use with {BRAND.appName}.
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <ol className="list-decimal list-inside space-y-1 text-sm">
@@ -478,7 +479,7 @@ GITHUB_WEBHOOK_SECRET=your_secret_here`)}
             content: (
               <div className="space-y-4">
                 <p className="text-sm text-gray-700">
-                  Connect your GitHub App to Astrid through the GitHub Integration settings below.
+                  Connect your GitHub App to {BRAND.appName} through the GitHub Integration settings below.
                 </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
@@ -519,7 +520,7 @@ GITHUB_WEBHOOK_SECRET=your_secret_here`)}
                   <div className="space-y-2 text-sm">
                     <div><strong>Title:</strong> Create a Button component</div>
                     <div><strong>Description:</strong> Build a TypeScript React button with size and variant props</div>
-                    <div><strong>Assign to:</strong> Astrid Agent</div>
+                    <div><strong>Assign to:</strong> {BRAND.appName} Agent</div>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
@@ -598,7 +599,7 @@ GITHUB_WEBHOOK_SECRET=your_secret_here`)}
                 🎉 GitHub Integration Complete!
               </h3>
               <p className="text-green-700 mb-4">
-                Your Astrid Agent is now ready to create branches, generate code, and manage pull requests automatically.
+                Your {BRAND.appName} Agent is now ready to create branches, generate code, and manage pull requests automatically.
               </p>
               <Button
                 onClick={() => window.open('/', '_blank')}

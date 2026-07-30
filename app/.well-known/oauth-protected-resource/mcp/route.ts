@@ -1,5 +1,7 @@
 "use server"
 
+import { BRAND } from '@/lib/brand/config'
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { getBaseUrl } from "@/lib/base-url"
@@ -15,6 +17,9 @@ async function resolveBaseUrl() {
 }
 
 export async function GET() {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   const baseUrl = await resolveBaseUrl()
   const resourceUrl = `${baseUrl}/mcp`
 
@@ -28,7 +33,7 @@ export async function GET() {
       "comments:read",
       "comments:write"
     ],
-    resource_name: "Astrid Tasks MCP",
+    resource_name: `${BRAND.appName} Tasks MCP`,
     resource_documentation: `${baseUrl}/docs`,
   }
 

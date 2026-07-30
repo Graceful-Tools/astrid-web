@@ -1,7 +1,12 @@
+import { BRAND } from '@/lib/brand/config'
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   const { searchParams } = new URL(request.url)
   const token = searchParams.get('token')
   const agentType = searchParams.get('agentType')
@@ -26,11 +31,11 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://astrid.cc'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${BRAND.domain}`
 
   const context = {
     service: {
-      name: "Astrid Task Manager MCP API",
+      name: `${BRAND.appName} Task Manager MCP API`,
       version: "2.0.0",
       description: "AI agent integration for task management via Model Context Protocol (MCP)",
       baseUrl,
@@ -56,7 +61,7 @@ export async function GET(request: NextRequest) {
     },
 
     aiAgentInstructions: {
-      overview: `You are an AI assistant integrated with Astrid Task Manager. When you receive a task assignment notification, you should:
+      overview: `You are an AI assistant integrated with ${BRAND.appName} Task Manager. When you receive a task assignment notification, you should:
 1. Read the task details using get_task_details
 2. Add progress comments using add_comment
 3. Update the task status using update_task
@@ -258,7 +263,7 @@ export async function GET(request: NextRequest) {
       ],
 
       responseWebhook: {
-        description: "Send updates back to Astrid via webhook",
+        description: `Send updates back to ${BRAND.appName} via webhook`,
         endpoint: `${baseUrl}/api/webhooks/ai-agents`,
         supportedEvents: [
           "task.completed",
@@ -348,7 +353,7 @@ function getAgentSpecificInstructions(agentType: string, baseUrl: string) {
       return {
         platform: "Claude",
         integration: "Claude Code CLI",
-        instructions: `When you receive task assignment webhooks, you can interact with the Astrid MCP API using the provided access token.
+        instructions: `When you receive task assignment webhooks, you can interact with the ${BRAND.appName} MCP API using the provided access token.
         Use the standard HTTP requests to the MCP operations endpoint.
 
         Example workflow:
@@ -376,12 +381,12 @@ const response = await fetch('${baseUrl}/api/mcp/operations', {
       return {
         platform: "OpenAI Codex Agent",
         integration: "OpenAI Assistants API",
-        instructions: `Configure your OpenAI Assistant to handle webhook notifications and make HTTP requests to the Astrid MCP API.
+        instructions: `Configure your OpenAI Assistant to handle webhook notifications and make HTTP requests to the ${BRAND.appName} MCP API.
         Use the function calling capability to structure MCP API calls.`,
 
         functionSchema: {
           name: "astrid_mcp_operation",
-          description: "Execute Astrid MCP operations",
+          description: `Execute ${BRAND.appName} MCP operations`,
           parameters: {
             type: "object",
             properties: {
@@ -397,12 +402,12 @@ const response = await fetch('${baseUrl}/api/mcp/operations', {
       return {
         platform: "Google Gemini",
         integration: "Gemini API",
-        instructions: `Use Gemini's function calling to interact with the Astrid MCP API.
+        instructions: `Use Gemini's function calling to interact with the ${BRAND.appName} MCP API.
         Handle webhook notifications and make structured API calls.`,
 
         functionDeclaration: {
           name: "astrid_task_operation",
-          description: "Manage tasks in Astrid via MCP API",
+          description: `Manage tasks in ${BRAND.appName} via MCP API`,
           parameters: {
             type: "OBJECT",
             properties: {
@@ -416,9 +421,9 @@ const response = await fetch('${baseUrl}/api/mcp/operations', {
 
     case 'astrid':
       return {
-        platform: "Astrid (First-Party)",
+        platform: `${BRAND.appName} (First-Party)`,
         integration: "Built-in AI Assistant",
-        instructions: `You are the built-in Astrid AI assistant with full access to task management.
+        instructions: `You are the built-in ${BRAND.appName} AI assistant with full access to task management.
         You can directly interact with the database and don't need webhook notifications.
         Use the MCP API for consistency with external agents.`,
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -339,15 +340,15 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <ul className="space-y-2 text-sm theme-text-muted">
                       <li className="flex items-start space-x-2">
                         <span className="text-purple-500 mt-0.5">•</span>
-                        <span><strong>{t("settingsPages.appearancePage.emailToTask.selfTask")}</strong> Send TO <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">remindme@astrid.cc</code></span>
+                        <span><strong>{t("settingsPages.appearancePage.emailToTask.selfTask")}</strong> Send TO <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code></span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="text-purple-500 mt-0.5">•</span>
-                        <span><strong>{t("settingsPages.appearancePage.emailToTask.assignedTask")}</strong> CC <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">remindme@astrid.cc</code> with one recipient</span>
+                        <span><strong>{t("settingsPages.appearancePage.emailToTask.assignedTask")}</strong> CC <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code> with one recipient</span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="text-purple-500 mt-0.5">•</span>
-                        <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> CC <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">remindme@astrid.cc</code> with multiple recipients</span>
+                        <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> CC <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code> with multiple recipients</span>
                       </li>
                     </ul>
                   </div>

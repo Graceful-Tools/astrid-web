@@ -10,6 +10,9 @@
  * MCP endpoint 404'd and the `/mcp -> /api/mcp` rewrite never applied. Note the
  * exact-match / trailing-slash checks for `/mcp` so we don't also swallow the
  * localized settings pages `/mcp-operations`, `/mcp-testing`, `/mcp-access`.
+ *
+ * Task 97208a72: `/llms.txt` had the same problem — it is advertised to agents in
+ * WELL_KNOWN_ENDPOINTS but was rewritten to `/[locale]/llms.txt` and 404'd.
  */
 export function shouldBypassIntlRouting(pathname: string): boolean {
   return (
@@ -18,6 +21,7 @@ export function shouldBypassIntlRouting(pathname: string): boolean {
     pathname === '/mcp' ||
     pathname.startsWith('/mcp/') ||
     pathname === '/sw.js' ||
-    pathname === '/manifest.json'
+    pathname === '/manifest.json' ||
+    pathname === '/llms.txt'
   )
 }

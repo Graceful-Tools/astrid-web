@@ -3,11 +3,12 @@
  * Accessible at /github-setup for all users
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { Metadata } from 'next'
 import { scrollShellClassName } from "@/components/scroll-shell"
 
 export const metadata: Metadata = {
-  title: 'GitHub Integration Setup - Astrid',
+  title: `GitHub Integration Setup - ${BRAND.appName}`,
   description: 'Connect your GitHub repositories to enable AI-powered code generation workflows',
 }
 
@@ -38,7 +39,7 @@ export default function GitHubSetupPage() {
             </div>
             <div className="flex items-center">
               <span className="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
-              <span>Astrid Agent Available</span>
+              <span>{BRAND.appName} Agent Available</span>
             </div>
             <div className="flex items-center">
               <span className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></span>
@@ -86,7 +87,7 @@ export default function GitHubSetupPage() {
 
             <div className="ml-11 space-y-4">
               <p className="text-gray-600">
-                First, we&apos;ll create a GitHub App to enable secure communication between Astrid and your repositories.
+                First, we&apos;ll create a GitHub App to enable secure communication between {BRAND.appName} and your repositories.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-4">
@@ -105,7 +106,7 @@ export default function GitHubSetupPage() {
                   <div>
                     <strong>GitHub App name:</strong>
                     <code className="ml-2 bg-gray-100 px-2 py-1 rounded">
-                      astrid-code-assistant-{'{your-username}'}
+                      {BRAND.githubAppSlug}-{'{your-username}'}
                     </code>
                   </div>
                   <div>
@@ -199,7 +200,7 @@ export default function GitHubSetupPage() {
 
             <div className="ml-11 space-y-4">
               <p className="text-gray-600">
-                Set up the connection credentials so Astrid can communicate with your GitHub App.
+                Set up the connection credentials so {BRAND.appName} can communicate with your GitHub App.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-4">
@@ -216,7 +217,7 @@ export default function GitHubSetupPage() {
                 <h3 className="font-medium mb-2 text-white">💻 Terminal Commands:</h3>
                 <pre className="text-green-400 text-sm overflow-x-auto">
 {`# 1. Move the private key file
-cp ~/Downloads/astrid-code-assistant-*.private-key.pem ./github-app-private-key.pem
+cp ~/Downloads/${BRAND.githubAppSlug}-*.private-key.pem ./github-app-private-key.pem
 
 # 2. Format the key properly
 node scripts/setup-private-key.js
@@ -257,7 +258,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here`}
 
             <div className="ml-11 space-y-4">
               <p className="text-gray-600">
-                Grant your GitHub App access to the repositories you want to use with Astrid.
+                Grant your GitHub App access to the repositories you want to use with {BRAND.appName}.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-4">
@@ -293,12 +294,12 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here`}
               <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold mr-3">
                 4
               </div>
-              <h2 className="text-xl font-semibold">Connect in Astrid Settings</h2>
+              <h2 className="text-xl font-semibold">Connect in {BRAND.appName} Settings</h2>
             </div>
 
             <div className="ml-11 space-y-4">
               <p className="text-gray-600">
-                Finally, connect your GitHub App to Astrid through the user settings.
+                Finally, connect your GitHub App to {BRAND.appName} through the user settings.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-4">
@@ -363,7 +364,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here`}
                     <strong>Description:</strong> Build a TypeScript React button component with props for size, variant, and onClick handler. Include proper TypeScript types.
                   </div>
                   <div>
-                    <strong>Assignee:</strong> Astrid Agent
+                    <strong>Assignee:</strong> {BRAND.appName} Agent
                   </div>
                 </div>
               </div>
@@ -373,7 +374,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here`}
                 <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
                   <li>AI generates an implementation plan (appears as comment)</li>
                   <li>You reply with <code>&quot;approve&quot;</code></li>
-                  <li>AI creates a new branch: <code>astrid-code-assistant/[timestamp]-create-button</code></li>
+                  <li>AI creates a new branch: <code>{BRAND.githubAppSlug}/[timestamp]-create-button</code></li>
                   <li>AI generates and commits the component code</li>
                   <li>AI opens a pull request with detailed description</li>
                   <li>You can review the code and optionally comment <code>&quot;merge&quot;</code></li>
@@ -402,7 +403,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here`}
               <strong className="text-red-700">❌ &quot;No implementation plan generated&quot;</strong>
               <ul className="mt-1 ml-4 space-y-1 text-red-600">
                 <li>• Check that AI API key is configured in User Settings</li>
-                <li>• Verify task is assigned to &quot;Astrid Agent&quot;</li>
+                <li>• Verify task is assigned to &quot;{BRAND.appName} Agent&quot;</li>
                 <li>• Look for JavaScript errors in browser console</li>
               </ul>
             </div>

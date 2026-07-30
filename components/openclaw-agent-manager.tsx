@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -337,7 +338,7 @@ export function OpenClawAgentManager() {
                 {namePreview.length > 0 ? (
                   isNameValid ? (
                     <span className="text-green-500">
-                      {namePreview}.oc@astrid.cc
+                      {namePreview}.oc@{BRAND.domain}
                     </span>
                   ) : (
                     <span className="text-red-500">

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -149,7 +150,7 @@ export default function UserProfilePage() {
             title="Go to Home"
           >
             <Heart className="w-6 h-6 text-red-500 fill-red-500" />
-            <span className="text-xl font-semibold theme-text-primary">astrid</span>
+            <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
             <div className="w-2 h-2 theme-bg-tertiary rounded-full"></div>

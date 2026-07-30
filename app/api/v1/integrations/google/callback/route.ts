@@ -1,3 +1,5 @@
+import { BRAND } from '@/lib/brand/config'
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { verifyOAuthState } from '@/lib/sync/github'
@@ -6,6 +8,9 @@ import { exchangeGoogleCode, googleRequest, googleSyncConfigured, storeGoogleInt
 const log = createLogger('v1.integrations.google.callback')
 
 export async function GET(request: NextRequest) {
+  const blocked = capabilityGate('syncGoogleTasks')
+  if (blocked) return blocked
+
   if (!googleSyncConfigured()) {
     return NextResponse.json({ error: 'Google Tasks sync is not configured' }, { status: 503 })
   }
@@ -14,7 +19,7 @@ export async function GET(request: NextRequest) {
   const state = url.searchParams.get('state')
   const userId = state ? verifyOAuthState(state) : null
   if (!code || !userId) {
-    return errorPage('This connect link has expired. Go back to Astrid and tap Connect again.')
+    return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }
   const redirectUri = `${url.origin}/api/v1/integrations/google/callback`
   const tokens = await exchangeGoogleCode(code, redirectUri)
@@ -28,7 +33,7 @@ export async function GET(request: NextRequest) {
   }
   if (!tokens.access_token) {
     log.error({ tokens }, 'Google token exchange failed')
-    return errorPage('The sign-in code expired before it could be used. Go back to Astrid and tap Connect again.')
+    return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
   }
   // Identify the account (userinfo via tasklists owner isn't available; use id_token-less userinfo endpoint)
   const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
   return returnToApp(
     'astrid://google-tasks/connected',
     'Google Tasks connected ✓',
-    `${info?.email ?? ''} — returning to Astrid…`
+    `${info?.email ?? ''} — returning to ${BRAND.appName}…`
   )
 }
 
@@ -54,7 +59,7 @@ function returnToApp(appUrl: string, heading: string, message: string): NextResp
       <script>window.location.replace(${JSON.stringify(appUrl)})</script>
     </head><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
       <h2>${escapeHtml(heading)}</h2><p>${escapeHtml(message)}</p>
-      <p><a href="${escapeHtml(appUrl)}">Return to Astrid</a></p>
+      <p><a href="${escapeHtml(appUrl)}">Return to ${BRAND.appName}</a></p>
     </body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )

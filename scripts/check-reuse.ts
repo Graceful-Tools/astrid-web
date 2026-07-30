@@ -27,6 +27,8 @@ interface Rule {
   globs: string[]
   // basenames exempted (canonical homes)
   exclude: string[]
+  // optional ERE applied to whole grep output lines; matches are dropped
+  reject?: string
 }
 
 const RULES: Rule[] = [
@@ -57,6 +59,42 @@ const RULES: Rule[] = [
     // quick-task-create.tsx was dead code and has been deleted.
     exclude: [],
   },
+  {
+    id: "hardcoded-brand-literal",
+    description: "Hardcoded brand literal (\"Astrid\" / astrid.cc) in UI code",
+    fix: "Use lib/brand/config.ts — BRAND.appName, BRAND.domain, BRAND.agentEmailDomain, BRAND.supportEmail, BRAND.inboundTaskEmail — or an i18n key with an {appName} token.",
+    // Word-boundary "Astrid" so identifiers (AstridEmptyState, astridPhrase) and the
+    // `astrid-signed` wire value are not flagged; plus the bare domain. Task 97208a72.
+    //
+    // Also brand-named ASSET paths ("/images/astrid-character.png"). Those slipped
+    // through the first pass: lowercase and hyphenated, so neither of the patterns above
+    // matched, and the Acme preview shipped an Astrid logo on its sign-in page.
+    // Also the lowercase wordmark as JSX text (`>astrid<`) and slogan copy. The main
+    // pattern is case-sensitive on purpose — otherwise AstridEmptyState, astridPhrase
+    // and the astrid-signed wire value would all trip it — which is exactly why
+    // `<h1>astrid</h1>` survived every earlier sweep and shipped on the Acme sign-in
+    // page. Matching it as a standalone JSX text node keeps identifiers exempt.
+    pattern: String.raw`\bAstrid\b|astrid\.cc|/[a-z/]*astrid-[a-z0-9-]*\.(png|jpg|jpeg|svg|webp|ico)|>[[:space:]]*astrid[[:space:]]*<|Get it done!`,
+    globs: ["components", "app", "hooks", "lib"],
+    // Canonical homes and frozen wire values only:
+    //   config.ts / capabilities.ts / agent-emails.ts — where the brand is defined
+    //   i18n-values.ts                                — documents the message tokens
+    //   protocol-headers.ts / webhook-signature.ts    — published header names that
+    //     subscribers verify by exact string; renaming them breaks live integrations
+    //   apple-identity.ts                             — Apple bundle identifiers
+    exclude: [
+      "config.ts",
+      "capabilities.ts",
+      "agent-emails.ts",
+      "i18n-values.ts",
+      "protocol-headers.ts",
+      "webhook-signature.ts",
+      "apple-identity.ts",
+    ],
+    // Comments are internal prose, deliberately left alone — renaming them is churn
+    // with no whitelabel benefit. Covers //, /* */, and JSX {/* */}.
+    reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,
+  },
 ]
 
 const strict = process.argv.includes("--strict") || process.env.CHECK_REUSE_STRICT === "1"
@@ -65,7 +103,9 @@ function search(rule: Rule): string[] {
   const dirs = rule.globs.map((g) => `'${g}'`).join(" ")
   const excludeArgs = rule.exclude.map((e) => `--exclude='${e}'`).join(" ")
   // POSIX grep (always on PATH, unlike rg). -r recursive, -E ERE, -n line #s.
-  const cmd = `grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e "${rule.pattern}" ${dirs} || true`
+  // Drop lines the rule considers out of scope (e.g. comments) before counting.
+  const rejectFilter = rule.reject ? ` | grep -Ev "${rule.reject}"` : ""
+  const cmd = `{ grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e "${rule.pattern}" ${dirs}${rejectFilter} ; } || true`
   try {
     const out = execSync(cmd, { encoding: "utf8", cwd: process.cwd() })
     return out.split("\n").filter(Boolean)

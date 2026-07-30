@@ -10,7 +10,7 @@ import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-sch
 import { withAuth } from '@/lib/api-auth-wrapper'
 
 export const GET = withAuth(
-  { tag: 'v1.openclaw.agents' },
+  { tag: 'v1.openclaw.agents', capability: 'integrationOpenClaw' },
   async (_req, auth) => {
     const agentUsers = await prisma.user.findMany({
       where: {

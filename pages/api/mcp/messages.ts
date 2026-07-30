@@ -1,3 +1,4 @@
+import { hasCapability } from '@/lib/brand/capabilities'
 import type { NextApiRequest, NextApiResponse } from "next"
 import { buildAuthSignature, readRequestBody } from "../../../lib/server/mcp-http-utils"
 import { getSession } from "../../../lib/server/mcp-session-store"
@@ -9,6 +10,12 @@ export const config = {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Deployment does not offer MCP — answer as if the endpoint does not exist.
+  if (!hasCapability('integrationMcp')) {
+    res.status(404).json({ error: 'Not found' })
+    return
+  }
+
   if (req.method === "OPTIONS") {
     res.setHeader("Allow", "POST,OPTIONS")
     res.status(200).end()

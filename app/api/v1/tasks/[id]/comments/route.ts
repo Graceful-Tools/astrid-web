@@ -14,6 +14,7 @@ import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { agentEmail, isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
 import { hasExplicitListRole } from "@/lib/list-permissions"
 
@@ -214,7 +215,7 @@ export const POST = withAuth<RouteContext>(
       }
 
       // Allow either explicitly-flagged AI agents or system @astrid.cc agents
-      const isSystemAgent = aiAgent.email?.endsWith('@astrid.cc')
+      const isSystemAgent = isBrandAgentEmail(aiAgent.email)
       if (!aiAgent.isAIAgent && !isSystemAgent) {
         return NextResponse.json(
           { error: 'Invalid aiAgentId - specified user is not an AI agent' },
@@ -410,7 +411,7 @@ export const POST = withAuth<RouteContext>(
     // without having to subscribe to the broader comment_created channel.
     try {
       if (task.assigneeId && task.assignee?.email &&
-          (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
+          (isOpenClawAgentEmail(task.assignee.email) || task.assignee.email === agentEmail('openclaw')) &&
           authorId !== task.assigneeId) {
         broadcastToUsers([task.assigneeId], {
           type: 'agent_task_comment',

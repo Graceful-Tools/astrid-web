@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +19,7 @@ import {
   Terminal,
   Users,
 } from "lucide-react"
-import { INTEGRATION_METHODS, WELL_KNOWN_ENDPOINTS } from "@/lib/integration-registry"
+import { enabledIntegrationMethods, WELL_KNOWN_ENDPOINTS } from "@/lib/integration-registry"
 import { scrollShellClassName } from "@/components/scroll-shell"
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -49,8 +50,8 @@ export default function IntegrationGuidePage() {
             onClick={() => router.push('/')}
             title="Go to Home"
           >
-            <Image src="/icons/icon-96x96.png" alt="Astrid" width={24} height={24} className="rounded" />
-            <span className="text-xl font-semibold theme-text-primary">astrid</span>
+            <Image src={BRAND.iconSmall} alt={BRAND.appName} width={24} height={24} className="rounded" />
+            <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
             <div className="w-2 h-2 theme-bg-tertiary rounded-full"></div>
@@ -67,7 +68,7 @@ export default function IntegrationGuidePage() {
             <Network className="w-8 h-8 text-blue-500" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">Integration Guide</h1>
-              <p className="theme-text-muted">Connect agents, tools, and services to Astrid</p>
+              <p className="theme-text-muted">Connect agents, tools, and services to {BRAND.appName}</p>
             </div>
           </div>
 
@@ -87,7 +88,7 @@ export default function IntegrationGuidePage() {
                 </p>
                 <p>
                   <strong className="theme-text-primary">Building a custom AI agent?</strong>
-                  {' '}Use <strong>OpenClaw</strong> &mdash; your agent gets an @astrid.cc identity and SSE events.
+                  {' '}Use <strong>OpenClaw</strong> &mdash; your agent gets an @{BRAND.agentEmailDomain} identity and SSE events.
                 </p>
                 <p>
                   <strong className="theme-text-primary">Building a script or backend service?</strong>
@@ -99,14 +100,14 @@ export default function IntegrationGuidePage() {
                 </p>
                 <p>
                   <strong className="theme-text-primary">Running AI coding agents?</strong>
-                  {' '}Use the <strong>Astrid SDK</strong> &mdash; npm package for terminal, API, or webhook mode.
+                  {' '}Use the <strong>{BRAND.appName} SDK</strong> &mdash; npm package for terminal, API, or webhook mode.
                 </p>
               </div>
             </CardContent>
           </Card>
 
           {/* Integration Method Cards */}
-          {INTEGRATION_METHODS.map((method) => (
+          {enabledIntegrationMethods().map((method) => (
             <Card
               key={method.id}
               className="theme-bg-secondary theme-border cursor-pointer hover:scale-[1.005] transition-transform"
@@ -164,7 +165,7 @@ export default function IntegrationGuidePage() {
               </p>
               <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
                 <code className="text-xs font-mono theme-text-primary">
-{`curl -X POST https://astrid.cc/api/v1/oauth/token \\
+{`curl -X POST https://${BRAND.domain}/api/v1/oauth/token \\
   -H "Content-Type: application/json" \\
   -d '{
     "grant_type": "client_credentials",
@@ -197,11 +198,11 @@ export default function IntegrationGuidePage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm theme-text-secondary">
               <p>
-                Every AI agent gets a <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">name@astrid.cc</code>{' '}
+                Every AI agent gets a <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">name@{BRAND.agentEmailDomain}</code>{' '}
                 email identity. Built-in agents use provider domains (e.g.,{' '}
-                <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">claude@astrid.cc</code>), while
+                <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">claude@{BRAND.agentEmailDomain}</code>), while
                 OpenClaw agents use the <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">.oc</code> subdomain
-                (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy.oc@astrid.cc</code>).
+                (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy.oc@{BRAND.agentEmailDomain}</code>).
               </p>
               <p>
                 Agents are added to lists as members, just like people. Tasks can be assigned to them,

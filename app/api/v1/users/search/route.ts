@@ -12,6 +12,8 @@
  *   includeAIAgents — include AI agents the user has API keys for (My Tasks flow)
  */
 
+import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
+import { getAssignableAgentEmails, getKeyedAgentEmails } from '@/lib/ai/assignable-agents'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
@@ -30,9 +32,8 @@ interface UserSearchResult {
   aiAgentType?: string | null
 }
 
-const AI_AGENT_EMAILS = [
-  'claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc', 'copilot@astrid.cc', 'openclaw@astrid.cc',
-]
+// Which agents exist is configuration; see lib/ai/assignable-agents.ts. Task 97208a72.
+const AI_AGENT_EMAILS = getAssignableAgentEmails()
 
 export const dynamic = 'force-dynamic'
 
@@ -110,7 +111,7 @@ export const GET = withAuth(
                 {
                   OR: [
                     { email: { in: AI_AGENT_EMAILS } },
-                    { email: { endsWith: '.oc@astrid.cc' } },
+                    { email: { endsWith: openClawEmailSuffix() } },
                   ],
                 },
                 { listMemberships: { some: { listId: { in: relevantListIds } } } },
@@ -124,19 +125,7 @@ export const GET = withAuth(
       }
 
       if (includeAIAgents && aiAgents.length === 0) {
-        const [hasClaude, hasOpenAI, hasGemini, hasCopilot, hasOpenClaw] = await Promise.all([
-          hasValidApiKey(auth.userId, 'claude'),
-          hasValidApiKey(auth.userId, 'openai'),
-          hasValidApiKey(auth.userId, 'gemini'),
-          hasValidApiKey(auth.userId, 'copilot'),
-          hasValidApiKey(auth.userId, 'openclaw'),
-        ])
-        const availableEmails: string[] = []
-        if (hasClaude) availableEmails.push('claude@astrid.cc')
-        if (hasOpenAI) availableEmails.push('openai@astrid.cc')
-        if (hasGemini) availableEmails.push('gemini@astrid.cc')
-        if (hasCopilot) availableEmails.push('copilot@astrid.cc')
-        if (hasOpenClaw) availableEmails.push('openclaw@astrid.cc')
+        const availableEmails = await getKeyedAgentEmails(auth.userId)
 
         if (availableEmails.length > 0) {
           const conds: object[] = []
@@ -155,7 +144,7 @@ export const GET = withAuth(
                 {
                   OR: [
                     { email: { in: availableEmails } },
-                    { email: { endsWith: '.oc@astrid.cc' } },
+                    { email: { endsWith: openClawEmailSuffix() } },
                   ],
                 },
                 ...conds,

@@ -8,6 +8,7 @@
  * identity so all permission checks use the user's own access rights.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { generateAccessToken } from '@/lib/oauth/oauth-token-manager'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
@@ -28,7 +29,7 @@ async function ensureAstridOAuthClient(): Promise<string> {
     where: { email: ASTRID_EMAIL, isAIAgent: true },
     select: { id: true },
   })
-  if (!astridUser) throw new Error('Astrid agent user not found')
+  if (!astridUser) throw new Error(`${BRAND.appName} agent user not found`)
 
   const REQUIRED_SCOPES = ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write']
 
@@ -51,7 +52,7 @@ async function ensureAstridOAuthClient(): Promise<string> {
     const { createOAuthClient } = await import('@/lib/oauth/oauth-client-manager')
     const credentials = await createOAuthClient({
       userId: astridUser.id,
-      name: 'Astrid Agent',
+      name: `${BRAND.appName} Agent`,
       scopes: ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write'],
       grantTypes: ['client_credentials'],
     })
@@ -59,7 +60,7 @@ async function ensureAstridOAuthClient(): Promise<string> {
       where: { clientId: credentials.clientId },
       select: { id: true, scopes: true },
     })
-    if (!created) throw new Error('Failed to create OAuth client for Astrid')
+    if (!created) throw new Error(`Failed to create OAuth client for ${BRAND.appName}`)
     client = created
   }
 

@@ -1,20 +1,36 @@
+import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { NextResponse } from 'next/server'
 import { getBaseUrl } from '@/lib/base-url'
-import { ASTRID_DESCRIPTION, INTEGRATION_METHODS, WELL_KNOWN_ENDPOINTS } from '@/lib/integration-registry'
+import { ASTRID_DESCRIPTION, enabledIntegrationMethods, WELL_KNOWN_ENDPOINTS } from '@/lib/integration-registry'
+import { BRAND } from '@/lib/brand/config'
 
 export async function GET() {
   const baseUrl = getBaseUrl()
 
-  const integrationLinks = INTEGRATION_METHODS.map((m) => {
+  const integrationLinks = enabledIntegrationMethods().map((m) => {
     const url = m.externalUrl || `${baseUrl}${m.docsPath}`
     return `- [${m.name}](${url}): ${m.tagline}`
   }).join('\n')
+
+  // Concepts are filtered the same way the links are — a deployment with MCP disabled
+  // told agents to "POST to /api/mcp/operations", an endpoint that answers 404 there.
+  // Caught on the Acme preview deploy. Task 97208a72.
+  const keyConcepts = [
+    { text: `- **Lists as agent instructions**: Each list's description becomes the agent's system prompt` },
+    { text: `- **Agent identities**: AI agents get \`name@${BRAND.agentEmailDomain}\` email addresses and appear as list members` },
+    { text: `- **OAuth2 everywhere**: All integrations use the same OAuth2 client_credentials flow` },
+    { text: `- **MCP operations**: POST to \`/api/mcp/operations\` with operation name and args`, capability: 'integrationMcp' as const },
+    { text: `- **Real-time events**: SSE stream at \`/api/v1/agent/events\` for task assignments and updates` },
+  ]
+    .filter((c) => !c.capability || CAPABILITIES[c.capability])
+    .map((c) => c.text)
+    .join('\n')
 
   const wellKnownLinks = WELL_KNOWN_ENDPOINTS.map(
     (ep) => `- [${ep.description}](${baseUrl}${ep.path})`
   ).join('\n')
 
-  const content = `# Astrid
+  const content = `# ${BRAND.appName}
 
 > ${ASTRID_DESCRIPTION}
 
@@ -36,11 +52,7 @@ ${wellKnownLinks}
 
 ## Key Concepts
 
-- **Lists as agent instructions**: Each list's description becomes the agent's system prompt
-- **Agent identities**: AI agents get \`name@astrid.cc\` email addresses and appear as list members
-- **OAuth2 everywhere**: All integrations use the same OAuth2 client_credentials flow
-- **MCP operations**: POST to \`/api/mcp/operations\` with operation name and args
-- **Real-time events**: SSE stream at \`/api/v1/agent/events\` for task assignments and updates
+${keyConcepts}
 `
 
   return new NextResponse(content, {

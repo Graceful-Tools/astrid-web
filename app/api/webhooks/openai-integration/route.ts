@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { createLogger } from '@/lib/logger'
 
@@ -10,28 +11,28 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     service: "OpenAI Integration Webhook",
     status: "ready",
-    message: "Astrid is ready to send task notifications to OpenAI Assistant-based services",
+    message: `${BRAND.appName} is ready to send task notifications to OpenAI Assistant-based services`,
     instructions: {
       setup: "Configure OpenAI Assistant with these function tools",
-      mcpEndpoint: "https://astrid.cc/api/mcp/operations",
-      contextEndpoint: "https://astrid.cc/api/mcp/context?agentType=openai",
-      webhookEndpoint: "https://astrid.cc/api/webhooks/ai-agents",
-      documentation: "https://astrid.cc/api/webhooks/ai-agents"
+      mcpEndpoint: `https://${BRAND.domain}/api/mcp/operations`,
+      contextEndpoint: `https://${BRAND.domain}/api/mcp/context?agentType=openai`,
+      webhookEndpoint: `https://${BRAND.domain}/api/webhooks/ai-agents`,
+      documentation: `https://${BRAND.domain}/api/webhooks/ai-agents`
     },
     openaiIntegration: {
-      description: "Use OpenAI Assistant Function Tools to interact with Astrid MCP API",
+      description: `Use OpenAI Assistant Function Tools to interact with ${BRAND.appName} MCP API`,
       assistantTools: [
         {
           type: "function",
           function: {
             name: "astrid_get_task_details",
-            description: "Get detailed information about an assigned task in Astrid",
+            description: `Get detailed information about an assigned task in ${BRAND.appName}`,
             parameters: {
               type: "object",
               properties: {
                 accessToken: {
                   type: "string",
-                  description: "MCP access token for Astrid API authentication"
+                  description: `MCP access token for ${BRAND.appName} API authentication`
                 },
                 taskId: {
                   type: "string",
@@ -109,20 +110,20 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return NextResponse.json({
     service: "OpenAI Integration Webhook",
-    description: "Integration point for OpenAI Assistant services with Astrid Task Manager",
+    description: `Integration point for OpenAI Assistant services with ${BRAND.appName} Task Manager`,
     status: "active",
     integration: {
       type: "Assistant Function Tools",
-      description: "Configure OpenAI Assistant with function tools to interact with Astrid MCP API",
-      endpoint: "https://astrid.cc/api/mcp/operations"
+      description: `Configure OpenAI Assistant with function tools to interact with ${BRAND.appName} MCP API`,
+      endpoint: `https://${BRAND.domain}/api/mcp/operations`
     },
     setup: {
       step1: "Create OpenAI Assistant with provided function tool definitions",
-      step2: "Configure assistant to use Astrid MCP operations",
+      step2: `Configure assistant to use ${BRAND.appName} MCP operations`,
       step3: "Use MCP access token for API authentication",
       step4: "Assistant can read task details, update status, and add progress comments"
     },
-    webhookUrl: "https://astrid.cc/api/webhooks/openai-integration",
-    responseEndpoint: "https://astrid.cc/api/webhooks/ai-agents"
+    webhookUrl: `https://${BRAND.domain}/api/webhooks/openai-integration`,
+    responseEndpoint: `https://${BRAND.domain}/api/webhooks/ai-agents`
   })
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -103,7 +104,7 @@ export function ExploratoryFeaturesSettings({ onManageApiKeys, onAppleReminders 
 
         {!hasValidApiKey && (
           <p className="text-xs theme-text-muted pl-1">
-            API keys power AI responses when you assign tasks to agents like claude@astrid.cc
+            API keys power AI responses when you assign tasks to agents like claude@{BRAND.agentEmailDomain}
           </p>
         )}
       </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Download, Smartphone } from 'lucide-react'
@@ -90,10 +91,10 @@ export function PWAInstallPrompt() {
         
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-            Install Astrid
+            Install {BRAND.appName}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Add Astrid to your home screen for quick access and offline use.
+            Add {BRAND.appName} to your home screen for quick access and offline use.
           </p>
           
           <div className="flex space-x-2 mt-3">

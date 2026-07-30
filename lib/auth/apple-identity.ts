@@ -31,6 +31,9 @@ export function appleAllowedAudiences(env: string | undefined = process.env.APPL
   // carries its own bundle id as `aud`). Override with APPLE_CLIENT_IDS (e.g. to add a Services ID).
   return fromEnv.length > 0
     ? fromEnv
+    // Apple bundle identifiers, not branding: these are provisioning identities
+    // registered with Apple and tied to the signing certificates. Renaming them is an
+    // App Store Connect change, explicitly out of scope for whitelabeling (task 97208a72).
     : ['Graceful-Tools-Inc.Astrid-App', 'Graceful-Tools-Inc.Astrid-Mac']
 }
 

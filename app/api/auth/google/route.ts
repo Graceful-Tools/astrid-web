@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { prisma } from "@/lib/prisma"
@@ -17,6 +18,9 @@ function generateSecureToken(prefix: string): string {
 
 // Google Sign In endpoint for iOS
 async function googleSignInHandler(request: NextRequest) {
+  const blocked = capabilityGate('authGoogle')
+  if (blocked) return blocked
+
   try {
     const { idToken } = await request.json()
 

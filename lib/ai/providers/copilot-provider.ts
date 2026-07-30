@@ -16,6 +16,7 @@
  * deploys. The REST API needs no runtime process.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import type { AIProviderResponse } from './types'
 import { callOpenAI, OPENAI_REPOSITORY_TOOLS, type OpenAIProviderOptions } from './openai-provider'
 
@@ -26,7 +27,7 @@ export type CopilotProviderOptions = OpenAIProviderOptions
 export const COPILOT_BASE_URL = 'https://api.githubcopilot.com'
 export const COPILOT_HEADERS: Record<string, string> = {
   'Copilot-Integration-Id': 'vscode-chat',
-  'Editor-Version': 'Astrid/1.0',
+  'Editor-Version': `${BRAND.appName}/1.0`,
 }
 
 export async function callCopilot(options: CopilotProviderOptions): Promise<AIProviderResponse> {

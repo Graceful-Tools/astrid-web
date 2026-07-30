@@ -2,6 +2,7 @@
  * GitHub App Installation URL endpoint
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { createLogger } from '@/lib/logger'
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     })).toString('base64')
 
     // Use the actual GitHub App name from your GitHub App settings
-    const appName = 'astrid-code-assistant' // The actual GitHub app name
+    const appName = BRAND.githubAppSlug // The registered GitHub App backing the coding agent
     const installUrl = `https://github.com/apps/${appName}/installations/new?state=${state}`
 
     return NextResponse.json({ installUrl })

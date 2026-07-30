@@ -12,6 +12,7 @@
  * All side effects are best-effort: failures are logged and swallowed so they
  * never fail the request that already created the comment.
  */
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { getAgentService } from '@/lib/ai/agent-config'
@@ -133,7 +134,7 @@ async function notifyMentionsAndTriggerAgents(
             taskTitle: task.title,
             listId,
           }).catch(err =>
-            log.error({ err: err }, '[comments] Astrid @mention processing error:')
+            log.error({ err: err }, `[comments] ${BRAND.appName} @mention processing error:`)
           )
         }
       } else {

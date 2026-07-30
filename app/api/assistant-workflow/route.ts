@@ -1,7 +1,9 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
+import { getAgentConfig, type AIService } from '@/lib/ai/agent-config'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
 
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
         data: {
           taskId,
           authorId: task.assigneeId,
-          content: `To use OpenClaw with Astrid, install the Astrid channel plugin in your OpenClaw instance. OpenClaw connects outbound to Astrid — no gateway URL needed.\n\nSee: https://github.com/Graceful-Tools/astrid-web/tree/main/packages/openclaw-astrid-channel`
+          content: `To use OpenClaw with ${BRAND.appName}, install the ${BRAND.appName} channel plugin in your OpenClaw instance. OpenClaw connects outbound to ${BRAND.appName} — no gateway URL needed.\n\nSee: https://github.com/Graceful-Tools/astrid-web/tree/main/packages/openclaw-astrid-channel`
         }
       })
       return NextResponse.json({ error: 'OpenClaw uses channel plugin', commented: true })
@@ -214,15 +216,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getServiceFromEmail(email: string): 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw' | null {
-  if (email === 'claude@astrid.cc') return 'claude'
-  if (email === 'openai@astrid.cc') return 'openai'
-  if (email === 'gemini@astrid.cc') return 'gemini'
-  if (email === 'copilot@astrid.cc') return 'copilot'
-  if (email === 'openclaw@astrid.cc') return 'openclaw'
-  // Match {name}.oc@astrid.cc pattern for OpenClaw agents
-  if (email.match(/\.oc@astrid\.cc$/i)) return 'openclaw'
-  return null
+/**
+ * Which AI service backs this agent address, or null if it is not a registered agent.
+ *
+ * This used to re-implement the registry's routing table with hardcoded addresses,
+ * which meant the two could disagree about a newly added agent. It now defers to
+ * lib/ai/agent-config.ts — including the {name}.oc@ OpenClaw pattern — so the enabled
+ * set and the agent-email domain are configuration in one place. Task 97208a72.
+ *
+ * Note getAgentService() falls back to 'claude' for unknown addresses; this wrapper
+ * must keep returning null so the caller can reject them.
+ */
+function getServiceFromEmail(email: string): AIService | null {
+  return getAgentConfig(email)?.service ?? null
 }
 
 function buildPrompt(task: any, isCommentResponse?: boolean, userComment?: string): string {
@@ -230,7 +236,7 @@ function buildPrompt(task: any, isCommentResponse?: boolean, userComment?: strin
   const listDescription = task.lists?.[0]?.description?.trim()
   const listName = task.lists?.[0]?.name || 'My Tasks'
 
-  const defaultInstructions = `You are an AI assistant working on tasks in Astrid. Read the task details and help complete it. Post progress updates as comments.`
+  const defaultInstructions = `You are an AI assistant working on tasks in ${BRAND.appName}. Read the task details and help complete it. Post progress updates as comments.`
 
   const instructions = listDescription || defaultInstructions
 

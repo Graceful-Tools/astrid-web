@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
@@ -8,7 +9,7 @@ import { githubGraphQL, githubRequest, githubTokenFor, isValidRepoId } from '@/l
  * cursor (ISO timestamp). Returns provider-neutral items + advances the cursor.
  */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const linkId = new URL(req.url).searchParams.get('linkId')
     if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
@@ -56,7 +57,7 @@ export const GET = withAuth(
         metadata: {
           number: String(i.number),
           parent: '', // parent issue number, filled from GraphQL below
-          assigneeUserId: '', // Astrid user mapped from GitHub assignees below
+          assigneeUserId: '', // {BRAND.appName} user mapped from GitHub assignees below
           commentCount: String(i.comments ?? 0),
           labels: (i.labels as any[]).map(l => (typeof l === 'string' ? l : l.name)).join(','),
           assignees: (i.assignees as any[]).map(a => a.login).join(','),
@@ -132,7 +133,7 @@ export const GET = withAuth(
  * remoteId nil = create issue; non-nil = update (title/body/state).
  */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const body = await req.json()
     // Client-acknowledged cursor commit.

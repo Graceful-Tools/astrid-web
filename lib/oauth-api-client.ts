@@ -5,6 +5,7 @@
  * This replaces the legacy MCP-based client for AI agent integrations
  */
 
+import { brandOrigin } from '@/lib/brand/config'
 import { type OAuthScope } from './oauth/oauth-scopes'
 import { safeResponseJson } from './safe-parse'
 import { createLogger } from '@/lib/logger'
@@ -79,7 +80,7 @@ export class OAuthAPIClient {
     clientId?: string
     clientSecret?: string
   }) {
-    this.baseUrl = options?.baseUrl || process.env.ASTRID_API_BASE_URL || 'https://astrid.cc'
+    this.baseUrl = options?.baseUrl || process.env.ASTRID_API_BASE_URL || brandOrigin()
     this.clientId = options?.clientId || process.env.ASTRID_OAUTH_CLIENT_ID || ''
     this.clientSecret = options?.clientSecret || process.env.ASTRID_OAUTH_CLIENT_SECRET || ''
 

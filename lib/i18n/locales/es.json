@@ -275,7 +275,7 @@
       "Cuando tengas un minuto:",
       "En tu agenda:",
       "¿Estás libre un momento?",
-      "¡Aquí Astrid!",
+      "¡Aquí {appName}!",
       "¡Hola! ¿Puedo molestarte?",
       "¿Un minuto de tu tiempo?",
       "Es un gran día para"
@@ -416,12 +416,12 @@
     },
     "chatgpt": {
       "title": "Integración ChatGPT",
-      "description": "Conecta Astrid a acciones personalizadas de GPT",
+      "description": "Conecta {appName} a acciones personalizadas de GPT",
       "loading": "Cargando integración ChatGPT...",
       "breadcrumb": "Integración ChatGPT",
       "howItWorks": {
         "title": "Cómo Funciona",
-        "description": "Conecta Astrid a ChatGPT usando OAuth 2.0 y OpenAPI",
+        "description": "Conecta {appName} a ChatGPT usando OAuth 2.0 y OpenAPI",
         "oauth": {
           "title": "OAuth 2.0 Seguro",
           "description": "Autentícate de forma segura sin compartir tu contraseña"
@@ -440,7 +440,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -449,7 +449,7 @@
       "step1": {
         "badge": "Paso 1",
         "title": "Crear Cliente OAuth",
-        "description": "Crea un cliente OAuth para autenticar tu GPT con Astrid",
+        "description": "Crea un cliente OAuth para autenticar tu GPT con {appName}",
         "manageButton": "Gestionar Clientes",
         "instructions": {
           "step1": "Ve a configuración de Acceso API",
@@ -677,14 +677,14 @@
       },
       "emailToTask": {
         "title": "Correo a Tarea",
-        "description": "Crea tareas instantáneamente enviando correos a remindme@astrid.cc",
+        "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",
         "threeWays": "Tres Formas de Crear Tareas",
         "selfTask": "Auto-tarea:",
-        "selfTaskDesc": "Envía A remindme@astrid.cc",
+        "selfTaskDesc": "Envía A {inboundTaskEmail}",
         "assignedTask": "Tarea asignada:",
-        "assignedTaskDesc": "CC remindme@astrid.cc con un destinatario",
+        "assignedTaskDesc": "CC {inboundTaskEmail} con un destinatario",
         "groupTask": "Tarea grupal:",
-        "groupTaskDesc": "CC remindme@astrid.cc con múltiples destinatarios",
+        "groupTaskDesc": "CC {inboundTaskEmail} con múltiples destinatarios",
         "configure": "Configurar Ajustes de Correo",
         "configureDesc": "Personaliza fechas límite predeterminadas, habilita/deshabilita la función y más",
         "proTip": "El asunto del correo se convierte en el título de tu tarea, y el cuerpo en la descripción. ¡Perfecto para captura rápida de tareas desde tu bandeja de entrada!"
@@ -692,12 +692,12 @@
     },
     "aiIntegrations": {
       "title": "Integración ChatGPT",
-      "description": "Conecta Astrid a acciones personalizadas de GPT",
+      "description": "Conecta {appName} a acciones personalizadas de GPT",
       "loading": "Cargando integración ChatGPT...",
       "breadcrumb": "Integración ChatGPT",
       "howItWorks": {
         "title": "Cómo Funciona",
-        "description": "Conecta Astrid a ChatGPT usando OAuth 2.0 y OpenAPI",
+        "description": "Conecta {appName} a ChatGPT usando OAuth 2.0 y OpenAPI",
         "oauth": {
           "title": "OAuth 2.0 Seguro",
           "description": "Autentícate de forma segura sin compartir tu contraseña"
@@ -716,7 +716,7 @@
         "title": "Connect via MCP",
         "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
         "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to Astrid — no keys to copy.",
+        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
@@ -725,7 +725,7 @@
       "step1": {
         "badge": "Paso 1",
         "title": "Crear Cliente OAuth",
-        "description": "Crea un cliente OAuth para autenticar tu GPT con Astrid",
+        "description": "Crea un cliente OAuth para autenticar tu GPT con {appName}",
         "manageButton": "Gestionar Clientes",
         "instructions": {
           "step1": "Ve a configuración de Acceso API",

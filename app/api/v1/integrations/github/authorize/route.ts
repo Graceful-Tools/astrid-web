@@ -8,7 +8,7 @@ import { githubSyncConfigured, mintOAuthState } from '@/lib/sync/github'
  * so the browser callback can identify the user without a web session).
  */
 export const GET = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.integrations.github' },
+  { scopes: ['tasks:write'], tag: 'v1.integrations.github', capability: 'syncGithubIssues' },
   async (_req, auth) => {
     if (!githubSyncConfigured()) {
       return NextResponse.json({ error: 'GitHub sync is not configured on this server' }, { status: 503 })

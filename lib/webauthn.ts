@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -16,7 +17,9 @@ const log = createLogger('webauthn')
 
 
 // Relying Party configuration
-const rpName = "Astrid"
+// Shown by the authenticator when the user creates or uses a passkey.
+// Unlike rpID this is a display label, so changing it does not invalidate credentials.
+const rpName = BRAND.appName
 
 // Robust production detection - check multiple signals
 function isProductionEnvironment(): boolean {
@@ -25,25 +28,113 @@ function isProductionEnvironment(): boolean {
   // Vercel production deployment
   if (process.env.VERCEL_ENV === "production") return true
   // Check if NEXTAUTH_URL points to production domain
-  if (process.env.NEXTAUTH_URL?.includes("astrid.cc")) return true
+  if (process.env.NEXTAUTH_URL?.includes(BRAND.domain)) return true
   return false
 }
 
 const isProduction = isProductionEnvironment()
-const rpID = isProduction ? "astrid.cc" : "localhost"
-// Support astrid.cc, www.astrid.cc, and any *.astrid.cc subdomain in production
+
+/**
+ * WebAuthn Relying Party ID — the domain credentials are scoped to.
+ *
+ * Brand-derived (task 97208a72), which is a no-op for Astrid since BRAND.domain
+ * defaults to astrid.cc. Note this is a CREDENTIAL BINDING, not cosmetic: changing it
+ * on a live deployment invalidates every passkey already registered, because the
+ * authenticator will not release a credential scoped to a different RP ID.
+ */
+/**
+ * The host this deployment is actually served from, or null when it cannot be
+ * determined. NEXTAUTH_URL is authoritative; VERCEL_URL covers preview deployments
+ * that have no explicit NEXTAUTH_URL.
+ */
+function servingHost(): string | null {
+  const candidate = process.env.NEXTAUTH_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined)
+  if (!candidate) return null
+  try {
+    return new URL(candidate).hostname
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Resolve the Relying Party ID.
+ *
+ * WebAuthn requires the RP ID to equal the origin's host or be a registrable-domain
+ * suffix of it. `BRAND.domain` is the brand's NOMINAL domain and is not necessarily
+ * where the app is served — an enterprise preview, a staging host, or any deployment
+ * whose brand domain has not been pointed at it yet. Claiming an RP ID the browser is
+ * not on makes every passkey call fail with "invalid for this domain", which is exactly
+ * what the Acme preview did while serving from *.vercel.app.
+ *
+ * So: use the brand domain when the serving host really is that domain or a subdomain
+ * of it, and otherwise scope credentials to the serving host itself.
+ *
+ * For Astrid this is a no-op — served from www.astrid.cc, which is a subdomain of
+ * astrid.cc, so the RP ID stays astrid.cc and existing passkeys keep working. That
+ * matters: the RP ID is a CREDENTIAL BINDING, and changing it on a live deployment
+ * invalidates every passkey already registered.
+ *
+ * NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID overrides all of this, for a deployment that knows
+ * better than we can infer.
+ */
+export function resolveRpID(requestOrigin?: string): string {
+  const explicit = process.env.NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID?.trim()
+  if (explicit) return explicit
+  if (!isProduction) return "localhost"
+
+  // The origin the browser is actually on wins. Environment variables describe the
+  // deployment's canonical URL, which is NOT necessarily where this request arrived:
+  // on a preview, NEXTAUTH_URL still points at production, so an env-derived RP ID
+  // fails the browser's check even though it looks right in logs.
+  let host: string | null = null
+  if (requestOrigin) {
+    try {
+      host = new URL(requestOrigin).hostname
+    } catch {
+      host = null
+    }
+  }
+  host = host ?? servingHost()
+  if (!host) return BRAND.domain
+
+  // Leading dot matters: without it `evil-astrid.cc` would also look like a subdomain.
+  const isBrandHost = host === BRAND.domain || host.endsWith(`.${BRAND.domain}`)
+  return isBrandHost ? BRAND.domain : host
+}
+
+/**
+ * Module-level default, used only for logging and for callers with no request in hand.
+ * Every ceremony resolves its own RP ID from the request origin — see resolveRpID.
+ */
+const rpID = resolveRpID()
+
+// The brand's own origins, plus the host we are actually served from — otherwise a
+// deployment reachable at a non-brand host cannot complete a passkey ceremony.
 const baseOrigins = isProduction
-  ? ["https://astrid.cc", "https://www.astrid.cc"]
+  ? Array.from(new Set([
+      `https://${BRAND.domain}`,
+      `https://www.${BRAND.domain}`,
+      ...(servingHost() ? [`https://${servingHost()}`] : []),
+    ]))
   : [`http://localhost:${process.env.PORT || 3000}`]
+
+/**
+ * Suffix for the subdomain check below. The LEADING DOT is load-bearing: matching on
+ * `endsWith(BRAND.domain)` alone would also accept `evil-astrid.cc`, letting an
+ * attacker-controlled host be treated as an expected WebAuthn origin.
+ */
+const SUBDOMAIN_SUFFIX = `.${BRAND.domain}`
 
 // Helper to get expected origins including the current request origin if it's a valid subdomain
 export function getExpectedOrigins(requestOrigin?: string): string[] {
   if (!isProduction || !requestOrigin) return baseOrigins
 
-  // Check if requestOrigin is a valid *.astrid.cc subdomain
+  // Check if requestOrigin is a valid subdomain of the brand domain
   try {
     const url = new URL(requestOrigin)
-    if (url.protocol === "https:" && url.hostname.endsWith(".astrid.cc")) {
+    if (url.protocol === "https:" && url.hostname.endsWith(SUBDOMAIN_SUFFIX)) {
       // Include this subdomain in expected origins
       return [...baseOrigins, requestOrigin]
     }
@@ -124,7 +215,7 @@ export async function deleteChallenge(sessionId: string) {
   await prisma.webAuthnChallenge.delete({ where: { id: sessionId } }).catch(() => {})
 }
 
-export async function getRegistrationOptions(userId: string, email: string) {
+export async function getRegistrationOptions(userId: string, email: string, requestOrigin?: string) {
   // Ensure prisma is available
   if (!prisma) {
     throw new Error("Database connection not available")
@@ -150,7 +241,7 @@ export async function getRegistrationOptions(userId: string, email: string) {
 
   const options = await generateRegistrationOptions({
     rpName,
-    rpID,
+    rpID: resolveRpID(requestOrigin),
     userID: userId,
     userName: email,
     userDisplayName: email.split("@")[0] || email,
@@ -177,7 +268,7 @@ export async function verifyRegistration(
       userId,
       expectedChallenge: expectedChallenge.substring(0, 20) + "...",
       expectedOrigin: origins,
-      expectedRPID: rpID,
+      expectedRPID: resolveRpID(requestOrigin),
       requestOrigin,
     }, "[WebAuthn] Verifying registration:")
 
@@ -185,7 +276,7 @@ export async function verifyRegistration(
       response,
       expectedChallenge,
       expectedOrigin: origins,
-      expectedRPID: rpID,
+      expectedRPID: resolveRpID(requestOrigin),
       requireUserVerification: false, // We use "preferred" in options, so don't require it
     })
 
@@ -217,7 +308,7 @@ export async function verifyRegistration(
   }
 }
 
-export async function getAuthenticationOptions(email?: string) {
+export async function getAuthenticationOptions(email?: string, requestOrigin?: string) {
   let allowCredentials: { id: Uint8Array; type: "public-key"; transports?: AuthenticatorTransportFuture[] }[] | undefined
 
   if (email) {
@@ -237,7 +328,7 @@ export async function getAuthenticationOptions(email?: string) {
   }
 
   const options = await generateAuthenticationOptions({
-    rpID,
+    rpID: resolveRpID(requestOrigin),
     userVerification: "preferred",
     allowCredentials,
   })
@@ -266,7 +357,7 @@ export async function verifyAuthentication(
       response,
       expectedChallenge,
       expectedOrigin: origins,
-      expectedRPID: rpID,
+      expectedRPID: resolveRpID(requestOrigin),
       requireUserVerification: false, // We use "preferred" in options, so don't require it
       authenticator: {
         credentialID: Buffer.from(authenticator.credentialID, "base64url"),

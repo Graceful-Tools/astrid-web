@@ -5,7 +5,7 @@ import { googleAuthorizeURL, googleSyncConfigured } from '@/lib/sync/google'
 
 /** GET — returns the Google OAuth URL (HMAC state; offline access for refresh). */
 export const GET = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.integrations.google' },
+  { scopes: ['tasks:write'], tag: 'v1.integrations.google', capability: 'syncGoogleTasks' },
   async (req: NextRequest, auth) => {
     if (!googleSyncConfigured()) {
       return NextResponse.json({ error: 'Google Tasks sync is not configured on this server' }, { status: 503 })

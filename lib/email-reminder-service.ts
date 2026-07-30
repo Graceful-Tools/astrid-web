@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import type { TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { sendVerificationEmail, getFromEmail } from '@/lib/email'
 import { Resend } from 'resend'
@@ -350,11 +351,11 @@ export class EmailReminderService {
             <p class="due-info">Due: ${dueText}</p>
           </div>
 
-          <!-- Astrid mascot with motivational quote -->
+          <!-- ${BRAND.appName} mascot with motivational quote -->
           <div class="astrid-section ${isOverdue ? '' : 'normal'}">
             <div class="astrid-container">
               <div class="astrid-icon">
-                <img src="${baseUrl}/icons/icon-512x512.png" alt="Astrid" />
+                <img src="${baseUrl}/icons/icon-512x512.png" alt="${BRAND.appName}" />
               </div>
               <div class="speech-bubble">
                 <p class="quote-text">${quote}</p>
@@ -558,7 +559,7 @@ You can modify your reminder preferences in your account settings.
         <div class="container">
           <div class="header">
             <div class="date-header">${today}</div>
-            <div class="greeting">Astrid here,</div>
+            <div class="greeting">${BRAND.appName} here,</div>
             <div class="greeting">Reminding you about the things that are important to you.</div>
           </div>
 
@@ -579,7 +580,7 @@ You can modify your reminder preferences in your account settings.
           </div>
 
           <div class="signature">
-            - Astrid
+            - ${BRAND.appName}
           </div>
 
           <div class="footer">
@@ -602,7 +603,7 @@ You can modify your reminder preferences in your account settings.
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
 
     let text = `${today}\n\n`
-    text += `Astrid here,\n\n`
+    text += `${BRAND.appName} here,\n\n`
     text += `Reminding you about the things that are important to you.\n\n`
 
     if (allTasks.length > 0) {
@@ -613,7 +614,7 @@ You can modify your reminder preferences in your account settings.
       }).join('\n\n')}\n\n`
     }
 
-    text += `- Astrid\n\n`
+    text += `- ${BRAND.appName}\n\n`
     text += `---\n`
     text += `Click on checkboxes to mark task as complete or task name to view / edit.\n`
     text += `Unsubscribe from email reminders: ${getUnsubscribeUrl(data.userId)}`

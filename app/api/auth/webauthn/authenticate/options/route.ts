@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthenticationOptions, storeChallenge } from "@/lib/webauthn"
 import { v4 as uuid } from "uuid"
@@ -7,12 +8,16 @@ const log = createLogger('auth.webauthn.authenticate.options')
 
 
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('authPasskey')
+  if (blocked) return blocked
+
   try {
     const body = await request.json().catch(() => ({}))
     const { email } = body
 
     // Get authentication options (optionally filtered by email)
-    const options = await getAuthenticationOptions(email)
+    const requestOrigin = request.headers.get("origin") || undefined
+    const options = await getAuthenticationOptions(email, requestOrigin)
 
     // Store challenge for verification
     const sessionId = uuid()

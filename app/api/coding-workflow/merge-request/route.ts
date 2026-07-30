@@ -2,6 +2,7 @@
  * API endpoint to handle merge requests for coding workflows
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -134,7 +135,7 @@ Your code has been successfully merged to the main branch and is now live!
 - ✅ Changes are now live in production
 - ✅ Task marked as completed
 
-Thank you for using Astrid Agent! 🤖`,
+Thank you for using ${BRAND.appName} Agent! 🤖`,
         type: 'MARKDOWN'
       })
     })

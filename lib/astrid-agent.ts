@@ -1,22 +1,28 @@
 /**
- * Astrid Agent User
+ * Default Assistant Agent User
  *
- * Ensures the astrid@astrid.cc user exists in the database.
- * Astrid is the default agent identity — powered by whichever model the user configures.
+ * Ensures the default assistant's agent user exists in the database. This is the
+ * product's own assistant identity — powered by whichever model the user configures,
+ * unlike claude@/openai@/gemini@ which name a specific provider.
+ *
+ * Address and display name come from the brand (task 97208a72). The export names keep
+ * their ASTRID_* spelling so the existing importers are untouched.
  */
 
 import { prisma } from '@/lib/prisma'
+import { agentEmail } from '@/lib/brand/agent-emails'
+import { BRAND } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('astrid-agent')
 
 
-export const ASTRID_EMAIL = 'astrid@astrid.cc'
-export const ASTRID_NAME = 'Astrid'
+export const ASTRID_EMAIL = agentEmail('astrid')
+export const ASTRID_NAME = BRAND.agentIdentityName
 export const ASTRID_IMAGE = '/icons/icon-96x96.png'
 
 /**
- * Ensure the astrid@astrid.cc agent user exists in the database.
+ * Ensure the default assistant's agent user exists in the database.
  * Creates it if it doesn't exist. Returns the user record.
  */
 export async function ensureAstridAgent() {
@@ -36,7 +42,7 @@ export async function ensureAstridAgent() {
       },
       select: { id: true, name: true, email: true, image: true, isAIAgent: true },
     })
-    log.info(`[Astrid] Created astrid@astrid.cc agent user: ${agent.id}`)
+    log.info(`[${ASTRID_NAME}] Created ${ASTRID_EMAIL} agent user: ${agent.id}`)
   }
 
   return agent

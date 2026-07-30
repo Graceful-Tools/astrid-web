@@ -34,3 +34,23 @@ describe('shouldBypassIntlRouting (task a0e0808c)', () => {
     expect(shouldBypassIntlRouting('/lists/abc')).toBe(false)
   })
 })
+
+/**
+ * Regression for task 97208a72 — same failure mode as a0e0808c, different path.
+ *
+ * app/llms.txt/route.ts serves the LLM-readable integration guide, and
+ * WELL_KNOWN_ENDPOINTS advertises /llms.txt to agents. But the path was never added
+ * to the bypass list, so next-intl rewrote it to /[locale]/llms.txt — a page that
+ * does not exist. Verified against production: https://astrid.cc/llms.txt returned
+ * the 404 page, not the guide.
+ */
+describe('shouldBypassIntlRouting for /llms.txt (task 97208a72)', () => {
+  it('bypasses /llms.txt so the route handler is reached', () => {
+    expect(shouldBypassIntlRouting('/llms.txt')).toBe(true)
+  })
+
+  it('does not over-match a localized page that merely starts with the same text', () => {
+    expect(shouldBypassIntlRouting('/llms')).toBe(false)
+    expect(shouldBypassIntlRouting('/llms.txt-guide')).toBe(false)
+  })
+})

@@ -1,5 +1,7 @@
 "use client"
 
+import { CAPABILITIES } from '@/lib/brand/capabilities'
+import { BRAND } from '@/lib/brand/config'
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -181,23 +183,25 @@ export function SignInContent() {
         {/* Header - Logo and Tagline (matching iOS) */}
         <div className="flex items-center justify-center gap-4 mb-4">
           <Image
-            src="/images/astrid-character.png"
-            alt="Astrid"
+            src={BRAND.logo}
+            alt={BRAND.appName}
             width={88}
             height={88}
             priority
             className="rounded-2xl"
           />
           <div className="text-left">
-            <h1 className="text-4xl font-bold text-white">astrid</h1>
-            <p className="text-gray-400 text-lg">Get it done!</p>
+            <h1 className="text-4xl font-bold text-white">{BRAND.wordmark}</h1>
+            <p className="text-gray-400 text-lg">{BRAND.slogan}</p>
           </div>
         </div>
 
-        {/* App Store Download Button */}
+        {/* App Store Download Button — hidden when the brand has no published app,
+            so a partner deployment does not advertise someone else's listing. */}
+        {BRAND.appStoreUrl && (
         <div className="flex justify-center mb-8">
           <a
-            href="https://apps.apple.com/app/astrid-tasks/id6755752694"
+            href={BRAND.appStoreUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-xl text-white text-sm font-medium transition-colors"
@@ -208,6 +212,7 @@ export function SignInContent() {
             Download on the App Store
           </a>
         </div>
+        )}
 
         {/* Authentication Card */}
         <Card className="bg-gray-900 border-gray-800 shadow-2xl">
@@ -228,6 +233,9 @@ export function SignInContent() {
             {!showPasskeyEmailPrompt && (
               <div className="space-y-4">
                 {/* 1. Google - Most prominent (blue), rendered immediately for fast LCP */}
+                {/* Hidden when the deployment disables Google sign-in; the NextAuth
+                    provider is omitted too, so this is presentation, not the boundary. */}
+                {CAPABILITIES.authGoogle && (
                 <Button
                   type="button"
                   onClick={handleGoogleSignIn}
@@ -238,8 +246,11 @@ export function SignInContent() {
                   {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
                   {loading ? "Continuing..." : "Continue with Google"}
                 </Button>
+                )}
 
                 {/* 2. Passkey - Opens dialog with New/Returning options */}
+                {CAPABILITIES.authPasskey && (
+                <>
                 <Button
                   type="button"
                   onClick={() => {
@@ -261,6 +272,8 @@ export function SignInContent() {
                   <p className="text-xs text-gray-500 text-center -mt-2">
                     Passkeys not supported in this browser
                   </p>
+                )}
+                </>
                 )}
               </div>
             )}

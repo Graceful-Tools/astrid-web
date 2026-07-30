@@ -1,14 +1,19 @@
+import { BRAND } from '@/lib/brand/config'
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { getBaseUrl } from '@/lib/base-url'
 
 export async function GET() {
+  const blocked = capabilityGate('integrationChatGptActions')
+  if (blocked) return blocked
+
   const baseUrl = getBaseUrl()
   const yaml = `openapi: 3.1.0
 info:
-  title: Astrid Tasks API (ChatGPT Integration)
+  title: ${BRAND.appName} Tasks API (ChatGPT Integration)
   version: "1.0.0"
   description: |
-    Astrid's OAuth-protected API for reading tasks, creating new work, and updating
-    status directly from ChatGPT Actions. Use these endpoints to keep Astrid lists
+    ${BRAND.appName}'s OAuth-protected API for reading tasks, creating new work, and updating
+    status directly from ChatGPT Actions. Use these endpoints to keep ${BRAND.appName} lists
     in sync while you collaborate with the assistant.
 servers:
   - url: ${baseUrl}
@@ -16,7 +21,7 @@ security:
   - OAuth2: [tasks:read, tasks:write, lists:read, comments:write]
 tags:
   - name: Tasks
-    description: Manage Astrid tasks
+    description: Manage ${BRAND.appName} tasks
   - name: Lists
     description: Discover available lists
 paths:
@@ -69,7 +74,7 @@ paths:
       operationId: createTask
       tags: [Tasks]
       summary: Create a task
-      description: Create a new task in Astrid. Provide at least a title.
+      description: Create a new task in ${BRAND.appName}. Provide at least a title.
       requestBody:
         required: true
         content:
@@ -95,7 +100,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Astrid task identifier.
+          description: ${BRAND.appName} task identifier.
       responses:
         '200':
           description: Task detail
@@ -115,7 +120,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Astrid task identifier.
+          description: ${BRAND.appName} task identifier.
       requestBody:
         required: true
         content:

@@ -5,6 +5,7 @@
  * Resolution order: list-level override → user-level default → null
  */
 
+import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { getAgentService, ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
@@ -138,8 +139,8 @@ export async function resolveDefaultAgent(
     }
 
     // 4. Validate: user must have API key for this agent's service
-    // For Astrid (astrid@astrid.cc), check user's preferred service instead
-    if (agent.email === 'astrid@astrid.cc') {
+    // For the default assistant, check the user's preferred service instead
+    if (agent.email === ASTRID_EMAIL) {
       const { getPreferredAIService } = await import('@/lib/api-key-cache')
       const preferredService = await getPreferredAIService(userId)
       const hasKey = await hasValidApiKey(userId, preferredService)

@@ -4,6 +4,7 @@
  */
 
 import { getDevBaseUrl, isLocalDevelopment } from './port-detection'
+import { BRAND, brandOrigin } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('base-url')
@@ -16,16 +17,30 @@ const log = createLogger('base-url')
  * IMPORTANT: In production, this will NEVER return an insecure http:// URL to prevent
  * mixed content warnings when the app is served over HTTPS
  */
+/**
+ * Strip trailing slashes so `${getBaseUrl()}${path}` cannot produce a double slash.
+ *
+ * NEXTAUTH_URL is commonly written with a trailing slash — production has it as
+ * `https://www.astrid.cc/` — and every consumer concatenates a leading-slash path onto
+ * it. That shipped `https://www.astrid.cc//docs/endpoints` in /llms.txt and the plugin
+ * manifest: still resolvable, but wrong in a document whose whole job is telling an
+ * agent where to go. Found on a live preview deploy; local dev sets no trailing slash,
+ * which is why it never showed up. Task 97208a72.
+ */
+function normalize(url: string): string {
+  return url.replace(/\/+$/, '')
+}
+
 export function getBaseUrl(): string {
   // Server-side: prioritize NEXTAUTH_URL (most reliable for production)
   if (typeof window === 'undefined') {
     // Check for explicit environment variables first
     if (process.env.NEXTAUTH_URL) {
-      return process.env.NEXTAUTH_URL
+      return normalize(process.env.NEXTAUTH_URL)
     }
 
     if (process.env.NEXT_PUBLIC_BASE_URL) {
-      return process.env.NEXT_PUBLIC_BASE_URL
+      return normalize(process.env.NEXT_PUBLIC_BASE_URL)
     }
 
     // Vercel deployment
@@ -40,7 +55,7 @@ export function getBaseUrl(): string {
 
     // Final fallback - ensure HTTPS in production to prevent insecure connection warnings
     const fallbackUrl = process.env.NODE_ENV === 'production'
-      ? 'https://astrid.cc' // Safe production fallback
+      ? brandOrigin() // Safe production fallback
       : 'http://localhost:3000'
 
     if (process.env.NODE_ENV === 'production') {
@@ -61,10 +76,10 @@ export function getBaseUrl(): string {
 
   // Fallback for edge cases - ensure HTTPS in production
   const edgeFallback = process.env.NODE_ENV === 'production'
-    ? 'https://astrid.cc'
+    ? brandOrigin()
     : 'http://localhost:3000'
 
-  return process.env.NEXT_PUBLIC_BASE_URL || edgeFallback
+  return normalize(process.env.NEXT_PUBLIC_BASE_URL || edgeFallback)
 }
 
 /**
@@ -134,12 +149,13 @@ export function isProduction(): boolean {
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   ].filter(Boolean) as string[]
 
-  if (envCandidates.some((url) => url.includes('astrid.cc') || url.includes('vercel.app'))) {
+  const isProdHost = (url: string) => url.includes(BRAND.domain) || url.includes('vercel.app')
+
+  if (envCandidates.some(isProdHost)) {
     return true
   }
 
-  const baseUrl = getBaseUrl()
-  return baseUrl.includes('astrid.cc') || baseUrl.includes('vercel.app')
+  return isProdHost(getBaseUrl())
 }
 
 /**

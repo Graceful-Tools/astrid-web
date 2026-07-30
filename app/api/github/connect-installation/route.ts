@@ -7,6 +7,7 @@
  * - Only fetches repos from the specific installation being connected
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       if (error.status === 404) {
         return NextResponse.json(
-          { error: 'Installation not found. Please install the Astrid Agent on GitHub first.' },
+          { error: `Installation not found. Please install the ${BRAND.appName} Agent on GitHub first.` },
           { status: 404 }
         )
       }

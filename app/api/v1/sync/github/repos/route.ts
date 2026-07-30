@@ -4,7 +4,7 @@ import { githubRequest, githubTokenFor } from '@/lib/sync/github'
 
 /** GET /api/v1/sync/github/repos — the caller's repos (remote containers). */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (_req, auth) => {
     const token = await githubTokenFor(auth.userId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })

@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -817,7 +818,7 @@ export function OAuthAppManager() {
                 rows={3}
               />
               <p className="text-xs theme-text-muted mt-2">
-                One URL per line. Required for authorization code flow (ChatGPT, web apps). Astrid will only redirect to URLs listed here.
+                One URL per line. Required for authorization code flow (ChatGPT, web apps). {BRAND.appName} will only redirect to URLs listed here.
               </p>
             </div>
 
@@ -872,7 +873,7 @@ export function OAuthAppManager() {
                   placeholder="https://chat.openai.com/aip/.../oauth/callback"
                 />
                 <p className="text-xs theme-text-muted mt-2">
-                  One URL per line. Astrid will only redirect users to the exact URLs listed here. Add ChatGPT&apos;s action callback URL (from GPT Builder) to fix <code>invalid_redirect_uri</code> errors.
+                  One URL per line. {BRAND.appName} will only redirect users to the exact URLs listed here. Add ChatGPT&apos;s action callback URL (from GPT Builder) to fix <code>invalid_redirect_uri</code> errors.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">

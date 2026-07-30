@@ -1,5 +1,6 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,7 @@ import { scrollShellClassName } from "@/components/scroll-shell"
 
 export default function APIDocsPage() {
   const router = useRouter()
-  const defaultOrigin = process.env.NEXT_PUBLIC_BASE_URL || "https://astrid.cc"
+  const defaultOrigin = process.env.NEXT_PUBLIC_BASE_URL || `https://${BRAND.domain}`
   const [hostOrigin, setHostOrigin] = useState(defaultOrigin)
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function APIDocsPage() {
             title="Go to Home"
           >
             <Heart className="w-6 h-6 text-red-500 fill-red-500" />
-            <span className="text-xl font-semibold theme-text-primary">astrid</span>
+            <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
             <div className="w-2 h-2 theme-bg-tertiary rounded-full"></div>
@@ -66,8 +67,8 @@ export default function APIDocsPage() {
           <div className="flex items-center space-x-3">
             <BookOpen className="w-8 h-8 text-blue-500" />
             <div>
-              <h1 className="text-2xl font-bold theme-text-primary">Astrid API Documentation</h1>
-              <p className="theme-text-muted">Build powerful integrations with the Astrid API</p>
+              <h1 className="text-2xl font-bold theme-text-primary">{BRAND.appName} API Documentation</h1>
+              <p className="theme-text-muted">Build powerful integrations with the {BRAND.appName} API</p>
             </div>
           </div>
 
@@ -100,7 +101,7 @@ export default function APIDocsPage() {
                   Use the OAuth 2.0 Client Credentials flow to get an access token:
                 </p>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`curl -X POST https://astrid.cc/api/oauth/token \\
+                  <code className="text-xs text-gray-300">{`curl -X POST https://${BRAND.domain}/api/oauth/token \\
   -H "Content-Type: application/json" \\
   -d '{
     "grant_type": "client_credentials",
@@ -119,7 +120,7 @@ export default function APIDocsPage() {
                   Include the access token in the Authorization header:
                 </p>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`curl https://astrid.cc/api/v1/tasks \\
+                  <code className="text-xs text-gray-300">{`curl https://${BRAND.domain}/api/v1/tasks \\
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"`}</code>
                 </pre>
               </div>
@@ -243,12 +244,12 @@ export default function APIDocsPage() {
                 <span>ChatGPT Actions</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                Use Astrid’s OAuth consent screen and OpenAPI spec to power custom GPTs.
+                Use {BRAND.appName}’s OAuth consent screen and OpenAPI spec to power custom GPTs.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <p className="theme-text-muted">
-                Publish a GPT action with Astrid’s manifest, then have users connect via OAuth to add, view, and complete tasks from ChatGPT.
+                Publish a GPT action with {BRAND.appName}’s manifest, then have users connect via OAuth to add, view, and complete tasks from ChatGPT.
               </p>
               <div className="space-y-2 font-mono text-xs theme-text-primary">
                 <div>

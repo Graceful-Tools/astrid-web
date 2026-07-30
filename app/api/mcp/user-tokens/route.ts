@@ -1,3 +1,4 @@
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
@@ -16,6 +17,9 @@ const CreateUserMCPTokenSchema = z.object({
 })
 
 export async function GET() {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession()
 
@@ -50,6 +54,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession()
 
@@ -116,6 +123,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
   try {
     const session = await getUnifiedSession()
 

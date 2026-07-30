@@ -10,6 +10,8 @@
  * - Resend (https://resend.com/docs/dashboard/webhooks/event-types)
  */
 
+import { capabilityGate } from '@/lib/brand/capabilities'
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { emailToTaskService } from '@/lib/email-to-task-service'
 import type { ParsedEmail } from '@/lib/email-to-task-service'
@@ -72,6 +74,9 @@ interface MailgunWebhookData {
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = capabilityGate('emailToTask')
+  if (blocked) return blocked
+
   try {
     // Detect provider based on content type and headers
     const contentType = request.headers.get('content-type') || ''
@@ -463,9 +468,12 @@ function hexToBytes(hex: string): Uint8Array {
  * Some webhook providers send GET requests to verify the endpoint
  */
 export async function GET() {
+  const blocked = capabilityGate('emailToTask')
+  if (blocked) return blocked
+
   return NextResponse.json({
     message: 'Email webhook endpoint',
-    email: 'remindme@astrid.cc',
+    email: BRAND.inboundTaskEmail,
     status: 'active',
   })
 }

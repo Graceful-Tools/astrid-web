@@ -1,5 +1,7 @@
 "use client"
 
+import { BRAND } from '@/lib/brand/config'
+
 interface PrivacyPageProps {
   onNavigate: (page: string) => void
 }
@@ -27,7 +29,7 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">How We Use It</h2>
             <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
-              <li>Provide, maintain, and improve Astrid</li>
+              <li>Provide, maintain, and improve {BRAND.appName}</li>
               <li>Process and store your tasks and content</li>
               <li>Send service-related communications</li>
               <li>Prevent fraud and abuse</li>
@@ -67,7 +69,7 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">External Services</h2>
             <p className="text-gray-300 leading-relaxed">
-              Astrid integrates with Google and Apple for authentication.
+              {BRAND.appName} integrates with Google and Apple for authentication.
               When you connect these services, their respective privacy policies apply.
             </p>
           </section>
@@ -76,8 +78,8 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
             <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
             <p className="text-gray-300 leading-relaxed">
               Questions? Reach us at{" "}
-              <a href="mailto:privacy@astrid.cc" className="text-blue-400 hover:text-blue-300">
-                privacy@astrid.cc
+              <a href={`mailto:privacy@${BRAND.domain}`} className="text-blue-400 hover:text-blue-300">
+                privacy@{BRAND.domain}
               </a>
             </p>
           </section>

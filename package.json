@@ -30,6 +30,7 @@
     "predeploy:check": "tsx scripts/predeploy-check.ts",
     "check:model-sync": "tsx scripts/check-model-sync.ts",
     "check:reuse": "tsx scripts/check-reuse.ts --strict",
+    "check:brands": "vitest run tests/brands",
     "check:api-breaking": "tsx scripts/check-api-breaking-changes.ts",
     "predeploy": "tsx scripts/predeploy-self-healing.ts",
     "predeploy:simple": "npm run check:model-sync && npm run check:api-breaking && npm run test:run && npx tsc --noEmit && npm run lint && echo 'All predeploy checks passed!'",

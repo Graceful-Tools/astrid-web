@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
             user: user.name || user.email,
             sentTime: new Date().toISOString(),
             notificationType: "test_reminder",
-            message: "This is a test notification from Astrid",
+            message: `This is a test notification from ${BRAND.appName}`,
             subscriptionsUsed: subscriptions.length,
           }
         })

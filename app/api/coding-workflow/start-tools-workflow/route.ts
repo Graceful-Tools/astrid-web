@@ -8,6 +8,7 @@
  * Replacement: Direct AIOrchestrator.executeCompleteWorkflow() calls
  */
 
+import { getAgentConfig } from '@/lib/ai/agent-config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -74,10 +75,10 @@ export async function POST(request: NextRequest) {
     // Determine AI service from the assigned agent
     let aiService: 'claude' | 'openai' = 'claude' // default
     if (task.assignee?.isAIAgent && task.assignee.email) {
-      if (task.assignee.email === 'claude@astrid.cc') {
-        aiService = 'claude'
-      } else if (task.assignee.email === 'openai@astrid.cc') {
-        aiService = 'openai'
+      // This workflow only supports claude/openai; other agents keep the default.
+      const service = getAgentConfig(task.assignee.email)?.service
+      if (service === 'claude' || service === 'openai') {
+        aiService = service
       }
     }
 

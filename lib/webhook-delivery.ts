@@ -7,6 +7,8 @@
  * - Configurable retry limits
  */
 
+import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TIMESTAMP_HEADER, WEBHOOK_EVENT_HEADER } from './webhooks/protocol-headers'
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { decryptField } from "@/lib/field-encryption"
 import { generateWebhookSignature } from './webhook-signature'
@@ -161,10 +163,10 @@ export async function deliverWebhook(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Astrid-Signature': `sha256=${signature}`,
-          'X-Astrid-Timestamp': timestamp,
-          'X-Astrid-Event': event,
-          'User-Agent': 'Astrid-Webhook/1.0'
+          [WEBHOOK_SIGNATURE_HEADER]: `sha256=${signature}`,
+          [WEBHOOK_TIMESTAMP_HEADER]: timestamp,
+          [WEBHOOK_EVENT_HEADER]: event,
+          'User-Agent': `${BRAND.appName}-Webhook/1.0`
         },
         body: payloadString,
         signal: controller.signal

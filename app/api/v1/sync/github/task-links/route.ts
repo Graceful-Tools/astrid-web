@@ -5,7 +5,7 @@ import { requireTaskAccess } from '@/lib/api-auth-middleware'
 
 /** GET /api/v1/sync/github/task-links?listId — the caller's task links for a list. */
 export const GET = withAuth(
-  { scopes: ['tasks:read'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:read'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const listId = new URL(req.url).searchParams.get('listId')
     const links = await prisma.externalTaskLink.findMany({
@@ -27,7 +27,7 @@ export const GET = withAuth(
  * handling without deleting another device's replacement link.
  */
 export const DELETE = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const params = new URL(req.url).searchParams
     const astridTaskId = params.get('astridTaskId')
@@ -54,7 +54,7 @@ export const DELETE = withAuth(
  * Body: { astridTaskId, remoteId, remoteContainerId, astridUpdatedAt?, remoteUpdatedAt?, metadata? }
  */
 export const PUT = withAuth(
-  { scopes: ['tasks:write'], tag: 'v1.sync.github' },
+  { scopes: ['tasks:write'], tag: 'v1.sync.github', capability: 'syncGithubIssues' },
   async (req, auth) => {
     const body = await req.json()
     const { astridTaskId, remoteId, remoteContainerId } = body || {}

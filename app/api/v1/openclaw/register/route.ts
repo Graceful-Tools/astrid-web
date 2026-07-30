@@ -1,7 +1,7 @@
 /**
  * POST /api/v1/openclaw/register
  *
- * Register an OpenClaw agent identity. Creates a {name}.oc@astrid.cc user
+ * Register an OpenClaw agent identity. Creates a {name}.oc@<agent domain> user
  * and OAuth client credentials for the agent.
  *
  * Auth: OAuth Bearer token or session (user must be authenticated)
@@ -9,6 +9,8 @@
  * Returns: { agent, oauth, config }
  */
 
+import { BRAND } from '@/lib/brand/config'
+import { openClawAgentEmail } from '@/lib/brand/agent-emails'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
@@ -26,12 +28,12 @@ const RESERVED_NAMES = ['admin', 'system', 'test', 'api', 'support', 'root', 'op
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,30}[a-z0-9]$/
 
 export const POST = withAuth(
-  { tag: 'v1.openclaw.register' },
+  { tag: 'v1.openclaw.register', capability: 'integrationOpenClaw' },
   async (req, auth) => {
     const rateCheck = await checkAgentRateLimit(req, auth, AGENT_RATE_LIMITS.REGISTRATION)
     if (rateCheck.response) return rateCheck.response
 
-    const baseUrl = (process.env.NEXTAUTH_URL || 'https://www.astrid.cc').replace(/\/+$/, '')
+    const baseUrl = (process.env.NEXTAUTH_URL || `https://www.${BRAND.domain}`).replace(/\/+$/, '')
 
     const body = await req.json()
     const { agentName, listIds } = body
@@ -59,7 +61,7 @@ export const POST = withAuth(
       )
     }
 
-    const agentEmail = `${name}.oc@astrid.cc`
+    const agentEmail = openClawAgentEmail(name)
 
     const existingUser = await prisma.user.findUnique({
       where: { email: agentEmail }
