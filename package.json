@@ -17,7 +17,7 @@
     "db:backup": "tsx scripts/backup-database.ts",
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
-    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('✅ Database connected')).catch(e => console.error('❌ Database failed:', e)).finally(() => prisma.$disconnect())\"",
+    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('\u2705 Database connected')).catch(e => console.error('\u274c Database failed:', e)).finally(() => prisma.$disconnect())\"",
     "db:setup-production": "tsx scripts/setup-production-db.ts",
     "db:deploy-production": "tsx scripts/deploy-production-migration.js",
     "db:push-production": "tsx scripts/deploy-production-migration.js",
@@ -115,9 +115,6 @@
     "check:reuse:warn": "tsx scripts/check-reuse.ts"
   },
   "lint-staged": {
-    "packages/claude-code-remote/src/**/*.ts": [
-      "bash -c 'cd packages/claude-code-remote && npm run build && git add -f dist'"
-    ],
     "*.{ts,tsx}": [
       "eslint --fix --cache",
       "bash -c 'npx tsc --noEmit'"

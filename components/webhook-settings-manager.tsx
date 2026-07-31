@@ -565,7 +565,10 @@ export function WebhookSettingsManager() {
           <div className="space-y-2">
             <h4 className="font-medium theme-text-primary">Getting Started</h4>
             <ol className="list-decimal list-inside text-sm theme-text-muted space-y-1">
-              <li>Deploy the Claude Code Remote server package</li>
+              <li>
+                Run an agent host:{' '}
+                <code className="px-1 py-0.5 theme-bg-tertiary rounded">npx astrid-agent serve</code>
+              </li>
               <li>Configure your webhook URL above</li>
               <li>Copy the webhook secret to your server&apos;s environment</li>
               <li>Assign tasks to <code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code></li>
