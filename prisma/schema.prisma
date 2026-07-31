@@ -99,6 +99,7 @@ model User {
   integrations                 Integration[]        @relation("UserIntegrations")
   copilotCredential            CopilotCredential?   @relation("UserCopilotCredential")
   featureAccessRequests        FeatureAccessRequest[] @relation("UserFeatureAccessRequests")
+  notifications                Notification[]       @relation("UserNotifications")
 
   @@index([email])
   @@index([emailVerified])
@@ -324,6 +325,7 @@ model Task {
   codingWorkflow  CodingTaskWorkflow?
   comments        Comment[]
   events          TaskEvent[]
+  notifications   Notification[]
   reminderQueue   ReminderQueue[]
   secureFiles     SecureFile[]
   aiAgent         AIAgent?            @relation(fields: [aiAgentId], references: [id])
@@ -379,6 +381,33 @@ model TaskEvent {
   @@index([taskId, createdAt])
   @@index([actorId, createdAt])
   @@index([kind, createdAt])
+}
+
+/// In-app notification (task ab0572cb).
+///
+/// Derived from TaskEvent fan-out, never written independently — two write
+/// paths for "something happened" would guarantee drift, and the event trail
+/// already knows who did what.
+///
+/// Astrid's notifications were due-date only before this: nothing fired on
+/// assignment, @-mention, reply or completion.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  /// assigned | mentioned | replied | commented | status_changed | completed
+  kind      String
+  taskId    String?
+  commentId String?
+  /// Who caused it. Never equal to userId — nobody is told what they just did.
+  actorId   String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  task      Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  /// The unread-count query.
+  @@index([userId, readAt, createdAt])
+  @@index([taskId])
 }
 
 model Comment {
