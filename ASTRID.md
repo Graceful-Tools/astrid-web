@@ -29,8 +29,8 @@ astrid-web/  (this repository)
 ├── scripts/          # Automation scripts
 ├── docs/             # Documentation
 └── packages/         # SDK and tool packages
-    ├── astrid-sdk/           # Multi-provider AI agent SDK
-    └── claude-code-remote/   # Self-hosted Claude Code server
+    ├── astrid-sdk/            # Multi-provider AI agent SDK
+    └── openclaw-astrid-channel/  # OpenClaw channel adapter
 ```
 
 **Related Repository:**
@@ -772,8 +772,8 @@ The `packages/` directory contains reusable SDK and tool packages:
 
 | Package | Description |
 |---------|-------------|
-| `astrid-sdk` | Multi-provider AI agent SDK for building integrations |
-| `claude-code-remote` | Self-hosted server for running Claude Code remotely |
+| `astrid-sdk` | Multi-provider AI agent SDK for building integrations. Run your own agent host with `npx astrid-agent`. |
+| `openclaw-astrid-channel` | OpenClaw channel adapter |
 
 Each package has its own README with setup and usage instructions.
 

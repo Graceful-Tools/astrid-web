@@ -40,118 +40,6 @@ function log(result: ValidationResult) {
 }
 
 // Generate webhook signature using the same algorithm as the production code
-function generateWebhookSignature(payload: string, secret: string, timestamp: string): string {
-  const signedPayload = `${timestamp}.${payload}`
-  return crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload, 'utf8')
-    .digest('hex')
-}
-
-function generateWebhookHeaders(payload: string, secret: string, event: string): Record<string, string> {
-  const timestamp = Date.now().toString()
-  const signature = generateWebhookSignature(payload, secret, timestamp)
-
-  return {
-    'Content-Type': 'application/json',
-    'X-Astrid-Signature': `sha256=${signature}`,
-    'X-Astrid-Timestamp': timestamp,
-    'X-Astrid-Event': event,
-    'User-Agent': 'Astrid-Secrets-Validator/1.0'
-  }
-}
-
-async function validateFlyioHealth(): Promise<ValidationResult> {
-  try {
-    const response = await fetch('https://astrid-claude-remote.fly.dev/health', {
-      signal: AbortSignal.timeout(10000)
-    })
-
-    if (!response.ok) {
-      return {
-        name: 'Fly.io Health',
-        status: 'fail',
-        message: `HTTP ${response.status}`,
-        details: await response.text()
-      }
-    }
-
-    const data = await response.json()
-    return {
-      name: 'Fly.io Health',
-      status: data.status === 'healthy' ? 'pass' : 'warn',
-      message: `Status: ${data.status}`,
-      details: `Providers: Claude=${data.providers?.claude}, Active sessions: ${data.activeSessions}`
-    }
-  } catch (error) {
-    return {
-      name: 'Fly.io Health',
-      status: 'fail',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }
-  }
-}
-
-async function validateWebhookSecret(): Promise<ValidationResult> {
-  const secret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET
-
-  if (!secret) {
-    return {
-      name: 'Webhook Secret',
-      status: 'fail',
-      message: 'CLAUDE_REMOTE_WEBHOOK_SECRET not set in .env.local'
-    }
-  }
-
-  // Test by sending a signed webhook to Fly.io
-  const testPayload = JSON.stringify({
-    event: 'test.secrets_validation',
-    timestamp: new Date().toISOString(),
-    validator: 'validate-secrets.ts'
-  })
-
-  try {
-    const headers = generateWebhookHeaders(testPayload, secret, 'test.ping')
-
-    const response = await fetch('https://astrid-claude-remote.fly.dev/webhook', {
-      method: 'POST',
-      headers,
-      body: testPayload,
-      signal: AbortSignal.timeout(10000)
-    })
-
-    if (response.ok) {
-      return {
-        name: 'Webhook Secret',
-        status: 'pass',
-        message: 'Signature verified by Fly.io',
-        details: `Secret length: ${secret.length} chars`
-      }
-    } else if (response.status === 401) {
-      const error = await response.json().catch(() => ({}))
-      return {
-        name: 'Webhook Secret',
-        status: 'fail',
-        message: 'Signature verification failed',
-        details: `Error: ${error.error || 'Secrets do not match between Vercel and Fly.io'}`
-      }
-    } else {
-      return {
-        name: 'Webhook Secret',
-        status: 'warn',
-        message: `HTTP ${response.status}`,
-        details: await response.text()
-      }
-    }
-  } catch (error) {
-    return {
-      name: 'Webhook Secret',
-      status: 'fail',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }
-  }
-}
-
 async function validateGitHubToken(): Promise<ValidationResult> {
   // Test the GitHub token by checking rate limit (doesn't consume quota)
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
@@ -197,130 +85,6 @@ async function validateGitHubToken(): Promise<ValidationResult> {
   } catch (error) {
     return {
       name: 'GitHub Token (Local)',
-      status: 'fail',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }
-  }
-}
-
-async function validateFlyioGitHubToken(): Promise<ValidationResult> {
-  // Check if Fly.io's GH_TOKEN works by checking diagnostics endpoint
-  try {
-    const response = await fetch('https://astrid-claude-remote.fly.dev/diagnostics', {
-      signal: AbortSignal.timeout(10000)
-    })
-
-    if (!response.ok) {
-      return {
-        name: 'GitHub Token (Fly.io)',
-        status: 'warn',
-        message: `Diagnostics endpoint returned ${response.status}`
-      }
-    }
-
-    const data = await response.json()
-    const ghStatus = data.cliTools?.gh
-
-    if (ghStatus?.available) {
-      return {
-        name: 'GitHub Token (Fly.io)',
-        status: 'pass',
-        message: 'gh CLI authenticated',
-        details: `GH_TOKEN: ${data.environment?.GH_TOKEN || 'configured'}`
-      }
-    } else {
-      return {
-        name: 'GitHub Token (Fly.io)',
-        status: 'fail',
-        message: 'gh CLI not available or not authenticated',
-        details: ghStatus?.version || 'Check Fly.io diagnostics'
-      }
-    }
-  } catch (error) {
-    return {
-      name: 'GitHub Token (Fly.io)',
-      status: 'fail',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }
-  }
-}
-
-async function validateAnthropicKey(): Promise<ValidationResult> {
-  // Check if Fly.io has ANTHROPIC_API_KEY configured
-  try {
-    const response = await fetch('https://astrid-claude-remote.fly.dev/health', {
-      signal: AbortSignal.timeout(10000)
-    })
-
-    if (!response.ok) {
-      return {
-        name: 'Anthropic API Key (Fly.io)',
-        status: 'fail',
-        message: `Health check failed: ${response.status}`
-      }
-    }
-
-    const data = await response.json()
-
-    if (data.anthropicApiKey?.includes('set')) {
-      return {
-        name: 'Anthropic API Key (Fly.io)',
-        status: 'pass',
-        message: 'API key configured',
-        details: data.anthropicApiKey
-      }
-    } else {
-      return {
-        name: 'Anthropic API Key (Fly.io)',
-        status: 'fail',
-        message: 'API key not set',
-        details: data.anthropicApiKey
-      }
-    }
-  } catch (error) {
-    return {
-      name: 'Anthropic API Key (Fly.io)',
-      status: 'fail',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }
-  }
-}
-
-async function validateClaudeCodeCLI(): Promise<ValidationResult> {
-  try {
-    const response = await fetch('https://astrid-claude-remote.fly.dev/diagnostics', {
-      signal: AbortSignal.timeout(10000)
-    })
-
-    if (!response.ok) {
-      return {
-        name: 'Claude Code CLI (Fly.io)',
-        status: 'warn',
-        message: `Diagnostics endpoint returned ${response.status}`
-      }
-    }
-
-    const data = await response.json()
-    const claudeStatus = data.cliTools?.claude
-
-    if (claudeStatus?.available) {
-      return {
-        name: 'Claude Code CLI (Fly.io)',
-        status: 'pass',
-        message: 'CLI available',
-        details: `Version: ${claudeStatus.version}`
-      }
-    } else {
-      return {
-        name: 'Claude Code CLI (Fly.io)',
-        status: 'fail',
-        message: 'CLI not available',
-        details: claudeStatus?.version || 'Check Fly.io diagnostics'
-      }
-    }
-  } catch (error) {
-    return {
-      name: 'Claude Code CLI (Fly.io)',
       status: 'fail',
       message: error instanceof Error ? error.message : 'Unknown error'
     }
@@ -379,35 +143,6 @@ async function validateOAuthCredentials(): Promise<ValidationResult> {
   }
 }
 
-async function validateVercelWebhookUrl(): Promise<ValidationResult> {
-  const webhookUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
-
-  if (!webhookUrl) {
-    return {
-      name: 'Webhook URL Config',
-      status: 'warn',
-      message: 'CLAUDE_REMOTE_WEBHOOK_URL not set in .env.local',
-      details: 'This should be https://astrid-claude-remote.fly.dev/webhook'
-    }
-  }
-
-  if (!webhookUrl.includes('astrid-claude-remote.fly.dev')) {
-    return {
-      name: 'Webhook URL Config',
-      status: 'warn',
-      message: 'URL does not point to expected Fly.io endpoint',
-      details: `Current: ${webhookUrl}`
-    }
-  }
-
-  return {
-    name: 'Webhook URL Config',
-    status: 'pass',
-    message: 'URL correctly configured',
-    details: webhookUrl
-  }
-}
-
 async function validateAstridProduction(): Promise<ValidationResult> {
   try {
     const response = await fetch('https://astrid.cc/api/health', {
@@ -440,26 +175,18 @@ async function validateAstridProduction(): Promise<ValidationResult> {
 
 async function main() {
   console.log('🔐 Secrets Validation\n')
-  console.log('Checking all secrets and integrations between Astrid.cc, Fly.io, and GitHub...\n')
+  console.log('Checking Astrid production, OAuth and GitHub integrations...\n')
   console.log('═'.repeat(70) + '\n')
 
   // Run all validations
   console.log('📡 Service Health\n')
   log(await validateAstridProduction())
-  log(await validateFlyioHealth())
 
   console.log('\n🔑 Webhook & API Secrets\n')
-  log(await validateWebhookSecret())
-  log(await validateVercelWebhookUrl())
   log(await validateOAuthCredentials())
 
   console.log('\n🐙 GitHub Integration\n')
   log(await validateGitHubToken())
-  log(await validateFlyioGitHubToken())
-
-  console.log('\n🤖 AI Services\n')
-  log(await validateAnthropicKey())
-  log(await validateClaudeCodeCLI())
 
   // Summary
   console.log('\n' + '═'.repeat(70))
