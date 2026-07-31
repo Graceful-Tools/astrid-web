@@ -14,6 +14,7 @@ import {
 } from "@/lib/list-member-operations"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { promoteProjectIfShared } from '@/lib/projects-service'
 import { getUserRoleInList, canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('api.lists.members')
@@ -247,6 +248,14 @@ export async function POST(
           userId: existingUser.id,
           role
         }
+      })
+
+      // A board becomes a team board the moment it is shared. Promote its
+      // project to project-scoped statuses so every member resolves the same
+      // columns (task 142e4dd9). Best-effort: sharing must not fail because
+      // promotion did — an unpromoted board just keeps the old behaviour.
+      await promoteProjectIfShared(listId).catch((error) => {
+        log.error({ err: error, listId }, "Failed to promote project statuses after share")
       })
 
       // Generate token for notification

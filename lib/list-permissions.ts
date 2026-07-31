@@ -46,10 +46,16 @@ interface ListLike {
   // load it. Call sites that need project-derived access must include the
   // relation (see PROJECT_ACCESS_INCLUDE), or they silently under-grant.
   projectId?: string | null
+  // Distinguishes a status list (a board column) from a domain list. Only
+  // status lists inherit access from sibling lists — see getProjectRole.
+  listType?: string | null
   project?: {
     id?: string
     ownerId?: string
     members?: Array<{ userId: string; role: string }> | null
+    // The project's other lists, with their members. Used only to decide
+    // access to *status* lists (task 142e4dd9).
+    lists?: Array<{ id?: string; listMembers?: Array<{ userId: string }> | null }> | null
   } | null
 }
 
@@ -66,6 +72,10 @@ export const PROJECT_ACCESS_INCLUDE = {
       id: true,
       ownerId: true,
       members: { select: { userId: true, role: true } },
+      // Sibling lists' members, so a board's status lists can inherit access
+      // from the domain lists people are actually shared on (task 142e4dd9).
+      // Small: a project has one domain list today.
+      lists: { select: { id: true, listMembers: { select: { userId: true } } } },
     },
   },
 } as const
@@ -92,6 +102,13 @@ export function listVisibilityWhere(
     // status lists.
     { project: { ownerId: userId } },
     { project: { members: { some: { userId } } } },
+    // A board's status lists are visible to anyone shared on one of its domain
+    // lists — that is how boards are actually shared (task 142e4dd9). Mirrors
+    // the status-list branch of getProjectRole; the two must agree.
+    {
+      listType: "status",
+      project: { lists: { some: { listMembers: { some: { userId } } } } },
+    },
   ]
 
   // `includePublic` is explicit at every call site rather than defaulted: the
@@ -197,11 +214,31 @@ function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | nu
   if (project.ownerId === user.id) return "admin"
 
   const membership = project.members?.find((member) => member.userId === user.id)
-  if (!membership) return null
+  if (membership) {
+    // Same casing tolerance as list membership: role casing must never decide
+    // access (task e2803305).
+    return membership.role?.toLowerCase() === "admin" ? "admin" : "member"
+  }
 
-  // Same casing tolerance as list membership: role casing must never decide
-  // access (task e2803305).
-  return membership.role?.toLowerCase() === "admin" ? "admin" : "member"
+  // A board's **status lists** are its shared vocabulary: if you can work a
+  // list on the board, you must be able to see and use its columns, or you and
+  // your collaborators silently disagree about where a card is (task 142e4dd9).
+  //
+  // Boards are shared today by sharing the *list*, not by adding people to the
+  // project, so without this a shared board's columns would be invisible to
+  // everyone but the owner and the whole fix would be inert.
+  //
+  // Deliberately limited to status lists. Applying it to domain lists would
+  // mean sharing one list in a project silently shares its siblings — not a
+  // decision this task gets to make.
+  if (list.listType === "status") {
+    const inSiblingList = project.lists?.some((sibling) =>
+      sibling.listMembers?.some((member) => member.userId === user.id)
+    )
+    if (inSiblingList) return "member"
+  }
+
+  return null
 }
 
 export function canUserViewList(user: UserLike, list: ListLike): boolean {

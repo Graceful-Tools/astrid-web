@@ -350,6 +350,12 @@ describe('/api/lists - List Defaults', () => {
             // project member sees them without a ListMember row (task 6c20d125).
             { project: { ownerId: mockSession.user.id } },
             { project: { members: { some: { userId: mockSession.user.id } } } },
+            // A board's status columns are visible to anyone shared on one of
+            // its domain lists — how boards are actually shared (task 142e4dd9).
+            {
+              listType: "status",
+              project: { lists: { some: { listMembers: { some: { userId: mockSession.user.id } } } } },
+            },
             { privacy: "PUBLIC" }
           ],
         },

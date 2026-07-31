@@ -680,3 +680,65 @@ describe('Project membership cascades to project lists (6c20d125)', () => {
     expect(getUserRoleInList(bob, list as never)).toBeNull()
   })
 })
+
+/**
+ * Task 142e4dd9 — a board's status lists are its shared vocabulary. Boards are
+ * shared today by sharing the *list*, not by adding people to the project, so
+ * without this a shared board's columns are invisible to everyone but the owner
+ * and the shared-status fix would be inert.
+ */
+describe('Status lists inherit access from sibling board lists (142e4dd9)', () => {
+  const bob = { id: 'bob', email: 'bob@example.com' }
+
+  const statusList = (overrides: Record<string, unknown> = {}) => ({
+    id: 'proj-doing',
+    ownerId: 'alice',
+    privacy: 'PRIVATE',
+    listType: 'status',
+    listMembers: [],
+    projectId: 'project-1',
+    project: {
+      id: 'project-1',
+      ownerId: 'alice',
+      members: [],
+      lists: [{ id: 'domain-1', listMembers: [{ userId: 'bob' }] }],
+    },
+    ...overrides,
+  })
+
+  it('lets someone shared on a board list use that board\'s status columns', () => {
+    expect(getUserRoleInList(bob, statusList() as never)).toBe('member')
+  })
+
+  it('does NOT extend the same inheritance to domain lists', () => {
+    // Sharing one list in a project must not silently share its siblings —
+    // that is a product decision this task does not get to make.
+    const sibling = statusList({ id: 'domain-2', listType: 'regular' })
+    expect(getUserRoleInList(bob, sibling as never)).toBeNull()
+  })
+
+  it('grants nothing to someone on no list in the project', () => {
+    const list = statusList({
+      project: { id: 'project-1', ownerId: 'alice', members: [], lists: [{ id: 'domain-1', listMembers: [] }] },
+    })
+    expect(getUserRoleInList(bob, list as never)).toBeNull()
+  })
+
+  it('still prefers an explicit project role over the inherited one', () => {
+    const list = statusList({
+      project: {
+        id: 'project-1',
+        ownerId: 'alice',
+        members: [{ userId: 'bob', role: 'admin' }],
+        lists: [{ id: 'domain-1', listMembers: [{ userId: 'bob' }] }],
+      },
+    })
+    expect(getUserRoleInList(bob, list as never)).toBe('admin')
+  })
+
+  it('leaves personal status lists untouched', () => {
+    // A personal status list has no project, so nobody inherits access to it.
+    const personal = { id: 'alice-doing', ownerId: 'alice', privacy: 'PRIVATE', listType: 'status', listMembers: [] }
+    expect(getUserRoleInList(bob, personal as never)).toBeNull()
+  })
+})

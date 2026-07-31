@@ -14,6 +14,7 @@ import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { promoteProjectIfShared } from '@/lib/projects-service'
 import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('v1.lists.members')
@@ -258,6 +259,12 @@ export const POST = withAuth<RouteContext>(
 
     await prisma.listMember.create({
       data: { listId: id, userId: user.id, role }
+    })
+
+    // Promote the board's project to project-scoped statuses now that it is
+    // shared (task 142e4dd9). Best-effort — see the web route for the reasoning.
+    await promoteProjectIfShared(id).catch((error) => {
+      log.error({ err: error, listId: id }, 'Failed to promote project statuses after share')
     })
 
     try {

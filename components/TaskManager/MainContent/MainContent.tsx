@@ -722,7 +722,7 @@ export function MainContent({
               isViewingFromFeatured={isViewingFromFeatured}
               selectedListInfo={getSelectedListInfo()}
               filterState={newFilterState}
-              statuses={getProjectStatusLists(lists)}
+              statuses={getProjectStatusLists(lists, lists.find(l => l.id === selectedListId)?.projectId)}
               onEditImage={handleListImageClick}
               onLeave={handleLeaveList}
               onListUpdate={onListUpdate}
@@ -974,7 +974,7 @@ export function MainContent({
               isViewingFromFeatured={isViewingFromFeatured}
               selectedListInfo={getSelectedListInfo()}
               filterState={newFilterState}
-              statuses={getProjectStatusLists(lists)}
+              statuses={getProjectStatusLists(lists, lists.find(l => l.id === selectedListId)?.projectId)}
               onEditImage={handleListImageClick}
               onLeave={handleLeaveList}
               onListUpdate={onListUpdate}
