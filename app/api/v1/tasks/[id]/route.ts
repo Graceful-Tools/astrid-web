@@ -22,6 +22,7 @@ import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { parseClosedReason } from '@/lib/closed-reason'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('v1.tasks.id')
@@ -35,7 +36,15 @@ type RouteContext = { params: Promise<{ id: string }> }
 export const GET = withAuth<RouteContext>(
   { scopes: ['tasks:read'], tag: 'v1.tasks.id' },
   async (_req, auth, { params }) => {
-    const { id: taskId } = await params
+    const { id: rawId } = await params
+
+    // Accept a human-readable identifier (AST-142) as well as a UUID
+    // (task 12f54df4) — the whole point is that the identifier is usable
+    // wherever the id is. Case-insensitive in, canonical uppercase stored.
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
 
     // requireTaskAccess throws ForbiddenError → withAuth catches → 403
     await requireTaskAccess(auth.userId, taskId)

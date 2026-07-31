@@ -16,6 +16,7 @@ import {
   type ReminderScheduleEntry,
 } from "@/lib/reminder-scheduling"
 import { createLogger } from '@/lib/logger'
+import { allocateTaskIdentifier } from '@/lib/task-identifier'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { getUnifiedSession } from "@/lib/session-utils"
 import { recordTaskCreationComment } from "@/lib/task-update-handler"
@@ -531,6 +532,19 @@ export async function POST(request: NextRequest) {
     // Include clientRequestId if provided (for database-level dedup)
     if (rawClientRequestId) {
       taskData.clientRequestId = rawClientRequestId
+    }
+
+    // Human-readable identifier, minted only for tasks in a project
+    // (task 12f54df4). Null for everyone else, so a solo user never sees one.
+    // Best-effort: failing to mint an identifier must not fail task creation.
+    try {
+      const minted = await allocateTaskIdentifier(nonVirtualListIds)
+      if (minted) {
+        taskData.identifier = minted.identifier
+        taskData.sequence = minted.sequence
+      }
+    } catch (err) {
+      log.error({ err }, '[tasks API] Failed to allocate task identifier')
     }
 
     let task

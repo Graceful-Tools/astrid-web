@@ -19,6 +19,7 @@ import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
+import { allocateTaskIdentifier } from '@/lib/task-identifier'
 import { recordTaskCreationComment } from '@/lib/task-update-handler'
 import { getDeletionsSince } from '@/lib/deletion-log'
 
@@ -527,6 +528,15 @@ export const POST = withAuth(
       )
     }
 
+    // Human-readable identifier for tasks in a project (task 12f54df4).
+    // Best-effort — a failure here must not cost the user their task.
+    let minted: { identifier: string; sequence: number } | null = null
+    try {
+      minted = await allocateTaskIdentifier(validatedListIds)
+    } catch (err) {
+      log.error({ err }, 'Failed to allocate task identifier')
+    }
+
     const task = await prisma.task.create({
       data: {
         title: body.title,
@@ -534,6 +544,8 @@ export const POST = withAuth(
         priority: body.priority ?? 0,
         assigneeId: body.assigneeId,
         creatorId: auth.userId,
+        identifier: minted?.identifier ?? null,
+        sequence: minted?.sequence ?? null,
         clientRequestId: rawClientRequestId,
         parentTaskId: rawParentTaskId,
         dueDateTime,
