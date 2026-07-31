@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Flag, ShieldCheck } from 'lucide-react'
+import { BarChart3, Flag, Inbox, ShieldCheck } from 'lucide-react'
 
 const destinations = [
   { href: '/admin/admins', label: 'Manage Admins', icon: ShieldCheck },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/features', label: 'Feature Rollouts', icon: Flag },
+  { href: '/admin/feature-requests', label: 'Access Requests', icon: Inbox },
 ]
 
 export function AdminNavigation() {

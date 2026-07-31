@@ -14,8 +14,17 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { BoardViewSection } from '@/components/list-admin/BoardViewSection'
 import type { TaskList } from '@/types/task'
+
+// Project Mode is request-gated (task dd7172d8): the board controls only render
+// for a user who has been granted the feature. Default to granted so the
+// pre-existing cases below keep testing what they were written to test.
+const projectModeGranted = vi.hoisted(() => ({ value: true }))
+vi.mock('@/contexts/feature-flag-context', () => ({
+  useFeatureFlags: () => ({ isEnabled: () => projectModeGranted.value }),
+}))
+
+import { BoardViewSection } from '@/components/list-admin/BoardViewSection'
 
 global.fetch = vi.fn(() =>
   Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
@@ -55,6 +64,7 @@ function renderSection(props: {
 describe('BoardViewSection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    projectModeGranted.value = true
   })
 
   it('renders nothing when the caller cannot edit settings', () => {
@@ -105,5 +115,44 @@ describe('BoardViewSection', () => {
 
     fireEvent.click(screen.getByText('Cancel'))
     expect(screen.queryByText('Disable Board View')).not.toBeInTheDocument()
+  })
+
+  describe('request gating (dd7172d8)', () => {
+    it('offers Request access instead of Create Board when the user has not been granted it', () => {
+      projectModeGranted.value = false
+      renderSection({ list: makeList(), canEditSettings: true })
+
+      expect(screen.getByText('Request access')).toBeInTheDocument()
+      expect(screen.queryByText('Create Board')).not.toBeInTheDocument()
+    })
+
+    it('keeps board controls for a list that already has a board, even without the grant', () => {
+      // We never strand someone inside a feature they are already using: an
+      // existing board keeps working if the grant is later revoked.
+      projectModeGranted.value = false
+      renderSection({ list: makeList({ projectId: 'project-1' }), canEditSettings: true })
+
+      expect(screen.getByText('Disable Board')).toBeInTheDocument()
+      expect(screen.queryByText('Request access')).not.toBeInTheDocument()
+    })
+
+    it('opens the request dialog and posts the request', async () => {
+      projectModeGranted.value = false
+      const fetchMock = vi.mocked(global.fetch)
+      renderSection({ list: makeList(), canEditSettings: true })
+
+      fireEvent.click(screen.getByText('Request access'))
+      expect(screen.getByText('Request board access')).toBeInTheDocument()
+
+      fetchMock.mockClear()
+      fireEvent.click(screen.getByText('Send request'))
+
+      await vi.waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(
+          '/api/v1/feature-requests',
+          expect.objectContaining({ method: 'POST' })
+        )
+      })
+    })
   })
 })

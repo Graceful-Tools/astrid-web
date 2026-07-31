@@ -98,6 +98,7 @@ model User {
   userListFavorites            UserListFavorite[]   @relation("UserFavorites")
   integrations                 Integration[]        @relation("UserIntegrations")
   copilotCredential            CopilotCredential?   @relation("UserCopilotCredential")
+  featureAccessRequests        FeatureAccessRequest[] @relation("UserFeatureAccessRequests")
 
   @@index([email])
   @@index([emailVerified])
@@ -927,6 +928,40 @@ model FeatureFlagTarget {
   featureFlag     FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
 
   @@unique([featureFlagId, userId])
+  @@index([userId])
+}
+
+/// A user asking for access to a gated feature (task dd7172d8).
+///
+/// The point of this table is **demand measurement**: how many distinct people
+/// want Project Mode. Hence `@@unique([userId, featureKey])` — one person
+/// asking twice is one data point, not two, and re-requesting updates the note
+/// instead of inflating the count.
+///
+/// Deliberately NOT a payments or entitlement record. Granting access happens
+/// through the existing FeatureFlagTarget INCLUDE mechanism; this row only
+/// remembers that someone asked and what for.
+model FeatureAccessRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  /// Matches a FEATURE_KEYS value in lib/feature-flags.ts.
+  featureKey  String
+  /// Free-text "what would you use this for" — the qualitative half of the signal.
+  useCase     String?
+  /// PENDING | GRANTED | DECLINED
+  status      String    @default("PENDING")
+  /// Set when an admin grants or declines, for queue triage.
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  /// True for users auto-granted at migration time because they already had a
+  /// board. Counted separately so they don't pollute the demand signal.
+  grandfathered Boolean @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation("UserFeatureAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureKey])
+  @@index([featureKey, status, createdAt])
   @@index([userId])
 }
 

@@ -8,7 +8,7 @@ import type { FeatureKey } from '@/lib/feature-flags'
 
 type EffectiveFeatures = Record<FeatureKey, boolean>
 type Cache = { version: number; features: EffectiveFeatures; updatedAt: number; etag?: string }
-const DEFAULTS: EffectiveFeatures = { google_tasks: false }
+const DEFAULTS: EffectiveFeatures = { google_tasks: false, project_mode: false }
 interface FeatureFlagContextValue { isEnabled: (key: FeatureKey) => boolean }
 const FeatureFlagContext = createContext<FeatureFlagContextValue>({ isEnabled: (_key: FeatureKey) => false })
 const FEATURE_FLAG_EVENTS = ['feature_flags_updated'] as const

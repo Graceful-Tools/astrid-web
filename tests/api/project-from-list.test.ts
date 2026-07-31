@@ -18,15 +18,24 @@ vi.mock('@/lib/redis', () => ({
     keys: { userLists: (id: string) => `lists:user:${id}` },
   },
 }))
+// Project Mode is request-gated (task dd7172d8). Mocked so these cases cover
+// route behavior; the gate's own logic is covered in tests/lib/project-mode.test.ts.
+vi.mock('@/lib/project-mode', () => ({
+  projectModeGate: vi.fn(),
+  PROJECT_MODE_FEATURE_KEY: 'project_mode',
+}))
 
+import { NextResponse } from 'next/server'
 import { POST } from '@/app/api/projects/from-list/route'
 import { createProjectFromList } from '@/lib/projects-service'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { RedisCache } from '@/lib/redis'
+import { projectModeGate } from '@/lib/project-mode'
 
 const mockCreate = vi.mocked(createProjectFromList)
 const mockSession = vi.mocked(getUnifiedSession)
 const mockDel = vi.mocked(RedisCache.del)
+const mockGate = vi.mocked(projectModeGate)
 
 const req = (body?: unknown) =>
   new NextRequest('http://localhost/api/projects/from-list', {
@@ -38,6 +47,34 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockSession.mockResolvedValue({ user: { id: 'u1' } } as never)
   mockDel.mockResolvedValue(undefined as never)
+  mockGate.mockResolvedValue(null)
+})
+
+describe('Project Mode gate (dd7172d8)', () => {
+  it('404s when the capability is compiled out, without creating anything', async () => {
+    mockGate.mockResolvedValue(NextResponse.json({ error: 'Not found' }, { status: 404 }))
+    const res = await POST(req({ listId: 'l1' }))
+    expect(res.status).toBe(404)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('403s when the user has not been granted access, without creating anything', async () => {
+    // The point of the gate: hiding the button is not enough, the route itself
+    // must refuse, or an OAuth client walks straight past the opt-in.
+    mockGate.mockResolvedValue(
+      NextResponse.json({ error: 'nope', reason: 'not_granted' }, { status: 403 })
+    )
+    const res = await POST(req({ listId: 'l1' }))
+    expect(res.status).toBe(403)
+    expect((await res.json()).reason).toBe('not_granted')
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('runs the gate before reading the body, so an ungranted caller cannot probe validation', async () => {
+    mockGate.mockResolvedValue(NextResponse.json({ error: 'Not found' }, { status: 404 }))
+    // No listId at all: a 400 here would leak that the route exists and what it wants.
+    expect((await POST(req({}))).status).toBe(404)
+  })
 })
 
 it('401 when unauthenticated', async () => {
