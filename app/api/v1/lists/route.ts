@@ -16,6 +16,7 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
+import { listVisibilityWhere } from '@/lib/list-permissions'
 import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('v1.lists')
@@ -39,12 +40,9 @@ export const GET = withAuth(
     const { searchParams } = new URL(req.url)
     const updatedSince = searchParams.get('updatedSince')
 
-    const baseWhere = {
-      OR: [
-        { ownerId: auth.userId },
-        { listMembers: { some: { userId: auth.userId } } },
-      ],
-    }
+    // Project-derived visibility (task 6c20d125). Keeps this route's long-standing
+    // exclusion of PUBLIC lists — iOS syncs only lists the user belongs to.
+    const baseWhere = listVisibilityWhere(auth.userId, { includePublic: false })
 
     const where = updatedSince
       ? { ...baseWhere, updatedAt: { gt: new Date(updatedSince) } }

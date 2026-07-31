@@ -715,21 +715,12 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     const { id: taskId } = await context.params
 
-    // Check if user has permission to delete this task
+    // Check if user has permission to delete this task. Uses the shared
+    // permission include rather than an inline copy so project-derived access
+    // (task 6c20d125) can't be missing here but present on the edit path.
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
-      include: {
-        lists: {
-          include: {
-            owner: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            },
-          },
-        },
-      },
+      include: TASK_PERMISSION_INCLUDE,
     })
 
     if (!existingTask) {

@@ -346,6 +346,10 @@ describe('/api/lists - List Defaults', () => {
             // Removed legacy admins check
             // Removed legacy members check
             { listMembers: { some: { userId: mockSession.user.id } } }, // Also check new ListMember table
+            // Project membership cascades to every list in the project, so a
+            // project member sees them without a ListMember row (task 6c20d125).
+            { project: { ownerId: mockSession.user.id } },
+            { project: { members: { some: { userId: mockSession.user.id } } } },
             { privacy: "PUBLIC" }
           ],
         },

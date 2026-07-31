@@ -599,3 +599,84 @@ describe('isListOwner covers both owner shapes (task e2803305)', () => {
     expect(isListOwner({ id: 'l1', ownerId: 'u2', listMembers: [{ userId: 'u1', role: 'member' }] } as never, 'u1')).toBe(false)
   })
 })
+
+/**
+ * Task 6c20d125 — ProjectMember has been in the schema since the board
+ * migration and was never read, so adding someone to a project granted them
+ * nothing and every list had to be shared by hand.
+ */
+describe('Project membership cascades to project lists (6c20d125)', () => {
+  const alice = { id: 'alice', email: 'alice@example.com' }
+  const bob = { id: 'bob', email: 'bob@example.com' }
+
+  const listInProject = (overrides: Record<string, unknown> = {}) => ({
+    id: 'list-1',
+    ownerId: 'alice',
+    privacy: 'PRIVATE',
+    listMembers: [],
+    projectId: 'project-1',
+    project: {
+      id: 'project-1',
+      ownerId: 'alice',
+      members: [{ userId: 'bob', role: 'member' }],
+    },
+    ...overrides,
+  })
+
+  it('grants a project member access to a list they have no ListMember row on', () => {
+    expect(getUserRoleInList(bob, listInProject() as never)).toBe('member')
+    expect(canUserViewList(bob, listInProject() as never)).toBe(true)
+    expect(canUserEditTasks(bob, listInProject() as never)).toBe(true)
+  })
+
+  it('grants project admins the admin role', () => {
+    const list = listInProject({ project: { id: 'project-1', ownerId: 'alice', members: [{ userId: 'bob', role: 'admin' }] } })
+    expect(getUserRoleInList(bob, list as never)).toBe('admin')
+    expect(canUserManageList(bob, list as never)).toBe(true)
+    expect(canUserManageMembers(bob, list as never)).toBe(true)
+  })
+
+  it('tolerates uppercase project roles — casing must never decide access', () => {
+    const list = listInProject({ project: { id: 'project-1', ownerId: 'alice', members: [{ userId: 'bob', role: 'ADMIN' }] } })
+    expect(getUserRoleInList(bob, list as never)).toBe('admin')
+  })
+
+  it('treats the project owner as admin, not owner, so they cannot delete a list they do not own', () => {
+    // Owning the project must not silently grant the power to delete a list
+    // somebody else owns and merely attached to it.
+    const list = listInProject({ ownerId: 'carol', project: { id: 'project-1', ownerId: 'bob', members: [] } })
+    expect(getUserRoleInList(bob, list as never)).toBe('admin')
+    expect(canUserDeleteList(bob, list as never)).toBe(false)
+  })
+
+  it('keeps the higher role when the user is both a list admin and a plain project member', () => {
+    const list = listInProject({
+      listMembers: [{ userId: 'bob', role: 'admin' }],
+      project: { id: 'project-1', ownerId: 'alice', members: [{ userId: 'bob', role: 'member' }] },
+    })
+    expect(getUserRoleInList(bob, list as never)).toBe('admin')
+  })
+
+  it('does not downgrade a project member to viewer on a public list', () => {
+    const list = listInProject({ privacy: 'PUBLIC' })
+    expect(getUserRoleInList(bob, list as never)).toBe('member')
+  })
+
+  it('grants nothing to a non-member of the project', () => {
+    const list = listInProject({ project: { id: 'project-1', ownerId: 'alice', members: [] } })
+    expect(getUserRoleInList({ id: 'mallory' }, list as never)).toBeNull()
+  })
+
+  it('grants nothing when the project relation was not loaded', () => {
+    // An unloaded relation must under-grant rather than over-grant: absent
+    // `project` means "not loaded", never "no restrictions".
+    const list = listInProject({ project: undefined })
+    expect(getUserRoleInList(bob, list as never)).toBeNull()
+  })
+
+  it('leaves project-less lists exactly as they were', () => {
+    const list = { id: 'l', ownerId: 'alice', privacy: 'PRIVATE', listMembers: [] }
+    expect(getUserRoleInList(alice, list as never)).toBe('owner')
+    expect(getUserRoleInList(bob, list as never)).toBeNull()
+  })
+})

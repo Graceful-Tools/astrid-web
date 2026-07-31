@@ -38,6 +38,68 @@ interface ListLike {
   // sites in task-detail read it directly; union it here so they can converge
   // on getUserRoleInList without losing access for those payloads.
   members?: Array<{ id: string }> | null
+  // Project the list belongs to, when it has one. Project membership cascades
+  // to every list in the project (task 6c20d125) — including its status lists,
+  // which is what lets two people on one board agree about status.
+  //
+  // Absent `project` is NOT "no project access": it means the caller did not
+  // load it. Call sites that need project-derived access must include the
+  // relation (see PROJECT_ACCESS_INCLUDE), or they silently under-grant.
+  projectId?: string | null
+  project?: {
+    id?: string
+    ownerId?: string
+    members?: Array<{ userId: string; role: string }> | null
+  } | null
+}
+
+/**
+ * Prisma `include` fragment for loading the project membership that
+ * {@link getUserRoleInList} needs.
+ *
+ * Nested inside the existing list query on purpose: a separate round trip per
+ * list would turn every list read into an N+1.
+ */
+export const PROJECT_ACCESS_INCLUDE = {
+  project: {
+    select: {
+      id: true,
+      ownerId: true,
+      members: { select: { userId: true, role: true } },
+    },
+  },
+} as const
+
+/**
+ * The `where` clause for "lists this user can see" (task 6c20d125).
+ *
+ * Role resolution and *visibility* have to agree. `getUserRoleInList` granting a
+ * project member access is useless if the query that fetches lists never
+ * returns the row — the member would resolve a role for a list they can't load.
+ * Both sides therefore derive from this one definition.
+ *
+ * Plain object literal, no Prisma import: this module is pulled into client
+ * bundles.
+ */
+export function listVisibilityWhere(
+  userId: string,
+  options: { includePublic: boolean }
+) {
+  const clauses: Array<Record<string, unknown>> = [
+    { ownerId: userId },
+    { listMembers: { some: { userId } } },
+    // Project membership cascades to every list in the project, including its
+    // status lists.
+    { project: { ownerId: userId } },
+    { project: { members: { some: { userId } } } },
+  ]
+
+  // `includePublic` is explicit at every call site rather than defaulted: the
+  // web list route has always returned PUBLIC lists and the v1 route never has,
+  // and quietly changing either would alter what iOS syncs.
+  if (options.includePublic) clauses.push({ privacy: "PUBLIC" as const })
+
+  return { OR: clauses }
 }
 
 /**
@@ -103,12 +165,43 @@ export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "ad
   // Legacy denormalized members array (same precedence as membership member).
   if (list.members?.some((m) => m?.id === user.id)) return "member"
 
+  // Project membership cascades to every list in the project (task 6c20d125).
+  //
+  // Ordered after list membership so the *higher* role wins: someone who is a
+  // list admin but only a project member stays an admin. It sits before the
+  // PUBLIC viewer fallback because a project member is a real collaborator, not
+  // a passer-by, and must not be downgraded to read-only on a public list.
+  const projectRole = getProjectRole(user, list)
+  if (projectRole) return projectRole
+
   // For public lists, users have viewer access
   if (list.privacy === "PUBLIC") {
     return "viewer"
   }
 
   return null
+}
+
+/**
+ * Role a user derives from the list's project, or null.
+ *
+ * The project owner is deliberately an "admin" here rather than "owner":
+ * `owner` is the one role that can delete a list, and owning the project must
+ * not silently grant the power to delete a list somebody else owns and merely
+ * attached to it.
+ */
+function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | null {
+  const project = list.project
+  if (!project) return null
+
+  if (project.ownerId === user.id) return "admin"
+
+  const membership = project.members?.find((member) => member.userId === user.id)
+  if (!membership) return null
+
+  // Same casing tolerance as list membership: role casing must never decide
+  // access (task e2803305).
+  return membership.role?.toLowerCase() === "admin" ? "admin" : "member"
 }
 
 export function canUserViewList(user: UserLike, list: ListLike): boolean {

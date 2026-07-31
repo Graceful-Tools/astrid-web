@@ -24,7 +24,25 @@ these inline per call site (that's how Web drifted — see the reuse doc).
 
 Role resolution (`getUserRoleInList`): **owner** (list owner, by `ownerId`, the
 `owner` relation, or the legacy `admins` array) → **admin** / **member** (via
-`listMembers`) → **viewer** (any user on a `PUBLIC` list) → **null** (no access).
+`listMembers`) → **admin** / **member** (via the list's **project**, task
+6c20d125) → **viewer** (any user on a `PUBLIC` list) → **null** (no access).
+
+**Project membership cascades** to every list in the project, including its
+status lists. Three rules iOS must mirror exactly:
+
+1. **The higher role wins.** A list admin who is only a project member stays an
+   admin — project membership can never *demote* someone.
+2. **The project owner resolves to `admin`, not `owner`.** `owner` is the only
+   role that can delete a list; owning the project must not grant the power to
+   delete a list somebody else owns and merely attached to it.
+3. **A project member is never downgraded to `viewer` on a PUBLIC list.** They
+   are a real collaborator, not a passer-by.
+
+An absent `project` relation means **"not loaded"**, never "no project access".
+Any query backing a permission check must include it (`PROJECT_ACCESS_INCLUDE`),
+or project members silently lose access. Visibility is derived from the same
+definition via `listVisibilityWhere`, so a role can never be granted for a list
+the query won't return.
 
 | Capability | Owner | Admin | Member | Viewer | Helper |
 |---|---|---|---|---|---|
