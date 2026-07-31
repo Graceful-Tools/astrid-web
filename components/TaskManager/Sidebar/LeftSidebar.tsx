@@ -11,6 +11,7 @@ import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
 import { isListAdminOrOwner } from "@/lib/list-member-utils"
 import { canUserEditTasks } from "@/lib/list-permissions"
+import { isDomainList } from "@/lib/list-flavors"
 import type { TaskList } from "@/types/task"
 
 interface LeftSidebarProps {
@@ -280,6 +281,9 @@ export function LeftSidebar({
             {/* Lists */}
             {lists
               .filter(list => !list.isFavorite)
+              // Labels and board columns are not destinations — they render as
+              // chips and columns respectively (task 60f5849d).
+              .filter(isDomainList)
               .filter(list => {
                 // Exclude public lists that the user doesn't own or admin
                 if (list.privacy === 'PUBLIC') {

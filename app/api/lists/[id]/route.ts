@@ -9,6 +9,7 @@ import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
+import { canConvertListFlavor } from "@/lib/list-flavors"
 import { recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.lists.id')
@@ -160,6 +161,19 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       })
 
       manualSortOrderUpdate = tasksInList.map(task => task.id)
+    }
+
+    // Flavor changes are limited to regular ⇄ label (task 60f5849d). listType
+    // was previously writable unguarded, which let a caller turn any list into
+    // a board column and silently violate the board's invariants (a task may
+    // hold at most one status).
+    if (data.listType !== undefined && data.listType !== existingList.listType) {
+      if (!canConvertListFlavor(existingList.listType, data.listType)) {
+        return NextResponse.json(
+          { error: "Only regular and label lists can be converted between each other" },
+          { status: 400 }
+        )
+      }
     }
 
     // Update the list
