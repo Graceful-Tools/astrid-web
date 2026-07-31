@@ -9,6 +9,7 @@ import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { canUserEditTask } from "@/lib/list-permissions"
 import { parseClosedReason } from "@/lib/closed-reason"
+import { diffTaskEvents, recordTaskEvents } from "@/lib/task-events"
 import { invalidateUserStats } from "@/lib/user-stats"
 import {
   TASK_FULL_INCLUDE,
@@ -392,6 +393,38 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           : undefined,
       },
       include: TASK_FULL_INCLUDE,
+    })
+
+    // Structured activity history (task 51a4b8ff), alongside the prose comment
+    // below. Both derive from the same before/after pair; the comment is what a
+    // human reads, the events are what can be queried and fanned out.
+    // Best-effort by contract — recordTaskEvents never throws.
+    await recordTaskEvents({
+      taskId,
+      actorId: session.user.id,
+      // Always a human here: this route is session-authenticated web UI. Agents
+      // reach tasks through /api/v1, which passes auth.isAIAgent.
+      actorType: 'user',
+      events: diffTaskEvents(
+        {
+          title: existingTask.title,
+          completed: existingTask.completed,
+          closedReason: existingTask.closedReason,
+          priority: existingTask.priority,
+          assigneeId: existingTask.assigneeId,
+          dueDateTime: existingTask.dueDateTime,
+          listIds: existingTask.lists.map((list) => list.id),
+        },
+        {
+          title: updatedTask.title,
+          completed: updatedTask.completed,
+          closedReason: updatedTask.closedReason,
+          priority: updatedTask.priority,
+          assigneeId: updatedTask.assigneeId,
+          dueDateTime: updatedTask.dueDateTime,
+          listIds: updatedTask.lists.map((list) => list.id),
+        }
+      ),
     })
 
     // Track state changes and create system comment.
