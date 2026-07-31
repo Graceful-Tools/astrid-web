@@ -93,7 +93,10 @@
     "addTaskToCurrentList": "新增工作到目前清單...",
     "addTaskShort": "新增工作...",
     "quickAdd": "快速新增...",
-    "addNewTask": "新增工作..."
+    "addNewTask": "新增工作...",
+    "wontDo": "Won't do",
+    "reopen": "Reopen",
+    "wontDoChip": "Won't do"
   },
   "lists": {
     "list": "列表",

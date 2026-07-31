@@ -93,7 +93,10 @@
     "addTaskToCurrentList": "현재 목록에 작업 추가...",
     "addTaskShort": "작업 추가...",
     "quickAdd": "빠른 추가...",
-    "addNewTask": "새 작업 추가..."
+    "addNewTask": "새 작업 추가...",
+    "wontDo": "Won't do",
+    "reopen": "Reopen",
+    "wontDoChip": "Won't do"
   },
   "lists": {
     "list": "목록",

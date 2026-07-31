@@ -21,6 +21,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
+import { parseClosedReason } from '@/lib/closed-reason'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('v1.tasks.id')
@@ -469,6 +470,19 @@ export const PUT = withAuth<RouteContext>(
     } else if (data.completed === false) {
       data.completedAt = null
       data.completedSource = null
+      // Reopening clears the terminal reason — a reopened task is not a
+      // canceled one (task 11042ae3).
+      data.closedReason = null
+    }
+
+    // Terminal state other than done (task 11042ae3). Same validation as the
+    // web route so the two surfaces cannot drift.
+    if (body.closedReason !== undefined && data.completed !== false) {
+      const parsed = parseClosedReason(body.closedReason)
+      if (!parsed.ok) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 })
+      }
+      data.closedReason = parsed.value
     }
 
     const task = await prisma.task.update({

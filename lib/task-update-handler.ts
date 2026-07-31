@@ -18,6 +18,7 @@
  */
 
 import { prisma } from "./prisma"
+import { isClosedReason } from "./closed-reason"
 import { createLogger } from "./logger"
 import {
   handleRepeatingTaskCompletion,
@@ -54,10 +55,23 @@ export async function applyRepeatingTaskCompletion(args: {
   dataCompleted: boolean | undefined
   /** YYYY-MM-DD from client; only used for all-day repeating tasks in COMPLETION_DATE mode. */
   localCompletionDate?: string
+  /**
+   * Set when the task is being closed as canceled / duplicate / not-planned
+   * rather than done (task 11042ae3).
+   */
+  closedReason?: string | null
 }): Promise<RepeatingCompletionOutcome> {
-  const { taskId, existingCompleted, dataCompleted, localCompletionDate } = args
+  const { taskId, existingCompleted, dataCompleted, localCompletionDate, closedReason } = args
 
   if (dataCompleted === undefined) return { rolledForward: false }
+
+  // Cancelling an occurrence must not spawn the next one (task 11042ae3).
+  // "We're not doing this one" and "this one is done, schedule the next" are
+  // opposite intents, and rolling forward on a cancel would resurrect the very
+  // task the user just decided to drop — every week, forever.
+  if (dataCompleted && isClosedReason(closedReason)) {
+    return { rolledForward: false }
+  }
 
   const result = await handleRepeatingTaskCompletion(
     taskId,

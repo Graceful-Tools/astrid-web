@@ -93,7 +93,10 @@
     "addTaskToCurrentList": "Ajouter une tâche à la liste actuelle...",
     "addTaskShort": "Ajouter une tâche...",
     "quickAdd": "Ajout rapide...",
-    "addNewTask": "Ajouter une nouvelle tâche..."
+    "addNewTask": "Ajouter une nouvelle tâche...",
+    "wontDo": "Won't do",
+    "reopen": "Reopen",
+    "wontDoChip": "Won't do"
   },
   "lists": {
     "list": "Liste",

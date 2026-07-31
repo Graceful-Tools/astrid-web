@@ -170,6 +170,12 @@ export interface Task {
   lists: TaskList[]
   isPrivate: boolean
   completed: boolean
+  /**
+   * Why the task was closed, when it was not simply done (task 11042ae3):
+   * "canceled" | "duplicate" | "not_planned". Null/undefined means completed
+   * normally, or still open — so it renders nothing until someone uses it.
+   */
+  closedReason?: string | null
   attachments: Attachment[]
   comments: Comment[]
   createdAt: Date

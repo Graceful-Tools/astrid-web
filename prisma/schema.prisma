@@ -268,6 +268,14 @@ model Task {
   completedAt     DateTime?
   /// Where the completion happened: astrid | google | github | apple.
   completedSource String?
+  /// Why the task was closed, when it was not simply done (task 11042ae3):
+  /// canceled | duplicate | not_planned. Null means completed normally, or
+  /// still open — so every existing query keeps working untouched.
+  ///
+  /// Closing as canceled still sets `completed = true`: the task leaves active
+  /// views, lands in the virtual Done column and respects the recently-completed
+  /// window exactly as before. Only the rendering and the reporting differ.
+  closedReason    String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   assigneeId      String?
@@ -319,6 +327,7 @@ model Task {
   @@index([repeating])
   @@index([creatorId, createdAt])
   @@index([parentTaskId])
+  @@index([closedReason])
 }
 
 model Comment {

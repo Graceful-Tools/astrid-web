@@ -8,6 +8,7 @@ import type { RouteContextParams } from "@/types/next"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { canUserEditTask } from "@/lib/list-permissions"
+import { parseClosedReason } from "@/lib/closed-reason"
 import { invalidateUserStats } from "@/lib/user-stats"
 import {
   TASK_FULL_INCLUDE,
@@ -323,6 +324,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     const requestedCompleted = completedFromStatus ?? data.completed
 
+    // Terminal state other than done (task 11042ae3). Rejected rather than
+    // silently nulled when unrecognised: a typo must not quietly become
+    // "completed normally".
+    const parsedClosedReason = parseClosedReason(data.closedReason)
+    if (!parsedClosedReason.ok) {
+      return NextResponse.json({ error: parsedClosedReason.error }, { status: 400 })
+    }
+
     // Handle repeating-task completion: if the task is part of a repeating
     // series and should roll forward / terminate, the helper applies it and
     // we short-circuit with the freshly-fetched task.
@@ -331,6 +340,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       existingCompleted: existingTask.completed,
       dataCompleted: requestedCompleted,
       localCompletionDate: data.localCompletionDate,
+      closedReason: parsedClosedReason.value,
     })
     if (completionOutcome.rolledForward) {
       return NextResponse.json(completionOutcome.updatedTask)
@@ -365,8 +375,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         ...(requestedCompleted === true
           ? { completedAt: new Date(), completedSource: 'astrid' }
           : requestedCompleted === false
-            ? { completedAt: null, completedSource: null }
+            // Reopening clears the reason too — a reopened task is not a
+            // canceled one (task 11042ae3).
+            ? { completedAt: null, completedSource: null, closedReason: null }
             : {}),
+        ...(data.closedReason !== undefined && requestedCompleted !== false
+          ? { closedReason: parsedClosedReason.value }
+          : {}),
         dueDateTime: sanitizedDueDateTime,
         isAllDay: data.isAllDay ?? false,
         assigneeId: finalAssigneeId,

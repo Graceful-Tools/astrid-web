@@ -8,6 +8,8 @@ import { PublicTaskCopyButton } from "@/components/public-task-copy-button"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { isCanceled } from "@/lib/closed-reason"
+import { useTranslations } from "@/lib/i18n/client"
 import { format } from "date-fns"
 import type { Task } from "@/types/task"
 
@@ -30,6 +32,7 @@ export function TaskRowContent({
   onToggleComplete,
   onCopyPublic,
 }: TaskRowContentProps) {
+  const { t } = useTranslations()
   return (
     <>
       {isPublicListTask(task) ? (
@@ -94,6 +97,14 @@ export function TaskRowContent({
               : "theme-text-primary"
         }`}>
           {task.title}
+          {/* Canceled tasks are visually distinct from finished ones (task
+              11042ae3). Nothing renders when closedReason is null, which is
+              every task that was simply completed. */}
+          {isCanceled(task) && (
+            <span className="ml-2 align-middle rounded px-1.5 py-0 text-xs theme-text-muted border theme-border">
+              {t("tasks.wontDoChip")}
+            </span>
+          )}
         </div>
 
         {((task.dueDateTime && !shouldHideTaskWhen(task)) || (task.lists && task.lists.length > 0)) && (
