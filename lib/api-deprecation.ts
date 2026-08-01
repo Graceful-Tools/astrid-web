@@ -31,12 +31,28 @@
  * a Sunset header. Move this date forward only as a deliberate planning
  * decision, in a separate PR.
  *
- * Current target: 2026-08-01. Rationale: Phase 1 (build v1 parity) ~2
- * weeks, Phase 2 (iOS migration release) ~2 weeks, Phase 3 (residual
- * monitoring) ≥4 weeks → comfortable buffer with the sunset 3 months out
- * from when this lands.
+ * Current target: 2026-11-01.
+ *
+ * History:
+ * - 2026-08-01 (original): Phase 1 (build v1 parity) ~2 weeks, Phase 2
+ *   (iOS migration release) ~2 weeks, Phase 3 (residual monitoring) ≥4
+ *   weeks → sunset 3 months out from when this landed.
+ * - Moved to 2026-11-01 on 2026-08-01. The original target arrived with
+ *   the migration incomplete: the legacy routes are still load-bearing —
+ *   the web client calls `/api/lists` and `/api/tasks` on every page load,
+ *   and iOS still uses BOTH `/api/*` and `/api/v1/*` (they are not
+ *   duplicates; consolidating needs a coordinated iOS release). Advertising
+ *   a sunset that has already passed tells third-party callers the API is
+ *   dead when it demonstrably is not, which is worse than no header at all.
+ *   Same 3-month cadence as the original rationale.
+ *
+ * The companion test asserts this date is in the future. That is deliberate:
+ * it is a tripwire that fires the moment the sunset arrives, forcing exactly
+ * this decision instead of letting the header quietly start lying. Do not
+ * weaken the test to make it pass — move the date, or actually delete the
+ * legacy routes.
  */
-export const LEGACY_SUNSET_HTTP_DATE = 'Sat, 01 Aug 2026 00:00:00 GMT'
+export const LEGACY_SUNSET_HTTP_DATE = 'Sun, 01 Nov 2026 00:00:00 GMT'
 
 /** Path under which the v1 successor surface lives. */
 const V1_PREFIX = '/api/v1/'
