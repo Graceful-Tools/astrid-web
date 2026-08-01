@@ -190,7 +190,29 @@ describe('LEGACY_SUNSET_HTTP_DATE', () => {
   it('parses as a real date in the future', () => {
     const parsed = new Date(LEGACY_SUNSET_HTTP_DATE)
     expect(Number.isNaN(parsed.getTime())).toBe(false)
-    expect(parsed.getTime()).toBeGreaterThan(Date.now())
+
+    // This is a deliberate tripwire, not an incidental assertion: it fires the
+    // moment the advertised sunset arrives, so the date gets a conscious
+    // decision instead of the Sunset header quietly starting to lie to
+    // third-party callers. When it fails, the fix is to move the date in
+    // lib/api-deprecation.ts (or actually delete the legacy routes) — never to
+    // weaken this check.
+    const daysRemaining = Math.round((parsed.getTime() - Date.now()) / 86_400_000)
+    expect(
+      parsed.getTime(),
+      `LEGACY_SUNSET_HTTP_DATE (${LEGACY_SUNSET_HTTP_DATE}) is ${Math.abs(daysRemaining)} days in the PAST. ` +
+        'The advertised sunset has arrived. Either delete the legacy /api/* routes, ' +
+        'or move the date forward in lib/api-deprecation.ts as a deliberate planning decision.'
+    ).toBeGreaterThan(Date.now())
+  })
+
+  it('names the correct weekday for its date', () => {
+    // RFC 7231 §7.1.1.1 requires the day-name to agree with the date. A
+    // hand-edited constant is exactly where that drifts, and a malformed
+    // Sunset header is silently ignored by clients rather than erroring.
+    const parsed = new Date(LEGACY_SUNSET_HTTP_DATE)
+    const expected = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][parsed.getUTCDay()]
+    expect(LEGACY_SUNSET_HTTP_DATE.startsWith(`${expected},`)).toBe(true)
   })
 
   it('is in HTTP-date (RFC 7231) format', () => {
