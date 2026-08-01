@@ -37,14 +37,35 @@
  * - 2026-08-01 (original): Phase 1 (build v1 parity) ~2 weeks, Phase 2
  *   (iOS migration release) ~2 weeks, Phase 3 (residual monitoring) ≥4
  *   weeks → sunset 3 months out from when this landed.
- * - Moved to 2026-11-01 on 2026-08-01. The original target arrived with
- *   the migration incomplete: the legacy routes are still load-bearing —
- *   the web client calls `/api/lists` and `/api/tasks` on every page load,
- *   and iOS still uses BOTH `/api/*` and `/api/v1/*` (they are not
- *   duplicates; consolidating needs a coordinated iOS release). Advertising
- *   a sunset that has already passed tells third-party callers the API is
- *   dead when it demonstrably is not, which is worse than no header at all.
- *   Same 3-month cadence as the original rationale.
+ * - Moved to 2026-11-01 on 2026-08-01, with the plan re-aimed. Same
+ *   3-month cadence; different blockers than the original assumed.
+ *
+ * What the evidence actually shows (measured 2026-08-01):
+ *
+ * - **iOS is ~97% migrated** — 240 `/api/v1/*` references in app code
+ *   against 8 legacy endpoints. The original plan treated iOS as the long
+ *   pole. It isn't, and hasn't been for a while.
+ * - **iOS's remaining 8 calls have nowhere to go.** There are NO v1
+ *   WebAuthn routes (`/api/v1/auth/` has apple / google / mobile-session /
+ *   signout / mobile-mcp-token and no passkey endpoints), and no
+ *   `/api/v1/reminders/status`. That is a v1 parity gap, not client
+ *   inertia — closing it frees iOS from the legacy surface entirely.
+ * - **The web client is the volume consumer** (~21 `/api/lists/` and ~16
+ *   `/api/tasks/` call sites, plus a long `/api/user/*` tail), and every
+ *   legacy hit observed in production traffic was a browser. It is quick
+ *   to migrate and should not be treated as a blocker.
+ * - **`/api/auth/[...nextauth]` can never be deleted** — it is NextAuth's
+ *   mount point and web session auth runs through it. "Delete legacy
+ *   /api/*" is therefore not achievable as literally stated. The real goal
+ *   is: delete the legacy routes that have a v1 successor and no residual
+ *   traffic, permanently exempting the NextAuth mount.
+ *
+ * The honest remaining blocker is MEASUREMENT. This module's premise is
+ * "delete when residual traffic hits zero", but Vercel's runtime-logs
+ * endpoint only retains a window of minutes — far too short to retire a
+ * route on. Accumulating `deprecation:legacy-api` over weeks needs a log
+ * drain or the Observability API. Until that exists, any deletion is a
+ * guess wearing a data-driven costume.
  *
  * The companion test asserts this date is in the future. That is deliberate:
  * it is a tripwire that fires the moment the sunset arrives, forcing exactly
