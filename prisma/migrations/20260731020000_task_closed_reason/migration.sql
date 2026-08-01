@@ -12,6 +12,12 @@
 
 ALTER TABLE "Task" ADD COLUMN "closedReason" TEXT;
 
--- Reporting reads "closed tasks, split by reason". Partial index: the
--- overwhelming majority of rows are NULL and never need to be scanned.
-CREATE INDEX "Task_closedReason_idx" ON "Task"("closedReason") WHERE "closedReason" IS NOT NULL;
+-- Reporting reads "closed tasks, split by reason".
+--
+-- Deliberately a PLAIN index, not a partial one. The schema declares
+-- `@@index([closedReason])`, and the production build runs `prisma migrate
+-- deploy` followed by `prisma db push` (scripts/build-with-migrations.js). A
+-- partial index here does not match what push expects, so push tries to create
+-- the same name again and fails with "relation Task_closedReason_idx already
+-- exists" on every deploy. The migration and the schema have to agree.
+CREATE INDEX "Task_closedReason_idx" ON "Task"("closedReason");
