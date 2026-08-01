@@ -22,6 +22,14 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+// Project Mode is request-gated (task dd7172d8). Default: granted, so the
+// pre-existing cases below still exercise the happy path. Gate logic itself is
+// covered by tests/lib/project-mode.test.ts.
+vi.mock('@/lib/project-mode', () => ({
+  projectModeGate: vi.fn(),
+  PROJECT_MODE_FEATURE_KEY: 'project_mode',
+}))
+
 vi.mock('@/lib/api-auth-middleware', () => {
   class UnauthorizedError extends Error {
     constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
@@ -62,7 +70,9 @@ import {
   deleteProjectAndDetachLists,
 } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
+import { projectModeGate } from '@/lib/project-mode'
 
+const mockGate = vi.mocked(projectModeGate)
 const mockAuth = vi.mocked(authenticateAPI)
 const mockList = vi.mocked(listProjectsForUser)
 const mockCreate = vi.mocked(createProjectForUser)
@@ -94,6 +104,7 @@ describe('GET /api/v1/projects', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(ownerAuth as any)
+    mockGate.mockResolvedValue(null)
   })
 
   it('returns the caller\'s projects under the v1 envelope', async () => {
@@ -120,6 +131,23 @@ describe('POST /api/v1/projects', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(ownerAuth as any)
+    mockGate.mockResolvedValue(null)
+  })
+
+  it('refuses an ungranted OAuth caller — the gate is not a UI-only affordance (dd7172d8)', async () => {
+    const { NextResponse } = await import('next/server')
+    mockGate.mockResolvedValue(NextResponse.json({ reason: 'not_granted' }, { status: 403 }))
+
+    const res = await createProject(
+      new NextRequest('http://localhost/api/v1/projects', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Sneaky' }),
+      }) as never,
+      {} as never
+    )
+
+    expect(res.status).toBe(403)
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 
   it('400s when name is missing or blank', async () => {

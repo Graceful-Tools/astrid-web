@@ -93,7 +93,10 @@
     "addTaskToCurrentList": "現在のリストにタスクを追加...",
     "addTaskShort": "タスクを追加...",
     "quickAdd": "クイック追加...",
-    "addNewTask": "新しいタスクを追加..."
+    "addNewTask": "新しいタスクを追加...",
+    "wontDo": "Won't do",
+    "reopen": "Reopen",
+    "wontDoChip": "Won't do"
   },
   "lists": {
     "list": "リスト",
@@ -774,5 +777,22 @@
         "note": "MCPはAIモデルを外部ツールに接続する標準化された方法を提供"
       }
     }
+  },
+  "projectMode": {
+    "boardViewLabel": "Board View",
+    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
+    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
+    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
+    "requestAccess": "Request access",
+    "requestPending": "Requested",
+    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
+    "requestDialogTitle": "Request board access",
+    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
+    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
+    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
+    "requestDialogSubmit": "Send request",
+    "requestDialogCancel": "Cancel",
+    "requestSubmitted": "Request sent",
+    "requestFailed": "Couldn't send your request. Please try again."
   }
 }

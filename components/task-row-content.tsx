@@ -8,6 +8,9 @@ import { PublicTaskCopyButton } from "@/components/public-task-copy-button"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { isCanceled } from "@/lib/closed-reason"
+import { splitTaskLists } from "@/lib/list-flavors"
+import { useTranslations } from "@/lib/i18n/client"
 import { format } from "date-fns"
 import type { Task } from "@/types/task"
 
@@ -30,6 +33,12 @@ export function TaskRowContent({
   onToggleComplete,
   onCopyPublic,
 }: TaskRowContentProps) {
+  const { t } = useTranslations()
+  // Split memberships once: lists are destinations, labels are tags
+  // (task 60f5849d).
+  const { lists: domainLists, labels } = splitTaskLists(
+    (task.lists || []).filter(list => list != null)
+  )
   return (
     <>
       {isPublicListTask(task) ? (
@@ -94,9 +103,17 @@ export function TaskRowContent({
               : "theme-text-primary"
         }`}>
           {task.title}
+          {/* Canceled tasks are visually distinct from finished ones (task
+              11042ae3). Nothing renders when closedReason is null, which is
+              every task that was simply completed. */}
+          {isCanceled(task) && (
+            <span className="ml-2 align-middle rounded px-1.5 py-0 text-xs theme-text-muted border theme-border">
+              {t("tasks.wontDoChip")}
+            </span>
+          )}
         </div>
 
-        {((task.dueDateTime && !shouldHideTaskWhen(task)) || (task.lists && task.lists.length > 0)) && (
+        {((task.dueDateTime && !shouldHideTaskWhen(task)) || domainLists.length > 0 || labels.length > 0) && (
           <div className="flex items-center mt-1 gap-2">
             {task.dueDateTime && !shouldHideTaskWhen(task) && (
               <div className="text-xs theme-text-muted flex-shrink-0">
@@ -105,9 +122,20 @@ export function TaskRowContent({
               </div>
             )}
             <div className="flex flex-wrap gap-1 min-w-0 flex-1">
-              {task.lists && task.lists.length > 0 && (
+              {/* Labels render as their own chips, board columns as columns —
+                  neither belongs in the list-membership row (task 60f5849d). */}
+              {labels.map((label) => (
+                <div
+                  key={label.id}
+                  className="flex items-center rounded-full px-2 py-0 text-xs"
+                  style={{ backgroundColor: `${label.color}25`, color: label.color }}
+                >
+                  <span className="truncate">{label.name}</span>
+                </div>
+              ))}
+              {domainLists.length > 0 && (
                 <>
-                  {task.lists.filter(list => list != null).slice(0, isMobile ? 2 : undefined).map((list) => (
+                  {domainLists.slice(0, isMobile ? 2 : undefined).map((list) => (
                     <div
                       key={list.id}
                       className="flex items-center space-x-1 rounded px-1.5 py-0 text-xs"
@@ -133,8 +161,8 @@ export function TaskRowContent({
                       <span className={`theme-text-secondary ${isMobile ? 'truncate' : ''}`}>{list.name}</span>
                     </div>
                   ))}
-                  {isMobile && task.lists && task.lists.length > 2 && (
-                    <span className="text-xs theme-text-muted">+{task.lists.length - 2}</span>
+                  {isMobile && domainLists.length > 2 && (
+                    <span className="text-xs theme-text-muted">+{domainLists.length - 2}</span>
                   )}
                 </>
               )}

@@ -15,6 +15,7 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { createProjectForUser, listProjectsForUser } from '@/lib/projects-service'
+import { projectModeGate } from '@/lib/project-mode'
 
 const log = createLogger('v1.projects')
 
@@ -42,6 +43,11 @@ export const GET = withAuth(
 export const POST = withAuth(
   { scopes: ['projects:write'], tag: 'v1.projects' },
   async (req, auth) => {
+    // Project Mode is request-gated (task dd7172d8). Same gate as the web
+    // route — an OAuth client must not be a way around the opt-in.
+    const gated = await projectModeGate(auth.userId)
+    if (gated) return gated
+
     const body = await req.json().catch(() => ({}))
     const name = typeof body.name === 'string' ? body.name.trim() : ''
 

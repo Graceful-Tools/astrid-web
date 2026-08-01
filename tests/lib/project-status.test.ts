@@ -5,6 +5,7 @@ import {
   VIRTUAL_INBOX_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
+  getProjectStatusLists,
   getTaskProjectColumnId,
   normalizeProjectStatusListIds,
   resolveProjectColumnMove,
@@ -221,5 +222,160 @@ describe('project status', () => {
       projectId,
     )
     expect(result.map(t => t.id)).toEqual(['t-1'])
+  })
+})
+
+/**
+ * Task 142e4dd9 — shared boards must share status.
+ *
+ * The bug: status lists were per-user and PRIVATE, so `getProjectStatusLists`
+ * resolved against whichever user was looking. Alice dragged a card to Doing
+ * and it joined *Alice's* Doing list; Bob resolved against his own status
+ * lists, found no match, and the card fell back to Inbox. Two people, one
+ * board, silently different columns — and neither was told.
+ */
+describe('Shared board status scoping (142e4dd9)', () => {
+  const PROJECT = 'project-1'
+
+  const personalStatus = (owner: string, role: string, id: string) => ({
+    id,
+    name: role === 'ready' ? 'Ready' : role === 'doing' ? 'Doing' : 'Waiting',
+    ownerId: owner,
+    privacy: 'PRIVATE',
+    listType: 'status',
+    statusRole: role,
+    statusOrder: role === 'ready' ? 0 : role === 'doing' ? 1 : 2,
+    projectId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }) as never
+
+  const projectStatus = (role: string, id: string) => ({
+    id,
+    name: role === 'ready' ? 'Ready' : role === 'doing' ? 'Doing' : 'Waiting',
+    ownerId: 'alice',
+    privacy: 'PRIVATE',
+    listType: 'status',
+    statusRole: role,
+    statusOrder: role === 'ready' ? 0 : role === 'doing' ? 1 : 2,
+    projectId: PROJECT,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }) as never
+
+  const domainList = {
+    id: 'domain-1',
+    name: 'Team board',
+    ownerId: 'alice',
+    privacy: 'PRIVATE',
+    listType: 'regular',
+    projectId: PROJECT,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as never
+
+  const taskIn = (listIds: string[]) => ({
+    id: 'task-1',
+    title: 'Fix repeating rollover',
+    completed: false,
+    lists: listIds.map(id => ({ id })),
+  }) as never
+
+  it('REGRESSION: two members of one board resolve the same column for the same task', () => {
+    const projectDoing = projectStatus('doing', 'proj-doing')
+
+    // Alice sees her own personal statuses plus the project's; Bob only ever
+    // had his own personal set and the project's.
+    const aliceLists = [domainList, projectDoing, personalStatus('alice', 'doing', 'alice-doing')]
+    const bobLists = [domainList, projectDoing, personalStatus('bob', 'doing', 'bob-doing')]
+
+    const task = taskIn(['domain-1', 'proj-doing'])
+
+    expect(getTaskProjectColumnId(task, aliceLists, PROJECT)).toBe('proj-doing')
+    expect(getTaskProjectColumnId(task, bobLists, PROJECT)).toBe('proj-doing')
+  })
+
+  it('REGRESSION: the pre-fix arrangement is exactly what used to disagree', () => {
+    // Reproduces the old behaviour to prove the test would have caught it:
+    // with only personal statuses, a card in Alice's Doing is Inbox to Bob.
+    const aliceLists = [domainList, personalStatus('alice', 'doing', 'alice-doing')]
+    const bobLists = [domainList, personalStatus('bob', 'doing', 'bob-doing')]
+    const task = taskIn(['domain-1', 'alice-doing'])
+
+    expect(getTaskProjectColumnId(task, aliceLists, PROJECT)).toBe('alice-doing')
+    expect(getTaskProjectColumnId(task, bobLists, PROJECT)).toBe(VIRTUAL_INBOX_COLUMN_ID)
+  })
+
+  it('prefers project-scoped statuses over personal ones on a promoted board', () => {
+    const lists = [
+      domainList,
+      personalStatus('alice', 'ready', 'alice-ready'),
+      personalStatus('alice', 'doing', 'alice-doing'),
+      projectStatus('ready', 'proj-ready'),
+      projectStatus('doing', 'proj-doing'),
+    ]
+
+    const statuses = getProjectStatusLists(lists, PROJECT)
+    expect(statuses.map(s => s.id)).toEqual(['proj-ready', 'proj-doing'])
+  })
+
+  it('falls back to personal statuses for a board that has not been promoted', () => {
+    // Solo boards keep working exactly as before — this is the byte-identical
+    // single-player path.
+    const lists = [
+      domainList,
+      personalStatus('alice', 'ready', 'alice-ready'),
+      personalStatus('alice', 'doing', 'alice-doing'),
+    ]
+
+    expect(getProjectStatusLists(lists, PROJECT).map(s => s.id))
+      .toEqual(['alice-ready', 'alice-doing'])
+  })
+
+  it('never leaks another project\'s status columns', () => {
+    const lists = [
+      domainList,
+      projectStatus('ready', 'proj-ready'),
+      { ...(projectStatus('ready', 'other-ready') as never), projectId: 'project-2' } as never,
+      personalStatus('alice', 'doing', 'alice-doing'),
+    ]
+
+    const ids = getProjectStatusLists(lists, PROJECT).map(s => s.id)
+    expect(ids).toContain('proj-ready')
+    expect(ids).not.toContain('other-ready')
+  })
+
+  it('excludes other projects\' statuses from the personal fallback too', () => {
+    const lists = [
+      domainList,
+      { ...(projectStatus('ready', 'other-ready') as never), projectId: 'project-2' } as never,
+      personalStatus('alice', 'doing', 'alice-doing'),
+    ]
+
+    expect(getProjectStatusLists(lists, PROJECT).map(s => s.id)).toEqual(['alice-doing'])
+  })
+
+  it('builds board columns from the project-scoped set', () => {
+    const lists = [domainList, projectStatus('ready', 'proj-ready'), personalStatus('alice', 'ready', 'alice-ready')]
+    const columns = getProjectBoardColumns(lists, PROJECT)
+
+    expect(columns[0].kind).toBe('inbox')
+    expect(columns[columns.length - 1].kind).toBe('done')
+    expect(columns.filter(c => c.kind === 'status').map(c => c.id)).toEqual(['proj-ready'])
+  })
+
+  it('strips a stale personal status when moving a card on a promoted board', () => {
+    // A task carried into promotion may still hold the owner's personal status.
+    // Moving it must clear that, or the task sits in two columns at once.
+    const lists = [domainList, projectStatus('doing', 'proj-doing'), personalStatus('alice', 'ready', 'alice-ready')]
+    const task = taskIn(['domain-1', 'alice-ready'])
+    const targetColumn = getProjectBoardColumns(lists, PROJECT).find(c => c.id === 'proj-doing')!
+
+    const result = resolveProjectColumnMove(task, targetColumn, lists)
+
+    expect(result.listIds).toContain('domain-1')
+    expect(result.listIds).toContain('proj-doing')
+    expect(result.listIds).not.toContain('alice-ready')
+    expect(result.completed).toBe(false)
   })
 })

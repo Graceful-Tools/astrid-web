@@ -1,6 +1,7 @@
 import { BRAND } from '@/lib/brand/config'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { fromGithubStateReason, toGithubStateReason } from '@/lib/closed-reason'
 import { prisma } from '@/lib/prisma'
 import { githubGraphQL, githubRequest, githubTokenFor, isValidRepoId } from '@/lib/sync/github'
 
@@ -53,6 +54,10 @@ export const GET = withAuth(
         notes: (i.body as string | null) ?? null,
         completed: i.state === 'closed',
         completedAt: (i.closed_at as string | null) ?? null,
+        // GitHub's "closed as not planned" is our canceled state (task
+        // 11042ae3). GitHub can't tell us which of our three reasons it was,
+        // so it maps to the most general one.
+        closedReason: fromGithubStateReason(i.state_reason),
         remoteUpdatedAt: i.updated_at as string,
         metadata: {
           number: String(i.number),
@@ -186,7 +191,18 @@ export const POST = withAuth(
       if (!number || !/^\d+$/.test(number)) return NextResponse.json({ error: 'Invalid remoteId' }, { status: 400 })
       const { status, json } = await githubRequest(
         token, 'PATCH', `/repos/${link.remoteContainerId}/issues/${number}`,
-        { title, body: body.body, state: body.state, ...(assignees !== undefined ? { assignees } : {}) }
+        {
+          title,
+          body: body.body,
+          state: body.state,
+          // Closing as canceled must land as "closed as not planned" on
+          // GitHub, not a plain completion (task 11042ae3). Only sent when
+          // closing — GitHub rejects state_reason on an open issue.
+          ...(body.state === 'closed'
+            ? { state_reason: toGithubStateReason(body.closedReason) }
+            : {}),
+          ...(assignees !== undefined ? { assignees } : {}),
+        }
       )
       if (status !== 200) return NextResponse.json({ error: 'GitHub error', detail: json }, { status: status >= 400 && status < 500 ? status : 502 })
       return NextResponse.json({ remoteId, remoteUpdatedAt: json.updated_at })

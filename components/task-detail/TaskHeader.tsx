@@ -32,6 +32,8 @@ interface TaskHeaderProps {
   onShare: () => void
   onDelete: () => void
   onTestReminder: () => void
+  /** Close as "won't do" / reopen (task 11042ae3). */
+  onCancel?: (closedReason: string | null) => void
   /** Compact: drop the centered "Task Details" header bar and put the action
    *  menu inline next to the title (used by inline panels like the board card).
    */
@@ -55,6 +57,7 @@ export function TaskHeader({
   onShare,
   onDelete,
   onTestReminder,
+  onCancel,
   compact = false,
 }: TaskHeaderProps) {
   return (
@@ -89,6 +92,7 @@ export function TaskHeader({
             onShare={onShare}
             onDelete={onDelete}
             onTestReminder={onTestReminder}
+            onCancel={onCancel}
           />
         </div>
       )}

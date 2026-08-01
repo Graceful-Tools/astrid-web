@@ -1,10 +1,15 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { KanbanSquare } from "lucide-react"
+import { KanbanSquare, Lock } from "lucide-react"
 import type { TaskList } from "@/types/task"
+import { CAPABILITIES } from "@/lib/brand/capabilities"
+import { useFeatureFlags } from "@/contexts/feature-flag-context"
+import { useTranslations } from "@/lib/i18n/client"
+import { PROJECT_MODE_FEATURE_KEY } from "@/lib/project-mode-shared"
+import { RequestBoardAccessDialog } from "@/components/list-admin/RequestBoardAccessDialog"
 
 interface BoardViewSectionProps {
   list: TaskList
@@ -27,10 +32,38 @@ export function BoardViewSection({
   onProjectBoardCreated,
   onProjectBoardRemoved,
 }: BoardViewSectionProps) {
+  const { t } = useTranslations()
+  const { isEnabled } = useFeatureFlags()
   const [isCreatingProjectBoard, setIsCreatingProjectBoard] = useState(false)
   const [isRemovingProjectBoard, setIsRemovingProjectBoard] = useState(false)
   const [projectBoardError, setProjectBoardError] = useState<string | null>(null)
   const [showDisableBoardConfirmation, setShowDisableBoardConfirmation] = useState(false)
+  const [showRequestDialog, setShowRequestDialog] = useState(false)
+  const [hasRequested, setHasRequested] = useState(false)
+
+  // Project Mode is request-gated (task dd7172d8). `granted` mirrors the
+  // server's two-layer check in lib/project-mode.ts; the server enforces it
+  // regardless, this only decides which affordance to draw.
+  const granted = isEnabled(PROJECT_MODE_FEATURE_KEY)
+  // A list that already has a board keeps working even if the grant is later
+  // revoked — we never strand someone inside a feature they are using.
+  const showBoardControls = granted || Boolean(list.projectId)
+
+  useEffect(() => {
+    // Only ask about an existing request when we're actually going to offer the
+    // request affordance; granted users never see it.
+    if (showBoardControls) return
+    let cancelled = false
+    void fetch(`/api/v1/feature-requests?featureKey=${PROJECT_MODE_FEATURE_KEY}`, {
+      credentials: "include",
+    })
+      .then(response => (response.ok ? response.json() : null))
+      .then(data => {
+        if (!cancelled && data?.request) setHasRequested(true)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [showBoardControls])
 
   const handleCreateProjectBoard = useCallback(async () => {
     if (list.projectId || isCreatingProjectBoard) return
@@ -98,6 +131,10 @@ export function BoardViewSection({
 
   if (!canEditSettings) return null
 
+  // Compiled out for this deployment: the feature does not exist here, so the
+  // section renders nothing at all rather than advertising something unreachable.
+  if (!CAPABILITIES.projectMode) return null
+
   return (
     <>
       <div className="space-y-2 rounded-md border theme-border p-3">
@@ -105,15 +142,36 @@ export function BoardViewSection({
           <div className="min-w-0">
             <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
               <KanbanSquare className="w-4 h-4" />
-              <span>Board View</span>
+              <span>{t("projectMode.boardViewLabel")}</span>
             </Label>
             <p className="mt-1 text-xs theme-text-muted">
               {list.projectId
-                ? "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed."
-                : "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically."}
+                ? t("projectMode.boardViewDescriptionEnabled")
+                : showBoardControls
+                  ? t("projectMode.boardViewDescriptionAvailable")
+                  : t("projectMode.boardViewDescriptionLocked")}
             </p>
+            {!showBoardControls && hasRequested ? (
+              <p className="mt-1 text-xs theme-text-muted">
+                {t("projectMode.requestPendingHint")}
+              </p>
+            ) : null}
           </div>
-          {list.projectId ? (
+          {!showBoardControls ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={hasRequested}
+              onClick={() => setShowRequestDialog(true)}
+              className="shrink-0"
+            >
+              <Lock className="w-4 h-4 mr-1" />
+              {hasRequested
+                ? t("projectMode.requestPending")
+                : t("projectMode.requestAccess")}
+            </Button>
+          ) : list.projectId ? (
             <Button
               type="button"
               size="sm"
@@ -143,6 +201,13 @@ export function BoardViewSection({
           <p className="text-xs text-red-500">{projectBoardError}</p>
         ) : null}
       </div>
+
+      {showRequestDialog && (
+        <RequestBoardAccessDialog
+          onClose={() => setShowRequestDialog(false)}
+          onRequested={() => setHasRequested(true)}
+        />
+      )}
 
       {showDisableBoardConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isRemovingProjectBoard && setShowDisableBoardConfirmation(false)}>

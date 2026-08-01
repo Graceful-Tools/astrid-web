@@ -6,9 +6,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, Share2, Trash2, Bug, MoreVertical } from "lucide-react"
+import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw } from "lucide-react"
 import type { Task, User } from "../../types/task"
 import { canUserManageList } from "@/lib/list-permissions"
+import { isCanceled } from "@/lib/closed-reason"
+import { useTranslations } from "@/lib/i18n/client"
 
 /**
  * Action dropdown menu (the "..." button on the task detail header).
@@ -25,6 +27,11 @@ interface TaskActionMenuProps {
   onShare: () => void
   onDelete: () => void
   onTestReminder: () => void
+  /**
+   * Close the task as "won't do" — or reopen it if it already is
+   * (task 11042ae3). Optional so call sites that predate it still compile.
+   */
+  onCancel?: (closedReason: string | null) => void
 }
 
 export function TaskActionMenu({
@@ -35,11 +42,16 @@ export function TaskActionMenu({
   onShare,
   onDelete,
   onTestReminder,
+  onCancel,
 }: TaskActionMenuProps) {
+  const { t } = useTranslations()
   const taskList = task.lists?.[0]
   const isPublicListTask = taskList?.privacy === 'PUBLIC'
   const isUserOwnerOrAdmin = canUserManageList(currentUser, taskList as never)
   const showDelete = !(isPublicListTask && !isUserOwnerOrAdmin)
+  // "Won't do" sits next to Delete, in a menu users already open to delete —
+  // no new control on the row, nothing new for a consumer user to learn.
+  const canceled = isCanceled(task)
 
   return (
     <DropdownMenu>
@@ -57,6 +69,24 @@ export function TaskActionMenu({
           <Share2 className="w-4 h-4 mr-2" />
           Share
         </DropdownMenuItem>
+        {onCancel && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onCancel(canceled ? null : 'canceled')}>
+              {canceled ? (
+                <>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  {t("tasks.reopen")}
+                </>
+              ) : (
+                <>
+                  <Ban className="w-4 h-4 mr-2" />
+                  {t("tasks.wontDo")}
+                </>
+              )}
+            </DropdownMenuItem>
+          </>
+        )}
         {showDelete && (
           <>
             <DropdownMenuSeparator />

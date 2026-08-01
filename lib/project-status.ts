@@ -96,33 +96,58 @@ export function isLegacyInboxStatusList(
 }
 
 /**
- * Returns the user's real status lists in display order, excluding any
- * legacy Inbox/Done lists (the board renders virtual columns for those).
+ * Returns the status lists for a board, in display order, excluding any legacy
+ * Inbox/Done lists (the board renders virtual columns for those).
  *
- * Status lists are now **per-user globals** — one Ready/Doing/Waiting set
- * shared across every project board, not duplicated per project. A
- * project's board is the intersection of that project's domain tasks
- * with these global statuses. `getProjectStatusLists` therefore takes no
- * project id — every board renders the same status columns.
+ * **Scope-aware** (task 142e4dd9). Status lists come in two flavours:
+ *
+ * - **Personal** (`projectId: null`) — the user's own Ready/Doing/Waiting set,
+ *   shared across all of their solo boards. This is the original behaviour and
+ *   is still what a single-player board uses.
+ * - **Project-scoped** (`projectId` set) — one set owned by the project, so
+ *   every member resolves the *same* column ids.
+ *
+ * A shared board must use the project-scoped set. When statuses were per-user
+ * only, Alice dragging a card to Doing put it in *Alice's private Doing list*;
+ * Bob, resolving against his own status lists, found no match and saw the card
+ * fall back to Inbox. Two people, one board, silently different columns.
+ *
+ * Passing a `projectId` prefers that project's own statuses and falls back to
+ * the personal set when the project hasn't been promoted (solo boards, and
+ * shared boards in the window before the lazy promotion runs).
  */
-export function getProjectStatusLists(lists: TaskList[]): TaskList[] {
-  return lists
+export function getProjectStatusLists(lists: TaskList[], projectId?: string | null): TaskList[] {
+  const statuses = lists
     .filter(list => isProjectStatusList(list))
     .filter(list => !isLegacyDoneStatusList(list) && !isLegacyInboxStatusList(list))
-    .sort((a, b) => {
-      const aOrder = typeof a.statusOrder === 'number' ? a.statusOrder : Number.MAX_SAFE_INTEGER
-      const bOrder = typeof b.statusOrder === 'number' ? b.statusOrder : Number.MAX_SAFE_INTEGER
-      if (aOrder !== bOrder) return aOrder - bOrder
-      return a.name.localeCompare(b.name)
-    })
+
+  const projectScoped = projectId
+    ? statuses.filter(list => list.projectId === projectId)
+    : []
+
+  const scoped = projectScoped.length > 0
+    ? projectScoped
+    // Personal statuses only — never another project's, which would leak
+    // columns between boards.
+    : statuses.filter(list => !list.projectId)
+
+  return scoped.sort((a, b) => {
+    const aOrder = typeof a.statusOrder === 'number' ? a.statusOrder : Number.MAX_SAFE_INTEGER
+    const bOrder = typeof b.statusOrder === 'number' ? b.statusOrder : Number.MAX_SAFE_INTEGER
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return a.name.localeCompare(b.name)
+  })
 }
 
 /**
  * Build the ordered board columns: [virtual Inbox, ...real statuses, virtual Done].
  * The board renders this output 1:1.
  */
-export function getProjectBoardColumns(lists: TaskList[]): ProjectBoardColumn[] {
-  const statuses = getProjectStatusLists(lists)
+export function getProjectBoardColumns(
+  lists: TaskList[],
+  projectId?: string | null,
+): ProjectBoardColumn[] {
+  const statuses = getProjectStatusLists(lists, projectId)
   return [
     { ...VIRTUAL_INBOX_COLUMN },
     ...statuses.map<ProjectBoardColumn>(status => ({
@@ -142,10 +167,14 @@ export function getProjectBoardColumns(lists: TaskList[]): ProjectBoardColumn[] 
  *   has a real status list      → that list's id
  *   otherwise                   → virtual Inbox id
  */
-export function getTaskProjectColumnId(task: Task, lists: TaskList[]): string {
+export function getTaskProjectColumnId(
+  task: Task,
+  lists: TaskList[],
+  projectId?: string | null,
+): string {
   if (task.completed) return VIRTUAL_DONE_COLUMN_ID
 
-  const statusLists = getProjectStatusLists(lists)
+  const statusLists = getProjectStatusLists(lists, projectId)
   const taskListIds = new Set(task.lists?.map(list => list.id) || [])
   const explicit = statusLists.find(status => taskListIds.has(status.id))
   if (explicit) return explicit.id
@@ -165,6 +194,10 @@ export function resolveProjectColumnMove(
   targetColumn: ProjectBoardColumn,
   lists: TaskList[],
 ): { listIds: string[]; completed: boolean } {
+  // Strips status memberships of *both* scopes — personal and project-scoped —
+  // so moving a card on a promoted board also clears the stale personal status
+  // it may still carry from before the project was promoted. A task must never
+  // end up in two columns.
   const statusIds = new Set(
     lists.filter(list => isProjectStatusList(list)).map(list => list.id),
   )

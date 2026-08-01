@@ -29,6 +29,12 @@ global.fetch = vi.fn(() =>
   } as Response)
 )
 
+// Project Mode is request-gated (task dd7172d8). This smoke test renders the
+// full settings panel for a granted user, so the board controls stay in frame.
+vi.mock('@/contexts/feature-flag-context', () => ({
+  useFeatureFlags: () => ({ isEnabled: () => true }),
+}))
+
 vi.mock('@/lib/layout-detection', () => ({
   shouldPreventAutoFocus: () => false,
   shouldIgnoreTouchDuringKeyboard: () => false,

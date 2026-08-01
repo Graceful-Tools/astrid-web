@@ -4,11 +4,13 @@ import { Prisma } from '@prisma/client'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { requireAdmin, AdminAuthError } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
-import { invalidateFeatureFlagCache } from '@/lib/feature-flags'
+import { invalidateFeatureFlagCache, FEATURE_KEYS } from '@/lib/feature-flags'
 import { broadcastToAll } from '@/lib/sse-utils'
 
+// Was a literal for the single seeded flag; now driven by FEATURE_KEYS so a new
+// flag is one edit in lib/feature-flags.ts rather than three scattered ones.
 const UpdateSchema = z.object({
-  key: z.literal('google_tasks'),
+  key: z.enum(FEATURE_KEYS),
   enabled: z.boolean(),
   rolloutMode: z.enum(['OFF', 'ALL', 'PERCENTAGE', 'SELECTED_USERS']),
   rolloutPercentage: z.number().int().min(0).max(100),

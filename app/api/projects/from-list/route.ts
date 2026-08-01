@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import { createLogger } from "@/lib/logger"
 import { createProjectFromList } from "@/lib/projects-service"
+import { projectModeGate } from "@/lib/project-mode"
 
 const log = createLogger("api.projects.from-list")
 
@@ -20,6 +21,12 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    // Project Mode is request-gated (task dd7172d8). Enforced server-side, before
+    // any work: hiding the button while leaving this route reachable would be an
+    // unenforced access boundary, not a configuration option.
+    const gated = await projectModeGate(session.user.id)
+    if (gated) return gated
 
     const body = await request.json().catch(() => ({}))
     const listId = typeof body.listId === "string" ? body.listId : ""

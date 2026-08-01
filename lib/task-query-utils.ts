@@ -6,6 +6,7 @@
  */
 
 import { Prisma } from '@prisma/client'
+import { PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 
 /**
  * Standard task include for full task data with relations.
@@ -22,6 +23,9 @@ export const TASK_FULL_INCLUDE = {
           user: true
         }
       },
+      // Viewing a task must respect project membership too (task 6c20d125),
+      // not just the ability to edit it.
+      ...PROJECT_ACCESS_INCLUDE,
     },
   },
   comments: {
@@ -58,6 +62,11 @@ export const TASK_PERMISSION_INCLUDE = {
           user: true
         }
       },
+      // Project membership cascades to project lists (task 6c20d125).
+      // getUserRoleInList treats an absent `project` as "not loaded" and
+      // under-grants, so every permission-bearing list query must include it or
+      // project members silently lose the ability to edit tasks on the board.
+      ...PROJECT_ACCESS_INCLUDE,
     },
   },
 } satisfies Prisma.TaskInclude
@@ -72,6 +81,7 @@ export const LIST_WITH_MEMBERS_INCLUDE = {
       user: true
     }
   },
+  ...PROJECT_ACCESS_INCLUDE,
 } satisfies Prisma.TaskListInclude
 
 /**

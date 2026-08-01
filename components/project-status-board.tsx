@@ -115,7 +115,7 @@ export function ProjectStatusBoard({
   const { t } = useTranslations()
   const projectId = getProjectIdForBoard(lists, selectedListId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
-    () => (projectId ? getProjectBoardColumns(lists) : []),
+    () => (projectId ? getProjectBoardColumns(lists, projectId) : []),
     [lists, projectId],
   )
   const selectedList = lists.find(list => list.id === selectedListId)
@@ -313,7 +313,7 @@ export function ProjectStatusBoard({
         <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
           const tasksForColumn = boardTasks.filter(task =>
-            getTaskProjectColumnId(task, lists) === column.id
+            getTaskProjectColumnId(task, lists, projectId) === column.id
           )
           const isDoneColumn = column.kind === 'done'
           const isInboxColumn = column.kind === 'inbox'

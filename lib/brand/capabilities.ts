@@ -60,6 +60,19 @@ export const CAPABILITIES = {
   /** OpenAPI + ai-plugin discovery documents for ChatGPT actions. */
   integrationChatGptActions: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS),
 
+  // --- Product surfaces ----------------------------------------------------
+  /**
+   * Project Mode: projects, status boards and the team-shaped features that
+   * hang off them. Disabling this compiles the product back to the
+   * single-player to-do app — a first-class target, not a degraded one.
+   *
+   * Distinct from the `project_mode` runtime flag: this capability decides
+   * whether the feature *exists in this deployment at all*, the flag decides
+   * which users in a deployment that has it can reach it. Call sites check
+   * the capability first (see lib/project-mode.ts, which does both in order).
+   */
+  projectMode: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE),
+
   // --- Other services -----------------------------------------------------
   /** Creating tasks by emailing the inbound address. */
   emailToTask: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK),

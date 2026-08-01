@@ -98,6 +98,8 @@ model User {
   userListFavorites            UserListFavorite[]   @relation("UserFavorites")
   integrations                 Integration[]        @relation("UserIntegrations")
   copilotCredential            CopilotCredential?   @relation("UserCopilotCredential")
+  featureAccessRequests        FeatureAccessRequest[] @relation("UserFeatureAccessRequests")
+  notifications                Notification[]       @relation("UserNotifications")
 
   @@index([email])
   @@index([emailVerified])
@@ -226,12 +228,24 @@ model Project {
   color       String          @default("#3b82f6")
   imageUrl    String?
   ownerId     String
+  /// Short prefix for this project's task identifiers, e.g. "AST" in AST-142
+  /// (task 12f54df4). Unique per owner, not globally: two people may both have
+  /// an "AST" and forcing global uniqueness would hand out ugly keys for no
+  /// benefit. Null for projects created before identifiers existed.
+  key         String?
+  /// Next identifier to hand out. Allocated with an atomic UPDATE ... RETURNING
+  /// inside the task-create transaction — never SELECT max()+1, because
+  /// concurrent creation from web, iOS, MCP and agents is the normal case here,
+  /// not an edge case. Never decremented: identifiers are not reused, including
+  /// after delete, or a branch named ast-142-* would come to mean another task.
+  nextSequence Int            @default(1)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members     ProjectMember[]
   lists       TaskList[]
 
+  @@unique([ownerId, key])
   @@index([ownerId])
   @@index([createdAt])
 }
@@ -267,6 +281,22 @@ model Task {
   completedAt     DateTime?
   /// Where the completion happened: astrid | google | github | apple.
   completedSource String?
+  /// Why the task was closed, when it was not simply done (task 11042ae3):
+  /// canceled | duplicate | not_planned. Null means completed normally, or
+  /// still open — so every existing query keeps working untouched.
+  ///
+  /// Closing as canceled still sets `completed = true`: the task leaves active
+  /// views, lands in the virtual Done column and respects the recently-completed
+  /// window exactly as before. Only the rendering and the reporting differ.
+  closedReason    String?
+  /// Human-readable identifier, e.g. "AST-142" (task 12f54df4). Denormalized
+  /// from the project key + sequence so display and lookup need no join.
+  /// Null for tasks that were never in a project — a solo user never sees one.
+  /// Permanent once minted: a task moved out of a project keeps it.
+  identifier      String?
+  /// The numeric half of `identifier`, kept for ordering and for re-deriving
+  /// the string if a project is ever re-keyed.
+  sequence        Int?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   assigneeId      String?
@@ -294,6 +324,8 @@ model Task {
   attachments     Attachment[]
   codingWorkflow  CodingTaskWorkflow?
   comments        Comment[]
+  events          TaskEvent[]
+  notifications   Notification[]
   reminderQueue   ReminderQueue[]
   secureFiles     SecureFile[]
   aiAgent         AIAgent?            @relation(fields: [aiAgentId], references: [id])
@@ -318,6 +350,64 @@ model Task {
   @@index([repeating])
   @@index([creatorId, createdAt])
   @@index([parentTaskId])
+  @@index([closedReason])
+  @@unique([identifier])
+}
+
+/// Append-only task activity history (task 51a4b8ff).
+///
+/// Never updated, never deleted except by task cascade. Matters more here than
+/// in a conventional tracker because AI agents mutate tasks autonomously —
+/// "who moved this to Doing, and when" was previously unanswerable, which is
+/// both a trust problem and what makes agent misbehaviour undebuggable.
+///
+/// Distinct from the prose system comments in lib/task-state-change-tracker.ts:
+/// those are what a human reads in the thread, these are structured rows that
+/// can be queried, counted and fanned out into notifications.
+model TaskEvent {
+  id        String   @id @default(cuid())
+  taskId    String
+  /// Null for system-originated changes.
+  actorId   String?
+  /// user | agent | sync | system
+  actorType String
+  /// One of TASK_EVENT_KINDS in lib/task-events.ts.
+  kind      String
+  from      Json?
+  to        Json?
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([kind, createdAt])
+}
+
+/// In-app notification (task ab0572cb).
+///
+/// Derived from TaskEvent fan-out, never written independently — two write
+/// paths for "something happened" would guarantee drift, and the event trail
+/// already knows who did what.
+///
+/// Astrid's notifications were due-date only before this: nothing fired on
+/// assignment, @-mention, reply or completion.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  /// assigned | mentioned | replied | commented | status_changed | completed
+  kind      String
+  taskId    String?
+  commentId String?
+  /// Who caused it. Never equal to userId — nobody is told what they just did.
+  actorId   String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  task      Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  /// The unread-count query.
+  @@index([userId, readAt, createdAt])
+  @@index([taskId])
 }
 
 model Comment {
@@ -927,6 +1017,40 @@ model FeatureFlagTarget {
   featureFlag     FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
 
   @@unique([featureFlagId, userId])
+  @@index([userId])
+}
+
+/// A user asking for access to a gated feature (task dd7172d8).
+///
+/// The point of this table is **demand measurement**: how many distinct people
+/// want Project Mode. Hence `@@unique([userId, featureKey])` — one person
+/// asking twice is one data point, not two, and re-requesting updates the note
+/// instead of inflating the count.
+///
+/// Deliberately NOT a payments or entitlement record. Granting access happens
+/// through the existing FeatureFlagTarget INCLUDE mechanism; this row only
+/// remembers that someone asked and what for.
+model FeatureAccessRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  /// Matches a FEATURE_KEYS value in lib/feature-flags.ts.
+  featureKey  String
+  /// Free-text "what would you use this for" — the qualitative half of the signal.
+  useCase     String?
+  /// PENDING | GRANTED | DECLINED
+  status      String    @default("PENDING")
+  /// Set when an admin grants or declines, for queue triage.
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  /// True for users auto-granted at migration time because they already had a
+  /// board. Counted separately so they don't pollute the demand signal.
+  grandfathered Boolean @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation("UserFeatureAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureKey])
+  @@index([featureKey, status, createdAt])
   @@index([userId])
 }
 

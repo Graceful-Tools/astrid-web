@@ -8,6 +8,8 @@ import type { RouteContextParams } from "@/types/next"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { canUserEditTask } from "@/lib/list-permissions"
+import { parseClosedReason } from "@/lib/closed-reason"
+import { diffTaskEvents, recordTaskEvents } from "@/lib/task-events"
 import { invalidateUserStats } from "@/lib/user-stats"
 import {
   TASK_FULL_INCLUDE,
@@ -323,6 +325,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     const requestedCompleted = completedFromStatus ?? data.completed
 
+    // Terminal state other than done (task 11042ae3). Rejected rather than
+    // silently nulled when unrecognised: a typo must not quietly become
+    // "completed normally".
+    const parsedClosedReason = parseClosedReason(data.closedReason)
+    if (!parsedClosedReason.ok) {
+      return NextResponse.json({ error: parsedClosedReason.error }, { status: 400 })
+    }
+
     // Handle repeating-task completion: if the task is part of a repeating
     // series and should roll forward / terminate, the helper applies it and
     // we short-circuit with the freshly-fetched task.
@@ -331,6 +341,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       existingCompleted: existingTask.completed,
       dataCompleted: requestedCompleted,
       localCompletionDate: data.localCompletionDate,
+      closedReason: parsedClosedReason.value,
     })
     if (completionOutcome.rolledForward) {
       return NextResponse.json(completionOutcome.updatedTask)
@@ -365,8 +376,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         ...(requestedCompleted === true
           ? { completedAt: new Date(), completedSource: 'astrid' }
           : requestedCompleted === false
-            ? { completedAt: null, completedSource: null }
+            // Reopening clears the reason too — a reopened task is not a
+            // canceled one (task 11042ae3).
+            ? { completedAt: null, completedSource: null, closedReason: null }
             : {}),
+        ...(data.closedReason !== undefined && requestedCompleted !== false
+          ? { closedReason: parsedClosedReason.value }
+          : {}),
         dueDateTime: sanitizedDueDateTime,
         isAllDay: data.isAllDay ?? false,
         assigneeId: finalAssigneeId,
@@ -377,6 +393,38 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           : undefined,
       },
       include: TASK_FULL_INCLUDE,
+    })
+
+    // Structured activity history (task 51a4b8ff), alongside the prose comment
+    // below. Both derive from the same before/after pair; the comment is what a
+    // human reads, the events are what can be queried and fanned out.
+    // Best-effort by contract — recordTaskEvents never throws.
+    await recordTaskEvents({
+      taskId,
+      actorId: session.user.id,
+      // Always a human here: this route is session-authenticated web UI. Agents
+      // reach tasks through /api/v1, which passes auth.isAIAgent.
+      actorType: 'user',
+      events: diffTaskEvents(
+        {
+          title: existingTask.title,
+          completed: existingTask.completed,
+          closedReason: existingTask.closedReason,
+          priority: existingTask.priority,
+          assigneeId: existingTask.assigneeId,
+          dueDateTime: existingTask.dueDateTime,
+          listIds: existingTask.lists.map((list) => list.id),
+        },
+        {
+          title: updatedTask.title,
+          completed: updatedTask.completed,
+          closedReason: updatedTask.closedReason,
+          priority: updatedTask.priority,
+          assigneeId: updatedTask.assigneeId,
+          dueDateTime: updatedTask.dueDateTime,
+          listIds: updatedTask.lists.map((list) => list.id),
+        }
+      ),
     })
 
     // Track state changes and create system comment.
@@ -715,21 +763,12 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     const { id: taskId } = await context.params
 
-    // Check if user has permission to delete this task
+    // Check if user has permission to delete this task. Uses the shared
+    // permission include rather than an inline copy so project-derived access
+    // (task 6c20d125) can't be missing here but present on the edit path.
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
-      include: {
-        lists: {
-          include: {
-            owner: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            },
-          },
-        },
-      },
+      include: TASK_PERMISSION_INCLUDE,
     })
 
     if (!existingTask) {

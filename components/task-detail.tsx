@@ -655,6 +655,25 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     }
   })
 
+  /**
+   * Close the task as "won't do", or reopen it (task 11042ae3).
+   *
+   * Closing as canceled still sets completed = true, so the task leaves active
+   * views and lands in Done exactly like a finished one; only the reason and
+   * the rendering differ. Reopening clears both.
+   */
+  const handleSetClosedReason = async (closedReason: string | null) => {
+    const nextCompleted = closedReason !== null
+    setTempCompleted(nextCompleted)
+
+    try {
+      await onUpdate({ ...task, completed: nextCompleted, closedReason } as typeof task)
+    } catch (error) {
+      setTempCompleted(task.completed)
+      console.error('Failed to update task closed reason:', error)
+    }
+  }
+
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
 
@@ -1302,6 +1321,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onShare={handleShareClick}
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
+        onCancel={handleSetClosedReason}
         compact={inline}
       />
 

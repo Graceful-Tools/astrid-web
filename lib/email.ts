@@ -408,3 +408,85 @@ This invitation expires on ${invitation.expiresAt.toLocaleDateString()}.
 If you don't want to receive these emails, you can ignore this invitation.
   `.trim()
 }
+
+// ─── Feature access requests (task dd7172d8) ────────────────────────────────
+
+interface FeatureAccessRequestData {
+  featureKey: string
+  useCase: string | null
+  userEmail: string
+  userName: string | null
+}
+
+/**
+ * The use case is free text typed by a user and lands in an HTML email body,
+ * so it must be escaped at the point of interpolation. Kept local rather than
+ * imported from lib/markdown.ts, whose escapeHtml is module-private.
+ */
+function escapeEmailHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
+ * Notify the product owner that someone asked for a gated feature.
+ *
+ * Recipient is env-configurable (FEATURE_REQUEST_EMAIL) so a whitelabel partner
+ * routes requests to their own team. Throws on transport failure; the caller
+ * decides whether that should fail the request (it should not — the row is the
+ * durable artifact, the email is a convenience).
+ */
+export async function sendFeatureAccessRequestEmail(data: FeatureAccessRequestData) {
+  const { featureRequestRecipient } = await import('./feature-access-requests')
+  const to = featureRequestRecipient()
+  const who = data.userName ? `${data.userName} <${data.userEmail}>` : data.userEmail
+  const subject = `Feature request: ${data.featureKey} — ${data.userEmail}`
+
+  const textBody = [
+    `${who} requested access to "${data.featureKey}".`,
+    '',
+    data.useCase ? `Use case:\n${data.useCase}` : 'No use case given.',
+    '',
+    `Grant it in Admin → Feature rollouts by adding ${data.userEmail} to the Include list.`,
+  ].join('\n')
+
+  const htmlBody = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px;">
+      <h2 style="margin-bottom: 4px;">Feature request: ${escapeEmailHtml(data.featureKey)}</h2>
+      <p style="color:#666; margin-top: 0;">${escapeEmailHtml(who)}</p>
+      <div style="background-color:#f8fafc; border-left:4px solid #3b82f6; padding:16px; margin:16px 0; border-radius:4px;">
+        ${data.useCase
+          ? `<p style="margin:0;"><strong>Use case</strong></p><p style="margin:8px 0 0; white-space:pre-wrap;">${escapeEmailHtml(data.useCase)}</p>`
+          : '<p style="margin:0; color:#666;">No use case given.</p>'}
+      </div>
+      <p>Grant it in <strong>Admin → Feature rollouts</strong> by adding
+        <code>${escapeEmailHtml(data.userEmail)}</code> to the Include list.</p>
+    </div>
+  `.trim()
+
+  if (process.env.NODE_ENV === 'development' || !resend || !process.env.RESEND_API_KEY) {
+    log.info({ to, featureKey: data.featureKey, from: data.userEmail, useCase: data.useCase },
+      '📧 Feature access request (Development Mode)')
+    return
+  }
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: getFromEmail(),
+    to: [to],
+    subject,
+    html: htmlBody,
+    text: textBody,
+  })
+
+  if (error) {
+    log.error({ err: error }, 'Resend error sending feature access request:')
+    throw new Error(`Email sending failed: ${error.message}`)
+  }
+
+  log.info({ id: emailData?.id, featureKey: data.featureKey }, '📧 Feature access request email sent')
+  return emailData
+}

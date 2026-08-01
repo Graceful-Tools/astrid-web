@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
+import { listVisibilityWhere } from "@/lib/list-permissions"
 import type { CreateListData } from "@/types"
 import { RedisCache } from "@/lib/redis"
 import { broadcastToUsers } from "@/lib/sse-utils"
@@ -36,13 +37,9 @@ export async function GET(request: NextRequest) {
     const updatedSince = searchParams.get('updatedSince')
 
     // Build base where clause.
-    const baseWhere = {
-      OR: [
-        { ownerId: session.user.id },
-        { listMembers: { some: { userId: session.user.id } } },
-        { privacy: "PUBLIC" as const }
-      ],
-    }
+    // Includes project-derived visibility (task 6c20d125) — a project member
+    // can see every list in the project without a ListMember row.
+    const baseWhere = listVisibilityWhere(session.user.id, { includePublic: true })
 
     // Add incremental filter if provided
     const where = updatedSince
