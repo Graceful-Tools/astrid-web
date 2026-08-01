@@ -21,9 +21,22 @@ lives in exactly one place:
 
 ## Critical rules
 
-1. **Vercel auto-deploy is OFF — pushing to `main` does NOT deploy.** Production deploy
-   is a separate manual step (`./scripts/deploy-preview.sh --production`) that needs user
-   approval. (docs/CLI_OPERATIONS.md §0)
+1. **Vercel auto-deploy is ON — pushing to `main` DEPLOYS TO PRODUCTION.** Verified
+   2026-08-01: a push to `main` produced a `target=production` deployment within
+   minutes, and every prior `Merge:` commit on `main` did the same.
+   - **Treat `git push origin main` as a production deploy** and get explicit approval
+     for the *push*, not just for a later `./scripts/deploy-preview.sh --production`.
+   - Prisma migrations on the branch **run during that build** with production env
+     (`DATABASE_URL_DIRECT` is Production-scoped). Verify migration impact against
+     production data *before* pushing.
+   - `./scripts/deploy-preview.sh --production` still exists for deploying without a
+     push, but it is no longer the only path to production.
+
+   > This rule previously claimed auto-deploy was OFF. It was wrong, and an agent
+   > relied on it to tell the user that merging to `main` was safe because nothing
+   > would deploy — five migrations shipped immediately, including one that rewrote
+   > task/list membership rows. Do not restore the old wording without re-verifying
+   > against the Vercel deployment list.
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
 3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits

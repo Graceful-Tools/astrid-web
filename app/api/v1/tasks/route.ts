@@ -138,6 +138,15 @@ export const GET = withAuth(
           completed: true,
           completedAt: true,
           completedSource: true,
+          // Terminal state other than done (task 11042ae3). Without this a
+          // client cannot tell "done" from "won't do" in a list view — the
+          // whole point of the field.
+          closedReason: true,
+          // Human-readable identifier (task 12f54df4). Minted on create and
+          // resolvable by GET, but omitting it here meant no client could ever
+          // *display* one, which is where its value actually is.
+          identifier: true,
+          sequence: true,
           createdAt: true,
           updatedAt: true,
           originalTaskId: true,

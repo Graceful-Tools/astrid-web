@@ -91,6 +91,27 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
     expect(body.tasks[1].listIds).toEqual([])
   })
 
+  it('selects the fields iOS needs to RENDER a task, not just identify it', async () => {
+    // Regression guard. This route uses an explicit `select`, so a field added
+    // to the Task model is invisible to every v1 client until it is listed
+    // here — and the omission is silent, since the response is still a
+    // well-formed task. Both `identifier` (12f54df4) and `closedReason`
+    // (11042ae3) shipped to production missing from this list: they were
+    // written on create and resolvable by id, but no client could display
+    // either one.
+    await GET(makeReq(), {} as never)
+    const args = (mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mock.calls[0][0]
+
+    for (const field of [
+      'id', 'title', 'completed', 'priority',
+      'closedReason',   // done vs won't-do
+      'identifier',     // AST-142
+      'sequence',
+    ]) {
+      expect(args.select?.[field], `v1 task select is missing "${field}"`).toBe(true)
+    }
+  })
+
   it('uses the stable default ordering (completed asc, priority desc, createdAt desc)', async () => {
     await GET(makeReq(), {} as never)
     const args = (mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mock.calls[0][0]

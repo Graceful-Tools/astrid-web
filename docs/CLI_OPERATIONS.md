@@ -12,11 +12,26 @@ For project architecture, code patterns, and the per-task coding workflow, see
 
 ## 0. Deployment: the one rule that matters
 
-> ### ⚠️ Vercel auto-deploy is intentionally OFF. Pushing to `main` does NOT deploy.
-> `git push origin main` only updates the repo. A production deploy is a **separate,
-> explicit, manual step** that requires user approval. Never assume a pushed commit is
-> live — check the latest deployment's commit SHA. The build runs `prisma migrate deploy`,
-> so **pending migrations only apply when you deploy**, not on push.
+> ### ⚠️ Vercel auto-deploy is ON. Pushing to `main` DEPLOYS TO PRODUCTION.
+> `git push origin main` ships. Treat the **push** as the deploy and get explicit user
+> approval for it — not just for a later `--production` command. The build runs
+> `prisma migrate deploy` with production env (`DATABASE_URL_DIRECT` is
+> Production-scoped), so **every pending migration on the branch applies on push**.
+> Verify migration impact against production data *before* pushing.
+
+**Verified 2026-08-01.** A push to `main` produced a `target=production`,
+`state=READY` deployment within minutes, and the Vercel deployment list shows every
+prior `Merge:` commit on `main` did the same.
+
+> **This section previously said auto-deploy was OFF.** It was wrong. An agent relied
+> on it to tell the user that merging to `main` was safe because nothing would deploy;
+> five Prisma migrations shipped immediately, including one that rewrote task/list
+> membership rows. Nothing broke, but the user authorised a merge and got a deploy.
+> Before restoring the old wording, re-verify against
+> `GET /v6/deployments?projectId=…&target=production`.
+
+To check what is actually live, compare the latest production deployment's commit SHA
+against `main`.
 
 **Deploy to production (only after the user says "ship it"):**
 ```bash
