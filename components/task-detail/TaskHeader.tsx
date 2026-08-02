@@ -62,44 +62,31 @@ export function TaskHeader({
 }: TaskHeaderProps) {
   return (
     <div className="border-b border-gray-200 dark:border-gray-700">
-      {/* Top header bar: back (mobile/tablet), "Task Details" label, action menu.
-       *  In compact mode this row is suppressed and the action menu moves inline
-       *  with the title. */}
-      {!compact && (
-        <div className="theme-header theme-border relative flex items-center px-2 py-2 min-h-[44px]">
-          {onClose ? (
+      {/* Task Content Row: back (mobile) + checkbox + title editor + action menu.
+       *
+       *  There is no separate "Task Details" header bar (task cc76307c). It cost a
+       *  full 44px row to say something the user already knew — they just opened a
+       *  task — and pushed the description further below the fold, which is the
+       *  same space argument driving the wider edit-page redesign.
+       *
+       *  The action menu now sits inline at the far right of the title row in every
+       *  layout, so 2-column, 3-column and the inline/board panel agree. The mobile
+       *  back button moved here rather than being deleted with the bar: it was the
+       *  only way back to the list on a narrow viewport. */}
+      <div className="p-4">
+        <div className="flex items-center space-x-2 min-w-0">
+          {!compact && onClose && (
             <Button
               variant="ghost"
               onClick={onClose}
-              className="cols2:hidden flex items-center theme-text-primary hover:theme-text-secondary rounded-md hover:theme-bg-hover px-2 py-1 -ml-1"
+              className="cols2:hidden flex items-center flex-shrink-0 theme-text-primary hover:theme-text-secondary rounded-md hover:theme-bg-hover px-1 py-1 -ml-1"
               aria-label="Back to list"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                 <polyline points="15,18 9,12 15,6"></polyline>
               </svg>
             </Button>
-          ) : (
-            <span aria-hidden="true" className="w-6" />
           )}
-          <div className="flex-1 text-center text-sm font-semibold theme-text-primary truncate px-2">
-            Task Details
-          </div>
-          <TaskActionMenu
-            task={task}
-            currentUser={currentUser}
-            reminderDebugMode={reminderDebugMode}
-            onCopy={onCopy}
-            onShare={onShare}
-            onDelete={onDelete}
-            onTestReminder={onTestReminder}
-            onCancel={onCancel}
-          />
-        </div>
-      )}
-
-      {/* Task Content Row: checkbox + title editor (+ inline action menu in compact mode) */}
-      <div className="p-4">
-        <div className="flex items-center space-x-2 min-w-0">
           <TaskCheckbox
             checked={tempCompleted}
             onToggle={onToggleComplete}
@@ -143,8 +130,11 @@ export function TaskHeader({
               {task.title}
             </span>
           )}
-          {compact && (
-            <div className="flex flex-col items-center -my-1">
+          {/* Action menu, far right of the title row in every layout. Compact
+           *  stacks a collapse chevron above it (an inline panel collapses rather
+           *  than navigating back). */}
+          {compact ? (
+            <div className="flex flex-col items-center -my-1 flex-shrink-0">
               {onClose && (
                 <Button
                   variant="ghost"
@@ -165,6 +155,20 @@ export function TaskHeader({
                 onShare={onShare}
                 onDelete={onDelete}
                 onTestReminder={onTestReminder}
+                onCancel={onCancel}
+              />
+            </div>
+          ) : (
+            <div className="flex-shrink-0">
+              <TaskActionMenu
+                task={task}
+                currentUser={currentUser}
+                reminderDebugMode={reminderDebugMode}
+                onCopy={onCopy}
+                onShare={onShare}
+                onDelete={onDelete}
+                onTestReminder={onTestReminder}
+                onCancel={onCancel}
               />
             </div>
           )}
