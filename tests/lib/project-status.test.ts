@@ -228,6 +228,17 @@ describe('project status', () => {
 /**
  * Task 142e4dd9 — shared boards must share status.
  *
+ * SUPERSEDED IN PART. The project-scoped status lists this suite originally
+ * pinned were reverted: they reintroduced the duplication that
+ * 20260516000000_per_user_status_lists had removed (a user with two boards saw
+ * nine status lists). Status lists are per-user singletons again.
+ *
+ * The consequence is stated plainly rather than hidden: on a board shared
+ * between two people, each resolves against their OWN status set, so they can
+ * still disagree about which column a card is in. Fixing that needs status to
+ * stop being a list membership — see the follow-up task. These tests now pin
+ * the per-user rule and document the gap.
+ *
  * The bug: status lists were per-user and PRIVATE, so `getProjectStatusLists`
  * resolved against whichever user was looking. Alice dragged a card to Doing
  * and it joined *Alice's* Doing list; Bob resolved against his own status
@@ -281,18 +292,18 @@ describe('Shared board status scoping (142e4dd9)', () => {
     lists: listIds.map(id => ({ id })),
   }) as never
 
-  it('REGRESSION: two members of one board resolve the same column for the same task', () => {
-    const projectDoing = projectStatus('doing', 'proj-doing')
+  it('KNOWN GAP: two members resolve against their own status sets', () => {
+    // Documents the cost of reverting project-scoped statuses. A card in
+    // Alice's Doing reads as Doing to Alice and Inbox to Bob, because Bob
+    // resolves against his own set. This is a real gap, tracked separately —
+    // the alternative was nine status lists per user, which shipped and was
+    // worse.
+    const aliceLists = [domainList, personalStatus('alice', 'doing', 'alice-doing')]
+    const bobLists = [domainList, personalStatus('bob', 'doing', 'bob-doing')]
+    const task = taskIn(['domain-1', 'alice-doing'])
 
-    // Alice sees her own personal statuses plus the project's; Bob only ever
-    // had his own personal set and the project's.
-    const aliceLists = [domainList, projectDoing, personalStatus('alice', 'doing', 'alice-doing')]
-    const bobLists = [domainList, projectDoing, personalStatus('bob', 'doing', 'bob-doing')]
-
-    const task = taskIn(['domain-1', 'proj-doing'])
-
-    expect(getTaskProjectColumnId(task, aliceLists, PROJECT)).toBe('proj-doing')
-    expect(getTaskProjectColumnId(task, bobLists, PROJECT)).toBe('proj-doing')
+    expect(getTaskProjectColumnId(task, aliceLists, PROJECT)).toBe('alice-doing')
+    expect(getTaskProjectColumnId(task, bobLists, PROJECT)).toBe(VIRTUAL_INBOX_COLUMN_ID)
   })
 
   it('REGRESSION: the pre-fix arrangement is exactly what used to disagree', () => {
@@ -306,7 +317,7 @@ describe('Shared board status scoping (142e4dd9)', () => {
     expect(getTaskProjectColumnId(task, bobLists, PROJECT)).toBe(VIRTUAL_INBOX_COLUMN_ID)
   })
 
-  it('prefers project-scoped statuses over personal ones on a promoted board', () => {
+  it('returns the per-user set, never a per-project duplicate', () => {
     const lists = [
       domainList,
       personalStatus('alice', 'ready', 'alice-ready'),
@@ -315,8 +326,10 @@ describe('Shared board status scoping (142e4dd9)', () => {
       projectStatus('doing', 'proj-doing'),
     ]
 
+    // The bug: this used to prefer 'proj-*', so each extra board added three
+    // more status lists to the user's account.
     const statuses = getProjectStatusLists(lists, PROJECT)
-    expect(statuses.map(s => s.id)).toEqual(['proj-ready', 'proj-doing'])
+    expect(statuses.map(s => s.id)).toEqual(['alice-ready', 'alice-doing'])
   })
 
   it('falls back to personal statuses for a board that has not been promoted', () => {
@@ -345,23 +358,26 @@ describe('Shared board status scoping (142e4dd9)', () => {
     expect(ids).not.toContain('other-ready')
   })
 
-  it('excludes other projects\' statuses from the personal fallback too', () => {
+  it('collapses a stray project-scoped row into the single per-role entry', () => {
     const lists = [
       domainList,
       { ...(projectStatus('ready', 'other-ready') as never), projectId: 'project-2' } as never,
       personalStatus('alice', 'doing', 'alice-doing'),
     ]
 
-    expect(getProjectStatusLists(lists, PROJECT).map(s => s.id)).toEqual(['alice-doing'])
+    // Exactly one entry per role, whichever rows happen to exist mid-cleanup.
+    const statuses = getProjectStatusLists(lists, PROJECT)
+    expect(new Set(statuses.map(s => s.statusRole)).size).toBe(statuses.length)
   })
 
-  it('builds board columns from the project-scoped set', () => {
+  it('builds board columns from the per-user set, with no duplicate roles', () => {
     const lists = [domainList, projectStatus('ready', 'proj-ready'), personalStatus('alice', 'ready', 'alice-ready')]
     const columns = getProjectBoardColumns(lists, PROJECT)
 
     expect(columns[0].kind).toBe('inbox')
     expect(columns[columns.length - 1].kind).toBe('done')
-    expect(columns.filter(c => c.kind === 'status').map(c => c.id)).toEqual(['proj-ready'])
+    // One Ready column, not two.
+    expect(columns.filter(c => c.kind === 'status').map(c => c.id)).toEqual(['alice-ready'])
   })
 
   it('strips a stale personal status when moving a card on a promoted board', () => {
