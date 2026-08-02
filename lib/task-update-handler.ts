@@ -128,12 +128,25 @@ export async function recordStateChangeComment(args: {
 
     const commentContent = formatStateChangesAsComment(stateChanges, updaterName)
 
+    // Typed discriminator for the completion-streak fold (task 59e2dcff).
+    // Derived from the structured StateChange, never from the rendered prose —
+    // the whole point is that clients stop pattern-matching English.
+    //
+    // Only set when completion is the SOLE change: a comment that also reports
+    // a priority or due-date edit is not a bare completion event, and folding
+    // it into a streak would hide those edits.
+    const systemEventType =
+      stateChanges.length === 1 && stateChanges[0].field === 'completed'
+        ? updatedTask.completed ? 'COMPLETED' : 'REOPENED'
+        : null
+
     const comment = await prisma.comment.create({
       data: {
         taskId: updatedTask.id,
         authorId: null,
         content: commentContent,
         type: "TEXT",
+        systemEventType,
       },
       include: {
         author: true,

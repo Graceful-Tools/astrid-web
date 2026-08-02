@@ -1,6 +1,8 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { foldCompletionStreaks } from "@/lib/completion-streak"
+import { StreakRow } from "@/components/task-detail/StreakRow"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -742,6 +744,11 @@ export function CommentSection({
     .filter(comment => showSystemComments || comment.authorId !== null)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
+  // Fold runs of repeating-task completions into one expandable row
+  // (task 59e2dcff). A weekly task otherwise buries every real discussion
+  // under an unbroken column of "marked this as complete".
+  const commentEntries = foldCompletionStreaks(sortedComments as never)
+
   // Render a comment using the shared MessageBubble component
   const renderChatBubble = (comment: any, isReply: boolean = false, parentCommentId?: string) => {
     const isCurrentUser = comment.authorId === currentUser.id
@@ -925,7 +932,18 @@ export function CommentSection({
         onTouchEnd={onTouchEnd}
         className="flex-1 overflow-y-auto scrollbar-hide space-y-4 pr-2 mb-4"
       >
-        {sortedComments.map((comment) => (
+        {commentEntries.map((entry) => {
+          if (entry.kind === 'streak') {
+            return (
+              <StreakRow
+                key={`streak-${entry.comments[0].id}`}
+                entry={entry}
+                renderComment={renderChatBubble as never}
+              />
+            )
+          }
+          const comment = entry.comment as any
+          return (
           <div key={comment.id}>
             {renderChatBubble(comment)}
 
@@ -979,7 +997,8 @@ export function CommentSection({
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
         {agentTyping?.isTyping && (
           <div className="flex items-center gap-2 px-1 py-2">
             <div className="flex items-center gap-0.5 h-5">
