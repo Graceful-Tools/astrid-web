@@ -125,7 +125,7 @@ export function getProjectStatusLists(lists: TaskList[], projectId?: string | nu
   // One set per user, deduplicated by role (see lib/status-lists.ts). The
   // per-project variant this used to prefer is what produced nine status
   // lists for a user with two boards.
-  const scoped = statusListsForUser(statuses as never) as typeof statuses
+  const scoped = statusListsForUser(statuses as never, projectId) as typeof statuses
 
   return scoped.sort((a, b) => {
     const aOrder = typeof a.statusOrder === 'number' ? a.statusOrder : Number.MAX_SAFE_INTEGER

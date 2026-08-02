@@ -81,3 +81,42 @@ describe('status lists are never offered as a destination', () => {
     expect(filterDomainLists(jonsLists)).toHaveLength(2)
   })
 })
+
+/**
+ * Custom states are a per-PROJECT, Project-Mode-only feature; the default
+ * Ready/Doing/Waiting stay per-user singletons that span every board.
+ *
+ * So the two kinds of status list are scoped differently on purpose, and the
+ * cleanup must not confuse them.
+ */
+describe('custom states are scoped to their project', () => {
+  const custom = (id: string, role: string, projectId: string) =>
+    ({ id, name: role, listType: 'status', statusRole: role, ownerId: 'jon',
+       projectId, privacy: 'PRIVATE', statusOrder: 5 }) as never
+
+  it('shows a project\'s custom state on that project\'s board', () => {
+    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
+    const ids = statusListsForUser(lists, 'project-web').map(l => (l as { id: string }).id)
+    expect(ids).toContain('web-blocked')
+  })
+
+  it('does NOT leak a custom state onto another project\'s board', () => {
+    // A per-project custom state is the whole point of it being per-project.
+    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
+    const ids = statusListsForUser(lists, 'project-ios').map(l => (l as { id: string }).id)
+    expect(ids).not.toContain('web-blocked')
+  })
+
+  it('still collapses the DEFAULT roles to one each alongside a custom state', () => {
+    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
+    const statuses = statusListsForUser(lists, 'project-web')
+    const defaults = statuses.filter(l => ['ready','doing','waiting'].includes((l as { statusRole: string }).statusRole))
+    expect(defaults).toHaveLength(3)
+    expect(defaults.every(l => !(l as { projectId: string | null }).projectId)).toBe(true)
+  })
+
+  it('omits custom states entirely when no project is in scope', () => {
+    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
+    expect(statusListsForUser(lists).map(l => (l as { id: string }).id)).not.toContain('web-blocked')
+  })
+})

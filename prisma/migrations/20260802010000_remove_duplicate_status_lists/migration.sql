@@ -6,8 +6,15 @@
 -- boards ended up with NINE status lists — three of each role — surfacing as
 -- duplicates in every list picker.
 --
--- Status lists are per-user singletons. This moves any membership back onto the
--- owner's per-user row and deletes the project-scoped duplicates.
+-- The DEFAULT roles (ready/doing/waiting) are per-user singletons: this moves
+-- their memberships back onto the owner's per-user row and deletes the
+-- project-scoped copies.
+--
+-- CUSTOM states are deliberately left alone. Per-project custom states are a
+-- Project-Mode feature, so a project-scoped status row with a non-default role
+-- is legitimate and must survive. Production has none today (6 project-scoped
+-- rows, all default roles), but a blanket delete would be the wrong shape the
+-- moment the feature lands.
 --
 -- Insert-before-delete, so no task is ever momentarily status-less.
 
@@ -28,6 +35,7 @@ SELECT DISTINCT ON (dup."ownerId", dup."statusRole")
 FROM "TaskList" dup
 WHERE dup."listType" = 'status'
   AND dup."projectId" IS NOT NULL
+  AND dup."statusRole" IN ('ready', 'doing', 'waiting')
   AND NOT EXISTS (
       SELECT 1 FROM "TaskList" personal
       WHERE personal."listType" = 'status'
@@ -45,6 +53,7 @@ JOIN "TaskList" dup
     ON dup."id" = tt."B"
    AND dup."listType" = 'status'
    AND dup."projectId" IS NOT NULL
+   AND dup."statusRole" IN ('ready', 'doing', 'waiting')
 JOIN "TaskList" personal
     ON personal."listType" = 'status'
    AND personal."projectId" IS NULL
@@ -55,7 +64,9 @@ ON CONFLICT DO NOTHING;
 -- 3. Drop the duplicates. Their remaining memberships go with them via the
 --    join table's ON DELETE CASCADE, and step 2 already copied each one across.
 DELETE FROM "TaskList"
-WHERE "listType" = 'status' AND "projectId" IS NOT NULL;
+WHERE "listType" = 'status'
+  AND "projectId" IS NOT NULL
+  AND "statusRole" IN ('ready', 'doing', 'waiting');
 
 -- 4. Safety net: a task must still hold at most one status. If a task somehow
 --    ended up on two per-user status rows, keep the lowest statusOrder.

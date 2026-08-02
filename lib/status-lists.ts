@@ -22,6 +22,11 @@ import { isDomainList, isStatusList } from '@/lib/list-flavors'
 /** Ordered roles. Inbox and Done stay virtual — they are derived from task state. */
 export const STATUS_ROLE_ORDER = ['ready', 'doing', 'waiting'] as const
 
+/** The per-user defaults. Anything else is a per-project custom state. */
+export function isDefaultStatusRole(role: string | null | undefined): boolean {
+  return !!role && (STATUS_ROLE_ORDER as readonly string[]).includes(role)
+}
+
 type ListLike = Pick<TaskList, 'id' | 'listType'> & {
   statusRole?: string | null
   projectId?: string | null
@@ -37,13 +42,23 @@ type ListLike = Pick<TaskList, 'id' | 'listType'> & {
  * the cleanup migration has not yet run — or on a client holding a stale list
  * set from before it did.
  */
-export function statusListsForUser<T extends ListLike>(lists: T[]): T[] {
+export function statusListsForUser<T extends ListLike>(lists: T[], projectId?: string | null): T[] {
   const byRole = new Map<string, T>()
 
   for (const list of lists) {
     if (!isStatusList(list)) continue
     const role = list.statusRole
     if (!role) continue
+
+    // Custom states are a per-project, Project-Mode-only feature: they belong
+    // to one board and must not leak onto another. The default roles are
+    // per-user singletons and appear on every board, which is why only the
+    // custom ones are filtered by project here.
+    if (!isDefaultStatusRole(role)) {
+      if (!projectId || list.projectId !== projectId) continue
+      byRole.set(role, list)
+      continue
+    }
 
     const existing = byRole.get(role)
     if (!existing) {
@@ -59,10 +74,13 @@ export function statusListsForUser<T extends ListLike>(lists: T[]): T[] {
     const list = byRole.get(role)
     if (list) ordered.push(list)
   }
-  // Any custom role the user added, after the defaults.
+  // The project's own custom states, after the defaults, in statusOrder.
+  const customs: T[] = []
   for (const [role, list] of byRole) {
-    if (!(STATUS_ROLE_ORDER as readonly string[]).includes(role)) ordered.push(list)
+    if (!isDefaultStatusRole(role)) customs.push(list)
   }
+  customs.sort((a, b) => (a.statusOrder ?? 0) - (b.statusOrder ?? 0))
+  ordered.push(...customs)
   return ordered
 }
 
