@@ -485,6 +485,15 @@ export const PUT = withAuth<RouteContext>(
       data.closedReason = null
     }
 
+    // Board status as a state on the task (AWTD-562), mirroring the web route.
+    if (body.statusRole !== undefined) {
+      data.statusRole = body.statusRole || null
+    }
+    // Done carries no status.
+    if (data.completed === true) {
+      data.statusRole = null
+    }
+
     // Terminal state other than done (task 11042ae3). Same validation as the
     // web route so the two surfaces cannot drift.
     if (body.closedReason !== undefined && data.completed !== false) {

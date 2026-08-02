@@ -383,6 +383,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         ...(data.closedReason !== undefined && requestedCompleted !== false
           ? { closedReason: parsedClosedReason.value }
           : {}),
+        // Board status as a state on the task (AWTD-562). Completing a task
+        // clears it — Done carries no status, the same invariant the list
+        // model needed a normalizer to hold.
+        ...(requestedCompleted === true
+          ? { statusRole: null }
+          : data.statusRole !== undefined
+            ? { statusRole: data.statusRole || null }
+            : {}),
         dueDateTime: sanitizedDueDateTime,
         isAllDay: data.isAllDay ?? false,
         assigneeId: finalAssigneeId,

@@ -163,7 +163,7 @@ describe('project status', () => {
     const doneColumn = columns.find(column => column.id === VIRTUAL_DONE_COLUMN_ID)!
     const result = resolveProjectColumnMove(taskInReady, doneColumn, [ios, ready, doing])
 
-    expect(result).toEqual({ listIds: ['ios'], completed: true })
+    expect(result).toEqual({ listIds: ['ios'], completed: true, statusRole: null })
   })
 
   it('moves back to virtual Inbox by stripping statuses and clearing completed', () => {
@@ -175,7 +175,7 @@ describe('project status', () => {
     const inboxColumn = columns.find(column => column.id === VIRTUAL_INBOX_COLUMN_ID)!
     const result = resolveProjectColumnMove(completedTask, inboxColumn, [ios, doing])
 
-    expect(result).toEqual({ listIds: ['ios'], completed: false })
+    expect(result).toEqual({ listIds: ['ios'], completed: false, statusRole: null })
   })
 
   it('normalizes direct list updates to a single global status and forces completed=false', () => {

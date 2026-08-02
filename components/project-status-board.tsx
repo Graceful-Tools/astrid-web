@@ -203,7 +203,10 @@ export function ProjectStatusBoard({
       ...task,
       completed: result.completed,
       lists: nextLists,
-    })
+      // Status is a state on the task (AWTD-562). Written alongside the list
+      // membership so web is authoritative while iOS still reads the list.
+      statusRole: result.statusRole,
+    } as typeof task)
   }
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>, column: ProjectBoardColumn) => {

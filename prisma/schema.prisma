@@ -233,6 +233,11 @@ model Project {
   /// an "AST" and forcing global uniqueness would hand out ugly keys for no
   /// benefit. Null for projects created before identifiers existed.
   key         String?
+  /// Per-project custom board states — a Project-Mode-only feature (AWTD-562).
+  /// Shape: [{ role, name, description?, order }]. The defaults
+  /// (ready/doing/waiting) are code constants shared by every board and are
+  /// NOT stored here. A custom state may not shadow a default role.
+  customStates Json?
   /// Next identifier to hand out. Allocated with an atomic UPDATE ... RETURNING
   /// inside the task-create transaction — never SELECT max()+1, because
   /// concurrent creation from web, iOS, MCP and agents is the normal case here,
@@ -297,6 +302,16 @@ model Task {
   /// The numeric half of `identifier`, kept for ordering and for re-deriving
   /// the string if a project is ever re-keyed.
   sequence        Int?
+  /// Board status as a STATE on the task (task AWTD-562): ready | doing |
+  /// waiting | <a project's custom role>. Null means Inbox; Done is derived
+  /// from `completed`, so neither is ever stored.
+  ///
+  /// Replaces membership in a `listType: 'status'` TaskList. That model could
+  /// not be both per-user (or pickers filled with duplicate lists) and shared
+  /// (or two members of a board resolved different columns). As a field on the
+  /// shared task both hold, and "at most one status" is true by construction
+  /// rather than enforced by a normalizer.
+  statusRole      String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   assigneeId      String?
@@ -351,6 +366,7 @@ model Task {
   @@index([creatorId, createdAt])
   @@index([parentTaskId])
   @@index([closedReason])
+  @@index([statusRole])
   @@unique([identifier])
 }
 
