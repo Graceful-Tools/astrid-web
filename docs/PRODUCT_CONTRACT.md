@@ -104,6 +104,38 @@ Known reconciliation items (surfaced by building this registry):
 
 ---
 
+## 3. Task detail layout (shared with iOS/Mac)
+
+Task `dcbbb0fa` (Web) / `42013da7` (iOS/Mac). The row layout and the
+full-screen affordance are **product decisions shared across all three
+clients**, so they live here rather than being re-derived per platform.
+
+**The goal is to see more of the description.** Stacked field rows are what
+push it below the fold, so the row consolidation is where the space comes
+from — that is the point, not tidier rows. Judge any future change to this
+section by whether the description gained or lost room.
+
+| Row | Contents | Rule |
+|---|---|---|
+| **When** | Date · Time · Repeat | Time and Repeat are **conditional on a date existing**. With no date the row is a single "Add date" control, not three empty ones. |
+| **Priority** | Priority · Assignee | Priority leads — it is the row's label and its colour reads at a glance. A **public-list task shows its creator here instead**, and no priority. |
+| Lists | list chips | unchanged |
+| Description | — | receives the reclaimed space |
+
+Further rules, learned on iOS and mirrored on Web:
+
+- **Triggers size to their content**, not to the full row width, so three
+  controls fit on one line.
+- **Show only what is set.** An unset field is an affordance to add one, not a
+  control showing "None".
+- **No 80pt labels per field.** One label per consolidated row.
+
+**Full-screen task details** is an escape hatch for a long description, not a
+new default: off by default, and **never offered on the inline/board panel**,
+which is deliberately a peek and would fight the board it is embedded in.
+
+---
+
 ## 3. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →
@@ -118,5 +150,5 @@ Known reconciliation items (surfaced by building this registry):
 
 ---
 
-*Governs shared behavior + copy. Wire formats: docs/context/api_contracts.md.
+*Governs shared behavior, layout + copy. Wire formats: docs/context/api_contracts.md.
 Reuse mechanics & rollout: docs/CODE_REUSE_AND_CONSISTENCY.md.*

@@ -414,6 +414,16 @@ model Comment {
   id              String       @id @default(cuid())
   content         String
   type            CommentType  @default(TEXT)
+  /// Typed discriminator for system-authored comments (authorId = null),
+  /// task 59e2dcff. Clients previously identified a completion comment by
+  /// pattern-matching the English string "marked this as complete" — so
+  /// localising or rewording that sentence would silently break the
+  /// completion-streak fold on web, iOS and Mac simultaneously.
+  ///
+  /// Values mirror the StateChange fields in lib/task-state-change-tracker.ts:
+  /// COMPLETED | REOPENED. Null for user-written comments and for system
+  /// comments predating this field, so consumers must tolerate null.
+  systemEventType String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   authorId        String?
@@ -435,6 +445,7 @@ model Comment {
   @@index([createdAt])
   @@index([taskId, createdAt])
   @@index([parentCommentId, createdAt])
+  @@index([taskId, systemEventType])
 }
 
 model Attachment {

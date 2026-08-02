@@ -674,6 +674,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     }
   }
 
+  // Full-screen task details (task dcbbb0fa, item 3). Off by default — this is
+  // an escape hatch for a long description, not a new default layout. Never
+  // offered for the inline/board panel, which is deliberately a peek.
+  const [fullScreen, setFullScreen] = useState(false)
+
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
 
@@ -1298,9 +1303,14 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       ) : null}
       <div
         className={`${
-          inline ? 'w-full overflow-hidden rounded-md border theme-border' : onClose ? 'w-full' : 'task-panel'
-        } theme-panel flex flex-col ${inline ? 'h-auto max-h-[70vh]' : 'h-full'} relative`}
+          fullScreen && !inline
+            ? 'fixed inset-0 z-50 w-full'
+            : inline ? 'w-full overflow-hidden rounded-md border theme-border' : onClose ? 'w-full' : 'task-panel'
+        } theme-panel flex flex-col ${
+          fullScreen && !inline ? 'h-screen' : inline ? 'h-auto max-h-[70vh]' : 'h-full'
+        } relative`}
         data-task-detail-panel
+        data-fullscreen={fullScreen && !inline ? 'true' : undefined}
         {...(swipeToDismiss || {})}
       >
 
@@ -1323,6 +1333,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
         compact={inline}
+        fullScreen={inline ? undefined : fullScreen}
+        onToggleFullScreen={inline ? undefined : () => setFullScreen(value => !value)}
       />
 
       <div
