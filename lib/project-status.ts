@@ -170,6 +170,20 @@ export function getTaskProjectColumnId(
 ): string {
   if (task.completed) return VIRTUAL_DONE_COLUMN_ID
 
+  // Status is a STATE on the task (AWTD-562). Prefer the field: it lives on the
+  // shared task, so two members of a board cannot resolve different columns —
+  // the failure the list model could not fix without duplicating lists.
+  //
+  // The membership fallback below stays only for the transition: a client
+  // holding tasks fetched before the backfill, and iOS, still carry status as a
+  // list membership. It goes when the status lists do.
+  const statusRoleFromField = (task as { statusRole?: string | null }).statusRole
+  if (statusRoleFromField) {
+    const match = getProjectStatusLists(lists, projectId)
+      .find(status => status.statusRole === statusRoleFromField)
+    return match ? match.id : statusRoleFromField
+  }
+
   const statusLists = getProjectStatusLists(lists, projectId)
   const taskListIds = new Set(task.lists?.map(list => list.id) || [])
   const explicit = statusLists.find(status => taskListIds.has(status.id))
@@ -189,7 +203,7 @@ export function resolveProjectColumnMove(
   task: Task,
   targetColumn: ProjectBoardColumn,
   lists: TaskList[],
-): { listIds: string[]; completed: boolean } {
+): { listIds: string[]; completed: boolean; statusRole: string | null } {
   // Strips status memberships of *both* scopes — personal and project-scoped —
   // so moving a card on a promoted board also clears the stale personal status
   // it may still carry from before the project was promoted. A task must never
@@ -200,14 +214,17 @@ export function resolveProjectColumnMove(
   const retainedListIds = task.lists.map(list => list.id).filter(id => !statusIds.has(id))
 
   if (targetColumn.kind === 'inbox') {
-    return { listIds: retainedListIds, completed: false }
+    return { listIds: retainedListIds, completed: false, statusRole: null }
   }
   if (targetColumn.kind === 'done') {
-    return { listIds: retainedListIds, completed: true }
+    return { listIds: retainedListIds, completed: true, statusRole: null }
   }
   return {
     listIds: [...retainedListIds, targetColumn.id],
     completed: false,
+    // Written alongside the membership so the field is the source of truth on
+    // web while iOS still reads the list. Dual-write, not dual-truth.
+    statusRole: targetColumn.statusList?.statusRole ?? null,
   }
 }
 

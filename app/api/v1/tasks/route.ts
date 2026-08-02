@@ -147,6 +147,9 @@ export const GET = withAuth(
           // *display* one, which is where its value actually is.
           identifier: true,
           sequence: true,
+          // Board status as a state (AWTD-562) — without this no client can
+          // render a board from the field.
+          statusRole: true,
           createdAt: true,
           updatedAt: true,
           originalTaskId: true,

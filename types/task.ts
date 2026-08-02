@@ -176,6 +176,12 @@ export interface Task {
    * normally, or still open — so it renders nothing until someone uses it.
    */
   closedReason?: string | null
+  /**
+   * Board status as a state on the task (AWTD-562): ready | doing | waiting |
+   * a project's custom role. Null/undefined means Inbox; Done is derived from
+   * `completed`. Replaces membership in a status list.
+   */
+  statusRole?: string | null
   attachments: Attachment[]
   comments: Comment[]
   createdAt: Date

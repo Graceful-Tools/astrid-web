@@ -107,6 +107,7 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
       'closedReason',   // done vs won't-do
       'identifier',     // AST-142
       'sequence',
+      'statusRole',     // board column (AWTD-562)
     ]) {
       expect(args.select?.[field], `v1 task select is missing "${field}"`).toBe(true)
     }
