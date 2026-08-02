@@ -93,137 +93,24 @@ export async function isProjectShared(projectId: string, client: PrismaLike = pr
 }
 
 /**
- * Get-or-create a project's own status lists, and move the owner's existing
- * status memberships onto them (task 142e4dd9).
+ * Promotion is a NO-OP. Kept as a named function so the two member-add routes
+ * keep a single, greppable call site if project-scoped statuses ever return.
  *
- * A shared board must resolve the *same* column ids for every member. Personal
- * status lists are `PRIVATE` and owned by one user, so they cannot do that —
- * hence a project-scoped set, owned by the project owner but reachable by every
- * member through project-derived access (task 6c20d125).
+ * It used to create a Ready/Doing/Waiting set per shared project, to give both
+ * members of a board a status they could each resolve. That reintroduced
+ * exactly the duplication migration 20260516000000_per_user_status_lists had
+ * removed: a user with two boards saw nine status lists, three of each role,
+ * in every list picker.
  *
- * Idempotent: creates only the roles the project is missing, and re-points
- * memberships by `statusRole` so a task sitting in the owner's personal "Doing"
- * lands in the project's "Doing" rather than falling back to Inbox. The earlier
- * per-user migration dropped memberships outright and stranded tasks in Inbox;
- * this one deliberately does not repeat that.
+ * Status lists are per-user singletons. A user has exactly one Ready / Doing /
+ * Waiting, and it spans every board they have — see lib/status-lists.ts.
+ *
+ * The shared-board correctness this was solving is real but needs a different
+ * shape (status as a field on the task rather than a list membership); it is
+ * tracked separately rather than paid for with duplicate lists.
  */
-export async function ensureProjectStatusLists(projectId: string, client: PrismaLike = prisma) {
-  const project = await client.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, ownerId: true },
-  })
-  if (!project) return []
-
-  const existing = await client.taskList.findMany({
-    where: { projectId, listType: 'status' },
-  })
-  const haveRoles = new Set(existing.map(list => list.statusRole))
-  const missing = DEFAULT_PROJECT_STATUSES.filter(status => !haveRoles.has(status.role))
-
-  if (missing.length > 0) {
-    await client.taskList.createMany({
-      data: missing.map(status => ({
-        name: status.name,
-        description: status.description,
-        color: '#3b82f6',
-        // Access comes from project membership, not list privacy — the list is
-        // still PRIVATE, but getUserRoleInList resolves project members onto it.
-        privacy: 'PRIVATE' as const,
-        ownerId: project.ownerId,
-        projectId,
-        listType: 'status',
-        statusRole: status.role,
-        statusOrder: status.order,
-        statusDescription: status.description,
-        statusCompleted: false,
-        imageUrl: null,
-      })),
-    })
-  }
-
-  const projectStatuses = await client.taskList.findMany({
-    where: { projectId, listType: 'status' },
-    orderBy: { statusOrder: 'asc' },
-  })
-
-  await migratePersonalStatusMemberships(projectId, project.ownerId, projectStatuses, client)
-
-  return projectStatuses
-}
-
-/**
- * Move tasks in this project's domain out of the owner's personal status lists
- * and into the project's, matching on `statusRole`.
- *
- * Without this, promoting a board would silently dump every in-progress card
- * into Inbox — exactly the regression the 20260516 migration caused.
- */
-async function migratePersonalStatusMemberships(
-  projectId: string,
-  ownerId: string,
-  projectStatuses: Array<{ id: string; statusRole: string | null }>,
-  client: PrismaLike,
-) {
-  const personalStatuses = await client.taskList.findMany({
-    where: { ownerId, listType: 'status', projectId: null },
-    select: { id: true, statusRole: true },
-  })
-  if (personalStatuses.length === 0) return
-
-  const projectStatusByRole = new Map(
-    projectStatuses.map(status => [status.statusRole, status.id]),
-  )
-
-  // Only tasks that belong to this project's domain lists — a personal status
-  // membership on an unrelated task must be left alone.
-  const domainListIds = (
-    await client.taskList.findMany({
-      where: { projectId, listType: { not: 'status' } },
-      select: { id: true },
-    })
-  ).map(list => list.id)
-  if (domainListIds.length === 0) return
-
-  for (const personal of personalStatuses) {
-    const target = projectStatusByRole.get(personal.statusRole)
-    if (!target || target === personal.id) continue
-
-    const tasks = await client.task.findMany({
-      where: {
-        lists: { some: { id: personal.id } },
-        AND: [{ lists: { some: { id: { in: domainListIds } } } }],
-      },
-      select: { id: true },
-    })
-
-    for (const task of tasks) {
-      await client.task.update({
-        where: { id: task.id },
-        data: { lists: { disconnect: { id: personal.id }, connect: { id: target } } },
-      })
-    }
-  }
-}
-
-/**
- * Promote a list's project to project-scoped statuses if it just became shared
- * (task 142e4dd9). Safe to call from any member-add path — it no-ops for
- * project-less lists and for projects that already have their status set.
- *
- * Best-effort by contract: sharing a list must not fail because promotion did.
- * The caller logs and continues; an unpromoted board simply keeps the old
- * personal-status behaviour until the next attempt.
- */
-export async function promoteProjectIfShared(listId: string, client: PrismaLike = prisma) {
-  const list = await client.taskList.findUnique({
-    where: { id: listId },
-    select: { projectId: true },
-  })
-  if (!list?.projectId) return null
-
-  if (!(await isProjectShared(list.projectId, client))) return null
-
-  return ensureProjectStatusLists(list.projectId, client)
+export async function promoteProjectIfShared(_listId: string, _client: PrismaLike = prisma) {
+  return null
 }
 
 const safeUserSelect = {

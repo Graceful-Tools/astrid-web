@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { UserPicker } from "@/components/user-picker"
 import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
+import { selectableLists } from "@/lib/status-lists"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
 import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash } from "lucide-react"
@@ -405,13 +406,16 @@ export function TaskFieldEditors({
   // List filtering
   const getFilteredLists = () => {
     const selectedListIds = new Set(tempLists.map(l => l.id))
-    return availableLists
+    // selectableLists drops status lists (a state, not a destination) and
+    // labels as well as virtual lists. This previously filtered only virtual
+    // lists, so a user with two boards was offered nine status lists here —
+    // three "Ready", three "Doing", three "Waiting".
+    return selectableLists(availableLists)
       .filter(list => !selectedListIds.has(list.id))
       .filter(list => {
         if (!listSearchTerm) return true
         return list.name.toLowerCase().includes(listSearchTerm.toLowerCase())
       })
-      .filter(list => !list.isVirtual)
       .slice(0, 10)
   }
 

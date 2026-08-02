@@ -14,6 +14,7 @@
  *   Done              =  completed = true
  */
 import type { Task, TaskList } from '@/types/task'
+import { statusListsForUser } from '@/lib/status-lists'
 
 export type ProjectStatusRole = 'ready' | 'doing' | 'waiting' | 'custom'
 
@@ -121,15 +122,10 @@ export function getProjectStatusLists(lists: TaskList[], projectId?: string | nu
     .filter(list => isProjectStatusList(list))
     .filter(list => !isLegacyDoneStatusList(list) && !isLegacyInboxStatusList(list))
 
-  const projectScoped = projectId
-    ? statuses.filter(list => list.projectId === projectId)
-    : []
-
-  const scoped = projectScoped.length > 0
-    ? projectScoped
-    // Personal statuses only — never another project's, which would leak
-    // columns between boards.
-    : statuses.filter(list => !list.projectId)
+  // One set per user, deduplicated by role (see lib/status-lists.ts). The
+  // per-project variant this used to prefer is what produced nine status
+  // lists for a user with two boards.
+  const scoped = statusListsForUser(statuses as never) as typeof statuses
 
   return scoped.sort((a, b) => {
     const aOrder = typeof a.statusOrder === 'number' ? a.statusOrder : Number.MAX_SAFE_INTEGER
