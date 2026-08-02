@@ -140,8 +140,10 @@ describe('TaskFieldEditors', () => {
     it('should render all field editors', () => {
       render(<TaskFieldEditors {...defaultProps} />)
 
-      expect(screen.getByText('Who')).toBeInTheDocument() // Changed from 'Assignee' to 'Who'
-      expect(screen.getByText('Date')).toBeInTheDocument() // Changed from 'When' to 'Date'
+      // Date/Time/Repeat consolidated into one "When" row and
+      // Priority/Assignee into one "Priority" row (task dcbbb0fa), so the
+      // per-field labels these used to assert no longer exist.
+      expect(screen.getByText('When')).toBeInTheDocument()
       expect(screen.getByText('Priority')).toBeInTheDocument()
       expect(screen.getByText('Lists')).toBeInTheDocument()
       expect(screen.getByText('Description')).toBeInTheDocument()
@@ -257,10 +259,18 @@ describe('TaskFieldEditors', () => {
     })
   })
 
-  describe('When Field', () => {
+  describe('When row — Date · Time · Repeat (dcbbb0fa)', () => {
+    it('shows the date control alone when no date is set', () => {
+      // An undated task gets a single "Add date" control, not three empty ones.
+      render(<TaskFieldEditors {...defaultProps} />)
+      expect(screen.getByTestId('when-date')).toBeInTheDocument()
+      expect(screen.queryByTestId('when-time')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('when-repeat')).not.toBeInTheDocument()
+    })
+
     it('should not show time field when dueDateTime is not set', () => {
       render(<TaskFieldEditors {...defaultProps} />)
-      expect(screen.queryByText('Time')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('when-time')).not.toBeInTheDocument()
     })
 
     it('should show time field when dueDateTime is set', () => {
@@ -270,14 +280,14 @@ describe('TaskFieldEditors', () => {
         isAllDay: false
       }
       render(<TaskFieldEditors {...defaultProps} task={taskWithDate} tempWhen={taskWithDate.dueDateTime} />)
-      expect(screen.getByText('Time')).toBeInTheDocument()
+      expect(screen.getByTestId('when-time')).toBeInTheDocument()
     })
   })
 
   describe('Repeating Field', () => {
     it('should not show repeating field when dueDateTime is not set', () => {
       render(<TaskFieldEditors {...defaultProps} />)
-      expect(screen.queryByText('Repeat')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('when-repeat')).not.toBeInTheDocument()
     })
 
     it('should show repeating field when dueDateTime is set', () => {
@@ -287,7 +297,7 @@ describe('TaskFieldEditors', () => {
         isAllDay: false
       }
       render(<TaskFieldEditors {...defaultProps} task={taskWithDate} tempWhen={taskWithDate.dueDateTime} />)
-      expect(screen.getByText('Repeat')).toBeInTheDocument()
+      expect(screen.getByTestId('when-repeat')).toBeInTheDocument()
     })
   })
 

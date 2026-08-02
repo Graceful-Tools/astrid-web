@@ -109,3 +109,38 @@ describe('TaskHeader layout (cc76307c)', () => {
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
 })
+
+/**
+ * Task dcbbb0fa item 3 — full-screen task details.
+ */
+describe('full-screen toggle (dcbbb0fa)', () => {
+  it('offers a full-screen control when the parent supports it', () => {
+    renderHeader({ onClose: vi.fn(), onToggleFullScreen: vi.fn(), fullScreen: false })
+    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+  })
+
+  it('flips to an exit control once full screen', () => {
+    renderHeader({ onClose: vi.fn(), onToggleFullScreen: vi.fn(), fullScreen: true })
+    expect(screen.getByLabelText('Exit full screen')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+  })
+
+  it('NEVER offers it on the inline/board panel', () => {
+    // The inline panel is deliberately a peek; a full-screen escape hatch there
+    // would fight the board it is embedded in.
+    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn() })
+    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+  })
+
+  it('omits it entirely when the parent passes no handler', () => {
+    renderHeader({ onClose: vi.fn() })
+    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+  })
+
+  it('calls back when toggled', () => {
+    const onToggle = vi.fn()
+    renderHeader({ onClose: vi.fn(), onToggleFullScreen: onToggle, fullScreen: false })
+    screen.getByLabelText('Full screen').click()
+    expect(onToggle).toHaveBeenCalledTimes(1)
+  })
+})

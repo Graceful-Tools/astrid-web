@@ -428,90 +428,25 @@ export function TaskFieldEditors({
 
   return (
     <>
-      {/* Creator Field for public list tasks, Assignee Field for regular tasks */}
-      {!shouldHidePriority && (
-      <div className="grid grid-cols-3 gap-4 items-center">
-        <Label className="text-sm theme-text-muted">
-          {isPublicListTask ? "Created by" : "Who"}
-        </Label>
-        {isPublicListTask ? (
-          // For public list tasks, show creator (non-editable)
-          <div className="flex items-center space-x-2 mt-1 col-span-2 px-2 py-1 rounded">
-            {task.creator ? (
-              <>
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={task.creator.image || "/placeholder.svg"} />
-                  <AvatarFallback>{task.creator.name?.charAt(0) || task.creator.email?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className="text-blue-600 dark:text-blue-400">{task.creator.name || task.creator.email}</span>
-              </>
-            ) : (
-              <span className="theme-text-muted">Unknown creator</span>
-            )}
-          </div>
-        ) : (
-          // For regular tasks, show editable assignee
-          (() => {
-            return editingAssignee ? (
-              <div className="mt-1 col-span-2" ref={assigneeRef}>
-                <UserPicker
-                  selectedUser={tempAssignee}
-                  taskId={task.id}
-                  listIds={task.lists?.map(list => list.id)}
-                  includeAIAgents={true}
-                  onUserSelect={(user) => {
-                    setTempAssignee(user)
-                    // Auto-save immediately when user is selected or unassigned
-                    const updatedTask = { ...task, assignee: user, assigneeId: user?.id || null }
-                    onUpdate(updatedTask)
-                    // Always close the editor after selection
-                    setEditingAssignee(false)
-                  }}
-                  onInviteUser={onInviteUser}
-                  placeholder="Search users or enter email..."
-                  inline={true}
-                  autoFocus={true}
-                />
-              </div>
-            ) : (
-              <div
-                className={`flex items-center space-x-2 mt-1 col-span-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
-                onClick={() => !readOnly && setEditingAssignee(true)}
-              >
-                {task.assignee ? (
-                  <>
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src={task.assignee.image || "/placeholder.svg"} />
-                      <AvatarFallback>{task.assignee.name?.charAt(0) || task.assignee.email?.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-blue-600 dark:text-blue-400">{task.assignee.name || task.assignee.email}</span>
-                  </>
-                ) : (
-                  <>
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src="/placeholder.svg" />
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                    <span className="theme-text-muted">Unassigned</span>
-                  </>
-                )}
-              </div>
-            )
-          })()
-        )}
-      </div>
-      )}
-
-      {/* When Field */}
+      {/* When row: Date · Time · Repeat on ONE line (task dcbbb0fa).
+       *
+       *  Previously three stacked rows, each with its own label and padding.
+       *  The reclaimed vertical space is the deliverable — the description was
+       *  being pushed below the fold by chrome. Mirrors the iOS/Mac shape from
+       *  42013da7, where Time and Repeat stay conditional on a date existing,
+       *  so an undated task shows a single "Add date" control rather than
+       *  three empty ones. */}
       {!shouldHideWhen && (
-      <div className="grid grid-cols-3 gap-4 items-center">
-        <Label className="text-sm theme-text-muted">Date</Label>
+      <div className="grid grid-cols-3 gap-4 items-start">
+        <Label className="text-sm theme-text-muted pt-2">When</Label>
+        <div className="col-span-2 flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0" data-testid="when-date">
         {editingWhen ? (
           <Popover open={editingWhen} onOpenChange={setEditingWhen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-start bg-gray-700 border-gray-600 text-white hover:bg-gray-600 mt-1 col-span-2"
+                className="w-auto justify-start bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {tempWhen ? format(tempWhen, "PPP") : "Select date"}
@@ -579,7 +514,7 @@ export function TaskFieldEditors({
           </Popover>
         ) : (
           <div
-            className={`flex items-center justify-between mt-1 col-span-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+            className={`flex items-center gap-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
             onClick={() => !readOnly && setEditingWhen(true)}
           >
             <span className={task.dueDateTime ? "text-blue-600 dark:text-blue-400" : "theme-text-muted"}>
@@ -588,14 +523,12 @@ export function TaskFieldEditors({
           </div>
         )}
       </div>
-      )}
 
-      {/* Time Field (only show if dueDateTime is set) */}
-      {task.dueDateTime && !shouldHideWhen && (
-        <div className="grid grid-cols-3 gap-4 items-center">
-          <Label className="text-sm theme-text-muted">Time</Label>
+      {/* Time — only once a date exists */}
+      {task.dueDateTime && (
+        <div className="flex items-center gap-2 min-w-0" data-testid="when-time">
           {editingTime ? (
-            <div className="mt-1 col-span-2">
+            <div className="mt-1">
               <TimePicker
                 value={tempWhen}
                 onChange={handleSaveTime}
@@ -603,7 +536,7 @@ export function TaskFieldEditors({
             </div>
           ) : (
             <div
-              className={`flex items-center justify-between mt-1 col-span-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+              className={`flex items-center gap-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
               onClick={() => !readOnly && setEditingTime(true)}
             >
               <span className={task.dueDateTime && !task.isAllDay ? "text-blue-600 dark:text-blue-400" : "theme-text-muted"}>
@@ -614,13 +547,12 @@ export function TaskFieldEditors({
         </div>
       )}
 
-      {/* Repeating Field (only show if dueDateTime is set) */}
-      {task.dueDateTime && !shouldHideWhen && (
-        <div className="grid grid-cols-3 gap-4 items-center">
-          <Label className="text-sm theme-text-muted">Repeat</Label>
+      {/* Repeat — only once a date exists */}
+      {task.dueDateTime && (
+        <div className="flex items-center gap-2 min-w-0" data-testid="when-repeat">
           {editingRepeating ? (
             <div
-              className="mt-1 col-span-2"
+              className="mt-1"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -761,7 +693,7 @@ export function TaskFieldEditors({
             </div>
           ) : (
             <div
-              className={`flex items-center justify-between mt-1 col-span-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+              className={`flex items-center gap-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
               onClick={() => {
                 if (!readOnly) {
                   setEditingRepeating(true)
@@ -803,18 +735,94 @@ export function TaskFieldEditors({
           )}
         </div>
       )}
+        </div>
+      </div>
+      )}
 
-      {/* Priority Field */}
+      {/* Priority row: Priority · Assignee on ONE line (task dcbbb0fa).
+       *
+       *  Priority leads because it is the row's label and its colour reads at a
+       *  glance; the assignee follows. Mirrors iOS/Mac 42013da7. A public-list
+       *  task shows its creator here instead of an assignee, which is why the
+       *  block below still branches on isPublicListTask. */}
       {!shouldHidePriority && (
       <div className="grid grid-cols-3 gap-4 items-center">
-        <Label className="text-sm theme-text-muted">Priority</Label>
-        <div className="col-span-2">
-          <PriorityPicker
-            value={tempPriority}
-            onChange={handleSavePriority}
-            label="Priority"
-            className="col-span-2"
-          />
+        <Label className="text-sm theme-text-muted">
+          {isPublicListTask ? "Created by" : "Priority"}
+        </Label>
+        <div className="col-span-2 flex flex-wrap items-center gap-3">
+          {!isPublicListTask && (
+            <PriorityPicker
+              value={tempPriority}
+              onChange={handleSavePriority}
+              label="Priority"
+            />
+          )}
+        {isPublicListTask ? (
+          // For public list tasks, show creator (non-editable)
+          <div className="flex items-center space-x-2 mt-1 px-2 py-1 rounded">
+            {task.creator ? (
+              <>
+                <Avatar className="w-6 h-6">
+                  <AvatarImage src={task.creator.image || "/placeholder.svg"} />
+                  <AvatarFallback>{task.creator.name?.charAt(0) || task.creator.email?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <span className="text-blue-600 dark:text-blue-400">{task.creator.name || task.creator.email}</span>
+              </>
+            ) : (
+              <span className="theme-text-muted">Unknown creator</span>
+            )}
+          </div>
+        ) : (
+          // For regular tasks, show editable assignee
+          (() => {
+            return editingAssignee ? (
+              <div className="mt-1" ref={assigneeRef}>
+                <UserPicker
+                  selectedUser={tempAssignee}
+                  taskId={task.id}
+                  listIds={task.lists?.map(list => list.id)}
+                  includeAIAgents={true}
+                  onUserSelect={(user) => {
+                    setTempAssignee(user)
+                    // Auto-save immediately when user is selected or unassigned
+                    const updatedTask = { ...task, assignee: user, assigneeId: user?.id || null }
+                    onUpdate(updatedTask)
+                    // Always close the editor after selection
+                    setEditingAssignee(false)
+                  }}
+                  onInviteUser={onInviteUser}
+                  placeholder="Search users or enter email..."
+                  inline={true}
+                  autoFocus={true}
+                />
+              </div>
+            ) : (
+              <div
+                className={`flex items-center space-x-2 mt-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+                onClick={() => !readOnly && setEditingAssignee(true)}
+              >
+                {task.assignee ? (
+                  <>
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={task.assignee.image || "/placeholder.svg"} />
+                      <AvatarFallback>{task.assignee.name?.charAt(0) || task.assignee.email?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-blue-600 dark:text-blue-400">{task.assignee.name || task.assignee.email}</span>
+                  </>
+                ) : (
+                  <>
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src="/placeholder.svg" />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <span className="theme-text-muted">Unassigned</span>
+                  </>
+                )}
+              </div>
+            )
+          })()
+        )}
         </div>
       </div>
       )}

@@ -1,4 +1,4 @@
-import { ChevronUp } from "lucide-react"
+import { ChevronUp, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TaskCheckbox } from "../task-checkbox"
 import { TaskActionMenu } from "./TaskActionMenu"
@@ -34,6 +34,10 @@ interface TaskHeaderProps {
   onTestReminder: () => void
   /** Close as "won't do" / reopen (task 11042ae3). */
   onCancel?: (closedReason: string | null) => void
+  /** Full-screen task details (task dcbbb0fa). Undefined for the inline/board
+   *  panel, which is deliberately a peek and never offers it. */
+  fullScreen?: boolean
+  onToggleFullScreen?: () => void
   /** Compact: drop the centered "Task Details" header bar and put the action
    *  menu inline next to the title (used by inline panels like the board card).
    */
@@ -58,6 +62,8 @@ export function TaskHeader({
   onDelete,
   onTestReminder,
   onCancel,
+  fullScreen,
+  onToggleFullScreen,
   compact = false,
 }: TaskHeaderProps) {
   return (
@@ -159,7 +165,19 @@ export function TaskHeader({
               />
             </div>
           ) : (
-            <div className="flex-shrink-0">
+            <div className="flex items-center flex-shrink-0">
+              {onToggleFullScreen && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleFullScreen}
+                  className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 hidden cols2:inline-flex"
+                  aria-label={fullScreen ? "Exit full screen" : "Full screen"}
+                  title={fullScreen ? "Exit full screen" : "Full screen"}
+                >
+                  {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </Button>
+              )}
               <TaskActionMenu
                 task={task}
                 currentUser={currentUser}
