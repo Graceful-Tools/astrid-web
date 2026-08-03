@@ -194,7 +194,8 @@ export interface Task {
 
 export type RepeatOption = {
   value: Task["repeating"]
-  label: string
+  /** i18n key naming the resulting state, not a literal (task ab01186a). */
+  labelKey: string
 }
 
 export type PriorityLevel = {

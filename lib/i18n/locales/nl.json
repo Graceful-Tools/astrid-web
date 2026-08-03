@@ -149,6 +149,7 @@
     "nextMonth": "Volgende maand",
     "custom": "Aangepast",
     "noDate": "Geen datum",
+    "allDay": "Hele dag",
     "pickDate": "Kies een datum",
     "pickTime": "Kies een tijd",
     "atDueTime": "Op vervaltijd",
@@ -158,6 +159,14 @@
     "dayBefore": "1 dag eerder",
     "daysBefore": "{count} dagen eerder",
     "weekBefore": "1 week eerder"
+  },
+  "repeating": {
+    "oneTimeOnly": "Eenmalig",
+    "daily": "Dagelijks",
+    "weekly": "Wekelijks",
+    "monthly": "Maandelijks",
+    "yearly": "Jaarlijks",
+    "custom": "Aangepast"
   },
   "weekdays": {
     "sunday": "Zondag",

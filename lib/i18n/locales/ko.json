@@ -149,6 +149,7 @@
     "nextMonth": "다음 달",
     "custom": "사용자 지정",
     "noDate": "날짜 없음",
+    "allDay": "하루 종일",
     "pickDate": "날짜 선택",
     "pickTime": "시간 선택",
     "atDueTime": "마감 시간에",
@@ -158,6 +159,14 @@
     "dayBefore": "1일 전",
     "daysBefore": "{count}일 전",
     "weekBefore": "1주 전"
+  },
+  "repeating": {
+    "oneTimeOnly": "한 번만",
+    "daily": "매일",
+    "weekly": "매주",
+    "monthly": "매월",
+    "yearly": "매년",
+    "custom": "사용자 지정"
   },
   "weekdays": {
     "sunday": "일요일",

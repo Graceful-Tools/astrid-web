@@ -136,7 +136,47 @@ which is deliberately a peek and would fight the board it is embedded in.
 
 ---
 
-## 3. How this stays true (anti-drift)
+## 4. Pickers name the outcome, not the mechanic
+
+Task `ab01186a` (Web) / `42013da7` (iOS/Mac). Shared user-facing strings, so
+they are keys on both platforms rather than literals in a component.
+
+A picker's ESCAPE from a value must be labelled by **the state the user is
+choosing**, not by what happens to the field:
+
+| Picker | Was | Is | Why |
+|---|---|---|---|
+| Date | "Clear" | **No date** | "Clear" describes the field; the user is choosing that the task has no date. |
+| Time | "Clear" | **All day** | A task with no time is not a task with a missing field — it is an *all-day* task, a real nameable state. |
+| Repeat | "Never" | **One time only** | "How often?" answered with a negative. The state is that this happens once. |
+
+`No date`, `All day` and `One time only` are states a user can intend and
+recognise; `Clear` and `Never` are things you do to a form.
+
+**The picker and the summary must use the same words.** The task row and the
+detail summary say these states back to the reader, so the picker agrees with
+the rest of the UI instead of keeping its own vocabulary. (The detail summary
+said "No time" where the picker now offers "All day" — same state, two names.)
+
+**This is a copy change, not a data change.** The stored repeat value is still
+`"never"`; only what the reader sees changed.
+
+**Not in scope:** the custom-repeat editor's *end condition* "Never". That
+answers a different question — "when does this repeat end?" — and there
+"never" IS the outcome.
+
+| Meaning | Web key | iOS key |
+|---|---|---|
+| No date | `time.noDate` | `picker.no_due_date` |
+| All day | `time.allDay` | `picker.all_day` |
+| One time only | `repeating.oneTimeOnly` | `repeating.one_time_only` |
+
+**Group mismatch:** Web keeps the date/time states under `time.*` where iOS
+uses `picker.*`; the repeat group matches. Reconcile when next touched.
+
+---
+
+## 5. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →
   Code Reuse & Consistency*. iOS: add the same one-line pointer to its agent

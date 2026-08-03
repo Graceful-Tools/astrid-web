@@ -149,6 +149,7 @@
     "nextMonth": "来月",
     "custom": "カスタム",
     "noDate": "日付なし",
+    "allDay": "終日",
     "pickDate": "日付を選択",
     "pickTime": "時間を選択",
     "atDueTime": "期限時刻に",
@@ -158,6 +159,14 @@
     "dayBefore": "1日前",
     "daysBefore": "{count}日前",
     "weekBefore": "1週間前"
+  },
+  "repeating": {
+    "oneTimeOnly": "1回のみ",
+    "daily": "毎日",
+    "weekly": "毎週",
+    "monthly": "毎月",
+    "yearly": "毎年",
+    "custom": "カスタム"
   },
   "weekdays": {
     "sunday": "日曜日",

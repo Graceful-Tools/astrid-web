@@ -18,6 +18,7 @@ import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash } from "lu
 import { format } from "date-fns"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList, User } from "@/types/task"
 
 interface TaskFieldEditorsProps {
@@ -141,6 +142,7 @@ export function TaskFieldEditors({
   setTempAssignee,
   onInviteUser
 }: TaskFieldEditorsProps) {
+  const { t } = useTranslations()
 
   // Local state for controlling Select dropdown open state
   const [repeatingSelectOpen, setRepeatingSelectOpen] = useState(false)
@@ -511,7 +513,7 @@ export function TaskFieldEditors({
                   }}
                   className="text-sm"
                 >
-                  Clear
+                  {t('time.noDate')}
                 </Button>
               </div>
             </PopoverContent>
@@ -522,7 +524,7 @@ export function TaskFieldEditors({
             onClick={() => !readOnly && setEditingWhen(true)}
           >
             <span className={task.dueDateTime ? "text-blue-600 dark:text-blue-400" : "theme-text-muted"}>
-              {task.dueDateTime ? formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay) : "No date"}
+              {task.dueDateTime ? formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay) : t('time.noDate')}
             </span>
           </div>
         )}
@@ -544,7 +546,7 @@ export function TaskFieldEditors({
               onClick={() => !readOnly && setEditingTime(true)}
             >
               <span className={task.dueDateTime && !task.isAllDay ? "text-blue-600 dark:text-blue-400" : "theme-text-muted"}>
-                {task.dueDateTime && !task.isAllDay ? formatConciseTime(new Date(task.dueDateTime)) : "No time"}
+                {task.dueDateTime && !task.isAllDay ? formatConciseTime(new Date(task.dueDateTime)) : t('time.allDay')}
               </span>
             </div>
           )}
@@ -597,12 +599,12 @@ export function TaskFieldEditors({
                     onPointerDownOutside={(e) => e.stopPropagation()}
                     onEscapeKeyDown={(e) => e.stopPropagation()}
                   >
-                    <SelectItem value="never">Never</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="never">{t('repeating.oneTimeOnly')}</SelectItem>
+                    <SelectItem value="daily">{t('repeating.daily')}</SelectItem>
+                    <SelectItem value="weekly">{t('repeating.weekly')}</SelectItem>
+                    <SelectItem value="monthly">{t('repeating.monthly')}</SelectItem>
+                    <SelectItem value="yearly">{t('repeating.yearly')}</SelectItem>
+                    <SelectItem value="custom">{t('repeating.custom')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

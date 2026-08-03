@@ -9,6 +9,7 @@ import { PriorityPicker } from "@/components/ui/priority-picker"
 import { TimePicker } from "@/components/ui/time-picker"
 import { X } from "lucide-react"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList, User } from "@/types/task"
 
 interface DefaultTaskSettingsSectionProps {
@@ -28,6 +29,7 @@ export function DefaultTaskSettingsSection({
   canEditSettings,
   onUpdate,
 }: DefaultTaskSettingsSectionProps) {
+  const { t } = useTranslations()
   const [editingDefaultAssignee, setEditingDefaultAssignee] = useState(false)
   const [editingDefaultDueDate, setEditingDefaultDueDate] = useState(false)
   const [editingDefaultRepeating, setEditingDefaultRepeating] = useState(false)
@@ -225,13 +227,13 @@ export function DefaultTaskSettingsSection({
 
   const getDefaultRepeatingDisplay = (repeating: TaskList["defaultRepeating"]) => {
     switch (repeating) {
-      case "never": return "Never"
-      case "daily": return "Daily"
-      case "weekly": return "Weekly"
-      case "monthly": return "Monthly"
-      case "yearly": return "Yearly"
-      case "custom": return "Custom"
-      default: return "Never"
+      case "daily": return t('repeating.daily')
+      case "weekly": return t('repeating.weekly')
+      case "monthly": return t('repeating.monthly')
+      case "yearly": return t('repeating.yearly')
+      case "custom": return t('repeating.custom')
+      // "never" and anything unset are the same state: this task happens once.
+      default: return t('repeating.oneTimeOnly')
     }
   }
 
@@ -371,11 +373,11 @@ export function DefaultTaskSettingsSection({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[10100]">
-                  <SelectItem value="never">Never</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
+                  <SelectItem value="never">{t('repeating.oneTimeOnly')}</SelectItem>
+                  <SelectItem value="daily">{t('repeating.daily')}</SelectItem>
+                  <SelectItem value="weekly">{t('repeating.weekly')}</SelectItem>
+                  <SelectItem value="monthly">{t('repeating.monthly')}</SelectItem>
+                  <SelectItem value="yearly">{t('repeating.yearly')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button

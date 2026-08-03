@@ -149,6 +149,7 @@
     "nextMonth": "Следующий месяц",
     "custom": "Выбрать",
     "noDate": "Без даты",
+    "allDay": "Весь день",
     "pickDate": "Выбрать дату",
     "pickTime": "Выбрать время",
     "atDueTime": "В назначенное время",
@@ -158,6 +159,14 @@
     "dayBefore": "За 1 день",
     "daysBefore": "За {count} дней",
     "weekBefore": "За 1 неделю"
+  },
+  "repeating": {
+    "oneTimeOnly": "Только один раз",
+    "daily": "Ежедневно",
+    "weekly": "Еженедельно",
+    "monthly": "Ежемесячно",
+    "yearly": "Ежегодно",
+    "custom": "Настраиваемый"
   },
   "weekdays": {
     "sunday": "Воскресенье",

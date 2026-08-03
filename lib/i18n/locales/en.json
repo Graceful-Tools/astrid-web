@@ -149,6 +149,7 @@
     "nextMonth": "Next month",
     "custom": "Custom",
     "noDate": "No date",
+    "allDay": "All day",
     "pickDate": "Pick a date",
     "pickTime": "Pick a time",
     "atDueTime": "At due time",
@@ -158,6 +159,14 @@
     "dayBefore": "1 day before",
     "daysBefore": "{count} days before",
     "weekBefore": "1 week before"
+  },
+  "repeating": {
+    "oneTimeOnly": "One time only",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "custom": "Custom"
   },
   "weekdays": {
     "sunday": "Sunday",
