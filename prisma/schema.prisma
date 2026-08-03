@@ -36,70 +36,70 @@ model Session {
 }
 
 model User {
-  id                           String               @id @default(cuid())
+  id                           String                 @id @default(cuid())
   name                         String?
-  email                        String               @unique
+  email                        String                 @unique
   emailVerified                DateTime?
   image                        String?
-  createdAt                    DateTime             @default(now())
-  updatedAt                    DateTime             @updatedAt
-  isActive                     Boolean              @default(true)
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  isActive                     Boolean                @default(true)
   pendingEmail                 String?
-  emailVerificationToken       String?              @unique
+  emailVerificationToken       String?                @unique
   emailTokenExpiresAt          DateTime?
   aiAssistantSettings          String?
-  defaultDueTime               String?              @default("17:00")
-  subtaskDisplay               String?              @default("indented") // "indented" (in lists) | "under_parent" (detail only)
-  mcpEnabled                   Boolean              @default(true)
+  defaultDueTime               String?                @default("17:00")
+  subtaskDisplay               String?                @default("indented") // "indented" (in lists) | "under_parent" (detail only)
+  mcpEnabled                   Boolean                @default(true)
   mcpSettings                  String?
   aiAgentConfig                String?
   aiAgentType                  String?
-  isAIAgent                    Boolean              @default(false)
+  isAIAgent                    Boolean                @default(false)
   webhookUrl                   String?
-  defaultNewListMcpAccessLevel String               @default("WRITE")
-  defaultNewListMcpEnabled     Boolean              @default(true)
-  defaultTaskDueOffset         String?              @default("1_week")
-  emailToTaskEnabled           Boolean              @default(true)
+  defaultNewListMcpAccessLevel String                 @default("WRITE")
+  defaultNewListMcpEnabled     Boolean                @default(true)
+  defaultTaskDueOffset         String?                @default("1_week")
+  emailToTaskEnabled           Boolean                @default(true)
   emailToTaskListId            String?
-  smartTaskCreationEnabled     Boolean              @default(true)
+  smartTaskCreationEnabled     Boolean                @default(true)
   invitedBy                    String?
-  isPlaceholder                Boolean              @default(false)
-  statsCompletedTasks          Int                  @default(0)
-  statsInspiredTasks           Int                  @default(0)
-  statsSupportedTasks          Int                  @default(0)
+  isPlaceholder                Boolean                @default(false)
+  statsCompletedTasks          Int                    @default(0)
+  statsInspiredTasks           Int                    @default(0)
+  statsSupportedTasks          Int                    @default(0)
   statsLastCalculated          DateTime?
   myTasksPreferences           String?
   accounts                     Account[]
   authenticators               Authenticator[]
   comments                     Comment[]
   githubIntegrations           GitHubIntegration[]
-  receivedInvitations          Invitation[]         @relation("InvitationReceiver")
-  sentInvitations              Invitation[]         @relation("InvitationSender")
-  createdInvites               ListInvite[]         @relation("ListInviteCreator")
-  listMemberships              ListMember[]         @relation("ListMembership")
+  receivedInvitations          Invitation[]           @relation("InvitationReceiver")
+  sentInvitations              Invitation[]           @relation("InvitationSender")
+  createdInvites               ListInvite[]           @relation("ListInviteCreator")
+  listMemberships              ListMember[]           @relation("ListMembership")
   mcpTokens                    MCPToken[]
-  oauthClients                 OAuthClient[]        @relation("OAuthClients")
-  oauthTokens                  OAuthToken[]         @relation("OAuthTokens")
-  ownedProjects                Project[]            @relation("ProjectOwner")
-  projectMemberships           ProjectMember[]      @relation("ProjectMembership")
+  oauthClients                 OAuthClient[]          @relation("OAuthClients")
+  oauthTokens                  OAuthToken[]           @relation("OAuthTokens")
+  ownedProjects                Project[]              @relation("ProjectOwner")
+  projectMemberships           ProjectMember[]        @relation("ProjectMembership")
   pushSubscriptions            PushSubscription[]
   reminderQueue                ReminderQueue[]
   reminderSettings             ReminderSettings?
   webhookConfig                UserWebhookConfig?
   secureFiles                  SecureFile[]
   sessions                     Session[]
-  assignedTasks                Task[]               @relation("TaskAssignee")
-  createdTasks                 Task[]               @relation("TaskCreator")
-  ownedLists                   TaskList[]           @relation("ListOwner")
-  analyticsEvents              AnalyticsEvent[]     @relation("AnalyticsEvents")
-  adminUser                    AdminUser?           @relation("AdminUsers")
+  assignedTasks                Task[]                 @relation("TaskAssignee")
+  createdTasks                 Task[]                 @relation("TaskCreator")
+  ownedLists                   TaskList[]             @relation("ListOwner")
+  analyticsEvents              AnalyticsEvent[]       @relation("AnalyticsEvents")
+  adminUser                    AdminUser?             @relation("AdminUsers")
   chatMessages                 ChatMessage[]
-  addressBookContacts          AddressBookContact[] @relation("AddressBookContacts")
-  userListFavorites            UserListFavorite[]   @relation("UserFavorites")
-  integrations                 Integration[]        @relation("UserIntegrations")
-  copilotCredential            CopilotCredential?   @relation("UserCopilotCredential")
+  addressBookContacts          AddressBookContact[]   @relation("AddressBookContacts")
+  userListFavorites            UserListFavorite[]     @relation("UserFavorites")
+  integrations                 Integration[]          @relation("UserIntegrations")
+  copilotCredential            CopilotCredential?     @relation("UserCopilotCredential")
   featureAccessRequests        FeatureAccessRequest[] @relation("UserFeatureAccessRequests")
-  notifications                Notification[]       @relation("UserNotifications")
+  notifications                Notification[]         @relation("UserNotifications")
 
   @@index([email])
   @@index([emailVerified])
@@ -222,17 +222,17 @@ model TaskList {
 }
 
 model Project {
-  id          String          @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name        String
-  description String?
-  color       String          @default("#3b82f6")
-  imageUrl    String?
-  ownerId     String
+  id           String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name         String
+  description  String?
+  color        String          @default("#3b82f6")
+  imageUrl     String?
+  ownerId      String
   /// Short prefix for this project's task identifiers, e.g. "AST" in AST-142
   /// (task 12f54df4). Unique per owner, not globally: two people may both have
   /// an "AST" and forcing global uniqueness would hand out ugly keys for no
   /// benefit. Null for projects created before identifiers existed.
-  key         String?
+  key          String?
   /// Per-project custom board states — a Project-Mode-only feature (AWTD-562).
   /// Shape: [{ role, name, description?, order }]. The defaults
   /// (ready/doing/waiting) are code constants shared by every board and are
@@ -243,12 +243,12 @@ model Project {
   /// concurrent creation from web, iOS, MCP and agents is the normal case here,
   /// not an edge case. Never decremented: identifiers are not reused, including
   /// after delete, or a branch named ast-142-* would come to mean another task.
-  nextSequence Int            @default(1)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     ProjectMember[]
-  lists       TaskList[]
+  nextSequence Int             @default(1)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      ProjectMember[]
+  lists        TaskList[]
 
   @@unique([ownerId, key])
   @@index([ownerId])
@@ -348,6 +348,7 @@ model Task {
   creator         User?               @relation("TaskCreator", fields: [creatorId], references: [id])
   lists           TaskList[]          @relation("TaskToTaskList")
 
+  @@unique([identifier])
   @@index([assigneeId])
   @@index([aiAgentId])
   @@index([creatorId])
@@ -367,7 +368,6 @@ model Task {
   @@index([parentTaskId])
   @@index([closedReason])
   @@index([statusRole])
-  @@unique([identifier])
 }
 
 /// Append-only task activity history (task 51a4b8ff).
@@ -1005,6 +1005,32 @@ model AnalyticsDailyStats {
   @@index([date])
 }
 
+/// Durable counts of legacy /api/* traffic (task 641a7615).
+///
+/// The retirement plan is data-driven — "when residual traffic on a route
+/// drops to zero, the route is safe to delete" — but the only signal was a
+/// console.log, and Vercel retains runtime logs for minutes. Acceptance needs a
+/// >=4-week window broken down by route x client, so the counts live here.
+///
+/// One row per (day, route, method, platform). Routes are normalised so
+/// /api/lists/<uuid> aggregates as /api/lists/:id; otherwise every id is its
+/// own row and per-route traffic is unanswerable.
+model LegacyApiDailyUsage {
+  id       String   @id @default(cuid())
+  day      DateTime @db.Date // UTC midnight, so a "day" means one thing
+  route    String // normalised: /api/lists/:id
+  method   String
+  platform String // AnalyticsPlatform value: iOS-app, web-desktop, ...
+  count    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([day, route, method, platform])
+  @@index([route, day])
+  @@index([day])
+}
+
 model AdminUser {
   id        String   @id @default(cuid())
   userId    String   @unique
@@ -1058,23 +1084,23 @@ model FeatureFlagTarget {
 /// through the existing FeatureFlagTarget INCLUDE mechanism; this row only
 /// remembers that someone asked and what for.
 model FeatureAccessRequest {
-  id          String    @id @default(cuid())
-  userId      String
+  id            String    @id @default(cuid())
+  userId        String
   /// Matches a FEATURE_KEYS value in lib/feature-flags.ts.
-  featureKey  String
+  featureKey    String
   /// Free-text "what would you use this for" — the qualitative half of the signal.
-  useCase     String?
+  useCase       String?
   /// PENDING | GRANTED | DECLINED
-  status      String    @default("PENDING")
+  status        String    @default("PENDING")
   /// Set when an admin grants or declines, for queue triage.
-  reviewedAt  DateTime?
-  reviewedBy  String?
+  reviewedAt    DateTime?
+  reviewedBy    String?
   /// True for users auto-granted at migration time because they already had a
   /// board. Counted separately so they don't pollute the demand signal.
-  grandfathered Boolean @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  user        User      @relation("UserFeatureAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
+  grandfathered Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation("UserFeatureAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, featureKey])
   @@index([featureKey, status, createdAt])

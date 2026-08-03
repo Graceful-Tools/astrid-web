@@ -97,6 +97,12 @@ const INTERNAL_PREFIXES = [
   '/api/debug-',
   '/api/openclaw/', // OAuth-only agent endpoints; v1 has /api/v1/openclaw/*
   '/api/redis-debug',
+  // Internal, first-party only — never part of the iOS migration. This was
+  // missing, so /api/internal/* was inflating the very census the retirement
+  // plan reads from, and it also has to exclude the usage beacon itself:
+  // recording a legacy hit is an /api/* request, so if it counted, every hit
+  // would generate a hit forever (task 641a7615).
+  '/api/internal/',
 ] as const
 
 /**
