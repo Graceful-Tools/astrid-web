@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SecureAttachmentViewer } from "./secure-attachment-viewer"
-import { TaskCheckbox } from "./task-checkbox"
+import { TaskLeadingControl } from "./task-leading-control"
 import { PublicTaskCopyButton } from "./public-task-copy-button"
 import { CommentSection } from "./task-detail/CommentSection"
 import { UserLink } from "./user-link"
@@ -98,16 +98,6 @@ interface FileAttachment {
   const taskList = task.lists?.[0] // Primary list for this task
   const isCollaborative = taskList?.publicListType === 'collaborative'
   const canComment = isCollaborative // Users can comment on collaborative lists
-
-  // Priority color helper
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 3: return 'rgb(239, 68, 68)' // Red
-      case 2: return 'rgb(251, 191, 36)' // Yellow
-      case 1: return 'rgb(59, 130, 246)' // Blue
-      default: return 'rgb(107, 114, 128)' // Gray
-    }
-  }
 
   // Helper function to get list privacy icon
   const getListPrivacyIcon = (list: any) => {
@@ -397,11 +387,16 @@ interface FileAttachment {
                   onCopy={handleCopyClick}
                 />
               ) : (
-                <TaskCheckbox
-                  checked={task.completed}
-                  onToggle={handleToggleComplete}
+                /* Three states, not two — an unassigned task must not look
+                   like one you own (task 2bb1b196). */
+                <TaskLeadingControl
+                  assigneeId={task.assigneeId}
+                  currentUserId={currentUser?.id}
+                  assignee={task.assignee}
+                  completed={task.completed}
                   priority={task.priority}
                   repeating={task.repeating !== 'never'}
+                  onToggleComplete={handleToggleComplete}
                 />
               )}
               <span

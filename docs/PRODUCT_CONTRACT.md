@@ -136,7 +136,45 @@ which is deliberately a peek and would fight the board it is embedded in.
 
 ---
 
-## 3. How this stays true (anti-drift)
+## 4. The task leading control (shared with iOS/Mac)
+
+Task `2bb1b196` (Web) / `42013da7` (iOS/Mac). What the control at the start of a
+task shows is a **cross-platform promise**, not a per-client detail.
+
+It answers one question — *whose task is this?* — and that question has **three**
+answers, not two:
+
+| State | Mark |
+|---|---|
+| Assigned to **someone else** | their photo, in a priority-coloured square |
+| Assigned to **you** | the completion checkbox |
+| Assigned to **nobody** | the unassigned mark, in a priority-coloured square |
+
+Unassigned used to be folded in with "mine", so a task nobody owns rendered
+identically to a task you own. That is the bug this rule exists to prevent.
+
+- **The mark changes; the action does not.** Tapping the unassigned mark still
+  completes the task.
+- **The picker shows the mark you will then see.** The assignee picker's
+  unassigned option uses the same mark.
+- **It applies everywhere the control appears** — task row, task details,
+  quick add, and board cards.
+- **Decide once, render once.** Web: `lib/task-leading-control.ts` decides,
+  `components/task-leading-control.tsx` renders. iOS:
+  `TaskLeadingControl.kind(assigneeId:currentUserId:)`. No component decides
+  for itself — that is how the row and the detail drifted apart.
+- **Completed + unassigned falls back to the checkbox**, because the mark has to
+  be able to read as checked and the unassigned mark cannot.
+
+Shared copy for the mark:
+
+| Meaning | Web key | iOS key | Notes |
+|---|---|---|---|
+| Unassigned mark (single glyph) | `tasks.unassignedMark` | `tasks.unassigned_mark` | Localised per language (en `U`, ja `未`, ru `Н`) — it is the first letter of that language's word for "unassigned", not a literal `U`. **iOS gap:** iOS currently hardcodes `U`. |
+
+---
+
+## 5. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →
   Code Reuse & Consistency*. iOS: add the same one-line pointer to its agent

@@ -67,6 +67,7 @@
     "assignee": "Asignado a",
     "assignees": "Asignados",
     "unassigned": "Sin asignar",
+    "unassignedMark": "S",
     "comments": "Comentarios",
     "attachments": "Archivos adjuntos",
     "subtasks": "Subtareas",

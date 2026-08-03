@@ -67,6 +67,7 @@
     "assignee": "Toegewezen aan",
     "assignees": "Toegewezenen",
     "unassigned": "Niet toegewezen",
+    "unassignedMark": "N",
     "comments": "Opmerkingen",
     "attachments": "Bijlagen",
     "subtasks": "Subtaken",

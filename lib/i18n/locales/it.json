@@ -67,6 +67,7 @@
     "assignee": "Assegnatario",
     "assignees": "Assegnatari",
     "unassigned": "Non assegnato",
+    "unassignedMark": "N",
     "comments": "Commenti",
     "attachments": "Allegati",
     "subtasks": "Sottoattività",

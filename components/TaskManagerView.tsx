@@ -81,7 +81,6 @@ interface TaskManagerViewProps {
   canEditListSettingsMemo: (list: TaskList) => boolean
 
   // Utility functions
-  getPriorityColor: (priority: number) => string
 
   // Refs
   isKeyboardScrollingRef: React.MutableRefObject<boolean>
@@ -289,7 +288,6 @@ const TaskManagerView = memo(function TaskManagerView({
   getFixedListTaskCountMemo,
   getSelectedListInfo,
   canEditListSettingsMemo,
-  getPriorityColor,
   isKeyboardScrollingRef,
   sidebarRef,
   taskManagerRef,
@@ -936,7 +934,6 @@ const TaskManagerView = memo(function TaskManagerView({
             closeTaskDetail={closeTaskDetail}
             canEditListSettingsMemo={canEditListSettingsMemo}
             getSelectedListInfo={getSelectedListInfo}
-            getPriorityColor={getPriorityColor}
             taskManagerRef={taskManagerRef}
             isKeyboardScrollingRef={isKeyboardScrollingRef}
             onListUpdate={handleUpdateList}

@@ -217,16 +217,6 @@ export function TaskManager({
     }
   }, [quickTaskInput, handleQuickCreateTask, setQuickTaskInput])
 
-  // Priority color function for assignee avatars
-  const getPriorityColor = React.useCallback((priority: number) => {
-    switch (priority) {
-      case 3: return 'rgb(239, 68, 68)' // Red - highest priority
-      case 2: return 'rgb(251, 191, 36)' // Yellow - medium priority
-      case 1: return 'rgb(59, 130, 246)' // Blue - low priority
-      default: return 'rgb(107, 114, 128)' // Gray - no priority
-    }
-  }, [])
-
   // Handler to close task details when list settings is opened
   const handleShowSettingsPopover = React.useCallback((listId: string | null) => {
     // Close task detail pane when opening list settings
@@ -378,7 +368,6 @@ export function TaskManager({
       canEditListSettingsMemo={controller.canEditListSettingsMemo}
 
       // Utility functions
-      getPriorityColor={getPriorityColor}
 
       // Refs
       isKeyboardScrollingRef={controller.isKeyboardScrollingRef}

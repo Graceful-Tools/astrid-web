@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
 import type { User, TaskList } from '@/types/task'
 import { useTranslations } from "@/lib/i18n/client"
+import { getPriorityColor } from "@/lib/task-leading-control"
 
 interface MobileQuickAddProps {
   selectedListId: string
@@ -21,13 +22,6 @@ interface MobileQuickAddProps {
   isSessionReady: boolean
   className?: string
 }
-
-const PRIORITY_COLORS = {
-  0: 'rgb(107, 114, 128)', // Gray - no priority
-  1: 'rgb(59, 130, 246)',  // Blue - low priority
-  2: 'rgb(251, 191, 36)',  // Yellow/Orange - medium priority
-  3: 'rgb(239, 68, 68)',   // Red - highest priority
-} as const
 
 export function MobileQuickAdd({
   selectedListId,
@@ -158,7 +152,7 @@ export function MobileQuickAdd({
     return email?.charAt(0).toUpperCase() || '?'
   }
 
-  const priorityColor = PRIORITY_COLORS[selectedPriority as keyof typeof PRIORITY_COLORS]
+  const priorityColor = getPriorityColor(selectedPriority)
 
   // Get checkbox icon path (same as TaskCheckbox component)
   const getCheckboxIconPath = () => {
@@ -198,7 +192,7 @@ export function MobileQuickAdd({
                     className="text-sm font-medium"
                     style={{ color: priorityColor }}
                   >
-                    U
+                    {t('tasks.unassignedMark')}
                   </span>
                 </div>
               ) : selectedAssignee?.id === currentUser?.id ? (
@@ -213,7 +207,7 @@ export function MobileQuickAdd({
               ) : (
                 // Other user: Show avatar with priority border
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
                   style={{ border: `2px solid ${priorityColor}` }}
                 >
                   <Avatar className="w-6 h-6">

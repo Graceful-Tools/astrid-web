@@ -5,6 +5,7 @@ import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface PriorityAssigneePickerProps {
   isOpen: boolean
@@ -36,6 +37,7 @@ export function PriorityAssigneePicker({
   taskId,
   listIds
 }: PriorityAssigneePickerProps) {
+  const { t } = useTranslations()
   const [tempPriority, setTempPriority] = useState(selectedPriority)
   const [tempAssignee, setTempAssignee] = useState<User | null>(selectedAssignee)
   const [isClosing, setIsClosing] = useState(false)
@@ -208,7 +210,7 @@ export function PriorityAssigneePicker({
                 }`}
               >
                 <div className="w-9 h-9 rounded-lg border-2 border-gray-400 dark:border-gray-500 flex items-center justify-center">
-                  <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">U</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('tasks.unassignedMark')}</span>
                 </div>
                 <div className="flex-1 text-left">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">Unassigned</div>

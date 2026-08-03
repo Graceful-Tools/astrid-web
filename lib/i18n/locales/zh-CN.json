@@ -67,6 +67,7 @@
     "assignee": "负责人",
     "assignees": "负责人",
     "unassigned": "未分配",
+    "unassignedMark": "未",
     "comments": "评论",
     "attachments": "附件",
     "subtasks": "子任务",

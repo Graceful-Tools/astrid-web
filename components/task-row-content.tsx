@@ -2,8 +2,7 @@
 
 import React from "react"
 import { Globe, Hash, Users } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { TaskCheckbox } from "@/components/task-checkbox"
+import { TaskLeadingControl } from "@/components/task-leading-control"
 import { PublicTaskCopyButton } from "@/components/public-task-copy-button"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
 import { getAllListMembers } from "@/lib/list-member-utils"
@@ -19,7 +18,6 @@ export interface TaskRowContentProps {
   currentUserId?: string
   isSelected?: boolean
   isMobile?: boolean
-  getPriorityColor: (priority: number) => string
   onToggleComplete: () => void
   onCopyPublic: () => void
 }
@@ -29,7 +27,6 @@ export function TaskRowContent({
   currentUserId,
   isSelected,
   isMobile,
-  getPriorityColor,
   onToggleComplete,
   onCopyPublic,
 }: TaskRowContentProps) {
@@ -43,53 +40,15 @@ export function TaskRowContent({
     <>
       {isPublicListTask(task) ? (
         <PublicTaskCopyButton onCopy={onCopyPublic} />
-      ) : task.assigneeId && task.assigneeId !== currentUserId ? (
-        <div className="relative p-2 -m-2 flex items-center justify-center self-center">
-          <Avatar
-            className="w-8 h-8 rounded-lg border-2"
-            style={{ borderColor: getPriorityColor(task.priority) }}
-          >
-            <AvatarImage src={task.assignee?.image || undefined} />
-            <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
-              {task.assignee?.name?.slice(0, 2) || task.assignee?.email?.slice(0, 2) || '?'}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      ) : !task.assigneeId ? (
-        task.completed ? (
-          <TaskCheckbox
-            checked={true}
-            onToggle={onToggleComplete}
-            priority={task.priority}
-            repeating={task.repeating !== 'never'}
-          />
-        ) : (
-          <div
-            className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
-            onClick={(e) => {
-              e.stopPropagation()
-              onToggleComplete()
-            }}
-          >
-            <div
-              className="w-8 h-8 rounded-lg border-2 flex items-center justify-center"
-              style={{ borderColor: getPriorityColor(task.priority) }}
-            >
-              <span
-                className="text-sm font-medium"
-                style={{ color: getPriorityColor(task.priority) }}
-              >
-                U
-              </span>
-            </div>
-          </div>
-        )
       ) : (
-        <TaskCheckbox
-          checked={task.completed}
-          onToggle={onToggleComplete}
+        <TaskLeadingControl
+          assigneeId={task.assigneeId}
+          currentUserId={currentUserId}
+          assignee={task.assignee}
+          completed={task.completed}
           priority={task.priority}
           repeating={task.repeating !== 'never'}
+          onToggleComplete={onToggleComplete}
         />
       )}
       <div className="flex-1 min-w-0">

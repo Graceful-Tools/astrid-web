@@ -67,6 +67,7 @@
     "assignee": "Исполнитель",
     "assignees": "Исполнители",
     "unassigned": "Не назначено",
+    "unassignedMark": "Н",
     "comments": "Комментарии",
     "attachments": "Вложения",
     "subtasks": "Подзадачи",

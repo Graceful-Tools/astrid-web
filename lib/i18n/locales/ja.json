@@ -67,6 +67,7 @@
     "assignee": "担当者",
     "assignees": "担当者",
     "unassigned": "未割り当て",
+    "unassignedMark": "未",
     "comments": "コメント",
     "attachments": "添付ファイル",
     "subtasks": "サブタスク",
