@@ -298,10 +298,14 @@ export async function POST(request: NextRequest) {
             listType: "status",
           },
         })
+        // Creation honours data.completed (see the create below), so the
+        // normalizer must be told the real flag — hardcoding false let a
+        // task be created completed AND sitting in a status list, violating
+        // `completed = true => no status memberships` (task db7c6670).
         const normalized = normalizeProjectStatusListIds(
           nonVirtualListIds,
           [...existingLists, ...projectStatusLists] as any,
-          { completed: false }
+          { completed: (data as any).completed === true }
         )
         nonVirtualListIds = normalized.listIds
         if (normalized.completedFromStatus !== undefined) {
