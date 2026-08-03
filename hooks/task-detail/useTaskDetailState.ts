@@ -16,14 +16,14 @@ export interface TaskDetailState {
     setNewComment: (value: string) => void
     uploadingFile: boolean
     setUploadingFile: (value: boolean) => void
-    attachedFile: FileAttachment | null
-    setAttachedFile: (value: FileAttachment | null) => void
+    attachedFiles: FileAttachment[]
+    setAttachedFiles: (value: FileAttachment[]) => void
     replyingTo: string | null
     setReplyingTo: (value: string | null) => void
     replyContent: string
     setReplyContent: (value: string) => void
-    replyAttachedFile: FileAttachment | null
-    setReplyAttachedFile: (value: FileAttachment | null) => void
+    replyAttachedFiles: FileAttachment[]
+    setReplyAttachedFiles: (value: FileAttachment[]) => void
     uploadingReplyFile: boolean
     setUploadingReplyFile: (value: boolean) => void
     showingActionsFor: string | null
@@ -121,10 +121,10 @@ export function useTaskDetailState(task: Task): TaskDetailState {
   // Comment state
   const [newComment, setNewComment] = useState("")
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [attachedFile, setAttachedFile] = useState<FileAttachment | null>(null)
+  const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
-  const [replyAttachedFile, setReplyAttachedFile] = useState<FileAttachment | null>(null)
+  const [replyAttachedFiles, setReplyAttachedFiles] = useState<FileAttachment[]>([])
   const [uploadingReplyFile, setUploadingReplyFile] = useState(false)
   const [showingActionsFor, setShowingActionsFor] = useState<string | null>(null)
 
@@ -236,14 +236,14 @@ export function useTaskDetailState(task: Task): TaskDetailState {
       setNewComment,
       uploadingFile,
       setUploadingFile,
-      attachedFile,
-      setAttachedFile,
+      attachedFiles,
+      setAttachedFiles,
       replyingTo,
       setReplyingTo,
       replyContent,
       setReplyContent,
-      replyAttachedFile,
-      setReplyAttachedFile,
+      replyAttachedFiles,
+      setReplyAttachedFiles,
       uploadingReplyFile,
       setUploadingReplyFile,
       showingActionsFor,

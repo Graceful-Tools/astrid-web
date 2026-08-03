@@ -95,8 +95,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const state = useTaskDetailState(task)
 
   // Destructure for easier access (maintain backward compatibility)
-  const { newComment, setNewComment, uploadingFile, setUploadingFile, attachedFile, setAttachedFile,
-    replyingTo, setReplyingTo, replyContent, setReplyContent, replyAttachedFile, setReplyAttachedFile,
+  const { newComment, setNewComment, uploadingFile, setUploadingFile, attachedFiles, setAttachedFiles,
+    replyingTo, setReplyingTo, replyContent, setReplyContent, replyAttachedFiles, setReplyAttachedFiles,
     uploadingReplyFile, setUploadingReplyFile, showingActionsFor, setShowingActionsFor } = state.comments
 
   const { showDeleteConfirmation, setShowDeleteConfirmation, showCopyConfirmation, setShowCopyConfirmation,
@@ -1480,8 +1480,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           setNewComment={setNewComment}
           uploadingFile={uploadingFile}
           setUploadingFile={setUploadingFile}
-          attachedFile={attachedFile}
-          setAttachedFile={setAttachedFile}
+          attachedFiles={attachedFiles}
+          setAttachedFiles={setAttachedFiles}
         />
       )}
 

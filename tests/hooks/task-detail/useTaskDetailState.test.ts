@@ -33,7 +33,7 @@ describe('useTaskDetailState', () => {
     expect(result.current.comments).toHaveProperty('newComment')
     expect(result.current.comments).toHaveProperty('setNewComment')
     expect(result.current.comments).toHaveProperty('uploadingFile')
-    expect(result.current.comments).toHaveProperty('attachedFile')
+    expect(result.current.comments).toHaveProperty('attachedFiles')
     expect(result.current.comments).toHaveProperty('replyingTo')
   })
 
