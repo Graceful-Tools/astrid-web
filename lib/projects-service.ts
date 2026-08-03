@@ -56,63 +56,6 @@ export async function ensureUserStatusLists(userId: string, client: PrismaLike =
   })
 }
 
-/**
- * Is this project shared with anyone beyond its owner? (task 142e4dd9)
- *
- * Two ways a board becomes a team board, and both count:
- *   1. Someone else is a ProjectMember.
- *   2. One of the project's domain lists has a ListMember other than the owner
- *      — which is how boards are actually shared in the product today, since
- *      list sharing predates projects entirely.
- *
- * Missing case 2 would leave the original bug in place for every real shared
- * board while appearing to fix it.
- */
-export async function isProjectShared(projectId: string, client: PrismaLike = prisma) {
-  const project = await client.project.findUnique({
-    where: { id: projectId },
-    select: {
-      ownerId: true,
-      members: { select: { userId: true } },
-      lists: { select: { listMembers: { select: { userId: true } } } },
-    },
-  })
-  if (!project) return false
-
-  const others = new Set<string>()
-  for (const member of project.members) {
-    if (member.userId !== project.ownerId) others.add(member.userId)
-  }
-  for (const list of project.lists) {
-    for (const member of list.listMembers) {
-      if (member.userId !== project.ownerId) others.add(member.userId)
-    }
-  }
-
-  return others.size > 0
-}
-
-/**
- * Promotion is a NO-OP. Kept as a named function so the two member-add routes
- * keep a single, greppable call site if project-scoped statuses ever return.
- *
- * It used to create a Ready/Doing/Waiting set per shared project, to give both
- * members of a board a status they could each resolve. That reintroduced
- * exactly the duplication migration 20260516000000_per_user_status_lists had
- * removed: a user with two boards saw nine status lists, three of each role,
- * in every list picker.
- *
- * Status lists are per-user singletons. A user has exactly one Ready / Doing /
- * Waiting, and it spans every board they have — see lib/status-lists.ts.
- *
- * The shared-board correctness this was solving is real but needs a different
- * shape (status as a field on the task rather than a list membership); it is
- * tracked separately rather than paid for with duplicate lists.
- */
-export async function promoteProjectIfShared(_listId: string, _client: PrismaLike = prisma) {
-  return null
-}
-
 const safeUserSelect = {
   id: true,
   name: true,

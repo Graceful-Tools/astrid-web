@@ -8,15 +8,66 @@ The core model is:
 
 ```text
 Project = shared context for related lists, members, and statuses.
-Lists = regular task membership. A task can be in many lists.
-Status = special list membership for the in-progress states (Ready, Doing, Waiting).
-Inbox = a task in a project list that has no status assigned.
-Done = Astrid's existing completed task state.
+Lists   = regular task membership. A task can be in many lists.
+Status  = a FIELD on the task (`Task.statusRole`), not a list membership.
+Inbox   = a project task with no status assigned (statusRole = null).
+Done    = Astrid's existing completed task state.
 ```
+
+> **Status stopped being a list membership on 2026-08-02 (AWTD-562).** It is
+> now `Task.statusRole`. Everything below describing status as "special list
+> membership" is the old model, kept because iOS still resolves columns that
+> way during the transition — see *Status is a state, not a list* below for
+> what is true today.
 
 Inbox and Done are **virtual** columns derived from task state. They are not real lists — no membership row exists for them, so a task is never "in" Inbox or Done at the storage layer.
 
-## Default Statuses
+## Status is a state, not a list (current model)
+
+`Task.statusRole` holds `ready | doing | waiting | <a project's custom role>`.
+Null means Inbox; Done is derived from `completed`. Neither is ever stored.
+
+Why the change, since this is the third shape this has taken: status-as-list
+could not satisfy two requirements at once.
+
+1. **One Ready/Doing/Waiting per user** — or every list picker fills with
+   duplicates.
+2. **Shared boards agree on a card's column** — or two members silently see
+   the same card in different columns.
+
+A per-user list satisfies (1) and breaks (2): the list is PRIVATE and owned by
+one person, so a second member resolves nothing and the card drops to Inbox. A
+per-project list satisfies (2) and breaks (1) — and shipped twice, in the first
+board release and again on 2026-08-01, each time producing three more lists per
+board. Granting cross-access satisfies both and leaks: the other member could
+enumerate every task in that list, including from boards they are not on.
+
+As a field on the shared task both hold. `taskColumnId` takes **no viewer
+argument** — there is nothing viewer-specific left to disagree about — and "at
+most one status per task" is true by construction rather than enforced by a
+normalizer and repaired by a migration.
+
+**Columns are derived, never stored.** The defaults are code constants
+(`DEFAULT_STATES` in `lib/task-status.ts`); a project's custom states are config
+(`Project.customStates`), a Project-Mode-only feature. A custom state may not
+shadow a default role, because two columns with the same id is exactly the
+duplication class this removed.
+
+**A status the board cannot render falls back to Inbox.** Board columns are
+keyed by list id during the transition, so an unmatched role would otherwise
+match no column and the card would vanish from the board while still existing
+in the list view. Showing a card in the wrong column is recoverable; losing it
+is not.
+
+### Transition state (why the old model is still described below)
+
+Status lists still exist and are still written. iOS resolves board columns from
+them, so removing them would break the phone. Web reads `statusRole` and writes
+both — dual-write, not dual-truth. The lists go once iOS reads the field.
+
+---
+
+## Default Statuses (legacy model — see above)
 
 Status lists are **per-user globals**, not per-project. Each user has exactly
 one Ready / Doing / Waiting set (`projectId = null`, `listType = "status"`),
@@ -241,6 +292,15 @@ boards — unscalable. Status is now a single per-user concept:
   per-project status lists; the helper lazily recreates per-user globals.
   Task-to-status memberships on the old lists were dropped — affected tasks
   fall back to the board's virtual Inbox.
+
+### Superseded
+
+- **Per-project status lists** (2026-08-01) — reverted on 2026-08-02. They
+  reintroduced the duplication the 2026-05-16 migration removed: a user with
+  two boards saw nine status lists in every picker.
+- **`normalizeProjectStatusListIds`** — still enforces one-status-per-task
+  across list memberships, which is now redundant for web writes since the
+  field cannot hold two values. Retained for iOS-originated writes.
 
 ### Not Yet (tracked as follow-on work)
 1. **Project picker / first-class Project entity in the UI** — `GET /api/projects` exists but no UI lists or opens projects directly. Today a "board" is just a list that has `projectId` set.
