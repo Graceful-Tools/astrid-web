@@ -167,7 +167,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const { title: editingTitle, setEditingTitle, description: editingDescription, setEditingDescription,
     when: editingWhen, setEditingWhen, time: editingTime, setEditingTime,
     priority: editingPriority, setEditingPriority, repeating: editingRepeating, setEditingRepeating,
-    lists: editingLists, setEditingLists, assignee: editingAssignee, setEditingAssignee } = state.editing
+    lists: editingLists, setEditingLists, assignee: editingAssignee, setEditingAssignee,
+    registerCommit, cancelEditing } = state.editing
 
   // Temporary edit values (from consolidated state with auto-sync)
   const { title: tempTitle, setTempTitle, description: tempDescription, setTempDescription,
@@ -1008,6 +1009,24 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     setTempAssignee(task.assignee || null)
     setEditingAssignee(false)
   }
+
+  /**
+   * Hand-off commits (task 7b60c7c5). Opening any editor closes the active one
+   * BY CONSTRUCTION; these tell the session how to SAVE the one it closes.
+   *
+   * Only editors holding a pending buffer need this. The pickers — when, time,
+   * priority, repeating — already commit on selection, so for them closing is
+   * the whole story and there is nothing to register.
+   *
+   * Re-registered every render because the handlers close over the current
+   * temp values; the registry is a ref, so this is a map write, not a re-render.
+   */
+  useEffect(() => {
+    registerCommit('title', handleSaveTitle)
+    registerCommit('description', handleSaveDescription)
+    registerCommit('lists', handleSaveLists)
+    registerCommit('assignee', handleSaveAssignee)
+  })
 
   const handleInviteUser = async (email: string, message?: string) => {
     try {
