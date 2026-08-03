@@ -305,9 +305,17 @@ boards — unscalable. Status is now a single per-user concept:
 ### Not Yet (tracked as follow-on work)
 1. **Project picker / first-class Project entity in the UI** — `GET /api/projects` exists but no UI lists or opens projects directly. Today a "board" is just a list that has `projectId` set.
 2. **Attach an existing project to additional regular lists** — current "Create Board" always creates a fresh project of one list.
-3. **Project-level membership** — `ProjectMember` is in the schema but unused; permissions still resolve through `ListMember` on every list.
+3. ~~**Project-level membership**~~ — **DONE** (task 6c20d125, 2026-08-01).
+   `getUserRoleInList` resolves through `ProjectMember` after list membership,
+   higher role wins, and `listVisibilityWhere` carries the matching clause so
+   visibility and role agree. The project owner resolves to `admin`, not
+   `owner`, so owning a project does not grant deleting a list somebody else
+   owns.
 4. **Project-level views** — e.g. "all Ready across the project," "all iOS tasks that are Ready." Board today only scopes to the selected list.
-5. **Rename / reorder / add-custom statuses UI** — fields exist on `TaskList` but no editor surfaces them.
+5. **Rename / reorder / add-custom statuses UI** — no editor surfaces them.
+   Note the storage moved: custom states are now `Project.customStates` config
+   (AWTD-562), not `statusRole`/`statusOrder` columns on `TaskList`. An editor
+   should write that config, and custom states are Project-Mode only.
 6. **Edit project metadata** — `name`, `description`, `color`, `imageUrl` on `Project` are seeded once from the originating list and never updated.
 
 These can ship incrementally after the v1 board lands.
