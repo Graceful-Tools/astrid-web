@@ -20,7 +20,7 @@ import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
-import { normalizeProjectStatusListIds } from '@/lib/project-status'
+import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
@@ -297,10 +297,23 @@ export const PUT = withAuth<RouteContext>(
           },
         },
         lists: {
-          select: { id: true, name: true, color: true },
+          select: { id: true, name: true, color: true, listType: true },
         },
       },
     })
+
+    // Invariant: completed = true => no status memberships (task db7c6670).
+    // The listIds branch above already enforces this via
+    // normalizeProjectStatusListIds, but it only runs when the request carries
+    // listIds. A completion-only update — PUT { completed: true }, what the
+    // checkbox and the API actually send — skipped it and left the task
+    // sitting in Ready, writing a new violation every time.
+    if (data.completed === true && data.lists === undefined) {
+      const detach = statusListIdsToDetachOnCompletion(existingTask?.lists)
+      if (detach.length > 0) {
+        data.lists = { disconnect: detach.map(id => ({ id })) }
+      }
+    }
 
     // SECURITY: a non-self assignee must be a member of one of the task's lists.
     if (data.assigneeId && data.assigneeId !== auth.userId) {

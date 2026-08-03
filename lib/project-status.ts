@@ -280,6 +280,33 @@ export function normalizeProjectStatusListIds(
 }
 
 /**
+ * The status memberships a task must shed when it is completed — the other
+ * half of `completed = true => no status memberships` (task db7c6670).
+ *
+ * {@link normalizeProjectStatusListIds} already enforces this, but only for
+ * requests that carry `listIds`. Every route gates it behind
+ * `if (body.listIds !== undefined)`, so a completion-only update — `PUT
+ * { completed: true }`, which is what the checkbox, the API and the scripts
+ * send — skipped it and left the membership in place, writing a *new*
+ * violation each time. (Reproduced on production 2026-08-02.)
+ *
+ * Takes the task's CURRENT lists and returns the ids to detach, so the caller
+ * can disconnect them without having to restate the full membership set.
+ *
+ * Pure: never reads from the database.
+ */
+export function statusListIdsToDetachOnCompletion(
+  // Loose on purpose: Prisma selects widen `listType` to `string`, and the
+  // callers are route handlers passing partial selections.
+  currentLists: { id: string; listType?: string | null }[] | null | undefined,
+): string[] {
+  if (!Array.isArray(currentLists)) return []
+  return currentLists
+    .filter(list => isProjectStatusList(list as Pick<TaskList, 'listType'>))
+    .map(list => list.id)
+}
+
+/**
  * Tasks that should appear on a project's board: those attached to at least
  * one of the project's regular (non-status) lists. A task with only a status
  * membership and no domain list isn't a "project task" and is excluded.

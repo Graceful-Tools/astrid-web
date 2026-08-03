@@ -26,7 +26,7 @@ import {
   recordStateChangeComment,
 } from "@/lib/task-update-handler"
 import { createLogger } from '@/lib/logger'
-import { normalizeProjectStatusListIds } from "@/lib/project-status"
+import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from "@/lib/project-status"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
@@ -325,6 +325,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     const requestedCompleted = completedFromStatus ?? data.completed
 
+    // See the `lists:` clause below — computed here so it reads next to the
+    // completion decision it depends on.
+    const statusListsToDetachOnCompletion =
+      requestedCompleted === true && validatedListIds === undefined
+        ? statusListIdsToDetachOnCompletion(existingTask.lists)
+        : []
+
     // Terminal state other than done (task 11042ae3). Rejected rather than
     // silently nulled when unrecognised: a typo must not quietly become
     // "completed normally".
@@ -398,7 +405,13 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           ? {
               set: validatedListIds.map((id: string) => ({ id })),
             }
-          : undefined,
+          // Invariant: completed = true => no status memberships (task
+          // db7c6670). The listIds branch enforces it via
+          // normalizeProjectStatusListIds, but only when the request carries
+          // listIds. A completion-only update left the task sitting in Ready.
+          : statusListsToDetachOnCompletion.length > 0
+            ? { disconnect: statusListsToDetachOnCompletion.map((id: string) => ({ id })) }
+            : undefined,
       },
       include: TASK_FULL_INCLUDE,
     })
