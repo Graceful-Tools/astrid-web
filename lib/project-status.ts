@@ -181,7 +181,14 @@ export function getTaskProjectColumnId(
   if (statusRoleFromField) {
     const match = getProjectStatusLists(lists, projectId)
       .find(status => status.statusRole === statusRoleFromField)
-    return match ? match.id : statusRoleFromField
+    // Fall back to Inbox rather than returning the bare role. Board columns are
+    // keyed by LIST id, so an unmatched role matches no column and the card
+    // renders in NONE of them — silently gone from the board while still
+    // present in the list view. Reachable whenever the status lists have not
+    // loaded, and for every custom state once those ship, since a custom state
+    // has no backing list. Showing a card in the wrong column is recoverable;
+    // losing it is not.
+    return match ? match.id : VIRTUAL_INBOX_COLUMN_ID
   }
 
   const statusLists = getProjectStatusLists(lists, projectId)

@@ -395,3 +395,56 @@ describe('Shared board status scoping (142e4dd9)', () => {
     expect(result.completed).toBe(false)
   })
 })
+
+/**
+ * A card must never disappear from the board.
+ *
+ * getTaskProjectColumnId used to return the raw statusRole when no status list
+ * matched it. Board columns are keyed by LIST id, so that value matched no
+ * column and the card rendered in none of them — silently gone from the board
+ * while still existing in the list view.
+ *
+ * Reachable two ways: a user whose status lists have not loaded (or do not
+ * exist yet), and any custom state once per-project custom states ship, since
+ * those have no backing list at all.
+ */
+describe('a status the board cannot render falls back to Inbox (AWTD-562)', () => {
+  const domain = {
+    id: 'domain-1', name: 'Board', ownerId: 'alice', privacy: 'PRIVATE',
+    listType: 'regular', projectId: 'project-1', createdAt: new Date(), updatedAt: new Date(),
+  } as never
+
+  const readyList = {
+    id: 'alice-ready', name: 'Ready', ownerId: 'alice', privacy: 'PRIVATE',
+    listType: 'status', statusRole: 'ready', statusOrder: 0, projectId: null,
+    createdAt: new Date(), updatedAt: new Date(),
+  } as never
+
+  const card = (statusRole: string | null) =>
+    ({ id: 'task-1', title: 'card', completed: false, statusRole, lists: [{ id: 'domain-1' }] }) as never
+
+  it('resolves to the matching column when one exists', () => {
+    expect(getTaskProjectColumnId(card('ready'), [domain, readyList], 'project-1')).toBe('alice-ready')
+  })
+
+  it('REGRESSION: an unrenderable status lands in Inbox, not nowhere', () => {
+    // 'blocked' has no status list. Previously this returned 'blocked', which
+    // matched no column id, and the card vanished.
+    expect(getTaskProjectColumnId(card('blocked'), [domain, readyList], 'project-1'))
+      .toBe(VIRTUAL_INBOX_COLUMN_ID)
+  })
+
+  it('REGRESSION: a status set with no lists loaded still shows the card', () => {
+    expect(getTaskProjectColumnId(card('ready'), [domain], 'project-1'))
+      .toBe(VIRTUAL_INBOX_COLUMN_ID)
+  })
+
+  it('every resolved column id is one the board actually renders', () => {
+    // The invariant behind all of the above.
+    const lists = [domain, readyList]
+    const columnIds = new Set(getProjectBoardColumns(lists, 'project-1').map(c => c.id))
+    for (const role of ['ready', 'blocked', 'doing', null]) {
+      expect(columnIds.has(getTaskProjectColumnId(card(role), lists, 'project-1'))).toBe(true)
+    }
+  })
+})

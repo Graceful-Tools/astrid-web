@@ -33,9 +33,18 @@ Every Project Mode change must be expressed *through that primitive*, or as a
 Every capability passes one test: **does an existing single-player user see
 anything new before they opt in?** Three mechanisms, in preference order:
 
-1. **New concepts become list *flavors*, not new nouns.** `listType` already
-   carries `regular | status`. Labels become `listType: "label"`. A cycle
-   becomes a virtual list with a date window. Users learn one primitive.
+1. **New concepts become list *flavors*, not new nouns** — *when the concept is
+   genuinely a place*. `listType` carries `regular | status | label`. Labels
+   became `listType: "label"`; a cycle would be a virtual list with a date
+   window.
+
+   **The counter-example is worth more than the rule.** Status looked like a
+   list flavor and was not: it is an *attribute of a task*, and modelling it as
+   membership shipped the same duplication bug twice before becoming
+   `Task.statusRole` (AWTD-562). The test is whether the thing is somewhere a
+   task LIVES or something a task IS. A list a task can be in alongside others
+   is a place; a single mutually-exclusive value is a field. `listType:
+   "status"` survives only for the iOS transition.
 2. **Disclosure triggers on shared-board state.** A list with a `projectId`
    **and** more than one member is a *team board*. That is the signal that
    surfaces identifiers, activity history, shared statuses and the notification
