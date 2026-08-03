@@ -107,6 +107,17 @@ export const GET = withAuth(
       filters.push({ priority: { in: parsed.priorities.map(priorityToNumber) } })
     }
 
+    if (parsed.statuses.length > 0) {
+      // 'none' is Inbox — the absence of a status, which is a null column
+      // rather than a value, so it cannot go in the same `in` clause.
+      const wantsInbox = parsed.statuses.includes('none')
+      const roles = parsed.statuses.filter(status => status !== 'none')
+      const clauses: Record<string, unknown>[] = []
+      if (roles.length > 0) clauses.push({ statusRole: { in: roles } })
+      if (wantsInbox) clauses.push({ statusRole: null })
+      filters.push(clauses.length === 1 ? clauses[0] : { OR: clauses })
+    }
+
     if (parsed.state === 'open') filters.push({ completed: false })
     if (parsed.state === 'done') filters.push({ completed: true, closedReason: null })
     if (parsed.state === 'canceled') filters.push({ completed: true, closedReason: { not: null } })
