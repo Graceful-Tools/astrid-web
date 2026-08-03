@@ -45,15 +45,6 @@ export function getProjectIdForBoard(lists: TaskList[], selectedListId: string):
   return selectedList?.projectId || null
 }
 
-function getPriorityColor(priority: number): string {
-  switch (priority) {
-    case 3: return 'rgb(239, 68, 68)'
-    case 2: return 'rgb(251, 191, 36)'
-    case 1: return 'rgb(59, 130, 246)'
-    default: return 'rgb(107, 114, 128)'
-  }
-}
-
 /**
  * Scrollable body for a single board column (task a48b2d24). Each column owns
  * its own vertical scroll container, so virtualization is wired per-column here
@@ -457,7 +448,6 @@ export function ProjectStatusBoard({
                         currentUserId={currentUser?.id}
                         isSelected={false}
                         isMobile={isOneColumn}
-                        getPriorityColor={getPriorityColor}
                         onToggleComplete={handleToggleComplete}
                         onCopyPublic={handleCopyPublic}
                       />

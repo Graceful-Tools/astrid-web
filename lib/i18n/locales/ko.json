@@ -67,6 +67,7 @@
     "assignee": "담당자",
     "assignees": "담당자",
     "unassigned": "미지정",
+    "unassignedMark": "미",
     "comments": "댓글",
     "attachments": "첨부파일",
     "subtasks": "하위 작업",

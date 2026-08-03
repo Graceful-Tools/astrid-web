@@ -146,7 +146,6 @@ interface MainContentProps {
   // Utility functions
   canEditListSettingsMemo: (list: TaskList) => boolean
   getSelectedListInfo: () => { name: string; description: string }
-  getPriorityColor: (priority: number) => string
 
   // Refs
   taskManagerRef: React.MutableRefObject<HTMLDivElement | null>
@@ -232,7 +231,6 @@ export function MainContent({
   manualSortPreviewActive,
   canEditListSettingsMemo,
   getSelectedListInfo,
-  getPriorityColor,
   taskManagerRef,
   isKeyboardScrollingRef,
   onListUpdate,
@@ -368,7 +366,6 @@ export function MainContent({
       controller={rowController}
       isMobile={isMobile}
       isTouchManualSort={isTouchManualSort}
-      getPriorityColor={getPriorityColor}
       draggingTaskMetrics={draggingTaskMetrics}
       registerTaskRow={registerTaskRow}
       taskMeasurementsRef={taskMeasurementsRef}

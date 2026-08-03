@@ -67,6 +67,7 @@
     "assignee": "Zugewiesen an",
     "assignees": "Zugewiesene",
     "unassigned": "Nicht zugewiesen",
+    "unassignedMark": "N",
     "comments": "Kommentare",
     "attachments": "Anhänge",
     "subtasks": "Unteraufgaben",

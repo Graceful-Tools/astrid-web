@@ -67,6 +67,7 @@
     "assignee": "Assignee",
     "assignees": "Assignees",
     "unassigned": "Unassigned",
+    "unassignedMark": "U",
     "comments": "Comments",
     "attachments": "Attachments",
     "subtasks": "Subtasks",

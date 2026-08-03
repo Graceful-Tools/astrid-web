@@ -1,6 +1,6 @@
 import { ChevronUp, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { TaskCheckbox } from "../task-checkbox"
+import { TaskLeadingControl } from "../task-leading-control"
 import { TaskActionMenu } from "./TaskActionMenu"
 import type { Task, User } from "../../types/task"
 
@@ -93,11 +93,16 @@ export function TaskHeader({
               </svg>
             </Button>
           )}
-          <TaskCheckbox
-            checked={tempCompleted}
-            onToggle={onToggleComplete}
+          {/* Three states, not two — an unassigned task must not look like one
+              you own (task 2bb1b196). Same rule as the row and quick add. */}
+          <TaskLeadingControl
+            assigneeId={task.assigneeId}
+            currentUserId={currentUser?.id}
+            assignee={task.assignee}
+            completed={tempCompleted}
             priority={task.priority}
             repeating={task.repeating !== 'never'}
+            onToggleComplete={onToggleComplete}
           />
           {editingTitle ? (
             <textarea

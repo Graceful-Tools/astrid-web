@@ -41,7 +41,6 @@ export interface TaskRowProps {
   controller: TaskRowControllerSlice
   isMobile: boolean
   isTouchManualSort: boolean
-  getPriorityColor: (priority: number) => string
   draggingTaskMetrics: DraggingTaskMetrics | null
 
   // Per-row DOM registration + measurement cache (shared across the list)
@@ -74,7 +73,6 @@ export function TaskRow({
   controller,
   isMobile,
   isTouchManualSort,
-  getPriorityColor,
   draggingTaskMetrics,
   registerTaskRow,
   taskMeasurementsRef,
@@ -263,7 +261,6 @@ export function TaskRow({
           currentUserId={currentUserId}
           isSelected={selectedTaskId === task.id}
           isMobile={isMobile}
-          getPriorityColor={getPriorityColor}
           onToggleComplete={() => onToggleComplete(task.id)}
           onCopyPublic={() => onCopyPublic(task.id)}
         />

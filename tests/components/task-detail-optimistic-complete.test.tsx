@@ -51,7 +51,11 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     lists: [mockList],
     comments: [],
     createdAt: new Date().toISOString(),
-    userId: 'user-1'
+    userId: 'user-1',
+    // Assigned to the viewer so the leading control is the checkbox these
+    // tests are about. Leaving it unassigned renders the "U" mark instead
+    // (task 2bb1b196) — a different control, exercised in its own test.
+    assigneeId: 'user-1'
   }
 
   let onUpdateMock: ReturnType<typeof vi.fn>

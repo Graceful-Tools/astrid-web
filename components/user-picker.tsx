@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Check, X, Mail, UserPlus, Bot, Sparkles } from "lucide-react"
 import type { User } from "../types/task"
 import { isCodingAgent } from "@/lib/ai-agent-utils"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface UserPickerProps {
   selectedUser?: User | null
@@ -46,6 +47,7 @@ export function UserPicker({
   allowEmailAssignment = true,
   includeAIAgents = false
 }: UserPickerProps) {
+  const { t } = useTranslations()
   const [searchTerm, setSearchTerm] = useState("")
   const [searchResults, setSearchResults] = useState<SearchUser[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -353,7 +355,7 @@ export function UserPicker({
                 {user.id === 'unassigned' ? (
                   <Avatar className="w-6 h-6">
                     <AvatarImage src="/placeholder.svg" />
-                    <AvatarFallback className="bg-gray-600 text-gray-300">U</AvatarFallback>
+                    <AvatarFallback className="bg-gray-600 text-gray-300">{t('tasks.unassignedMark')}</AvatarFallback>
                   </Avatar>
                 ) : (
                   <Avatar className="w-6 h-6">
