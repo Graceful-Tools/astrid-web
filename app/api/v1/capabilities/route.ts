@@ -49,6 +49,14 @@ export async function GET() {
         emailToTask: CAPABILITIES.emailToTask,
         calendarFeed: CAPABILITIES.calendarFeed,
       },
+      // Product surfaces this deployment ships at all. Distinct from the
+      // per-user grant in /api/v1/features: this says the feature EXISTS here,
+      // that says whether YOU have it. A client needs both — capability false
+      // means hide it entirely, capability true + flag false means offer the
+      // request-access affordance. Task dd7172d8 / AWTD-566.
+      product: {
+        projectMode: CAPABILITIES.projectMode,
+      },
       // The brand this deployment presents itself as. TEXT ONLY, and deliberately so:
       // one mobile binary can point at several deployments, so the brand cannot be a
       // purely build-time value on the client any more than the capability set could be.

@@ -141,3 +141,41 @@ describe('toTextSearchTerms (5df85b9f)', () => {
     expect(toTextSearchTerms('  foo   bar  ')).toBe('foo bar')
   })
 })
+
+describe('status filter (AWTD-567)', () => {
+  it('parses the default roles', () => {
+    expect(parseSearchQuery('status:doing').statuses).toEqual(['doing'])
+    expect(parseSearchQuery('status:ready').statuses).toEqual(['ready'])
+  })
+
+  it('accepts a project custom state, since the set is configurable', () => {
+    // The parser cannot know a project's custom roles, so any value is taken
+    // and an unmatched one simply returns nothing.
+    expect(parseSearchQuery('status:blocked').statuses).toEqual(['blocked'])
+  })
+
+  it('treats status:none as Inbox', () => {
+    expect(parseSearchQuery('status:none').statuses).toEqual(['none'])
+  })
+
+  it('accumulates several statuses', () => {
+    expect(parseSearchQuery('status:ready status:doing').statuses).toEqual(['ready', 'doing'])
+  })
+
+  it('is case-insensitive', () => {
+    expect(parseSearchQuery('Status:DOING').statuses).toEqual(['doing'])
+  })
+
+  it('is not an empty search', () => {
+    expect(isEmptySearch(parseSearchQuery('status:doing'))).toBe(false)
+  })
+
+  it('degrades a bare status: to free text like every other key', () => {
+    expect(parseSearchQuery('status:').text).toBe('status:')
+  })
+
+  it('combines with the other filters', () => {
+    const parsed = parseSearchQuery('status:doing assignee:me priority:high')
+    expect(parsed).toMatchObject({ statuses: ['doing'], assignee: 'me', priorities: ['high'] })
+  })
+})

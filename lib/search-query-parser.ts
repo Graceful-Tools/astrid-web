@@ -18,6 +18,9 @@ export type SearchPriority = 'none' | 'low' | 'medium' | 'high'
 export type SearchDue = 'today' | 'overdue' | 'week' | 'month' | 'none'
 export type SearchState = 'open' | 'done' | 'canceled'
 
+/** Board status. 'none' means Inbox — statusRole IS NULL. */
+export type SearchStatus = string
+
 export interface ParsedSearchQuery {
   /** Free-text terms, joined for full-text search. */
   text: string
@@ -28,6 +31,13 @@ export interface ParsedSearchQuery {
   priorities: SearchPriority[]
   due: SearchDue | null
   state: SearchState | null
+  /**
+   * Board statuses (AWTD-567). Cheap now that status is a field on the task
+   * rather than a list membership — and it is what makes "Ready across every
+   * project" a real query, which is the cross-project state view the list
+   * model could never express.
+   */
+  statuses: SearchStatus[]
   /** Bare identifier (AST-142) if the query is one — a direct hit. */
   identifier: string | null
 }
@@ -113,6 +123,7 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
     priorities: [],
     due: null,
     state: null,
+    statuses: [],
     identifier: null,
   }
 
@@ -161,6 +172,14 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
         else textParts.push(token)
         break
       }
+      case 'status': {
+        // Any non-empty value is accepted: a project's custom states are
+        // configurable, so the parser cannot know the full set. An unmatched
+        // status simply returns nothing rather than erroring.
+        if (normalized) result.statuses.push(normalized)
+        else textParts.push(token)
+        break
+      }
       case 'is': {
         const state = STATE_ALIASES[normalized]
         if (state) result.state = state
@@ -192,7 +211,8 @@ export function isEmptySearch(parsed: ParsedSearchQuery): boolean {
     !parsed.state &&
     parsed.listNames.length === 0 &&
     parsed.labelNames.length === 0 &&
-    parsed.priorities.length === 0
+    parsed.priorities.length === 0 &&
+    parsed.statuses.length === 0
   )
 }
 
