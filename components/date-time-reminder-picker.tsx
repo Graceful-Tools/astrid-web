@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, Clock, Bell, AlertCircle } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
 import { format } from "date-fns"
 import type { ReminderSettings } from "@/types/reminder"
 
@@ -55,6 +56,7 @@ export function DateTimeReminderPicker({
   compact = false,
   userReminderSettings
 }: DateTimeReminderPickerProps) {
+  const { t } = useTranslations()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     dueDateTime ? new Date(dueDateTime) : undefined
   )
@@ -220,7 +222,7 @@ export function DateTimeReminderPicker({
                   onClick={() => setSelectedDate(undefined)}
                   className="w-full text-sm"
                 >
-                  Clear Date
+                  {t('time.noDate')}
                 </Button>
               </div>
             )}

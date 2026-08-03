@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "./button"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Clock } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface TimePickerProps {
   value?: Date | string | null
@@ -34,6 +35,7 @@ export function TimePicker({
   label,
   popoverClassName = "",
 }: TimePickerProps) {
+  const { t } = useTranslations()
   const [isOpen, setIsOpen] = useState(false)
   const [hours, setHours] = useState<number>(5)
   const [minutes, setMinutes] = useState<number>(0)
@@ -297,7 +299,7 @@ export function TimePicker({
                 onClick={handleClear}
                 className="w-full text-xs"
               >
-                All Day
+                {t('time.allDay')}
               </Button>
             )}
           </div>

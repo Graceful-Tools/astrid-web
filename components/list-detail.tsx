@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPicker } from "./user-picker"
 import { ListMembersManager } from "./list-members-manager"
 import { PriorityPicker } from "./ui/priority-picker"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { Calendar as CalendarIcon, Trash2, Lock, Unlock, Check, X, Users, Settings, Palette, Crown, Shield } from "lucide-react"
@@ -28,6 +29,7 @@ interface ListDetailProps {
 }
 
 export function ListDetail({ list, currentUser, availableUsers, canEditSettings, onUpdate, onDelete, onClose }: ListDetailProps) {
+  const { t } = useTranslations()
   // Inline editing states
   const [editingPrivacy, setEditingPrivacy] = useState(false)
   const [editingDefaultAssignee, setEditingDefaultAssignee] = useState(false)
@@ -242,13 +244,13 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
 
   const getDefaultRepeatingDisplay = (repeating: TaskList["defaultRepeating"]) => {
     switch (repeating) {
-      case "never": return "Never"
-      case "daily": return "Daily"
-      case "weekly": return "Weekly"
-      case "monthly": return "Monthly"
-      case "yearly": return "Yearly"
-      case "custom": return "Custom"
-      default: return "Never"
+      case "daily": return t('repeating.daily')
+      case "weekly": return t('repeating.weekly')
+      case "monthly": return t('repeating.monthly')
+      case "yearly": return t('repeating.yearly')
+      case "custom": return t('repeating.custom')
+      // "never" and anything unset are the same state: this task happens once.
+      default: return t('repeating.oneTimeOnly')
     }
   }
 
@@ -471,11 +473,11 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="never">Never</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
+                    <SelectItem value="never">{t('repeating.oneTimeOnly')}</SelectItem>
+                    <SelectItem value="daily">{t('repeating.daily')}</SelectItem>
+                    <SelectItem value="weekly">{t('repeating.weekly')}</SelectItem>
+                    <SelectItem value="monthly">{t('repeating.monthly')}</SelectItem>
+                    <SelectItem value="yearly">{t('repeating.yearly')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="flex space-x-2 mt-2">

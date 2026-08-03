@@ -149,6 +149,7 @@
     "nextMonth": "Próximo mes",
     "custom": "Personalizado",
     "noDate": "Sin fecha",
+    "allDay": "Todo el día",
     "pickDate": "Elegir fecha",
     "pickTime": "Elegir hora",
     "atDueTime": "A la hora límite",
@@ -158,6 +159,14 @@
     "dayBefore": "1 día antes",
     "daysBefore": "{count} días antes",
     "weekBefore": "1 semana antes"
+  },
+  "repeating": {
+    "oneTimeOnly": "Solo una vez",
+    "daily": "Diariamente",
+    "weekly": "Semanalmente",
+    "monthly": "Mensualmente",
+    "yearly": "Anualmente",
+    "custom": "Personalizado"
   },
   "weekdays": {
     "sunday": "Domingo",

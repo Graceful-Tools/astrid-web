@@ -149,6 +149,7 @@
     "nextMonth": "Nächster Monat",
     "custom": "Benutzerdefiniert",
     "noDate": "Kein Datum",
+    "allDay": "Ganztägig",
     "pickDate": "Datum wählen",
     "pickTime": "Zeit wählen",
     "atDueTime": "Zur Fälligkeit",
@@ -158,6 +159,14 @@
     "dayBefore": "1 Tag vorher",
     "daysBefore": "{count} Tage vorher",
     "weekBefore": "1 Woche vorher"
+  },
+  "repeating": {
+    "oneTimeOnly": "Nur einmal",
+    "daily": "Täglich",
+    "weekly": "Wöchentlich",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "custom": "Benutzerdefiniert"
   },
   "weekdays": {
     "sunday": "Sonntag",

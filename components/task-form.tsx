@@ -16,6 +16,7 @@ import type { ReminderSettings } from "@/types/reminder"
 // Removed MarkdownEditor and MarkdownToggle imports
 import { AttachmentViewer } from "./attachment-viewer"
 import type { Task, User, TaskList, RepeatOption, PriorityLevel } from "../types/task"
+import { useTranslations } from "@/lib/i18n/client"
 import { X, Plus, Lock, Unlock, Upload, Image, FileText } from "lucide-react"
 import { UserPicker } from "./user-picker"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -32,12 +33,14 @@ interface TaskFormProps {
   currentListId?: string // For applying list defaults
 }
 
+/** Stored value + the copy key that names the resulting state (task ab01186a).
+ *  "never" stays the stored value; the reader sees "One time only". */
 const repeatOptions: RepeatOption[] = [
-  { value: "never", label: "Never" },
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
+  { value: "never", labelKey: "repeating.oneTimeOnly" },
+  { value: "daily", labelKey: "repeating.daily" },
+  { value: "weekly", labelKey: "repeating.weekly" },
+  { value: "monthly", labelKey: "repeating.monthly" },
+  { value: "yearly", labelKey: "repeating.yearly" },
 ]
 
 const priorityLevels: PriorityLevel[] = [
@@ -70,6 +73,7 @@ const applyListDefaults = (lists: TaskList[], currentSettings: any) => {
 }
 
 export function TaskForm({ task, currentUser, availableLists, availableUsers, onSave, onCancel, onClose, compact = false, currentListId }: TaskFormProps) {
+  const { t } = useTranslations()
   const handleCancel = onClose || onCancel
   const [title, setTitle] = useState(task?.title || "")
   const [description, setDescription] = useState(task?.description || "")
@@ -520,7 +524,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
           <SelectContent className="bg-gray-700 border-gray-600">
             {repeatOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} className="text-white">
-                {option.label}
+                {t(option.labelKey)}
               </SelectItem>
             ))}
           </SelectContent>
