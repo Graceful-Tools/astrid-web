@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { Task } from '@/types/task'
+import { useEditingSession } from '@/hooks/use-editing-session'
 
 export interface FileAttachment {
   url: string
@@ -84,6 +85,10 @@ export interface TaskDetailState {
     assigneeRef: React.MutableRefObject<HTMLDivElement | null>
     descriptionRef: React.MutableRefObject<HTMLDivElement | null>
     descriptionTextareaRef: React.MutableRefObject<HTMLTextAreaElement | null>
+    /** Register a pending-buffer editor's save, so hand-off commits it (task 7b60c7c5). */
+    registerCommit: (id: string, commit: () => void) => void
+    /** Explicit Cancel — the only path that discards. */
+    cancelEditing: (id: string) => void
   }
 
   // Temporary edit values
@@ -141,15 +146,39 @@ export function useTaskDetailState(task: Task): TaskDetailState {
   const listSearchRef = useRef<HTMLDivElement | null>(null)
   const listInputRef = useRef<HTMLInputElement | null>(null)
 
-  // Editing state
-  const [editingTitle, setEditingTitle] = useState(false)
-  const [editingDescription, setEditingDescription] = useState(false)
-  const [editingWhen, setEditingWhen] = useState(false)
-  const [editingTime, setEditingTime] = useState(false)
-  const [editingPriority, setEditingPriority] = useState(false)
-  const [editingRepeating, setEditingRepeating] = useState(false)
-  const [editingLists, setEditingLists] = useState(false)
-  const [editingAssignee, setEditingAssignee] = useState(false)
+  // Editing state — ONE session, not eight independent booleans (task
+  // 7b60c7c5). These used to be eight useState flags with nothing stopping two
+  // being true at once, which is exactly the reported bug: edit a list, tap the
+  // title, and both editors are open.
+  //
+  // The public shape below is unchanged on purpose — every `editingX` /
+  // `setEditingX` call site still works — but `setEditingX(true)` now routes
+  // through begin(), which commits and closes whatever was active. Mutual
+  // exclusion is a property of the machine, not of each call site remembering.
+  const session = useEditingSession()
+
+  const editingTitle = session.isEditing('title')
+  const editingDescription = session.isEditing('description')
+  const editingWhen = session.isEditing('when')
+  const editingTime = session.isEditing('time')
+  const editingPriority = session.isEditing('priority')
+  const editingRepeating = session.isEditing('repeating')
+  const editingLists = session.isEditing('lists')
+  const editingAssignee = session.isEditing('assignee')
+
+  const makeSetEditing = (id: string) => (value: boolean) => {
+    if (value) session.beginEditing(id)
+    else session.endEditing(id)
+  }
+
+  const setEditingTitle = useCallback(makeSetEditing('title'), [session])
+  const setEditingDescription = useCallback(makeSetEditing('description'), [session])
+  const setEditingWhen = useCallback(makeSetEditing('when'), [session])
+  const setEditingTime = useCallback(makeSetEditing('time'), [session])
+  const setEditingPriority = useCallback(makeSetEditing('priority'), [session])
+  const setEditingRepeating = useCallback(makeSetEditing('repeating'), [session])
+  const setEditingLists = useCallback(makeSetEditing('lists'), [session])
+  const setEditingAssignee = useCallback(makeSetEditing('assignee'), [session])
   const assigneeEditRef = useRef<HTMLDivElement | null>(null)
   const descriptionEditRef = useRef<HTMLDivElement | null>(null)
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -269,7 +298,11 @@ export function useTaskDetailState(task: Task): TaskDetailState {
       setEditingAssignee,
       assigneeRef: assigneeEditRef,
       descriptionRef: descriptionEditRef,
-      descriptionTextareaRef
+      descriptionTextareaRef,
+      /** Register a pending-buffer editor's save, so hand-off commits it. */
+      registerCommit: session.registerCommit,
+      /** Explicit Cancel — the only path that discards (task 7b60c7c5). */
+      cancelEditing: session.cancelEditing
     },
     tempValues: {
       title: tempTitle,

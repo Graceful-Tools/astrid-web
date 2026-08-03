@@ -214,7 +214,56 @@ uses `picker.*`; the repeat group matches. Reconcile when next touched.
 
 ---
 
-## 6. How this stays true (anti-drift)
+---
+
+## 6. One editing session at a time
+
+Task `7b60c7c5` (Web) / `55010e29` (iOS/Mac). "What happens to my edit when I
+click elsewhere" is a cross-platform promise, not a per-client detail.
+
+**Exactly one editor is open at a time**, and the rule is stated once rather
+than re-derived per editor:
+
+| Transition | Effect |
+|---|---|
+| `begin(B)` | **commits** and closes whatever was active, then activates B |
+| `end(A)` | commits A |
+| `cancel(A)` | reverts A — **the only transition that discards** |
+
+**UNIVERSAL POLICY: commit on resign.** Tapping outside, opening another
+editor, navigating away and backgrounding all **save**. Only an explicit Cancel
+reverts. One rule to learn, one rule to test.
+
+Why it must be a machine and not a convention: the failure mode is a dozen-plus
+editors each with its own `isEditing` flag, where mutual exclusion depends on
+every call site remembering to close the others. `begin` closing the previous
+editor **by construction** is what makes the guarantee real. Web's task detail
+alone had eight independent booleans with nothing stopping two being true.
+
+Two details that only show up once it is wired to real views:
+
+- **Stale `end` must be ignored.** A blur routinely arrives *after* `begin`
+  handed off; honouring it writes the old editor's value over the new one's.
+- **Editors that commit on selection register no commit handler.** Date, time,
+  priority and repeat save when you pick — for them, closing is the whole
+  story. Only editors holding a pending buffer (title, description, lists,
+  assignee) need a hand-off commit.
+
+Web: `lib/editing-session.ts` (pure) + `hooks/use-editing-session.ts` (binding).
+iOS: the `EditingSession` coordinator behind one `.editingSession(id:onCommit:onCancel:)`
+view modifier.
+
+**Web migration status:** the task detail's eight editors are on the session.
+The list editors, comment editor and settings editors still hand-roll
+`isEditing` — ~18 sites, tracked on `7b60c7c5`. Note that on web only four
+components saved on blur to begin with, so adopting commit-on-resign is a real
+behaviour change there, not a tidy-up.
+
+---
+
+---
+
+## 7. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →
   Code Reuse & Consistency*. iOS: add the same one-line pointer to its agent
