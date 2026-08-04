@@ -271,7 +271,9 @@ export const RichTextInput = React.memo(function RichTextInput({
         overCap += 1
         continue
       }
-      const result = await uploadCommentFile(file, uploadContext)
+      // The file belongs to the message being composed, not to the task the
+      // upload is authorized against (task ded31696).
+      const result = await uploadCommentFile(file, { ...uploadContext, attachTarget: 'message' })
       if (result.success) {
         queue = addAttachment(queue, result.attachment)
       } else if (!firstError) {
@@ -296,7 +298,14 @@ export const RichTextInput = React.memo(function RichTextInput({
   const removeAttachedFile = useCallback((url: string) => {
     const id = fileIdFromUrl(url)
     if (!id) return
+    // The chip always goes — the user asked for it, and a staged file has no
+    // message pointing at it yet.
     onAttachedFilesChange?.(removeAttachment(attachedFiles, id))
+    // Then drop the row and the blob, so a file the user visibly removed is
+    // actually gone rather than left orphaned in storage (task ded31696).
+    fetch(`/api/secure-files/${id}`, { method: 'DELETE' }).catch(error => {
+      console.error('Failed to delete removed attachment:', error)
+    })
   }, [attachedFiles, onAttachedFilesChange])
 
   const canSend = !!(value.trim() || attachedFiles.length > 0) && !isSending && !disabled

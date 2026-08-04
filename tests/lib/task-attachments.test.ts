@@ -102,3 +102,45 @@ describe('taskLevelAttachments (Task b4a362f1)', () => {
     })
   })
 })
+
+describe('abandoned composer uploads (Task ded31696)', () => {
+  it('does not count a file still staged in the comment composer as a task attachment', () => {
+    // The composer uploads with a { taskId } context — that is how the write is
+    // authorized — and commentId is only stamped on when the comment is sent.
+    // Between picking a file and sending, the row looks exactly like a
+    // task-form upload, so intent has to be recorded at upload time.
+    const task = {
+      secureFiles: [secureFile('staged', { attachTarget: 'message' })],
+      comments: [],
+    } as any
+
+    expect(taskLevelAttachments(task)).toEqual([])
+    expect(collectTaskAttachments(task)).toEqual([])
+  })
+
+  it('counts a file the task form uploaded', () => {
+    const task = { secureFiles: [secureFile('direct', { attachTarget: 'task' })] } as any
+
+    expect(taskLevelAttachments(task).map(a => a.fileId)).toEqual(['direct'])
+  })
+
+  it('leaves rows written before the discriminator classified exactly as they were', () => {
+    // attachTarget is null on every legacy row. Treating those as task-level
+    // keeps today's behavior rather than silently reinterpreting old data.
+    const task = { secureFiles: [secureFile('legacy', { attachTarget: null })] } as any
+
+    expect(taskLevelAttachments(task).map(a => a.fileId)).toEqual(['legacy'])
+  })
+
+  it('still shows a message file once the comment carrying it exists', () => {
+    const sent = secureFile('sent', { attachTarget: 'message', commentId: 'c1' })
+    const task = {
+      secureFiles: [sent],
+      comments: [{ id: 'c1', createdAt: new Date(), secureFiles: [sent] }],
+    } as any
+
+    expect(collectTaskAttachments(task)).toEqual([
+      expect.objectContaining({ fileId: 'sent', isTaskLevel: false }),
+    ])
+  })
+})

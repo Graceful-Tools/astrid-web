@@ -115,6 +115,9 @@ describe('Secure Upload API', () => {
           taskId: 'test-task-id',
           listId: null,
           commentId: null,
+          // Intent discriminator (task ded31696) — null when the uploader
+          // doesn't declare one, which is every pre-existing client.
+          attachTarget: null,
           clientRequestId: null, // idempotency key — null when the uploader doesn't send one
         }
       })

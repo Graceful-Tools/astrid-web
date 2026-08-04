@@ -309,7 +309,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
       let queue = attachments
       for (const file of picked) {
         if (isAttachmentQueueFull(queue)) break
-        const result = await uploadCommentFile(file, contextData)
+        const result = await uploadCommentFile(file, { ...contextData, attachTarget: 'task' })
         if (!result.success) {
           console.error('Error uploading file:', new Error(result.error))
           continue

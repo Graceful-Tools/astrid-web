@@ -490,6 +490,13 @@ model SecureFile {
   commentId       String?
   chatMessageId   String?
   clientRequestId String?
+  /// What the file was uploaded FOR, recorded at upload time (task ded31696):
+  /// "message" (a comment or chat composer) | "task" (the task form) | null on
+  /// every row written before this existed. A composer uploads with a taskId
+  /// context — that is how the write is authorized — and commentId is only
+  /// stamped on when the message is sent, so a file staged in a composer is
+  /// otherwise indistinguishable from one attached to the task itself.
+  attachTarget    String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   chatMessage     ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)

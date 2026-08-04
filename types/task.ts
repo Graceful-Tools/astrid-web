@@ -137,6 +137,11 @@ export interface SecureFile {
   taskId?: string | null
   listId?: string | null
   commentId?: string | null
+  /**
+   * What the file was uploaded for: "message" (a comment or chat composer) |
+   * "task" (the task form) | null on rows predating the field (task ded31696).
+   */
+  attachTarget?: string | null
   createdAt: Date
   updatedAt: Date
 }

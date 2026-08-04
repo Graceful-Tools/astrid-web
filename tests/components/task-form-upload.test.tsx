@@ -159,7 +159,7 @@ describe('TaskForm Upload Functionality', () => {
 
       // For new task, should use currentListId as context
       const context = JSON.parse(formData.get('context') as string)
-      expect(context).toEqual({ listId: 'list-1' })
+      expect(context).toEqual({ listId: 'list-1', attachTarget: 'task' })
 
       // Should show attachment in the form
       await waitFor(() => {
@@ -237,7 +237,7 @@ describe('TaskForm Upload Functionality', () => {
 
       const context = JSON.parse(formData.get('context') as string)
       // Should use taskId for existing task
-      expect(context).toEqual({ taskId: 'existing-task-id' })
+      expect(context).toEqual({ taskId: 'existing-task-id', attachTarget: 'task' })
     })
 
     it('should use selected list context when no current list', async () => {
