@@ -182,7 +182,15 @@ export interface Task {
    * `completed`. Replaces membership in a status list.
    */
   statusRole?: string | null
+  /** Legacy attachment rows. Only the MCP handlers write these. */
   attachments: Attachment[]
+  /**
+   * Secure files hung on the task. Includes the ones its comments carry (they
+   * are uploaded with a `{ taskId }` context), so read this through
+   * lib/task-attachments rather than directly — task-level means
+   * `commentId === null` (task b4a362f1).
+   */
+  secureFiles?: SecureFile[]
   comments: Comment[]
   createdAt: Date
   updatedAt: Date

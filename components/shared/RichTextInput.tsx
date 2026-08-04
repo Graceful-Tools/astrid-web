@@ -5,6 +5,17 @@ import { Send, Hash, CheckCircle2, Circle, Users, Globe, Paperclip, Loader2, X, 
 import { useChatMentions, type AutocompleteItem, type AutocompleteType } from '@/hooks/use-chat-mentions'
 import type { User, TaskList, Task } from '@/types/task'
 import type { FileAttachment } from '@/components/shared/FileUploadButton'
+import { uploadCommentFile } from '@/lib/comment-file-upload'
+import {
+  MAX_COMMENT_ATTACHMENTS,
+  addAttachment,
+  removeAttachment,
+  isAttachmentQueueFull,
+  fileIdFromUrl,
+} from '@/lib/comment-attachments'
+
+/** Stable identity so an omitted `attachedFiles` prop does not re-fire the upload callbacks. */
+const EMPTY_ATTACHMENTS: FileAttachment[] = []
 
 // ─── Highlight overlay ────────────────────────────────────────────
 
@@ -80,10 +91,10 @@ export interface RichTextInputProps {
   enableAttachments?: boolean
   /** Upload context passed to /api/secure-upload/request-upload (e.g. { taskId } or { listId }) */
   uploadContext?: Record<string, string>
-  /** Current attached file (controlled) */
-  attachedFile?: FileAttachment | null
-  /** Called when a file is attached or removed */
-  onAttachedFileChange?: (file: FileAttachment | null) => void
+  /** Files staged on this message (controlled). Up to MAX_COMMENT_ATTACHMENTS. */
+  attachedFiles?: FileAttachment[]
+  /** Called with the new queue when files are attached or removed */
+  onAttachedFilesChange?: (files: FileAttachment[]) => void
   /** Upload error message */
   uploadError?: string | null
   /** Called when upload error changes */
@@ -117,8 +128,8 @@ export const RichTextInput = React.memo(function RichTextInput({
   selectedListId,
   enableAttachments = false,
   uploadContext,
-  attachedFile,
-  onAttachedFileChange,
+  attachedFiles = EMPTY_ATTACHMENTS,
+  onAttachedFilesChange,
   uploadError,
   onUploadErrorChange,
   placeholder = 'Type a message...',
@@ -232,58 +243,63 @@ export const RichTextInput = React.memo(function RichTextInput({
     }
   }, [])
 
-  // File upload
+  // File upload — every picked file is uploaded and staged; picking a second file
+  // must never discard the first (Task 9f325964).
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    if (!uploadContext) {
-      onUploadErrorChange?.('File attachments are not available in this view.')
+    const picked = Array.from(event.target.files ?? [])
+    const resetInput = () => {
       if (fileInputRef.current) fileInputRef.current.value = ''
-      return
     }
 
-    const maxSize = 100 * 1024 * 1024
-    if (file.size > maxSize) {
-      onUploadErrorChange?.('File size exceeds 100MB limit. Please upload large files to a file service and share a link instead.')
-      if (fileInputRef.current) fileInputRef.current.value = ''
+    if (picked.length === 0) return
+    if (!uploadContext) {
+      onUploadErrorChange?.('File attachments are not available in this view.')
+      resetInput()
       return
     }
 
     setUploading(true)
     onUploadErrorChange?.(null)
 
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('context', JSON.stringify(uploadContext))
+    // Uploaded one at a time so the staged order matches the pick order.
+    let queue = attachedFiles
+    let firstError: string | null = null
+    let overCap = 0
 
-      const response = await fetch('/api/secure-upload/request-upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to upload file')
+    for (const file of picked) {
+      if (isAttachmentQueueFull(queue)) {
+        overCap += 1
+        continue
       }
-
-      const result = await response.json()
-      onAttachedFileChange?.({
-        url: `/api/secure-files/${result.fileId}`,
-        name: result.fileName,
-        type: result.mimeType,
-        size: result.fileSize,
-      })
-    } catch (error) {
-      console.error('Error uploading file:', error)
-      onUploadErrorChange?.(error instanceof Error ? error.message : 'Upload failed')
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      const result = await uploadCommentFile(file, uploadContext)
+      if (result.success) {
+        queue = addAttachment(queue, result.attachment)
+      } else if (!firstError) {
+        firstError = result.error
+      }
     }
-  }, [uploadContext, onAttachedFileChange, onUploadErrorChange])
 
-  const canSend = !!(value.trim() || attachedFile) && !isSending && !disabled
+    if (queue !== attachedFiles) onAttachedFilesChange?.(queue)
+
+    if (firstError) {
+      onUploadErrorChange?.(firstError)
+    } else if (overCap > 0) {
+      onUploadErrorChange?.(
+        `You can attach up to ${MAX_COMMENT_ATTACHMENTS} files at a time — ${overCap} ${overCap === 1 ? 'file was' : 'files were'} not attached.`
+      )
+    }
+
+    setUploading(false)
+    resetInput()
+  }, [uploadContext, attachedFiles, onAttachedFilesChange, onUploadErrorChange])
+
+  const removeAttachedFile = useCallback((url: string) => {
+    const id = fileIdFromUrl(url)
+    if (!id) return
+    onAttachedFilesChange?.(removeAttachment(attachedFiles, id))
+  }, [attachedFiles, onAttachedFilesChange])
+
+  const canSend = !!(value.trim() || attachedFiles.length > 0) && !isSending && !disabled
 
   return (
     <div className={`relative ${className}`}>
@@ -335,20 +351,28 @@ export const RichTextInput = React.memo(function RichTextInput({
         </div>
       )}
 
-      {/* File attachment preview */}
-      {attachedFile && (
-        <div className="mb-1 p-2 theme-bg-secondary rounded theme-border border">
-          <div className="flex items-center gap-2">
-            {attachedFile.type?.startsWith('image/') ? (
-              <ImageIcon className="w-4 h-4 text-blue-400 flex-shrink-0" />
-            ) : (
-              <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
-            )}
-            <span className="text-sm theme-text-primary flex-1 truncate">{attachedFile.name}</span>
-            <button onClick={() => onAttachedFileChange?.(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+      {/* Staged file previews — one row per file, each removable on its own */}
+      {attachedFiles.length > 0 && (
+        <div className="mb-1 space-y-1">
+          {attachedFiles.map(file => (
+            <div key={file.url} className="p-2 theme-bg-secondary rounded theme-border border">
+              <div className="flex items-center gap-2">
+                {file.type?.startsWith('image/') ? (
+                  <ImageIcon className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                ) : (
+                  <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
+                )}
+                <span className="text-sm theme-text-primary flex-1 truncate">{file.name}</span>
+                <button
+                  onClick={() => removeAttachedFile(file.url)}
+                  aria-label={`Remove ${file.name}`}
+                  className="text-red-400 hover:text-red-300 flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -360,14 +384,15 @@ export const RichTextInput = React.memo(function RichTextInput({
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               onChange={handleFileSelect}
               accept={accept}
               className="hidden"
-              disabled={disabled || uploading}
+              disabled={disabled || uploading || isAttachmentQueueFull(attachedFiles)}
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={disabled || uploading}
+              disabled={disabled || uploading || isAttachmentQueueFull(attachedFiles)}
               className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
               title={uploading ? 'Uploading...' : 'Attach file'}
             >
@@ -411,7 +436,7 @@ export const RichTextInput = React.memo(function RichTextInput({
 
         {/* Send button — or timer while the input is empty (task detail) */}
         {!hideSendButton && (
-          onTimerClick && !value.trim() && !attachedFile ? (
+          onTimerClick && !value.trim() && attachedFiles.length === 0 ? (
             <button
               onClick={onTimerClick}
               disabled={disabled}

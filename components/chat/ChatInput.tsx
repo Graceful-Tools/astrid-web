@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react'
 import { RichTextInput } from '@/components/shared/RichTextInput'
 import type { FileAttachment } from '@/components/shared/FileUploadButton'
 import type { User, TaskList, Task } from '@/types/task'
+import { commentDrafts } from '@/lib/comment-attachments'
 
 interface ChatInputProps {
   onSend: (content: string, options?: {
@@ -39,44 +40,47 @@ export const ChatInput = React.memo(function ChatInput({
 }: ChatInputProps) {
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [attachedFile, setAttachedFile] = useState<FileAttachment | null>(null)
+  const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const handleSend = useCallback(async () => {
-    const trimmed = text.trim()
-    if (!trimmed && !attachedFile) return
+    // One message per staged file — the chat API carries a single attachment,
+    // so multi-select fans out the way comments do (Task 9f325964).
+    const drafts = commentDrafts(text, attachedFiles)
+    if (drafts.length === 0) return
     if (isSending || disabled) return
 
     setIsSending(true)
     try {
-      // Extract fileId from secure file URL (e.g. /api/secure-files/abc123 → abc123)
-      const fileId = attachedFile?.url?.match(/\/api\/secure-files\/([^/?]+)/)?.[1]
-      const options = attachedFile
-        ? fileId
-          ? {
-              // Secure file: use fileId only, skip legacy attachment fields to avoid duplicates
-              type: 'ATTACHMENT' as const,
-              fileId,
-            }
-          : {
-              // Legacy attachment: use URL fields
-              type: 'ATTACHMENT' as const,
-              attachmentUrl: attachedFile.url,
-              attachmentName: attachedFile.name,
-              attachmentType: attachedFile.type,
-              attachmentSize: attachedFile.size,
-            }
-        : undefined
+      for (const [index, draft] of drafts.entries()) {
+        const file = attachedFiles[index]
+        const options = file
+          ? draft.fileId
+            ? {
+                // Secure file: use fileId only, skip legacy attachment fields to avoid duplicates
+                type: 'ATTACHMENT' as const,
+                fileId: draft.fileId,
+              }
+            : {
+                // Legacy attachment: use URL fields
+                type: 'ATTACHMENT' as const,
+                attachmentUrl: file.url,
+                attachmentName: file.name,
+                attachmentType: file.type,
+                attachmentSize: file.size,
+              }
+          : undefined
 
-      await onSend(trimmed || (attachedFile ? `Attached: ${attachedFile.name}` : ''), options)
+        await onSend(draft.content, options)
+      }
       setText('')
-      setAttachedFile(null)
+      setAttachedFiles([])
     } catch {
       // Error handled in hook
     } finally {
       setIsSending(false)
     }
-  }, [text, attachedFile, isSending, disabled, onSend])
+  }, [text, attachedFiles, isSending, disabled, onSend])
 
   // Upload context for secure file uploads — use listId if available, fall back to channelId
   const uploadContext: Record<string, string> | undefined = listId ? { listId } : channelId ? { channelId } : undefined
@@ -94,8 +98,8 @@ export const ChatInput = React.memo(function ChatInput({
         selectedListId={selectedListId}
         enableAttachments
         uploadContext={uploadContext}
-        attachedFile={attachedFile}
-        onAttachedFileChange={setAttachedFile}
+        attachedFiles={attachedFiles}
+        onAttachedFilesChange={setAttachedFiles}
         uploadError={uploadError}
         onUploadErrorChange={setUploadError}
         placeholder="Message list..."

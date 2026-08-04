@@ -6,6 +6,7 @@ import { RichTextInput } from "@/components/shared/RichTextInput"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { hasExplicitListRole } from "@/lib/list-permissions"
+import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 
 export interface CommentInputBarProps {
   task: Task
@@ -21,8 +22,8 @@ export interface CommentInputBarProps {
   setNewComment: (value: string) => void
   uploadingFile: boolean
   setUploadingFile: (value: boolean) => void
-  attachedFile: FileAttachment | null
-  setAttachedFile: (value: FileAttachment | null) => void
+  attachedFiles: FileAttachment[]
+  setAttachedFiles: (value: FileAttachment[]) => void
   uploadError?: string | null
   setUploadError?: (value: string | null) => void
   /** Show a timer button in the send slot while the input is empty */
@@ -47,8 +48,8 @@ export function CommentInputBar({
   tasks: availableTasks,
   newComment,
   setNewComment,
-  attachedFile,
-  setAttachedFile,
+  attachedFiles,
+  setAttachedFiles,
   uploadError,
   setUploadError,
   onTimerClick,
@@ -91,130 +92,64 @@ export function CommentInputBar({
   }, [task, currentUser.id, defaultAgent])
 
   const handleAddComment = async () => {
-    if (!newComment.trim() && !attachedFile) return
-
-    const { nanoid } = await import("nanoid")
-    const { OfflineSyncManager, isOfflineMode } = await import("@/lib/offline-sync")
-    const { OfflineCommentOperations } = await import("@/lib/offline-db")
-
-    const tempId = `temp-${nanoid()}`
-    const commentData = {
-      content: newComment.trim() || (attachedFile ? `Attached: ${attachedFile.name}` : ""),
-      type: attachedFile ? ("ATTACHMENT" as const) : ("TEXT" as const),
-      fileId: attachedFile ? attachedFile.url.split("/").pop() : undefined,
-    }
-
-    const optimisticComment = {
-      id: tempId,
-      content: commentData.content,
-      type: commentData.type,
-      author: currentUser,
-      authorId: currentUser.id,
+    // One comment per staged file — the comments API takes a single fileId (Task 9f325964).
+    const pending = await buildPendingComments({
       taskId: task.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      parentCommentId: undefined,
-      replies: [],
-      secureFiles: attachedFile
-        ? [
-            {
-              id: commentData.fileId || "temp-file",
-              originalName: attachedFile.name,
-              mimeType: attachedFile.type || "application/octet-stream",
-              fileSize: attachedFile.size || 0,
-              uploadedBy: currentUser.id,
-              uploadedAt: new Date(),
-              commentId: tempId,
-            },
-          ]
-        : [],
-    }
+      currentUser,
+      text: newComment,
+      files: attachedFiles,
+    })
+    if (pending.length === 0) return
 
     const originalComment = newComment
-    const originalFile = attachedFile
+    const originalFiles = attachedFiles
     setNewComment("")
-    setAttachedFile(null)
+    setAttachedFiles([])
 
     const taskList = task.lists?.[0]
     const isCollaborativePublic = taskList?.privacy === "PUBLIC" && taskList?.publicListType === "collaborative"
     const hasEditPermissions = hasExplicitListRole(currentUser, taskList as never)
     const shouldSkipOptimisticUpdate = isCollaborativePublic && !hasEditPermissions
 
-    if (!shouldSkipOptimisticUpdate) {
+    /** Rewrite the task's comment list through whichever update channel this view has. */
+    const writeComments = (update: (comments: any[]) => any[]) => {
       if (onLocalUpdate) {
         onLocalUpdate((taskId: string, currentTask: Task) => {
           if (currentTask.id !== task.id) return currentTask
-          return { ...currentTask, comments: [...(currentTask.comments || []), optimisticComment as any] }
+          return { ...currentTask, comments: update(currentTask.comments || []) }
         })
       } else {
-        onUpdate({ ...task, comments: [...(task.comments || []), optimisticComment as any] })
+        onUpdate({ ...task, comments: update(task.comments || []) })
       }
     }
 
-    try {
-      if (isOfflineMode()) {
-        await OfflineCommentOperations.saveComment(optimisticComment as any)
-        await OfflineSyncManager.queueMutation(
-          "create",
-          "comment",
-          tempId,
-          `/api/tasks/${task.id}/comments`,
-          "POST",
-          commentData,
-          task.id,
-        )
-        return
-      }
+    if (!shouldSkipOptimisticUpdate) {
+      const optimistic = pending.map(p => p.optimistic)
+      writeComments(comments => [...comments, ...(optimistic as any[])])
+    }
 
-      const response = await fetch(`/api/tasks/${task.id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(commentData),
-      })
-
-      if (!response.ok) throw new Error("Failed to add comment")
-      const serverComment = await response.json()
-      await OfflineCommentOperations.saveComment(serverComment)
-
-      if (!shouldSkipOptimisticUpdate) {
-        if (onLocalUpdate) {
-          onLocalUpdate((taskId: string, currentTask: Task) => {
-            if (currentTask.id !== task.id) return currentTask
-            return {
-              ...currentTask,
-              comments: (currentTask.comments || []).map(c => (c.id === tempId ? serverComment : c)),
-            }
-          })
-        } else {
-          onUpdate({
-            ...task,
-            comments: (task.comments || []).map(c => (c.id === tempId ? serverComment : c)),
-          })
-        }
-      } else {
-        if (onLocalUpdate) {
+    await postPendingComments(task.id, pending, originalFiles, originalComment, {
+      replace: (tempId, serverComment) => {
+        if (!shouldSkipOptimisticUpdate) {
+          writeComments(comments => comments.map(c => (c.id === tempId ? serverComment : c)))
+        } else if (onLocalUpdate) {
+          // Non-members never got an optimistic row; append without touching the task PUT.
           onLocalUpdate((taskId: string, currentTask: Task) => {
             if (currentTask.id !== task.id) return currentTask
             return { ...currentTask, comments: [...(currentTask.comments || []), serverComment] }
           })
         }
-      }
-    } catch (error) {
-      console.error("Error adding comment:", error)
-      if (!shouldSkipOptimisticUpdate) {
-        if (onLocalUpdate) {
-          onLocalUpdate((taskId: string, currentTask: Task) => {
-            if (currentTask.id !== task.id) return currentTask
-            return { ...currentTask, comments: (currentTask.comments || []).filter(c => c.id !== tempId) }
-          })
-        } else {
-          onUpdate({ ...task, comments: (task.comments || []).filter(c => c.id !== tempId) })
-        }
-      }
-      setNewComment(originalComment)
-      setAttachedFile(originalFile)
-    }
+      },
+      remove: tempIds => {
+        if (shouldSkipOptimisticUpdate) return
+        const unsent = new Set(tempIds)
+        writeComments(comments => comments.filter(c => !unsent.has(c.id)))
+      },
+      restore: (text, files) => {
+        if (text !== null) setNewComment(text)
+        setAttachedFiles(files)
+      },
+    })
   }
 
   if (readOnly) return null
@@ -232,8 +167,8 @@ export function CommentInputBar({
         placeholder="Add a comment..."
         enableAttachments
         uploadContext={{ taskId: task.id }}
-        attachedFile={attachedFile}
-        onAttachedFileChange={setAttachedFile}
+        attachedFiles={attachedFiles}
+        onAttachedFilesChange={setAttachedFiles}
         uploadError={uploadError}
         onUploadErrorChange={setUploadError}
         onTimerClick={onTimerClick}

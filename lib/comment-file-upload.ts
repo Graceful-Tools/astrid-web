@@ -30,7 +30,8 @@ export type CommentUploadResult =
  */
 export async function uploadCommentFile(
   file: File,
-  taskId: string,
+  /** A task id, or the full upload context for surfaces that attach elsewhere (list, channel). */
+  context: string | Record<string, string>,
   fetchImpl: typeof fetch = fetch,
 ): Promise<CommentUploadResult> {
   if (file.size > COMMENT_FILE_SIZE_LIMIT_BYTES) {
@@ -43,7 +44,7 @@ export async function uploadCommentFile(
   try {
     const formData = new FormData()
     formData.append("file", file)
-    formData.append("context", JSON.stringify({ taskId }))
+    formData.append("context", JSON.stringify(typeof context === "string" ? { taskId: context } : context))
 
     const response = await fetchImpl("/api/secure-upload/request-upload", {
       method: "POST",

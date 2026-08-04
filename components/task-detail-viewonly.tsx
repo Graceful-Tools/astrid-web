@@ -72,10 +72,10 @@ export function TaskDetailViewOnly({
   // Comment section state (minimal for view-only)
   const [newComment, setNewComment] = useState("")
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [attachedFile, setAttachedFile] = useState<FileAttachment | null>(null)
+  const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
-  const [replyAttachedFile, setReplyAttachedFile] = useState<FileAttachment | null>(null)
+  const [replyAttachedFiles, setReplyAttachedFiles] = useState<FileAttachment[]>([])
   const [uploadingReplyFile, setUploadingReplyFile] = useState(false)
   const [showingActionsFor, setShowingActionsFor] = useState<string | null>(null)
   const [showTimer, setShowTimer] = useState(false)
@@ -581,14 +581,14 @@ interface FileAttachment {
           setNewComment={setNewComment}
           uploadingFile={uploadingFile}
           setUploadingFile={setUploadingFile}
-          attachedFile={attachedFile}
-          setAttachedFile={setAttachedFile}
+          attachedFiles={attachedFiles}
+          setAttachedFiles={setAttachedFiles}
           replyingTo={replyingTo}
           setReplyingTo={setReplyingTo}
           replyContent={replyContent}
           setReplyContent={setReplyContent}
-          replyAttachedFile={replyAttachedFile}
-          setReplyAttachedFile={setReplyAttachedFile}
+          replyAttachedFiles={replyAttachedFiles}
+          setReplyAttachedFiles={setReplyAttachedFiles}
           uploadingReplyFile={uploadingReplyFile}
           setUploadingReplyFile={setUploadingReplyFile}
           showingActionsFor={showingActionsFor}

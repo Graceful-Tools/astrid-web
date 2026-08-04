@@ -54,14 +54,14 @@ describe('CommentSection', () => {
     setNewComment: vi.fn(),
     uploadingFile: false,
     setUploadingFile: vi.fn(),
-    attachedFile: null,
-    setAttachedFile: vi.fn(),
+    attachedFiles: [],
+    setAttachedFiles: vi.fn(),
     replyingTo: null,
     setReplyingTo: vi.fn(),
     replyContent: '',
     setReplyContent: vi.fn(),
-    replyAttachedFile: null,
-    setReplyAttachedFile: vi.fn(),
+    replyAttachedFiles: [],
+    setReplyAttachedFiles: vi.fn(),
     uploadingReplyFile: false,
     setUploadingReplyFile: vi.fn(),
     showingActionsFor: null,
@@ -221,14 +221,14 @@ describe('CommentSection', () => {
     it('should cancel reply when X button is clicked', () => {
       const setReplyingTo = vi.fn()
       const setReplyContent = vi.fn()
-      const setReplyAttachedFile = vi.fn()
+      const setReplyAttachedFiles = vi.fn()
 
       render(<CommentSection
         {...defaultProps}
         replyingTo="comment-1"
         setReplyingTo={setReplyingTo}
         setReplyContent={setReplyContent}
-        setReplyAttachedFile={setReplyAttachedFile}
+        setReplyAttachedFiles={setReplyAttachedFiles}
       />)
 
       // Chat bubble uses an X icon button to cancel reply (inside "Replying to..." text)
@@ -239,7 +239,7 @@ describe('CommentSection', () => {
 
       expect(setReplyingTo).toHaveBeenCalledWith(null)
       expect(setReplyContent).toHaveBeenCalledWith('')
-      expect(setReplyAttachedFile).toHaveBeenCalledWith(null)
+      expect(setReplyAttachedFiles).toHaveBeenCalledWith([])
     })
 
     it('should add reply on Enter key', async () => {
