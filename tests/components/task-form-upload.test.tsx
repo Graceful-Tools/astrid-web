@@ -499,6 +499,74 @@ describe('TaskForm Upload Functionality', () => {
         const attachmentViewer = screen.queryByTestId('attachment-viewer')
         expect(attachmentViewer).not.toBeInTheDocument()
       })
+
+      // ...and actually deleted. Removal used to be local-only: the SecureFile
+      // row and its blob outlived every "removal" and the file came back on
+      // reload with no explanation (task b4a362f1).
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/secure-files/removable-attachment-id',
+          expect.objectContaining({ method: 'DELETE' })
+        )
+      })
+    })
+
+    it('puts the attachment back when the delete fails (task b4a362f1)', async () => {
+      const user = userEvent.setup()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockFetch.mockImplementation((url, options) => {
+        if (url === '/api/user/reminder-settings') {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+        }
+        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              fileId: 'doomed-id',
+              fileName: 'doomed.pdf',
+              mimeType: 'application/pdf',
+              fileSize: 1024,
+            }),
+          })
+        }
+        if (options?.method === 'DELETE') {
+          return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+      })
+
+      render(<TaskForm {...mockProps} />)
+
+      const fileInput = document.querySelector('input[type="file"]')
+      if (fileInput) {
+        await user.upload(fileInput as HTMLInputElement, new File(['x'], 'doomed.pdf', { type: 'application/pdf' }))
+      }
+
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-viewer')).toHaveTextContent('doomed.pdf')
+      })
+
+      const attachmentSection = screen.getByTestId('attachment-viewer').closest('div')?.parentElement
+      const removeButton = attachmentSection?.querySelector('button.text-red-400')
+      if (removeButton) {
+        await user.click(removeButton as HTMLElement)
+      }
+
+      // Guard against a vacuous pass: the delete must actually have been attempted.
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/secure-files/doomed-id',
+          expect.objectContaining({ method: 'DELETE' })
+        )
+      })
+
+      // The row comes back rather than silently reappearing on the next reload.
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-viewer')).toHaveTextContent('doomed.pdf')
+      })
+
+      consoleSpy.mockRestore()
     })
   })
 
@@ -567,7 +635,7 @@ describe('TaskForm Upload Functionality', () => {
   })
 
   describe('Form submission with attachments', () => {
-    it('should include attachments in form submission', async () => {
+    it('persists an attachment via the upload, not via the onSave payload (task b4a362f1)', async () => {
       const user = userEvent.setup()
 
       // Mock successful upload
@@ -623,23 +691,25 @@ describe('TaskForm Upload Functionality', () => {
       expect(submitButton).toBeTruthy()
       await user.click(submitButton as HTMLElement)
 
-      // Verify onSave was called with attachment data
+      // The upload itself is what persists the file — it creates a SecureFile
+      // row keyed to the task/list. `onSave`'s `attachments` key is the legacy
+      // Attachment relation, which POST /api/tasks has never read, so the form
+      // passes it through untouched rather than pretending it carries the
+      // upload (task b4a362f1).
       await waitFor(() => {
         expect(mockProps.onSave).toHaveBeenCalledWith(
           expect.objectContaining({
             title: 'Test Task with Attachment',
-            attachments: expect.arrayContaining([
-              expect.objectContaining({
-                id: 'submission-test-id',
-                name: 'submission-test.pdf',
-                url: '/api/secure-files/submission-test-id',
-                type: 'application/pdf',
-                size: 2048
-              })
-            ])
+            attachments: [],
           })
         )
       })
+
+      // ...and the uploaded file did reach the server, under the right context.
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/secure-upload/request-upload',
+        expect.objectContaining({ method: 'POST' })
+      )
     })
   })
 })

@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label"
 import type { Task } from "@/types/task"
 import { SecureAttachmentViewer } from "../secure-attachment-viewer"
 import { TaskTimer } from "../task-timer"
+import { collectTaskAttachments } from "@/lib/task-attachments"
 
 interface TaskActivitySectionProps {
   task: Task
@@ -13,7 +14,8 @@ interface TaskActivitySectionProps {
 }
 
 /**
- * The "activity" sub-view of a task: attachments collected from its comments,
+ * The "activity" sub-view of a task: its attachments — the files hung on the
+ * task itself plus the ones its comments carry (task b4a362f1) —
  * plus the Timer button and its modal. Extracted verbatim from task-detail.tsx
  * (Stage 22) — completes the header / fields / activity / modals split. Pure
  * function of `task` + the timer toggle; no behavior change.
@@ -24,21 +26,9 @@ export function TaskActivitySection({
   setShowTimer,
   onUpdate,
 }: TaskActivitySectionProps) {
-  // Collect attachments from secure files in comments
-  const secureFileAttachments = (task.comments || [])
-    .flatMap(comment =>
-      (comment.secureFiles || []).map((file: any) => ({
-        id: `secure-${file.id}`,
-        fileId: file.id,
-        name: file.originalName,
-        type: file.mimeType,
-        size: file.fileSize,
-        createdAt: comment.createdAt,
-        isSecure: true
-      }))
-    )
-
-  const allAttachments: Array<any> = [...secureFileAttachments]
+  // Files attached to the task itself, then the ones its comments carry.
+  // Task-level files used to be dropped here entirely (task b4a362f1).
+  const allAttachments = collectTaskAttachments(task)
 
   return (
     <>

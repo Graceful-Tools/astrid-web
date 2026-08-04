@@ -323,3 +323,62 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ fi
     }, { status: 500 })
   }
 }
+
+/**
+ * Delete a secure file — the row and the blob. (Task b4a362f1)
+ *
+ * There was no delete path at all, so the task form's remove button only
+ * filtered local state: the row and the blob outlived every "removal", and the
+ * file reappeared the next time anything read the task back.
+ *
+ * Uploader-only, matching PUT. A file already attached to a comment is refused
+ * — removing it would leave that comment pointing at nothing, and the comment
+ * is the thing the user would need to delete instead.
+ */
+export async function DELETE(request: NextRequest, context: RouteContextParams<{ fileId: string }>) {
+  try {
+    const session = await getSession(request)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { fileId } = await context.params
+
+    const existingFile = await prisma.secureFile.findUnique({
+      where: { id: fileId },
+    })
+
+    if (!existingFile) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 })
+    }
+
+    if (existingFile.uploadedBy !== session.user.id) {
+      return NextResponse.json({ error: "Only the file uploader can delete this file" }, { status: 403 })
+    }
+
+    if (existingFile.commentId) {
+      return NextResponse.json({
+        error: "This file is attached to a comment. Delete the comment instead."
+      }, { status: 409 })
+    }
+
+    // Drop the row first: an orphaned blob is a storage cost, whereas a row
+    // pointing at a deleted blob is a broken attachment the user can see.
+    await prisma.secureFile.delete({ where: { id: fileId } })
+
+    try {
+      await deleteFile(existingFile.blobUrl)
+    } catch (deleteError) {
+      log.warn({ deleteError }, `⚠️ [SecureFiles] Row deleted but blob remains: ${existingFile.blobUrl}`)
+    }
+
+    log.info(`🗑️ [SecureFiles] Deleted file ${fileId}`)
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    log.error({ err: error }, "Error deleting secure file:")
+    return NextResponse.json({ error: "Failed to delete file" }, { status: 500 })
+  }
+}

@@ -15,6 +15,9 @@ import { WhenDateTimePicker } from "./when-date-time-picker"
 import type { ReminderSettings } from "@/types/reminder"
 // Removed MarkdownEditor and MarkdownToggle imports
 import { AttachmentViewer } from "./attachment-viewer"
+import { uploadCommentFile } from "@/lib/comment-file-upload"
+import { addAttachment, isAttachmentQueueFull, fileIdFromUrl } from "@/lib/comment-attachments"
+import { taskLevelAttachments, type TaskAttachmentView } from "@/lib/task-attachments"
 import type { Task, User, TaskList, RepeatOption, PriorityLevel } from "../types/task"
 import { useTranslations } from "@/lib/i18n/client"
 import { X, Plus, Lock, Unlock, Upload, Image, FileText } from "lucide-react"
@@ -88,7 +91,12 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
   const [selectedLists, setSelectedLists] = useState<TaskList[]>(task?.lists || [])
   const [isPrivate, setIsPrivate] = useState(task?.isPrivate ?? true)
   const [newListName, setNewListName] = useState("")
-  const [attachments, setAttachments] = useState(task?.attachments || [])
+  // Seeded from the task's secure files — uploads write SecureFile rows, so
+  // re-seeding from the legacy `attachments` relation always read back empty
+  // and the file looked lost (task b4a362f1).
+  const [attachments, setAttachments] = useState<TaskAttachmentView[]>(
+    task ? taskLevelAttachments(task) : []
+  )
   const [uploadingFile, setUploadingFile] = useState(false)
   const [userReminderSettings, setUserReminderSettings] = useState<ReminderSettings | undefined>(undefined)
   // Removed isPreview state
@@ -280,16 +288,13 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
   // Old handler removed - using new handleRemoveList above
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const picked = Array.from(event.target.files ?? [])
+    if (picked.length === 0) return
 
     setUploadingFile(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
       // Use existing task ID, or the first selected list, or current list for context
-      const contextData: any = {}
+      const contextData: Record<string, string> = {}
       if (task?.id) {
         contextData.taskId = task.id
       } else if (selectedLists.length > 0) {
@@ -300,29 +305,24 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
         throw new Error('No context available for file upload')
       }
 
-      formData.append('context', JSON.stringify(contextData))
-
-      const response = await fetch('/api/secure-upload/request-upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to upload file')
+      // One request per file, in pick order (task b4a362f1 / 9f325964).
+      let queue = attachments
+      for (const file of picked) {
+        if (isAttachmentQueueFull(queue)) break
+        const result = await uploadCommentFile(file, contextData)
+        if (!result.success) {
+          console.error('Error uploading file:', new Error(result.error))
+          continue
+        }
+        queue = addAttachment(queue, {
+          ...result.attachment,
+          id: fileIdFromUrl(result.attachment.url) || result.attachment.url,
+          fileId: fileIdFromUrl(result.attachment.url) || result.attachment.url,
+          createdAt: new Date(),
+          isTaskLevel: true,
+        } as TaskAttachmentView) as TaskAttachmentView[]
       }
-
-      const result = await response.json()
-      const newAttachment = {
-        id: result.fileId,
-        name: result.fileName,
-        url: `/api/secure-files/${result.fileId}`,
-        type: result.mimeType,
-        size: result.fileSize,
-        createdAt: new Date(),
-        taskId: task?.id || 'temp-' + Date.now()
-      }
-
-      setAttachments([...attachments, newAttachment])
+      setAttachments(queue)
     } catch (error) {
       console.error('Error uploading file:', error)
     } finally {
@@ -332,8 +332,20 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
     }
   }
 
-  const handleRemoveAttachment = (attachmentId: string) => {
+  const handleRemoveAttachment = async (attachmentId: string) => {
+    // Optimistic: the row leaving the list is the whole point of the button.
+    const previous = attachments
     setAttachments(attachments.filter(attachment => attachment.id !== attachmentId))
+
+    try {
+      const response = await fetch(`/api/secure-files/${attachmentId}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Failed to delete attachment')
+    } catch (error) {
+      // Removal used to be local-only, so the file came back on reload with no
+      // explanation. Put it back instead of lying about it (task b4a362f1).
+      console.error('Error removing attachment:', error)
+      setAttachments(previous)
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -362,7 +374,10 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
       lists: selectedLists,
       isPrivate,
       completed: task?.completed || false,
-      attachments: attachments,
+      // Legacy Attachment rows, passed through untouched — `POST /api/tasks`
+      // never read this key anyway. The form's own attachments are SecureFile
+      // rows, already persisted by the upload itself (task b4a362f1).
+      attachments: task?.attachments || [],
       comments: task?.comments || [],
       occurrenceCount: task?.occurrenceCount || 0,
     })
@@ -696,6 +711,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
             <input
               type="file"
               id="task-file-upload"
+              multiple
               onChange={handleFileUpload}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.pptx,.zip"
