@@ -42,6 +42,9 @@ const renderInput = (props: Partial<React.ComponentProps<typeof RichTextInput>> 
 describe('RichTextInput attachments (Task 9f325964)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Removing a chip fires a background DELETE, so every test needs fetch to
+    // at least return a promise.
+    ;(global.fetch as any).mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
   })
 
   it('lets the OS picker select more than one file', () => {
@@ -93,5 +96,37 @@ describe('RichTextInput attachments (Task 9f325964)', () => {
     fireEvent.click(getByLabelText('Remove one.png'))
 
     expect(onAttachedFilesChange).toHaveBeenCalledWith([staged[1]])
+  })
+
+  it('deletes a removed file rather than orphaning it (Task ded31696)', async () => {
+    ;(global.fetch as any).mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+
+    const staged = [{ url: '/api/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 }]
+    const { getByLabelText } = renderInput({ attachedFiles: staged })
+
+    fireEvent.click(getByLabelText('Remove one.png'))
+
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/secure-files/id-1',
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
+    )
+  })
+
+  it('marks composer uploads as belonging to the message, not the task (Task ded31696)', async () => {
+    ;(global.fetch as any).mockResolvedValueOnce(uploadResponse('id-1', 'one.png'))
+
+    const { input } = renderInput()
+
+    fireEvent.change(input, { target: { files: [makeFile('one.png')] } })
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+
+    const body = (global.fetch as any).mock.calls[0][1].body as FormData
+    expect(JSON.parse(body.get('context') as string)).toMatchObject({
+      taskId: 'task-1',
+      attachTarget: 'message',
+    })
   })
 })

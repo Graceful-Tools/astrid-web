@@ -1,0 +1,13 @@
+-- Record what a secure file was uploaded FOR, at upload time (task ded31696).
+--
+-- The comment composer uploads with a { taskId } context, because that is how
+-- request-upload authorizes the write, and commentId is only stamped on when
+-- the comment is actually sent. A file staged in a composer and then abandoned
+-- is therefore indistinguishable from one attached to the task itself, and
+-- task b4a362f1 -- which made task-level files visible for the first time --
+-- promoted those abandoned drafts into task attachments.
+--
+-- Additive and nullable, with no default and no backfill: no table rewrite, and
+-- every existing row keeps NULL, which the read path treats exactly as it
+-- treats those rows today rather than silently reinterpreting old data.
+ALTER TABLE "SecureFile" ADD COLUMN "attachTarget" TEXT;

@@ -13,6 +13,12 @@
  * afterwards, so `task.secureFiles` contains the comment files too. "Attached
  * to the task itself" therefore means `commentId === null` — without that,
  * every comment attachment would be listed twice.
+ *
+ * That left one gap (task ded31696): between picking a file in the composer and
+ * sending the message, `commentId` is still null, so an abandoned draft used to
+ * graduate into a task attachment. Intent cannot be recovered after the fact, so
+ * it is recorded at upload time as `attachTarget`. Legacy rows have it null and
+ * stay classified exactly as they were.
  */
 
 import type { Task, SecureFile } from "@/types/task"
@@ -44,10 +50,15 @@ function toView(file: SecureFile, isTaskLevel: boolean, createdAt?: Date): TaskA
   }
 }
 
-/** Files attached to the task itself — what the task form owns and can remove. */
+/**
+ * Files attached to the task itself — what the task form owns and can remove.
+ *
+ * Excludes anything a composer uploaded, sent or not: a message's file belongs
+ * to the message, and one still staged in a draft belongs to nothing yet.
+ */
 export function taskLevelAttachments(task: Pick<Task, 'secureFiles'>): TaskAttachmentView[] {
   return (task.secureFiles || [])
-    .filter(file => !file.commentId)
+    .filter(file => !file.commentId && file.attachTarget !== 'message')
     .map(file => toView(file, true))
 }
 

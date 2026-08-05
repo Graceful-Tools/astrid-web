@@ -139,13 +139,17 @@ describe('CommentSection', () => {
       await waitFor(() => {
         expect(onUpdate).toHaveBeenCalled()
       })
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/tasks/task-1/comments',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-      )
+      // The optimistic insert lands first; the POST only follows once the
+      // offline-sync / offline-db dynamic imports resolve.
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/tasks/task-1/comments',
+          expect.objectContaining({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+      })
     })
 
     it('should show Send button when there is content', () => {

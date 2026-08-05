@@ -46,6 +46,9 @@ const ALLOWED_MIME_TYPES = new Set([
 ])
 
 // Maximum file size: 100MB
+/** Recognized values for the upload-intent discriminator (task ded31696). */
+const ATTACH_TARGETS = ['message', 'task']
+
 const MAX_FILE_SIZE = 100 * 1024 * 1024
 
 // File extension to MIME type mapping for validation
@@ -197,6 +200,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // What the file is being uploaded FOR, as opposed to what authorizes the
+    // write (task ded31696). A composer uploads against a taskId but the file
+    // belongs to the message, not the task; without this the two are
+    // indistinguishable until the message is sent. An unrecognized value is
+    // dropped rather than rejected — it only ever narrows a read.
+    const attachTarget = ATTACH_TARGETS.includes(context.attachTarget)
+      ? context.attachTarget
+      : null
+
     // Permission checks based on context
     if (context.taskId) {
       // Check if user has access to the task
@@ -334,6 +346,7 @@ export async function POST(request: NextRequest) {
           taskId: context.taskId || null,
           listId: context.listId || null,
           commentId: context.commentId || null,
+          attachTarget,
           clientRequestId,
         }
       })
