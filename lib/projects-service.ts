@@ -319,12 +319,25 @@ function statusNameToRoleFragment(name: string): string {
 }
 
 /**
- * Add a custom status column for the user (board sub-task #5, keep-global
- * model). Status lists are per-user globals (`projectId: null`), so the new
- * column appears on every board the user has. Appended after the existing
- * statuses by `statusOrder`. Rename/reorder reuse PUT /api/lists/[id].
+ * Add a custom status column to a board (board sub-task #5).
+ *
+ * **Scoped to the project, not to the user** (task 109d8a91). `05dc842` made
+ * the reader — `statusListsForUser` — keep a custom role only when
+ * `list.projectId` matches the board being rendered, on the grounds that a
+ * custom state belongs to one board and must not leak onto another. This
+ * writer was left on `projectId: null`, which the reader can never match, so
+ * every custom status was created and then rendered on no board at all,
+ * including the one it was added from.
+ *
+ * The three default roles stay per-user singletons; only custom ones are
+ * project-scoped. Appended after the existing statuses by `statusOrder`.
+ * Rename/reorder reuse PUT /api/lists/[id].
  */
-export async function addUserStatus(userId: string, name: string): Promise<AddUserStatusResult> {
+export async function addUserStatus(
+  userId: string,
+  name: string,
+  projectId: string,
+): Promise<AddUserStatusResult> {
   const trimmed = name.trim()
   if (!trimmed) {
     return { error: 'invalid', message: 'Status name cannot be empty' }
@@ -332,9 +345,21 @@ export async function addUserStatus(userId: string, name: string): Promise<AddUs
   if (trimmed.length > 40) {
     return { error: 'invalid', message: 'Status name is too long (40 characters max)' }
   }
+  if (!projectId) {
+    // Without a project the row is unreachable by the reader. Fail loudly
+    // rather than writing another inert status.
+    return { error: 'invalid', message: 'A status must belong to a board' }
+  }
 
+  // Both scopes matter: the per-user defaults (projectId null) and this
+  // board's own custom states. A name may repeat across boards but not
+  // within one, and never against Ready/Doing/Waiting.
   const existing = await prisma.taskList.findMany({
-    where: { ownerId: userId, listType: 'status', projectId: null },
+    where: {
+      ownerId: userId,
+      listType: 'status',
+      OR: [{ projectId: null }, { projectId }],
+    },
     select: { name: true, statusOrder: true, statusRole: true },
   })
 
@@ -361,7 +386,7 @@ export async function addUserStatus(userId: string, name: string): Promise<AddUs
       color: '#3b82f6',
       privacy: 'PRIVATE',
       ownerId: userId,
-      projectId: null,
+      projectId,
       listType: 'status',
       statusRole,
       statusOrder: maxOrder + 1,

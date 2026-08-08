@@ -11,17 +11,20 @@ interface ManageStatusesPanelProps {
   statuses: TaskList[]
   /** Re-fetch lists after a successful mutation so the board reflects changes. */
   onChanged: () => void
+  /** The board these custom statuses belong to (task 109d8a91). */
+  projectId: string
 }
 
 /**
  * Rename / reorder / add board status columns. Lives in the list-settings
  * "Statuses" tab (shown when the list has a board enabled).
  *
- * Statuses are per-user globals — these changes apply to *every* board the
- * user has, which the panel states explicitly. Rename and reorder reuse
- * PUT /api/lists/[id]; add uses POST /api/statuses.
+ * The three default statuses (Ready/Doing/Waiting) are per-user and apply to
+ * every board; a custom status added here belongs to THIS board only
+ * (task 109d8a91). Rename and reorder reuse PUT /api/lists/[id]; add uses
+ * POST /api/statuses.
  */
-export function ManageStatusesPanel({ statuses, onChanged }: ManageStatusesPanelProps) {
+export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageStatusesPanelProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editingName, setEditingName] = React.useState("")
   const [newName, setNewName] = React.useState("")
@@ -87,7 +90,7 @@ export function ManageStatusesPanel({ statuses, onChanged }: ManageStatusesPanel
       const response = await fetch("/api/statuses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, projectId }),
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))

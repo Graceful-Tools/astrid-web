@@ -21,7 +21,7 @@ const statuses = [
 
 function setup() {
   const onChanged = vi.fn()
-  render(<ManageStatusesPanel statuses={statuses} onChanged={onChanged} />)
+  render(<ManageStatusesPanel statuses={statuses} onChanged={onChanged} projectId="p1" />)
   return { onChanged }
 }
 
@@ -70,6 +70,11 @@ describe('ManageStatusesPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /Add/ }))
     await waitFor(() => expect(onChanged).toHaveBeenCalled())
     expect(global.fetch).toHaveBeenCalledWith('/api/statuses', expect.objectContaining({ method: 'POST' }))
+    // REGRESSION (task 109d8a91): without the board id the server writes a row
+    // with a null projectId, which the reader can never match — the status is
+    // created and then renders on no board at all.
+    const addBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
+    expect(addBody).toMatchObject({ name: 'Blocked', projectId: 'p1' })
     const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
     expect(body.name).toBe('Blocked')
   })
