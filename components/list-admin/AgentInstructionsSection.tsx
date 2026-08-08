@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { FileText, Edit3, Eye, Bot, ChevronDown, ChevronRight, Sparkles, Check, Info } from "lucide-react"
 import { renderMarkdown, sanitizeTextToHtml } from "@/lib/markdown"
 import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { TaskList } from "@/types/task"
 
 interface AgentInstructionsSectionProps {
@@ -40,7 +41,9 @@ const STARTER_TEMPLATES = [
  * from list-admin-settings.tsx (Stage 13).
  */
 export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: AgentInstructionsSectionProps) {
-  const [editingListDescription, setEditingListDescription] = useState(false)
+  const session = useSharedEditingSession()
+  const editorId = `list-instructions:${list.id}`
+  const editingListDescription = session.isEditing(editorId)
   const [tempListDescription, setTempListDescription] = useState(list.description || "")
   const [showInstructionPreview, setShowInstructionPreview] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
@@ -75,8 +78,15 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
         console.error('Error updating list description:', error)
       }
     }
-    setEditingListDescription(false)
-  }, [tempListDescription, list, onUpdate])
+    session.endEditing(editorId)
+  }, [tempListDescription, list, onUpdate, session, editorId])
+
+  // Holds a pending buffer, so a hand-off must SAVE the typed instructions.
+  const saveRef = useRef(handleSaveListDescription)
+  saveRef.current = handleSaveListDescription
+  useEffect(() => {
+    session.registerCommit(editorId, () => { void saveRef.current() })
+  }, [session, editorId])
 
   useClickOutsideSave(listDescriptionRef, editingListDescription, handleSaveListDescription)
 
@@ -138,7 +148,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   setTempListDescription(list.description || "")
-                  setEditingListDescription(false)
+                  session.cancelEditing(editorId)
                   setShowInstructionPreview(false)
                 }
               }}
@@ -157,7 +167,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                 variant="outline"
                 onClick={() => {
                   setTempListDescription(list.description || "")
-                  setEditingListDescription(false)
+                  session.cancelEditing(editorId)
                   setShowInstructionPreview(false)
                 }}
                 className="text-xs theme-border theme-text-secondary hover:theme-bg-hover"
@@ -214,7 +224,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
           className="theme-text-primary cursor-pointer hover:theme-bg-hover p-2 rounded border border-transparent hover:theme-border min-h-[2.5rem] flex items-start"
           onClick={() => {
             ;(window as unknown as { _lastFocusTime?: number })._lastFocusTime = Date.now()
-            setEditingListDescription(true)
+            session.beginEditing(editorId)
           }}
         >
           {list.description ? (

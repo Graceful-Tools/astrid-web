@@ -10,6 +10,7 @@ import { TimePicker } from "@/components/ui/time-picker"
 import { X } from "lucide-react"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useTranslations } from "@/lib/i18n/client"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { TaskList, User } from "@/types/task"
 
 interface DefaultTaskSettingsSectionProps {
@@ -30,9 +31,15 @@ export function DefaultTaskSettingsSection({
   onUpdate,
 }: DefaultTaskSettingsSectionProps) {
   const { t } = useTranslations()
-  const [editingDefaultAssignee, setEditingDefaultAssignee] = useState(false)
-  const [editingDefaultDueDate, setEditingDefaultDueDate] = useState(false)
-  const [editingDefaultRepeating, setEditingDefaultRepeating] = useState(false)
+  // Pickers: they commit on selection, so per contract §6 they register no
+  // hand-off commit — for them, closing IS the whole story (task 7b60c7c5).
+  const session = useSharedEditingSession()
+  const assigneeEditor = `list-default-assignee:${list.id}`
+  const dueDateEditor = `list-default-due:${list.id}`
+  const repeatingEditor = `list-default-repeating:${list.id}`
+  const editingDefaultAssignee = session.isEditing(assigneeEditor)
+  const editingDefaultDueDate = session.isEditing(dueDateEditor)
+  const editingDefaultRepeating = session.isEditing(repeatingEditor)
 
   const [tempDefaultAssignee, setTempDefaultAssignee] = useState<User | undefined>(list.defaultAssignee)
   const [tempDefaultAssigneeType, setTempDefaultAssigneeType] = useState(() => {
@@ -128,7 +135,7 @@ export function DefaultTaskSettingsSection({
     })
 
     // Close the editor
-    setEditingDefaultAssignee(false)
+    session.endEditing(assigneeEditor)
   }
 
   // Get all users who can be assigned to tasks (anyone who has access to this list)
@@ -206,13 +213,13 @@ export function DefaultTaskSettingsSection({
     if (dueDate === "none") {
       setTempDefaultRepeating("never")
     }
-    setEditingDefaultDueDate(false)
+    session.endEditing(dueDateEditor)
   }
 
   const handleSaveDefaultRepeating = (repeating: TaskList["defaultRepeating"]) => {
     onUpdate({ ...list, defaultRepeating: repeating })
     setTempDefaultRepeating(repeating)
-    setEditingDefaultRepeating(false)
+    session.endEditing(repeatingEditor)
   }
 
   const getDefaultDueDateDisplay = (dueDate: TaskList["defaultDueDate"]) => {
@@ -288,7 +295,7 @@ export function DefaultTaskSettingsSection({
         ) : (
           <div
             className="flex items-center space-x-2 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
-            onClick={() => setEditingDefaultAssignee(true)}
+            onClick={() => session.beginEditing(assigneeEditor)}
           >
             {getDefaultAssigneeDisplay()}
           </div>
@@ -338,7 +345,7 @@ export function DefaultTaskSettingsSection({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setEditingDefaultDueDate(false)}
+                onClick={() => session.endEditing(dueDateEditor)}
                 className="px-2 py-1 theme-border theme-text-secondary"
               >
                 <X className="w-3 h-3" />
@@ -348,7 +355,7 @@ export function DefaultTaskSettingsSection({
         ) : (
           <div
             className="text-blue-400 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
-            onClick={() => setEditingDefaultDueDate(true)}
+            onClick={() => session.beginEditing(dueDateEditor)}
           >
             {getDefaultDueDateDisplay(tempDefaultDueDate)}
           </div>
@@ -383,7 +390,7 @@ export function DefaultTaskSettingsSection({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setEditingDefaultRepeating(false)}
+                onClick={() => session.endEditing(repeatingEditor)}
                 className="theme-border theme-text-secondary"
               >
                 Done
@@ -392,7 +399,7 @@ export function DefaultTaskSettingsSection({
           ) : (
             <div
               className="text-blue-400 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
-              onClick={() => setEditingDefaultRepeating(true)}
+              onClick={() => session.beginEditing(repeatingEditor)}
             >
               {getDefaultRepeatingDisplay(tempDefaultRepeating)}
             </div>
