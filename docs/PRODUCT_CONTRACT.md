@@ -262,14 +262,22 @@ editor both be open. Components outside a provider fall back to a private
 session, which keeps the task detail's ~40 existing call sites and their tests
 working unwrapped.
 
-**Web migration status:** the task detail's eight editors and the list-name
-editor are on the session. The remaining list editors, the comment editor and
-the settings editors still hand-roll `isEditing` — tracked on `7b60c7c5`. Note
-that on web only four components saved on blur to begin with, so adopting
-commit-on-resign is a real behaviour change there, not a tidy-up. Audit each
-editor for a visible Cancel as it migrates: `ListNameSection` had Escape/X that
-closed without reverting the draft, so "cancel" silently kept the abandoned
-text — migrating it onto `cancelEditing` is what fixed that.
+**Web migration status: complete for content editors.** On the session: the
+task detail's eight, the list-name and agent-instructions editors, the
+list-admin and list-detail default-value pickers, the status-rename editor, the
+comment editor and the passkey-rename editor.
+
+Deliberately NOT on the session — they are not content editors with save
+semantics, so "commit on resign" has nothing to commit: the sort/filter pickers
+in `list-sort-and-filters.tsx` and the OAuth client modal in
+`oauth-app-manager.tsx`. Revisit only if one of them grows a pending buffer.
+
+Audit each editor for a visible Cancel as it migrates. `ListNameSection` had
+Escape/X that closed without reverting the draft, so "cancel" silently kept the
+abandoned text and it reappeared on the next open — migrating it onto
+`cancelEditing` is what fixed that. Note that on web only four components saved
+on blur to begin with, so commit-on-resign was a real behaviour change here,
+not a tidy-up.
 
 ---
 

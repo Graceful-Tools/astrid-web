@@ -13,6 +13,7 @@ import { UserPicker } from "./user-picker"
 import { ListMembersManager } from "./list-members-manager"
 import { PriorityPicker } from "./ui/priority-picker"
 import { useTranslations } from "@/lib/i18n/client"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { Calendar as CalendarIcon, Trash2, Lock, Unlock, Check, X, Users, Settings, Palette, Crown, Shield } from "lucide-react"
@@ -31,10 +32,17 @@ interface ListDetailProps {
 export function ListDetail({ list, currentUser, availableUsers, canEditSettings, onUpdate, onDelete, onClose }: ListDetailProps) {
   const { t } = useTranslations()
   // Inline editing states
-  const [editingPrivacy, setEditingPrivacy] = useState(false)
-  const [editingDefaultAssignee, setEditingDefaultAssignee] = useState(false)
-  const [editingDefaultDueDate, setEditingDefaultDueDate] = useState(false)
-  const [editingDefaultRepeating, setEditingDefaultRepeating] = useState(false)
+  // Pickers — they commit on selection, so per contract §6 they register no
+  // hand-off commit; closing IS the whole story (task 7b60c7c5).
+  const session = useSharedEditingSession()
+  const privacyEditor = `list-privacy:${list.id}`
+  const assigneeEditor = `list-detail-assignee:${list.id}`
+  const dueDateEditor = `list-detail-due:${list.id}`
+  const repeatingEditor = `list-detail-repeating:${list.id}`
+  const editingPrivacy = session.isEditing(privacyEditor)
+  const editingDefaultAssignee = session.isEditing(assigneeEditor)
+  const editingDefaultDueDate = session.isEditing(dueDateEditor)
+  const editingDefaultRepeating = session.isEditing(repeatingEditor)
 
   
   // Temporary edit values
@@ -125,7 +133,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
     })
     
     // Close the editor
-    setEditingDefaultAssignee(false)
+    session.endEditing(assigneeEditor)
   }
 
   // Get all users who can be assigned to tasks (anyone who has access to this list)
@@ -204,23 +212,23 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
     if (dueDate === "none") {
       setTempDefaultRepeating("never")
     }
-    setEditingDefaultDueDate(false)
+    session.endEditing(dueDateEditor)
   }
 
   const handleSaveDefaultRepeating = (repeating: TaskList["defaultRepeating"]) => {
     onUpdate({ ...list, defaultRepeating: repeating })
     setTempDefaultRepeating(repeating)
-    setEditingDefaultRepeating(false)
+    session.endEditing(repeatingEditor)
   }
 
   const handleSavePrivacy = () => {
     onUpdate({ ...list, privacy: tempPrivacy })
-    setEditingPrivacy(false)
+    session.endEditing(privacyEditor)
   }
 
   const handleCancelPrivacy = () => {
     setTempPrivacy(list.privacy)
-    setEditingPrivacy(false)
+    session.endEditing(privacyEditor)
   }
 
 
@@ -325,7 +333,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
           ) : (
             <div 
               className="text-blue-400 mt-1 cursor-pointer hover:bg-gray-700 px-2 py-1 rounded capitalize"
-              onClick={() => setEditingPrivacy(true)}
+              onClick={() => session.beginEditing(privacyEditor)}
             >
               {tempPrivacy.toLowerCase()}
             </div>
@@ -384,7 +392,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
           ) : (
             <div 
               className="flex items-center space-x-2 mt-1 cursor-pointer hover:bg-gray-700 px-2 py-1 rounded"
-              onClick={() => setEditingDefaultAssignee(true)}
+              onClick={() => session.beginEditing(assigneeEditor)}
             >
               {getDefaultAssigneeDisplay()}
             </div>
@@ -437,7 +445,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setEditingDefaultDueDate(false)}
+                  onClick={() => session.endEditing(dueDateEditor)}
                   className="border-gray-600 text-gray-300"
                 >
                   <X className="w-4 h-4" />
@@ -447,7 +455,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
           ) : (
             <div 
               className="text-blue-400 mt-1 cursor-pointer hover:bg-gray-700 px-2 py-1 rounded"
-              onClick={() => setEditingDefaultDueDate(true)}
+              onClick={() => session.beginEditing(dueDateEditor)}
             >
               {getDefaultDueDateDisplay(tempDefaultDueDate)}
             </div>
@@ -484,7 +492,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setEditingDefaultRepeating(false)}
+                    onClick={() => session.endEditing(repeatingEditor)}
                     className="border-gray-600 text-gray-300"
                   >
                     Done
@@ -494,7 +502,7 @@ export function ListDetail({ list, currentUser, availableUsers, canEditSettings,
             ) : (
               <div 
                 className="text-blue-400 mt-1 cursor-pointer hover:bg-gray-700 px-2 py-1 rounded"
-                onClick={() => setEditingDefaultRepeating(true)}
+                onClick={() => session.beginEditing(repeatingEditor)}
               >
                 {getDefaultRepeatingDisplay(tempDefaultRepeating)}
               </div>

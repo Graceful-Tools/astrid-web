@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,6 +32,10 @@ export function PasskeyManagementSection() {
   const [loadingPasskeys, setLoadingPasskeys] = useState(true)
   const [editingPasskeyId, setEditingPasskeyId] = useState<string | null>(null)
   const [editingPasskeyName, setEditingPasskeyName] = useState("")
+  // Pending-buffer editor: a hand-off saves the typed name (task 7b60c7c5).
+  const session = useSharedEditingSession()
+  const renameRef = useRef<{ id: string | null; name: string }>({ id: null, name: "" })
+
   const [deletingPasskeyId, setDeletingPasskeyId] = useState<string | null>(null)
 
   const {
@@ -94,6 +99,7 @@ export function PasskeyManagementSection() {
           description: "Your passkey has been renamed.",
           duration: 3000,
         })
+        if (editingPasskeyId) session.endEditing(`passkey:${editingPasskeyId}`)
         setEditingPasskeyId(null)
         setEditingPasskeyName("")
         loadPasskeys()
@@ -114,6 +120,19 @@ export function PasskeyManagementSection() {
       })
     }
   }
+
+  // Whichever passkey is open registers the hand-off, so opening another
+  // editor commits the rename rather than discarding it (task 7b60c7c5).
+  useEffect(() => {
+    renameRef.current = { id: editingPasskeyId, name: editingPasskeyName }
+  })
+  useEffect(() => {
+    if (!editingPasskeyId) return
+    session.registerCommit(`passkey:${editingPasskeyId}`, () => {
+      const { id, name } = renameRef.current
+      if (id && name.trim()) void handleRenamePasskey(id)
+    })
+  }, [session, editingPasskeyId])
 
   const handleDeletePasskey = async (id: string) => {
     setDeletingPasskeyId(id)
@@ -189,6 +208,7 @@ export function PasskeyManagementSection() {
                             if (e.key === "Enter") {
                               handleRenamePasskey(passkey.id)
                             } else if (e.key === "Escape") {
+                              session.cancelEditing(`passkey:${passkey.id}`)
                               setEditingPasskeyId(null)
                               setEditingPasskeyName("")
                             }
@@ -208,6 +228,7 @@ export function PasskeyManagementSection() {
                             size="sm"
                             variant="ghost"
                             onClick={() => {
+                              session.cancelEditing(`passkey:${passkey.id}`)
                               setEditingPasskeyId(null)
                               setEditingPasskeyName("")
                             }}
@@ -236,6 +257,7 @@ export function PasskeyManagementSection() {
                       size="sm"
                       variant="ghost"
                       onClick={() => {
+                        session.beginEditing(`passkey:${passkey.id}`)
                         setEditingPasskeyId(passkey.id)
                         setEditingPasskeyName(passkey.name || "Passkey")
                       }}
