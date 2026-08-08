@@ -103,10 +103,15 @@ describe('project status', () => {
     const projectA = list({ id: 'a', name: 'Project A list', projectId: 'project-a', listType: 'regular' })
 
     const columns = getProjectBoardColumns([projectA, ready, doing])
+    // Waiting appears without a backing row: the three defaults come from
+    // config now, so the board survives the status lists going away
+    // (a1722040 step 4). A backed role keeps the LIST id; an unbacked one is
+    // keyed on the role.
     expect(columns.map(column => column.id)).toEqual([
       VIRTUAL_INBOX_COLUMN_ID,
       'ready',
       'doing',
+      'waiting',
       VIRTUAL_DONE_COLUMN_ID,
     ])
   })
@@ -117,9 +122,12 @@ describe('project status', () => {
     const legacyDone = statusList({ id: 'done', name: 'Done', statusRole: 'done', statusCompleted: true, statusOrder: 9 })
 
     const columns = getProjectBoardColumns([legacyInbox, ready, legacyDone])
+    // The legacy inbox/done rows stay hidden; the defaults still render.
     expect(columns.map(column => column.id)).toEqual([
       VIRTUAL_INBOX_COLUMN_ID,
       'ready',
+      'doing',
+      'waiting',
       VIRTUAL_DONE_COLUMN_ID,
     ])
   })
@@ -393,8 +401,11 @@ describe('Shared board status scoping (142e4dd9)', () => {
 
     expect(columns[0].kind).toBe('inbox')
     expect(columns[columns.length - 1].kind).toBe('done')
-    // One Ready column, not two.
-    expect(columns.filter(c => c.kind === 'status').map(c => c.id)).toEqual(['alice-ready'])
+    // One Ready column, not two — and it keeps the per-user LIST id, not the
+    // project-scoped duplicate.
+    expect(columns.filter(c => c.kind === 'status').map(c => c.id)).toEqual([
+      'alice-ready', 'doing', 'waiting',
+    ])
   })
 
   it('strips a stale personal status when moving a card on a promoted board', () => {
@@ -451,9 +462,12 @@ describe('a status the board cannot render falls back to Inbox (AWTD-562)', () =
       .toBe(VIRTUAL_INBOX_COLUMN_ID)
   })
 
-  it('REGRESSION: a status set with no lists loaded still shows the card', () => {
-    expect(getTaskProjectColumnId(card('ready'), [domain], 'project-1'))
-      .toBe(VIRTUAL_INBOX_COLUMN_ID)
+  it('a default role resolves to its column even with no lists loaded', () => {
+    // This used to fall back to Inbox, deliberately: columns were keyed on list
+    // ids, so an unmatched role rendered in NO column and the card vanished.
+    // Now the defaults always have a column, so the card lands in the RIGHT one
+    // instead of the safe-but-wrong one (a1722040 step 4).
+    expect(getTaskProjectColumnId(card('ready'), [domain], 'project-1')).toBe('ready')
   })
 
   it('every resolved column id is one the board actually renders', () => {
