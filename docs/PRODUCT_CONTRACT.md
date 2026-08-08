@@ -253,11 +253,23 @@ Web: `lib/editing-session.ts` (pure) + `hooks/use-editing-session.ts` (binding).
 iOS: the `EditingSession` coordinator behind one `.editingSession(id:onCommit:onCancel:)`
 view modifier.
 
-**Web migration status:** the task detail's eight editors are on the session.
-The list editors, comment editor and settings editors still hand-roll
-`isEditing` — ~18 sites, tracked on `7b60c7c5`. Note that on web only four
-components saved on blur to begin with, so adopting commit-on-resign is a real
-behaviour change there, not a tidy-up.
+**The session is app-wide.** `EditingSessionProvider` is mounted in
+`components/providers.tsx`; editors reach it through `useSharedEditingSession`.
+This matters more than it looks: `useEditingSession` is a plain hook, so every
+caller gets its OWN machine — migrating a second area by calling it again would
+have produced two independent sessions and let a list editor and a task-detail
+editor both be open. Components outside a provider fall back to a private
+session, which keeps the task detail's ~40 existing call sites and their tests
+working unwrapped.
+
+**Web migration status:** the task detail's eight editors and the list-name
+editor are on the session. The remaining list editors, the comment editor and
+the settings editors still hand-roll `isEditing` — tracked on `7b60c7c5`. Note
+that on web only four components saved on blur to begin with, so adopting
+commit-on-resign is a real behaviour change there, not a tidy-up. Audit each
+editor for a visible Cancel as it migrates: `ListNameSection` had Escape/X that
+closed without reverting the draft, so "cancel" silently kept the abandoned
+text — migrating it onto `cancelEditing` is what fixed that.
 
 ---
 

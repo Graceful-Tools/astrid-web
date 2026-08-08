@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Check, X, Edit3 } from "lucide-react"
 import { shouldPreventAutoFocus } from "@/lib/layout-detection"
 import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { TaskList } from "@/types/task"
 
 interface ListNameSectionProps {
@@ -17,12 +18,17 @@ interface ListNameSectionProps {
 
 /**
  * Inline List Name editor for a list's admin settings. Click to edit,
- * Enter / check / click-outside to save, Escape / X to cancel. Extracted
- * from list-admin-settings.tsx (Stage 13) — the click-outside-save is
- * now a per-section useClickOutsideSave instance.
+ * Enter / check / click-outside to save, Escape / X to cancel.
+ *
+ * On the shared editing session (task 7b60c7c5), so opening any other editor
+ * anywhere commits this one rather than leaving two open. Cancel now actually
+ * reverts the draft — Escape and X used to close the editor while leaving the
+ * abandoned text in the buffer, so it reappeared on the next open.
  */
 export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSectionProps) {
-  const [editingListName, setEditingListName] = useState(false)
+  const session = useSharedEditingSession()
+  const editorId = `list-name:${list.id}`
+  const editingListName = session.isEditing(editorId)
   const [tempListName, setTempListName] = useState(list.name)
   const listNameRef = useRef<HTMLDivElement>(null)
 
@@ -55,8 +61,22 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
         console.error('Error updating list name:', error)
       }
     }
-    setEditingListName(false)
-  }, [tempListName, list, onUpdate])
+    session.endEditing(editorId)
+  }, [tempListName, list, onUpdate, session, editorId])
+
+  // This editor holds a pending buffer, so it must register a commit: a
+  // hand-off to another editor has to SAVE the typed name, not drop it.
+  const saveRef = useRef(handleSaveListName)
+  saveRef.current = handleSaveListName
+  useEffect(() => {
+    session.registerCommit(editorId, () => { void saveRef.current() })
+  }, [session, editorId])
+
+  const handleCancel = useCallback(() => {
+    // Cancel is the one transition that discards — put the draft back.
+    setTempListName(list.name)
+    session.cancelEditing(editorId)
+  }, [list.name, session, editorId])
 
   useClickOutsideSave(listNameRef, editingListName, handleSaveListName)
 
@@ -72,7 +92,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
             onChange={(e) => setTempListName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSaveListName()
-              if (e.key === "Escape") setEditingListName(false)
+              if (e.key === "Escape") handleCancel()
             }}
             className="theme-input theme-text-primary flex-1"
             autoFocus={!shouldPreventAutoFocus()}
@@ -80,7 +100,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
           <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">
             <Check className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setEditingListName(false)}
+          <Button size="sm" variant="outline" onClick={handleCancel}
                   className="theme-border theme-text-secondary hover:theme-bg-hover">
             <X className="w-4 h-4" />
           </Button>
@@ -91,7 +111,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
           onClick={() => {
             // Track focus time for mobile keyboard protection.
             ;(window as unknown as { _lastFocusTime?: number })._lastFocusTime = Date.now()
-            setEditingListName(true)
+            session.beginEditing(editorId)
           }}
         >
           <span className="theme-text-primary">{list.name}</span>

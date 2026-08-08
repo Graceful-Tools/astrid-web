@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { Task } from '@/types/task'
-import { useEditingSession } from '@/hooks/use-editing-session'
+import { useSharedEditingSession } from '@/hooks/use-editing-session'
 
 export interface FileAttachment {
   url: string
@@ -155,7 +155,9 @@ export function useTaskDetailState(task: Task): TaskDetailState {
   // `setEditingX` call site still works — but `setEditingX(true)` now routes
   // through begin(), which commits and closes whatever was active. Mutual
   // exclusion is a property of the machine, not of each call site remembering.
-  const session = useEditingSession()
+  // Shared so opening a list editor closes a task-detail one, and vice
+  // versa (task 7b60c7c5). Falls back to a private session outside a provider.
+  const session = useSharedEditingSession()
 
   const editingTitle = session.isEditing('title')
   const editingDescription = session.isEditing('description')
