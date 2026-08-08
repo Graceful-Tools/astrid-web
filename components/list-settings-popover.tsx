@@ -176,6 +176,7 @@ export function ListSettingsPopover({
                     <ManageStatusesPanel
                       statuses={statuses}
                       onChanged={() => onStatusesChanged?.()}
+                      projectId={list.projectId!}
                     />
                   </TabsContent>
                 )}

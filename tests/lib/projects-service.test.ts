@@ -164,9 +164,10 @@ describe('listProjectsForUser', () => {
 
 describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
   const USER = 'user-1'
+  const PROJECT = 'project-1'
 
   it('rejects an empty name', async () => {
-    expect(await addUserStatus(USER, '   ')).toMatchObject({ error: 'invalid' })
+    expect(await addUserStatus(USER, '   ', PROJECT)).toMatchObject({ error: 'invalid' })
     expect(mockListCreate).not.toHaveBeenCalled()
   })
 
@@ -174,7 +175,7 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
     mockFindMany.mockResolvedValue([
       { name: 'Ready', statusOrder: 0, statusRole: 'ready' },
     ] as never)
-    expect(await addUserStatus(USER, ' ready ')).toMatchObject({ error: 'duplicate' })
+    expect(await addUserStatus(USER, ' ready ', PROJECT)).toMatchObject({ error: 'duplicate' })
     expect(mockListCreate).not.toHaveBeenCalled()
   })
 
@@ -186,13 +187,12 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
     ] as never)
     mockListCreate.mockResolvedValue({ id: 'new', name: 'Blocked' } as never)
 
-    const result = await addUserStatus(USER, '  Blocked  ')
+    const result = await addUserStatus(USER, '  Blocked  ', PROJECT)
     expect('list' in result && result.list).toMatchObject({ id: 'new' })
     const data = (mockListCreate.mock.calls[0][0] as any).data
     expect(data).toMatchObject({
       name: 'Blocked',
       ownerId: USER,
-      projectId: null,
       listType: 'status',
       statusOrder: 3,
       statusRole: 'custom-blocked',
@@ -202,12 +202,48 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
     }
   })
 
+  it('REGRESSION (task 109d8a91): writes the project id the reader requires', async () => {
+    // 05dc842 scoped the READER to per-project (statusListsForUser keeps a
+    // custom role only when list.projectId === projectId) and left the writer
+    // on projectId: null. The two can never agree, so every custom status was
+    // created and then rendered on no board at all — including the one it was
+    // added from.
+    mockFindMany.mockResolvedValue([] as never)
+    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+
+    await addUserStatus(USER, 'Blocked', PROJECT)
+
+    const data = (mockListCreate.mock.calls[0][0] as any).data
+    expect(data.projectId).toBe(PROJECT)
+  })
+
+  it('REGRESSION (task 109d8a91): a status added on one board is not offered on another', async () => {
+    // The duplicate check must look at THIS project's statuses, not every
+    // status the user owns — otherwise adding "Blocked" to board B is refused
+    // because board A already has one.
+    mockFindMany.mockResolvedValue([] as never)
+    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+
+    await addUserStatus(USER, 'Blocked', PROJECT)
+
+    const where = (mockFindMany.mock.calls.at(-1)![0] as any).where
+    expect(where).toMatchObject({ ownerId: USER, listType: 'status' })
+    expect(where.OR ?? where.projectId).toBeDefined()
+  })
+
+  it('refuses to create a custom status with no project to hang it on', async () => {
+    // Without a project the row is unreachable by the reader, which is the bug
+    // this task exists for. Fail loudly instead of writing an inert row.
+    expect(await addUserStatus(USER, 'Blocked', '')).toMatchObject({ error: 'invalid' })
+    expect(mockListCreate).not.toHaveBeenCalled()
+  })
+
   it('disambiguates a custom role that collides with an existing one', async () => {
     mockFindMany.mockResolvedValue([
       { name: 'Blocked', statusOrder: 0, statusRole: 'custom-blocked' },
     ] as never)
     mockListCreate.mockResolvedValue({ id: 'new' } as never)
-    await addUserStatus(USER, 'Blocked!')
+    await addUserStatus(USER, 'Blocked!', PROJECT)
     const data = (mockListCreate.mock.calls[0][0] as any).data
     expect(data.statusRole).toBe('custom-blocked-2')
   })
