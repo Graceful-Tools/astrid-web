@@ -16,6 +16,7 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { hasExplicitListRole } from "@/lib/list-permissions"
@@ -106,6 +107,10 @@ export function CommentSection({
   agentTyping,
 }: CommentSectionProps) {
   const [showSystemComments, setShowSystemComments] = useState(false)
+  // The comment editor holds a pending buffer, so it registers a hand-off
+  // commit: opening another editor SAVES the edit rather than dropping it
+  // (task 7b60c7c5). Cancel stays the one path that discards.
+  const session = useSharedEditingSession()
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState("")
   const [localUploadError, setLocalUploadError] = useState<string | null>(null)
@@ -328,10 +333,24 @@ export function CommentSection({
     } catch (error) {
       console.error("Error updating comment:", error)
     } finally {
+      if (editingCommentId) session.endEditing(`comment:${editingCommentId}`)
       setEditingCommentId(null)
       setEditingText("")
     }
   }
+
+  // Register the hand-off for whichever comment is open, so opening any other
+  // editor commits the edit instead of losing it. Re-registered as the target
+  // changes; a ref keeps the latest text without re-running the session.
+  const editRef = useRef<{ id: string | null; text: string }>({ id: null, text: "" })
+  editRef.current = { id: editingCommentId, text: editingText }
+  useEffect(() => {
+    if (!editingCommentId) return
+    session.registerCommit(`comment:${editingCommentId}`, () => {
+      const { id, text } = editRef.current
+      if (id && text.trim()) void handleEditComment(id, text)
+    })
+  }, [session, editingCommentId])
 
   const handleDeleteReply = async (replyId: string, parentCommentId: string) => {
     try {
@@ -484,7 +503,11 @@ export function CommentSection({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setEditingCommentId(null); setEditingText("") }}
+              onClick={() => {
+                session.cancelEditing(`comment:${comment.id}`)
+                setEditingCommentId(null)
+                setEditingText("")
+              }}
             >
               Cancel
             </Button>
@@ -548,6 +571,7 @@ export function CommentSection({
                 className="flex items-center gap-1 text-xs theme-text-muted hover:theme-text-secondary transition-colors"
                 onClick={(e) => {
                   e.stopPropagation()
+                  session.beginEditing(`comment:${comment.id}`)
                   setEditingCommentId(comment.id)
                   setEditingText(comment.content || '')
                   setShowingActionsFor(null)

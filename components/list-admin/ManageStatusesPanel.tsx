@@ -4,6 +4,7 @@ import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronUp, ChevronDown, Plus, Check, Pencil } from "lucide-react"
+import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { TaskList } from "@/types/task"
 
 interface ManageStatusesPanelProps {
@@ -25,6 +26,8 @@ interface ManageStatusesPanelProps {
  * POST /api/statuses.
  */
 export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageStatusesPanelProps) {
+  // Pending-buffer editor: a hand-off saves the typed status name (task 7b60c7c5).
+  const session = useSharedEditingSession()
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editingName, setEditingName] = React.useState("")
   const [newName, setNewName] = React.useState("")
@@ -63,14 +66,32 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
   const handleRename = (list: TaskList) => {
     const name = editingName.trim()
     if (!name || name === list.name) {
+      session.endEditing(`status-name:${list.id}`)
       setEditingId(null)
       return
     }
     run(async () => {
       await putList(list, { name })
+      session.endEditing(`status-name:${list.id}`)
       setEditingId(null)
     })
   }
+
+  // Whichever status is open registers the hand-off, so opening another editor
+  // commits the rename instead of dropping it.
+  const renameRef = React.useRef<{ list: TaskList | null; name: string }>({ list: null, name: "" })
+  renameRef.current = {
+    list: ordered.find(status => status.id === editingId) ?? null,
+    name: editingName,
+  }
+  React.useEffect(() => {
+    if (!editingId) return
+    session.registerCommit(`status-name:${editingId}`, () => {
+      const { list, name } = renameRef.current
+      if (list && name.trim()) handleRename(list)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, editingId])
 
   const handleSwap = (index: number, dir: -1 | 1) => {
     const a = ordered[index]
@@ -149,7 +170,11 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => { setEditingId(status.id); setEditingName(status.name) }}
+                  onClick={() => {
+                    session.beginEditing(`status-name:${status.id}`)
+                    setEditingId(status.id)
+                    setEditingName(status.name)
+                  }}
                   className="theme-text-muted hover:theme-text-primary p-1"
                   aria-label={`Rename ${status.name}`}
                 >
