@@ -292,12 +292,29 @@ describe('Shared board status scoping (142e4dd9)', () => {
     lists: listIds.map(id => ({ id })),
   }) as never
 
-  it('KNOWN GAP: two members resolve against their own status sets', () => {
-    // Documents the cost of reverting project-scoped statuses. A card in
-    // Alice's Doing reads as Doing to Alice and Inbox to Bob, because Bob
-    // resolves against his own set. This is a real gap, tracked separately —
-    // the alternative was nine status lists per user, which shipped and was
-    // worse.
+  it('the status FIELD closes the two-member gap (AWTD-562)', () => {
+    // The headline fix, stated as a passing assertion rather than a caveat.
+    // The role lives on the shared task, so each member maps it onto their OWN
+    // column of that role and both land on "Doing" — the disagreement the
+    // list-membership model could not fix without duplicating a status set per
+    // project.
+    const aliceLists = [domainList, personalStatus('alice', 'doing', 'alice-doing')]
+    const bobLists = [domainList, personalStatus('bob', 'doing', 'bob-doing')]
+    const task = { ...(taskIn(['domain-1']) as object), statusRole: 'doing' } as never
+
+    expect(getTaskProjectColumnId(task, aliceLists, PROJECT)).toBe('alice-doing')
+    expect(getTaskProjectColumnId(task, bobLists, PROJECT)).toBe('bob-doing')
+  })
+
+  it('KNOWN GAP, now narrowed: only a task carrying membership and NO field still disagrees', () => {
+    // What is left of the gap. A task whose status was written as a list
+    // membership without the field — an older client, or a row not yet
+    // backfilled — still reads as Doing to Alice and Inbox to Bob, because Bob
+    // cannot see Alice's private status list.
+    //
+    // This is no longer "shared boards disagree"; it is "tasks written by a
+    // client that does not send statusRole disagree". It closes when the status
+    // lists go (2e41c645), not before.
     const aliceLists = [domainList, personalStatus('alice', 'doing', 'alice-doing')]
     const bobLists = [domainList, personalStatus('bob', 'doing', 'bob-doing')]
     const task = taskIn(['domain-1', 'alice-doing'])
