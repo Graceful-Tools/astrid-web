@@ -15,6 +15,10 @@
  */
 import type { Task, TaskList } from '@/types/task'
 import { statusListsForUser } from '@/lib/status-lists'
+import { DEFAULT_STATES } from '@/lib/task-status'
+
+/** The roles that always have a column, list-backed or not. */
+const DEFAULT_ROLES = new Set(DEFAULT_STATES.map(state => state.role))
 
 export type ProjectStatusRole = 'ready' | 'doing' | 'waiting' | 'custom'
 
@@ -145,15 +149,48 @@ export function getProjectBoardColumns(
   projectId?: string | null,
 ): ProjectBoardColumn[] {
   const statuses = getProjectStatusLists(lists, projectId)
-  return [
-    { ...VIRTUAL_INBOX_COLUMN },
-    ...statuses.map<ProjectBoardColumn>(status => ({
+  const byRole = new Map<string, TaskList>(
+    statuses.flatMap(status => (status.statusRole ? [[status.statusRole as string, status] as const] : [])),
+  )
+
+  // The three defaults come from CONFIG, backed by a list when one exists
+  // (task a1722040 step 4). Deriving the whole board from the rows meant the
+  // day they are dropped the board would render Inbox and Done and nothing
+  // else. Web no longer depends on them existing; the eventual deletion is a
+  // no-op here rather than a cliff.
+  //
+  // The column id stays the LIST id while a list backs the role, because the
+  // membership dual-write keys off it and older clients still read membership.
+  // Once the rows are gone the id is the role itself.
+  const defaults = DEFAULT_STATES.map<ProjectBoardColumn>(state => {
+    const backing = byRole.get(state.role)
+    return {
+      id: backing?.id ?? state.role,
+      // A renamed default is a PUT on the list, so the list's name wins while
+      // the rows exist.
+      name: backing?.name ?? state.name,
+      description: backing?.statusDescription || backing?.description || state.description || '',
+      kind: 'status',
+      statusList: backing,
+    }
+  })
+
+  // Custom states are project-scoped and have no config entry, so they still
+  // come from the rows — until they move to Project.customStates (2e41c645).
+  const customs = statuses
+    .filter(status => !DEFAULT_ROLES.has(status.statusRole ?? ''))
+    .map<ProjectBoardColumn>(status => ({
       id: status.id,
       name: status.name,
       description: status.statusDescription || status.description || '',
       kind: 'status',
       statusList: status,
-    })),
+    }))
+
+  return [
+    { ...VIRTUAL_INBOX_COLUMN },
+    ...defaults,
+    ...customs,
     { ...VIRTUAL_DONE_COLUMN },
   ]
 }
@@ -180,6 +217,13 @@ export function getTaskProjectColumnId(
   // list membership. It goes when the status lists do.
   const statusRoleFromField = (task as { statusRole?: string | null }).statusRole
   if (statusRoleFromField) {
+    // A default role always has a column, backed by a list or not, so a card
+    // can no longer fall to Inbox merely because the rows are missing.
+    if (DEFAULT_ROLES.has(statusRoleFromField)) {
+      const backing = getProjectStatusLists(lists, projectId)
+        .find(status => status.statusRole === statusRoleFromField)
+      return backing ? backing.id : statusRoleFromField
+    }
     const match = getProjectStatusLists(lists, projectId)
       .find(status => status.statusRole === statusRoleFromField)
     // Fall back to Inbox rather than returning the bare role. Board columns are
@@ -228,11 +272,16 @@ export function resolveProjectColumnMove(
     return { listIds: retainedListIds, completed: true, statusRole: null }
   }
   return {
-    listIds: [...retainedListIds, targetColumn.id],
+    // Only append a membership when a real list backs the column. Once the
+    // status rows are gone the column id is a ROLE, and persisting that in
+    // listIds would be a membership in a list that does not exist.
+    listIds: targetColumn.statusList
+      ? [...retainedListIds, targetColumn.statusList.id]
+      : retainedListIds,
     completed: false,
     // Written alongside the membership so the field is the source of truth on
     // web while iOS still reads the list. Dual-write, not dual-truth.
-    statusRole: targetColumn.statusList?.statusRole ?? null,
+    statusRole: targetColumn.statusList?.statusRole ?? targetColumn.id,
   }
 }
 
