@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { deleteFile } from "@/lib/secure-storage"
-import { sweepAbandonedUploads, ABANDONED_UPLOAD_GRACE_MS } from "@/lib/abandoned-uploads"
+import {
+  sweepAbandonedUploads,
+  countAmbiguousLegacyUploads,
+  ABANDONED_UPLOAD_GRACE_MS,
+} from "@/lib/abandoned-uploads"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('cron.abandoned-uploads')
@@ -34,9 +38,14 @@ export async function GET(request: NextRequest) {
       now: new Date(),
     })
 
+    // Rows predating the discriminator cannot be swept — see
+    // ambiguousLegacyWhere. Reporting the count turns the backlog into a number
+    // someone can act on instead of an unmeasured caveat.
+    const legacyAmbiguous = await countAmbiguousLegacyUploads(prisma)
+
     const duration = Date.now() - startTime
     log.info(
-      { ...result, graceHours: ABANDONED_UPLOAD_GRACE_MS / (60 * 60 * 1000) },
+      { ...result, legacyAmbiguous, graceHours: ABANDONED_UPLOAD_GRACE_MS / (60 * 60 * 1000) },
       `✅ Abandoned upload sweep completed in ${duration}ms`,
     )
 
@@ -45,6 +54,7 @@ export async function GET(request: NextRequest) {
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
       ...result,
+      legacyAmbiguous,
     })
   } catch (error) {
     log.error({ err: error }, "❌ Error in abandoned upload sweep:")

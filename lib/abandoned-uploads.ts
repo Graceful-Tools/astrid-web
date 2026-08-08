@@ -73,6 +73,7 @@ export interface SweepPrisma {
   secureFile: {
     findMany: (...args: any[]) => Promise<any>
     delete: (...args: any[]) => Promise<any>
+    count: (...args: any[]) => Promise<number>
   }
 }
 
@@ -123,4 +124,26 @@ export async function sweepAbandonedUploads(deps: SweepDeps): Promise<SweepResul
   }
 
   return result
+}
+
+
+/**
+ * Rows written before the discriminator existed that cannot be classified.
+ *
+ * `attachTarget` null with `commentId` null is exactly the shape of a task-form
+ * upload, and since task b4a362f1 those render as task attachments — so they
+ * cannot be swept without deleting files people can currently see. There is no
+ * signal that separates "abandoned draft" from "attached to the task" for a row
+ * written before the intent was recorded.
+ *
+ * Counting them is the honest alternative to leaving it as a caveat in a task
+ * comment: the backlog becomes a number in the cron log that someone can act
+ * on, or watch stay flat and stop worrying about.
+ */
+export function ambiguousLegacyWhere() {
+  return { attachTarget: null, commentId: null, chatMessageId: null }
+}
+
+export async function countAmbiguousLegacyUploads(prisma: SweepPrisma): Promise<number> {
+  return prisma.secureFile.count({ where: ambiguousLegacyWhere() })
 }

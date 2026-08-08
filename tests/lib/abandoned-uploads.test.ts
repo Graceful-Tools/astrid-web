@@ -12,6 +12,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   ABANDONED_UPLOAD_GRACE_MS,
   abandonedUploadWhere,
+  ambiguousLegacyWhere,
+  countAmbiguousLegacyUploads,
   sweepAbandonedUploads,
 } from '@/lib/abandoned-uploads'
 
@@ -108,5 +110,32 @@ describe('sweepAbandonedUploads (Task 276b3086)', () => {
 
     const args = prisma.secureFile.findMany.mock.calls[0][0]
     expect(args.take).toBeGreaterThan(0)
+  })
+})
+
+
+describe('ambiguousLegacyWhere (Task 276b3086)', () => {
+  it('matches only rows written before the discriminator existed', () => {
+    expect(ambiguousLegacyWhere()).toEqual({
+      attachTarget: null,
+      commentId: null,
+      chatMessageId: null,
+    })
+  })
+
+  it('never overlaps the set the sweep deletes', () => {
+    // The whole point: these are counted, never swept. A row cannot be both
+    // attachTarget 'message' and attachTarget null.
+    const sweepable = abandonedUploadWhere(new Date())
+    expect(sweepable.attachTarget).toBe('message')
+    expect(ambiguousLegacyWhere().attachTarget).toBeNull()
+  })
+
+  it('counts them without touching anything', async () => {
+    const count = vi.fn().mockResolvedValue(41)
+    const prisma = { secureFile: { count, findMany: vi.fn(), delete: vi.fn() } } as never
+
+    expect(await countAmbiguousLegacyUploads(prisma)).toBe(41)
+    expect(count).toHaveBeenCalledWith({ where: ambiguousLegacyWhere() })
   })
 })
