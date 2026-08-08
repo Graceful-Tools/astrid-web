@@ -100,22 +100,23 @@ export function isLegacyInboxStatusList(
  * Returns the status lists for a board, in display order, excluding any legacy
  * Inbox/Done lists (the board renders virtual columns for those).
  *
- * **Scope-aware** (task 142e4dd9). Status lists come in two flavours:
+ * **Scope depends on the role** — and this comment used to describe an
+ * arrangement that was reverted, so read it rather than assuming:
  *
- * - **Personal** (`projectId: null`) — the user's own Ready/Doing/Waiting set,
- *   shared across all of their solo boards. This is the original behaviour and
- *   is still what a single-player board uses.
- * - **Project-scoped** (`projectId` set) — one set owned by the project, so
- *   every member resolves the *same* column ids.
+ * - **The three defaults** (ready / doing / waiting) are **per-user
+ *   singletons**, `projectId: null`, shared across every board the user has.
+ *   Making them per-project is what produced nine status lists for a
+ *   two-board user; that shipped twice and was reverted twice.
+ * - **Custom states** are **per-project** (task 109d8a91): a custom column
+ *   belongs to one board and must not leak onto another, so it is kept only
+ *   when its `projectId` matches the board being rendered.
  *
- * A shared board must use the project-scoped set. When statuses were per-user
- * only, Alice dragging a card to Doing put it in *Alice's private Doing list*;
- * Bob, resolving against his own status lists, found no match and saw the card
- * fall back to Inbox. Two people, one board, silently different columns.
- *
- * Passing a `projectId` prefers that project's own statuses and falls back to
- * the personal set when the project hasn't been promoted (solo boards, and
- * shared boards in the window before the lazy promotion runs).
+ * The two-member disagreement this once had to solve — Alice drags a card to
+ * Doing, Bob resolves against his own lists and sees Inbox — is now handled by
+ * `Task.statusRole` instead (AWTD-562). The role lives on the shared task, so
+ * each member maps it onto their own column of that role and both land on the
+ * same column name. What remains is only a task carrying a membership and no
+ * field, which goes when the status lists do (2e41c645).
  */
 export function getProjectStatusLists(lists: TaskList[], projectId?: string | null): TaskList[] {
   const statuses = lists
