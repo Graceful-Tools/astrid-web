@@ -13,6 +13,7 @@ import { CodingWorkflowProvider } from "@/components/coding-workflow-provider"
 import { PostHogProvider } from "@/components/posthog-provider"
 import { OfflineProvider } from "@/components/offline-provider"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
+import { EditingSessionProvider } from "@/hooks/use-editing-session"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -23,11 +24,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <SettingsProvider>
             <OfflineProvider>
               <CodingWorkflowProvider>
-                <PWARegistration />
-                <PWAStatus />
-                {children}
-                <Toaster />
-                <PWAInstallPrompt />
+                {/* One editing session for the whole app (task 7b60c7c5): opening
+                    any editor commits and closes the active one, wherever it lives. */}
+                <EditingSessionProvider>
+                  <PWARegistration />
+                  <PWAStatus />
+                  {children}
+                  <Toaster />
+                  <PWAInstallPrompt />
+                </EditingSessionProvider>
               </CodingWorkflowProvider>
             </OfflineProvider>
           </SettingsProvider>

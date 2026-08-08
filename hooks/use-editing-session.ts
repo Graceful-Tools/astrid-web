@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import {
   IDLE,
   begin,
@@ -109,4 +109,41 @@ export function useEditingSession(): EditingSession {
     cancelEditing,
     registerCommit,
   }
+}
+
+// ─── One session for the whole app ────────────────────────────────
+
+/**
+ * The session shared across components (task 7b60c7c5).
+ *
+ * `useEditingSession` is a plain hook, so every caller gets its OWN machine.
+ * That made "exactly one editor at a time" true inside the task detail and
+ * nowhere else — migrating the list editors by calling the hook again would
+ * have created a second independent session, and a list editor plus a
+ * task-detail editor could both be open. Mutual exclusion has to span the tree
+ * for the guarantee to mean anything.
+ */
+const EditingSessionContext = createContext<EditingSession | null>(null)
+
+export function EditingSessionProvider({ children }: { children: React.ReactNode }) {
+  const session = useEditingSession()
+  return React.createElement(EditingSessionContext.Provider, { value: session }, children)
+}
+
+/**
+ * The app-wide session, or a private one when no provider is mounted.
+ *
+ * The fallback is deliberate: the task detail's ~40 existing `editingX` call
+ * sites and their tests keep working without every one of them being wrapped.
+ * A component rendered outside a provider still gets correct single-editor
+ * behaviour locally — it just does not participate in the app-wide hand-off.
+ *
+ * The local session is always constructed because hooks cannot be conditional.
+ * An unused one costs a pair of idle listeners and commits nothing, since it
+ * never has an active editor.
+ */
+export function useSharedEditingSession(): EditingSession {
+  const shared = useContext(EditingSessionContext)
+  const local = useEditingSession()
+  return shared ?? local
 }

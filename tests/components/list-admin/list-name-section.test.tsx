@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ListNameSection } from '@/components/list-admin/ListNameSection'
+import { EditingSessionProvider, useSharedEditingSession } from '@/hooks/use-editing-session'
 import type { TaskList } from '@/types/task'
 
 vi.mock('@/lib/layout-detection', () => ({
@@ -94,5 +95,59 @@ describe('ListNameSection', () => {
       '/api/lists/list-1',
       expect.objectContaining({ method: 'PUT' })
     )
+  })
+})
+
+
+describe('ListNameSection joins the shared editing session (task 7b60c7c5)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve(makeList({ name: 'Renamed' })) } as Response),
+    ) as typeof fetch
+  })
+
+  const openEditor = () => fireEvent.click(screen.getByText('Test List'))
+
+  it('reverts the draft on Cancel instead of leaving it staged', async () => {
+    // The bug: Escape / X closed the editor but never reset tempListName, so
+    // the abandoned text was still sitting in the buffer when it reopened.
+    // Cancel is the ONE transition that discards — it has to actually discard.
+    render(
+      <EditingSessionProvider>
+        <ListNameSection list={makeList()} canEditSettings onUpdate={vi.fn()} />
+      </EditingSessionProvider>,
+    )
+
+    openEditor()
+    fireEvent.change(screen.getByDisplayValue('Test List'), { target: { value: 'Abandoned' } })
+    fireEvent.keyDown(screen.getByDisplayValue('Abandoned'), { key: 'Escape' })
+
+    openEditor()
+    expect(screen.getByRole('textbox')).toHaveValue('Test List')
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('opening another editor commits this one rather than dropping the edit', async () => {
+    function Other() {
+      const session = useSharedEditingSession()
+      return <button onClick={() => session.beginEditing('other')}>open other</button>
+    }
+
+    render(
+      <EditingSessionProvider>
+        <ListNameSection list={makeList()} canEditSettings onUpdate={vi.fn()} />
+        <Other />
+      </EditingSessionProvider>,
+    )
+
+    openEditor()
+    fireEvent.change(screen.getByDisplayValue('Test List'), { target: { value: 'Renamed' } })
+    fireEvent.click(screen.getByText('open other'))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/lists/list-1',
+      expect.objectContaining({ method: 'PUT' }),
+    ))
   })
 })
