@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { apiGet } from "@/lib/api"
-import { seedFromCache, buildTaskSyncUrl } from "./load-from-cache"
+import { seedFromCache } from "./load-from-cache"
+import { fetchSyncPayload } from "./sync-fetch"
 import { mergeTasks, mergeLists } from "./merge-tasks"
 import { preloadUserAvatars } from "@/lib/image-cache"
 import type { Task, TaskList } from "@/types/task"
@@ -116,36 +117,34 @@ export function useTaskListState({
       // the API now reports `deletedIds`, so a patch can be merged safely; it
       // was a full ~1.9 MB fetch until that existed. Without a cursor (cold
       // start) these are the same full URLs as before.
-      const [tasksUrl, listsUrl] = await Promise.all([
-        buildTaskSyncUrl("/api/tasks", "task"),
-        buildTaskSyncUrl("/api/lists", "list"),
-      ])
-      const tasksIsDelta = tasksUrl.includes("updatedSince=")
-      const listsIsDelta = listsUrl.includes("updatedSince=")
-
-      const [tasksResponse, listsResponse, publicTasksResponse, publicListsResponse] = await Promise.all([
-        apiGet(tasksUrl),
-        apiGet(listsUrl),
+      // Tasks and lists come from v1 through fetchSyncPayload, which pages —
+      // v1 caps /api/v1/tasks at 100 rows and a plain swap would silently hand
+      // every user their first 100 tasks. The public endpoints have no v1
+      // successor yet, so they stay as they are. (641a7615 step 3)
+      //
+      // apiGet is threaded in rather than bypassed: it carries the offline
+      // handling and cache invalidation that a bare fetch would drop.
+      const [syncPayload, publicTasksResponse, publicListsResponse] = await Promise.all([
+        fetchSyncPayload({ fetchImpl: ((url: string) => apiGet(String(url))) as unknown as typeof fetch }),
         apiGet("/api/public-tasks"),
         apiGet("/api/lists/public?limit=10"),
       ])
 
-      const [tasksData, listsData, publicTasksData, publicListsData] = await Promise.all([
-        tasksResponse.json(),
-        listsResponse.json(),
+      const [publicTasksData, publicListsData] = await Promise.all([
         publicTasksResponse.json(),
         publicListsResponse.json(),
       ])
 
-      // Ensure we have arrays (handle API response structure)
-      const tasksArray = Array.isArray(tasksData) ? tasksData : (tasksData?.tasks || [])
-      const listsArray = Array.isArray(listsData) ? listsData : (listsData?.lists || [])
+      const tasksArray = syncPayload.tasks as Task[]
+      const listsArray = syncPayload.lists as TaskList[]
       const publicTasksArray = Array.isArray(publicTasksData) ? publicTasksData : (publicTasksData?.tasks || [])
 
       // A full response IS the truth; a delta is a patch. Conflating them would
       // wipe every task the delta did not mention (see merge-tasks.ts).
-      const deletedTaskIds: string[] = tasksData?.deletedIds || []
-      const deletedListIds: string[] = listsData?.deletedIds || []
+      const tasksIsDelta = syncPayload.tasksIsDelta
+      const listsIsDelta = syncPayload.listsIsDelta
+      const deletedTaskIds: string[] = syncPayload.deletedTaskIds
+      const deletedListIds: string[] = syncPayload.deletedListIds
 
       setTasks(prev => mergeTasks(prev, tasksArray, {
         isDelta: tasksIsDelta,
