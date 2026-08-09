@@ -33,12 +33,12 @@ export const GET = withAuth<RouteContext>(
       where: { id },
       include: {
         owner: {
-          select: { id: true, name: true, email: true, image: true }
+          select: { id: true, name: true, email: true, image: true, isAIAgent: true }
         },
         listMembers: {
           include: {
             user: {
-              select: { id: true, name: true, email: true, image: true }
+              select: { id: true, name: true, email: true, image: true, isAIAgent: true }
             }
           }
         }
@@ -82,6 +82,11 @@ export const GET = withAuth<RouteContext>(
         role: 'owner' as const,
         isOwner: true,
         isAdmin: false,
+        // list-members-manager tells agents apart from people by this field.
+        // Legacy carries it; without it every AI agent renders as an ordinary
+        // user — and since undefined is falsy, PEOPLE still render correctly,
+        // which is what would have hidden the bug. (Task dc143ab2)
+        isAIAgent: list.owner.isAIAgent ?? false,
         type: 'member' as const,
       },
       ...list.listMembers.map(member => ({
@@ -92,6 +97,7 @@ export const GET = withAuth<RouteContext>(
         role: member.role === 'admin' ? 'admin' as const : 'member' as const,
         isOwner: false,
         isAdmin: member.role === 'admin',
+        isAIAgent: member.user.isAIAgent ?? false,
         type: 'member' as const,
       })),
       ...pendingInvites.map(invite => ({
@@ -101,7 +107,9 @@ export const GET = withAuth<RouteContext>(
         image: null,
         role: invite.role as 'admin' | 'member',
         isOwner: false,
-        isAdmin: invite.role === 'admin',
+        // A pending invite is an email, not a user yet — nothing to be an
+        // agent. Stated rather than omitted so the key is always present.
+        isAIAgent: false,
         type: 'invite' as const,
       }))
     ]
@@ -150,12 +158,12 @@ export const POST = withAuth<RouteContext>(
       where: { id },
       include: {
         owner: {
-          select: { id: true, name: true, email: true, image: true }
+          select: { id: true, name: true, email: true, image: true, isAIAgent: true }
         },
         listMembers: {
           include: {
             user: {
-              select: { id: true, name: true, email: true, image: true }
+              select: { id: true, name: true, email: true, image: true, isAIAgent: true }
             }
           }
         }
@@ -175,7 +183,7 @@ export const POST = withAuth<RouteContext>(
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      select: { id: true, name: true, email: true, image: true }
+      select: { id: true, name: true, email: true, image: true, isAIAgent: true }
     })
 
     // No existing user → create an invitation instead
@@ -297,6 +305,10 @@ export const POST = withAuth<RouteContext>(
           role,
           isOwner: false,
           isAdmin: role === 'admin',
+          // Same field the GET reports — a member added through POST must not
+          // arrive without it and render as a person. (Task dc143ab2)
+          isAIAgent: user.isAIAgent ?? false,
+          type: 'member' as const,
         },
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
