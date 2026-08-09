@@ -9,6 +9,7 @@
  */
 
 import { CacheManager } from './cache-manager'
+import { fetchAllPages } from './api-paginate'
 import {
   OfflineTaskOperations,
   OfflineListOperations,
@@ -254,14 +255,17 @@ class DataSyncManagerClass {
 
       // Fetch tasks
       if (entities.includes('task')) {
-        const tasksResponse = await fetchWithTimeout('/api/tasks', {
-          credentials: 'include',
-          timeout: 30000
+        // v1 caps a page at 1000 rows; page through rather than taking the
+        // first page as the whole answer (task 641a7615, decision 1B).
+        const paged = await fetchAllPages<Task>('/api/v1/tasks', 'tasks', {
+          init: { credentials: 'include' },
         })
 
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json()
-          const tasks: Task[] = tasksData.tasks || tasksData || []
+        {
+          const tasks: Task[] = paged.items
+          if (paged.truncated) {
+            console.warn('[DataSync] task page cap hit — cache may be incomplete')
+          }
 
           await CacheManager.setTasks(tasks, true)
           tasksUpdated = tasks.length
@@ -399,18 +403,19 @@ class DataSyncManagerClass {
       if (entities.includes('task')) {
         const taskSince = taskCursor?.cursor || ''
         const url = taskSince
-          ? `/api/tasks?updatedSince=${encodeURIComponent(taskSince)}`
-          : '/api/tasks'
+          ? `/api/v1/tasks?updatedSince=${encodeURIComponent(taskSince)}`
+          : '/api/v1/tasks'
 
-        const tasksResponse = await fetchWithTimeout(url, {
-          credentials: 'include',
-          timeout: 30000
+        // deletedIds must be collected across pages too — losing them on page
+        // two would resurrect deleted tasks in the local cache.
+        const paged = await fetchAllPages<Task>(url, 'tasks', {
+          init: { credentials: 'include' },
+          alsoCollect: 'deletedIds',
         })
 
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json()
-          const tasks: Task[] = tasksData.tasks || tasksData || []
-          const deleted: string[] = tasksData.deletedIds || []
+        {
+          const tasks: Task[] = paged.items
+          const deleted: string[] = paged.collected as string[]
 
           // Update cache with new/updated tasks
           for (const task of tasks) {
