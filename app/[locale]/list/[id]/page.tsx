@@ -27,7 +27,7 @@ export default function ListPage() {
       if (!session?.user || !listId) return
 
       try {
-        const response = await fetch(`/api/lists/${listId}`)
+        const response = await fetch(`/api/v1/lists/${listId}`)
         if (!response.ok) {
           if (response.status === 404) {
             setError("List not found")

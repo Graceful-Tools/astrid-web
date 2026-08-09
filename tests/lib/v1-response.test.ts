@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { unwrapTask } from '@/lib/v1-task-response'
+import { unwrapTask, unwrapList } from '@/lib/v1-response'
 
 const task = { id: 't1', title: 'Water the plants' }
 
@@ -51,5 +51,38 @@ describe('unwrapTask (task 641a7615)', () => {
     const full = { id: 't1', title: 'x', listIds: ['l1', 'l2'] }
 
     expect(unwrapTask({ task: full } as never)).toEqual(full)
+  })
+})
+
+/**
+ * Lists have the same split — legacy `/api/lists/[id]` returns the list bare,
+ * v1 returns `{ list, meta }`. Same helper, different envelope key, so these
+ * pin that generalising it did not lose the guards the task version had.
+ */
+describe('unwrapList (task dc143ab2)', () => {
+  const list = { id: 'l1', name: 'Groceries' }
+
+  it('unwraps the v1 envelope', () => {
+    expect(unwrapList({ list, meta: { apiVersion: 'v1' } } as never)).toEqual(list)
+  })
+
+  it('passes a legacy bare list through', () => {
+    expect(unwrapList(list)).toEqual(list)
+  })
+
+  it('does not mistake an error body for a list', () => {
+    expect(unwrapList({ error: 'List not found' } as never)).toBeNull()
+  })
+
+  it('does not unwrap a task envelope as a list', () => {
+    // The keys are the only thing distinguishing the two. A helper that
+    // accepted either would happily hand a task to list-rendering code.
+    expect(unwrapList({ task: { id: 't1' } } as never)).toBeNull()
+  })
+
+  it('keeps nested fields intact', () => {
+    const full = { id: 'l1', name: 'x', listMembers: [{ userId: 'u1', role: 'owner' }] }
+
+    expect(unwrapList({ list: full } as never)).toEqual(full)
   })
 })

@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { unwrapList } from '@/lib/v1-response'
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -114,10 +115,11 @@ export function ListMembership({
       const newEnabledAgents = [...currentEnabledAgents, agent.aiAgentType || agent.id]
 
       // Fetch fresh list data to get updated members
-      const listResponse = await fetch(`/api/lists/${list.id}`)
+      const listResponse = await fetch(`/api/v1/lists/${list.id}`)
       if (listResponse.ok) {
-        const freshList = await listResponse.json()
-        onUpdate({ ...freshList, aiAgentsEnabled: newEnabledAgents })
+        const freshList = unwrapList<TaskList>(await listResponse.json())
+        // Fall back to the list we already hold rather than spreading a null.
+        onUpdate({ ...(freshList ?? list), aiAgentsEnabled: newEnabledAgents })
       } else {
         // Fallback to old behavior if fetch fails
         onUpdate({ ...list, aiAgentsEnabled: newEnabledAgents })
@@ -171,10 +173,11 @@ export function ListMembership({
       const newEnabledAgents = currentEnabledAgents.filter(id => id !== agent.aiAgentType && id !== agent.id)
 
       // Fetch fresh list data to get updated members
-      const listResponse = await fetch(`/api/lists/${list.id}`)
+      const listResponse = await fetch(`/api/v1/lists/${list.id}`)
       if (listResponse.ok) {
-        const freshList = await listResponse.json()
-        onUpdate({ ...freshList, aiAgentsEnabled: newEnabledAgents })
+        const freshList = unwrapList<TaskList>(await listResponse.json())
+        // Fall back to the list we already hold rather than spreading a null.
+        onUpdate({ ...(freshList ?? list), aiAgentsEnabled: newEnabledAgents })
       } else {
         // Fallback to old behavior if fetch fails
         onUpdate({ ...list, aiAgentsEnabled: newEnabledAgents })

@@ -92,7 +92,7 @@ describe('ListNameSection', () => {
 
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(updated))
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/lists/list-1',
+      '/api/v1/lists/list-1',
       expect.objectContaining({ method: 'PUT' })
     )
   })
@@ -146,7 +146,7 @@ describe('ListNameSection joins the shared editing session (task 7b60c7c5)', () 
     fireEvent.click(screen.getByText('open other'))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
-      '/api/lists/list-1',
+      '/api/v1/lists/list-1',
       expect.objectContaining({ method: 'PUT' }),
     ))
   })

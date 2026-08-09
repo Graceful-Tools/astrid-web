@@ -10,7 +10,7 @@ import { OfflineTaskOperations, OfflineListOperations } from '@/lib/offline-db'
 import { nanoid } from 'nanoid'
 import { trackTaskCreated, trackTaskCompleted, trackTaskUncompleted, trackTaskDeleted, trackTaskEdited } from '@/lib/analytics'
 import { safeResponseJson, hasRequiredFields } from '@/lib/safe-parse'
-import { unwrapTask } from '@/lib/v1-task-response'
+import { unwrapTask } from '@/lib/v1-response'
 
 interface UserSession {
   user?: {

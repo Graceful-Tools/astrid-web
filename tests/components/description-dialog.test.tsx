@@ -78,7 +78,7 @@ describe('DescriptionDialog (Stage 21 / task 5aad267a)', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
-  it('PUTs /api/lists/[id] and calls onListUpdate when saving a changed description', async () => {
+  it('PUTs /api/v1/lists/[id] and calls onListUpdate when saving a changed description', async () => {
     const updated = { ...list, description: 'New instructions' }
     global.fetch = vi.fn(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve(updated) } as Response)
@@ -94,7 +94,7 @@ describe('DescriptionDialog (Stage 21 / task 5aad267a)', () => {
     await waitFor(() => expect(onListUpdate).toHaveBeenCalledWith(updated))
     expect(setTempListDescription).toHaveBeenCalledWith('New instructions')
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/lists/list-1',
+      '/api/v1/lists/list-1',
       expect.objectContaining({ method: 'PUT' })
     )
   })

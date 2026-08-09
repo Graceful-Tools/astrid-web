@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { X, Play, Pause, RotateCcw } from "lucide-react"
 import { Task } from "@/types/task"
 import { format } from "date-fns"
-import { unwrapTask } from '@/lib/v1-task-response'
+import { unwrapTask } from '@/lib/v1-response'
 
 interface TaskTimerProps {
   task: Task

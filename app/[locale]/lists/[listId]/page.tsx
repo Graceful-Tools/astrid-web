@@ -29,7 +29,7 @@ export default function ListsPage() {
       if (!session?.user || !listId) return
 
       try {
-        const response = await fetch(`/api/lists/${listId}`)
+        const response = await fetch(`/api/v1/lists/${listId}`)
         if (!response.ok) {
           if (response.status === 404) {
             // List not found - if we have a taskId, try to fall back to My Tasks view

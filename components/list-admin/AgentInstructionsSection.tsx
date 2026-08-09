@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { unwrapList } from '@/lib/v1-response'
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { FileText, Edit3, Eye, Bot, ChevronDown, ChevronRight, Sparkles, Check, Info } from "lucide-react"
@@ -57,7 +58,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
   const handleSaveListDescription = useCallback(async () => {
     if (tempListDescription !== (list.description || "")) {
       try {
-        const response = await fetch(`/api/lists/${list.id}`, {
+        const response = await fetch(`/api/v1/lists/${list.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -69,8 +70,11 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
         })
 
         if (response.ok) {
-          const updatedList = await response.json()
-          onUpdate(updatedList)
+          const updatedList = unwrapList<TaskList>(await response.json())
+          // null means the body was neither shape — treat it as a failed save
+          // rather than pushing an empty list object into state.
+          if (updatedList) onUpdate(updatedList)
+          else console.error('List update returned no list')
         } else {
           console.error('Failed to update list description')
         }

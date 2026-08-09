@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { unwrapTask } from '@/lib/v1-task-response'
+import { unwrapTask } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskOperations } from "@/hooks/useTaskOperations"
@@ -1044,7 +1044,7 @@ export function useTaskManagerController({
         )
       )
 
-      const response = await apiPut(`/api/lists/${updatedList.id}`, updatedList)
+      const response = await apiPut(`/api/v1/lists/${updatedList.id}`, updatedList)
 
       if (!response.ok) {
         await listState.loadData()
