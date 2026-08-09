@@ -12,6 +12,16 @@ interface TaskOperations {
 const arraysEqual = (a: string[], b: string[]) =>
   a.length === b.length && a.every((value, index) => value === b[index])
 
+/**
+ * Handed in as a REF, not a value (task ce2553e8).
+ *
+ * The controller builds this hook before `useTaskOperations` exists, so it used
+ * to pass `null as any` with a comment promising to reconnect — which never
+ * happened, and the hook kept the null. Reading through a ref at call time is
+ * what "we cannot reassign" actually needed.
+ */
+export type TaskOperationsRef = { current: TaskOperations | null }
+
 export interface UseTaskDragDropProps {
   tasks: Task[]
   lists: TaskList[]
@@ -23,7 +33,7 @@ export interface UseTaskDragDropProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
   setLists: React.Dispatch<React.SetStateAction<TaskList[]>>
   setSelectedTaskId: (id: string) => void
-  newTaskOperations: TaskOperations
+  newTaskOperations: TaskOperationsRef
 }
 
 export interface UseTaskDragDropReturn {
@@ -575,7 +585,17 @@ export function useTaskDragDrop({
     )
 
     try {
-      const updatedTask = await newTaskOperations.updateTaskLists(activeDragTaskId, nextListIds, task)
+      // Read through the ref at call time — see TaskOperationsRef.
+      const operations = newTaskOperations?.current
+      if (!operations) {
+        // Nothing attached yet: a drop during the first render pass. Bail
+        // quietly rather than throwing a TypeError into the catch below, which
+        // is how this used to surface as "Unable to update task".
+        clearTaskDragState()
+        return
+      }
+
+      const updatedTask = await operations.updateTaskLists(activeDragTaskId, nextListIds, task)
 
       if (!updatedTask) {
         throw new Error("Failed to update task lists")

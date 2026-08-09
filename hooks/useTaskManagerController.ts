@@ -254,7 +254,15 @@ export function useTaskManagerController({
     return newFilterState.filters.sortBy === "manual"
   }, [listState.lists, navigationState.selectedListId, newFilterState.filters.sortBy])
 
-  // Task drag and drop
+  // Task drag and drop.
+  //
+  // The operations are handed over as a REF because they do not exist yet:
+  // useTaskOperations is constructed below and needs state this hook also uses.
+  // This used to be `null as any` with a comment saying it would be reconnected
+  // afterwards — it never was, so every drop on a list threw into its own catch
+  // and surfaced as "Unable to update task" (task ce2553e8).
+  const taskOperationsRef = useRef<{ updateTaskLists: (taskId: string, listIds: string[], currentTask?: Task) => Promise<Task | null> } | null>(null)
+
   const dragDropState = useTaskDragDrop({
     tasks: listState.tasks,
     lists: listState.lists,
@@ -266,7 +274,7 @@ export function useTaskManagerController({
     setTasks: listState.setTasks,
     setLists: listState.setLists,
     setSelectedTaskId,
-    newTaskOperations: null as any // Will be set after newTaskOperations is defined
+    newTaskOperations: taskOperationsRef
   })
 
   // Filtered tasks
@@ -412,8 +420,10 @@ export function useTaskManagerController({
     }
   })
 
-  // Now we need to reconnect dragDropState with newTaskOperations
-  // Since we can't reassign, we'll use the operations directly in handlers below
+  // Attach the operations the drag hook is holding a ref to. Assigning during
+  // render is safe here — it is a ref, not state, and the hook only reads it
+  // inside an event handler, long after this line has run.
+  taskOperationsRef.current = newTaskOperations
 
   // Derived state
   const availableUsers = useMemo(() => {
