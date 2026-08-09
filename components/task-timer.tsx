@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { X, Play, Pause, RotateCcw } from "lucide-react"
 import { Task } from "@/types/task"
 import { format } from "date-fns"
+import { unwrapTask } from '@/lib/v1-task-response'
 
 interface TaskTimerProps {
   task: Task
@@ -39,7 +40,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
       })
 
       // Update task timerDuration and lastTimerValue
-      const response = await fetch(`/api/tasks/${task.id}`, {
+      const response = await fetch(`/api/v1/tasks/${task.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -49,8 +50,9 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
         }),
       })
       if (response.ok) {
-        const updatedTask = await response.json()
-        onUpdate(updatedTask)
+        // v1 wraps the task in { task, meta }; onUpdate needs the task itself.
+        const updatedTask = unwrapTask<Task>(await response.json())
+        if (updatedTask) onUpdate(updatedTask)
       }
 
       alert("Timer completed!")
@@ -142,7 +144,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
     if (newDuration === task.timerDuration) return
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
+      const response = await fetch(`/api/v1/tasks/${task.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -150,8 +152,9 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
         }),
       })
       if (response.ok) {
-        const updatedTask = await response.json()
-        onUpdate(updatedTask)
+        // v1 wraps the task in { task, meta }; onUpdate needs the task itself.
+        const updatedTask = unwrapTask<Task>(await response.json())
+        if (updatedTask) onUpdate(updatedTask)
       }
     } catch (error) {
       console.error("Error saving timer duration:", error)

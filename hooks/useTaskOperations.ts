@@ -10,6 +10,7 @@ import { OfflineTaskOperations, OfflineListOperations } from '@/lib/offline-db'
 import { nanoid } from 'nanoid'
 import { trackTaskCreated, trackTaskCompleted, trackTaskUncompleted, trackTaskDeleted, trackTaskEdited } from '@/lib/analytics'
 import { safeResponseJson, hasRequiredFields } from '@/lib/safe-parse'
+import { unwrapTask } from '@/lib/v1-task-response'
 
 interface UserSession {
   user?: {
@@ -449,16 +450,9 @@ export const useTaskOperations = ({
       }
 
       // Online - normal API call
-      const response = await apiPut(`/api/tasks/${taskId}`, apiData)
+      const response = await apiPut(`/api/v1/tasks/${taskId}`, apiData)
       const data = await safeResponseJson<Task | { task: Task }>(response, null)
-
-      // Handle different response formats
-      let taskData: Task | null = null
-      if (data && 'task' in data && data.task) {
-        taskData = data.task
-      } else if (data && 'id' in data && typeof data.id === 'string') {
-        taskData = data as Task
-      }
+      const taskData = unwrapTask<Task>(data)
 
       if (taskData) {
         // Save to IndexedDB for offline cache

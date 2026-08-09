@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, memo } from "react"
+import { unwrapTask } from '@/lib/v1-task-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
@@ -1078,7 +1079,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     try {
       console.log('🔄 [TaskDetail] Refreshing comments for task:', task.id)
       // Fetch fresh task data from the API
-      const response = await fetch(`/api/tasks/${task.id}`, {
+      const response = await fetch(`/api/v1/tasks/${task.id}`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -1090,7 +1091,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         )
       }
 
-      const freshTask = await response.json()
+      const freshTask = unwrapTask<Task>(await response.json())
+      if (!freshTask) {
+        throw new Error('Task refresh returned no task')
+      }
 
       // CRITICAL: Update taskRef immediately BEFORE triggering state updates
       // This prevents race conditions where SSE events arrive before React re-renders

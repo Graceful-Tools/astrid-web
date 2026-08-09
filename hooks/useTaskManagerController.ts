@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { unwrapTask } from '@/lib/v1-task-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskOperations } from "@/hooks/useTaskOperations"
@@ -587,12 +588,14 @@ export function useTaskManagerController({
         delete (apiData as any).lists
         delete (apiData as any).assignee
 
-        const response = await apiPut(`/api/tasks/${updatedTask.id}`, apiData)
-        const realUpdatedTask = await response.json()
+        const response = await apiPut(`/api/v1/tasks/${updatedTask.id}`, apiData)
+        const realUpdatedTask = unwrapTask<Task>(await response.json())
 
-        listState.setTasks(prevTasks => prevTasks.map((task) =>
-          task.id === realUpdatedTask.id ? realUpdatedTask : task
-        ))
+        if (realUpdatedTask) {
+          listState.setTasks(prevTasks => prevTasks.map((task) =>
+            task.id === realUpdatedTask.id ? realUpdatedTask : task
+          ))
+        }
 
       } catch (error) {
         console.error("Error updating task:", error)
