@@ -27,6 +27,7 @@ import {
 } from "@/lib/task-update-handler"
 import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from "@/lib/project-status"
+import { validateParentTask, readParentTaskIdFromBody } from "@/lib/subtasks"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
@@ -354,6 +355,18 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       return NextResponse.json(completionOutcome.updatedTask)
     }
 
+    // Subtasks: re-parent, or promote to top-level with null (task b00a1f94).
+    // The web route never read this, so the UI had no way to unnest a task even
+    // though the column and the v1 route already supported it. Parsing and
+    // cycle-validation are shared with v1 rather than re-derived.
+    const parentUpdate = readParentTaskIdFromBody(data)
+    if (!parentUpdate.skip && parentUpdate.parentTaskId !== null) {
+      const parentError = await validateParentTask(parentUpdate.parentTaskId, taskId)
+      if (parentError) {
+        return NextResponse.json({ error: parentError }, { status: 400 })
+      }
+    }
+
     // Log exactly what will be sent to Prisma
     const updateData = {
       title: data.title,
@@ -365,6 +378,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       isPrivate: data.isPrivate,
       ...(data.timerDuration !== undefined && { timerDuration: data.timerDuration }),
       ...(data.lastTimerValue !== undefined && { lastTimerValue: data.lastTimerValue }),
+      ...(parentUpdate.skip ? {} : { parentTaskId: parentUpdate.parentTaskId }),
     }
 
     log.info({

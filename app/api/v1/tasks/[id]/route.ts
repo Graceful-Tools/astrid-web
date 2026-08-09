@@ -11,7 +11,7 @@ import { collectListRecipientUserIds } from '@/lib/task-recipients'
 import { requireTaskAccess, requireTaskReadAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { prisma } from '@/lib/prisma'
-import { validateParentTask } from '@/lib/subtasks'
+import { validateParentTask, readParentTaskIdFromBody } from '@/lib/subtasks'
 import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -199,17 +199,17 @@ export const PUT = withAuth<RouteContext>(
     if (body.lastTimerValue !== undefined) data.lastTimerValue = body.lastTimerValue
 
     // Subtasks: re-parent or promote to top-level (null). Validates existence,
-    // self-parenting, and cycles.
-    if (body.parentTaskId !== undefined) {
-      if (body.parentTaskId === null || body.parentTaskId === '') {
-        data.parentTaskId = null
-      } else if (typeof body.parentTaskId === 'string') {
-        const parentError = await validateParentTask(body.parentTaskId, taskId)
+    // self-parenting, and cycles. Parsing is shared with the web route so the
+    // two cannot disagree about what "no parent" looks like (task b00a1f94).
+    const parentUpdate = readParentTaskIdFromBody(body)
+    if (!parentUpdate.skip) {
+      if (parentUpdate.parentTaskId !== null) {
+        const parentError = await validateParentTask(parentUpdate.parentTaskId, taskId)
         if (parentError) {
           return NextResponse.json({ error: parentError }, { status: 400 })
         }
-        data.parentTaskId = body.parentTaskId
       }
+      data.parentTaskId = parentUpdate.parentTaskId
     }
 
     // SECURITY: validate caller has access to every list before connecting

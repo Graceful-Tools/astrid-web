@@ -347,6 +347,10 @@ Always use the api_request tool to take actions. Be concise.`
 
 // ─── Main ─────────────────────────────────────────────────────────
 
+// `export {}` makes this a module. Without it the file shares the global scope
+// with every other non-module script, and its `main` collides with theirs.
+export {}
+
 async function main() {
   const args = process.argv.slice(2)
   const filterProviders = args.length > 0 ? args : null

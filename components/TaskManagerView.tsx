@@ -198,6 +198,8 @@ interface TaskManagerViewProps {
   dragTargetPosition: 'above' | 'below' | 'end' | null
   manualSortActive: boolean
   manualSortPreviewActive: boolean
+  promoteTargetVisible: boolean
+  handleTaskDropOnPromoteTarget: () => Promise<void>
 
   // Mobile quick task handlers
   handleQuickTaskKeyDown: (e: React.KeyboardEvent) => void
@@ -372,6 +374,8 @@ const TaskManagerView = memo(function TaskManagerView({
   dragTargetPosition,
   manualSortActive,
   manualSortPreviewActive,
+  promoteTargetVisible,
+  handleTaskDropOnPromoteTarget,
   effectiveSession,
   isSessionReady,
   newFilterState,
@@ -937,6 +941,8 @@ const TaskManagerView = memo(function TaskManagerView({
             dragTargetPosition={dragTargetPosition}
             manualSortActive={manualSortActive}
             manualSortPreviewActive={manualSortPreviewActive}
+            promoteTargetVisible={promoteTargetVisible}
+            handleTaskDropOnPromoteTarget={handleTaskDropOnPromoteTarget}
             closeTaskDetail={closeTaskDetail}
             canEditListSettingsMemo={canEditListSettingsMemo}
             getSelectedListInfo={getSelectedListInfo}
