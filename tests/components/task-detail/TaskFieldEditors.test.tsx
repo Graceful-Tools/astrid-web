@@ -143,10 +143,17 @@ describe('TaskFieldEditors', () => {
       // Date/Time/Repeat consolidated into one "When" row and
       // Priority/Assignee into one "Priority" row (task dcbbb0fa), so the
       // per-field labels these used to assert no longer exist.
-      expect(screen.getByText('When')).toBeInTheDocument()
-      expect(screen.getByText('Priority')).toBeInTheDocument()
-      expect(screen.getByText('Lists')).toBeInTheDocument()
-      expect(screen.getByText('Description')).toBeInTheDocument()
+      //
+      // Each row is now identified by an ICON carrying the field name as its
+      // accessible name, mirroring iOS TwoColumnRow: the icon column keeps
+      // every row's content starting at the same x, and the word is redundant
+      // next to a calendar chip or a coloured priority chip. Querying by
+      // accessible name is what a screen reader does, so it pins the thing
+      // that actually has to keep working.
+      expect(screen.getByLabelText('When')).toBeInTheDocument()
+      expect(screen.getByLabelText('Priority')).toBeInTheDocument()
+      expect(screen.getByLabelText('Lists')).toBeInTheDocument()
+      expect(screen.getByLabelText('Description')).toBeInTheDocument()
     })
 
     it('should show unassigned when no assignee', () => {
