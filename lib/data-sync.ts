@@ -485,7 +485,7 @@ class DataSyncManagerClass {
     }
 
     try {
-      const response = await fetchWithTimeout(`/api/tasks/${taskId}/comments`, {
+      const response = await fetchWithTimeout(`/api/v1/tasks/${taskId}/comments`, {
         credentials: 'include',
         timeout: 30000
       })

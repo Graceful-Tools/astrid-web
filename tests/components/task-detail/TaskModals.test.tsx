@@ -198,7 +198,7 @@ describe('TaskModals', () => {
       fireEvent.click(screen.getByRole('button', { name: /^Copy$/i }))
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith('/api/tasks/task-1/copy', expect.any(Object))
+        expect(global.fetch).toHaveBeenCalledWith('/api/v1/tasks/task-1/copy', expect.any(Object))
       })
     })
 

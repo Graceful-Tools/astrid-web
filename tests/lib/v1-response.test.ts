@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { unwrapTask, unwrapList } from '@/lib/v1-response'
+import { unwrapTask, unwrapList, unwrapComment } from '@/lib/v1-response'
 
 const task = { id: 't1', title: 'Water the plants' }
 
@@ -84,5 +84,28 @@ describe('unwrapList (task dc143ab2)', () => {
     const full = { id: 'l1', name: 'x', listMembers: [{ userId: 'u1', role: 'owner' }] }
 
     expect(unwrapList({ list: full } as never)).toEqual(full)
+  })
+})
+
+/**
+ * Comments have the same split: legacy POST returns the comment bare, v1
+ * returns `{ comment, meta }`. The GET differs more sharply — legacy returns a
+ * bare ARRAY and v1 an object — but that is a collection, not this helper's
+ * job; callers there already handle both.
+ */
+describe('unwrapComment (task 641a7615)', () => {
+  const comment = { id: 'c1', content: 'nice' }
+
+  it('unwraps the v1 envelope', () => {
+    expect(unwrapComment({ comment, meta: { apiVersion: 'v1' } } as never)).toEqual(comment)
+  })
+
+  it('passes a legacy bare comment through', () => {
+    expect(unwrapComment(comment)).toEqual(comment)
+  })
+
+  it('does not accept a task or list envelope', () => {
+    expect(unwrapComment({ task: { id: 't1' } } as never)).toBeNull()
+    expect(unwrapComment({ list: { id: 'l1' } } as never)).toBeNull()
   })
 })

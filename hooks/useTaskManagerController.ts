@@ -928,7 +928,7 @@ export function useTaskManagerController({
 
   const handleCopyTask = useCallback(async (taskId: string, targetListId?: string, includeComments?: boolean) => {
     try {
-      const response = await apiPost(`/api/tasks/${taskId}/copy`, {
+      const response = await apiPost(`/api/v1/tasks/${taskId}/copy`, {
         targetListId,
         preserveDueDate: true,
         preserveAssignee: false,

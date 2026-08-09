@@ -8,6 +8,8 @@
  *   v1     GET/PUT /api/v1/tasks/[id]  -> { task, meta }
  *   legacy GET/PUT /api/lists/[id]     ->  the list object, bare
  *   v1     GET/PUT /api/v1/lists/[id]  -> { list, meta }
+ *   legacy POST /api/tasks/[id]/comments    ->  the comment, bare
+ *   v1     POST /api/v1/tasks/[id]/comments -> { comment, meta }
  *
  * A path swap alone therefore leaves the caller holding `{ task, meta }` and
  * reading `.id` off it — `undefined`, with no error. That is not theoretical:
@@ -62,4 +64,10 @@ export function unwrapList<T extends { id?: unknown }>(
   body: EnvelopedBody<T, 'list'>
 ): T | null {
   return unwrapEnvelope(body, 'list')
+}
+
+export function unwrapComment<T extends { id?: unknown }>(
+  body: EnvelopedBody<T, 'comment'>
+): T | null {
+  return unwrapEnvelope(body, 'comment')
 }

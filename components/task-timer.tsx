@@ -33,7 +33,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
 
     try {
       // Add comment
-      await fetch(`/api/tasks/${task.id}/comments`, {
+      await fetch(`/api/v1/tasks/${task.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: commentContent }),

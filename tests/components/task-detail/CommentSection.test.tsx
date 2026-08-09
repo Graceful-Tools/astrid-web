@@ -143,7 +143,7 @@ describe('CommentSection', () => {
       // offline-sync / offline-db dynamic imports resolve.
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/tasks/task-1/comments',
+          '/api/v1/tasks/task-1/comments',
           expect.objectContaining({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
