@@ -869,7 +869,7 @@ export function useTaskManagerController({
 
       const shouldAssignToUser = !navigationState.isViewingFromFeatured || !isUserOwnerOrAdmin
 
-      const response = await apiPost(`/api/lists/${listId}/copy`, {
+      const response = await apiPost(`/api/v1/lists/${listId}/copy`, {
         includeTasks: true,
         preserveTaskAssignees: false,
         assignToUser: shouldAssignToUser
@@ -1101,7 +1101,7 @@ export function useTaskManagerController({
 
     try {
       // Use the dedicated favorite endpoint — allows any list member, not just owner/admin
-      const res = await fetch(`/api/lists/${listId}/favorite`, {
+      const res = await fetch(`/api/v1/lists/${listId}/favorite`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFavorite: newFavorite }),
@@ -1173,7 +1173,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
 
-      const response = await apiPost(`/api/lists/${list.id}/leave`, {})
+      const response = await apiPost(`/api/v1/lists/${list.id}/leave`, {})
 
       if (navigationState.selectedListId === list.id) {
         const remainingLists = listState.lists.filter(l => l.id !== list.id)

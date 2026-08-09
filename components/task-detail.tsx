@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, memo } from "react"
-import { unwrapTask } from '@/lib/v1-response'
+import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
@@ -1237,13 +1237,17 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       const randomColor = colors[Math.floor(Math.random() * colors.length)]
 
       // Create via API
-      const response = await apiPost('/api/lists', {
+      const response = await apiPost('/api/v1/lists', {
         name: name.trim(),
         color: randomColor,
         privacy: targetPrivacy,
         adminIds,
       })
-      const createdList: TaskList = await response.json()
+      // v1 wraps the new list in { list, meta }; legacy returned it bare.
+      const createdList = unwrapList<TaskList>(await response.json())
+      if (!createdList) {
+        throw new Error('List creation returned no list')
+      }
 
       // Add to selected lists and auto-save
       const updatedTempLists = [...tempLists, createdList]

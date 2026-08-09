@@ -86,7 +86,7 @@ export function ListMembership({
   const handleAddCodingAgent = async (agent: AIAgent) => {
     try {
       // Add agent to list members
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,6 +151,10 @@ export function ListMembership({
       }
 
       // Remove the agent from the list members
+      // Deliberately still legacy: v1 addresses members as /members/[userId],
+      // which cannot express a PENDING INVITATION — an invite has no userId and
+      // is addressed by email. Migrating this breaks invitation management.
+      // (Task dc143ab2)
       const response = await fetch(`/api/lists/${list.id}/members`, {
         method: 'DELETE',
         headers: {

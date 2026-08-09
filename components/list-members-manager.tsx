@@ -51,7 +51,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
     try {
       setLoading(true)
       
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members`, {
         credentials: 'include'
       })
       
@@ -155,7 +155,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
       
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -225,6 +225,10 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
 
       // 2. API CALL: Send the actual request
+      // Deliberately still legacy: v1 addresses members as /members/[userId],
+      // which cannot express a PENDING INVITATION — an invite has no userId and
+      // is addressed by email. Migrating this breaks invitation management.
+      // (Task dc143ab2)
       const response = await fetch(`/api/lists/${list.id}/members`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -286,6 +290,8 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
       
       // 2. API CALL: Send the actual request
+      // Deliberately still legacy — see the note on the DELETE above: v1's
+      // /members/[userId] cannot address a pending invitation. (Task dc143ab2)
       const response = await fetch(`/api/lists/${list.id}/members`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -341,7 +347,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       }
       
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/leave`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
@@ -403,6 +409,8 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
 
       // 2. API CALL: Send the actual request
+      // Deliberately still legacy — see the note on the DELETE above: v1's
+      // /members/[userId] cannot address a pending invitation. (Task dc143ab2)
       const response = await fetch(`/api/lists/${list.id}/members`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

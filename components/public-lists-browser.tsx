@@ -172,7 +172,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
   const copyList = useCallback(async (listId: string, listName: string) => {
     setCopying(listId)
     try {
-      const response = await fetch(`/api/lists/${listId}/copy`, {
+      const response = await fetch(`/api/v1/lists/${listId}/copy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

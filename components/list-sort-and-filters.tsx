@@ -97,7 +97,7 @@ export function ListSortAndFilters({
     }
     setIsToggleFavorite(true)
     try {
-      const response = await fetch(`/api/lists/${list.id}/favorite`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/favorite`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
