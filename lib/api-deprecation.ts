@@ -54,11 +54,14 @@
  *   `/api/tasks/` call sites, plus a long `/api/user/*` tail), and every
  *   legacy hit observed in production traffic was a browser. It is quick
  *   to migrate and should not be treated as a blocker.
- * - **`/api/auth/[...nextauth]` can never be deleted** — it is NextAuth's
- *   mount point and web session auth runs through it. "Delete legacy
- *   /api/*" is therefore not achievable as literally stated. The real goal
- *   is: delete the legacy routes that have a v1 successor and no residual
- *   traffic, permanently exempting the NextAuth mount.
+ * - **`/api/auth/*` can never be deleted** — NextAuth's mount point lives
+ *   there and web session auth runs through it, and the passkey routes are
+ *   the same cookie-based web-session auth (decision 2, 2026-08-09). "Delete
+ *   legacy /api/*" is therefore not achievable as literally stated. The real
+ *   goal is: delete the legacy routes that have a v1 successor and no
+ *   residual traffic, permanently exempting all of `/api/auth/`. Those routes
+ *   are excluded from the census too — a number that can never reach zero is
+ *   noise in a "delete when this hits zero" metric.
  *
  * The honest remaining blocker is MEASUREMENT. This module's premise is
  * "delete when residual traffic hits zero", but Vercel's runtime-logs
@@ -100,6 +103,59 @@ const INTERNAL_PREFIXES = [
 ] as const
 
 /**
+ * Routes that are legacy-looking and iOS-facing but are **permanently exempt**
+ * from retirement (task 641a7615, decision 2 — Jon, 2026-08-09).
+ *
+ * Kept separate from INTERNAL_PREFIXES on purpose: those are excluded because
+ * they are infrastructure, these because they can never be deleted. Merging
+ * the two lists would lose the reason, and the reason is the whole point when
+ * someone later asks why passkey traffic is missing from the census.
+ *
+ * All of these are **cookie-based web-session auth**. `/api/auth/[...nextauth]`
+ * is NextAuth's mount point and was already documented as undeletable — it was
+ * nonetheless being counted, inflating the very census this module feeds. The
+ * passkey routes sit in the same position: `authenticate/verify` mints a
+ * NextAuth JWT and sets it as a session cookie, and `/api/v1/auth/mobile-session`
+ * exists specifically to read that cookie back.
+ *
+ * Building v1 aliases for them would put a second live login surface on a
+ * different path while changing nothing about the auth model — a rename
+ * dressed as a migration. So they are exempt, not migrated.
+ */
+/**
+ * The explicit routes under `/api/auth/` that DO have a v1 successor and are
+ * therefore still part of the retirement. Everything else under `/api/auth/`
+ * is served by the `[...nextauth]` catch-all.
+ *
+ * Mirrors the directories in `app/api/auth/`. Adding a new explicit auth route
+ * means adding it here too, or it will be treated as NextAuth's and silently
+ * stop being counted — the list sits next to the directory for that reason.
+ */
+const MIGRATABLE_AUTH_ROUTES = [
+  'apple',
+  'google',
+  'mobile-session',
+  'mobile-signup',
+  'mobile-mcp-token',
+] as const
+
+/** `/api/auth/webauthn/*` — passkeys. Cookie-based web-session auth. */
+const WEBAUTHN_PREFIX = '/api/auth/webauthn/'
+
+/**
+ * True for `/api/auth/*` paths that are permanently exempt: the passkey routes
+ * and anything the NextAuth catch-all serves (session, csrf, signin, signout,
+ * callback/*, …).
+ */
+function isPermanentlyExemptAuthPath(pathname: string): boolean {
+  if (!pathname.startsWith('/api/auth/')) return false
+  if (pathname.startsWith(WEBAUTHN_PREFIX)) return true
+
+  const segment = pathname.slice('/api/auth/'.length).split('/')[0]
+  return !(MIGRATABLE_AUTH_ROUTES as readonly string[]).includes(segment)
+}
+
+/**
  * True for legacy `/api/*` requests that participate in the iOS
  * migration. Excludes the v1 surface itself, internal infra routes, and
  * webhook receivers.
@@ -112,6 +168,7 @@ export function isLegacyApiPath(pathname: string): boolean {
   for (const prefix of INTERNAL_PREFIXES) {
     if (pathname.startsWith(prefix)) return false
   }
+  if (isPermanentlyExemptAuthPath(pathname)) return false
   return true
 }
 
