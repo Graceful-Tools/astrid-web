@@ -205,6 +205,17 @@ export const PUT = withAuth<RouteContext>(
       // back to the legacy 24h default. We don't validate the shape here —
       // the helper treats unknown shapes as null.
       if (body.recentlyCompletedWindow !== undefined) updateData.recentlyCompletedWindow = body.recentlyCompletedWindow
+      // Status-board columns. Legacy applies all of these; v1 did not, and the
+      // web depends on it — ManageStatusesPanel reorders columns by PUTing
+      // { statusOrder }. Dropped, the request still answers 200 and the order
+      // simply springs back, which reads as a broken drag rather than a
+      // rejected write. (Task dc143ab2)
+      if (body.listType !== undefined) updateData.listType = body.listType
+      if (body.statusRole !== undefined) updateData.statusRole = body.statusRole
+      if (body.statusOrder !== undefined) updateData.statusOrder = body.statusOrder
+      if (body.statusDescription !== undefined) updateData.statusDescription = body.statusDescription
+      if (body.statusCompleted !== undefined) updateData.statusCompleted = body.statusCompleted
+      if (body.publicListType !== undefined) updateData.publicListType = body.publicListType
     }
 
     // isFavorite lives in a per-user table, not on TaskList
