@@ -35,8 +35,8 @@ function AstridAgentSelector() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/user/available-agents').then(r => r.json()),
-      fetch('/api/user/ai-assistant-settings').then(r => r.json()),
+      fetch('/api/v1/users/me/available-agents').then(r => r.json()),
+      fetch('/api/v1/users/me/ai-preferences').then(r => r.json()),
     ]).then(([agentsData, settingsData]) => {
       setAgents(agentsData.agents || [])
       setCurrentAgentId(settingsData.defaultAgentId || null)
@@ -46,7 +46,7 @@ function AstridAgentSelector() {
 
   const handleSelect = async (agentId: string | null) => {
     setCurrentAgentId(agentId)
-    await fetch('/api/user/ai-assistant-settings', {
+    await fetch('/api/v1/users/me/ai-preferences', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ defaultAgentId: agentId }),

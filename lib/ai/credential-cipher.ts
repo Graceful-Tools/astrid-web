@@ -4,7 +4,7 @@ import crypto from 'crypto'
  * Authenticated encryption for AI service credentials stored inside the
  * user.mcpSettings JSON blob as { encrypted, iv, authTag } triples.
  *
- * Previously both app/api/user/ai-api-keys and
+ * Previously both app/api/v1/users/me/ai-credentials and
  * app/api/v1/users/me/ai-credentials hand-rolled *identical* AES-256-CBC —
  * which is unauthenticated (malleable, no tamper detection) and duplicated.
  * This is the single shared implementation: it WRITES AES-256-GCM (with an

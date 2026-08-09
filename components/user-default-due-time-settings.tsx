@@ -16,7 +16,7 @@ export function UserDefaultDueTimeSettings() {
   useEffect(() => {
     const loadDefaultDueTime = async () => {
       try {
-        const response = await fetch("/api/user/default-due-time")
+        const response = await fetch("/api/v1/users/me/default-due-time")
         if (response.ok) {
           const data = await response.json()
           setDefaultDueTime(data.defaultDueTime || null)
@@ -34,7 +34,7 @@ export function UserDefaultDueTimeSettings() {
   const handleTimeChange = async (time: string | null) => {
     setSaving(true)
     try {
-      const response = await fetch("/api/user/default-due-time", {
+      const response = await fetch("/api/v1/users/me/default-due-time", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

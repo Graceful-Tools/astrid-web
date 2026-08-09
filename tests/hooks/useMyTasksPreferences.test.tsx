@@ -51,7 +51,7 @@ describe('useMyTasksPreferences', () => {
         expect(result.current.isLoading).toBe(false)
       })
 
-      expect(fetch).toHaveBeenCalledWith('/api/user/my-tasks-preferences')
+      expect(fetch).toHaveBeenCalledWith('/api/v1/users/me/my-tasks-preferences')
       expect(result.current.filters).toEqual({
         priority: [2, 3],
         assignee: ['user-123'],

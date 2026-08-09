@@ -6,7 +6,7 @@
  * - OpenClaw agents the user registered
  * - Astrid as the always-available default if any agent key exists
  *
- * Mirrors GET /api/user/available-agents.
+ * Mirrors GET /api/v1/users/me/available-agents.
  */
 
 import { NextResponse } from 'next/server'

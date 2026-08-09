@@ -3,7 +3,7 @@
  * PUT /api/v1/users/me/ai-credentials — save/update a key (or OpenClaw URL)
  * DELETE /api/v1/users/me/ai-credentials — remove a service's key
  *
- * Mirrors GET/PUT/DELETE /api/user/ai-api-keys.
+ * Mirrors GET/PUT/DELETE /api/v1/users/me/ai-credentials.
  *
  * Keys are AES-256-CBC encrypted at rest with ENCRYPTION_KEY (hex).
  * The GET response only includes a preview slice + metadata, never

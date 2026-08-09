@@ -108,7 +108,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
   useEffect(() => {
     const loadReminderSettings = async () => {
       try {
-        const response = await fetch("/api/user/reminder-settings")
+        const response = await fetch("/api/v1/users/me/reminder-settings")
         if (response.ok) {
           const settings = await response.json()
           setUserReminderSettings(settings)

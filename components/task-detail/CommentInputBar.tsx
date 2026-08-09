@@ -57,7 +57,7 @@ export function CommentInputBar({
   // Fetch Astrid agent so it's available in the @-mention list.
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
-    fetch("/api/user/available-agents")
+    fetch("/api/v1/users/me/available-agents")
       .then(r => r.json())
       .then(data => {
         const astrid = (data.agents || []).find((a: { email: string }) => a.email === `astrid@${BRAND.agentEmailDomain}`)

@@ -3,7 +3,7 @@
  *
  * Smart-task creation defaults: emailToTaskEnabled, defaultTaskDueOffset,
  * defaultDueTime, smartTaskCreationEnabled, emailToTaskListId.
- * Mirrors GET/PATCH /api/user/settings.
+ * Mirrors GET/PATCH /api/v1/users/me/smart-tasks.
  */
 
 import { NextResponse } from 'next/server'
@@ -18,6 +18,7 @@ const SELECT = {
   defaultTaskDueOffset: true,
   defaultDueTime: true,
   smartTaskCreationEnabled: true,
+  subtaskDisplay: true,
 } as const
 
 export const GET = withAuth(
@@ -46,8 +47,11 @@ const ALLOWED = [
   'defaultDueTime',
   'emailToTaskListId',
   'smartTaskCreationEnabled',
+  'subtaskDisplay',
 ] as const
 const VALID_OFFSETS = ['none', '1_day', '3_days', '1_week']
+/** The two layouts the task list can actually render. */
+const VALID_SUBTASK_DISPLAY = ['indented', 'under_parent']
 const TIME_RE = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/
 
 export const PATCH = withAuth(
@@ -60,6 +64,15 @@ export const PATCH = withAuth(
         if (field in data) updateData[field] = data[field]
       }
 
+      if (
+        updateData.subtaskDisplay &&
+        !VALID_SUBTASK_DISPLAY.includes(updateData.subtaskDisplay as string)
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid subtaskDisplay value' },
+          { status: 400 }
+        )
+      }
       if (
         updateData.defaultTaskDueOffset &&
         !VALID_OFFSETS.includes(updateData.defaultTaskDueOffset as string)

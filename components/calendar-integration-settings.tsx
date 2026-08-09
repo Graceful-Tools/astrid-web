@@ -25,7 +25,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
 
   const loadSettings = async () => {
     try {
-      const response = await fetch("/api/user/reminder-settings")
+      const response = await fetch("/api/v1/users/me/reminder-settings")
       if (response.ok) {
         const data = await response.json()
         setSettings(data)
@@ -42,7 +42,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
 
     setSaving(true)
     try {
-      const response = await fetch("/api/user/reminder-settings", {
+      const response = await fetch("/api/v1/users/me/reminder-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: value }),

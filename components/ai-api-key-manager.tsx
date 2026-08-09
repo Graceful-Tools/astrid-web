@@ -140,7 +140,7 @@ export function AIAPIKeyManager() {
 
   const fetchAPIKeys = async () => {
     try {
-      const response = await fetch('/api/user/ai-api-keys')
+      const response = await fetch('/api/v1/users/me/ai-credentials')
       if (!response.ok) throw new Error('Failed to fetch API keys')
 
       const data = await response.json()
@@ -153,7 +153,7 @@ export function AIAPIKeyManager() {
 
   const fetchModelPreferences = async () => {
     try {
-      const response = await fetch('/api/user/ai-model-preferences')
+      const response = await fetch('/api/v1/users/me/ai-model-preferences')
       if (!response.ok) throw new Error('Failed to fetch model preferences')
 
       const data = await response.json()
@@ -173,7 +173,7 @@ export function AIAPIKeyManager() {
     if (liveModels[serviceId]?.length || loadingModels[serviceId]) return
     setLoadingModels(prev => ({ ...prev, [serviceId]: true }))
     try {
-      const res = await fetch(`/api/user/ai-available-models?service=${serviceId}`)
+      const res = await fetch(`/api/v1/users/me/available-models?service=${serviceId}`)
       if (res.ok) {
         const data = await res.json()
         setLiveModels(prev => ({ ...prev, [serviceId]: data.models || [] }))
@@ -192,11 +192,11 @@ export function AIAPIKeyManager() {
         fetchAPIKeys(),
         fetchModelPreferences(),
         // Fetch default agent settings
-        fetch('/api/user/ai-assistant-settings').then(r => r.json()).then(data => {
+        fetch('/api/v1/users/me/ai-preferences').then(r => r.json()).then(data => {
           setDefaultAgentId(data.defaultAgentId || null)
         }).catch(() => {}),
         // Fetch agent user IDs (maps service → user ID)
-        fetch('/api/user/available-agents').then(r => r.json()).then(data => {
+        fetch('/api/v1/users/me/available-agents').then(r => r.json()).then(data => {
           const map: { [service: string]: string } = {}
           for (const agent of (data.agents || [])) {
             map[agent.service] = agent.id
@@ -272,7 +272,7 @@ export function AIAPIKeyManager() {
         body.apiKey = key
       }
 
-      const response = await fetch('/api/user/ai-api-keys', {
+      const response = await fetch('/api/v1/users/me/ai-credentials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -295,7 +295,7 @@ export function AIAPIKeyManager() {
   const handleTestKey = async (serviceId: string) => {
     try {
       setTesting(serviceId)
-      const response = await fetch('/api/user/ai-api-keys/test', {
+      const response = await fetch('/api/v1/users/me/ai-credentials/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ serviceId })
@@ -320,7 +320,7 @@ export function AIAPIKeyManager() {
 
   const handleDeleteKey = async (serviceId: string) => {
     try {
-      const response = await fetch('/api/user/ai-api-keys', {
+      const response = await fetch('/api/v1/users/me/ai-credentials', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ serviceId })
@@ -367,7 +367,7 @@ export function AIAPIKeyManager() {
 
     try {
       setSavingModel(serviceId)
-      const response = await fetch('/api/user/ai-model-preferences', {
+      const response = await fetch('/api/v1/users/me/ai-model-preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ serviceId, model })
@@ -388,7 +388,7 @@ export function AIAPIKeyManager() {
   const handleResetModel = async (serviceId: string) => {
     try {
       setSavingModel(serviceId)
-      const response = await fetch('/api/user/ai-model-preferences', {
+      const response = await fetch('/api/v1/users/me/ai-model-preferences', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ serviceId })
@@ -722,7 +722,7 @@ export function AIAPIKeyManager() {
                       onClick={async () => {
                         const newId = defaultAgentId === agentUserIds[service.id] ? null : agentUserIds[service.id]
                         setDefaultAgentId(newId)
-                        await fetch('/api/user/ai-assistant-settings', {
+                        await fetch('/api/v1/users/me/ai-preferences', {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ defaultAgentId: newId }),

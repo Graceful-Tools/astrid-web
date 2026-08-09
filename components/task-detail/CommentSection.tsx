@@ -120,7 +120,7 @@ export function CommentSection({
   // Fetch Astrid agent for mention autocomplete
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
-    fetch('/api/user/available-agents')
+    fetch('/api/v1/users/me/available-agents')
       .then(r => r.json())
       .then((data) => {
         const astrid = (data.agents || []).find((a: { email: string }) => a.email === `astrid@${BRAND.agentEmailDomain}`)

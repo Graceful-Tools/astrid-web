@@ -115,7 +115,7 @@ export function TaskManager({
   React.useEffect(() => {
     if (!controller.effectiveSession?.user?.id) return
     // Fetch available agents — this also ensures astrid@astrid.cc exists in the DB
-    fetch('/api/user/available-agents')
+    fetch('/api/v1/users/me/available-agents')
       .then(r => r.json())
       .then((data) => {
         // Find Astrid (always first in the list if user has any API key)

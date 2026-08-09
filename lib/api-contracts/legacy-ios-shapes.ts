@@ -287,7 +287,7 @@ export interface LegacyUsersSearchResponse {
 
 // ── User settings (mixed-version /api/user/*) ─────────────────────────
 
-// GET/PATCH /api/user/settings return the full User row (raw).
+// GET/PATCH /api/v1/users/me/smart-tasks return the full User row (raw).
 
 export interface LegacyMyTasksPreferencesResponse {
   sortBy: string

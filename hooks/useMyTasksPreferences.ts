@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSSESubscription } from './use-sse-subscription'
-import type { MyTasksPreferences } from '@/app/api/user/my-tasks-preferences/route'
+import type { MyTasksPreferences } from '@/app/api/v1/users/me/my-tasks-preferences/route'
 
 const DEFAULT_PREFERENCES: MyTasksPreferences = {
   filterPriority: [],
@@ -28,7 +28,7 @@ export function useMyTasksPreferences() {
   useEffect(() => {
     const fetchPreferences = async () => {
       try {
-        const response = await fetch('/api/user/my-tasks-preferences')
+        const response = await fetch('/api/v1/users/me/my-tasks-preferences')
         if (response.ok) {
           const data = await response.json()
           setPreferences(data)
@@ -66,7 +66,7 @@ export function useMyTasksPreferences() {
 
     updateTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch('/api/user/my-tasks-preferences', {
+        const response = await fetch('/api/v1/users/me/my-tasks-preferences', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),

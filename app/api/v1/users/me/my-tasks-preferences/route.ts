@@ -3,7 +3,7 @@
  *
  * The "My Tasks" filter/sort preferences. Sync state lives in user.
  * myTasksPreferences as a JSON-stringified blob; we parse on read,
- * stringify on write. Mirrors GET/PATCH /api/user/my-tasks-preferences.
+ * stringify on write. Mirrors GET/PATCH /api/v1/users/me/my-tasks-preferences.
  */
 
 import { NextResponse } from 'next/server'

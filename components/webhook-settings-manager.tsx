@@ -95,7 +95,7 @@ export function WebhookSettingsManager() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const response = await fetch("/api/user/webhook-settings")
+      const response = await fetch("/api/v1/users/me/webhook-settings")
       if (response.ok) {
         const data = await response.json()
         setConfig(data)
@@ -124,7 +124,7 @@ export function WebhookSettingsManager() {
     setSaving(true)
     setNewSecret(null)
     try {
-      const response = await fetch("/api/user/webhook-settings", {
+      const response = await fetch("/api/v1/users/me/webhook-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -159,7 +159,7 @@ export function WebhookSettingsManager() {
     setTesting(true)
     setTestResult(null)
     try {
-      const response = await fetch("/api/user/webhook-settings", {
+      const response = await fetch("/api/v1/users/me/webhook-settings", {
         method: "POST"
       })
       const data = await response.json()
@@ -182,7 +182,7 @@ export function WebhookSettingsManager() {
 
     setSaving(true)
     try {
-      const response = await fetch("/api/user/webhook-settings", {
+      const response = await fetch("/api/v1/users/me/webhook-settings", {
         method: "DELETE"
       })
 

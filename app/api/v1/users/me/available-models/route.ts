@@ -3,7 +3,7 @@
  *
  * Lists available models for an AI provider, using the user's stored
  * API key for the live fetch. Falls back to static suggestions if no
- * key is configured. Mirrors GET /api/user/ai-available-models.
+ * key is configured. Mirrors GET /api/v1/users/me/available-models.
  */
 
 import { NextResponse } from 'next/server'

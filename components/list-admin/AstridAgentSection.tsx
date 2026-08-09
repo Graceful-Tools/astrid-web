@@ -30,7 +30,7 @@ export function AstridAgentSection({ list, canEditSettings, onUpdate }: AstridAg
   })
 
   useEffect(() => {
-    fetch('/api/user/available-agents').then(r => r.json()).then(data => {
+    fetch('/api/v1/users/me/available-agents').then(r => r.json()).then(data => {
       setAvailableAgents(data.agents || [])
     }).catch(() => {})
   }, [])

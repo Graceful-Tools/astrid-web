@@ -35,7 +35,7 @@ export function useUserSettings() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/user/settings')
+        const response = await fetch('/api/v1/users/me/smart-tasks')
         if (response.ok) {
           const data = await response.json()
           setSettings(prev => ({ ...prev, ...data }))
@@ -73,7 +73,7 @@ export function useUserSettings() {
 
     updateTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch('/api/user/settings', {
+        const response = await fetch('/api/v1/users/me/smart-tasks', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),

@@ -32,7 +32,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch('/api/user/settings')
+      const response = await fetch('/api/v1/users/me/smart-tasks')
       if (response.ok) {
         const data = await response.json()
         setEmailToTaskEnabled(data.emailToTaskEnabled ?? true)
@@ -48,7 +48,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
     setIsSaving(true)
     setSaveMessage(null)
     try {
-      const response = await fetch('/api/user/settings', {
+      const response = await fetch('/api/v1/users/me/smart-tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emailToTaskEnabled, defaultTaskDueOffset, defaultDueTime })

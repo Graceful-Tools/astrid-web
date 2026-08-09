@@ -36,7 +36,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
   useEffect(() => {
     const loadSetting = async () => {
       try {
-        const response = await fetch('/api/user/settings')
+        const response = await fetch('/api/v1/users/me/smart-tasks')
         if (response.ok) {
           const data = await response.json()
           setSmartTaskCreationEnabled(data.smartTaskCreationEnabled ?? true)
@@ -53,7 +53,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
   const handleSubtaskDisplayChange = async (value: string) => {
     setSubtaskDisplay(value)
     try {
-      await fetch('/api/user/settings', {
+      await fetch('/api/v1/users/me/smart-tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subtaskDisplay: value })
@@ -67,7 +67,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
   const handleSmartTaskCreationChange = async (enabled: boolean) => {
     setSmartTaskCreationEnabled(enabled)
     try {
-      await fetch('/api/user/settings', {
+      await fetch('/api/v1/users/me/smart-tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ smartTaskCreationEnabled: enabled })
