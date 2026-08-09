@@ -15,7 +15,8 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
-import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
+import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
+import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { canUserManageList } from "@/lib/list-permissions"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 
@@ -74,6 +75,8 @@ export const GET = withAuth<RouteContext>(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
+    const defaultAssignees = await resolveDefaultAssignees([list])
+
     return NextResponse.json(
       {
         list: {
@@ -102,7 +105,14 @@ export const GET = withAuth<RouteContext>(
           filterInLists: list.filterInLists,
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
+          ownerId: list.ownerId,
           defaultAssigneeId: list.defaultAssigneeId,
+          // Same parity gap as the collection route (task dc143ab2): this
+          // projection dropped fields the web reads, and a missing field here
+          // is a feature silently switched off rather than an error.
+          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
+          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
           githubRepositoryId: list.githubRepositoryId,
@@ -263,6 +273,8 @@ export const PUT = withAuth<RouteContext>(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
+    const defaultAssignees = await resolveDefaultAssignees([list])
+
     return NextResponse.json(
       {
         list: {
@@ -291,7 +303,14 @@ export const PUT = withAuth<RouteContext>(
           filterInLists: list.filterInLists,
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
+          ownerId: list.ownerId,
           defaultAssigneeId: list.defaultAssigneeId,
+          // Same parity gap as the collection route (task dc143ab2): this
+          // projection dropped fields the web reads, and a missing field here
+          // is a feature silently switched off rather than an error.
+          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
+          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
           defaultDueTime: list.defaultDueTime,

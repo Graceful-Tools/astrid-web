@@ -53,6 +53,7 @@ export interface V1ScopedMeta extends V1ResponseMeta {
  */
 export interface V1List {
   id: string
+  ownerId: string
   name: string
   description: string
   color: string
@@ -78,6 +79,15 @@ export interface V1List {
   defaultPriority: number | null
   defaultRepeating: string | null
   defaultAssigneeId: string | null
+  /**
+   * The resolved user, not just the id. Legacy /api/lists enriches its raw
+   * rows the same way; without it a client holds an id it has no user for and
+   * every assignee name and avatar renders blank. (Task dc143ab2)
+   */
+  defaultAssignee: V1UserSummary | null
+  /** Agent config: legacy array, or { enabledTypes, defaultAgentId }. */
+  aiAgentsEnabled: unknown
+  publicListType: string | null
   defaultIsPrivate: boolean | null
   defaultDueDate: string | null
   // Only the PUT /lists/:id response currently emits this; optional so the

@@ -10,12 +10,13 @@ import { NextResponse } from 'next/server'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
+import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateListFavorites } from '@/lib/favorites'
 import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
+import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { listVisibilityWhere } from '@/lib/list-permissions'
 import { getDeletionsSince } from '@/lib/deletion-log'
 
@@ -83,6 +84,10 @@ export const GET = withAuth(
     const listIds = lists.map(list => list.id)
     const taskCounts = await getMultipleListTaskCounts(listIds, { includeCompleted: false })
 
+    // One query for every list's default assignee. See lib/default-assignee.ts
+    // for why the "unassigned" sentinel and the N+1 both matter. (dc143ab2)
+    const assigneeMap = await resolveDefaultAssignees(lists)
+
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
     if (deprecationWarning) {
@@ -101,6 +106,7 @@ export const GET = withAuth(
         // iOS decodes, tsc fails here rather than the app breaking at runtime.
         lists: lists.map((list: any): V1List => ({
           id: list.id,
+          ownerId: list.ownerId,
           name: list.name,
           description: list.description || '',
           color: list.color || '#3b82f6',
@@ -126,6 +132,12 @@ export const GET = withAuth(
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
           defaultAssigneeId: list.defaultAssigneeId,
+          // Parity with legacy, which returns raw rows. All three are read by
+          // the web and absent from this projection until now; a missing field
+          // here is not an error, it is a feature silently switched off.
+          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, assigneeMap) as V1UserSummary | null,
+          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
           githubRepositoryId: list.githubRepositoryId,
