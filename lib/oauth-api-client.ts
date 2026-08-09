@@ -266,8 +266,12 @@ export class OAuthAPIClient {
     try {
       log.info({ taskId }, '📝 Updating task:')
 
+      // PUT, not PATCH: `/api/v1/tasks/[id]` exports GET/PUT/DELETE only, so
+      // PATCH was a 405 and every update through this client failed with an
+      // opaque error. v1 PUT applies just the fields present, so a partial
+      // body still works. (Task cde681e4)
       const data = await this.makeRequest<{ task: Task }>(`/api/v1/tasks/${taskId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(updates),
       })
 
