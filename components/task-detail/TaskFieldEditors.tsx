@@ -12,9 +12,10 @@ import { UserPicker } from "@/components/user-picker"
 import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { selectableLists } from "@/lib/status-lists"
+import { TaskFieldRow } from "./TaskFieldRow"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
-import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash } from "lucide-react"
+import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, Flag as FlagIcon, List as ListIcon, FileText as FileTextIcon, User as UserIcon } from "lucide-react"
 import { format } from "date-fns"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { formatDateForDisplay } from "@/lib/date-utils"
@@ -443,9 +444,8 @@ export function TaskFieldEditors({
        *  so an undated task shows a single "Add date" control rather than
        *  three empty ones. */}
       {!shouldHideWhen && (
-      <div className="grid grid-cols-3 gap-4 items-start">
-        <Label className="text-sm theme-text-muted pt-2">When</Label>
-        <div className="col-span-2 flex flex-wrap items-center gap-2">
+      <TaskFieldRow label="When" icon={<CalendarIcon className="w-4 h-4" />} align="start">
+        <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-2 min-w-0" data-testid="when-date">
         {editingWhen ? (
           <Popover open={editingWhen} onOpenChange={setEditingWhen}>
@@ -742,7 +742,7 @@ export function TaskFieldEditors({
         </div>
       )}
         </div>
-      </div>
+      </TaskFieldRow>
       )}
 
       {/* Priority row: Priority · Assignee on ONE line (task dcbbb0fa).
@@ -752,11 +752,11 @@ export function TaskFieldEditors({
        *  task shows its creator here instead of an assignee, which is why the
        *  block below still branches on isPublicListTask. */}
       {!shouldHidePriority && (
-      <div className="grid grid-cols-3 gap-4 items-center">
-        <Label className="text-sm theme-text-muted">
-          {isPublicListTask ? "Created by" : "Priority"}
-        </Label>
-        <div className="col-span-2 flex flex-wrap items-center gap-3">
+      <TaskFieldRow
+        label={isPublicListTask ? "Created by" : "Priority"}
+        icon={isPublicListTask ? <UserIcon className="w-4 h-4" /> : <FlagIcon className="w-4 h-4" />}
+      >
+        <div className="flex flex-wrap items-center gap-3">
           {!isPublicListTask && (
             <PriorityPicker
               value={tempPriority}
@@ -766,7 +766,7 @@ export function TaskFieldEditors({
           )}
         {isPublicListTask ? (
           // For public list tasks, show creator (non-editable)
-          <div className="flex items-center space-x-2 mt-1 px-2 py-1 rounded">
+          <div className="flex items-center space-x-2 px-2 py-1 rounded">
             {task.creator ? (
               <>
                 <Avatar className="w-6 h-6">
@@ -783,7 +783,7 @@ export function TaskFieldEditors({
           // For regular tasks, show editable assignee
           (() => {
             return editingAssignee ? (
-              <div className="mt-1" ref={assigneeRef}>
+              <div ref={assigneeRef}>
                 <UserPicker
                   selectedUser={tempAssignee}
                   taskId={task.id}
@@ -805,7 +805,7 @@ export function TaskFieldEditors({
               </div>
             ) : (
               <div
-                className={`flex items-center space-x-2 mt-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+                className={`flex items-center space-x-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
                 onClick={() => !readOnly && setEditingAssignee(true)}
               >
                 {task.assignee ? (
@@ -830,14 +830,13 @@ export function TaskFieldEditors({
           })()
         )}
         </div>
-      </div>
+      </TaskFieldRow>
       )}
 
       {/* Lists Field */}
-      <div className="grid grid-cols-3 gap-4 items-center">
-        <Label className="text-sm theme-text-muted">Lists</Label>
+      <TaskFieldRow label="Lists" icon={<ListIcon className="w-4 h-4" />} align="start">
         {editingLists ? (
-          <div className="mt-1 space-y-3 col-span-2">
+          <div className="space-y-3">
             {/* Search input with autocomplete */}
             <div className="relative" ref={listSearchRef}>
               {/* Selected lists as chips - INSIDE listSearchRef */}
@@ -923,7 +922,7 @@ export function TaskFieldEditors({
           </div>
         ) : (
           <div
-            className={`flex flex-wrap gap-2 mt-1 col-span-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+            className={`flex flex-wrap gap-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
             onClick={() => !readOnly && setEditingLists(true)}
           >
             {task.lists && task.lists.length > 0 ? (
@@ -943,11 +942,10 @@ export function TaskFieldEditors({
             )}
           </div>
         )}
-      </div>
+      </TaskFieldRow>
 
       {/* Description Field */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-sm theme-text-muted">Description</Label>
+      <TaskFieldRow label="Description" icon={<FileTextIcon className="w-4 h-4" />} align="start">
         {editingDescription ? (
           <div ref={descriptionRef}>
             <textarea
@@ -1009,7 +1007,7 @@ export function TaskFieldEditors({
             )}
           </div>
         )}
-      </div>
+      </TaskFieldRow>
     </>
   )
 }
