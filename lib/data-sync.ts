@@ -236,7 +236,7 @@ class DataSyncManagerClass {
 
       // Fetch lists
       if (entities.includes('list')) {
-        const listsResponse = await fetchWithTimeout('/api/lists', {
+        const listsResponse = await fetchWithTimeout('/api/v1/lists', {
           credentials: 'include',
           timeout: 30000
         })
@@ -369,8 +369,8 @@ class DataSyncManagerClass {
       if (entities.includes('list')) {
         const listSince = listCursor?.cursor || ''
         const url = listSince
-          ? `/api/lists?updatedSince=${encodeURIComponent(listSince)}`
-          : '/api/lists'
+          ? `/api/v1/lists?updatedSince=${encodeURIComponent(listSince)}`
+          : '/api/v1/lists'
 
         const listsResponse = await fetchWithTimeout(url, {
           credentials: 'include',

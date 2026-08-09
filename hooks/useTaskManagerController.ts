@@ -807,7 +807,7 @@ export function useTaskManagerController({
 
   const handleCreateList = useCallback(async (listData: { name: string; description: string; memberEmails: string[] }) => {
     try {
-      const response = await fetch('/api/lists', {
+      const response = await fetch('/api/v1/lists', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -989,7 +989,7 @@ export function useTaskManagerController({
       const listToDelete = listState.lists.find(l => l.id === listId)
       const taskCount = listToDelete?.tasks?.length || 0
 
-      await apiDelete(`/api/lists/${listId}`)
+      await apiDelete(`/api/v1/lists/${listId}`)
 
       trackListDeleted({ listId, taskCount })
 
@@ -1214,7 +1214,7 @@ export function useTaskManagerController({
 
     try {
       const updatedList = { ...selectedListForImagePicker, imageUrl }
-      await apiPut(`/api/lists/${selectedListForImagePicker.id}`, { imageUrl })
+      await apiPut(`/api/v1/lists/${selectedListForImagePicker.id}`, { imageUrl })
 
       listState.setLists(prevLists =>
         prevLists.map(list =>
