@@ -96,7 +96,7 @@ describe('taskLevelAttachments (Task b4a362f1)', () => {
     expect(taskLevelAttachments(task)[0]).toMatchObject({
       id: 'f1',
       name: 'receipt.pdf',
-      url: '/api/secure-files/f1',
+      url: '/api/v1/secure-files/f1',
       type: 'application/pdf',
       size: 42,
     })

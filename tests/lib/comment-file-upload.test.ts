@@ -56,7 +56,7 @@ describe('uploadCommentFile', () => {
 
     expect(result.success).toBe(true)
     expect(result.success === true && result.attachment).toEqual({
-      url: '/api/secure-files/abc-123',
+      url: '/api/v1/secure-files/abc-123',
       name: 'test.png',
       type: 'image/png',
       size: 1234,

@@ -42,7 +42,7 @@ function toView(file: SecureFile, isTaskLevel: boolean, createdAt?: Date): TaskA
     id: file.id,
     fileId: file.id,
     name: file.originalName,
-    url: `/api/secure-files/${file.id}`,
+    url: `/api/v1/secure-files/${file.id}`,
     type: file.mimeType,
     size: file.fileSize,
     createdAt: createdAt ?? file.createdAt,

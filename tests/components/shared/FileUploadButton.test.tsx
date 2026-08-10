@@ -60,7 +60,7 @@ describe('FileUploadButton', () => {
 
     await waitFor(() => {
       expect(mockOnFileUploaded).toHaveBeenCalledWith({
-        url: '/api/secure-files/123',
+        url: '/api/v1/secure-files/123',
         name: 'test.txt',
         type: 'text/plain',
         size: 4
@@ -184,7 +184,7 @@ describe('FileUploadButton', () => {
 
 describe('FileAttachmentDisplay', () => {
   const mockFile = {
-    url: '/api/secure-files/123',
+    url: '/api/v1/secure-files/123',
     name: 'test-file.pdf',
     type: 'application/pdf',
     size: 1536 // 1.5 KB

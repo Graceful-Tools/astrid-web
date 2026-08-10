@@ -53,7 +53,7 @@ export function SecureAttachmentViewer({
     lastLoadTimeRef.current = now
 
     try {
-      const response = await fetch(`/api/secure-files/${fileId}?info=true`, {
+      const response = await fetch(`/api/v1/secure-files/${fileId}?info=true`, {
         credentials: 'include' // Include cookies for authentication
       })
 

@@ -152,7 +152,7 @@ export function FileUploadButton({
       const result = await response.json()
 
       const uploadedFile: FileAttachment = {
-        url: `/api/secure-files/${result.fileId}`,
+        url: `/api/v1/secure-files/${result.fileId}`,
         name: result.fileName,
         type: result.mimeType,
         size: result.fileSize

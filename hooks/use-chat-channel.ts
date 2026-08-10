@@ -54,7 +54,7 @@ export function useChatChannel({
       setIsLoading(true)
       setError(null)
       try {
-        const res = await fetch(`/api/chat/channels/${channelId}/messages?limit=50`)
+        const res = await fetch(`/api/v1/chat/channels/${channelId}/messages?limit=50`)
         if (!res.ok) throw new Error(`Failed to load messages: ${res.status}`)
         const data = await res.json()
         setMessages(data.messages)
@@ -124,7 +124,7 @@ export function useChatChannel({
     setIsLoading(true)
     try {
       const res = await fetch(
-        `/api/chat/channels/${channelId}/messages?limit=50&before=${encodeURIComponent(nextCursorRef.current)}`
+        `/api/v1/chat/channels/${channelId}/messages?limit=50&before=${encodeURIComponent(nextCursorRef.current)}`
       )
       if (!res.ok) throw new Error(`Failed to load more: ${res.status}`)
       const data = await res.json()
@@ -183,7 +183,7 @@ export function useChatChannel({
     setMessages(prev => [...prev, optimisticMessage])
 
     try {
-      const res = await fetch(`/api/chat/channels/${channelId}/messages`, {
+      const res = await fetch(`/api/v1/chat/channels/${channelId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

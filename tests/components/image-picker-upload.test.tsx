@@ -94,7 +94,7 @@ describe('ImagePicker Upload Functionality', () => {
       // Verify onSelectImage was called with secure URL
       await waitFor(() => {
         expect(mockProps.onSelectImage).toHaveBeenCalledWith(
-          '/api/secure-files/test-image-id',
+          '/api/v1/secure-files/test-image-id',
           'custom'
         )
       })
@@ -403,7 +403,7 @@ describe('ImagePicker Upload Functionality', () => {
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled()
         expect(mockProps.onSelectImage).toHaveBeenCalledWith(
-          '/api/secure-files/valid-image-id',
+          '/api/v1/secure-files/valid-image-id',
           'custom'
         )
       })

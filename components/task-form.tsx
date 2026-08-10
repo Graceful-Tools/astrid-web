@@ -338,7 +338,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
     setAttachments(attachments.filter(attachment => attachment.id !== attachmentId))
 
     try {
-      const response = await fetch(`/api/secure-files/${attachmentId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/v1/secure-files/${attachmentId}`, { method: 'DELETE' })
       if (!response.ok) throw new Error('Failed to delete attachment')
     } catch (error) {
       // Removal used to be local-only, so the file came back on reload with no

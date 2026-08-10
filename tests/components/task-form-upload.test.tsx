@@ -505,7 +505,7 @@ describe('TaskForm Upload Functionality', () => {
       // reload with no explanation (task b4a362f1).
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/secure-files/removable-attachment-id',
+          '/api/v1/secure-files/removable-attachment-id',
           expect.objectContaining({ method: 'DELETE' })
         )
       })
@@ -556,7 +556,7 @@ describe('TaskForm Upload Functionality', () => {
       // Guard against a vacuous pass: the delete must actually have been attempted.
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/secure-files/doomed-id',
+          '/api/v1/secure-files/doomed-id',
           expect.objectContaining({ method: 'DELETE' })
         )
       })
