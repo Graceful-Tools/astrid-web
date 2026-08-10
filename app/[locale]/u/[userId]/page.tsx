@@ -50,7 +50,7 @@ export default function UserProfilePage() {
     async function fetchProfile() {
       try {
         setLoading(true)
-        const response = await fetch(`/api/users/${userId}/profile`)
+        const response = await fetch(`/api/v1/users/${userId}/profile`)
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: "Unknown error" }))

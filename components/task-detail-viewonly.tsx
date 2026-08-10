@@ -293,7 +293,7 @@ interface FileAttachment {
     setLoadingShareUrl(true)
 
     try {
-      const response = await fetch('/api/shortcodes', {
+      const response = await fetch('/api/v1/shortcodes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

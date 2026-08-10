@@ -33,7 +33,7 @@ export default function ShortcodePage() {
       }
 
       try {
-        const response = await fetch(`/api/shortcodes/${code}`)
+        const response = await fetch(`/api/v1/shortcodes/${code}`)
 
         if (!response.ok) {
           if (response.status === 404) {

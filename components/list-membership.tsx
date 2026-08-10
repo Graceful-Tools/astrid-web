@@ -59,7 +59,7 @@ export function ListMembership({
         }
 
         // Fetch actual AI agents from database (based on user's configured API keys)
-        const agentsResponse = await fetch('/api/users/search?includeAIAgents=true')
+        const agentsResponse = await fetch('/api/v1/users/search?includeAIAgents=true')
         if (agentsResponse.ok) {
           const agentsData = await agentsResponse.json()
           // Filter to only AI agents

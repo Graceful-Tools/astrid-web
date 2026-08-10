@@ -74,7 +74,7 @@ export function BoardViewSection({
     try {
       // Single atomic call: creates the project AND attaches this list in one
       // transaction (no orphan-project window from a failed second request).
-      const response = await fetch('/api/projects/from-list', {
+      const response = await fetch('/api/v1/projects/from-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listId: list.id }),
@@ -110,7 +110,7 @@ export function BoardViewSection({
     const projectId = list.projectId
 
     try {
-      const response = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/v1/projects/${projectId}`, { method: 'DELETE' })
       if (!response.ok) {
         throw new Error(await response.text())
       }
