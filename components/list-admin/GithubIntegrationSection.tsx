@@ -56,7 +56,7 @@ export function GithubIntegrationSection({
   const loadRepositories = async (refresh = false) => {
     try {
       setLoadingRepositories(true)
-      const url = refresh ? '/api/github/repositories?refresh=true' : '/api/v1/github/repositories'
+      const url = refresh ? '/api/v1/github/repositories?refresh=true' : '/api/v1/github/repositories'
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
