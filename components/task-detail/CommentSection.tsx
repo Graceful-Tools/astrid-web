@@ -258,7 +258,7 @@ export function CommentSection({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const response = await fetch(`/api/comments/${commentId}`, {
+      const response = await fetch(`/api/v1/comments/${commentId}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -293,7 +293,7 @@ export function CommentSection({
     const trimmed = content.trim()
     if (!trimmed) return
     try {
-      const response = await fetch(`/api/comments/${commentId}`, {
+      const response = await fetch(`/api/v1/comments/${commentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -354,7 +354,7 @@ export function CommentSection({
 
   const handleDeleteReply = async (replyId: string, parentCommentId: string) => {
     try {
-      const response = await fetch(`/api/comments/${replyId}`, {
+      const response = await fetch(`/api/v1/comments/${replyId}`, {
         method: 'DELETE',
         credentials: 'include',
       })

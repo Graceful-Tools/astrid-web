@@ -383,7 +383,7 @@ describe('CommentSection', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/comments/comment-1',
+          '/api/v1/comments/comment-1',
           expect.objectContaining({ method: 'DELETE' })
         )
         expect(onUpdate).toHaveBeenCalledWith(
@@ -470,7 +470,7 @@ describe('CommentSection', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/comments/reply-1',
+          '/api/v1/comments/reply-1',
           expect.objectContaining({ method: 'DELETE' })
         )
       })

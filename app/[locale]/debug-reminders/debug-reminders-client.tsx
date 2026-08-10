@@ -35,6 +35,10 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
   const fetchReminders = useCallback(async () => {
     setLoading(true)
     try {
+      // Stays on legacy deliberately: this page inspects ANOTHER user's
+      // reminders by email, and v1's /api/v1/reminders is scoped to the caller
+      // with no userEmail override. Migrating it would silently return the
+      // debugger's own reminders instead. (641a7615 step 3)
       const response = await fetch(`/api/reminders/status?userEmail=${encodeURIComponent(testUserEmail)}`)
       const data = await response.json()
       setReminders(data.reminders || [])

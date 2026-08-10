@@ -56,7 +56,7 @@ export default function EnhancedReminderDebugPage() {
   // Load reminder queue
   const loadReminderQueue = useCallback(async () => {
     try {
-      const response = await fetch('/api/reminders/status')
+      const response = await fetch('/api/v1/reminders')
       if (response.ok) {
         const data = await response.json()
         setReminderQueue(data.reminders || [])

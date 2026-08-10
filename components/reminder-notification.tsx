@@ -69,7 +69,7 @@ export function ReminderNotification({
     try {
       setIsSnoozing(true)
       
-      const response = await fetch(`/api/reminders/${reminderId}/snooze`, {
+      const response = await fetch(`/api/v1/reminders/${reminderId}/snooze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ minutes }),
@@ -103,7 +103,7 @@ export function ReminderNotification({
     try {
       setIsDismissing(true)
       
-      const response = await fetch(`/api/reminders/${reminderId}/dismiss`, {
+      const response = await fetch(`/api/v1/reminders/${reminderId}/dismiss`, {
         method: 'POST',
       })
 
