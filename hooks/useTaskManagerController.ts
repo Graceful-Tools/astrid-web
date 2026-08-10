@@ -661,7 +661,7 @@ export function useTaskManagerController({
       })
 
       try {
-        await apiDelete(`/api/tasks/${taskId}`)
+        await apiDelete(`/api/v1/tasks/${taskId}`)
 
         if (shouldClosePage) {
           setSelectedTaskId("")

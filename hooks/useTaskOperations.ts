@@ -176,7 +176,7 @@ export const useTaskOperations = ({
           'create',
           'task',
           tempTask.id,
-          '/api/tasks',
+          '/api/v1/tasks',
           'POST',
           apiData
         )
@@ -200,8 +200,11 @@ export const useTaskOperations = ({
       }
 
       // Online - normal API call
-      const response = await apiPost('/api/tasks', apiData)
-      const data = await safeResponseJson<Task>(response, null)
+      const response = await apiPost('/api/v1/tasks', apiData)
+      // v1 returns { task, meta }; legacy returned the task bare. Without the
+      // unwrap the required-fields check below fails and a successful create
+      // reports as a failure.
+      const data = unwrapTask<Task>(await safeResponseJson<Task | { task: Task }>(response, null))
 
       if (data && hasRequiredFields(data, ['id', 'title'])) {
         // Save to IndexedDB for offline cache
@@ -393,12 +396,18 @@ export const useTaskOperations = ({
         await OfflineTaskOperations.saveTask(updatedTask)
 
         // Queue mutation for sync
+        // PUT /api/v1/tasks/[id], matching the online path above. The queued
+        // mutation used to be PATCH /api/tasks/[id]; that route exports
+        // GET/PUT/DELETE only, so replay hit a 405 and the edit never reached
+        // the server — invisibly, since IndexedDB still held it. Legacy PUT is
+        // no good either: it rejects a body with no title, and this is a
+        // partial update. (Task 22fb004d)
         await OfflineSyncManager.queueMutation(
           'update',
           'task',
           taskId,
-          `/api/tasks/${taskId}`,
-          'PATCH',
+          `/api/v1/tasks/${taskId}`,
+          'PUT',
           apiData
         )
 
@@ -536,7 +545,7 @@ export const useTaskOperations = ({
           'delete',
           'task',
           taskId,
-          `/api/tasks/${taskId}`,
+          `/api/v1/tasks/${taskId}`,
           'DELETE'
         )
 
@@ -552,7 +561,7 @@ export const useTaskOperations = ({
       }
 
       // Online - normal API call
-      await apiDelete(`/api/tasks/${taskId}`)
+      await apiDelete(`/api/v1/tasks/${taskId}`)
 
       // Remove from IndexedDB cache
       await OfflineTaskOperations.deleteTask(taskId)

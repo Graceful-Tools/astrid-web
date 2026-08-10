@@ -1,4 +1,5 @@
 import type { Task, TaskList } from '@/types/task'
+import { unwrapTask } from '@/lib/v1-response'
 import { parseRelativeDate } from '@/lib/date-utils'
 import { createLogger } from '@/lib/logger'
 
@@ -176,11 +177,12 @@ export async function handleTaskCreationOptimistic(
       // Send the actual request with proper field mapping
       const apiTaskData = mapTaskDataForApi(taskData)
 
-      const response = await dependencies.apiPost("/api/tasks", apiTaskData)
-      const realTask = await response.json()
+      const response = await dependencies.apiPost("/api/v1/tasks", apiTaskData)
+      // v1 wraps the new task in { task, meta }; legacy returned it bare.
+      const realTask = unwrapTask<Task>(await response.json())
 
       // Validate the response has the expected task structure
-      if (!realTask || typeof realTask !== 'object' || !('id' in realTask)) {
+      if (!realTask) {
         throw new Error('Invalid task response from server')
       }
 
