@@ -1,4 +1,23 @@
-Pull tasks from the Astrid web to-do list and help the user work through them.
+Pull tasks from the Astrid Web To-do and help the user work through them.
+
+## Scope: one board, one repo
+
+**This works the Astrid Web To-do and edits only `astrid-web`.** A separate agent
+runs against the Astrid iOS To-do and the `astrid-ios` repo, so an `[ios]`/`[mac]`
+task on this board is a handoff, not work to pick up:
+
+```bash
+npx tsx scripts/move-task-to-list.ts <taskId> "Astrid iOS To-do"
+```
+
+The test is where the code lives, not what the title says — **check the web
+behaviour first.** If web has the same bug it is cross-platform: do the web half
+here and file the iOS companion. Never commit to `astrid-ios`.
+
+Full rules, including the one case where reading `astrid-ios` is legitimate, are in
+[`/fixall`](./fixall.md) → *Scope*.
+
+Refer to tasks by **title** in every report; Jon does not read task ids.
 
 ## Steps
 
