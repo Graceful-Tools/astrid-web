@@ -23,6 +23,22 @@ import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
 const ROOTS = ['components', 'hooks', 'app', 'lib']
+
+/**
+ * Modules that hold legacy paths as DATA rather than calling them: the
+ * retirement's rename table, its census, and the iOS contract maps. Stripping
+ * comments is not enough for these — the paths are string literals by
+ * necessity, since naming the old path is the entire job.
+ *
+ * Narrow on purpose. The guard's value is catching a real `fetch`, and a broad
+ * exemption would let one hide in any file that also happens to document.
+ */
+const DESCRIBES_THE_API = [
+  'lib/legacy-api-coverage.ts',
+  'lib/api-deprecation.ts',
+  'lib/legacy-api-usage.ts',
+  'lib/api-contracts/',
+]
 const CODE = /\.(ts|tsx)$/
 /** A quoted `/api/user/...` path — i.e. an actual call. */
 const LEGACY_CALL = /['"`]\/api\/user\//
@@ -56,6 +72,8 @@ function walk(dir: string, out: string[] = []): string[] {
 describe('legacy /api/user/* has no client callers (task 641a7615)', () => {
   it('finds no quoted /api/user/ path outside the legacy routes themselves', () => {
     const offenders = ROOTS.flatMap((root) => walk(root))
+      .map((file) => file.replace(/\\/g, '/'))
+      .filter((file) => !DESCRIBES_THE_API.some((prefix) => file.startsWith(prefix)))
       .filter((file) => LEGACY_CALL.test(stripComments(readFileSync(file, "utf8"))))
 
     expect(offenders).toEqual([])

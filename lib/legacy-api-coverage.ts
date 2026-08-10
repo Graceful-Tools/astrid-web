@@ -40,8 +40,8 @@ export type RouteStatus =
 export interface RouteCoverage {
   /** e.g. `/api/lists/[id]` */
   apiPath: string
-  /** e.g. `/api/v1/lists/[id]` */
-  v1Path: string
+  /** e.g. `/api/v1/lists/[id]`, or null when the route deliberately gets none. */
+  v1Path: string | null
   hasV1: boolean
   callerCount: number
   status: RouteStatus
@@ -56,8 +56,47 @@ export function routeFileToApiPath(file: string): string {
   return normalized.replace(/(?:^|\/)app/, '').replace(/\/route\.tsx?$/, '')
 }
 
-/** `/api/lists/[id]` → `/api/v1/lists/[id]` */
-export function v1PathFor(apiPath: string): string {
+/**
+ * Successors whose v1 path is NOT the legacy path with `/v1/` inserted.
+ *
+ * Most of v1 mirrors its legacy path, so the mechanical rule covers it. These
+ * do not, and every one of them was mapped by hand during the migration:
+ * `/api/user/*` became `/api/v1/users/me/*` (plural, and scoped to the caller),
+ * and several were renamed on the way for accuracy — `settings` holds
+ * task-creation defaults, so it became `smart-tasks`; `ai-assistant-settings`
+ * holds service/agent choice, so it became `ai-preferences`.
+ *
+ * Without this table the report says "no successor" for routes that have one,
+ * which is exactly the wrong answer in the direction that hides finished work.
+ * It reported 13 such routes as unmigrated before this existed.
+ *
+ * A missing entry here is invisible in the output — it just looks like another
+ * route needing a decision. When a v1 route is added under a different name,
+ * add it here in the same change.
+ */
+export const SUCCESSOR_OVERRIDES: Record<string, string | null> = {
+  '/api/user/settings': '/api/v1/users/me/smart-tasks',
+  '/api/user/ai-api-keys': '/api/v1/users/me/ai-credentials',
+  '/api/user/ai-api-keys/test': '/api/v1/users/me/ai-credentials/test',
+  '/api/user/ai-assistant-settings': '/api/v1/users/me/ai-preferences',
+  '/api/user/ai-available-models': '/api/v1/users/me/available-models',
+  '/api/user/ai-model-preferences': '/api/v1/users/me/ai-model-preferences',
+  '/api/user/available-agents': '/api/v1/users/me/available-agents',
+  '/api/user/default-due-time': '/api/v1/users/me/default-due-time',
+  '/api/user/my-tasks-preferences': '/api/v1/users/me/my-tasks-preferences',
+  '/api/user/push-subscription': '/api/v1/users/me/push-subscriptions',
+  '/api/user/reminder-settings': '/api/v1/users/me/reminder-settings',
+  '/api/user/webhook-settings': '/api/v1/users/me/webhook-settings',
+  '/api/reminders/status': '/api/v1/reminders',
+  // Decided, not missing: nothing calls it on any platform, so it gets no twin
+  // (task 641a7615, decision 3A). `null` says "deliberately none" rather than
+  // leaving it to look like an oversight.
+  '/api/user/mcp-settings': null,
+}
+
+/** `/api/lists/[id]` → `/api/v1/lists/[id]`, honouring the rename table. */
+export function v1PathFor(apiPath: string): string | null {
+  if (apiPath in SUCCESSOR_OVERRIDES) return SUCCESSOR_OVERRIDES[apiPath]
   return apiPath.replace(/^\/api\//, '/api/v1/')
 }
 

@@ -188,3 +188,44 @@ describe('matchLiteralToRoute (task 641a7615)', () => {
     expect(matchLiteralToRoute('/api/nope', routes)).toBeNull()
   })
 })
+
+/**
+ * The successor rename table.
+ *
+ * The mechanical rule — insert `/v1/` — covers most of v1, but `/api/user/*`
+ * became `/api/v1/users/me/*` and several routes were renamed for accuracy on
+ * the way. Without the table the report claimed 13 routes had no successor
+ * when every one of them did, which is the wrong answer in the direction that
+ * hides finished work and makes the retirement look further away than it is.
+ */
+describe('v1PathFor overrides (task 641a7615)', () => {
+  it('still applies the mechanical rule where v1 mirrors legacy', () => {
+    expect(v1PathFor('/api/lists/[id]')).toBe('/api/v1/lists/[id]')
+  })
+
+  it('maps /api/user/* onto the users/me surface', () => {
+    expect(v1PathFor('/api/user/default-due-time')).toBe('/api/v1/users/me/default-due-time')
+  })
+
+  it('follows a rename rather than the path', () => {
+    // /api/user/settings holds task-creation defaults, so its successor is
+    // smart-tasks — /api/v1/users/me/settings exists and is something else.
+    expect(v1PathFor('/api/user/settings')).toBe('/api/v1/users/me/smart-tasks')
+    expect(v1PathFor('/api/user/ai-assistant-settings')).toBe('/api/v1/users/me/ai-preferences')
+  })
+
+  it('handles a pluralised resource', () => {
+    expect(v1PathFor('/api/user/push-subscription')).toBe('/api/v1/users/me/push-subscriptions')
+  })
+
+  it('maps a successor that changed path entirely', () => {
+    expect(v1PathFor('/api/reminders/status')).toBe('/api/v1/reminders')
+  })
+
+  it('distinguishes "deliberately no successor" from "not mapped"', () => {
+    // null is a decision (3A: nothing calls mcp-settings on any platform).
+    // A route absent from the table falls through to the mechanical rule.
+    expect(v1PathFor('/api/user/mcp-settings')).toBeNull()
+    expect(v1PathFor('/api/user/unmapped-thing')).toBe('/api/v1/user/unmapped-thing')
+  })
+})

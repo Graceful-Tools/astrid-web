@@ -57,11 +57,28 @@ function walk(dir: string, out: string[] = []): string[] {
   return out
 }
 
+/**
+ * Files that DESCRIBE the API surface rather than call it.
+ *
+ * Each holds legacy paths as data — a rename table, a deprecation census, an
+ * iOS contract map — and a text scan cannot tell that from a fetch. Left in,
+ * this module's own override table registered as a caller of all 13 routes it
+ * maps, which put finished migrations back into "callers remain".
+ */
+const DESCRIBES_THE_API = [
+  'lib/legacy-api-coverage.ts',
+  'lib/api-deprecation.ts',
+  'lib/legacy-api-usage.ts',
+  'lib/api-contracts/',
+]
+
 /** Every file that could contain a client call — excludes the routes themselves. */
 function clientFiles(): string[] {
   return CLIENT_ROOTS.flatMap((root) => walk(root))
     .filter((f) => CODE.test(f))
-    .filter((f) => !f.replace(/\\/g, '/').startsWith('app/api/'))
+    .map((f) => f.replace(/\\/g, '/'))
+    .filter((f) => !f.startsWith('app/api/'))
+    .filter((f) => !DESCRIBES_THE_API.some((prefix) => f.startsWith(prefix)))
 }
 
 /**
@@ -125,7 +142,7 @@ function main() {
     .filter((apiPath) => !apiPath.startsWith('/api/v1/'))
     .map((apiPath) => {
       const v1Path = v1PathFor(apiPath)
-      const hasV1 = v1Paths.has(v1Path)
+      const hasV1 = v1Path !== null && v1Paths.has(v1Path)
       const callerCount = callerCounts.get(apiPath) ?? 0
       return { apiPath, v1Path, hasV1, callerCount, status: classifyRoute({ apiPath, hasV1, callerCount }) }
     })
