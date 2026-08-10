@@ -228,6 +228,8 @@ interface TaskManagerViewProps {
   handleEditTaskDescription: () => void
   handleAddTaskComment: () => void
   handleAssignToNoOne: () => void
+  handleOutdentTask: () => void
+  handleIndentTask: () => void
   handleShowHotkeyMenu: () => void
 
   // Hotkey menu state
@@ -401,6 +403,8 @@ const TaskManagerView = memo(function TaskManagerView({
   handleEditTaskDescription,
   handleAddTaskComment,
   handleAssignToNoOne,
+  handleOutdentTask,
+  handleIndentTask,
   handleShowHotkeyMenu,
   showHotkeyMenu,
   setShowHotkeyMenu,
@@ -575,6 +579,8 @@ const TaskManagerView = memo(function TaskManagerView({
     onEditTaskDescription: handleEditTaskDescription,
     onAddTaskComment: handleAddTaskComment,
     onAssignToNoOne: handleAssignToNoOne,
+    onOutdentTask: handleOutdentTask,
+    onIndentTask: handleIndentTask,
     onShowHotkeyMenu: handleShowHotkeyMenu,
   }
 

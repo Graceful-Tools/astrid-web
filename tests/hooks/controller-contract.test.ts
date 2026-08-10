@@ -146,6 +146,8 @@ const EXPECTED_CONTROLLER_KEYS = [
   'handleEditTaskDescription',
   'handleAddTaskComment',
   'handleAssignToNoOne',
+  'handleOutdentTask',
+  'handleIndentTask',
   'handleShowHotkeyMenu',
 
   // Drag handlers (delegated)
