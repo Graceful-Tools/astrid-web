@@ -515,7 +515,9 @@ interface FileAttachment {
           <Label className="text-sm theme-text-muted">Description</Label>
           {task.description ? (
             <div
-              className="text-sm theme-text-primary col-span-2 px-2 py-1 rounded"
+              // See MessageBubble: `prose` is what makes the rendered headings
+              // and lists actually look like headings and lists.
+              className="prose prose-sm max-w-none text-sm theme-text-primary col-span-2 px-2 py-1 rounded"
               dangerouslySetInnerHTML={{
                 __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm' })
               }}

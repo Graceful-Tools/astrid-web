@@ -229,11 +229,16 @@ describe('Task Description Editing', () => {
         />
       )
 
-      // Find the description display div
-      const descriptionDisplay = screen.getByText('Short description').parentElement
+      // Walk up to the display container rather than hopping a fixed number of
+      // levels: the rendered description is now proper markdown, so the text
+      // sits inside a <p> that `marked` emits (task 0a54e46f). The container
+      // being asserted is the same one as before, one level further up.
+      const descriptionText = screen.getByText('Short description')
+      const descriptionDisplay = descriptionText.closest('div[class*="min-h-0"]')
 
       // Should have min-h-0 class (height matches content, via Tailwind)
-      expect(descriptionDisplay?.className).toContain('min-h-0')
+      expect(descriptionDisplay).not.toBeNull()
+      expect(descriptionDisplay).toContainElement(descriptionText)
     })
 
     it('should render line breaks correctly in display mode', () => {
