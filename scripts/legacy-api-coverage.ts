@@ -41,6 +41,18 @@ import {
 const CLIENT_ROOTS = ['components', 'hooks', 'lib', 'contexts', 'app']
 const CODE = /\.(ts|tsx)$/
 
+/**
+ * The iOS app, checked read-only. Deletion needs "no CLIENT calls it", and web
+ * is only half of that — a route with zero web callers that iOS still uses is
+ * not deletable, and nothing in this repo would have said so.
+ *
+ * Skipped with a warning when the checkout is absent, because the web half of
+ * the report is still worth having and a missing sibling repo is a normal
+ * state for CI, not an error.
+ */
+const IOS_REPO = '../astrid-ios'
+const SWIFT = /\.swift$/
+
 function walk(dir: string, out: string[] = []): string[] {
   let entries: string[]
   try {
@@ -102,6 +114,35 @@ function extractApiLiterals(source: string): string[] {
   return out
 }
 
+/**
+ * iOS files that reference legacy paths without calling them.
+ *
+ * Test targets assert about the paths (the contract tests literally list the
+ * legacy ones to prove they are unused), and ImageCache matches BOTH URL forms
+ * because attachment URLs are persisted — the same reason web's
+ * extractSecureFileId keeps its legacy branch. Counting either as a caller
+ * would report iOS as unmigrated when it is not.
+ */
+const IOS_NOT_A_CALLER = ['Tests/', 'Tests.swift', 'ImageCache.swift']
+
+function iosFiles(): string[] {
+  try {
+    if (!statSync(IOS_REPO).isDirectory()) return []
+  } catch {
+    return []
+  }
+  return walk(IOS_REPO)
+    .filter((f) => SWIFT.test(f))
+    .map((f) => f.replace(/\\/g, '/'))
+    .filter((f) => !f.includes('/.build/'))
+    .filter((f) => !IOS_NOT_A_CALLER.some((marker) => f.includes(marker)))
+}
+
+/** Swift line comments; block comments are rare enough here to leave alone. */
+function stripSwiftComments(source: string): string {
+  return source.replace(/(^|[^:])\/\/.*$/gm, '$1')
+}
+
 function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 }
@@ -125,16 +166,34 @@ function main() {
   // One file counts once per route, so the number reads as "how many files
   // still point here" rather than being skewed by a loop that repeats a path.
   const callerCounts = new Map<string, number>()
-  for (const file of clientFiles()) {
-    const source = stripComments(readFileSync(file, 'utf8'))
-    const routesInFile = new Set<string>()
-    for (const literal of extractApiLiterals(source)) {
-      const route = matchLiteralToRoute(literal, legacyRoutePaths)
-      if (route) routesInFile.add(route)
+  const iosCallerCounts = new Map<string, number>()
+
+  const tally = (files: string[], strip: (s: string) => string, into: Map<string, number>) => {
+    for (const file of files) {
+      const source = strip(readFileSync(file, 'utf8'))
+      const routesInFile = new Set<string>()
+      for (const literal of extractApiLiterals(source)) {
+        const route = matchLiteralToRoute(literal, legacyRoutePaths)
+        if (route) routesInFile.add(route)
+      }
+      for (const route of routesInFile) {
+        into.set(route, (into.get(route) ?? 0) + 1)
+      }
     }
-    for (const route of routesInFile) {
-      callerCounts.set(route, (callerCounts.get(route) ?? 0) + 1)
-    }
+  }
+
+  tally(clientFiles(), stripComments, callerCounts)
+
+  const ios = iosFiles()
+  if (ios.length === 0) {
+    console.log('\nNote: no ../astrid-ios checkout — iOS callers not counted.')
+  } else {
+    tally(ios, stripSwiftComments, iosCallerCounts)
+    // Print the scan size. A scanner that read nothing reports the same zeros
+    // as a client that has fully migrated, and the difference decides whether
+    // a route can be deleted.
+    const iosTotal = [...iosCallerCounts.values()].reduce((a, b) => a + b, 0)
+    console.log(`\niOS: scanned ${ios.length} Swift files, found ${iosTotal} legacy caller reference(s).`)
   }
 
   const routes: RouteCoverage[] = routeFiles
@@ -143,7 +202,8 @@ function main() {
     .map((apiPath) => {
       const v1Path = v1PathFor(apiPath)
       const hasV1 = v1Path !== null && v1Paths.has(v1Path)
-      const callerCount = callerCounts.get(apiPath) ?? 0
+      // A route is only callerless when BOTH clients have moved off it.
+      const callerCount = (callerCounts.get(apiPath) ?? 0) + (iosCallerCounts.get(apiPath) ?? 0)
       return { apiPath, v1Path, hasV1, callerCount, status: classifyRoute({ apiPath, hasV1, callerCount }) }
     })
     .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.apiPath.localeCompare(b.apiPath))
@@ -175,7 +235,9 @@ function main() {
       console.log(`\n${current}`)
     }
     const v1 = route.hasV1 ? 'v1 ✓' : 'v1 ✗'
-    console.log(`  ${route.apiPath.padEnd(width)}  ${v1}  callers: ${route.callerCount}`)
+    const web = callerCounts.get(route.apiPath) ?? 0
+    const iosCount = iosCallerCounts.get(route.apiPath) ?? 0
+    console.log(`  ${route.apiPath.padEnd(width)}  ${v1}  web: ${web}  ios: ${iosCount}`)
   }
   console.log('\nCaller counts are a text scan — a lower bound, not proof. Deletion is')
   console.log('gated on traffic evidence (lib/legacy-api-usage.ts), not on this.\n')
