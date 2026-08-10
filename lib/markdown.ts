@@ -32,44 +32,98 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;')
 }
 
+/** Anchor styling for links that leave the app. */
+const EXTERNAL_LINK_CLASS = 'text-blue-600 dark:text-blue-400 hover:underline'
+
 /**
- * Safely linkify URLs in text with proper escaping and protocol validation
- * Supports: plain domains, http(s):// URLs, www. URLs, and markdown links
+ * Private-use codepoints standing in for an Astrid reference while `marked`
+ * runs. They have to survive the parser untouched: `marked` escapes
+ * `& < > " '` and leaves everything else alone, and no one types U+E000.
+ *
+ * A word-like token (`ASTRIDREF0`) would be corrupted by any construct that
+ * transforms its text, and could collide with real content.
  */
-function safeLinkify(text: string): string {
-  // First: Convert markdown-style links [text](url) to HTML with validation
-  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g
-  let result = text.replace(markdownLinkPattern, (_match, linkText, url) => {
-    const href = url.startsWith('http') ? url : `https://${url}`
-    // Validate URL protocol
-    if (!isSafeUrl(href)) {
-      return escapeHtml(linkText) // Just return escaped text if URL is unsafe
-    }
-    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${escapeHtml(linkText)}</a>`
+const REF_OPEN = '\uE000'
+const REF_CLOSE = '\uE001'
+
+/**
+ * Astrid's three reference forms, in the order they must be extracted.
+ *
+ * These are NOT standard markdown and must never reach `marked`:
+ * `![Title](taskId)` is markdown IMAGE syntax, so the parser turns a task
+ * reference into `<img src="taskId">`. `@[…]` and `#[…]` degrade more quietly,
+ * into a stray `@`/`#` followed by a link to a raw id.
+ */
+const REFERENCE_RULES: Array<{
+  pattern: RegExp
+  render: (label: string, id: string) => string
+}> = [
+  {
+    // @[Name](userId) — links to the user profile
+    pattern: /@\[([^\]]+)\]\(([^)]+)\)/g,
+    render: (name, userId) =>
+      `<a href="/u/${encodeURIComponent(userId)}" class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline">@${escapeHtml(name)}</a>`,
+  },
+  {
+    // #[ListName](listId) — links to the list view
+    pattern: /#\[([^\]]+)\]\(([^)]+)\)/g,
+    render: (name, listId) =>
+      `<a href="/lists/${encodeURIComponent(listId)}" class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline">#${escapeHtml(name)}</a>`,
+  },
+  {
+    // ![TaskTitle](taskId) — links to the task detail
+    pattern: /!\[([^\]]+)\]\(([^)]+)\)/g,
+    render: (title, taskId) =>
+      `<a href="/?task=${encodeURIComponent(taskId)}" class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline">!${escapeHtml(title)}</a>`,
+  },
+]
+
+/** Swap Astrid references out for sentinels, keeping the rendered HTML aside. */
+function extractReferences(text: string): { text: string; rendered: string[] } {
+  const rendered: string[] = []
+
+  const withSentinels = REFERENCE_RULES.reduce(
+    (acc, rule) =>
+      acc.replace(rule.pattern, (_match, label: string, id: string) => {
+        rendered.push(rule.render(label, id))
+        return `${REF_OPEN}${rendered.length - 1}${REF_CLOSE}`
+      }),
+    text
+  )
+
+  return { text: withSentinels, rendered }
+}
+
+/** Put the reference pills back once markdown rendering is done. */
+function restoreReferences(html: string, rendered: string[]): string {
+  if (rendered.length === 0) return html
+  return html.replace(
+    new RegExp(`${REF_OPEN}(\\d+)${REF_CLOSE}`, 'g'),
+    (match, index: string) => rendered[Number(index)] ?? match
+  )
+}
+
+/**
+ * Give anchors that leave the app a new tab and the link styling.
+ *
+ * Runs on `marked`'s output only — reference pills are injected afterwards, so
+ * they keep their own classes and stay in-tab, which is what they should do:
+ * they point at other pages of this app.
+ */
+function decorateExternalLinks(html: string): string {
+  return html.replace(/<a href="([^"]*)"([^>]*)>/g, (match, href: string, rest: string) => {
+    // GFM autolinks a bare `www.` host with an http:// scheme. The old
+    // hand-rolled linkifier upgraded these to https; keep that.
+    const target = /^http:\/\/www\./i.test(href)
+      ? href.replace(/^http:\/\//i, 'https://')
+      : href
+
+    // Leave relative/in-app hrefs alone — only outbound links get a new tab.
+    if (!/^(https?:|mailto:)/i.test(target)) return match
+    if (!isSafeUrl(target)) return '<a>'
+
+    return `<a href="${target}"${rest} target="_blank" rel="noopener noreferrer" class="${EXTERNAL_LINK_CLASS}">`
   })
-
-  // Split by existing <a> tags to avoid double-linkification
-  const parts = result.split(/(<a[^>]*>.*?<\/a>)/g)
-
-  // URL pattern for plain URLs
-  const urlPattern = /(https?:\/\/[^\s<]+[^\s<.,;:!?'")\]}>]|(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s<]*)?[^\s<.,;:!?'")\]}>])/gi
-
-  // Process each part: skip already-generated <a> tags, linkify URLs in text portions
-  result = parts.map(part => {
-    if (part.startsWith('<a ')) {
-      return part
-    }
-    return part.replace(urlPattern, (url) => {
-      const href = url.startsWith('http') ? url : `https://${url}`
-      // Validate URL protocol
-      if (!isSafeUrl(href)) {
-        return escapeHtml(url)
-      }
-      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${escapeHtml(url)}</a>`
-    })
-  }).join('')
-
-  return result
 }
 
 // Configure marked for secure rendering
@@ -103,51 +157,74 @@ export function renderMarkdown(text: string): string {
 }
 
 /**
- * Securely render markdown-like text with linkified URLs
- * Includes link support with URL protocol validation
+ * Tags the reference-aware renderer emits. This is the full GFM set agreed for
+ * task descriptions, comments and chat (task 0a54e46f) — the same constructs
+ * `renderMarkdown` already gave the editor preview.
+ *
+ * Keep this in step with what `marked` produces. A construct missing here
+ * parses correctly and is then STRIPPED, so the symptom is "the fix did
+ * nothing" rather than an error.
+ */
+const RICH_TEXT_TAGS = [
+  'p', 'br', 'span',
+  'strong', 'em', 'del', 'code', 'pre',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'ul', 'ol', 'li',
+  'blockquote', 'hr',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'a',
+  'input', // GFM task list checkboxes
+]
+
+/** `type`/`checked`/`disabled` are for checkboxes; `align` for table cells. */
+const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align']
+
+/** Marker standing in for a fenced code block's `<code>` while inline ones are styled. */
+const PRE_CODE_SENTINEL = '\uE002'
+
+/**
+ * Apply the caller's inline-code class without touching fenced code blocks.
+ *
+ * `codeClass` is a chip style (`px-1 rounded`) meant for inline `` `code` ``.
+ * Putting it on the `<code>` inside a `<pre>` would draw a chip around a whole
+ * block, so fenced blocks are masked out first.
+ */
+function styleInlineCode(html: string, codeClass: string): string {
+  if (!codeClass) return html
+  return html
+    .replace(/<pre><code/g, `<pre>${PRE_CODE_SENTINEL}`)
+    .replace(/<code>/g, `<code class="${codeClass}">`)
+    .replace(new RegExp(PRE_CODE_SENTINEL, 'g'), '<code')
+}
+
+/**
+ * Render markdown for task descriptions, comments and chat messages.
+ *
+ * Full GFM via `marked`, plus Astrid's three reference forms. The references
+ * are extracted to sentinels BEFORE parsing and re-injected after: they are not
+ * markdown, and `![Title](taskId)` in particular is image syntax that `marked`
+ * would render as `<img src="taskId">`.
  */
 export function renderMarkdownWithLinks(text: string, options?: { codeClass?: string }): string {
   if (!text) return ""
 
-  const codeClass = options?.codeClass || ''
+  const { text: withSentinels, rendered } = extractReferences(text)
 
-  // Process markdown BEFORE linkifying to avoid conflicts
-  let html = text
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    .replace(/`(.*?)`/g, `<code${codeClass ? ` class="${codeClass}"` : ''}>$1</code>`)
+  let html = marked.parse(withSentinels, { async: false }) as string
+  html = decorateExternalLinks(html)
+  html = styleInlineCode(html, options?.codeClass || '')
+  html = restoreReferences(html, rendered)
 
-  // Handle references BEFORE safeLinkify — otherwise safeLinkify's [text](url)
-  // pattern consumes @[Name](id), #[Name](id), and ![Name](id)
-
-  // Handle mentions @[Name](userId) — links to user profile
-  html = html.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, (_match, name, userId) => {
-    return `<a href="/u/${encodeURIComponent(userId)}" class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline">@${escapeHtml(name)}</a>`
-  })
-
-  // Handle list references #[ListName](listId) — links to list view
-  html = html.replace(/#\[([^\]]+)\]\(([^)]+)\)/g, (_match, name, listId) => {
-    return `<a href="/lists/${encodeURIComponent(listId)}" class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline">#${escapeHtml(name)}</a>`
-  })
-
-  // Handle task references ![TaskTitle](taskId) — links to task detail
-  html = html.replace(/!\[([^\]]+)\]\(([^)]+)\)/g, (_match, title, taskId) => {
-    return `<a href="/?task=${encodeURIComponent(taskId)}" class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline">!${escapeHtml(title)}</a>`
-  })
-
-  // Linkify URLs with safety validation (after references so it doesn't eat [Name](id))
-  html = safeLinkify(html)
-
-  // Convert newlines to <br>
-  html = html.replace(/\n/g, "<br>")
-
-  // Sanitize the HTML to prevent XSS
+  // Sanitize the HTML to prevent XSS.
+  //
+  // ALLOW_UNKNOWN_PROTOCOLS is deliberately NOT set. It was safe while every
+  // href here was generated in-house, but `marked` now builds anchors out of
+  // user text, and the flag would let `javascript:` through. Relative hrefs
+  // like /u/<id> are permitted by DOMPurify's defaults regardless.
   if (typeof window !== 'undefined') {
     return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ['strong', 'em', 'code', 'br', 'a', 'span'],
-      ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-      // Allow relative URLs and standard protocols — we control all href generation
-      ALLOW_UNKNOWN_PROTOCOLS: true,
+      ALLOWED_TAGS: RICH_TEXT_TAGS,
+      ALLOWED_ATTR: RICH_TEXT_ATTRS,
     })
   }
 

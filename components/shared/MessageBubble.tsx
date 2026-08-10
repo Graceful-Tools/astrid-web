@@ -157,7 +157,11 @@ export const MessageBubble = React.memo(function MessageBubble({
           {/* Text content */}
           {content && !content.startsWith('Attached: ') && (
             <div
-              className="text-sm theme-text-secondary"
+              // `prose` restores the block styles Tailwind preflight strips.
+              // Without it headings and lists parse correctly and then render
+              // at body size with no bullets — the markup is right and the
+              // reader sees no difference (task 0a54e46f).
+              className="prose prose-sm max-w-none text-sm theme-text-secondary"
               dangerouslySetInnerHTML={{
                 __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded' }),
               }}
