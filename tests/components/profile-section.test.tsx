@@ -59,7 +59,7 @@ describe('ProfileSection', () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/account',
+      '/api/v1/users/me',
       expect.objectContaining({ method: 'PUT' })
     )
     const body = JSON.parse((vi.mocked(global.fetch).mock.calls[0][1] as RequestInit).body as string)

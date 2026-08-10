@@ -101,7 +101,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
 
   const loadAccountData = async () => {
     try {
-      const response = await fetch("/api/account")
+      const response = await fetch("/api/v1/users/me")
       if (response.ok) {
         const data = await response.json()
         setAccountData(data.user)
@@ -120,7 +120,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
 
     setResendingVerification(true)
     try {
-      const response = await fetch("/api/account/verify-email", {
+      const response = await fetch("/api/v1/users/me/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "resend" }),
@@ -156,7 +156,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
     if (!accountData) return
 
     try {
-      const response = await fetch("/api/account/verify-email", {
+      const response = await fetch("/api/v1/users/me/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "cancel" }),
@@ -190,7 +190,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
   const handleExport = async (format: "json" | "csv") => {
     setExporting(true)
     try {
-      const response = await fetch(`/api/account/export?format=${format}`)
+      const response = await fetch(`/api/v1/users/me/export?format=${format}`)
 
       if (response.ok) {
         const blob = await response.blob()
@@ -240,7 +240,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
 
     setDeleting(true)
     try {
-      const response = await fetch("/api/account/delete", {
+      const response = await fetch("/api/v1/users/me/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

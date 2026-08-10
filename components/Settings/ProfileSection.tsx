@@ -56,7 +56,7 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
         updateData.image = customImageUrl
       }
 
-      const response = await fetch("/api/account", {
+      const response = await fetch("/api/v1/users/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
