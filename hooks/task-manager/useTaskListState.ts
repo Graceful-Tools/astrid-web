@@ -126,8 +126,8 @@ export function useTaskListState({
       // handling and cache invalidation that a bare fetch would drop.
       const [syncPayload, publicTasksResponse, publicListsResponse] = await Promise.all([
         fetchSyncPayload({ fetchImpl: ((url: string) => apiGet(String(url))) as unknown as typeof fetch }),
-        apiGet("/api/public-tasks"),
-        apiGet("/api/lists/public?limit=10"),
+        apiGet("/api/v1/public/tasks"),
+        apiGet("/api/v1/public/lists?limit=10"),
       ])
 
       const [publicTasksData, publicListsData] = await Promise.all([

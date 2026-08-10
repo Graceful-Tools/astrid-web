@@ -282,3 +282,29 @@ describe('inbound routes (task 641a7615)', () => {
     ).toBe('unused-no-successor')
   })
 })
+
+/**
+ * The second batch of renames, found the same way as the first: by reading
+ * `app/api/v1` rather than by pattern-matching paths.
+ *
+ * These were sitting in `needs-decision` — the list of routes supposedly
+ * needing a successor built — while their successors already existed. The
+ * public ones are the least guessable: browsing moved under a `/public`
+ * namespace instead of staying a sub-path of its resource, so no amount of
+ * prefix rewriting finds them.
+ */
+describe('v1PathFor account and public renames (task 641a7615)', () => {
+  it('maps the account surface onto users/me', () => {
+    expect(v1PathFor('/api/account')).toBe('/api/v1/users/me')
+    expect(v1PathFor('/api/account/delete')).toBe('/api/v1/users/me/delete')
+    expect(v1PathFor('/api/account/export')).toBe('/api/v1/users/me/export')
+    expect(v1PathFor('/api/account/verify-email')).toBe('/api/v1/users/me/verify-email')
+  })
+
+  it('follows the public namespace restructure', () => {
+    // /api/lists/public → /api/v1/public/lists reverses the segments; a prefix
+    // rewrite would look for /api/v1/lists/public, which does not exist.
+    expect(v1PathFor('/api/lists/public')).toBe('/api/v1/public/lists')
+    expect(v1PathFor('/api/public-tasks')).toBe('/api/v1/public/tasks')
+  })
+})

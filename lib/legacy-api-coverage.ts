@@ -123,6 +123,17 @@ export const SUCCESSOR_OVERRIDES: Record<string, string | null> = {
   '/api/user/reminder-settings': '/api/v1/users/me/reminder-settings',
   '/api/user/webhook-settings': '/api/v1/users/me/webhook-settings',
   '/api/reminders/status': '/api/v1/reminders',
+  // The account surface moved under users/me as well. Each of these is
+  // confirmed by the v1 route's own header ("Mirrors POST /api/account/delete"
+  // and so on) rather than by the paths looking alike.
+  '/api/account': '/api/v1/users/me',
+  '/api/account/delete': '/api/v1/users/me/delete',
+  '/api/account/export': '/api/v1/users/me/export',
+  '/api/account/verify-email': '/api/v1/users/me/verify-email',
+  // Public browsing was restructured: the resource moved under a /public
+  // namespace instead of staying a sub-path of its resource.
+  '/api/lists/public': '/api/v1/public/lists',
+  '/api/public-tasks': '/api/v1/public/tasks',
   // Decided, not missing: nothing calls it on any platform, so it gets no twin
   // (task 641a7615, decision 3A). `null` says "deliberately none" rather than
   // leaving it to look like an oversight.

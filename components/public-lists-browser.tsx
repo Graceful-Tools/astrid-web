@@ -114,6 +114,10 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
       if (filterBy === 'recent') params.set("sortBy", "recent")
       if (selectedCreator) params.set("ownerId", selectedCreator)
 
+      // Stays on legacy: v1's /api/v1/public/lists is a projection that emits
+      // taskCount and memberCount, while this browser reads list._count,
+      // list.copyCount and selectedList.tasks. Swapping it would blank the
+      // task counts and the copy count with no error. (641a7615 step 3)
       const response = await fetch(`/api/lists/public?${params}`)
       if (response.ok) {
         const data = await response.json()
