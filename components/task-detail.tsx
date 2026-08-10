@@ -151,9 +151,13 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     return isMobileDevice() || isIPadDevice() || is1ColumnView()
   }
 
-  // Scroll area ref for auto-scrolling when new comments are added
+  // Scroll area ref for auto-scrolling when new comments are added.
+  // Tracked as IDS, not a count: the task object is replaced wholesale on every
+  // refresh and every field edit, so a count alone cannot tell "a comment was
+  // posted" from "the comments array finally arrived" (task 5e997cf9).
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
-  const prevCommentCountRef = useRef((task.comments || []).length)
+  const prevCommentIdsRef = useRef<string[]>((task.comments || []).map(c => c.id))
+  const prevCommentTaskIdRef = useRef(task.id)
 
   const arrowTop = usePanelArrowPosition({
     sourceSelector: `[data-task-id="${task.id}"]`,
@@ -1155,10 +1159,38 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     pullToRefresh.bindToElement(el)
   }, [pullToRefresh])
 
-  // Auto-scroll to bottom when new comments are added
-  const commentCount = (task.comments || []).length
+  // Auto-scroll to bottom when a comment is genuinely ADDED to the thread.
+  //
+  // This used to compare `task.comments.length` against the previous length,
+  // which scroll-jumped the pane on any edit (task 5e997cf9): `task` is
+  // replaced wholesale by `handleRefreshComments` and by every
+  // `onUpdate({ ...task, x })` call site, so a local copy holding no comments
+  // becoming one holding N read as "N comments arrived" and jumped the user to
+  // the bottom mid-edit.
+  //
+  // An append is now identified structurally — the previous ids must remain a
+  // prefix of the new ones — and a first population is only treated as an
+  // append when the new comment is optimistic (`temp-`), i.e. this client just
+  // posted it. Loading N comments into an empty thread is indistinguishable
+  // from N arriving at once, so the quiet option is the right default there.
+  const commentIdsKey = (task.comments || []).map(c => c.id).join(',')
   useEffect(() => {
-    if (commentCount > prevCommentCountRef.current && scrollAreaRef.current) {
+    const currentIds = (task.comments || []).map(c => c.id)
+    const previousIds = prevCommentIdsRef.current
+    const isSameTask = prevCommentTaskIdRef.current === task.id
+
+    const isAppend =
+      isSameTask &&
+      currentIds.length > previousIds.length &&
+      previousIds.every((id, index) => currentIds[index] === id)
+
+    // A thread that was empty may have just been loaded rather than added to.
+    // Only our own optimistic write proves otherwise.
+    const appended = isAppend ? currentIds.slice(previousIds.length) : []
+    const isLocalPost = appended.some(id => id.startsWith('temp-'))
+    const shouldScroll = isAppend && (previousIds.length > 0 || isLocalPost)
+
+    if (shouldScroll && scrollAreaRef.current) {
       setTimeout(() => {
         scrollAreaRef.current?.scrollTo({
           top: scrollAreaRef.current.scrollHeight,
@@ -1166,8 +1198,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         })
       }, 100)
     }
-    prevCommentCountRef.current = commentCount
-  }, [commentCount])
+
+    prevCommentIdsRef.current = currentIds
+    prevCommentTaskIdRef.current = task.id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commentIdsKey, task.id])
 
   const handleCancelLists = () => {
     setTempLists(task.lists || [])
