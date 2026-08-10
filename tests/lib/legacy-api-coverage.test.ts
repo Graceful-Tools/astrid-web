@@ -308,3 +308,15 @@ describe('v1PathFor account and public renames (task 641a7615)', () => {
     expect(v1PathFor('/api/public-tasks')).toBe('/api/v1/public/tasks')
   })
 })
+
+describe('server-invoked routes are not "unused" (task 641a7615)', () => {
+  it('treats the Vercel Blob upload callback as inbound', () => {
+    // Our own code hands this URL to Blob as a callback and then never calls
+    // it. A caller scan sees zero and a reader sees "nothing calls it,
+    // nothing replaces it" — one step from deleting the last stage of every
+    // secure upload.
+    expect(
+      classifyRoute({ apiPath: '/api/secure-upload/upload-complete', hasV1: false, callerCount: 0 })
+    ).toBe('inbound-external')
+  })
+})

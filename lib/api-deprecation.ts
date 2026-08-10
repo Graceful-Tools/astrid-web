@@ -167,6 +167,13 @@ export function isLegacyApiPath(pathname: string): boolean {
   if (pathname.startsWith(V1_PREFIX)) return false
   for (const prefix of INTERNAL_PREFIXES) {
     if (pathname.startsWith(prefix)) return false
+    // A prefix written with a trailing slash also covers the bare route at
+    // that exact path. Without this, `/api/assistant-workflow/x` was excluded
+    // while `/api/assistant-workflow` — a real route, called server-to-server
+    // from a Prisma middleware on ordinary writes — was counted as legacy
+    // traffic that could never reach zero. The slash still has to be there in
+    // the prefix, so `/api/admin` cannot swallow `/api/administrators`.
+    if (prefix.endsWith('/') && pathname === prefix.slice(0, -1)) return false
   }
   if (isPermanentlyExemptAuthPath(pathname)) return false
   return true

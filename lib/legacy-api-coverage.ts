@@ -53,6 +53,10 @@ export const INBOUND_ROUTES = [
   // OAuth and self-hosted-server callbacks.
   '/api/contacts/google/callback',
   '/api/remote-servers/callback',
+  // Vercel Blob calls this back when an upload finishes; the URL is handed to
+  // Blob by /api/secure-upload/get-upload-url. Nothing in our code calls it,
+  // and deleting it would break every secure upload at the last step.
+  '/api/secure-upload/upload-complete',
   // Clicked by a human from an email that is already sent — the link outlives
   // any deploy, so this one cannot be retired on traffic evidence at all.
   '/api/settings/reminders/unsubscribe',

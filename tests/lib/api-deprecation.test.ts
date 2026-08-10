@@ -7,6 +7,34 @@ import {
 } from '@/lib/api-deprecation'
 
 describe('isLegacyApiPath', () => {
+  /**
+   * An internal prefix written with a trailing slash did not match the bare
+   * route at that exact path. `/api/assistant-workflow/anything` was excluded
+   * while `/api/assistant-workflow` — a real route, called server-to-server
+   * from a Prisma middleware and two notifiers on ordinary writes — was
+   * counted as legacy traffic.
+   *
+   * That is worse than a miscount. The census is what decides when a route is
+   * safe to delete, and this one would have shown steady legacy traffic that
+   * never reached zero no matter how thoroughly the clients migrated.
+   */
+  it('excludes the bare route at an internal prefix, not just its children', () => {
+    expect(isLegacyApiPath('/api/assistant-workflow')).toBe(false)
+    expect(isLegacyApiPath('/api/assistant-workflow/trigger')).toBe(false)
+  })
+
+  it('excludes the bare route for every slash-terminated internal prefix', () => {
+    for (const path of ['/api/cron', '/api/admin', '/api/mcp', '/api/coding-workflow', '/api/agent-workflow', '/api/openclaw']) {
+      expect(isLegacyApiPath(path)).toBe(false)
+    }
+  })
+
+  it('does not let the prefix swallow a sibling that merely starts the same', () => {
+    // `/api/admin` must not exclude `/api/administrators` — the prefix is a
+    // path boundary, not a string prefix.
+    expect(isLegacyApiPath('/api/administrators')).toBe(true)
+  })
+
   // Routes the iOS app calls that are part of the migration surface.
   // If any of these stop being detected as legacy, deprecation
   // telemetry stops working for that route.
