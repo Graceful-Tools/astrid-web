@@ -25,7 +25,7 @@
  * code still points at it.
  */
 
-import { readdirSync, statSync, readFileSync } from 'fs'
+import { readdirSync, statSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import {
   routeFileToApiPath,
@@ -52,6 +52,19 @@ const CODE = /\.(ts|tsx)$/
  */
 const IOS_REPO = '../astrid-ios'
 const SWIFT = /\.swift$/
+
+/**
+ * Server-side roots. A route can be invoked by our own backend over HTTP —
+ * a Prisma middleware firing a workflow, a notifier, a callback URL handed to
+ * a third party — and a client scan sees none of it.
+ *
+ * That is not hypothetical: checking this by hand found `/api/assistant-workflow`
+ * being called from a Prisma middleware while the census counted it as legacy
+ * client traffic, and `/api/secure-upload/upload-complete` sitting in "nothing
+ * calls it" while being the callback URL for every secure upload. Both were one
+ * step from deletion. It runs automatically now so the check cannot be skipped.
+ */
+const SERVER_ROOTS = ['app/api', 'lib', 'scripts']
 
 function walk(dir: string, out: string[] = []): string[] {
   let entries: string[]
@@ -184,6 +197,16 @@ function main() {
 
   tally(clientFiles(), stripComments, callerCounts)
 
+  // Server-side callers. A route's own file is excluded — a route referring to
+  // its own path in a log line is not a caller of itself.
+  const serverCallerCounts = new Map<string, number>()
+  const serverFiles = SERVER_ROOTS.flatMap((root) => walk(root))
+    .filter((f) => CODE.test(f))
+    .map((f) => f.replace(/\\/g, '/'))
+    .filter((f) => !DESCRIBES_THE_API.some((prefix) => f.startsWith(prefix)))
+    .filter((f) => !f.includes('/archive/'))
+  tally(serverFiles, stripComments, serverCallerCounts)
+
   const ios = iosFiles()
   if (ios.length === 0) {
     console.log('\nNote: no ../astrid-ios checkout — iOS callers not counted.')
@@ -203,7 +226,13 @@ function main() {
       const v1Path = v1PathFor(apiPath)
       const hasV1 = v1Path !== null && v1Paths.has(v1Path)
       // A route is only callerless when BOTH clients have moved off it.
-      const callerCount = (callerCounts.get(apiPath) ?? 0) + (iosCallerCounts.get(apiPath) ?? 0)
+      const ownRoute = `app${apiPath}/route.ts`
+      const serverCount = serverCallerCounts.get(apiPath) ?? 0
+      const callerCount =
+        (callerCounts.get(apiPath) ?? 0) +
+        (iosCallerCounts.get(apiPath) ?? 0) +
+        // A route naming its own path is not calling itself.
+        (existsSync(ownRoute) ? Math.max(0, serverCount - 1) : serverCount)
       return { apiPath, v1Path, hasV1, callerCount, status: classifyRoute({ apiPath, hasV1, callerCount }) }
     })
     .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.apiPath.localeCompare(b.apiPath))
@@ -237,7 +266,12 @@ function main() {
     const v1 = route.hasV1 ? 'v1 ✓' : 'v1 ✗'
     const web = callerCounts.get(route.apiPath) ?? 0
     const iosCount = iosCallerCounts.get(route.apiPath) ?? 0
-    console.log(`  ${route.apiPath.padEnd(width)}  ${v1}  web: ${web}  ios: ${iosCount}`)
+    const ownRoute = `app${route.apiPath}/route.ts`
+    const rawServer = serverCallerCounts.get(route.apiPath) ?? 0
+    const server = existsSync(ownRoute) ? Math.max(0, rawServer - 1) : rawServer
+    console.log(
+      `  ${route.apiPath.padEnd(width)}  ${v1}  web: ${web}  ios: ${iosCount}  server: ${server}`
+    )
   }
   console.log('\nCaller counts are a text scan — a lower bound, not proof. Deletion is')
   console.log('gated on traffic evidence (lib/legacy-api-usage.ts), not on this.\n')
