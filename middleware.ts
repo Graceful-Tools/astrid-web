@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import type { NextFetchEvent, NextRequest } from "next/server"
 import createMiddleware from 'next-intl/middleware'
 import { routing } from '@/lib/i18n/routing'
 import {
@@ -8,11 +8,40 @@ import {
   buildDeprecationHeaders,
 } from '@/lib/api-deprecation'
 import { shouldBypassIntlRouting } from '@/lib/middleware-bypass'
+import { LEGACY_USAGE_BEACON_PATH } from '@/lib/legacy-api-usage'
+import { detectPlatform } from '@/lib/analytics-events'
 
 // Create next-intl middleware
 const intlMiddleware = createMiddleware(routing)
 
-export function middleware(request: NextRequest) {
+/**
+ * Send a legacy hit to the durable census (task 641a7615).
+ *
+ * Fire-and-forget, handed to `waitUntil` so it runs after the response is on
+ * its way — the request being measured never waits for it. Failures are
+ * swallowed: telemetry for a migration must not be able to break traffic.
+ *
+ * A beacon is needed because the middleware runs in the edge runtime and
+ * cannot reach Prisma, and because instrumenting ~30 heterogeneous legacy
+ * route files individually is exactly what `lib/api-deprecation.ts` set out to
+ * avoid.
+ */
+function beaconLegacyHit(request: NextRequest, pathname: string): Promise<unknown> {
+  const secret = process.env.INTERNAL_API_SECRET
+  if (!secret) return Promise.resolve()
+
+  return fetch(new URL(LEGACY_USAGE_BEACON_PATH, request.nextUrl.origin), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': secret },
+    body: JSON.stringify({
+      route: pathname,
+      method: request.method,
+      platform: detectPlatform(request),
+    }),
+  }).catch(() => {})
+}
+
+export function middleware(request: NextRequest, event?: NextFetchEvent) {
   const host = request.headers.get("host") || ""
   const pathname = request.nextUrl.pathname
 
@@ -49,6 +78,12 @@ export function middleware(request: NextRequest) {
       method: request.method,
       headers: request.headers,
     })))
+    // The log line above is a live tail; Vercel keeps it for minutes. The
+    // beacon is the durable half that the >=4-week retirement window is
+    // actually queryable from (task 641a7615).
+    // Guarded: a missing NextFetchEvent (tests, or any runtime that omits it)
+    // must not turn telemetry into a 500 on a real request.
+    event?.waitUntil?.(beaconLegacyHit(request, pathname))
     const response = NextResponse.next()
     for (const [k, v] of Object.entries(buildDeprecationHeaders(pathname))) {
       response.headers.set(k, v)
