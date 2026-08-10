@@ -77,7 +77,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
         listId: listId
       }))
 
-      const response = await fetch('/api/secure-upload/request-upload', {
+      const response = await fetch('/api/v1/secure-upload/request-upload', {
         method: 'POST',
         body: formData,
       })

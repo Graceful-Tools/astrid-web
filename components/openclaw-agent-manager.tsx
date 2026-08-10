@@ -174,7 +174,7 @@ export function OpenClawAgentManager() {
       const formData = new FormData()
       formData.append("file", file)
 
-      const uploadRes = await fetch("/api/upload", {
+      const uploadRes = await fetch("/api/v1/upload", {
         method: "POST",
         body: formData,
       })

@@ -77,7 +77,7 @@ describe('ImagePicker Upload Functionality', () => {
 
       // Wait for upload to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
+        expect(mockFetch).toHaveBeenCalledWith('/api/v1/secure-upload/request-upload', {
           method: 'POST',
           body: expect.any(FormData)
         })

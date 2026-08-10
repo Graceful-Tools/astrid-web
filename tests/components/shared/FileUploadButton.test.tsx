@@ -68,7 +68,7 @@ describe('FileUploadButton', () => {
     })
 
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/secure-upload/request-upload',
+      '/api/v1/secure-upload/request-upload',
       expect.objectContaining({
         method: 'POST',
         body: expect.any(FormData)
