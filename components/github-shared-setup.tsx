@@ -64,7 +64,7 @@ export function GitHubSharedSetup() {
 
   const checkConnectionStatus = async () => {
     try {
-      const response = await fetch('/api/github/status')
+      const response = await fetch('/api/v1/github/status')
       if (response.ok) {
         const data = await response.json()
         setConnectionStatus(data)

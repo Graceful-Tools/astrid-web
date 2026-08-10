@@ -52,7 +52,7 @@ export function ListMembership({
         setLoadingAiProviders(true)
 
         // Check GitHub status first
-        const githubResponse = await fetch('/api/github/status')
+        const githubResponse = await fetch('/api/v1/github/status')
         if (githubResponse.ok) {
           const githubData = await githubResponse.json()
           setIsGitHubConnected(githubData.isGitHubConnected)
