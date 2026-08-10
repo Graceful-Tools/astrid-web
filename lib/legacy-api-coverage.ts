@@ -25,6 +25,39 @@
 
 import { isLegacyApiPath } from './api-deprecation'
 
+/**
+ * Routes whose callers are OUTSIDE this codebase.
+ *
+ * A caller scan reports zero for these forever, and that zero means the
+ * opposite of what it means elsewhere: nothing in our code calls them because
+ * nothing in our code is supposed to. Deleting one silently breaks an inbound
+ * integration — a GitHub webhook, an OAuth callback, an unsubscribe link
+ * already sitting in someone's inbox.
+ *
+ * Listed explicitly rather than matched on "webhook" or "callback" in the
+ * path, because the reason a route is inbound is not recoverable from its
+ * name, and a heuristic that is right nine times teaches you to trust it the
+ * tenth. Each of these was read before being listed.
+ */
+export const INBOUND_ROUTES = [
+  // Signature-verified webhooks from external services.
+  '/api/webhooks/email', // Resend
+  '/api/webhooks/github-issues', // GitHub
+  '/api/webhooks/ai-agents',
+  '/api/webhooks/claude-integration',
+  '/api/webhooks/gemini-integration',
+  '/api/webhooks/openai-integration',
+  '/api/ai-agent/webhook',
+  '/api/coding-agent/github-trigger', // GitHub
+  '/api/coding-agent/workflow-complete', // worker reporting back
+  // OAuth and self-hosted-server callbacks.
+  '/api/contacts/google/callback',
+  '/api/remote-servers/callback',
+  // Clicked by a human from an email that is already sent — the link outlives
+  // any deploy, so this one cannot be retired on traffic evidence at all.
+  '/api/settings/reminders/unsubscribe',
+] as const
+
 export type RouteStatus =
   /** Not part of the retirement: internal infrastructure, or permanently exempt. */
   | 'out-of-scope'
@@ -34,6 +67,8 @@ export type RouteStatus =
   | 'callers-remain'
   /** No successor and nothing calls it. Can likely just be deleted. */
   | 'unused-no-successor'
+  /** Called from outside this codebase: a zero caller count proves nothing. */
+  | 'inbound-external'
   /** No successor and clients depend on it. Needs a successor-or-exempt decision. */
   | 'needs-decision'
 
@@ -111,6 +146,10 @@ export function classifyRoute(args: {
   // pathname; a dynamic segment like `[id]` is inert for its prefix checks.
   if (!isLegacyApiPath(apiPath)) return 'out-of-scope'
 
+  // Checked before the caller counts, because for these the count is not
+  // evidence either way.
+  if ((INBOUND_ROUTES as readonly string[]).includes(apiPath)) return 'inbound-external'
+
   if (hasV1) {
     return callerCount > 0 ? 'callers-remain' : 'awaiting-traffic-evidence'
   }
@@ -165,6 +204,7 @@ export function matchLiteralToRoute(literal: string, routePaths: string[]): stri
 export const STATUS_ORDER: RouteStatus[] = [
   'needs-decision',
   'callers-remain',
+  'inbound-external',
   'unused-no-successor',
   'awaiting-traffic-evidence',
   'out-of-scope',

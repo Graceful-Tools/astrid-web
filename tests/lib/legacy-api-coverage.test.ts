@@ -131,6 +131,7 @@ describe('summarize (task 641a7615)', () => {
     expect(summarize(routes)).toEqual({
       'needs-decision': 2,
       'callers-remain': 0,
+      'inbound-external': 0,
       'unused-no-successor': 0,
       'awaiting-traffic-evidence': 1,
       'out-of-scope': 0,
@@ -227,5 +228,57 @@ describe('v1PathFor overrides (task 641a7615)', () => {
     // A route absent from the table falls through to the mechanical rule.
     expect(v1PathFor('/api/user/mcp-settings')).toBeNull()
     expect(v1PathFor('/api/user/unmapped-thing')).toBe('/api/v1/user/unmapped-thing')
+  })
+})
+
+/**
+ * Inbound routes.
+ *
+ * These are called from outside the codebase, so a caller scan reports zero
+ * forever — and that zero means the opposite of what it means elsewhere. Left
+ * in `unused-no-successor`, a GitHub webhook and an OAuth callback would sit
+ * in a list captioned "nothing calls it, nothing replaces it", which is an
+ * invitation to delete them.
+ */
+describe('inbound routes (task 641a7615)', () => {
+  it('classifies a webhook as inbound, not unused', () => {
+    expect(
+      classifyRoute({ apiPath: '/api/webhooks/github-issues', hasV1: false, callerCount: 0 })
+    ).toBe('inbound-external')
+  })
+
+  it('classifies an OAuth callback as inbound', () => {
+    expect(
+      classifyRoute({ apiPath: '/api/contacts/google/callback', hasV1: false, callerCount: 0 })
+    ).toBe('inbound-external')
+  })
+
+  it('classifies an emailed unsubscribe link as inbound', () => {
+    // The link is already in people's inboxes; it outlives any deploy, so this
+    // one cannot be retired on traffic evidence at all.
+    expect(
+      classifyRoute({ apiPath: '/api/settings/reminders/unsubscribe', hasV1: false, callerCount: 0 })
+    ).toBe('inbound-external')
+  })
+
+  it('stays inbound even if something in-repo does reference it', () => {
+    // A test fixture or a docs page mentioning the path must not promote it
+    // back into the migration queue.
+    expect(
+      classifyRoute({ apiPath: '/api/webhooks/email', hasV1: false, callerCount: 2 })
+    ).toBe('inbound-external')
+  })
+
+  it('leaves an ordinary route alone', () => {
+    expect(
+      classifyRoute({ apiPath: '/api/images/store', hasV1: false, callerCount: 0 })
+    ).toBe('unused-no-successor')
+  })
+
+  it('does not classify by name — a route merely called "callback" is not exempt', () => {
+    // The list is explicit precisely so this stays true.
+    expect(
+      classifyRoute({ apiPath: '/api/something/callback', hasV1: false, callerCount: 0 })
+    ).toBe('unused-no-successor')
   })
 })
