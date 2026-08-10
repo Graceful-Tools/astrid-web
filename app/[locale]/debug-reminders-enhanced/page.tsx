@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useCallback } from 'react'
+import { unwrapTask } from '@/lib/v1-response'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -75,7 +76,7 @@ export default function EnhancedReminderDebugPage() {
       const dueDate = new Date(now.getTime() + dueMinutes * 60 * 1000)
       const reminderDate = new Date(now.getTime() + reminderMinutes * 60 * 1000)
 
-      const response = await fetch('/api/tasks', {
+      const response = await fetch('/api/v1/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,7 +91,9 @@ export default function EnhancedReminderDebugPage() {
       })
 
       if (response.ok) {
-        const task = await response.json()
+        // v1 wraps the new task in { task, meta }; legacy returned it bare.
+        const task = unwrapTask<{ id: string; title: string }>(await response.json())
+        if (!task) throw new Error('Task creation returned no task')
         addTestResult(`✅ Created test task: ${task.title} (ID: ${task.id})`)
         addTestResult(`📅 Due: ${dueDate.toLocaleString()}`)
         addTestResult(`🔔 Reminder: ${reminderDate.toLocaleString()}`)
