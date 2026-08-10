@@ -11,6 +11,14 @@ a no-op, not busywork.
 not triaged. `Ready` is Jon's signal that a task is actually actionable. Working
 anything else is not autonomy, it is picking your own work.
 
+**The queue is `Ready` ∩ `Astrid Web To-do`, and both halves are required.** `Ready` is
+not a sublist of the web board — it is one account-wide `listType: 'status'` list that
+every board shares, including `Astrid iOS To-do`, Voteelo and Career. Filtering on
+`Ready` alone queues whatever Jon marked ready *anywhere*. `scripts/ready-tasks.ts`
+does the intersection, prints the Ready tasks it excluded (so a queue full of other
+boards' work never looks like an empty one), and exits non-zero rather than running
+unscoped if either list is missing.
+
 ## Scope: one board, one repo
 
 **This loop works the Astrid Web To-do, and edits only `astrid-web`.** Both halves of
@@ -90,8 +98,8 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
    npx tsx scripts/ready-tasks.ts
    ```
    Prints `READY_EMPTY`, or the queue in the order to work it (priority high → low,
-   then oldest first). It resolves `Ready` by NAME and filters server-side via
-   `listId`.
+   then oldest first). It resolves `Ready` and `Astrid Web To-do` by NAME, filters
+   server-side via `listId`, then keeps only the tasks on both.
 
    This replaces `get-astrid-tasks` + one `analyze-task` per task, which cost six
    requests to discover there was nothing to do. Use `get-astrid-tasks.ts web` only
@@ -99,7 +107,9 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
 
    Note the failure mode it is written to avoid: a wrong list id returns an empty
    result, which reads exactly like "nothing to do". The script errors loudly if
-   there is no list named `Ready` rather than reporting an empty queue.
+   either list is missing by name rather than reporting an empty queue — and a
+   missing board is the worse of the two, since dropping that filter silently
+   widens the loop to every board on the account.
 
 2. **If it prints `READY_EMPTY`**, say so in one line and stop. Nothing else to do.
 

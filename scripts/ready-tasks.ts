@@ -7,6 +7,13 @@
  * that there is nothing to do. `GET /api/v1/tasks?listId=` filters server-side,
  * so the whole check is one call.
  *
+ * BOTH lists are required, because `Ready` is NOT a sublist of the web board:
+ * it is a single account-wide `listType: 'status'` list that every board shares
+ * — Astrid iOS To-do, Voteelo, Career, all of them. Filtering on `Ready` alone
+ * queues whatever Jon happened to mark ready anywhere, and the web loop would
+ * pick up iOS work that a second agent is already running against `astrid-ios`.
+ * So a task qualifies only if it is on Ready AND on the Astrid Web To-do.
+ *
  * Exits 0 with "READY_EMPTY" when there is nothing queued, so a scheduled run
  * can stop without parsing anything.
  *
@@ -18,6 +25,7 @@
 export {}
 
 const READY_LIST_NAME = "Ready"
+const BOARD_LIST_NAME = "Astrid Web To-do"
 
 async function main() {
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
@@ -46,18 +54,27 @@ async function main() {
   const { access_token: token } = await tokenResponse.json()
   const auth = { "X-OAuth-Token": token }
 
-  // Resolve Ready by NAME rather than hardcoding its id: the id is account
-  // data, and a hardcoded one fails silently by returning an empty list, which
-  // reads exactly like "nothing to do".
+  // Resolve both lists by NAME rather than hardcoding their ids: an id is
+  // account data, and a hardcoded one fails silently by returning an empty
+  // list, which reads exactly like "nothing to do".
   const listsResponse = await fetch("https://astrid.cc/api/v1/lists", { headers: auth })
   const listsBody = await listsResponse.json()
   const lists = listsBody.lists ?? listsBody
-  const ready = (Array.isArray(lists) ? lists : []).find(
-    (list: { name?: string }) => list.name === READY_LIST_NAME,
-  )
+  const byName = (name: string) =>
+    (Array.isArray(lists) ? lists : []).find((list: { name?: string }) => list.name === name)
 
+  const ready = byName(READY_LIST_NAME)
+  const board = byName(BOARD_LIST_NAME)
+
+  // Fail loudly on a missing list instead of degrading to an empty queue. A
+  // missing board is the more dangerous of the two: skipping the filter would
+  // silently widen the loop back to every board on the account.
   if (!ready) {
     console.error(`❌ No list named "${READY_LIST_NAME}" found — check the account, not the queue.`)
+    process.exit(1)
+  }
+  if (!board) {
+    console.error(`❌ No list named "${BOARD_LIST_NAME}" found — refusing to run unscoped.`)
     process.exit(1)
   }
 
@@ -67,14 +84,30 @@ async function main() {
   )
   const tasksBody = await tasksResponse.json()
   const tasks = tasksBody.tasks ?? tasksBody
+  const all = Array.isArray(tasks) ? tasks : []
 
-  if (!Array.isArray(tasks) || tasks.length === 0) {
+  // Ready ∩ Astrid Web To-do. Anything else in Ready belongs to another board
+  // and another agent.
+  const mine = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
+  const others = all.filter((task: { listIds?: string[] }) => !(task.listIds ?? []).includes(board.id))
+
+  // Print what was filtered out. Silently dropping it would make a Ready queue
+  // full of iOS work look identical to an empty one, and Jon would have no way
+  // to tell that the web loop was idle for a reason he could fix.
+  if (others.length > 0) {
+    console.log(`(${others.length} Ready task(s) on other boards — not this loop's:)`)
+    for (const task of others) {
+      console.log(`  — ${task.title}`)
+    }
+  }
+
+  if (mine.length === 0) {
     console.log("READY_EMPTY")
     return
   }
 
   // Priority high → low, then oldest first — the order /fixall works them in.
-  const queue = [...tasks].sort((a, b) => {
+  const queue = [...mine].sort((a, b) => {
     if ((b.priority ?? 0) !== (a.priority ?? 0)) return (b.priority ?? 0) - (a.priority ?? 0)
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   })
