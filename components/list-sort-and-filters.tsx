@@ -9,20 +9,32 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { Star, StarOff } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { useTranslations } from "@/lib/i18n/client"
+import { DEFAULT_LIST_SHOW_SUBTASKS } from "@/lib/list-subtask-visibility"
 
 interface ListSortAndFiltersProps {
   list: TaskList
   currentUser: User
   onUpdate: (list: TaskList) => void
   onFavoriteToggle?: (listId: string) => void
+  /**
+   * Gates the per-list "Show subtasks" toggle. The rest of this panel is
+   * per-member filter state, but showSubtasks is a list-level setting the
+   * API only accepts from an owner/admin — showing it to everyone would
+   * offer a control whose save is rejected. (Task dce843a1)
+   */
+  canEditSettings?: boolean
 }
 
 export function ListSortAndFilters({
   list,
   currentUser,
   onUpdate,
-  onFavoriteToggle
+  onFavoriteToggle,
+  canEditSettings = false
 }: ListSortAndFiltersProps) {
+  const { t } = useTranslations()
 
   // Filter states loaded from list settings
   const [filterPriority, setFilterPriority] = useState<string>(list.filterPriority || "all")
@@ -290,6 +302,25 @@ export function ListSortAndFilters({
           className="theme-checkbox"
         />
       </div>
+
+      {/* Show subtasks — per-list, owner/admin only. Lives here rather than in
+          Admin Settings because it decides what the list VIEW renders, which is
+          what everything else on this tab does. */}
+      {canEditSettings && (
+        <div className="flex items-center justify-between" data-testid="show-subtasks-row">
+          <div className="flex flex-col pr-3">
+            <Label className="text-sm theme-text-secondary">{t("lists.showSubtasksLabel")}</Label>
+            <span className="text-xs theme-text-muted">{t("lists.showSubtasksDescription")}</span>
+          </div>
+          <Switch
+            checked={list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS}
+            onCheckedChange={(value) => onUpdate({ ...list, showSubtasks: value })}
+            aria-label={t("lists.showSubtasksLabel")}
+            data-testid="show-subtasks-toggle"
+            className="shrink-0"
+          />
+        </div>
+      )}
 
       {/* Filter and Sort Controls */}
       <div className="border-t theme-border pt-4">

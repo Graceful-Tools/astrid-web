@@ -14,7 +14,6 @@ import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructi
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
 import { AstridAgentSection } from "@/components/list-admin/AstridAgentSection"
 import { ListIdSection } from "@/components/list-admin/ListIdSection"
-import { ShowSubtasksSection } from "@/components/list-admin/ShowSubtasksSection"
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -64,13 +63,6 @@ export function ListAdminSettings({
         onUpdate={onUpdate}
         onProjectBoardCreated={onProjectBoardCreated}
         onProjectBoardRemoved={onProjectBoardRemoved}
-      />
-
-      {/* Show subtasks inline in this list */}
-      <ShowSubtasksSection
-        list={list}
-        canEditSettings={canEditSettings}
-        onUpdate={onUpdate}
       />
 
       {/* Astrid — AI agent for this list */}
