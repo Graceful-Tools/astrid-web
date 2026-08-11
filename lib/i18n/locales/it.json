@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "Inserisci il nome della lista...",
       "description": "Aggiungi una descrizione..."
-    }
+    },
+    "showSubtasksLabel": "Mostra sottoattività",
+    "showSubtasksDescription": "Mostra le sottoattività rientrate sotto l'attività principale in questo elenco. Disattivalo per mostrare solo le attività principali: le sottoattività restano visibili nel dettaglio dell'attività principale."
   },
   "priority": {
     "none": "Nessuna",

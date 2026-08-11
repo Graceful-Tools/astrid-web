@@ -226,6 +226,70 @@ describe('PUT /api/v1/lists/:id', () => {
   })
 })
 
+// Task dce843a1: TaskList.showSubtasks — the field the iOS/Mac "Per-list
+// show/hide subtasks" companion is blocked on. iOS reads it off the list
+// payload and writes it back through this handler.
+describe('showSubtasks on /api/v1/lists/:id', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(ownerAuth as any)
+    ;(mockPrisma.listMember.findFirst as any).mockResolvedValue(null)
+  })
+
+  it('GET emits showSubtasks', async () => {
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, showSubtasks: false })
+    const res = await GET(makeReq('GET'), { params } as any)
+    const json = await res.json()
+    expect(json.list.showSubtasks).toBe(false)
+  })
+
+  it('GET reports a null column as true — absent must mean SHOW', async () => {
+    // A row written before the column existed must not read back as "hide",
+    // or the list silently empties itself of subtasks.
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, showSubtasks: null })
+    const res = await GET(makeReq('GET'), { params } as any)
+    const json = await res.json()
+    expect(json.list.showSubtasks).toBe(true)
+  })
+
+  it('owner can set showSubtasks', async () => {
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+    ;(mockPrisma.taskList.update as any).mockResolvedValue({ ...baseList, showSubtasks: false })
+    const res = await PUT(makeReq('PUT', { showSubtasks: false }), { params } as any)
+    expect(res.status).toBe(200)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data.showSubtasks).toBe(false)
+    expect((await res.json()).list.showSubtasks).toBe(false)
+  })
+
+  it('a whole-list PUT that omits showSubtasks leaves the stored value alone', async () => {
+    // An older client round-tripping a list object it fetched before the
+    // field existed must not reset someone's toggle.
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, showSubtasks: false })
+    ;(mockPrisma.taskList.update as any).mockResolvedValue({ ...baseList, showSubtasks: false })
+    await PUT(makeReq('PUT', { name: 'Renamed', description: 'New' }), { params } as any)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data).not.toHaveProperty('showSubtasks')
+  })
+
+  it('a non-boolean showSubtasks is ignored rather than coerced', async () => {
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+    ;(mockPrisma.taskList.update as any).mockResolvedValue(baseList)
+    await PUT(makeReq('PUT', { showSubtasks: 'false' }), { params } as any)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data).not.toHaveProperty('showSubtasks')
+  })
+
+  it('a non-admin member cannot change showSubtasks', async () => {
+    mockAuth.mockResolvedValue(memberAuth as any)
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, ownerId: 'someone-else' })
+    ;(mockPrisma.taskList.update as any).mockResolvedValue(baseList)
+    await PUT(makeReq('PUT', { showSubtasks: false }), { params } as any)
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data.showSubtasks).toBeUndefined()
+  })
+})
+
 describe('DELETE /api/v1/lists/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()

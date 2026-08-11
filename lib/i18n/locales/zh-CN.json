@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "输入列表名称...",
       "description": "添加描述..."
-    }
+    },
+    "showSubtasksLabel": "显示子任务",
+    "showSubtasksDescription": "在此列表中将子任务缩进显示在父任务下方。关闭后仅显示顶层任务，子任务仍可在父任务详情中查看。"
   },
   "priority": {
     "none": "无",

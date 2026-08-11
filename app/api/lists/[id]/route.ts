@@ -10,6 +10,7 @@ import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-event
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
 import { canConvertListFlavor } from "@/lib/list-flavors"
+import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.lists.id')
@@ -217,6 +218,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       githubRepositoryId: data.githubRepositoryId,
       aiAgentsEnabled: data.aiAgentsEnabled,
     }
+
+    // Per-list "show subtasks inline" (task dce843a1). Assigned separately
+    // from the block above because the web client PUTs its whole TaskList
+    // object here on every settings save — writing `data.showSubtasks`
+    // unconditionally would reset the toggle on every unrelated edit made by
+    // a client that hasn't been taught the field.
+    const showSubtasks = normalizeShowSubtasks(data.showSubtasks)
+    if (showSubtasks !== undefined) updateData.showSubtasks = showSubtasks
 
     if (data.sortBy === 'manual' && manualSortOrderUpdate) {
       updateData.manualSortOrder = manualSortOrderUpdate as Prisma.JsonArray

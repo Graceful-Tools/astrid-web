@@ -17,6 +17,7 @@ import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
 import { canUserManageList } from "@/lib/list-permissions"
+import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.v1.lists.id')
@@ -114,6 +115,7 @@ export const GET = withAuth<RouteContext>(
           statusDescription: list.statusDescription ?? null,
           statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
+          showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         } satisfies V1List,
@@ -195,6 +197,12 @@ export const PUT = withAuth<RouteContext>(
       // back to the legacy 24h default. We don't validate the shape here —
       // the helper treats unknown shapes as null.
       if (body.recentlyCompletedWindow !== undefined) updateData.recentlyCompletedWindow = body.recentlyCompletedWindow
+      // Per-list "show subtasks inline". Written ONLY when the caller sends a
+      // real boolean: clients round-trip whole list objects, and a payload
+      // that predates the field must leave the stored toggle untouched rather
+      // than resetting it.
+      const showSubtasks = normalizeShowSubtasks(body.showSubtasks)
+      if (showSubtasks !== undefined) updateData.showSubtasks = showSubtasks
     }
 
     // isFavorite lives in a per-user table, not on TaskList
@@ -304,6 +312,7 @@ export const PUT = withAuth<RouteContext>(
           statusDescription: list.statusDescription ?? null,
           statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
+          showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         } satisfies V1List,

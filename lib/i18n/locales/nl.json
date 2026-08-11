@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "Voer lijstnaam in...",
       "description": "Beschrijving toevoegen..."
-    }
+    },
+    "showSubtasksLabel": "Subtaken tonen",
+    "showSubtasksDescription": "Toon subtaken ingesprongen onder hun hoofdtaak in deze lijst. Zet dit uit om alleen hoofdtaken te tonen — subtaken blijven zichtbaar in het detailscherm van de hoofdtaak."
   },
   "priority": {
     "none": "Geen",

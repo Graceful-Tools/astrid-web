@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "Entrez le nom de la liste...",
       "description": "Ajouter une description..."
-    }
+    },
+    "showSubtasksLabel": "Afficher les sous-tâches",
+    "showSubtasksDescription": "Affiche les sous-tâches en retrait sous leur tâche parente dans cette liste. Désactivez cette option pour n'afficher que les tâches principales — les sous-tâches restent visibles dans le détail de la tâche parente."
   },
   "priority": {
     "none": "Aucune",

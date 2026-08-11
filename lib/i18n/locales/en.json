@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "Enter list name...",
       "description": "Add a description..."
-    }
+    },
+    "showSubtasksLabel": "Show subtasks",
+    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view."
   },
   "priority": {
     "none": "None",

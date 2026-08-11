@@ -9,6 +9,7 @@ import {
   type RecentlyCompletedWindow,
   type CompletionFilterMode
 } from "@/lib/recently-completed-window"
+import { shouldShowSubtasksInList } from "@/lib/list-subtask-visibility"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
@@ -328,7 +329,11 @@ export function useTaskManagerController({
       // Indented display (default): splice each visible parent's subtasks
       // directly after it, following the SAME completion filter as the list
       // (per-list recentlyCompletedWindow + the active completed filter).
-      if (subtaskDisplay !== 'under_parent' && subtasksByParent.size > 0) {
+      //
+      // Whether to splice at all combines the per-list showSubtasks toggle
+      // with the user's subtaskDisplay — one rule, one module, so iOS ports
+      // it rather than re-deriving it (task dce843a1).
+      if (shouldShowSubtasksInList(currentList?.showSubtasks, subtaskDisplay) && subtasksByParent.size > 0) {
         const window = (currentList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
         const mode = newFilterState.filters.completed as CompletionFilterMode
         const now = new Date()
