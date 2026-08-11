@@ -70,6 +70,14 @@ interface TaskDetailProps {
   selectedTaskElement?: HTMLElement | null
   readOnly?: boolean  // If true, shows view-only mode (no editing)
   inline?: boolean
+  /**
+   * Whether this pane can be expanded to full screen. Set by whoever renders
+   * the pane, because only they know if it is windowed: the desktop floating
+   * pane can expand, the phone pane already fills the screen so a toggle
+   * there is meaningless. Previously inferred from a CSS width breakpoint,
+   * which hid the control on iPad portrait. (Task 0ea0b818)
+   */
+  allowFullScreen?: boolean
   swipeToDismiss?: {
     onTouchStart: (e: React.TouchEvent) => void
     onTouchMove: (e: React.TouchEvent) => void
@@ -77,7 +85,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, inline = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
   // SSE subscriptions handled by useSSESubscription hook below
   const { reminderDebugMode } = useSettings()
@@ -684,6 +692,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   // an escape hatch for a long description, not a new default layout. Never
   // offered for the inline/board panel, which is deliberately a peek.
   const [fullScreen, setFullScreen] = useState(false)
+  // An inline/board panel collapses in place rather than expanding, and a pane
+  // that is already full screen has nothing to expand into.
+  const canFullScreen = !inline && allowFullScreen
+  const isFullScreen = canFullScreen && fullScreen
 
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
@@ -1365,14 +1377,14 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       ) : null}
       <div
         className={`${
-          fullScreen && !inline
-            ? 'fixed inset-0 z-50 w-full'
+          isFullScreen
+            ? 'task-panel-expanded'
             : inline ? 'w-full overflow-hidden rounded-md border theme-border' : onClose ? 'w-full' : 'task-panel'
         } theme-panel flex flex-col ${
-          fullScreen && !inline ? 'h-screen' : inline ? 'h-auto max-h-[70vh]' : 'h-full'
+          isFullScreen ? 'h-screen' : inline ? 'h-auto max-h-[70vh]' : 'h-full'
         } relative`}
         data-task-detail-panel
-        data-fullscreen={fullScreen && !inline ? 'true' : undefined}
+        data-fullscreen={isFullScreen ? 'true' : undefined}
         {...(swipeToDismiss || {})}
       >
 
@@ -1395,8 +1407,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
         compact={inline}
-        fullScreen={inline ? undefined : fullScreen}
-        onToggleFullScreen={inline ? undefined : () => setFullScreen(value => !value)}
+        fullScreen={canFullScreen ? fullScreen : undefined}
+        onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
       />
 
       <div

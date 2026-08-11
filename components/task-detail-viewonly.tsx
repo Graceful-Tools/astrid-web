@@ -11,7 +11,7 @@ import { PublicTaskCopyButton } from "./public-task-copy-button"
 import { CommentSection } from "./task-detail/CommentSection"
 import { UserLink } from "./user-link"
 import type { Task, User, TaskList } from "../types/task"
-import { Calendar as CalendarIcon, Copy, Globe, Users, Share2, Clock, Timer } from "lucide-react"
+import { Calendar as CalendarIcon, Copy, Globe, Users, Share2, Clock, Timer, Maximize2, Minimize2 } from "lucide-react"
 import { format } from "date-fns"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { useTheme } from "@/contexts/theme-context"
@@ -38,6 +38,12 @@ interface TaskDetailViewOnlyProps {
   onClose?: () => void
   onCopy?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   availableLists?: TaskList[]
+  /**
+   * Whether this pane can be expanded to full screen. Mirrors TaskDetail —
+   * a read-only task is still a task you may want to read full width.
+   * (Task 0ea0b818)
+   */
+  allowFullScreen?: boolean
   swipeToDismiss?: {
     onTouchStart: (e: React.TouchEvent) => void
     onTouchMove: (e: React.TouchEvent) => void
@@ -53,9 +59,15 @@ export function TaskDetailViewOnly({
   onClose,
   onCopy,
   availableLists = [],
+  allowFullScreen = false,
   swipeToDismiss
 }: TaskDetailViewOnlyProps) {
   const { theme } = useTheme()
+
+  // Expand-to-full-screen, mirroring TaskDetail (task 0ea0b818). Only the
+  // renderer of a windowed pane opts in; the phone pane is already full screen.
+  const [fullScreen, setFullScreen] = useState(false)
+  const isFullScreen = allowFullScreen && fullScreen
 
   // Arrow positioning state
   const [arrowTop, setArrowTop] = useState(120)
@@ -359,7 +371,14 @@ interface FileAttachment {
           style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
         ></div>
       )}
-    <div className={`${onClose ? 'w-full' : 'task-panel'} theme-panel flex flex-col h-full relative`} data-task-detail-panel {...(swipeToDismiss || {})}>
+    <div
+      className={`${
+        isFullScreen ? 'task-panel-expanded' : onClose ? 'w-full' : 'task-panel'
+      } theme-panel flex flex-col ${isFullScreen ? 'h-screen' : 'h-full'} relative`}
+      data-task-detail-panel
+      data-fullscreen={isFullScreen ? 'true' : undefined}
+      {...(swipeToDismiss || {})}
+    >
 
       <div className="border-b border-gray-200 dark:border-gray-700">
         {/* Mobile/Tablet Back Navigation */}
@@ -407,6 +426,18 @@ interface FileAttachment {
                 {task.title}
               </span>
             </div>
+            {allowFullScreen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFullScreen(value => !value)}
+                className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 inline-flex flex-shrink-0"
+                aria-label={isFullScreen ? "Exit full screen" : "Full screen"}
+                title={isFullScreen ? "Exit full screen" : "Full screen"}
+              >
+                {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            )}
           </div>
         </div>
       </div>

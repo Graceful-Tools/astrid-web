@@ -176,7 +176,13 @@ export function TaskHeader({
                   variant="ghost"
                   size="sm"
                   onClick={onToggleFullScreen}
-                  className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 hidden cols2:inline-flex"
+                  // Deliberately NOT gated on a viewport breakpoint. Whether a
+                  // pane can be expanded is decided by whoever renders it —
+                  // the phone pane simply passes no handler, because it is
+                  // already full screen. Keying this off `cols2` (910px)
+                  // instead hid the control on iPad portrait, where the
+                  // windowed pane does render. (Task 0ea0b818)
+                  className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 inline-flex"
                   aria-label={fullScreen ? "Exit full screen" : "Full screen"}
                   title={fullScreen ? "Exit full screen" : "Full screen"}
                 >

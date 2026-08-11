@@ -1022,6 +1022,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 onClose={closeTaskDetail}
                 onCopy={handleCopyTask}
                 selectedTaskElement={selectedTaskElement}
+                allowFullScreen
                 readOnly={false}
               />
             ) : (
@@ -1033,6 +1034,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
                 onClose={closeTaskDetail}
                 onCopy={handleCopyTask}
+                allowFullScreen
               />
             )}
           </div>
