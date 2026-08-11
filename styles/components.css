@@ -581,6 +581,43 @@ html, body {
   border-radius: 0.75rem;
 }
 
+/* Task detail expanded to full screen (task 0ea0b818).
+ *
+ * The panel cannot do this alone. `.task-panel-desktop` is `position: fixed`
+ * with `z-index: 30`, which makes it a stacking context — so a `fixed
+ * inset-0 z-50` child was still trapped inside it and painted UNDER the
+ * floating app header (`app-header-mobile-floating`, fixed, z-50), which is
+ * exactly the header used on the hamburger layouts this control was just
+ * enabled for. The wrapper has to expand too.
+ *
+ * left/right/width carry !important because TaskManagerView sets them inline
+ * from measured layout geometry, and inline styles otherwise win. top/bottom
+ * and z-index need no help — `:has()` already outranks the base class.
+ */
+.task-panel-desktop:has([data-fullscreen="true"]) {
+  top: 0;
+  bottom: 0;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  z-index: 60;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Square off the inner panel so it doesn't round against the viewport edge. */
+.task-panel-desktop:has([data-fullscreen="true"]) > [data-task-detail-panel] {
+  border-radius: 0;
+}
+
+/* The panel fills its now-full-viewport wrapper. Absolute, not fixed: it no
+ * longer needs to escape anything, and staying inside the wrapper keeps the
+ * close animation working. */
+.task-panel-expanded {
+  @apply absolute inset-0 w-full;
+}
+
 /* For 3-column layouts with visible sidebar */
 @media (min-width: 1100px) {
   .task-panel-desktop {
