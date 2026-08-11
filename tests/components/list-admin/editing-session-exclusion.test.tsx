@@ -86,7 +86,7 @@ describe('list editors share one session (task 7b60c7c5)', () => {
     // Commit-on-resign: opening another editor SAVES, it does not discard.
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/lists/list-1',
+        '/api/v1/lists/list-1',
         expect.objectContaining({ method: 'PUT' }),
       ),
     )

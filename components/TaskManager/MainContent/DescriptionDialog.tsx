@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { unwrapList } from '@/lib/v1-response'
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -140,7 +141,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                         // Directly call the save
                         if (currentList && dialogDescription !== (currentList.description || '')) {
                           try {
-                            const response = await fetch(`/api/lists/${currentList.id}`, {
+                            const response = await fetch(`/api/v1/lists/${currentList.id}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
@@ -149,8 +150,8 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                               }),
                             })
                             if (response.ok) {
-                              const updatedList = await response.json()
-                              onListUpdate(updatedList)
+                              const updatedList = unwrapList<TaskList>(await response.json())
+                              if (updatedList) onListUpdate(updatedList)
                             }
                           } catch (error) {
                             console.error('Error updating description:', error)

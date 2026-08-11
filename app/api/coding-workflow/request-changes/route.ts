@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
 import { createLogger } from '@/lib/logger'
+import { getBaseUrl } from '@/lib/base-url'
 
 const log = createLogger('coding-workflow.request-changes')
 
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Post acknowledgment comment
-    await fetch(`/api/tasks/${taskId}/comments`, {
+    await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -110,7 +111,7 @@ Working on it now... 🔧`,
         log.error({ err: error }, '❌ [Change Request] Revision process failed:')
 
         // Post error comment
-        fetch(`/api/tasks/${taskId}/comments`, {
+        fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

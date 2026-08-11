@@ -98,7 +98,7 @@ export function UserPicker({
       if (listIds && listIds.length > 0) params.append('listIds', listIds.join(','))
       if (includeAIAgents) params.append('includeAIAgents', 'true')
 
-      const response = await fetch(`/api/users/search?${params.toString()}`)
+      const response = await fetch(`/api/v1/users/search?${params.toString()}`)
       if (response.ok && isMountedRef.current) {
         const data = await response.json()
         setSearchResults(data.users || [])

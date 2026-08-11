@@ -303,7 +303,7 @@ export const RichTextInput = React.memo(function RichTextInput({
     onAttachedFilesChange?.(removeAttachment(attachedFiles, id))
     // Then drop the row and the blob, so a file the user visibly removed is
     // actually gone rather than left orphaned in storage (task ded31696).
-    fetch(`/api/secure-files/${id}`, { method: 'DELETE' }).catch(error => {
+    fetch(`/api/v1/secure-files/${id}`, { method: 'DELETE' }).catch(error => {
       console.error('Failed to delete removed attachment:', error)
     })
   }, [attachedFiles, onAttachedFilesChange])

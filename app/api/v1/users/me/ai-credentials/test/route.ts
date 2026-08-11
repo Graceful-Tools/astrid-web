@@ -3,7 +3,7 @@
  *
  * Tests the user's stored API key for a service by calling its provider
  * with a minimal request. Updates the key's `isValid` and `lastTested`
- * status. Mirrors POST /api/user/ai-api-keys/test.
+ * status. Mirrors POST /api/v1/users/me/ai-credentials/test.
  *
  * Body: { serviceId: 'claude' | 'openai' | 'gemini' | 'openclaw' }
  */

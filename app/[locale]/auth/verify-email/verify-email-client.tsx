@@ -20,7 +20,7 @@ function VerifyEmailContent() {
 
   const verifyToken = useCallback(async (token: string) => {
     try {
-      const response = await fetch(`/api/account/verify-email?token=${token}`, {
+      const response = await fetch(`/api/v1/users/me/verify-email?token=${token}`, {
         method: 'POST'
       })
 
@@ -60,7 +60,7 @@ function VerifyEmailContent() {
 
     setIsResending(true)
     try {
-      const response = await fetch('/api/account/verify-email?action=resend', {
+      const response = await fetch('/api/v1/users/me/verify-email?action=resend', {
         method: 'POST'
       })
 

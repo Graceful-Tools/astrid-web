@@ -119,7 +119,7 @@ export function CommentSection({
   // Fetch Astrid agent for mention autocomplete
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
-    fetch('/api/user/available-agents')
+    fetch('/api/v1/users/me/available-agents')
       .then(r => r.json())
       .then((data) => {
         const astrid = (data.agents || []).find((a: { email: string }) => a.email === `astrid@${BRAND.agentEmailDomain}`)
@@ -257,7 +257,7 @@ export function CommentSection({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const response = await fetch(`/api/comments/${commentId}`, {
+      const response = await fetch(`/api/v1/comments/${commentId}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -292,7 +292,7 @@ export function CommentSection({
     const trimmed = content.trim()
     if (!trimmed) return
     try {
-      const response = await fetch(`/api/comments/${commentId}`, {
+      const response = await fetch(`/api/v1/comments/${commentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -353,7 +353,7 @@ export function CommentSection({
 
   const handleDeleteReply = async (replyId: string, parentCommentId: string) => {
     try {
-      const response = await fetch(`/api/comments/${replyId}`, {
+      const response = await fetch(`/api/v1/comments/${replyId}`, {
         method: 'DELETE',
         credentials: 'include',
       })

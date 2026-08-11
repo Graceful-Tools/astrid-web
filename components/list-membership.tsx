@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { unwrapList } from '@/lib/v1-response'
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -51,14 +52,14 @@ export function ListMembership({
         setLoadingAiProviders(true)
 
         // Check GitHub status first
-        const githubResponse = await fetch('/api/github/status')
+        const githubResponse = await fetch('/api/v1/github/status')
         if (githubResponse.ok) {
           const githubData = await githubResponse.json()
           setIsGitHubConnected(githubData.isGitHubConnected)
         }
 
         // Fetch actual AI agents from database (based on user's configured API keys)
-        const agentsResponse = await fetch('/api/users/search?includeAIAgents=true')
+        const agentsResponse = await fetch('/api/v1/users/search?includeAIAgents=true')
         if (agentsResponse.ok) {
           const agentsData = await agentsResponse.json()
           // Filter to only AI agents
@@ -85,7 +86,7 @@ export function ListMembership({
   const handleAddCodingAgent = async (agent: AIAgent) => {
     try {
       // Add agent to list members
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,10 +115,11 @@ export function ListMembership({
       const newEnabledAgents = [...currentEnabledAgents, agent.aiAgentType || agent.id]
 
       // Fetch fresh list data to get updated members
-      const listResponse = await fetch(`/api/lists/${list.id}`)
+      const listResponse = await fetch(`/api/v1/lists/${list.id}`)
       if (listResponse.ok) {
-        const freshList = await listResponse.json()
-        onUpdate({ ...freshList, aiAgentsEnabled: newEnabledAgents })
+        const freshList = unwrapList<TaskList>(await listResponse.json())
+        // Fall back to the list we already hold rather than spreading a null.
+        onUpdate({ ...(freshList ?? list), aiAgentsEnabled: newEnabledAgents })
       } else {
         // Fallback to old behavior if fetch fails
         onUpdate({ ...list, aiAgentsEnabled: newEnabledAgents })
@@ -148,16 +150,12 @@ export function ListMembership({
         return false
       }
 
-      // Remove the agent from the list members
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      // Remove the agent from the list members. Always a real member here
+      // (`isInvitation: false` on the legacy call it replaces) — the agent was
+      // just looked up in getAllListMembers, so it has a userId to address.
+      // (Task dc143ab2)
+      const response = await fetch(`/api/v1/lists/${list.id}/members/${memberRecord.id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          memberId: memberRecord.id,
-          isInvitation: false
-        }),
       })
 
       if (!response.ok) {
@@ -171,10 +169,11 @@ export function ListMembership({
       const newEnabledAgents = currentEnabledAgents.filter(id => id !== agent.aiAgentType && id !== agent.id)
 
       // Fetch fresh list data to get updated members
-      const listResponse = await fetch(`/api/lists/${list.id}`)
+      const listResponse = await fetch(`/api/v1/lists/${list.id}`)
       if (listResponse.ok) {
-        const freshList = await listResponse.json()
-        onUpdate({ ...freshList, aiAgentsEnabled: newEnabledAgents })
+        const freshList = unwrapList<TaskList>(await listResponse.json())
+        // Fall back to the list we already hold rather than spreading a null.
+        onUpdate({ ...(freshList ?? list), aiAgentsEnabled: newEnabledAgents })
       } else {
         // Fallback to old behavior if fetch fails
         onUpdate({ ...list, aiAgentsEnabled: newEnabledAgents })

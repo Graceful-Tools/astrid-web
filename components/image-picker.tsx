@@ -77,7 +77,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
         listId: listId
       }))
 
-      const response = await fetch('/api/secure-upload/request-upload', {
+      const response = await fetch('/api/v1/secure-upload/request-upload', {
         method: 'POST',
         body: formData,
       })
@@ -89,7 +89,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
       const data = await response.json()
 
       if (data.fileId) {
-        const imageUrl = `/api/secure-files/${data.fileId}`
+        const imageUrl = `/api/v1/secure-files/${data.fileId}`
         setCustomImageUrl(imageUrl)
         onSelectImage(imageUrl, 'custom')
       } else {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { unwrapList } from '@/lib/v1-response'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,7 +41,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
   const handleSaveListName = useCallback(async () => {
     if (tempListName.trim() && tempListName !== list.name) {
       try {
-        const response = await fetch(`/api/lists/${list.id}`, {
+        const response = await fetch(`/api/v1/lists/${list.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -52,8 +53,9 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
         })
 
         if (response.ok) {
-          const updatedList = await response.json()
-          onUpdate(updatedList)
+          const updatedList = unwrapList<TaskList>(await response.json())
+          if (updatedList) onUpdate(updatedList)
+          else console.error('List update returned no list')
         } else {
           console.error('Failed to update list name')
         }

@@ -83,7 +83,7 @@ export function TaskModals({
         await onCopy(task.id, copyTargetListId, copyIncludeComments)
       } else {
         // Fallback: Use the API directly (shouldn't happen in normal TaskManager flow)
-        const response = await fetch(`/api/tasks/${task.id}/copy`, {
+        const response = await fetch(`/api/v1/tasks/${task.id}/copy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

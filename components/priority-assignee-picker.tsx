@@ -53,7 +53,7 @@ export function PriorityAssigneePicker({
       if (taskId) params.append('taskId', taskId)
       if (listIds && listIds.length > 0) params.append('listIds', listIds.join(','))
 
-      fetch(`/api/users/search?${params.toString()}`)
+      fetch(`/api/v1/users/search?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
           setFetchedUsers(data.users || [])

@@ -8,6 +8,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { GitHubClient } from '@/lib/github-client'
 import { createLogger } from '@/lib/logger'
+import { getBaseUrl } from '@/lib/base-url'
 
 const log = createLogger('coding-workflow.merge-request')
 
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       log.error({ err: error }, '❌ [Merge Request] Failed to merge PR:')
 
       // Post error comment
-      await fetch(`/api/tasks/${taskId}/comments`, {
+      await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,7 +123,7 @@ Please check the GitHub repository and try again, or merge manually.`,
     })
 
     // Post completion comment
-    await fetch(`/api/tasks/${taskId}/comments`, {
+    await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

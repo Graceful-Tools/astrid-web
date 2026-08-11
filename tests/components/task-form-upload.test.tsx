@@ -102,7 +102,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -132,7 +132,7 @@ describe('TaskForm Upload Functionality', () => {
 
       // Wait for upload to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
+        expect(mockFetch).toHaveBeenCalledWith('/api/v1/secure-upload/request-upload', {
           method: 'POST',
           body: expect.any(FormData)
         })
@@ -143,13 +143,13 @@ describe('TaskForm Upload Functionality', () => {
 
       // Find the upload call (should be the one with POST method to secure-upload endpoint)
       const uploadCall = mockFetch.mock.calls.find(call =>
-        call[0] === '/api/secure-upload/request-upload' &&
+        call[0] === '/api/v1/secure-upload/request-upload' &&
         call[1]?.method === 'POST'
       )
 
       // Check the call structure - fetch(url, options)
       expect(uploadCall).toBeDefined()
-      expect(uploadCall[0]).toBe('/api/secure-upload/request-upload')
+      expect(uploadCall[0]).toBe('/api/v1/secure-upload/request-upload')
       expect(uploadCall[1]).toBeDefined()
       expect(uploadCall[1].method).toBe('POST')
 
@@ -179,7 +179,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -214,7 +214,7 @@ describe('TaskForm Upload Functionality', () => {
       }
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
+        expect(mockFetch).toHaveBeenCalledWith('/api/v1/secure-upload/request-upload', {
           method: 'POST',
           body: expect.any(FormData)
         })
@@ -222,12 +222,12 @@ describe('TaskForm Upload Functionality', () => {
 
       // Find the upload call (should be the one with POST method to secure-upload endpoint)
       const uploadCall = mockFetch.mock.calls.find(call =>
-        call[0] === '/api/secure-upload/request-upload' &&
+        call[0] === '/api/v1/secure-upload/request-upload' &&
         call[1]?.method === 'POST'
       )
 
       expect(uploadCall).toBeDefined()
-      expect(uploadCall[0]).toBe('/api/secure-upload/request-upload')
+      expect(uploadCall[0]).toBe('/api/v1/secure-upload/request-upload')
       expect(uploadCall[1]).toBeDefined()
       expect(uploadCall[1].method).toBe('POST')
 
@@ -251,7 +251,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -291,7 +291,7 @@ describe('TaskForm Upload Functionality', () => {
       }
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
+        expect(mockFetch).toHaveBeenCalledWith('/api/v1/secure-upload/request-upload', {
           method: 'POST',
           body: expect.any(FormData)
         })
@@ -299,12 +299,12 @@ describe('TaskForm Upload Functionality', () => {
 
       // Find the upload call (should be the one with POST method to secure-upload endpoint)
       const uploadCall = mockFetch.mock.calls.find(call =>
-        call[0] === '/api/secure-upload/request-upload' &&
+        call[0] === '/api/v1/secure-upload/request-upload' &&
         call[1]?.method === 'POST'
       )
 
       expect(uploadCall).toBeDefined()
-      expect(uploadCall[0]).toBe('/api/secure-upload/request-upload')
+      expect(uploadCall[0]).toBe('/api/v1/secure-upload/request-upload')
       expect(uploadCall[1]).toBeDefined()
       expect(uploadCall[1].method).toBe('POST')
 
@@ -329,7 +329,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.reject(new Error('Upload failed'))
         }
         return Promise.resolve({
@@ -368,7 +368,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return new Promise(resolve => setTimeout(() => resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -449,7 +449,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -505,7 +505,7 @@ describe('TaskForm Upload Functionality', () => {
       // reload with no explanation (task b4a362f1).
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/secure-files/removable-attachment-id',
+          '/api/v1/secure-files/removable-attachment-id',
           expect.objectContaining({ method: 'DELETE' })
         )
       })
@@ -519,7 +519,7 @@ describe('TaskForm Upload Functionality', () => {
         if (url === '/api/user/reminder-settings') {
           return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -556,7 +556,7 @@ describe('TaskForm Upload Functionality', () => {
       // Guard against a vacuous pass: the delete must actually have been attempted.
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/secure-files/doomed-id',
+          '/api/v1/secure-files/doomed-id',
           expect.objectContaining({ method: 'DELETE' })
         )
       })
@@ -597,7 +597,7 @@ describe('TaskForm Upload Functionality', () => {
               json: () => Promise.resolve({})
             })
           }
-          if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+          if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve({
@@ -621,7 +621,7 @@ describe('TaskForm Upload Functionality', () => {
         }
 
         await waitFor(() => {
-          expect(mockFetch).toHaveBeenCalledWith('/api/secure-upload/request-upload', {
+          expect(mockFetch).toHaveBeenCalledWith('/api/v1/secure-upload/request-upload', {
             method: 'POST',
             body: expect.any(FormData)
           })
@@ -646,7 +646,7 @@ describe('TaskForm Upload Functionality', () => {
             json: () => Promise.resolve({})
           })
         }
-        if (url === '/api/secure-upload/request-upload' && options?.method === 'POST') {
+        if (url === '/api/v1/secure-upload/request-upload' && options?.method === 'POST') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({
@@ -707,7 +707,7 @@ describe('TaskForm Upload Functionality', () => {
 
       // ...and the uploaded file did reach the server, under the right context.
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/secure-upload/request-upload',
+        '/api/v1/secure-upload/request-upload',
         expect.objectContaining({ method: 'POST' })
       )
     })

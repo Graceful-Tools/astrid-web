@@ -51,7 +51,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
     try {
       setLoading(true)
       
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members`, {
         credentials: 'include'
       })
       
@@ -155,7 +155,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
       
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -225,17 +225,20 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
 
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/members`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          ...(member.type === 'invite' 
-            ? { email: member.email, isInvitation: true }
-            : { memberId: memberIdOrEmail }
-          )
-        }),
-      })
-      
+      // v1 splits these across two resources rather than one endpoint with an
+      // isInvitation flag: a member is addressed by userId in the path, a
+      // pending invitation has no userId and is addressed by email in the
+      // body. Branch on which one this is. (Task dc143ab2)
+      const response = member.type === 'invite'
+        ? await fetch(`/api/v1/lists/${list.id}/invitations`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: member.email }),
+          })
+        : await fetch(`/api/v1/lists/${list.id}/members/${memberIdOrEmail}`, {
+            method: "DELETE",
+          })
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error || "Failed to remove member")
@@ -286,10 +289,11 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
       
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/members`, {
-        method: "PATCH",
+      // A real member: addressed by userId in the path. (Task dc143ab2)
+      const response = await fetch(`/api/v1/lists/${list.id}/members/${userId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberId: userId, role: newRole }),
+        body: JSON.stringify({ role: newRole }),
       })
 
       if (!response.ok) {
@@ -341,7 +345,7 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       }
       
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/leave`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
@@ -403,10 +407,12 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
       })
 
       // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/lists/${list.id}/members`, {
-        method: "PATCH",
+      // A pending invitation: no userId, addressed by email on its own
+      // resource. (Task dc143ab2)
+      const response = await fetch(`/api/v1/lists/${list.id}/invitations`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role: newRole, isInvitation: true }),
+        body: JSON.stringify({ email, role: newRole }),
       })
 
       if (!response.ok) {

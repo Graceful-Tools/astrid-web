@@ -4,7 +4,7 @@
 
 /**
  * Rename / reorder / add board statuses. Statuses are per-user globals; the
- * panel wires to PUT /api/lists/[id] (rename/reorder) and POST /api/statuses
+ * panel wires to PUT /api/v1/lists/[id] (rename/reorder) and POST /api/statuses
  * (add). Lives in the list-settings "Statuses" tab when a board is enabled.
  */
 
@@ -41,14 +41,14 @@ describe('ManageStatusesPanel', () => {
     expect(screen.getByText(/all/)).toBeInTheDocument()
   })
 
-  it('renames via PUT /api/lists/[id] and refreshes', async () => {
+  it('renames via PUT /api/v1/lists/[id] and refreshes', async () => {
     okFetch()
     const { onChanged } = setup()
     fireEvent.click(screen.getByRole('button', { name: /Rename Ready/ }))
     fireEvent.change(screen.getByDisplayValue('Ready'), { target: { value: 'Backlog' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
     await waitFor(() => expect(onChanged).toHaveBeenCalled())
-    expect(global.fetch).toHaveBeenCalledWith('/api/lists/ready', expect.objectContaining({ method: 'PUT' }))
+    expect(global.fetch).toHaveBeenCalledWith('/api/v1/lists/ready', expect.objectContaining({ method: 'PUT' }))
     const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
     expect(body.name).toBe('Backlog')
   })

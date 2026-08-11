@@ -72,7 +72,7 @@ describe('RichTextInput attachments (Task 9f325964)', () => {
   it('keeps files already staged when another is picked', async () => {
     ;(global.fetch as any).mockResolvedValueOnce(uploadResponse('id-2', 'two.png'))
 
-    const existing = [{ url: '/api/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 }]
+    const existing = [{ url: '/api/v1/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 }]
     const { input, onAttachedFilesChange } = renderInput({ attachedFiles: existing })
 
     fireEvent.change(input, { target: { files: [makeFile('two.png')] } })
@@ -85,8 +85,8 @@ describe('RichTextInput attachments (Task 9f325964)', () => {
 
   it('renders a removable row per staged file', () => {
     const staged = [
-      { url: '/api/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 },
-      { url: '/api/secure-files/id-2', name: 'two.png', type: 'image/png', size: 10 },
+      { url: '/api/v1/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 },
+      { url: '/api/v1/secure-files/id-2', name: 'two.png', type: 'image/png', size: 10 },
     ]
     const { getByLabelText, getByText, onAttachedFilesChange } = renderInput({ attachedFiles: staged })
 
@@ -101,14 +101,14 @@ describe('RichTextInput attachments (Task 9f325964)', () => {
   it('deletes a removed file rather than orphaning it (Task ded31696)', async () => {
     ;(global.fetch as any).mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
 
-    const staged = [{ url: '/api/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 }]
+    const staged = [{ url: '/api/v1/secure-files/id-1', name: 'one.png', type: 'image/png', size: 10 }]
     const { getByLabelText } = renderInput({ attachedFiles: staged })
 
     fireEvent.click(getByLabelText('Remove one.png'))
 
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/secure-files/id-1',
+        '/api/v1/secure-files/id-1',
         expect.objectContaining({ method: 'DELETE' }),
       ),
     )

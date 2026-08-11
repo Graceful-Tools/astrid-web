@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { unwrapTask } from '@/lib/v1-response'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,6 +36,10 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
   const fetchReminders = useCallback(async () => {
     setLoading(true)
     try {
+      // Stays on legacy deliberately: this page inspects ANOTHER user's
+      // reminders by email, and v1's /api/v1/reminders is scoped to the caller
+      // with no userEmail override. Migrating it would silently return the
+      // debugger's own reminders instead. (641a7615 step 3)
       const response = await fetch(`/api/reminders/status?userEmail=${encodeURIComponent(testUserEmail)}`)
       const data = await response.json()
       setReminders(data.reminders || [])
@@ -68,7 +73,7 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
     try {
       const dueDate = new Date(Date.now() + testMinutes * 60 * 1000)
 
-      const response = await fetch('/api/tasks', {
+      const response = await fetch('/api/v1/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +88,9 @@ export function DebugRemindersClient({ defaultUserEmail }: DebugRemindersClientP
       })
 
       if (response.ok) {
-        const task = await response.json()
+        // v1 wraps the new task in { task, meta }; legacy returned it bare.
+        const task = unwrapTask<{ id: string; title: string }>(await response.json())
+        if (!task) throw new Error('Task creation returned no task')
         alert(`Test task created with ID: ${task.id}\\nDue: ${dueDate.toLocaleString()}`)
         fetchReminders()
       } else {

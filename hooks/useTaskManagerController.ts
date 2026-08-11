@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { unwrapTask } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskOperations } from "@/hooks/useTaskOperations"
@@ -592,12 +593,14 @@ export function useTaskManagerController({
         delete (apiData as any).lists
         delete (apiData as any).assignee
 
-        const response = await apiPut(`/api/tasks/${updatedTask.id}`, apiData)
-        const realUpdatedTask = await response.json()
+        const response = await apiPut(`/api/v1/tasks/${updatedTask.id}`, apiData)
+        const realUpdatedTask = unwrapTask<Task>(await response.json())
 
-        listState.setTasks(prevTasks => prevTasks.map((task) =>
-          task.id === realUpdatedTask.id ? realUpdatedTask : task
-        ))
+        if (realUpdatedTask) {
+          listState.setTasks(prevTasks => prevTasks.map((task) =>
+            task.id === realUpdatedTask.id ? realUpdatedTask : task
+          ))
+        }
 
       } catch (error) {
         console.error("Error updating task:", error)
@@ -663,7 +666,7 @@ export function useTaskManagerController({
       })
 
       try {
-        await apiDelete(`/api/tasks/${taskId}`)
+        await apiDelete(`/api/v1/tasks/${taskId}`)
 
         if (shouldClosePage) {
           setSelectedTaskId("")
@@ -809,7 +812,7 @@ export function useTaskManagerController({
 
   const handleCreateList = useCallback(async (listData: { name: string; description: string; memberEmails: string[] }) => {
     try {
-      const response = await fetch('/api/lists', {
+      const response = await fetch('/api/v1/lists', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -871,7 +874,7 @@ export function useTaskManagerController({
 
       const shouldAssignToUser = !navigationState.isViewingFromFeatured || !isUserOwnerOrAdmin
 
-      const response = await apiPost(`/api/lists/${listId}/copy`, {
+      const response = await apiPost(`/api/v1/lists/${listId}/copy`, {
         includeTasks: true,
         preserveTaskAssignees: false,
         assignToUser: shouldAssignToUser
@@ -930,7 +933,7 @@ export function useTaskManagerController({
 
   const handleCopyTask = useCallback(async (taskId: string, targetListId?: string, includeComments?: boolean) => {
     try {
-      const response = await apiPost(`/api/tasks/${taskId}/copy`, {
+      const response = await apiPost(`/api/v1/tasks/${taskId}/copy`, {
         targetListId,
         preserveDueDate: true,
         preserveAssignee: false,
@@ -991,7 +994,7 @@ export function useTaskManagerController({
       const listToDelete = listState.lists.find(l => l.id === listId)
       const taskCount = listToDelete?.tasks?.length || 0
 
-      await apiDelete(`/api/lists/${listId}`)
+      await apiDelete(`/api/v1/lists/${listId}`)
 
       trackListDeleted({ listId, taskCount })
 
@@ -1046,7 +1049,7 @@ export function useTaskManagerController({
         )
       )
 
-      const response = await apiPut(`/api/lists/${updatedList.id}`, updatedList)
+      const response = await apiPut(`/api/v1/lists/${updatedList.id}`, updatedList)
 
       if (!response.ok) {
         await listState.loadData()
@@ -1103,7 +1106,7 @@ export function useTaskManagerController({
 
     try {
       // Use the dedicated favorite endpoint — allows any list member, not just owner/admin
-      const res = await fetch(`/api/lists/${listId}/favorite`, {
+      const res = await fetch(`/api/v1/lists/${listId}/favorite`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFavorite: newFavorite }),
@@ -1175,7 +1178,7 @@ export function useTaskManagerController({
         duration: 2000,
       })
 
-      const response = await apiPost(`/api/lists/${list.id}/leave`, {})
+      const response = await apiPost(`/api/v1/lists/${list.id}/leave`, {})
 
       if (navigationState.selectedListId === list.id) {
         const remainingLists = listState.lists.filter(l => l.id !== list.id)
@@ -1216,7 +1219,7 @@ export function useTaskManagerController({
 
     try {
       const updatedList = { ...selectedListForImagePicker, imageUrl }
-      await apiPut(`/api/lists/${selectedListForImagePicker.id}`, { imageUrl })
+      await apiPut(`/api/v1/lists/${selectedListForImagePicker.id}`, { imageUrl })
 
       listState.setLists(prevLists =>
         prevLists.map(list =>

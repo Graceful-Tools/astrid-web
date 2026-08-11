@@ -73,6 +73,6 @@ describe('AstridAgentSection', () => {
   it('fetches the available agents from the user endpoint', async () => {
     render(<AstridAgentSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
     await screen.findByText('Astrid Agent')
-    expect(global.fetch).toHaveBeenCalledWith('/api/user/available-agents')
+    expect(global.fetch).toHaveBeenCalledWith('/api/v1/users/me/available-agents')
   })
 })

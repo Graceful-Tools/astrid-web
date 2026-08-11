@@ -33,7 +33,7 @@ export function ExploratoryFeaturesSettings({ onManageApiKeys, onAppleReminders 
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/user/ai-api-keys')
+      const response = await fetch('/api/v1/users/me/ai-credentials')
       if (response.ok) {
         const data = await response.json()
         setApiKeyStatus(data.keys || {})

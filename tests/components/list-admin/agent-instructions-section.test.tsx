@@ -121,7 +121,7 @@ describe('AgentInstructionsSection', () => {
 
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(updated))
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/lists/list-1',
+      '/api/v1/lists/list-1',
       expect.objectContaining({ method: 'PUT' })
     )
   })

@@ -61,9 +61,17 @@ function getDisplayName(author?: MessageBubbleAuthor | null, isOwnMessage?: bool
   return author.name || author.email || 'Unknown'
 }
 
-/** Extract a secure file ID from a /api/secure-files/{id} URL */
-function extractSecureFileId(url: string): string | null {
-  const match = url.match(/\/api\/secure-files\/([a-zA-Z0-9_-]+)/)
+/**
+ * Extract a secure file ID from a secure-files URL, legacy or v1.
+ *
+ * The `/v1` segment is optional on purpose and stays that way. Attachment URLs
+ * are persisted, so existing rows hold `/api/secure-files/{id}` while anything
+ * written after the migration holds `/api/v1/secure-files/{id}` — the stored
+ * data outlives the legacy route, so this is not a shim to remove later.
+ * (Task 641a7615)
+ */
+export function extractSecureFileId(url: string): string | null {
+  const match = url.match(/\/api\/(?:v1\/)?secure-files\/([a-zA-Z0-9_-]+)/)
   return match ? match[1] : null
 }
 

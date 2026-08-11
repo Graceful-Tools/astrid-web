@@ -7,6 +7,34 @@ import {
 } from '@/lib/api-deprecation'
 
 describe('isLegacyApiPath', () => {
+  /**
+   * An internal prefix written with a trailing slash did not match the bare
+   * route at that exact path. `/api/assistant-workflow/anything` was excluded
+   * while `/api/assistant-workflow` — a real route, called server-to-server
+   * from a Prisma middleware and two notifiers on ordinary writes — was
+   * counted as legacy traffic.
+   *
+   * That is worse than a miscount. The census is what decides when a route is
+   * safe to delete, and this one would have shown steady legacy traffic that
+   * never reached zero no matter how thoroughly the clients migrated.
+   */
+  it('excludes the bare route at an internal prefix, not just its children', () => {
+    expect(isLegacyApiPath('/api/assistant-workflow')).toBe(false)
+    expect(isLegacyApiPath('/api/assistant-workflow/trigger')).toBe(false)
+  })
+
+  it('excludes the bare route for every slash-terminated internal prefix', () => {
+    for (const path of ['/api/cron', '/api/admin', '/api/mcp', '/api/coding-workflow', '/api/agent-workflow', '/api/openclaw']) {
+      expect(isLegacyApiPath(path)).toBe(false)
+    }
+  })
+
+  it('does not let the prefix swallow a sibling that merely starts the same', () => {
+    // `/api/admin` must not exclude `/api/administrators` — the prefix is a
+    // path boundary, not a string prefix.
+    expect(isLegacyApiPath('/api/administrators')).toBe(true)
+  })
+
   // Routes the iOS app calls that are part of the migration surface.
   // If any of these stop being detected as legacy, deprecation
   // telemetry stops working for that route.
@@ -52,7 +80,6 @@ describe('isLegacyApiPath', () => {
     '/api/auth/mobile-mcp-token',
     '/api/auth/apple',
     '/api/auth/google',
-    '/api/auth/signout',
     '/api/invitations',
     '/api/shortcodes',
     '/api/shortcodes/abc',
@@ -220,5 +247,47 @@ describe('LEGACY_SUNSET_HTTP_DATE', () => {
     expect(LEGACY_SUNSET_HTTP_DATE).toMatch(
       /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/
     )
+  })
+})
+
+describe('permanently exempt auth routes (task 641a7615, decision 2)', () => {
+  // These are cookie-based WEB SESSION auth. They can never be deleted, so
+  // counting them in a census whose whole purpose is "delete when this hits
+  // zero" is noise that can only ever mislead — the number never reaches zero
+  // and nothing about that is actionable.
+  it.each([
+    '/api/auth/webauthn/register/options',
+    '/api/auth/webauthn/register/verify',
+    '/api/auth/webauthn/authenticate/options',
+    '/api/auth/webauthn/authenticate/verify',
+    '/api/auth/webauthn/passkeys',
+  ])('does not count the passkey route %s', path => {
+    expect(isLegacyApiPath(path)).toBe(false)
+  })
+
+  it.each([
+    '/api/auth/session',
+    '/api/auth/callback/google',
+    '/api/auth/signin',
+    '/api/auth/csrf',
+    // Moved here from the legacy set by decision 2. There is no
+    // app/api/auth/signout directory — this path is served by the
+    // [...nextauth] catch-all, i.e. it is the BROWSER's signout and cannot be
+    // deleted. /api/v1/auth/signout is a different thing that happens to share
+    // a name: a v1 API route. The existence of the v1 one does not make the
+    // NextAuth one migratable.
+    '/api/auth/signout',
+  ])('does not count the NextAuth mount %s', path => {
+    // Documented since this module was written as never-deletable, but it was
+    // still being counted — inflating the very census the retirement reads.
+    expect(isLegacyApiPath(path)).toBe(false)
+  })
+
+  it('still counts the legacy routes that DO have a v1 successor', () => {
+    // The exemption must stay narrow: broadening it would hide the traffic
+    // this whole exercise exists to drive to zero.
+    expect(isLegacyApiPath('/api/tasks')).toBe(true)
+    expect(isLegacyApiPath('/api/lists')).toBe(true)
+    expect(isLegacyApiPath('/api/user/settings')).toBe(true)
   })
 })

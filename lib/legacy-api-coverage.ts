@@ -1,0 +1,235 @@
+/**
+ * Which legacy routes can actually be retired, and what stands in the way.
+ * (Task 641a7615, step 4)
+ *
+ * Step 4 is "delete per-route as traffic hits zero", and answering that needs
+ * two facts per route that nothing currently tracks together: does a v1
+ * successor exist, and does any client still call the legacy path.
+ *
+ * I got both wrong by hand. Twice in one session I reported a resource as
+ * having no v1 successor when it had full coverage — `/api/secure-files` and
+ * `/api/chat`, whose v1 mounts are re-exports of the very handlers I said were
+ * unmigratable. Both times the error came from inferring the answer instead of
+ * looking, and both times it hid the *easiest* remaining work.
+ *
+ * So this derives the map from the filesystem rather than from memory. The
+ * classification is the useful part: it separates "waiting on evidence" from
+ * "waiting on a decision", which are the two very different reasons a route is
+ * still here.
+ *
+ * In-scope is decided by `isLegacyApiPath`, deliberately reused rather than
+ * re-derived — it already encodes the internal prefixes and the permanent auth
+ * exemptions, and a census that disagreed with the telemetry about what counts
+ * would be worse than no census.
+ */
+
+import { isLegacyApiPath } from './api-deprecation'
+
+/**
+ * Routes whose callers are OUTSIDE this codebase.
+ *
+ * A caller scan reports zero for these forever, and that zero means the
+ * opposite of what it means elsewhere: nothing in our code calls them because
+ * nothing in our code is supposed to. Deleting one silently breaks an inbound
+ * integration — a GitHub webhook, an OAuth callback, an unsubscribe link
+ * already sitting in someone's inbox.
+ *
+ * Listed explicitly rather than matched on "webhook" or "callback" in the
+ * path, because the reason a route is inbound is not recoverable from its
+ * name, and a heuristic that is right nine times teaches you to trust it the
+ * tenth. Each of these was read before being listed.
+ */
+export const INBOUND_ROUTES = [
+  // Signature-verified webhooks from external services.
+  '/api/webhooks/email', // Resend
+  '/api/webhooks/github-issues', // GitHub
+  '/api/webhooks/ai-agents',
+  '/api/webhooks/claude-integration',
+  '/api/webhooks/gemini-integration',
+  '/api/webhooks/openai-integration',
+  '/api/ai-agent/webhook',
+  '/api/coding-agent/github-trigger', // GitHub
+  '/api/coding-agent/workflow-complete', // worker reporting back
+  // OAuth and self-hosted-server callbacks.
+  '/api/contacts/google/callback',
+  '/api/remote-servers/callback',
+  // Vercel Blob calls this back when an upload finishes; the URL is handed to
+  // Blob by /api/secure-upload/get-upload-url. Nothing in our code calls it,
+  // and deleting it would break every secure upload at the last step.
+  '/api/secure-upload/upload-complete',
+  // Clicked by a human from an email that is already sent — the link outlives
+  // any deploy, so this one cannot be retired on traffic evidence at all.
+  '/api/settings/reminders/unsubscribe',
+] as const
+
+export type RouteStatus =
+  /** Not part of the retirement: internal infrastructure, or permanently exempt. */
+  | 'out-of-scope'
+  /** Successor exists, no client calls the legacy path. Delete once traffic is zero. */
+  | 'awaiting-traffic-evidence'
+  /** Successor exists but clients still call legacy. Migration work remains. */
+  | 'callers-remain'
+  /** No successor and nothing calls it. Can likely just be deleted. */
+  | 'unused-no-successor'
+  /** Called from outside this codebase: a zero caller count proves nothing. */
+  | 'inbound-external'
+  /** No successor and clients depend on it. Needs a successor-or-exempt decision. */
+  | 'needs-decision'
+
+export interface RouteCoverage {
+  /** e.g. `/api/lists/[id]` */
+  apiPath: string
+  /** e.g. `/api/v1/lists/[id]`, or null when the route deliberately gets none. */
+  v1Path: string | null
+  hasV1: boolean
+  callerCount: number
+  status: RouteStatus
+}
+
+/** `app/api/lists/[id]/route.ts` → `/api/lists/[id]` */
+export function routeFileToApiPath(file: string): string {
+  const normalized = file.replace(/\\/g, '/')
+  const match = normalized.match(/(?:^|\/)app(\/api\/.*)\/route\.tsx?$/)
+  if (match) return match[1]
+  // A route file directly at app/api/route.ts has no trailing segment.
+  return normalized.replace(/(?:^|\/)app/, '').replace(/\/route\.tsx?$/, '')
+}
+
+/**
+ * Successors whose v1 path is NOT the legacy path with `/v1/` inserted.
+ *
+ * Most of v1 mirrors its legacy path, so the mechanical rule covers it. These
+ * do not, and every one of them was mapped by hand during the migration:
+ * `/api/user/*` became `/api/v1/users/me/*` (plural, and scoped to the caller),
+ * and several were renamed on the way for accuracy — `settings` holds
+ * task-creation defaults, so it became `smart-tasks`; `ai-assistant-settings`
+ * holds service/agent choice, so it became `ai-preferences`.
+ *
+ * Without this table the report says "no successor" for routes that have one,
+ * which is exactly the wrong answer in the direction that hides finished work.
+ * It reported 13 such routes as unmigrated before this existed.
+ *
+ * A missing entry here is invisible in the output — it just looks like another
+ * route needing a decision. When a v1 route is added under a different name,
+ * add it here in the same change.
+ */
+export const SUCCESSOR_OVERRIDES: Record<string, string | null> = {
+  '/api/user/settings': '/api/v1/users/me/smart-tasks',
+  '/api/user/ai-api-keys': '/api/v1/users/me/ai-credentials',
+  '/api/user/ai-api-keys/test': '/api/v1/users/me/ai-credentials/test',
+  '/api/user/ai-assistant-settings': '/api/v1/users/me/ai-preferences',
+  '/api/user/ai-available-models': '/api/v1/users/me/available-models',
+  '/api/user/ai-model-preferences': '/api/v1/users/me/ai-model-preferences',
+  '/api/user/available-agents': '/api/v1/users/me/available-agents',
+  '/api/user/default-due-time': '/api/v1/users/me/default-due-time',
+  '/api/user/my-tasks-preferences': '/api/v1/users/me/my-tasks-preferences',
+  '/api/user/push-subscription': '/api/v1/users/me/push-subscriptions',
+  '/api/user/reminder-settings': '/api/v1/users/me/reminder-settings',
+  '/api/user/webhook-settings': '/api/v1/users/me/webhook-settings',
+  '/api/reminders/status': '/api/v1/reminders',
+  // The account surface moved under users/me as well. Each of these is
+  // confirmed by the v1 route's own header ("Mirrors POST /api/account/delete"
+  // and so on) rather than by the paths looking alike.
+  '/api/account': '/api/v1/users/me',
+  '/api/account/delete': '/api/v1/users/me/delete',
+  '/api/account/export': '/api/v1/users/me/export',
+  '/api/account/verify-email': '/api/v1/users/me/verify-email',
+  // Public browsing was restructured: the resource moved under a /public
+  // namespace instead of staying a sub-path of its resource.
+  '/api/lists/public': '/api/v1/public/lists',
+  '/api/public-tasks': '/api/v1/public/tasks',
+  // Decided, not missing: nothing calls it on any platform, so it gets no twin
+  // (task 641a7615, decision 3A). `null` says "deliberately none" rather than
+  // leaving it to look like an oversight.
+  '/api/user/mcp-settings': null,
+}
+
+/** `/api/lists/[id]` → `/api/v1/lists/[id]`, honouring the rename table. */
+export function v1PathFor(apiPath: string): string | null {
+  if (apiPath in SUCCESSOR_OVERRIDES) return SUCCESSOR_OVERRIDES[apiPath]
+  return apiPath.replace(/^\/api\//, '/api/v1/')
+}
+
+export function classifyRoute(args: {
+  apiPath: string
+  hasV1: boolean
+  callerCount: number
+}): RouteStatus {
+  const { apiPath, hasV1, callerCount } = args
+
+  // Ask the same question the telemetry asks. `isLegacyApiPath` wants a
+  // pathname; a dynamic segment like `[id]` is inert for its prefix checks.
+  if (!isLegacyApiPath(apiPath)) return 'out-of-scope'
+
+  // Checked before the caller counts, because for these the count is not
+  // evidence either way.
+  if ((INBOUND_ROUTES as readonly string[]).includes(apiPath)) return 'inbound-external'
+
+  if (hasV1) {
+    return callerCount > 0 ? 'callers-remain' : 'awaiting-traffic-evidence'
+  }
+  return callerCount > 0 ? 'needs-decision' : 'unused-no-successor'
+}
+
+/**
+ * Turn a route path into a matcher for the URL literals a client would write.
+ * `[id]` becomes one path segment; `[...rest]` becomes the remainder.
+ */
+export function routePathToPattern(apiPath: string): RegExp {
+  // Substitute the dynamic segments BEFORE escaping. Escaping first leaves
+  // `[id]` looking like a regex character class — it matches the letters i and
+  // d, so `/api/lists/i` matched and `/api/lists/abc123` did not.
+  const CATCH_ALL = '\u0000catchall\u0000'
+  const SEGMENT = '\u0000segment\u0000'
+
+  const source = apiPath
+    .replace(/\[\.\.\.[^\]]+\]/g, CATCH_ALL)
+    .replace(/\[[^\]]+\]/g, SEGMENT)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .split(CATCH_ALL)
+    .join('.+')
+    .split(SEGMENT)
+    .join('[^/]+')
+
+  return new RegExp(`^${source}$`)
+}
+
+/**
+ * Attribute one URL literal to the route that actually serves it.
+ *
+ * Specificity matters and is not optional: `/api/lists/public` matches the
+ * pattern for `/api/lists/[id]` just as well as it matches its own static
+ * route, so a naive scan credits every static sibling to the dynamic route and
+ * reports callers that do not exist. Longest-and-most-static wins, which is
+ * also how the router resolves it.
+ */
+export function matchLiteralToRoute(literal: string, routePaths: string[]): string | null {
+  const candidates = routePaths.filter((route) => routePathToPattern(route).test(literal))
+  if (candidates.length === 0) return null
+
+  const dynamicSegments = (route: string) => (route.match(/\[/g) || []).length
+  return candidates.sort((a, b) => {
+    const byDynamic = dynamicSegments(a) - dynamicSegments(b)
+    if (byDynamic !== 0) return byDynamic
+    return b.length - a.length
+  })[0]
+}
+
+/** Ordered worst-first, so a report leads with what actually blocks the sunset. */
+export const STATUS_ORDER: RouteStatus[] = [
+  'needs-decision',
+  'callers-remain',
+  'inbound-external',
+  'unused-no-successor',
+  'awaiting-traffic-evidence',
+  'out-of-scope',
+]
+
+export function summarize(routes: RouteCoverage[]): Record<RouteStatus, number> {
+  const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<
+    RouteStatus,
+    number
+  >
+  for (const route of routes) counts[route.status] += 1
+  return counts
+}

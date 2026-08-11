@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, memo } from "react"
+import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
@@ -740,7 +741,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         await onCopy(task.id, copyTargetListId, copyIncludeComments)
       } else {
         // Fallback: Use the API directly (shouldn't happen in normal TaskManager flow)
-        const response = await fetch(`/api/tasks/${task.id}/copy`, {
+        const response = await fetch(`/api/v1/tasks/${task.id}/copy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -785,7 +786,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     setLoadingShareUrl(true)
 
     try {
-      const response = await fetch('/api/shortcodes', {
+      const response = await fetch('/api/v1/shortcodes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1082,7 +1083,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     try {
       console.log('🔄 [TaskDetail] Refreshing comments for task:', task.id)
       // Fetch fresh task data from the API
-      const response = await fetch(`/api/tasks/${task.id}`, {
+      const response = await fetch(`/api/v1/tasks/${task.id}`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -1094,7 +1095,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         )
       }
 
-      const freshTask = await response.json()
+      const freshTask = unwrapTask<Task>(await response.json())
+      if (!freshTask) {
+        throw new Error('Task refresh returned no task')
+      }
 
       // CRITICAL: Update taskRef immediately BEFORE triggering state updates
       // This prevents race conditions where SSE events arrive before React re-renders
@@ -1268,13 +1272,17 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       const randomColor = colors[Math.floor(Math.random() * colors.length)]
 
       // Create via API
-      const response = await apiPost('/api/lists', {
+      const response = await apiPost('/api/v1/lists', {
         name: name.trim(),
         color: randomColor,
         privacy: targetPrivacy,
         adminIds,
       })
-      const createdList: TaskList = await response.json()
+      // v1 wraps the new list in { list, meta }; legacy returned it bare.
+      const createdList = unwrapList<TaskList>(await response.json())
+      if (!createdList) {
+        throw new Error('List creation returned no list')
+      }
 
       // Add to selected lists and auto-save
       const updatedTempLists = [...tempLists, createdList]

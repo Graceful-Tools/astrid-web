@@ -46,7 +46,7 @@ export async function uploadCommentFile(
     formData.append("file", file)
     formData.append("context", JSON.stringify(typeof context === "string" ? { taskId: context } : context))
 
-    const response = await fetchImpl("/api/secure-upload/request-upload", {
+    const response = await fetchImpl("/api/v1/secure-upload/request-upload", {
       method: "POST",
       body: formData,
     })
@@ -68,7 +68,7 @@ export async function uploadCommentFile(
     return {
       success: true,
       attachment: {
-        url: `/api/secure-files/${result.fileId}`,
+        url: `/api/v1/secure-files/${result.fileId}`,
         name: result.fileName,
         type: result.mimeType,
         size: result.fileSize,

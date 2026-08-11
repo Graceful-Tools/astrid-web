@@ -69,7 +69,7 @@ export function ReminderNotification({
     try {
       setIsSnoozing(true)
       
-      const response = await fetch(`/api/reminders/${reminderId}/snooze`, {
+      const response = await fetch(`/api/v1/reminders/${reminderId}/snooze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ minutes }),
@@ -103,7 +103,7 @@ export function ReminderNotification({
     try {
       setIsDismissing(true)
       
-      const response = await fetch(`/api/reminders/${reminderId}/dismiss`, {
+      const response = await fetch(`/api/v1/reminders/${reminderId}/dismiss`, {
         method: 'POST',
       })
 
@@ -134,9 +134,15 @@ export function ReminderNotification({
     try {
       setIsCompleting(true)
       
-      // Mark task as complete
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
+      // Mark task as complete.
+      //
+      // v1, not legacy, and PUT, not PATCH. `/api/tasks/[id]` exports only
+      // GET/PUT/DELETE, so the PATCH this used to send was a 405 and the
+      // button never once completed a task. Legacy PUT is no good either — it
+      // rejects a body with no title, and this sends only `completed`.
+      // `PUT /api/v1/tasks/[id]` does partial updates. (Task cde681e4)
+      const response = await fetch(`/api/v1/tasks/${taskId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed: true }),
       })

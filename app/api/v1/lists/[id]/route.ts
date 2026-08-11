@@ -15,7 +15,8 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
-import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
+import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
+import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { canUserManageList } from "@/lib/list-permissions"
 import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
@@ -75,6 +76,8 @@ export const GET = withAuth<RouteContext>(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
+    const defaultAssignees = await resolveDefaultAssignees([list])
+
     return NextResponse.json(
       {
         list: {
@@ -103,7 +106,14 @@ export const GET = withAuth<RouteContext>(
           filterInLists: list.filterInLists,
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
+          ownerId: list.ownerId,
           defaultAssigneeId: list.defaultAssigneeId,
+          // Same parity gap as the collection route (task dc143ab2): this
+          // projection dropped fields the web reads, and a missing field here
+          // is a feature silently switched off rather than an error.
+          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
+          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
           githubRepositoryId: list.githubRepositoryId,
@@ -203,6 +213,17 @@ export const PUT = withAuth<RouteContext>(
       // than resetting it.
       const showSubtasks = normalizeShowSubtasks(body.showSubtasks)
       if (showSubtasks !== undefined) updateData.showSubtasks = showSubtasks
+      // Status-board columns. Legacy applies all of these; v1 did not, and the
+      // web depends on it — ManageStatusesPanel reorders columns by PUTing
+      // { statusOrder }. Dropped, the request still answers 200 and the order
+      // simply springs back, which reads as a broken drag rather than a
+      // rejected write. (Task dc143ab2)
+      if (body.listType !== undefined) updateData.listType = body.listType
+      if (body.statusRole !== undefined) updateData.statusRole = body.statusRole
+      if (body.statusOrder !== undefined) updateData.statusOrder = body.statusOrder
+      if (body.statusDescription !== undefined) updateData.statusDescription = body.statusDescription
+      if (body.statusCompleted !== undefined) updateData.statusCompleted = body.statusCompleted
+      if (body.publicListType !== undefined) updateData.publicListType = body.publicListType
     }
 
     // isFavorite lives in a per-user table, not on TaskList
@@ -271,6 +292,8 @@ export const PUT = withAuth<RouteContext>(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
+    const defaultAssignees = await resolveDefaultAssignees([list])
+
     return NextResponse.json(
       {
         list: {
@@ -299,7 +322,14 @@ export const PUT = withAuth<RouteContext>(
           filterInLists: list.filterInLists,
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
+          ownerId: list.ownerId,
           defaultAssigneeId: list.defaultAssigneeId,
+          // Same parity gap as the collection route (task dc143ab2): this
+          // projection dropped fields the web reads, and a missing field here
+          // is a feature silently switched off rather than an error.
+          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
+          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
           defaultDueTime: list.defaultDueTime,

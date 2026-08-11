@@ -101,7 +101,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
       }
 
       // Send subscription to server
-      const response = await fetch('/api/user/push-subscription', {
+      const response = await fetch('/api/v1/users/me/push-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -147,7 +147,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
       await status.subscription.unsubscribe()
 
       // Mark subscription as inactive on server
-      const response = await fetch(`/api/user/push-subscription?endpoint=${encodeURIComponent(status.subscription.endpoint)}`, {
+      const response = await fetch(`/api/v1/users/me/push-subscriptions?endpoint=${encodeURIComponent(status.subscription.endpoint)}`, {
         method: 'DELETE'
       })
 

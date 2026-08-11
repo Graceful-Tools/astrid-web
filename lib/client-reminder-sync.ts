@@ -70,7 +70,10 @@ class ClientReminderSync {
   // Fetch reminders from the server and sync with Service Worker
   async fetchAndSyncReminders(userId: string) {
     try {
-      const response = await fetch('/api/reminders/status', {
+      // v1's successor is /api/v1/reminders — the path changed name, not just
+      // its prefix. Same { reminders, summary, total } keys plus meta, and this
+      // reads only data.reminders. (641a7615 step 3)
+      const response = await fetch('/api/v1/reminders', {
         headers: {
           'Content-Type': 'application/json',
         },

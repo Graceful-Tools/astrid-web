@@ -1,3 +1,28 @@
+/**
+ * User MCP Settings API — **no v1 successor, by design** (task 641a7615, decision 3A).
+ *
+ * The other four legacy `/api/user/*` routes without a v1 twin got one. This
+ * one did not, because nothing calls it: zero call sites in this repo and zero
+ * in astrid-ios, on any file type. Building a v1 twin would mean maintaining
+ * two paths to a surface with no users.
+ *
+ * The three columns it writes are not equally dead, which is worth recording
+ * before someone deletes them along with the route:
+ *
+ * - `mcpEnabled` IS read — it gates MCP token minting in `/api/mcp/tokens` and
+ *   `/api/mcp/user-tokens`. It defaults to `true`, so the gate is open for
+ *   everyone and this endpoint is a pure opt-out that no UI ever offers. The
+ *   column stays; the endpoint is what has no users.
+ * - `defaultNewListMcpEnabled` / `defaultNewListMcpAccessLevel` are read by
+ *   nothing at all. List creation does not consult them, so the stored
+ *   preference has never been applied. Whether it should be is a product
+ *   question, not a cleanup — it is flagged on 641a7615 rather than guessed at.
+ *
+ * Retirement plan: leave it live and counted, let the deprecation census prove
+ * zero traffic through the sunset date in lib/api-deprecation.ts, then delete
+ * it with the rest of the legacy prefix. Do not build a v1 twin for it.
+ */
+
 import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"

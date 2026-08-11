@@ -18,10 +18,14 @@ export function useChatContacts(userId?: string, enabled = true) {
       setIsLoading(true)
       try {
         // Fetch lists to get all co-members
-        const res = await fetch('/api/lists')
+        const res = await fetch('/api/v1/lists')
         if (!res.ok) return
 
-        const lists = await res.json()
+        // The body is { lists, meta }, not an array — iterating it directly
+        // threw "not iterable" into the catch below, so this hook has always
+        // produced an empty contact list. Legacy was the same shape.
+        const body = await res.json()
+        const lists = Array.isArray(body) ? body : (body?.lists ?? [])
         const userMap = new Map<string, User>()
 
         for (const list of lists) {

@@ -24,10 +24,10 @@ function mockGithubFetch(opts: {
   const repositories = opts.repositories ?? []
   global.fetch = vi.fn((url: string | URL | Request) => {
     const u = String(url)
-    if (u.includes('/api/github/status')) {
+    if (u.includes('/api/v1/github/status')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({ aiProviders }) } as Response)
     }
-    if (u.includes('/api/github/repositories')) {
+    if (u.includes('/api/v1/github/repositories')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({ repositories }) } as Response)
     }
     return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)

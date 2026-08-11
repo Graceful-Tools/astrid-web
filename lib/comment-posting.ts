@@ -11,9 +11,10 @@
  * append vs. nesting under a parent — so callers pass those writes in.
  */
 
-import type { User } from "@/types/task"
+import type { User, Comment } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { commentDrafts, type CommentDraft } from "@/lib/comment-attachments"
+import { unwrapComment } from "@/lib/v1-response"
 
 export interface PendingComment {
   tempId: string
@@ -119,7 +120,7 @@ export async function postPendingComments(
           "create",
           "comment",
           tempId,
-          `/api/tasks/${taskId}/comments`,
+          `/api/v1/tasks/${taskId}/comments`,
           "POST",
           commentData,
           taskId, // parentId for dependency tracking
@@ -130,7 +131,7 @@ export async function postPendingComments(
     }
 
     for (const { commentData, tempId } of pending) {
-      const response = await fetch(`/api/tasks/${taskId}/comments`, {
+      const response = await fetch(`/api/v1/tasks/${taskId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -139,7 +140,9 @@ export async function postPendingComments(
 
       if (!response.ok) throw new Error("Failed to add comment")
 
-      const serverComment = await response.json()
+      // v1 wraps the new comment in { comment, meta }; legacy returned it bare.
+      const serverComment = unwrapComment<Comment>(await response.json())
+      if (!serverComment) throw new Error("Comment POST returned no comment")
       await OfflineCommentOperations.saveComment(serverComment)
       sent += 1
       handlers.replace(tempId, serverComment)

@@ -130,6 +130,12 @@ export function GitHubIntegrationSettings() {
     try {
       setRefreshing(true)
 
+      // Stays on legacy deliberately. v1 has no /repositories/refresh route; it
+      // expresses refresh as GET /api/v1/github/repositories?refresh=true —
+      // which uses findFirst, one integration. This POST loops findMany over
+      // EVERY connected installation, and the app does support several
+      // (github/status builds connectedInstallationIds as an array). Migrating
+      // it would silently stop refreshing all but the first. (641a7615 step 3)
       const response = await fetch('/api/github/repositories/refresh', {
         method: 'POST'
       })

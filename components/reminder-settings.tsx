@@ -96,7 +96,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
   const loadReminderSettings = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/user/reminder-settings")
+      const response = await fetch("/api/v1/users/me/reminder-settings")
       
       if (response.ok) {
         const data = await response.json()
@@ -149,7 +149,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         quietHoursEnd: newSettings.quietHoursEnd || null,
       }
 
-      const response = await fetch("/api/user/reminder-settings", {
+      const response = await fetch("/api/v1/users/me/reminder-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(apiData),
@@ -219,7 +219,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
             })
 
             // Send subscription to server
-            await fetch("/api/user/push-subscription", {
+            await fetch("/api/v1/users/me/push-subscriptions", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

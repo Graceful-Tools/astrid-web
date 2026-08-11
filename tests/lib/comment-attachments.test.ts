@@ -19,7 +19,7 @@ import {
 import type { FileAttachment } from '@/hooks/task-detail/useTaskDetailState'
 
 const file = (id: string, name = `${id}.png`): FileAttachment => ({
-  url: `/api/secure-files/${id}`,
+  url: `/api/v1/secure-files/${id}`,
   name,
   type: 'image/png',
   size: 1234,
@@ -27,16 +27,16 @@ const file = (id: string, name = `${id}.png`): FileAttachment => ({
 
 describe('fileIdFromUrl', () => {
   it('pulls the id out of a secure-files url', () => {
-    expect(fileIdFromUrl('/api/secure-files/abc-123')).toBe('abc-123')
+    expect(fileIdFromUrl('/api/v1/secure-files/abc-123')).toBe('abc-123')
   })
 
   it('ignores a query string', () => {
-    expect(fileIdFromUrl('/api/secure-files/abc-123?download=1')).toBe('abc-123')
+    expect(fileIdFromUrl('/api/v1/secure-files/abc-123?download=1')).toBe('abc-123')
   })
 
   it('returns undefined for a url that carries no id', () => {
     expect(fileIdFromUrl('')).toBeUndefined()
-    expect(fileIdFromUrl('/api/secure-files/')).toBeUndefined()
+    expect(fileIdFromUrl('/api/v1/secure-files/')).toBeUndefined()
   })
 })
 
@@ -54,10 +54,10 @@ describe('addAttachment (Task 9f325964)', () => {
     )
 
     expect(queue.map(f => f.url)).toEqual([
-      '/api/secure-files/a',
-      '/api/secure-files/b',
-      '/api/secure-files/c',
-      '/api/secure-files/d',
+      '/api/v1/secure-files/a',
+      '/api/v1/secure-files/b',
+      '/api/v1/secure-files/c',
+      '/api/v1/secure-files/d',
     ])
   })
 
@@ -76,7 +76,7 @@ describe('addAttachment (Task 9f325964)', () => {
 
     expect(queue).toHaveLength(MAX_COMMENT_ATTACHMENTS)
     expect(queue.some(f => f.url.endsWith('overflow'))).toBe(false)
-    expect(queue[0].url).toBe('/api/secure-files/f0')
+    expect(queue[0].url).toBe('/api/v1/secure-files/f0')
   })
 })
 

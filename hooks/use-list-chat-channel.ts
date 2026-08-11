@@ -65,7 +65,7 @@ export function useListChatChannel({
       setIsLoading(true)
       setError(null)
       try {
-        const res = await fetch('/api/chat/channels', {
+        const res = await fetch('/api/v1/chat/channels', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

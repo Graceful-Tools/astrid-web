@@ -2,7 +2,7 @@
  * GET/PATCH /api/v1/users/me/ai-preferences
  *
  * AI assistant preferences: preferredService, defaultAgentId.
- * Mirrors GET/PATCH /api/user/ai-assistant-settings.
+ * Mirrors GET/PATCH /api/v1/users/me/ai-preferences.
  */
 
 import { NextResponse } from 'next/server'

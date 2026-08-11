@@ -39,7 +39,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
   )
 
   const putList = async (list: TaskList, overrides: Partial<TaskList>) => {
-    const response = await fetch(`/api/lists/${list.id}`, {
+    const response = await fetch(`/api/v1/lists/${list.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...list, ...overrides }),

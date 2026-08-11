@@ -95,10 +95,15 @@ export const GET = withAuth<RouteContext>(
                 isAIAgent: true,
               },
             },
+            secureFiles: true,
           },
           orderBy: { createdAt: 'asc' },
         },
         attachments: true,
+        // Legacy's TASK_FULL_INCLUDE carries these; v1 did not, and web reads
+        // them (taskLevelAttachments / CommentSection). A response that drops
+        // them does not render fewer attachments — it renders none. (641a7615)
+        secureFiles: true,
       },
     })
 
@@ -563,9 +568,16 @@ export const PUT = withAuth<RouteContext>(
                 isAIAgent: true,
               },
             },
+            secureFiles: true,
           },
           orderBy: { createdAt: 'asc' as const },
         },
+        // Parity with legacy TASK_FULL_INCLUDE. This response replaces the
+        // task in client state after every edit, so omitting these does not
+        // render fewer attachments — it makes a title change drop a file off
+        // the task until the next full reload. (641a7615)
+        attachments: true,
+        secureFiles: true,
       },
     })
 
