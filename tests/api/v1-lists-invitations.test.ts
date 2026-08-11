@@ -12,6 +12,7 @@ vi.mock('@/lib/prisma', () => ({
     listInvite: {
       findMany: vi.fn(),
       deleteMany: vi.fn(),
+      updateMany: vi.fn(),
     },
   },
 }))
@@ -32,7 +33,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
-import { GET, DELETE } from '@/app/api/v1/lists/[id]/invitations/route'
+import { GET, DELETE, PUT } from '@/app/api/v1/lists/[id]/invitations/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 
@@ -47,7 +48,7 @@ const authedUser = {
   user: { id: 'owner-123', email: 'jon@example.com', name: 'Jon', isAIAgent: false },
 }
 
-function makeReq(method: 'GET' | 'DELETE', body?: unknown): NextRequest {
+function makeReq(method: 'GET' | 'DELETE' | 'PUT', body?: unknown): NextRequest {
   return new NextRequest('http://localhost/api/v1/lists/list-1/invitations', {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -180,5 +181,94 @@ describe('DELETE /api/v1/lists/:id/invitations', () => {
     expect(mockPrisma.listInvite.deleteMany).toHaveBeenCalledWith({
       where: { listId: 'list-1', email: 'guest@example.com' },
     })
+  })
+})
+
+/**
+ * Task dc143ab2 — the last /api/lists call site with no v1 successor.
+ *
+ * Legacy `PATCH /api/lists/:id/members` with `{ email, role, isInvitation }`
+ * changes a PENDING invitation's role. v1 split invitations onto their own
+ * resource but shipped GET + DELETE only, so that one capability had nowhere
+ * to go. It is not vestigial: list-members-manager wires it to a live control
+ * with an optimistic update and a rollback, so dropping it would be a
+ * user-visible regression.
+ */
+describe('PUT /api/v1/lists/:id/invitations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(authedUser as any)
+  })
+
+  it('updates a pending invitation role when caller is the owner', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(ownedList as any)
+    ;(mockPrisma.listInvite.updateMany as any).mockResolvedValue({ count: 1 })
+
+    const res = await PUT(
+      makeReq('PUT', { email: 'guest@example.com', role: 'admin' }),
+      { params } as any
+    )
+    expect(res.status).toBe(200)
+    expect(mockPrisma.listInvite.updateMany).toHaveBeenCalledWith({
+      where: { listId: 'list-1', email: 'guest@example.com' },
+      data: { role: 'admin' },
+    })
+  })
+
+  it('lowercases the email, matching DELETE on this route', async () => {
+    // Legacy matched the raw string here while its sibling DELETE lowercased,
+    // so a role change on a mixed-case invite could miss the row entirely.
+    mockPrisma.taskList.findUnique.mockResolvedValue(ownedList as any)
+    ;(mockPrisma.listInvite.updateMany as any).mockResolvedValue({ count: 1 })
+
+    await PUT(makeReq('PUT', { email: 'GUEST@Example.com', role: 'member' }), { params } as any)
+    expect((mockPrisma.listInvite.updateMany as any).mock.calls[0][0].where.email)
+      .toBe('guest@example.com')
+  })
+
+  it('rejects a role outside admin/member', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(ownedList as any)
+    const res = await PUT(
+      makeReq('PUT', { email: 'guest@example.com', role: 'owner' }),
+      { params } as any
+    )
+    expect(res.status).toBe(400)
+    expect(mockPrisma.listInvite.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('requires an email', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(ownedList as any)
+    const res = await PUT(makeReq('PUT', { role: 'admin' }), { params } as any)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when the list does not exist', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(null)
+    const res = await PUT(
+      makeReq('PUT', { email: 'guest@example.com', role: 'admin' }),
+      { params } as any
+    )
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 403 for a non-admin caller', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(foreignList as any)
+    const res = await PUT(
+      makeReq('PUT', { email: 'guest@example.com', role: 'admin' }),
+      { params } as any
+    )
+    expect(res.status).toBe(403)
+    expect(mockPrisma.listInvite.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when no pending invitation matches', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(ownedList as any)
+    ;(mockPrisma.listInvite.updateMany as any).mockResolvedValue({ count: 0 })
+
+    const res = await PUT(
+      makeReq('PUT', { email: 'noone@example.com', role: 'admin' }),
+      { params } as any
+    )
+    expect(res.status).toBe(404)
   })
 })

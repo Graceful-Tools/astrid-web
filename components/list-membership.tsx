@@ -150,20 +150,12 @@ export function ListMembership({
         return false
       }
 
-      // Remove the agent from the list members
-      // Deliberately still legacy: v1 addresses members as /members/[userId],
-      // which cannot express a PENDING INVITATION — an invite has no userId and
-      // is addressed by email. Migrating this breaks invitation management.
+      // Remove the agent from the list members. Always a real member here
+      // (`isInvitation: false` on the legacy call it replaces) — the agent was
+      // just looked up in getAllListMembers, so it has a userId to address.
       // (Task dc143ab2)
-      const response = await fetch(`/api/lists/${list.id}/members`, {
+      const response = await fetch(`/api/v1/lists/${list.id}/members/${memberRecord.id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          memberId: memberRecord.id,
-          isInvitation: false
-        }),
       })
 
       if (!response.ok) {
