@@ -17,6 +17,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import type { V1List } from '@/lib/api-contracts/v1-ios-shapes'
 import { listVisibilityWhere } from '@/lib/list-permissions'
+import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('v1.lists')
@@ -137,6 +138,7 @@ export const GET = withAuth(
           statusDescription: list.statusDescription ?? null,
           statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
+          showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         })),

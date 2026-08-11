@@ -81,6 +81,9 @@ export interface TaskList {
   // Per-list "Recently completed" window. null = legacy 24h default.
   // Shape: see lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow?: unknown | null
+  // Show subtasks inline in this list. Absent/null = show (the default).
+  // Combined with the user's subtaskDisplay by lib/list-subtask-visibility.ts.
+  showSubtasks?: boolean | null
   filterDueDate?: string | null // "all", "today", "overdue", "this_week", "this_month", "this_calendar_week", "this_calendar_month"
   filterAssignee?: string | null // "current_user", "unassigned", specific user ID, etc.
   filterAssignedBy?: string | null // "current_user", specific user ID, etc.

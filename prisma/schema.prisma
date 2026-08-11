@@ -180,6 +180,11 @@ model TaskList {
   /// Per-list "Recently completed" window — null = legacy 24h default.
   /// Shape: see lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow Json?
+  /// Show subtasks inline in this list. Default/absent = SHOW, so lists that
+  /// predate the column keep rendering subtasks. Combined with the user-level
+  /// User.subtaskDisplay by lib/list-subtask-visibility.ts: a list may opt
+  /// out, but cannot opt back in over a user's detail-only preference.
+  showSubtasks            Boolean            @default(true)
   filterDueDate           String?
   filterInLists           String?
   filterPriority          String?

@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "Listennamen eingeben...",
       "description": "Beschreibung hinzufügen..."
-    }
+    },
+    "showSubtasksLabel": "Unteraufgaben anzeigen",
+    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar."
   },
   "priority": {
     "none": "Keine",

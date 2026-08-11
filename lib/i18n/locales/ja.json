@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "リスト名を入力...",
       "description": "説明を追加..."
-    }
+    },
+    "showSubtasksLabel": "サブタスクを表示",
+    "showSubtasksDescription": "このリストで、サブタスクを親タスクの下にインデント表示します。オフにすると最上位のタスクのみが表示されます（サブタスクは親タスクの詳細画面で引き続き確認できます）。"
   },
   "priority": {
     "none": "なし",

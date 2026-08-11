@@ -131,7 +131,9 @@
     "placeholder": {
       "listName": "Digite o nome da lista...",
       "description": "Adicionar descrição..."
-    }
+    },
+    "showSubtasksLabel": "Mostrar subtarefas",
+    "showSubtasksDescription": "Mostra as subtarefas recuadas sob a tarefa principal nesta lista. Desative para mostrar apenas as tarefas principais — as subtarefas continuam visíveis nos detalhes da tarefa principal."
   },
   "priority": {
     "none": "Nenhuma",

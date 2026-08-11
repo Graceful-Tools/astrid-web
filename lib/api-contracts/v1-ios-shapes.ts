@@ -98,6 +98,10 @@ export interface V1List {
   // Per-list "Recently completed" window config. null = legacy 24h default.
   // Shape mirrors lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow: unknown
+  // Show subtasks inline in this list. Always a boolean on the wire — a null
+  // column is emitted as `true`, because absent must mean SHOW. Combine with
+  // the user's subtaskDisplay per lib/list-subtask-visibility.ts.
+  showSubtasks: boolean
   createdAt: string | Date
   updatedAt: string | Date
 }

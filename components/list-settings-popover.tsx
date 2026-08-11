@@ -153,6 +153,7 @@ export function ListSettingsPopover({
                     currentUser={currentUser}
                     onUpdate={onUpdate}
                     onFavoriteToggle={onFavoriteToggle}
+                    canEditSettings={canEditSettings}
                   />
                 </TabsContent>
 
