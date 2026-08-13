@@ -297,7 +297,39 @@ export async function requireListAccess(
 }
 
 /**
- * Helper to check if user has access to a specific task
+ * The three ways a user is attached to a task: creator, assignee, or a member
+ * (or owner) of one of its lists. Shared by the read and write checks below so
+ * the two cannot drift apart on everything except the one difference between
+ * them.
+ */
+function taskMembershipBranches(userId: string) {
+  return [
+    { creatorId: userId },
+    { assigneeId: userId },
+    {
+      lists: {
+        some: {
+          OR: [
+            { ownerId: userId },
+            {
+              listMembers: {
+                some: { userId },
+              },
+            },
+          ],
+        },
+      },
+    },
+  ]
+}
+
+/**
+ * Helper to check if user has access to a specific task.
+ *
+ * This is the WRITE check — it guards PUT and DELETE. Do not add a PUBLIC-list
+ * branch here: legacy's own PUT does not have one, and a stranger who can read
+ * a task on a public list must not thereby be able to edit or delete it.
+ * Reads use `requireTaskReadAccess`.
  */
 export async function requireTaskAccess(
   userId: string,
@@ -306,23 +338,36 @@ export async function requireTaskAccess(
   const task = await prisma.task.findFirst({
     where: {
       id: taskId,
+      OR: taskMembershipBranches(userId),
+    },
+  })
+
+  if (!task) {
+    throw new ForbiddenError('Access denied to this task')
+  }
+}
+
+/**
+ * Helper to check if a user may READ a specific task.
+ *
+ * Same three membership routes as `requireTaskAccess`, plus the one legacy
+ * `GET /api/tasks/[id]` has always allowed: any signed-in user may read a task
+ * that sits on a PUBLIC list. Without this, v1 answered 403 where legacy
+ * answered 200, which blocked moving the share-code landing page — and every
+ * public share link with it — off the legacy route. (Task 92e582c6.)
+ */
+export async function requireTaskReadAccess(
+  userId: string,
+  taskId: string
+): Promise<void> {
+  const task = await prisma.task.findFirst({
+    where: {
+      id: taskId,
       OR: [
-        { creatorId: userId },
-        { assigneeId: userId },
-        {
-          lists: {
-            some: {
-              OR: [
-                { ownerId: userId },
-                {
-                  listMembers: {
-                    some: { userId },
-                  },
-                },
-              ],
-            },
-          },
-        },
+        ...taskMembershipBranches(userId),
+        // Covers both public list types (copy-only and collaborative), which
+        // is what legacy does.
+        { lists: { some: { privacy: 'PUBLIC' } } },
       ],
     },
   })

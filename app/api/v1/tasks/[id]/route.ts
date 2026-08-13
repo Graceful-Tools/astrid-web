@@ -8,7 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { collectListRecipientUserIds } from '@/lib/task-recipients'
-import { requireTaskAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
+import { requireTaskAccess, requireTaskReadAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { prisma } from '@/lib/prisma'
 import { validateParentTask } from '@/lib/subtasks'
@@ -47,8 +47,11 @@ export const GET = withAuth<RouteContext>(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // requireTaskAccess throws ForbiddenError → withAuth catches → 403
-    await requireTaskAccess(auth.userId, taskId)
+    // Read check, not the write one: it also admits any signed-in user when the
+    // task sits on a PUBLIC list, matching legacy GET. PUT/DELETE below keep
+    // requireTaskAccess. (Task 92e582c6.)
+    // Throws ForbiddenError → withAuth catches → 403
+    await requireTaskReadAccess(auth.userId, taskId)
 
     const task = await prisma.task.findUnique({
       where: { id: taskId },

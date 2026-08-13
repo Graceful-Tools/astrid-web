@@ -37,7 +37,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
     constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
   }
   return {
-    authenticateAPI: vi.fn(), requireScopes: vi.fn(), requireTaskAccess: vi.fn(),
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(), requireTaskAccess: vi.fn(), requireTaskReadAccess: vi.fn(),
     UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
   }
 })
