@@ -15,9 +15,13 @@ for AI agents to work efficiently. This proposal identifies the key issues and p
 a phased refactoring plan.
 
 **The dominant issue is no longer file size — it is the duplicated `/api/*` ↔ `/api/v1/*`
-surface.** See [2026-08-13 review](#2026-08-13-review) for the current measurements. Every
-number in that section is reproducible from a shell one-liner; nothing in it is an
-impression.
+surface.** See [2026-08-13 review](#2026-08-13-review) for the current measurements.
+
+Every number there comes from a shell one-liner you can re-run rather than from an
+impression — but note that §2 of that review was **wrong in its first draft** and is
+corrected in place. It reported a missing client API layer that in fact exists under a
+name the audit did not grep for. Counts are only as good as the pattern that produced
+them; re-derive before planning against any of them.
 
 ---
 
@@ -52,16 +56,37 @@ difference, and nothing tests that the two paths agree.
 The re-export pattern (`app/api/v1/chat/channels/route.ts` is 9 lines) is the proven fix
 wherever v1 needs no response-envelope change.
 
-### 2. No client-side API layer
+### 2. The client API layer exists and is bypassed
 
-**222 raw `fetch('/api/…')` calls across 71 files.** There is no `lib/api-client.ts`;
-every call site re-implements URL construction, headers, `response.ok` handling and error
-recovery.
+The helpers are already here:
 
-The concrete cost: v1 returns `{ task, meta }` where legacy returned the task directly,
-so every migrated call site has to remember to unwrap. A call site that forgets does not
-error — it reads `undefined` and takes a silently wrong branch. That is a whole bug class
-that one typed client would make impossible.
+- `lib/api.ts` — `apiCall`, `apiGet`, `apiPost`, `apiPut`, `apiDelete`, plus
+  cache-invalidation subscribers
+- `lib/v1-response.ts` — `unwrapTask`, `unwrapList`, `unwrapComment`, `unwrapEnvelope`
+
+Adoption is the problem:
+
+| | files |
+|---|---|
+| import `@/lib/api` | **5** |
+| import `@/lib/v1-response` | 12 |
+| hand-roll `fetch('/api/…')` | **71** (189 call sites) |
+
+Zero files do both, so this is not half-migrated modules — it is 71 files that never
+picked the helpers up.
+
+The concrete cost: v1 returns `{ task, meta }` where legacy returned the task directly.
+A call site that forgets to unwrap does not error — it reads `undefined` and takes a
+silently wrong branch. `unwrapTask` exists to prevent exactly that, and 59 of the 71
+files do not import it.
+
+> **This section was wrong in the first draft of this review** and is corrected here. It
+> claimed there was no client layer and proposed building one, because the audit grepped
+> for `lib/api-client*` and `apiFetch`/`apiClient` — the names I expected rather than the
+> names in the repo. The lesson generalises to the rest of this document: a grep that
+> finds nothing is evidence about the grep as much as about the code. The raw-fetch count
+> is corrected from 222 to 189 for the same reason (the higher figure double-counted call
+> sites matching more than one pattern).
 
 ### 3. God files — mixed progress
 
