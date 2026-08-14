@@ -4,94 +4,34 @@
  *
  * Lets iOS swap session cookies for an MCP token (description "Mobile App
  * Token") so it can call MCP endpoints with token auth instead of cookies.
- * Mirrors POST/DELETE /api/auth/mobile-mcp-token.
+ *
+ * The flow lives in lib/mobile-mcp-token.ts and is shared with the legacy
+ * route. This handler owns only the v1 `meta` envelope. (Task e0613ae5.)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
-import { prisma } from '@/lib/prisma'
-import { generateMCPToken } from '@/lib/mcp-token-utils'
+import {
+  resolveMobileSessionUser,
+  mintOrReturnMobileToken,
+  revokeMobileTokens,
+} from '@/lib/mobile-mcp-token'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.auth.mobile-mcp-token')
 
-const MOBILE_TOKEN_EXPIRY_DAYS = 90
 const META = { apiVersion: 'v1' as const, authSource: 'cookie' }
-
-async function resolveSessionUserId(request: NextRequest): Promise<
-  { userId: string } | { errorResponse: NextResponse }
-> {
-  const cookies = request.cookies
-  const sessionCookie =
-    cookies.get('next-auth.session-token') ||
-    cookies.get('__Secure-next-auth.session-token')
-
-  if (!sessionCookie) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized - No session' }, { status: 401 }) }
-  }
-
-  const session = await prisma.session.findUnique({
-    where: { sessionToken: sessionCookie.value },
-    include: { user: true },
-  })
-
-  if (!session) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 }) }
-  }
-
-  if (session.expires < new Date()) {
-    await prisma.session.delete({ where: { id: session.id } })
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized - Session expired' }, { status: 401 }) }
-  }
-
-  return { userId: session.user.id }
-}
 
 export async function POST(request: NextRequest) {
   try {
-    const resolved = await resolveSessionUserId(request)
-    if ('errorResponse' in resolved) return resolved.errorResponse
-    const { userId } = resolved
-
-    const existingToken = await prisma.mCPToken.findFirst({
-      where: {
-        userId,
-        description: 'Mobile App Token',
-        isActive: true,
-        listId: null,
-        expiresAt: { gt: new Date() },
-      },
-    })
-
-    if (existingToken) {
-      return NextResponse.json({
-        token: resolveMCPPlaintext(existingToken),
-        userId: existingToken.userId,
-        meta: META,
-      })
+    const resolved = await resolveMobileSessionUser(request)
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
     }
 
-    const token = generateMCPToken()
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + MOBILE_TOKEN_EXPIRY_DAYS)
+    const { token, userId } = await mintOrReturnMobileToken(resolved.userId)
 
-    const mcpToken = await prisma.mCPToken.create({
-      data: {
-        ...mcpTokenStorageFields(token),
-        userId,
-        permissions: ['read', 'write'],
-        description: 'Mobile App Token',
-        isActive: true,
-        expiresAt,
-        listId: null,
-      },
-    })
-
-    return NextResponse.json({
-      token, // plaintext (stored hashed + encrypted)
-      userId: mcpToken.userId,
-      meta: META,
-    })
+    // `token` is plaintext — the only point at which it exists in that form.
+    return NextResponse.json({ token, userId, meta: META })
   } catch (error) {
     log.error({ err: error }, 'Error generating mobile MCP token')
     return NextResponse.json({ error: 'Failed to generate token' }, { status: 500 })
@@ -100,18 +40,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const resolved = await resolveSessionUserId(request)
-    if ('errorResponse' in resolved) return resolved.errorResponse
-    const { userId } = resolved
+    const resolved = await resolveMobileSessionUser(request)
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
+    }
 
-    await prisma.mCPToken.updateMany({
-      where: {
-        userId,
-        description: 'Mobile App Token',
-        isActive: true,
-      },
-      data: { isActive: false },
-    })
+    await revokeMobileTokens(resolved.userId)
 
     return NextResponse.json({ success: true, meta: META })
   } catch (error) {
