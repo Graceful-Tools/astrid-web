@@ -61,9 +61,14 @@ export const GET = withAuth(
         break
       case 'popular':
       default:
-        // Popular = most tasks + most members
-        // We'll sort by createdAt for now, can enhance with task count later
-        orderBy = { createdAt: 'desc' }
+        // copyCount is what popularity MEANS here — the legacy route has
+        // always sorted [copyCount desc, createdAt desc], with createdAt as
+        // the tie-break rather than the sort. This branch used createdAt
+        // alone behind a "for now" comment, so "popular" returned "newest"
+        // and a much-copied list never surfaced. It is also the DEFAULT
+        // branch, so that was what a client got when it asked for nothing.
+        // (Task e0613ae5.)
+        orderBy = [{ copyCount: 'desc' }, { createdAt: 'desc' }]
         break
     }
 
