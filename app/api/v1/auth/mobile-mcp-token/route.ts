@@ -9,6 +9,7 @@
  * route. This handler owns only the v1 `meta` envelope. (Task e0613ae5.)
  */
 
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   resolveMobileSessionUser,
@@ -23,6 +24,12 @@ const META = { apiVersion: 'v1' as const, authSource: 'cookie' }
 
 export async function POST(request: NextRequest) {
   try {
+    // MCP off for this deployment means this endpoint does not exist —
+    // before the session is read, so a disabled build cannot be probed
+    // for cookie validity. (Task 3428a53c.)
+    const blocked = capabilityGate('integrationMcp')
+    if (blocked) return blocked
+
     const resolved = await resolveMobileSessionUser(request)
     if (!resolved.ok) {
       return NextResponse.json({ error: resolved.error }, { status: resolved.status })
@@ -40,6 +47,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // MCP off for this deployment means this endpoint does not exist —
+    // before the session is read, so a disabled build cannot be probed
+    // for cookie validity. (Task 3428a53c.)
+    const blocked = capabilityGate('integrationMcp')
+    if (blocked) return blocked
+
     const resolved = await resolveMobileSessionUser(request)
     if (!resolved.ok) {
       return NextResponse.json({ error: resolved.error }, { status: resolved.status })
