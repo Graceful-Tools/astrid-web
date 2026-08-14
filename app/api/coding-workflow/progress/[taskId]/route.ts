@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import type { RouteContextParams } from '@/types/next'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { withAuth } from '@/lib/api-auth-wrapper'
+import { requireTaskAccess } from '@/lib/api-auth-middleware'
 
 const log = createLogger('coding-workflow.progress.[taskId]')
 
@@ -15,18 +16,30 @@ export const dynamic = 'force-dynamic'
  * Provides detailed status, phase tracking, and error information
  * for debugging and monitoring cloud AI workflows
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContextParams<{ taskId: string }>
-) {
-  try {
-    const { taskId } = await context.params
+type RouteContext = { params: Promise<{ taskId: string }> }
 
-    if (!taskId) {
-      return NextResponse.json({
-        error: 'Task ID is required'
-      }, { status: 400 })
-    }
+export const GET = withAuth<RouteContext>(
+  { scopes: ['tasks:read'], tag: 'coding-workflow.progress' },
+  async (_req, auth, { params }) => {
+  const { taskId } = await params
+
+  if (!taskId) {
+    return NextResponse.json({
+      error: 'Task ID is required'
+    }, { status: 400 })
+  }
+
+  // This endpoint returns the task's title and description, previews of the AI
+  // agent's comments, and the repository id, branch, PR number and deployment
+  // URL it is working in. It previously required no auth at all, so a task id
+  // was enough to read all of it. (Task e0613ae5.)
+  //
+  // Deliberately OUTSIDE the try/catch below: that block turns anything thrown
+  // into a 500, which would swallow the ForbiddenError and answer an
+  // unauthorised caller with "Internal server error" instead of 403.
+  await requireTaskAccess(auth.userId, taskId)
+
+  try {
 
     // Get the workflow for this task
     const workflow = await prisma.codingTaskWorkflow.findUnique({
@@ -155,7 +168,7 @@ export async function GET(
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
-}
+})
 
 /**
  * Calculate completed steps based on workflow status
