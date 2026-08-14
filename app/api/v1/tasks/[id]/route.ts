@@ -24,6 +24,7 @@ import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from
 import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
+import { recordStateChangeComment } from '@/lib/task-update-handler'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('v1.tasks.id')
@@ -614,35 +615,32 @@ export const PUT = withAuth<RouteContext>(
       })
     }
 
-    // System comment for state changes (assignee/priority/etc.)
+    // System comment for state changes (assignee/priority/etc.).
+    //
+    // Shares legacy's helper rather than re-deriving it here. v1 used to
+    // hand-roll this block, and the copy dropped `systemEventType` — the typed
+    // discriminator that lib/completion-streak.ts folds on. Without it the fold
+    // falls back to matching English prose, which is precisely what that column
+    // was added to stop: a comment written by v1 would stop folding the moment
+    // the sentence was localised, on every client at once. (Task efecc4b8.)
+    //
+    // The name comes from `auth.user`, which the wrapper already loaded — the
+    // old copy issued a second query for a row it was holding.
+    // Wrapped: a system comment is a nice-to-have on top of an update that has
+    // already been committed. The inline version this replaced was wrapped too,
+    // and dropping that made every unrelated failure in here fail the whole PUT.
     try {
-      const { detectTaskStateChanges, formatStateChangesAsComment } = await import('@/lib/task-state-change-tracker')
-
       if (!existingTask) {
         log.warn('Cannot track state changes - existing task not found')
       } else {
-        const updater = await prisma.user.findUnique({
-          where: { id: auth.userId },
-          select: { name: true, email: true }
+        const stateChangeComment = await recordStateChangeComment({
+          existingTask,
+          updatedTask: task,
+          updaterName: auth.user?.name || auth.user?.email || 'Someone',
         })
-        const updaterName = updater?.name || updater?.email || 'Someone'
-
-        const stateChanges = detectTaskStateChanges(existingTask, task, updaterName)
-
-        if (stateChanges.length > 0) {
-          const commentContent = formatStateChangesAsComment(stateChanges, updaterName)
-
-          // authorId: null marks the comment as system-generated
-          await prisma.comment.create({
-            data: {
-              taskId: task.id,
-              authorId: null,
-              content: commentContent,
-              type: 'TEXT',
-            },
-          })
-
-          log.debug({ taskId: task.id, comment: commentContent }, 'Created state change comment')
+        // Prepend so the client renders it without a refetch, as legacy does.
+        if (stateChangeComment) {
+          task.comments = [stateChangeComment as never, ...task.comments]
         }
       }
     } catch (stateChangeError) {

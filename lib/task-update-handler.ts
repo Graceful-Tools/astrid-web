@@ -117,7 +117,13 @@ export async function applyRepeatingTaskCompletion(args: {
  */
 export async function recordStateChangeComment(args: {
   existingTask: TaskWithRelations
-  updatedTask: TaskWithFullRelations
+  // Deliberately TaskWithRelations, not TaskWithFullRelations. This function
+  // reads only `id`, `completed`, and whatever detectTaskStateChanges compares
+  // — it never touches the comment/attachment relations the fuller type
+  // demands. Requiring them locked the helper to callers that select the exact
+  // legacy include, which is why v1 grew its own copy instead of reusing this.
+  // (Task efecc4b8.)
+  updatedTask: TaskWithRelations
   updaterName: string
 }) {
   const { existingTask, updatedTask, updaterName } = args
