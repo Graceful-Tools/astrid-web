@@ -3,14 +3,128 @@
 *Analysis and recommendations for improving code maintainability*
 
 **Created:** 2024-11-27
-**Updated:** 2024-11-27
+**Updated:** 2026-08-13 (hygiene review, task 79b322b0)
 **Status:** In Progress
 
 ---
 
 ## Executive Summary
 
-The codebase has several large files and architectural patterns that make it difficult for AI agents to work efficiently. This proposal identifies the key issues and provides a phased refactoring plan.
+The codebase has several large files and architectural patterns that make it difficult
+for AI agents to work efficiently. This proposal identifies the key issues and provides
+a phased refactoring plan.
+
+**The dominant issue is no longer file size — it is the duplicated `/api/*` ↔ `/api/v1/*`
+surface.** See [2026-08-13 review](#2026-08-13-review) for the current measurements.
+
+Every number there comes from a shell one-liner you can re-run rather than from an
+impression — but note that §2 of that review was **wrong in its first draft** and is
+corrected in place. It reported a missing client API layer that in fact exists under a
+name the audit did not grep for. Counts are only as good as the pattern that produced
+them; re-derive before planning against any of them.
+
+---
+
+## 2026-08-13 review
+
+Measured on `main` at commit `c2d0625`. Prior sections below this one describe the
+2024-11-27 state and are kept as history — **their numbers are stale, do not plan from
+them.** (Ten of the numbers in the older sections were re-checked during this review and
+every one had moved; most improved, one got worse.)
+
+### 1. Duplicated legacy ↔ v1 route implementations — the big one
+
+37 paths exist under both `app/api/` and `app/api/v1/`. They split into two groups:
+
+| Shape | Count | Cost |
+|---|---|---|
+| v1 re-exports the legacy handler (≤50 lines) | 9 | ~free, cannot drift |
+| v1 reimplements the endpoint independently | **28** | **7,376 legacy + 5,903 v1 lines** |
+
+Two strategies coexist for the same problem and the expensive one is the default.
+
+**This is not a tidiness argument — the duplication ships bugs.** Task 92e582c6 (closed
+2026-08-13) was `GET /api/v1/tasks/:id` returning 403 where legacy returned 200, because
+the two implementations grew different access checks. Task 641a7615 found v1 dropping
+`secureFiles`, so attachments vanished on refresh. Both were the same root cause.
+
+Known live divergence, not yet fixed: legacy `PUT /api/tasks/:id` calls
+`recordStateChangeComment` (lib/task-update-handler.ts); v1's PUT does not. Both record
+`TaskEvent`s, so this is a difference in the *comment* trail only — but it is a
+difference, and nothing tests that the two paths agree.
+
+The re-export pattern (`app/api/v1/chat/channels/route.ts` is 9 lines) is the proven fix
+wherever v1 needs no response-envelope change.
+
+### 2. The client API layer exists and is bypassed
+
+The helpers are already here:
+
+- `lib/api.ts` — `apiCall`, `apiGet`, `apiPost`, `apiPut`, `apiDelete`, plus
+  cache-invalidation subscribers
+- `lib/v1-response.ts` — `unwrapTask`, `unwrapList`, `unwrapComment`, `unwrapEnvelope`
+
+Adoption is the problem:
+
+| | files |
+|---|---|
+| import `@/lib/api` | **5** |
+| import `@/lib/v1-response` | 12 |
+| hand-roll `fetch('/api/…')` | **71** (189 call sites) |
+
+Zero files do both, so this is not half-migrated modules — it is 71 files that never
+picked the helpers up.
+
+The concrete cost: v1 returns `{ task, meta }` where legacy returned the task directly.
+A call site that forgets to unwrap does not error — it reads `undefined` and takes a
+silently wrong branch. `unwrapTask` exists to prevent exactly that, and 59 of the 71
+files do not import it.
+
+> **This section was wrong in the first draft of this review** and is corrected here. It
+> claimed there was no client layer and proposed building one, because the audit grepped
+> for `lib/api-client*` and `apiFetch`/`apiClient` — the names I expected rather than the
+> names in the repo. The lesson generalises to the rest of this document: a grep that
+> finds nothing is evidence about the grep as much as about the code. The raw-fetch count
+> is corrected from 222 to 189 for the same reason (the higher figure double-counted call
+> sites matching more than one pattern).
+
+### 3. God files — mixed progress
+
+| File | 2024-11-27 | 2026-08-13 | |
+|---|---|---|---|
+| `app/api/mcp/operations/route.ts` | 2,972 | **349** | split into `handlers/` ✅ |
+| `mcp/mcp-server-v2.ts` | 1,454 | **257** | ✅ |
+| `hooks/useTaskManagerController.ts` | 2,775 | **1,613** | 139 → 65 hook calls ✅ |
+| `lib/ai-orchestrator.ts` | 2,642 | **1,532** | ✅ |
+| `app/api/tasks/[id]/route.ts` | 1,237 | **1,004** | ✅ |
+| `components/TaskManager/MainContent/MainContent.tsx` | 1,226 | **997** | ✅ |
+| `components/task-detail/CommentSection.tsx` | 1,189 | **776** | ✅ |
+| `components/task-detail.tsx` | 1,514 | **1,624** | ⚠️ **grew 7% after being flagged** |
+
+`components/task-detail.tsx` is now the largest file in the repo. It is the one god file
+that moved backwards while under a documented refactor program.
+
+**Not on this list on purpose:** `lib/cache-manager.ts` (935 lines) is a saga, not a god
+file — splitting it was evaluated and closed won't-split. Do not re-propose it.
+
+### 4. Type erosion at the API boundary
+
+357 `: any` annotations repo-wide, **115 of them in `app/api/`**, including 11
+`const data: any = {}` request-body accumulators in route handlers. The boundary that most
+needs a checked shape is the one with the least typing.
+
+### 5. Prisma reaches everywhere
+
+Direct `@/lib/prisma` importers: **219 files**, up from 127 in 2024. The service layer
+proposed below was never built, and the trend has gone the other way. Either build it or
+strike it from this doc — a target nobody moves toward is noise in a planning document.
+
+### 6. Route test coverage is uneven
+
+341 unit/component test files, 0 Playwright specs under `tests/e2e`. Of 100 v1 route
+files, **57 have no test that so much as mentions their path**. (Grep-based, so it is a
+coarse signal — a route may be covered by a test that names it differently — but the
+gap is too wide to be an artifact of the method.)
 
 ---
 
@@ -44,6 +158,9 @@ The codebase has several large files and architectural patterns that make it dif
 ---
 
 ## Critical Issues Identified
+
+> **Historical — 2024-11-27.** Every table in this section has been superseded by the
+> [2026-08-13 review](#2026-08-13-review). Kept for the record of what was believed then.
 
 ### 1. God Files (>1000 lines)
 
@@ -292,7 +409,8 @@ After refactoring, enforce:
 2. **During refactoring:** Keep behavior identical
 3. **After splitting:** Run full test suite
 
-**Current Status:** All 1,369 tests pass after refactoring.
+**Current Status:** 3,820 tests pass (`npm run predeploy` on `main`, 2026-08-13). The
+1,369 figure this line used to carry was the 2024-11-27 count.
 
 ### Rollback Plan
 
