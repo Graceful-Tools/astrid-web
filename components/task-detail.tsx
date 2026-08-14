@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
+import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
 import { Button } from "@/components/ui/button"
@@ -107,9 +108,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     uploadingReplyFile, setUploadingReplyFile, showingActionsFor, setShowingActionsFor } = state.comments
 
   const { showDeleteConfirmation, setShowDeleteConfirmation, showCopyConfirmation, setShowCopyConfirmation,
-    copyIncludeComments, setCopyIncludeComments, copyTargetListId, setCopyTargetListId,
-    showShareModal, setShowShareModal, shareUrl, setShareUrl, loadingShareUrl, setLoadingShareUrl,
-    shareUrlCopied, setShareUrlCopied } = state.modals
+    copyIncludeComments, setCopyIncludeComments, copyTargetListId, setCopyTargetListId } = state.modals
+
+  // Share-by-link owns its own state — see hooks/task-detail/useTaskShareLink.
+  const { showShareModal, shareUrl, loadingShareUrl, shareUrlCopied,
+    openShareModal, copyShareUrl, closeShareModal } = useTaskShareLink(task.id)
 
   const { searchTerm: listSearchTerm, setSearchTerm: setListSearchTerm, showSuggestions: showListSuggestions,
     setShowSuggestions: setShowListSuggestions, selectedIndex: selectedSuggestionIndex, setSelectedIndex: setSelectedSuggestionIndex,
@@ -749,64 +752,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     setShowCopyConfirmation(false)
   }
 
-  // Share handlers
-  const handleShareClick = async () => {
-    setShowShareModal(true)
-    setShareUrlCopied(false)
-    setShareUrl(null)
-
-    // Generate shortcode for all tasks
-    setLoadingShareUrl(true)
-
-    try {
-      const response = await fetch('/api/v1/shortcodes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetType: 'task',
-          targetId: task.id
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.url) {
-          setShareUrl(data.url)
-        } else {
-          console.error('No URL in response:', data)
-          setShareUrl(null)
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Failed to generate share URL:', response.status, errorData)
-        setShareUrl(null)
-      }
-    } catch (error) {
-      console.error('Error generating share URL:', error)
-      setShareUrl(null)
-    } finally {
-      setLoadingShareUrl(false)
-    }
-  }
-
-  const handleCopyShareUrl = async () => {
-    if (shareUrl) {
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        setShareUrlCopied(true)
-        setTimeout(() => setShareUrlCopied(false), 2000)
-      } catch (error) {
-        console.error('Failed to copy URL:', error)
-      }
-    }
-  }
-
-  const handleCloseShareModal = () => {
-    setShowShareModal(false)
-    setShareUrl(null)
-    setShareUrlCopied(false)
-  }
-
   // Debug mode: Test reminder handler
   const handleTestReminder = () => {
     triggerManualReminder(task)
@@ -1316,7 +1261,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onCancelTitle={handleCancelTitle}
         reminderDebugMode={reminderDebugMode}
         onCopy={handleCopyClick}
-        onShare={handleShareClick}
+        onShare={openShareModal}
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
@@ -1483,13 +1428,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onCopy={onCopy}
         onClose={onClose}
         showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
         shareUrl={shareUrl}
-        setShareUrl={setShareUrl}
         loadingShareUrl={loadingShareUrl}
-        setLoadingShareUrl={setLoadingShareUrl}
         shareUrlCopied={shareUrlCopied}
-        setShareUrlCopied={setShareUrlCopied}
+        onCopyShareUrl={copyShareUrl}
+        onCloseShareModal={closeShareModal}
       />
     </div>
     </>

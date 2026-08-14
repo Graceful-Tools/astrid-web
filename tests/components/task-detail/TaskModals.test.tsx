@@ -43,13 +43,11 @@ describe('TaskModals', () => {
     onCopy: vi.fn(),
     onClose: vi.fn(),
     showShareModal: false,
-    setShowShareModal: vi.fn(),
     shareUrl: null,
-    setShareUrl: vi.fn(),
     loadingShareUrl: false,
-    setLoadingShareUrl: vi.fn(),
     shareUrlCopied: false,
-    setShareUrlCopied: vi.fn()
+    onCopyShareUrl: vi.fn(),
+    onCloseShareModal: vi.fn()
   }
 
   beforeEach(() => {
@@ -247,22 +245,16 @@ describe('TaskModals', () => {
       expect(screen.getByText(/Failed to generate share link/)).toBeInTheDocument()
     })
 
-    it('should copy share URL to clipboard when copy button clicked', async () => {
-      const mockWriteText = vi.fn().mockResolvedValue(undefined)
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: mockWriteText
-        }
-      })
-
+    // The clipboard write itself moved to useTaskShareLink (task 72cb4a13);
+    // this component's job is now only to wire the button to it. The write,
+    // the copied flag and its 2s reset are covered in
+    // tests/hooks/useTaskShareLink.test.ts.
+    it('should invoke onCopyShareUrl when the copy button is clicked', () => {
       render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" />)
 
       fireEvent.click(screen.getByRole('button', { name: /Copy/i }))
 
-      await waitFor(() => {
-        expect(mockWriteText).toHaveBeenCalledWith('https://astrid.cc/t/abc123')
-        expect(defaultProps.setShareUrlCopied).toHaveBeenCalledWith(true)
-      })
+      expect(defaultProps.onCopyShareUrl).toHaveBeenCalled()
     })
 
     it('should show private task warning for private tasks', () => {
@@ -273,14 +265,14 @@ describe('TaskModals', () => {
       expect(screen.getByText(/Only users with access to this list can view it/)).toBeInTheDocument()
     })
 
-    it('should close modal when close button clicked', () => {
+    it('should invoke onCloseShareModal when the close button is clicked', () => {
       render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" />)
 
       fireEvent.click(screen.getByRole('button', { name: /Close/i }))
 
-      expect(defaultProps.setShowShareModal).toHaveBeenCalledWith(false)
-      expect(defaultProps.setShareUrl).toHaveBeenCalledWith(null)
-      expect(defaultProps.setShareUrlCopied).toHaveBeenCalledWith(false)
+      // Clearing the url and the copied flag is the hook's responsibility now
+      // — asserted in tests/hooks/useTaskShareLink.test.ts.
+      expect(defaultProps.onCloseShareModal).toHaveBeenCalled()
     })
 
     it('should show copied state after copying URL', () => {
@@ -323,26 +315,6 @@ describe('TaskModals', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle clipboard copy errors gracefully', async () => {
-      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-      const mockWriteText = vi.fn().mockRejectedValue(new Error('Clipboard error'))
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: mockWriteText
-        }
-      })
-
-      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" />)
-
-      fireEvent.click(screen.getByRole('button', { name: /Copy/i }))
-
-      await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith('Failed to copy URL:', expect.any(Error))
-      })
-
-      consoleError.mockRestore()
-    })
-
     it('should handle copy task errors gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
       const mockOnCopy = vi.fn().mockRejectedValue(new Error('Copy failed'))

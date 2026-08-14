@@ -40,14 +40,6 @@ export interface TaskDetailState {
     setCopyIncludeComments: (value: boolean) => void
     copyTargetListId: string | undefined
     setCopyTargetListId: (value: string | undefined) => void
-    showShareModal: boolean
-    setShowShareModal: (value: boolean) => void
-    shareUrl: string | null
-    setShareUrl: (value: string | null) => void
-    loadingShareUrl: boolean
-    setLoadingShareUrl: (value: boolean) => void
-    shareUrlCopied: boolean
-    setShareUrlCopied: (value: boolean) => void
   }
 
   // List selection state
@@ -133,10 +125,6 @@ export function useTaskDetailState(task: Task): TaskDetailState {
   const [showCopyConfirmation, setShowCopyConfirmation] = useState(false)
   const [copyIncludeComments, setCopyIncludeComments] = useState(false)
   const [copyTargetListId, setCopyTargetListId] = useState<string | undefined>(undefined)
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [shareUrl, setShareUrl] = useState<string | null>(null)
-  const [loadingShareUrl, setLoadingShareUrl] = useState(false)
-  const [shareUrlCopied, setShareUrlCopied] = useState(false)
 
   // List selection state
   const [listSearchTerm, setListSearchTerm] = useState("")
@@ -260,14 +248,6 @@ export function useTaskDetailState(task: Task): TaskDetailState {
       setCopyIncludeComments,
       copyTargetListId,
       setCopyTargetListId,
-      showShareModal,
-      setShowShareModal,
-      shareUrl,
-      setShareUrl,
-      loadingShareUrl,
-      setLoadingShareUrl,
-      shareUrlCopied,
-      setShareUrlCopied
     },
     listSelection: {
       searchTerm: listSearchTerm,

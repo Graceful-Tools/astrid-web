@@ -1,5 +1,6 @@
 "use client"
 
+import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -76,10 +77,8 @@ export function TaskDetailViewOnly({
   const [showCopyConfirmation, setShowCopyConfirmation] = useState(false)
   const [copyIncludeComments, setCopyIncludeComments] = useState(false)
   const [copyTargetListId, setCopyTargetListId] = useState<string | undefined>("")  // Default to "My Tasks (only)"
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [shareUrl, setShareUrl] = useState<string | null>(null)
-  const [loadingShareUrl, setLoadingShareUrl] = useState(false)
-  const [shareUrlCopied, setShareUrlCopied] = useState(false)
+  const { showShareModal, shareUrl, loadingShareUrl, shareUrlCopied,
+    openShareModal, copyShareUrl, closeShareModal } = useTaskShareLink(task.id)
 
   // Comment section state (minimal for view-only)
   const [newComment, setNewComment] = useState("")
@@ -297,58 +296,6 @@ interface FileAttachment {
     setShowCopyConfirmation(false)
   }
 
-  // Share handlers
-  const handleShareClick = async () => {
-    setShowShareModal(true)
-    setShareUrlCopied(false)
-    setShareUrl(null)
-    setLoadingShareUrl(true)
-
-    try {
-      const response = await fetch('/api/v1/shortcodes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetType: 'task',
-          targetId: task.id
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.url) {
-          setShareUrl(data.url)
-        } else {
-          setShareUrl(null)
-        }
-      } else {
-        setShareUrl(null)
-      }
-    } catch (error) {
-      console.error('Error generating share URL:', error)
-      setShareUrl(null)
-    } finally {
-      setLoadingShareUrl(false)
-    }
-  }
-
-  const handleCopyShareUrl = async () => {
-    if (shareUrl) {
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        setShareUrlCopied(true)
-        setTimeout(() => setShareUrlCopied(false), 2000)
-      } catch (error) {
-        console.error('Failed to copy URL:', error)
-      }
-    }
-  }
-
-  const handleCloseShareModal = () => {
-    setShowShareModal(false)
-    setShareUrl(null)
-    setShareUrlCopied(false)
-  }
 
   const priorityLabels = {
     0: "None",
@@ -668,7 +615,7 @@ interface FileAttachment {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleShareClick}
+            onClick={openShareModal}
             className="border-green-600 text-green-400 bg-transparent hover:bg-green-600 hover:border-green-600 hover:text-white"
           >
             <Share2 className="w-4 h-4 mr-2" />
@@ -738,7 +685,7 @@ interface FileAttachment {
                       readOnly
                       className="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 theme-bg theme-text-primary text-sm"
                     />
-                    <Button size="sm" onClick={handleCopyShareUrl}>
+                    <Button size="sm" onClick={copyShareUrl}>
                       {shareUrlCopied ? 'Copied!' : 'Copy'}
                     </Button>
                   </div>
@@ -748,7 +695,7 @@ interface FileAttachment {
               <p className="text-sm theme-text-muted">Failed to generate share URL</p>
             )}
             <div className="flex justify-end mt-6">
-              <Button variant="outline" onClick={handleCloseShareModal}>Close</Button>
+              <Button variant="outline" onClick={closeShareModal}>Close</Button>
             </div>
           </div>
         </div>
