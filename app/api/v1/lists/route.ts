@@ -17,6 +17,8 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
+import type { V1ListCreateRequest } from '@/lib/api-contracts/v1-request-shapes'
+import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-request-shapes'
 import { listVisibilityWhere } from '@/lib/list-permissions'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
@@ -180,11 +182,24 @@ export const GET = withAuth(
 export const POST = withAuth(
   { scopes: ['lists:write'], tag: 'v1.lists' },
   async (req, auth) => {
-    const body = await req.json()
+    // Typed rather than `any` so a misspelled field is a build error instead of
+    // one that silently never applies. Not validation — see the note in
+    // lib/api-contracts/v1-request-shapes.ts. (Task 87e19910.)
+    const body = (await req.json()) as V1ListCreateRequest
 
     if (!body.name || typeof body.name !== 'string') {
       return NextResponse.json(
         { error: 'name is required and must be a string' },
+        { status: 400 }
+      )
+    }
+
+    // The Postgres enum rejects an unknown label as a driver error, which the
+    // route would surface as a 500. A caller who sends a bad value deserves a
+    // 400 saying so. (Task 87e19910.)
+    if (body.privacy !== undefined && !isV1ListPrivacy(body.privacy)) {
+      return NextResponse.json(
+        { error: `privacy must be one of: ${V1_LIST_PRIVACY_VALUES.join(', ')}` },
         { status: 400 }
       )
     }
