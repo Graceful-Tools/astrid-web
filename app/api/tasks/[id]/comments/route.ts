@@ -10,6 +10,11 @@ import { broadcastCommentCreatedNotification, broadcastToUsers } from "@/lib/sse
 import { dispatchPostCommentSideEffects } from "@/lib/comments/post-comment-side-effects"
 import { agentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
+import {
+  parseClientRequestId,
+  findCommentByClientRequestId,
+  isDuplicateClientRequestId,
+} from '@/lib/comment-idempotency'
 import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('tasks.[id].comments')
@@ -181,22 +186,20 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
       },
     }
 
-    const rawClientRequestId = typeof (data as any).clientRequestId === 'string'
-      ? (data as any).clientRequestId.trim()
-      : null
-    if (rawClientRequestId !== null && (rawClientRequestId.length < 8 || rawClientRequestId.length > 128)) {
-      return NextResponse.json(
-        { error: 'clientRequestId must be between 8 and 128 characters' },
-        { status: 400 }
-      )
+    const parsed = parseClientRequestId((data as any).clientRequestId)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const rawClientRequestId = parsed.clientRequestId
 
     if (rawClientRequestId) {
-      const existing = await prisma.comment.findUnique({
-        where: { clientRequestId: rawClientRequestId },
+      const existing = await findCommentByClientRequestId({
+        clientRequestId: rawClientRequestId,
+        taskId,
+        authorId: session.user.id,
         include: commentInclude,
       })
-      if (existing && existing.taskId === taskId && existing.authorId === session.user.id) {
+      if (existing) {
         log.info({ commentId: existing.id }, 'Idempotency hit (clientRequestId): returning existing comment')
         return NextResponse.json(existing, { status: 200 })
       }
@@ -217,12 +220,14 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
         include: commentInclude,
       })
     } catch (err) {
-      if (rawClientRequestId && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        const raceExisting = await prisma.comment.findUnique({
-          where: { clientRequestId: rawClientRequestId },
+      if (rawClientRequestId && isDuplicateClientRequestId(err)) {
+        const raceExisting = await findCommentByClientRequestId({
+          clientRequestId: rawClientRequestId,
+          taskId,
+          authorId: session.user.id,
           include: commentInclude,
         })
-        if (raceExisting && raceExisting.taskId === taskId && raceExisting.authorId === session.user.id) {
+        if (raceExisting) {
           log.info({ commentId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing comment')
           return NextResponse.json(raceExisting, { status: 200 })
         }
