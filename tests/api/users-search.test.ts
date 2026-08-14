@@ -38,8 +38,19 @@ describe('Users Search API', () => {
       emailVerified: null
     })
     
-    // Default mock for taskList.findMany to return empty array (no ASTRID enabled lists)
-    mockPrisma.taskList.findMany.mockResolvedValue([])
+    // taskList.findMany now serves TWO different queries in this route:
+    //   1. the ASTRID-enabled-lists lookup (wants [] here, as before)
+    //   2. the search-scope visibility filter added in task e0613ae5, which
+    //      narrows the requested listIds to ones the CALLER belongs to
+    // Discriminate on the where-shape rather than returning [] for both, or
+    // every list-member test silently exercises "caller belongs to nothing".
+    // Access control itself is covered in tests/api/user-search-scope-leak.test.ts.
+    mockPrisma.taskList.findMany.mockImplementation(async (args: any) => {
+      const requested = args?.where?.id?.in
+      return requested ? requested.map((id: string) => ({ id })) : []
+    })
+    mockPrisma.task.findFirst.mockImplementation((...args: any[]) =>
+      (mockPrisma.task.findUnique as any)(...args))
   })
 
   describe('Authentication', () => {
@@ -129,13 +140,16 @@ describe('Users Search API', () => {
       expect(currentUser).toBeDefined()
       expect(data.listMemberCount).toBe(2)
 
-      // Verify task lookup
-      expect(mockPrisma.task.findUnique).toHaveBeenCalledWith({
-        where: { id: 'task-1' },
-        select: {
-          lists: { select: { id: true } }
-        }
-      })
+      // Verify the task lookup is SCOPED TO THE CALLER.
+      //
+      // This used to assert a bare `findUnique({ where: { id: 'task-1' } })`.
+      // That unscoped lookup was the bug fixed in task e0613ae5: any caller
+      // could name any task id and get its lists' members — including their
+      // email addresses. The lookup now carries an access clause, and this
+      // assertion exists to stop it quietly reverting to a bare id lookup.
+      const taskLookup = (mockPrisma.task.findFirst as any).mock.calls[0][0]
+      expect(taskLookup.where.id).toBe('task-1')
+      expect(JSON.stringify(taskLookup.where.OR)).toContain('test-user-id')
 
       // Verify list members query - no AND wrapper when no query string
       expect(mockPrisma.user.findMany).toHaveBeenCalledWith({

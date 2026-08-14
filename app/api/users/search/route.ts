@@ -1,4 +1,5 @@
 import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
+import { resolveSearchListIds } from '@/lib/user-search-scope'
 import { getAssignableAgentEmails, getKeyedAgentEmails } from '@/lib/ai/assignable-agents'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
@@ -65,28 +66,20 @@ export async function GET(request: NextRequest) {
     }
 
     let listMembers: any[] = []
-    let relevantListIds: string[] = []
 
-    // If taskId or listIds provided, get all members from associated lists
-    if (taskId || (listIds && listIds.length > 0)) {
-      relevantListIds = listIds || []
+    // Only lists this caller actually belongs to. `listIds` and `taskId` come
+    // straight from the query string, and this endpoint returns members' EMAIL
+    // ADDRESSES — so trusting them let anyone holding a list id enumerate that
+    // list's members. Shared with the v1 route. (Task e0613ae5.)
+    const relevantListIds = await resolveSearchListIds({
+      userId: session.user.id,
+      listIds,
+      taskId,
+    })
 
-      // If taskId provided, get the lists associated with this task
-      if (taskId) {
-        const task = await prisma.task.findUnique({
-          where: { id: taskId },
-          select: {
-            lists: { select: { id: true } }
-          }
-        })
-        log.info({ task }, "Task found:")
-        if (task) {
-          relevantListIds = task.lists.map(list => list.id)
-        }
-      }
-      
-      log.info({ relevantListIds }, "Relevant list IDs:")
+    log.info({ relevantListIds }, "Relevant list IDs:")
 
+    {
       if (relevantListIds.length > 0) {
         // Get all users who have access to these lists (owners, admins, members)
         log.info({ relevantListIds }, "About to query users for list IDs:")
