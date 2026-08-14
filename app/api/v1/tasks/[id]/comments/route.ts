@@ -16,6 +16,11 @@ import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { agentEmail, isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
+import {
+  parseClientRequestId,
+  findCommentByClientRequestId,
+  isDuplicateClientRequestId,
+} from '@/lib/comment-idempotency'
 import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('v1.tasks.comments')
@@ -242,20 +247,20 @@ export const POST = withAuth<RouteContext>(
       },
     } as const
 
-    const rawClientRequestId = typeof body.clientRequestId === 'string' ? body.clientRequestId.trim() : null
-    if (rawClientRequestId !== null && (rawClientRequestId.length < 8 || rawClientRequestId.length > 128)) {
-      return NextResponse.json(
-        { error: 'clientRequestId must be between 8 and 128 characters' },
-        { status: 400 }
-      )
+    const parsed = parseClientRequestId(body.clientRequestId)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const rawClientRequestId = parsed.clientRequestId
 
     if (rawClientRequestId) {
-      const existing = await prisma.comment.findUnique({
-        where: { clientRequestId: rawClientRequestId },
+      const existing = await findCommentByClientRequestId({
+        clientRequestId: rawClientRequestId,
+        taskId,
+        authorId,
         include: commentInclude,
       })
-      if (existing && existing.taskId === taskId && existing.authorId === authorId) {
+      if (existing) {
         log.info({ commentId: existing.id }, 'Idempotency hit (clientRequestId): returning existing comment')
         const headers: Record<string, string> = {}
         const deprecationWarning = getDeprecationWarning(auth)
@@ -283,12 +288,14 @@ export const POST = withAuth<RouteContext>(
       })
     } catch (err) {
       // P2002 = unique constraint hit — concurrent retry won the race
-      if (rawClientRequestId && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        const raceExisting = await prisma.comment.findUnique({
-          where: { clientRequestId: rawClientRequestId },
+      if (rawClientRequestId && isDuplicateClientRequestId(err)) {
+        const raceExisting = await findCommentByClientRequestId({
+          clientRequestId: rawClientRequestId,
+          taskId,
+          authorId,
           include: commentInclude,
         })
-        if (raceExisting && raceExisting.taskId === taskId && raceExisting.authorId === authorId) {
+        if (raceExisting) {
           log.info({ commentId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing comment')
           const headers: Record<string, string> = {}
           const deprecationWarning = getDeprecationWarning(auth)
