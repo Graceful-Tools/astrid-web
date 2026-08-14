@@ -13,24 +13,15 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 
+import {
+  fetchChatMessagePage,
+  MESSAGE_AUTHOR_SELECT,
+  SECURE_FILE_SELECT,
+} from '@/lib/chat-message-page'
+
 const log = createLogger('v1.chat.channels.messages')
 
-const MESSAGE_AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  email: true,
-  image: true,
-  isAIAgent: true,
-  aiAgentType: true,
-}
 
-const SECURE_FILE_SELECT = {
-  id: true,
-  originalName: true,
-  mimeType: true,
-  fileSize: true,
-  createdAt: true,
-}
 
 type RouteContext = { params: Promise<{ channelId: string }> }
 
@@ -52,32 +43,11 @@ export const GET = withAuth<RouteContext>(
     }
 
     const url = new URL(req.url)
-    const before = url.searchParams.get('before')
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100)
-
-    const where: any = { channelId }
-    if (before) {
-      where.createdAt = { lt: new Date(before) }
-    }
-
-    const messages = await prisma.chatMessage.findMany({
-      where,
-      include: {
-        author: { select: MESSAGE_AUTHOR_SELECT },
-        secureFiles: { select: SECURE_FILE_SELECT },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit + 1,
+    const page = await fetchChatMessagePage({
+      channelId,
+      before: url.searchParams.get('before'),
+      limit: url.searchParams.get('limit'),
     })
-
-    const hasMore = messages.length > limit
-    if (hasMore) messages.pop()
-
-    messages.reverse()
-
-    const nextCursor = hasMore && messages.length > 0
-      ? messages[0].createdAt.toISOString()
-      : null
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -87,13 +57,7 @@ export const GET = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        messages: messages.map(m => ({
-          ...m,
-          createdAt: m.createdAt.toISOString(),
-          updatedAt: m.updatedAt.toISOString(),
-        })),
-        hasMore,
-        nextCursor,
+        ...page,
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
