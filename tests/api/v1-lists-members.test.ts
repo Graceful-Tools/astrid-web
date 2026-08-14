@@ -9,6 +9,7 @@ vi.mock('@/lib/prisma', () => ({
     listMember: {
       create: vi.fn(),
     },
+    invitation: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     listInvite: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -88,7 +89,7 @@ describe('GET /api/v1/lists/:id/members', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(ownerAuth as any)
-    ;(mockPrisma.listInvite.findMany as any).mockResolvedValue([])
+    ;(mockPrisma.invitation.findMany as any).mockResolvedValue([])
   })
 
   it('returns 404 when list does not exist', async () => {
@@ -110,7 +111,7 @@ describe('GET /api/v1/lists/:id/members', () => {
 
   it('returns owner + members + pending invites with correct types', async () => {
     ;(mockPrisma.taskList.findUnique as any).mockResolvedValue(ownedList)
-    ;(mockPrisma.listInvite.findMany as any).mockResolvedValue([
+    ;(mockPrisma.invitation.findMany as any).mockResolvedValue([
       { id: 'inv-1', email: 'invitee@example.com', role: 'member' },
     ])
 
@@ -130,11 +131,11 @@ describe('GET /api/v1/lists/:id/members', () => {
 
   it('excludes invites whose email already joined', async () => {
     ;(mockPrisma.taskList.findUnique as any).mockResolvedValue(ownedList)
-    ;(mockPrisma.listInvite.findMany as any).mockResolvedValue([])
+    ;(mockPrisma.invitation.findMany as any).mockResolvedValue([])
 
     await GET(makeReq('GET'), { params } as any)
 
-    const inviteCall = (mockPrisma.listInvite.findMany as any).mock.calls[0][0]
+    const inviteCall = (mockPrisma.invitation.findMany as any).mock.calls[0][0]
     expect(inviteCall.where.NOT.email.in).toEqual(
       expect.arrayContaining(['mem@example.com', 'jon@example.com'])
     )
@@ -169,15 +170,15 @@ describe('POST /api/v1/lists/:id/members', () => {
       if (args.where.email === 'newperson@example.com') return Promise.resolve(null)
       return Promise.resolve({ name: 'Jon', email: 'jon@example.com' })
     })
-    ;(mockPrisma.listInvite.findFirst as any).mockResolvedValue(null)
-    ;(mockPrisma.listInvite.create as any).mockResolvedValue({})
+    ;(mockPrisma.invitation.findFirst as any).mockResolvedValue(null)
+    ;(mockPrisma.invitation.create as any).mockResolvedValue({})
 
     const res = await POST(makeReq('POST', { email: 'NewPerson@example.com' }), { params } as any)
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.invitation.email).toBe('newperson@example.com')
 
-    const createCall = (mockPrisma.listInvite.create as any).mock.calls[0][0]
+    const createCall = (mockPrisma.invitation.create as any).mock.calls[0][0]
     expect(createCall.data.email).toBe('newperson@example.com')
     expect(mockSendInvitation).toHaveBeenCalled()
   })
@@ -188,7 +189,7 @@ describe('POST /api/v1/lists/:id/members', () => {
       if (args.where.email === 'a@b.com') return Promise.resolve(null)
       return Promise.resolve({ name: 'Jon', email: 'jon@example.com' })
     })
-    ;(mockPrisma.listInvite.findFirst as any).mockResolvedValue({ id: 'existing' })
+    ;(mockPrisma.invitation.findFirst as any).mockResolvedValue({ id: 'existing' })
 
     const res = await POST(makeReq('POST', { email: 'a@b.com' }), { params } as any)
     expect(res.status).toBe(400)

@@ -17,6 +17,7 @@ vi.mock('@/lib/prisma', () => ({
       updateMany: vi.fn(),
       count: vi.fn(),
     },
+    invitation: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     listInvite: {
       findMany: vi.fn(),
       create: vi.fn(),
@@ -121,7 +122,7 @@ describe('GET /api/lists/[id]/members', () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst.mockResolvedValue({ role: 'admin' })
     mockPrisma.listMember.findMany.mockResolvedValue(mockMembers)
-    mockPrisma.listInvite.findMany.mockResolvedValue(mockInvites)
+    mockPrisma.invitation.findMany.mockResolvedValue(mockInvites)
 
     const request = new Request('http://localhost/api/lists/list-1/members')
     const params = { id: 'list-1' }
@@ -171,7 +172,7 @@ describe('GET /api/lists/[id]/members', () => {
       .mockResolvedValueOnce(null) // isAdmin check (not admin)
     
     mockPrisma.listMember.findMany.mockResolvedValue(mockMembers)
-    mockPrisma.listInvite.findMany.mockResolvedValue(mockInvites)
+    mockPrisma.invitation.findMany.mockResolvedValue(mockInvites)
 
     const request = new Request('http://localhost/api/lists/list-1/members')
     const params = { id: 'list-1' }
@@ -247,7 +248,7 @@ describe('POST /api/lists/[id]/members', () => {
       role: 'member',
     })
     
-    mockPrisma.listInvite.create.mockResolvedValue({})
+    mockPrisma.invitation.create.mockResolvedValue({})
 
     const request = new Request('http://localhost/api/lists/list-1/members', {
       method: 'POST',
@@ -284,7 +285,7 @@ describe('POST /api/lists/[id]/members', () => {
       .mockResolvedValueOnce(mockList) // list details
       
     mockPrisma.user.findUnique.mockResolvedValue(null) // New user
-    mockPrisma.listInvite.create.mockResolvedValue({})
+    mockPrisma.invitation.create.mockResolvedValue({})
 
     const request = new Request('http://localhost/api/lists/list-1/members', {
       method: 'POST',
@@ -302,7 +303,7 @@ describe('POST /api/lists/[id]/members', () => {
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
     expect(data.message).toBe('Invitation sent successfully')
-    expect(mockPrisma.listInvite.create).toHaveBeenCalled()
+    expect(mockPrisma.invitation.create).toHaveBeenCalled()
   })
 
   it('returns 403 for non-admin users', async () => {

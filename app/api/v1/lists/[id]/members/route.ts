@@ -63,9 +63,14 @@ export const GET = withAuth<RouteContext>(
       memberEmails.add(list.owner.email)
     }
 
-    const pendingInvites = await prisma.listInvite.findMany({
+    // Invitation(LIST_SHARING), matching where Add Member now writes — see the
+    // note on the create below. Only the fields this response already used are
+    // read, so the shape is unchanged. (Task 706230e3.)
+    const pendingInvites = await prisma.invitation.findMany({
       where: {
         listId: id,
+        type: 'LIST_SHARING',
+        status: 'PENDING',
         NOT: {
           email: { in: Array.from(memberEmails) }
         }
@@ -195,8 +200,18 @@ export const POST = withAuth<RouteContext>(
 
       const token = randomBytes(32).toString('hex')
 
-      const existingInvitation = await prisma.listInvite.findFirst({
-        where: { listId: id, email: email.toLowerCase() }
+      // Invitation, not ListInvite. /api/invitations/:token — the route the
+      // emailed link resolves against — reads Invitation and has no knowledge
+      // of ListInvite, so a row written there could never be accepted and the
+      // recipient hit a dead end. type/listId/role are what its LIST_SHARING
+      // branch upserts the ListMember from. (Task 706230e3.)
+      const existingInvitation = await prisma.invitation.findFirst({
+        where: {
+          listId: id,
+          email: email.toLowerCase(),
+          type: 'LIST_SHARING',
+          status: 'PENDING',
+        }
       })
 
       if (existingInvitation) {
@@ -206,13 +221,15 @@ export const POST = withAuth<RouteContext>(
         )
       }
 
-      await prisma.listInvite.create({
+      await prisma.invitation.create({
         data: {
+          type: 'LIST_SHARING',
           listId: id,
           email: email.toLowerCase(),
           token,
           role,
-          createdBy: auth.userId
+          senderId: auth.userId,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         }
       })
 
