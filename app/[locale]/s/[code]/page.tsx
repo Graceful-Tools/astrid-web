@@ -51,7 +51,7 @@ export default function ShortcodePage() {
         if (targetType === "task") {
           // Fetch the task to determine which list to use for navigation
           try {
-            const taskResponse = await fetch(`/api/tasks/${targetId}`, {
+            const taskResponse = await fetch(`/api/v1/tasks/${targetId}`, {
               credentials: 'include', // Include session cookie
               headers: {
                 'Content-Type': 'application/json',
@@ -59,10 +59,13 @@ export default function ShortcodePage() {
             })
 
             if (taskResponse.ok) {
-              const task = await taskResponse.json()
+              // v1 wraps the task: { task, meta }. Reading `body.lists` here
+              // would be undefined for every task and send every share link to
+              // My Tasks instead of the list it belongs to. (Task 92e582c6.)
+              const { task } = await taskResponse.json()
 
               // Get the task's lists (ordered by priority)
-              if (task.lists && task.lists.length > 0) {
+              if (task?.lists && task.lists.length > 0) {
                 // Check if user has access to any of the task's lists
                 // The API will filter task.lists to only include lists user has access to
                 const primaryList = task.lists[0]

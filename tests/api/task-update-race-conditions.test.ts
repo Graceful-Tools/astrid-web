@@ -25,6 +25,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
     }),
     requireScopes: vi.fn(),
     requireTaskAccess: vi.fn(),
+    requireTaskReadAccess: vi.fn(),
     getDeprecationWarning: vi.fn(),
     UnauthorizedError,
     ForbiddenError,
