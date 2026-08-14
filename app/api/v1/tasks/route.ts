@@ -312,6 +312,22 @@ export const POST = withAuth(
 
     // SECURITY: Validate user has access to all specified lists
     let validatedListIds: string[] = []
+
+    /**
+     * Copy-only PUBLIC lists must hold unassigned tasks — legacy has enforced
+     * this since it was written and calls it a security requirement. Such a
+     * list is a template anyone can read and copy, so an assignee on one
+     * publishes a real person's identity on a public artifact and means
+     * nothing once copied elsewhere.
+     *
+     * COLLABORATIVE public lists keep their assignees: only members can add
+     * tasks there, which is the distinction legacy draws deliberately.
+     *
+     * v1 never carried this across. Its own assignee guard (the assignee must
+     * belong to one of the lists) does not cover it, because the people who
+     * can post to a copy-only public list ARE members. (Task e0613ae5.)
+     */
+    let finalAssigneeId: string | null | undefined = body.assigneeId
     if (body.listIds?.length) {
       const lists = await prisma.taskList.findMany({
         where: { id: { in: body.listIds } },
@@ -354,6 +370,15 @@ export const POST = withAuth(
           { error: 'Assignee must be a member of one of the task lists' },
           { status: 400 }
         )
+      }
+
+      // One copy-only public list in the set is enough: the task becomes
+      // publicly visible through it whatever the other lists are.
+      const hasCopyOnlyPublicList = lists.some(
+        list => list.privacy === 'PUBLIC' && list.publicListType !== 'collaborative'
+      )
+      if (hasCopyOnlyPublicList) {
+        finalAssigneeId = null
       }
 
       // Virtual lists are saved-filter views, not real containers
@@ -468,7 +493,7 @@ export const POST = withAuth(
             title: body.title,
             description: body.description || '',
             priority: body.priority ?? 0,
-            assigneeId: body.assigneeId,
+            assigneeId: finalAssigneeId,
             creatorId: auth.userId,
             clientRequestId: rawClientRequestId,
             parentTaskId: rawParentTaskId,
@@ -554,7 +579,7 @@ export const POST = withAuth(
         title: body.title,
         description: body.description || '',
         priority: body.priority ?? 0,
-        assigneeId: body.assigneeId,
+        assigneeId: finalAssigneeId,
         creatorId: auth.userId,
         identifier: minted?.identifier ?? null,
         sequence: minted?.sequence ?? null,
