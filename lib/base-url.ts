@@ -6,6 +6,7 @@
 import { getDevBaseUrl, isLocalDevelopment } from './port-detection'
 import { BRAND, brandOrigin } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
+import { createUnsubscribeToken } from '@/lib/unsubscribe-token'
 
 const log = createLogger('base-url')
 
@@ -129,10 +130,16 @@ export function getMCPOperationsUrl(): string {
 }
 
 /**
- * Get an unsubscribe URL for email reminders
+ * Get an unsubscribe URL for email reminders.
+ *
+ * Carries a signed token: the endpoint cannot require a session (the link is
+ * clicked from an email, often in another browser), so the link itself has to
+ * prove we issued it. Without that, knowing a user id was enough to switch off
+ * someone else's reminders. (Task e0613ae5.)
  */
 export function getUnsubscribeUrl(userId: string): string {
-  return `${getBaseUrl()}/api/settings/reminders/unsubscribe?userId=${userId}`
+  const token = createUnsubscribeToken(userId)
+  return `${getBaseUrl()}/api/settings/reminders/unsubscribe?userId=${encodeURIComponent(userId)}&token=${token}`
 }
 
 /**

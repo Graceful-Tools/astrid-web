@@ -2,6 +2,7 @@ import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { verifyUnsubscribeToken } from '@/lib/unsubscribe-token'
 
 const log = createLogger('settings.reminders.unsubscribe')
 
@@ -10,11 +11,22 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
+    const token = searchParams.get('token')
 
     if (!userId) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
+      )
+    }
+
+    // The link must prove we issued it. Previously a bare userId was enough,
+    // so anyone who learned one could switch off that user's reminders — and
+    // any link prefetcher could do it by accident. (Task e0613ae5.)
+    if (!verifyUnsubscribeToken(userId, token)) {
+      return NextResponse.json(
+        { error: 'This unsubscribe link is not valid. Manage reminders in your settings.' },
+        { status: 403 }
       )
     }
 
@@ -113,12 +125,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId } = body
+    const { userId, token } = body
 
     if (!userId) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
+      )
+    }
+
+    if (!verifyUnsubscribeToken(userId, token)) {
+      return NextResponse.json(
+        { error: 'This unsubscribe link is not valid. Manage reminders in your settings.' },
+        { status: 403 }
       )
     }
 

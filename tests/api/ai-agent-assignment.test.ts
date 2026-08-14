@@ -71,6 +71,18 @@ describe('AI Agent Assignment Fix', () => {
 
     // Mock current user exists in database (for the findUnique call)
     mockPrisma.user.findUnique.mockResolvedValue(mockUser)
+
+    // User search now resolves its scope through lib/user-search-scope.ts:
+    // `listIds`/`taskId` from the query are filtered down to lists the CALLER
+    // belongs to, because this endpoint returns members' email addresses
+    // (task e0613ae5). These tests are about which AGENTS come back, not about
+    // access control — that is covered in tests/api/user-search-scope-leak.test.ts
+    // — so the caller is set up as a member of whatever lists a test asks for,
+    // which is the situation the real UI is always in.
+    mockPrisma.taskList.findMany.mockImplementation(async (args: any) =>
+      (args?.where?.id?.in ?? []).map((id: string) => ({ id })))
+    mockPrisma.task.findFirst.mockImplementation((...args: any[]) =>
+      (mockPrisma.task.findUnique as any)(...args))
   })
 
   it('should show no AI agents when none are added to list', async () => {
@@ -348,6 +360,14 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
 
     // Mock current user exists in database
     mockPrisma.user.findUnique.mockResolvedValue(mockUser)
+
+    // See the note in the first describe: search scope is now filtered to the
+    // caller's own lists (task e0613ae5), so the caller is set up as a member
+    // of whatever lists a test asks for.
+    mockPrisma.taskList.findMany.mockImplementation(async (args: any) =>
+      (args?.where?.id?.in ?? []).map((id: string) => ({ id })))
+    mockPrisma.task.findFirst.mockImplementation((...args: any[]) =>
+      (mockPrisma.task.findUnique as any)(...args))
   })
 
   it('should show regular users alongside AI agents', async () => {

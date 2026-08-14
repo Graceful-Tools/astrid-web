@@ -13,6 +13,7 @@
  */
 
 import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
+import { resolveSearchListIds } from '@/lib/user-search-scope'
 import { getAssignableAgentEmails, getKeyedAgentEmails } from '@/lib/ai/assignable-agents'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
@@ -57,15 +58,16 @@ export const GET = withAuth(
       }
 
       let listMembers: UserSearchResult[] = []
-      let relevantListIds: string[] = listIds ?? []
 
-      if (taskId) {
-        const task = await prisma.task.findUnique({
-          where: { id: taskId },
-          select: { lists: { select: { id: true } } },
-        })
-        if (task) relevantListIds = task.lists.map(l => l.id)
-      }
+      // Only lists this caller actually belongs to. `listIds` and `taskId`
+      // arrive from the query string, and this endpoint returns members'
+      // EMAIL ADDRESSES — so taking them at face value let anyone holding a
+      // list id enumerate that list's members. (Task e0613ae5.)
+      const relevantListIds = await resolveSearchListIds({
+        userId: auth.userId,
+        listIds,
+        taskId,
+      })
 
       if (relevantListIds.length > 0) {
         const listAccessCondition = {
