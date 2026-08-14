@@ -12,6 +12,7 @@ import { getAgentConfig } from '@/lib/ai/agent-config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
+import { getTaskForUser } from '@/services/task.service'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { createLogger } from '@/lib/logger'
 
@@ -42,7 +43,19 @@ export async function POST(request: NextRequest) {
       log.info({ taskId }, '🤖 [Tools Workflow] Starting for task:')
     }
 
-    // Get task and verify it exists
+    // AUTHORISE FIRST. This route checked only that the caller was signed in,
+    // so any authenticated user could start a coding workflow against another
+    // user's task — reading it, and billing the run to the list owner, since
+    // configuredByUserId below comes from the LIST rather than the caller.
+    // Its sibling coding-workflow/create always had this check. (Task 017a569a.)
+    const access = await getTaskForUser(taskId, session.user.id)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
+    }
+
+    // Re-fetched rather than reused: this handler needs aiAgent and two list
+    // columns the access shape does not carry, and widening the shared include
+    // for one deprecated caller would cost every other caller the extra joins.
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {

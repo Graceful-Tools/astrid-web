@@ -7,7 +7,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
-import { hasExplicitListRole } from "@/lib/list-permissions"
+import { userCanAccessTask } from "@/services/task.service"
 
 const log = createLogger('coding-workflow.status.[taskId]')
 
@@ -53,10 +53,10 @@ export async function GET(
     }
 
     // Check if user has permission to view this workflow
-    const userHasAccess =
-      workflow.task.creatorId === session.user.id ||
-      workflow.task.assigneeId === session.user.id ||
-      workflow.task.lists.some(list => hasExplicitListRole({ id: session.user.id }, list as never))
+    // The shared rule — services/task.service.ts. Throws rather than denying
+    // if the task was loaded without lists.listMembers, so a missing include
+    // shows up as an error here instead of as a member mysteriously refused.
+    const userHasAccess = userCanAccessTask(workflow.task, session.user.id)
 
     if (!userHasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
