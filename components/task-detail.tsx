@@ -689,12 +689,14 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   }
 
   // Full-screen task details (task dcbbb0fa, item 3). Off by default — this is
-  // an escape hatch for a long description, not a new default layout. Never
-  // offered for the inline/board panel, which is deliberately a peek.
+  // an escape hatch for a long description, not a new default layout.
   const [fullScreen, setFullScreen] = useState(false)
-  // An inline/board panel collapses in place rather than expanding, and a pane
-  // that is already full screen has nothing to expand into.
-  const canFullScreen = !inline && allowFullScreen
+  // Inline/board panels used to be excluded here on the reasoning that a card
+  // is a peek. Task 52bf1efb overrode that: a board card's details are the only
+  // way to read a task on the board, so they need the escape hatch most.
+  // Whoever renders the panel still decides, via allowFullScreen — the phone
+  // pane opts out because it is already full screen.
+  const canFullScreen = allowFullScreen
   const isFullScreen = canFullScreen && fullScreen
 
   const handleToggleComplete = async () => {
@@ -1378,11 +1380,16 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       <div
         className={`${
           isFullScreen
-            ? 'task-panel-expanded'
+            // A board card has no expanding wrapper to fill, so it positions
+            // against the viewport itself. The floating pane keeps `absolute`:
+            // its `.task-panel-desktop` wrapper expands underneath it via
+            // :has(), and staying inside that wrapper is what keeps the close
+            // animation working. (Task 52bf1efb.)
+            ? inline ? 'task-panel-expanded-viewport' : 'task-panel-expanded'
             : inline ? 'w-full overflow-hidden rounded-md border theme-border' : onClose ? 'w-full' : 'task-panel'
         } theme-panel flex flex-col ${
           isFullScreen ? 'h-screen' : inline ? 'h-auto max-h-[70vh]' : 'h-full'
-        } relative`}
+        }${isFullScreen ? '' : ' relative'}`}
         data-task-detail-panel
         data-fullscreen={isFullScreen ? 'true' : undefined}
         {...(swipeToDismiss || {})}

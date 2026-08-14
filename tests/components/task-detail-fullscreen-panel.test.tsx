@@ -172,9 +172,12 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
     expect(panel(container).className).not.toContain('inset-0')
   })
 
-  it('an inline/board panel never expands, even if asked', () => {
-    // Inline panels collapse in place inside a board column; expanding one to
-    // cover the viewport would be a different feature.
+  it('an inline/board panel expands when its renderer opts in (task 52bf1efb)', () => {
+    // This assertion used to be the opposite: inline panels were excluded on
+    // the reasoning that a card is a peek. Jon overrode that — a board card's
+    // details are the only way to read the task on the board, so they need the
+    // escape hatch most. The rule is now uniform: the renderer decides, and
+    // `inline` no longer overrules it.
     wrap(
       <TaskDetail
         task={task}
@@ -184,6 +187,21 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
         onClose={vi.fn()}
         inline
         allowFullScreen
+      />,
+    )
+    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+  })
+
+  it('an inline panel still offers nothing when its renderer stays out', () => {
+    // The opt-in is what gates it, and that has not changed.
+    wrap(
+      <TaskDetail
+        task={task}
+        currentUser={mockUser}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        onClose={vi.fn()}
+        inline
       />,
     )
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
