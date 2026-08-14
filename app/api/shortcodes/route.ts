@@ -1,17 +1,33 @@
+/**
+ * POST /api/shortcodes (legacy) — create a share link for a task or list
+ * GET  /api/shortcodes (legacy) — list share links for a target
+ *
+ * The access rule lives in lib/shortcode-target-access.ts and is shared with
+ * the v1 route. It used to be written out twice in this file alone — once per
+ * handler — and a third time in v1. (Task e0613ae5.)
+ */
+
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { createShortcode, getShortcodesForTarget, buildShortcodeUrl } from "@/lib/shortcode"
-import { prisma } from "@/lib/prisma"
+import { checkShortcodeTargetAccess, type ShortcodeTargetType } from "@/lib/shortcode-target-access"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('shortcodes')
 
-
 /**
- * POST /api/shortcodes
- * Create a new shortcode for a task or list
+ * Build the share URL from the request's own Host rather than the configured
+ * base URL. Kept as-is: it is what makes links generated on localhost and on
+ * preview deploys point back at the host you are actually using. The v1 route
+ * deliberately does not do this — see the note on that file.
  */
+function requestBaseUrl(request: NextRequest): string {
+  const host = request.headers.get("host") || `${BRAND.domain}`
+  const protocol = host.includes("localhost") ? "http" : "https"
+  return `${protocol}://${host}`
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getUnifiedSession()
@@ -19,89 +35,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get base URL from request for localhost support
-    const host = request.headers.get("host") || `${BRAND.domain}`
-    const protocol = host.includes("localhost") ? "http" : "https"
-    const baseUrl = `${protocol}://${host}`
+    const baseUrl = requestBaseUrl(request)
 
     const body = await request.json()
     const { targetType, targetId, expiresAt } = body
 
-    // Validate input
-    if (!targetType || !targetId) {
-      return NextResponse.json(
-        { error: "targetType and targetId are required" },
-        { status: 400 }
-      )
+    const access = await checkShortcodeTargetAccess(targetType, targetId, session.user.id)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.message }, { status: access.status })
     }
 
-    if (targetType !== "task" && targetType !== "list") {
-      return NextResponse.json(
-        { error: "targetType must be 'task' or 'list'" },
-        { status: 400 }
-      )
-    }
-
-    // Verify access to target resource
-    if (targetType === "task") {
-      // Find task with its lists
-      const task = await prisma.task.findUnique({
-        where: { id: targetId },
-        include: {
-          lists: true
-        }
-      })
-
-      if (!task) {
-        return NextResponse.json({ error: "Task not found" }, { status: 404 })
-      }
-
-      // Check if user has access to this task
-      // User has access if:
-      // 1. They created the task
-      // 2. They own any list containing the task
-      // 3. They are a member of any list containing the task
-      const isTaskCreator = task.creatorId === session.user.id
-
-      if (!isTaskCreator) {
-        const listIds = task.lists.map(list => list.id)
-
-        const hasAccess = await prisma.taskList.findFirst({
-          where: {
-            id: { in: listIds },
-            OR: [
-              { ownerId: session.user.id },
-              { listMembers: { some: { userId: session.user.id } } }
-            ]
-          }
-        })
-
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: "You don't have access to this task" },
-            { status: 403 }
-          )
-        }
-      }
-    } else if (targetType === "list") {
-      const list = await prisma.taskList.findFirst({
-        where: {
-          id: targetId,
-          OR: [
-            { ownerId: session.user.id },
-            { listMembers: { some: { userId: session.user.id } } }
-          ]
-        }
-      })
-
-      if (!list) {
-        return NextResponse.json({ error: "List not found or access denied" }, { status: 404 })
-      }
-    }
-
-    // Create shortcode
     const shortcode = await createShortcode({
-      targetType,
+      targetType: targetType as ShortcodeTargetType,
       targetId,
       userId: session.user.id,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined
@@ -120,10 +65,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/shortcodes?targetType=task&targetId=xxx
- * Get all shortcodes for a target
- */
 export async function GET(request: NextRequest) {
   try {
     const session = await getUnifiedSession()
@@ -131,89 +72,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get base URL from request for localhost support
-    const host = request.headers.get("host") || `${BRAND.domain}`
-    const protocol = host.includes("localhost") ? "http" : "https"
-    const baseUrl = `${protocol}://${host}`
+    const baseUrl = requestBaseUrl(request)
 
     const { searchParams } = new URL(request.url)
     const targetType = searchParams.get("targetType")
     const targetId = searchParams.get("targetId")
 
-    if (!targetType || !targetId) {
-      return NextResponse.json(
-        { error: "targetType and targetId are required" },
-        { status: 400 }
-      )
-    }
-
-    if (targetType !== "task" && targetType !== "list") {
-      return NextResponse.json(
-        { error: "targetType must be 'task' or 'list'" },
-        { status: 400 }
-      )
-    }
-
-    // Verify access to target resource
-    if (targetType === "task") {
-      // Find task with its lists
-      const task = await prisma.task.findUnique({
-        where: { id: targetId },
-        include: {
-          lists: true
-        }
-      })
-
-      if (!task) {
-        return NextResponse.json({ error: "Task not found" }, { status: 404 })
-      }
-
-      // Check if user has access to this task
-      // User has access if:
-      // 1. They created the task
-      // 2. They own any list containing the task
-      // 3. They are a member of any list containing the task
-      const isTaskCreator = task.creatorId === session.user.id
-
-      if (!isTaskCreator) {
-        const listIds = task.lists.map(list => list.id)
-
-        const hasAccess = await prisma.taskList.findFirst({
-          where: {
-            id: { in: listIds },
-            OR: [
-              { ownerId: session.user.id },
-              { listMembers: { some: { userId: session.user.id } } }
-            ]
-          }
-        })
-
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: "You don't have access to this task" },
-            { status: 403 }
-          )
-        }
-      }
-    } else if (targetType === "list") {
-      const list = await prisma.taskList.findFirst({
-        where: {
-          id: targetId,
-          OR: [
-            { ownerId: session.user.id },
-            { listMembers: { some: { userId: session.user.id } } }
-          ]
-        }
-      })
-
-      if (!list) {
-        return NextResponse.json({ error: "List not found or access denied" }, { status: 404 })
-      }
+    const access = await checkShortcodeTargetAccess(targetType, targetId, session.user.id)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.message }, { status: access.status })
     }
 
     const shortcodes = await getShortcodesForTarget(
-      targetType as "task" | "list",
-      targetId
+      targetType as ShortcodeTargetType,
+      targetId as string
     )
 
     return NextResponse.json({
