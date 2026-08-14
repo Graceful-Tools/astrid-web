@@ -7,7 +7,10 @@
  * that there is nothing to do. `GET /api/v1/tasks?listId=` filters server-side,
  * so the whole check is one call.
  *
- * BOTH lists are required, because `Ready` is NOT a sublist of the web board:
+ * Takes a board: `ready-tasks.ts` (web, default) or `ready-tasks.ts ios`. Both
+ * loops share it so neither can drift from the other's guarantees.
+ *
+ * BOTH lists are required, because `Ready` is NOT a sublist of a board:
  * it is a single account-wide `listType: 'status'` list that every board shares
  * — Astrid iOS To-do, Voteelo, Career, all of them. Filtering on `Ready` alone
  * queues whatever Jon happened to mark ready anywhere, and the web loop would
@@ -31,7 +34,29 @@ import {
 } from "@/lib/ready-queue-scope"
 
 const READY_LIST_NAME = "Ready"
-const BOARD_LIST_NAME = "Astrid Web To-do"
+
+/**
+ * Which board to scope to. Both loops use this script so that the guarantees
+ * are the same for each — Ready ∩ board, unassigned-or-Claude, loud failure on
+ * a missing list, and a printed reason for everything skipped. A second copy of
+ * this for iOS would drift, and the drift would be silent: a queue that is
+ * wrong in this script looks exactly like a quiet day.
+ *
+ *   npx tsx scripts/ready-tasks.ts        # web (default)
+ *   npx tsx scripts/ready-tasks.ts ios
+ */
+const BOARDS: Record<string, string> = {
+  web: "Astrid Web To-do",
+  ios: "Astrid iOS To-do",
+}
+
+const boardArg = (process.argv[2] || "web").toLowerCase()
+const BOARD_LIST_NAME = BOARDS[boardArg]
+
+if (!BOARD_LIST_NAME) {
+  console.error(`❌ Unknown board "${boardArg}". Expected one of: ${Object.keys(BOARDS).join(", ")}`)
+  process.exit(1)
+}
 
 async function main() {
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
