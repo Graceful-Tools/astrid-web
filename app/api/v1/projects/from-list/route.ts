@@ -16,12 +16,20 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { createProjectFromList } from '@/lib/projects-service'
+import { projectModeGate } from '@/lib/project-mode'
 
 const log = createLogger('v1.projects.from-list')
 
 export const POST = withAuth(
   { scopes: ['projects:write'], tag: 'v1.projects.from-list' },
   async (req, auth) => {
+    // Project Mode is request-gated (task dd7172d8). Same gate as the web
+    // route and as POST /api/v1/projects — this endpoint creates a project
+    // too, so without it v1 was exactly the way around the opt-in that the
+    // sibling route's comment warns about. (Task e0613ae5.)
+    const gated = await projectModeGate(auth.userId)
+    if (gated) return gated
+
     const body = await req.json().catch(() => ({}))
     const listId = typeof body.listId === 'string' ? body.listId : ''
 
