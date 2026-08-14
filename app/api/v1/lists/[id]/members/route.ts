@@ -14,7 +14,7 @@ import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import { getUserRoleInList } from "@/lib/list-permissions"
+import { getUserRoleInList, hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('v1.lists.members')
 
@@ -49,9 +49,24 @@ export const GET = withAuth<RouteContext>(
       return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    if (!isListAdminOrOwner(list as any, auth.userId)) {
+    // Members may see other members — Jon's call on task 10579245, aligning v1
+    // with the legacy route. Previously admin-or-owner only, so the same user
+    // saw their collaborators on web and got a 403 on iOS.
+    //
+    // Read access, not management access: hasExplicitListRole covers owner,
+    // admin and plain member. Adding/removing members below still requires
+    // isListAdminOrOwner, which is why this is a separate check rather than a
+    // relaxation of that one.
+    if (!hasExplicitListRole({ id: auth.userId }, list as never)) {
+      // A public list is browsable by strangers, so 403 would break the page —
+      // but the member list carries email addresses, so it is returned EMPTY
+      // rather than populated. Matches the legacy shape exactly, viewer role
+      // included.
+      if (list.privacy === 'PUBLIC') {
+        return NextResponse.json({ members: [], user_role: 'viewer' })
+      }
       return NextResponse.json(
-        { error: 'Only list admins and owners can view members' },
+        { error: 'You do not have permission to view members' },
         { status: 403 }
       )
     }
