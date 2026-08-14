@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
     }
 
     // The owner gains the new board's lists; refresh their cached list set.
-    await RedisCache.del(RedisCache.keys.userLists(session.user.id)).catch((error) => {
-      log.error({ err: error }, "Failed to invalidate userLists cache after board creation")
-    })
+    // The invalidator logs and swallows its own failures, so no .catch here.
+    await RedisCache.invalidate.userListsAllVersions(session.user.id)
 
     return NextResponse.json({ project: result.project, list: result.list }, { status: 201 })
   } catch (error) {

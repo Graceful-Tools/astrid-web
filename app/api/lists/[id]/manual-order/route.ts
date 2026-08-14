@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
 
     // Invalidate caches for all members
     const broadcastIds = getListMemberIds(updatedList)
-    await Promise.all(broadcastIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+    await Promise.all(broadcastIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)))
 
     // Broadcast update so other clients refresh — strip per-user favorite fields
     const { isFavorite: _isFav, favoriteOrder: _favOrd, ...broadcastData } = updatedList

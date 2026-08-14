@@ -501,6 +501,7 @@ vi.mock('@/lib/redis', () => ({
       user: vi.fn((userId) => `user:${userId}`),
       userTasks: vi.fn((userId) => `tasks:user:${userId}`),
       userLists: vi.fn((userId) => `lists:user:${userId}`),
+      userListsV1: vi.fn((userId) => `lists:user:${userId}:v1`),
       listTasks: vi.fn((listId) => `tasks:list:${listId}`),
       listMembers: vi.fn((listId) => `members:list:${listId}`),
       publicTasks: vi.fn(() => 'tasks:public'),
@@ -510,6 +511,7 @@ vi.mock('@/lib/redis', () => ({
     invalidate: {
       userTasks: vi.fn().mockResolvedValue(undefined),
       userLists: vi.fn().mockResolvedValue(undefined),
+      userListsAllVersions: vi.fn().mockResolvedValue(undefined),
       taskUpdate: vi.fn().mockResolvedValue(undefined),
       listUpdate: vi.fn().mockResolvedValue(undefined)
     }

@@ -15,7 +15,13 @@ vi.mock('@/lib/session-utils', () => ({
 vi.mock('@/lib/redis', () => ({
   RedisCache: {
     del: vi.fn().mockResolvedValue(undefined),
-    keys: { userLists: (id: string) => `lists:user:${id}` },
+    keys: {
+      userLists: (id: string) => `lists:user:${id}`,
+      userListsV1: (id: string) => `lists:user:${id}:v1`,
+    },
+    invalidate: {
+      userListsAllVersions: vi.fn().mockResolvedValue(undefined),
+    },
   },
 }))
 // Project Mode is request-gated (task dd7172d8). Mocked so these cases cover
@@ -34,7 +40,7 @@ import { projectModeGate } from '@/lib/project-mode'
 
 const mockCreate = vi.mocked(createProjectFromList)
 const mockSession = vi.mocked(getUnifiedSession)
-const mockDel = vi.mocked(RedisCache.del)
+const mockInvalidate = vi.mocked(RedisCache.invalidate.userListsAllVersions)
 const mockGate = vi.mocked(projectModeGate)
 
 const req = (body?: unknown) =>
@@ -46,7 +52,7 @@ const req = (body?: unknown) =>
 beforeEach(() => {
   vi.clearAllMocks()
   mockSession.mockResolvedValue({ user: { id: 'u1' } } as never)
-  mockDel.mockResolvedValue(undefined as never)
+  mockInvalidate.mockResolvedValue(undefined as never)
   mockGate.mockResolvedValue(null)
 })
 
@@ -93,7 +99,10 @@ it('201 with project + list and evicts cache', async () => {
   const body = await res.json()
   expect(body.project.id).toBe('p1')
   expect(body.list.projectId).toBe('p1')
-  expect(mockDel).toHaveBeenCalledWith('lists:user:u1')
+  // Both cached list sets — the legacy key and the v1 key iOS reads — must go.
+  // This used to assert a bare del('lists:user:u1'), which left iOS stale for
+  // the rest of the 5-minute TTL (task 070bddf8).
+  expect(mockInvalidate).toHaveBeenCalledWith('u1')
   expect(mockCreate).toHaveBeenCalledWith('u1', 'l1')
 })
 
@@ -106,5 +115,5 @@ it('maps service errors: list_not_found→404, forbidden→403, invalid→400', 
   const res = await POST(req({ listId: 'l1' }))
   expect(res.status).toBe(400)
   expect((await res.json()).error).toBe('already a board')
-  expect(mockDel).not.toHaveBeenCalled()
+  expect(mockInvalidate).not.toHaveBeenCalled()
 })

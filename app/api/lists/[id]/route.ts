@@ -356,7 +356,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     await Promise.all(
       userIdsToInvalidate.map(async (userId) => {
         try {
-          await RedisCache.del(RedisCache.keys.userLists(userId))
+          await RedisCache.invalidate.userListsAllVersions(userId)
         } catch (error) {
           log.error({ err: error }, `❌ Failed to invalidate cache for user ${userId}:`)
         }
@@ -456,7 +456,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
     await Promise.all(
       userIdsToInvalidate.map(async (userId) => {
         try {
-          await RedisCache.del(RedisCache.keys.userLists(userId))
+          await RedisCache.invalidate.userListsAllVersions(userId)
           log.info(`✅ Cache invalidated for user: ${userId}`)
         } catch (error) {
           log.error({ err: error }, `❌ Failed to invalidate cache for user ${userId}:`)

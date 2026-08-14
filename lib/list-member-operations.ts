@@ -32,7 +32,7 @@ export async function invalidateMemberCaches(userIds: string[]): Promise<void> {
   try {
     await Promise.all(
       userIds.flatMap(id => [
-        RedisCache.del(RedisCache.keys.userLists(id)),
+        RedisCache.invalidate.userListsAllVersions(id),
         RedisCache.del(RedisCache.keys.userTasks(id)),
       ]),
     )

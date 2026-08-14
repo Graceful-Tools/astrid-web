@@ -737,7 +737,7 @@ export async function PATCH(
     try {
       const allMemberIds = getListMemberIds(fullList as any)
       await Promise.all(
-        allMemberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId)))
+        allMemberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId))
       )
     } catch (cacheError) {
       log.error({ err: cacheError }, "Failed to invalidate cache for list members:")

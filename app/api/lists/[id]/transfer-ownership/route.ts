@@ -95,11 +95,11 @@ export async function POST(
     log.info({ oldOwnerId: session.user.id, newOwnerId }, '🗄️ Invalidating cache for ownership transfer')
     try {
       // Invalidate cache for the old owner (who left)
-      await RedisCache.del(RedisCache.keys.userLists(session.user.id))
+      await RedisCache.invalidate.userListsAllVersions(session.user.id)
       log.info(`✅ Cache invalidated for old owner: ${session.user.id}`)
       
       // Invalidate cache for the new owner (who now owns the list)
-      await RedisCache.del(RedisCache.keys.userLists(newOwnerId))
+      await RedisCache.invalidate.userListsAllVersions(newOwnerId)
       log.info(`✅ Cache invalidated for new owner: ${newOwnerId}`)
     } catch (error) {
       log.error({ err: error }, `❌ Failed to invalidate cache for ownership transfer:`)
