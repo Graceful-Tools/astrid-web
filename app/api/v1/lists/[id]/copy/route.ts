@@ -31,7 +31,18 @@ export const POST = withAuth<RouteContext>(
     const { id } = await params
     const body = await req.json().catch(() => ({}))
 
-    const { includeTasks = true, newName } = body
+    // `assignToUser` and `preserveTaskAssignees` come from the body and must not
+    // be hardcoded: the web client posts `assignToUser: false` to THIS endpoint
+    // when you copy a list you own from the Featured browser, meaning "bring the
+    // tasks across unassigned, don't stamp me on all of them". The defaults below
+    // are the old hardcoded values, so a body that omits them behaves as before.
+    // (Task ba44d068.)
+    const {
+      includeTasks = true,
+      newName,
+      preserveTaskAssignees = false,
+      assignToUser = true,
+    } = body
 
     // Fetch the source list
     const sourceList = await prisma.taskList.findUnique({
@@ -76,8 +87,8 @@ export const POST = withAuth<RouteContext>(
     const result = await copyListWithTasks(id, {
       newOwnerId: auth.userId,
       includeTasks,
-      preserveTaskAssignees: false,
-      assignToUser: true,
+      preserveTaskAssignees,
+      assignToUser,
       newOwnerName: currentUser?.name || currentUser?.email || undefined,
       newName: newName
     })
