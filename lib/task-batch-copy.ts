@@ -16,7 +16,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { hasExplicitListRole } from '@/lib/list-permissions'
+import { userCanAccessTask } from '@/services/task.service'
 
 export type BatchCopyResult =
   | { ok: true; task: Record<string, unknown> }
@@ -55,12 +55,18 @@ export async function batchCopyTask(args: {
     originalTask.lists.some(list => list.privacy === 'PUBLIC') && !originalTask.isPrivate
 
   if (!isPublic) {
-    const hasAccess =
-      originalTask.assigneeId === userId ||
-      originalTask.creatorId === userId ||
-      originalTask.lists.some(list => hasExplicitListRole({ id: userId }, list))
-
-    if (!hasAccess) {
+    // The shared rule — services/task.service.ts (task 017a569a, slice 3).
+    //
+    // The public-list bypass stays HERE rather than becoming a flag on the
+    // predicate, which is the shape slice 1 argued for: a flag would let a
+    // caller widen a write to public readers by passing the wrong argument.
+    // The caller decides whether public access applies; the predicate only
+    // answers the membership question.
+    //
+    // userCanAccessTask also throws if `lists` was fetched without
+    // listMembers — the exact regression this file's header records (task
+    // 73733c3d), which until now was guarded only by that comment.
+    if (!userCanAccessTask(originalTask, userId)) {
       return { ok: false, status: 403, error: 'Forbidden' }
     }
   }

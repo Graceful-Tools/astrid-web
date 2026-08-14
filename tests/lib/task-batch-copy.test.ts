@@ -39,7 +39,11 @@ function sourceTask(overrides: Record<string, unknown> = {}) {
     id: 'task-1', title: 'T', description: null, priority: 1,
     repeating: null, isPrivate: false, dueDateTime: null, isAllDay: false,
     assigneeId: null, creatorId: USER,
-    lists: [{ id: 'src', ownerId: USER, privacy: 'PRIVATE' }],
+    // listMembers is present on every fixture because Prisma always returns
+    // it — the route fetches `lists: { include: { listMembers: true } }`.
+    // Omitting it here modelled a shape production cannot produce, so the
+    // access assertions below were being made against an impossible input.
+    lists: [{ id: 'src', ownerId: USER, privacy: 'PRIVATE', listMembers: [] }],
     ...overrides,
   }
 }
@@ -70,7 +74,7 @@ describe('batchCopyTask (task e0613ae5)', () => {
 
   it('forbids copying a private task the caller has no relationship to', async () => {
     mockPrisma.task.findUnique.mockResolvedValue(
-      sourceTask({ creatorId: 'someone-else', lists: [{ id: 'src', ownerId: 'someone-else', privacy: 'PRIVATE' }] }) as never
+      sourceTask({ creatorId: 'someone-else', lists: [{ id: 'src', ownerId: 'someone-else', privacy: 'PRIVATE', listMembers: [] }] }) as never
     )
 
     expect(await batchCopyTask(baseArgs())).toMatchObject({ ok: false, status: 403, error: 'Forbidden' })
@@ -79,7 +83,7 @@ describe('batchCopyTask (task e0613ae5)', () => {
 
   it('allows copying a stranger\'s task when it sits on a PUBLIC list', async () => {
     mockPrisma.task.findUnique.mockResolvedValue(
-      sourceTask({ creatorId: 'someone-else', lists: [{ id: 'src', ownerId: 'someone-else', privacy: 'PUBLIC' }] }) as never
+      sourceTask({ creatorId: 'someone-else', lists: [{ id: 'src', ownerId: 'someone-else', privacy: 'PUBLIC', listMembers: [] }] }) as never
     )
 
     expect((await batchCopyTask(baseArgs())).ok).toBe(true)
@@ -87,7 +91,7 @@ describe('batchCopyTask (task e0613ae5)', () => {
 
   it('re-privatises a public list\'s task when the task itself is private', async () => {
     mockPrisma.task.findUnique.mockResolvedValue(
-      sourceTask({ creatorId: 'someone-else', isPrivate: true, lists: [{ id: 'src', ownerId: 'someone-else', privacy: 'PUBLIC' }] }) as never
+      sourceTask({ creatorId: 'someone-else', isPrivate: true, lists: [{ id: 'src', ownerId: 'someone-else', privacy: 'PUBLIC', listMembers: [] }] }) as never
     )
 
     expect(await batchCopyTask(baseArgs())).toMatchObject({ ok: false, status: 403 })
