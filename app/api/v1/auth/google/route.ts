@@ -8,6 +8,7 @@
  * envelope.
  */
 
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
@@ -24,6 +25,13 @@ function generateSecureToken(prefix: string): string {
 }
 
 async function googleSignInHandler(request: NextRequest) {
+  // A deployment that turns Google sign-in off must have it off everywhere. This
+  // route mints a 30-day session, so leaving it reachable would make the brand
+  // switch cosmetic — and v1 is the path iOS uses. Before the body is read, so a
+  // disabled method cannot be probed for its validation behaviour. (Task 3ba0719f.)
+  const blocked = capabilityGate('authGoogle')
+  if (blocked) return blocked
+
   try {
     const { idToken } = await request.json()
 
