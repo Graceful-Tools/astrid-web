@@ -1,18 +1,17 @@
 /**
- * POST /api/v1/tasks/copy
+ * POST /api/v1/tasks/copy — copy one task into several lists.
  *
- * Copy a single task into one or more target lists. Mirrors POST
- * /api/tasks/copy (batch-copy form). Returns the canonical Task with
- * relations under `task`, plus a `meta` envelope.
+ * The flow lives in lib/task-batch-copy.ts and is shared with the legacy
+ * route. This handler owns only OAuth-scoped auth and the `{ task, meta }`
+ * envelope. (Task e0613ae5.)
  *
  * Body: { taskId, targetListIds[], assigneeId? }
  */
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { prisma } from '@/lib/prisma'
+import { batchCopyTask } from '@/lib/task-batch-copy'
 import { createLogger } from '@/lib/logger'
-import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('v1.tasks.copy.batch')
 
@@ -26,96 +25,20 @@ export const POST = withAuth(
         assigneeId?: string | null
       }
 
-      if (!data.taskId || !data.targetListIds?.length) {
-        return NextResponse.json(
-          { error: 'Task ID and target list IDs are required' },
-          { status: 400 }
-        )
-      }
-
-      const originalTask = await prisma.task.findUnique({
-        where: { id: data.taskId },
-        include: { lists: true },
+      const result = await batchCopyTask({
+        userId: auth.userId,
+        taskId: data.taskId,
+        targetListIds: data.targetListIds,
+        assigneeId: data.assigneeId,
+        assigneeProvided: data.assigneeId !== undefined,
       })
-      if (!originalTask) {
-        return NextResponse.json({ error: 'Task not found' }, { status: 404 })
-      }
 
-      const isPublic = originalTask.lists.some(l => l.privacy === 'PUBLIC')
-        && !originalTask.isPrivate
-      if (!isPublic) {
-        const hasAccess =
-          originalTask.assigneeId === auth.userId ||
-          originalTask.creatorId === auth.userId ||
-          originalTask.lists.some(
-            (l: { ownerId: string; listMembers?: { userId: string }[] }) =>
-              hasExplicitListRole({ id: auth.userId }, l as never)
-          )
-        if (!hasAccess) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        }
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: result.status })
       }
-
-      const targetLists = await prisma.taskList.findMany({
-        where: {
-          id: { in: data.targetListIds },
-          OR: [
-            { ownerId: auth.userId },
-            { listMembers: { some: { userId: auth.userId } } },
-          ],
-        },
-        select: { id: true, name: true, ownerId: true, defaultAssigneeId: true },
-      })
-      if (targetLists.length !== data.targetListIds.length) {
-        return NextResponse.json(
-          { error: 'Access denied to one or more target lists' },
-          { status: 403 }
-        )
-      }
-
-      let finalAssigneeId: string | null = auth.userId
-      if (data.assigneeId !== undefined) {
-        finalAssigneeId = data.assigneeId
-      } else if (targetLists.length > 0) {
-        const firstList = targetLists[0]
-        if (firstList.defaultAssigneeId !== undefined) {
-          if (firstList.defaultAssigneeId === null) {
-            finalAssigneeId = auth.userId
-          } else if (firstList.defaultAssigneeId === 'unassigned') {
-            finalAssigneeId = null
-          } else {
-            finalAssigneeId = firstList.defaultAssigneeId
-          }
-        } else {
-          finalAssigneeId = null
-        }
-      }
-
-      const copiedTask = await prisma.task.create({
-        data: {
-          title: originalTask.title,
-          description: originalTask.description,
-          priority: originalTask.priority,
-          repeating: originalTask.repeating,
-          isPrivate: originalTask.isPrivate,
-          dueDateTime: originalTask.dueDateTime,
-          isAllDay: originalTask.isAllDay,
-          assigneeId: finalAssigneeId,
-          creatorId: auth.userId,
-          originalTaskId: originalTask.id,
-          sourceListId: originalTask.lists[0]?.id,
-          lists: { connect: data.targetListIds.map(id => ({ id })) },
-        },
-        include: {
-          assignee: true,
-          creator: true,
-          lists: { include: { owner: true } },
-          comments: { include: { author: true } },
-        },
-      })
 
       return NextResponse.json({
-        task: copiedTask,
+        task: result.task,
         meta: { apiVersion: 'v1' as const, authSource: auth.source },
       })
     } catch (error) {
