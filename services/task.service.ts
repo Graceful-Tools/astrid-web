@@ -81,14 +81,57 @@ export async function getTaskForUser(taskId: string, userId: string): Promise<Ta
     return { ok: false, status: 404, error: 'Task not found' }
   }
 
-  const hasAccess =
-    task.creatorId === userId ||
-    task.assigneeId === userId ||
-    task.lists.some(list => hasExplicitListRole({ id: userId }, list as never))
-
-  if (!hasAccess) {
+  if (!userCanAccessTask(task, userId)) {
     return { ok: false, status: 403, error: 'Access denied' }
   }
 
   return { ok: true, task }
+}
+
+/** The minimum a task must carry for the access rule to be answerable. */
+export interface TaskWithAccessRelations {
+  creatorId?: string | null
+  assigneeId?: string | null
+  lists?: Array<{ ownerId?: string; listMembers?: unknown }> | null
+}
+
+/**
+ * The access rule itself, for callers that ALREADY hold the task.
+ *
+ * Slice 2 (task 017a569a). Some routes reach a task as a relation of something
+ * else — coding-workflow/status loads it through CodingTaskWorkflow — so
+ * getTaskForUser would mean a second query for a row already in memory. They
+ * were each re-spelling the three-way check instead.
+ *
+ * Exporting a predicate reopens the risk slice 1 closed by keeping the include
+ * private: a caller can now pass a task fetched WITHOUT `lists.listMembers`,
+ * and `hasExplicitListRole` would find no membership and deny a legitimate
+ * member. That is the exact bug of task 73733c3d, and it is nasty because it
+ * fails CLOSED — a denied member reads as a permissions quirk, not a missing
+ * relation.
+ *
+ * So the shape is checked rather than trusted. A task whose lists were loaded
+ * without their members THROWS here, loudly, at the call site that got it
+ * wrong — instead of silently returning false in production. That makes the
+ * predicate safer to export than the hand-rolled check it replaces, which had
+ * no such guard.
+ */
+export function userCanAccessTask(task: TaskWithAccessRelations, userId: string): boolean {
+  const lists = task.lists ?? []
+
+  for (const list of lists) {
+    if (list.listMembers === undefined) {
+      throw new Error(
+        'userCanAccessTask: task.lists was loaded without listMembers, so membership ' +
+          'cannot be decided. Include lists: { include: { listMembers: true } }, or use ' +
+          'getTaskForUser() which owns the shape.'
+      )
+    }
+  }
+
+  return (
+    task.creatorId === userId ||
+    task.assigneeId === userId ||
+    lists.some(list => hasExplicitListRole({ id: userId }, list as never))
+  )
 }

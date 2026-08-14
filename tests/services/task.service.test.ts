@@ -116,3 +116,61 @@ describe('getTaskForUser (task 017a569a)', () => {
     expect(include.lists.include.owner).toBeTruthy()
   })
 })
+
+/**
+ * Slice 2 — the rule as a predicate, for callers that already hold the task.
+ *
+ * The interesting cases are not the allow/deny ones (those are covered above
+ * through getTaskForUser); they are the SHAPE ones. Exporting a predicate lets
+ * a caller pass a task fetched without its membership relation, which is the
+ * bug of task 73733c3d, and which fails CLOSED — a denied member reads as a
+ * permissions quirk rather than a missing include.
+ */
+describe('userCanAccessTask (task 017a569a, slice 2)', () => {
+  it('allows a plain member when the relation is loaded', async () => {
+    const { userCanAccessTask } = await import('@/services/task.service')
+
+    expect(userCanAccessTask(task({ lists: [listWithMember(USER)] }), USER)).toBe(true)
+  })
+
+  it('denies a stranger', async () => {
+    const { userCanAccessTask } = await import('@/services/task.service')
+
+    expect(userCanAccessTask(task({ lists: [listWithMember(OTHER)] }), USER)).toBe(false)
+  })
+
+  it('THROWS when lists were loaded without listMembers, instead of silently denying', async () => {
+    const { userCanAccessTask } = await import('@/services/task.service')
+
+    // `lists: true` — the shape that caused task 73733c3d. Without the guard
+    // this returns false and a member is told they have no access to a task
+    // they can see in the UI.
+    const thin = { creatorId: OTHER, assigneeId: null, lists: [{ ownerId: 'someone-else' }] }
+
+    expect(() => userCanAccessTask(thin, USER)).toThrow(/listMembers/)
+  })
+
+  it('does not throw for a task on no lists', async () => {
+    const { userCanAccessTask } = await import('@/services/task.service')
+
+    // Nothing to check the shape of, and creator/assignee still decide it.
+    expect(userCanAccessTask({ creatorId: USER, assigneeId: null, lists: [] }, USER)).toBe(true)
+    expect(userCanAccessTask({ creatorId: OTHER, assigneeId: null, lists: [] }, USER)).toBe(false)
+  })
+
+  it('treats an EMPTY listMembers array as loaded, not as missing', async () => {
+    const { userCanAccessTask } = await import('@/services/task.service')
+
+    // A list genuinely having no members is a normal state. Only `undefined`
+    // means "not fetched" — conflating the two would make the guard fire on
+    // correct code, which is how guards get removed.
+    const empty = {
+      creatorId: OTHER,
+      assigneeId: null,
+      lists: [{ ownerId: 'someone-else', listMembers: [] }],
+    }
+
+    expect(() => userCanAccessTask(empty, USER)).not.toThrow()
+    expect(userCanAccessTask(empty, USER)).toBe(false)
+  })
+})
