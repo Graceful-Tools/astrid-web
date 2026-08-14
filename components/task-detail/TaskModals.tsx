@@ -24,15 +24,16 @@ interface TaskModalsProps {
   onCopy?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onClose?: () => void
 
-  // Share modal state
+  // Share modal state — supplied by useTaskShareLink, which owns both the
+  // state and the copy/close actions. This component used to take the four
+  // setters and re-implement `onCopyShareUrl`/`onCloseShareModal`
+  // itself, which is how a third copy of the flow ended up here.
   showShareModal: boolean
-  setShowShareModal: (value: boolean) => void
   shareUrl: string | null
-  setShareUrl: (value: string | null) => void
   loadingShareUrl: boolean
-  setLoadingShareUrl: (value: boolean) => void
   shareUrlCopied: boolean
-  setShareUrlCopied: (value: boolean) => void
+  onCopyShareUrl: () => void | Promise<void>
+  onCloseShareModal: () => void
 }
 
 export function TaskModals({
@@ -50,13 +51,11 @@ export function TaskModals({
   onCopy,
   onClose,
   showShareModal,
-  setShowShareModal,
   shareUrl,
-  setShareUrl,
   loadingShareUrl,
-  setLoadingShareUrl,
   shareUrlCopied,
-  setShareUrlCopied
+  onCopyShareUrl,
+  onCloseShareModal
 }: TaskModalsProps) {
 
   // Filter out virtual lists (Saved Filters)
@@ -111,24 +110,6 @@ export function TaskModals({
     } catch (error) {
       console.error('Failed to copy task:', error)
       // Error notification will be shown by parent's handleCopyTask
-    }
-  }
-
-  const handleCloseShareModal = () => {
-    setShowShareModal(false)
-    setShareUrl(null)
-    setShareUrlCopied(false)
-  }
-
-  const handleCopyShareUrl = async () => {
-    if (shareUrl) {
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        setShareUrlCopied(true)
-        setTimeout(() => setShareUrlCopied(false), 2000)
-      } catch (error) {
-        console.error('Failed to copy URL:', error)
-      }
     }
   }
 
@@ -244,7 +225,7 @@ export function TaskModals({
 
       {/* Share Modal - centered on task pane */}
       {showShareModal && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCloseShareModal}>
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onCloseShareModal}>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2 flex items-center">
@@ -284,7 +265,7 @@ export function TaskModals({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleCopyShareUrl}
+                        onClick={onCopyShareUrl}
                         className={`flex-shrink-0 ${
                           shareUrlCopied
                             ? 'bg-green-600 text-white border-green-600'
@@ -324,7 +305,7 @@ export function TaskModals({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleCloseShareModal}
+                onClick={onCloseShareModal}
                 className="theme-border theme-text-secondary hover:theme-bg-hover"
               >
                 Close

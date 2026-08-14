@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useParams, useRouter } from "next/navigation"
+import { unwrapList } from '@/lib/v1-response'
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { AuthenticatedApp } from "@/components/authenticated-app"
@@ -39,8 +40,14 @@ export default function ListPage() {
           return
         }
 
+        // v1 wraps the list: { list, meta }. Storing the envelope handed
+        // TaskManager an object with no `id`, so its chat-eligibility fallback
+        // never matched — and that fallback fails OPEN
+        // (userCanRequestListChatChannel returns true for a null list), so the
+        // rules were skipped rather than applied for any list reached by direct
+        // link and not already loaded. (Task 72717eff.)
         const data = await response.json()
-        setListData(data)
+        setListData(unwrapList(data))
       } catch (err) {
         setError("Failed to load list")
         log.error({ err: err }, "Error fetching list:")

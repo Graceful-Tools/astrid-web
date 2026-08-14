@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
+import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
 import { Button } from "@/components/ui/button"
@@ -23,9 +24,8 @@ import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
 import type { Task, Comment, User, TaskList } from "../types/task"
-import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Globe, Users, Copy, Link as LinkIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Copy, Link as LinkIcon } from "lucide-react"
 import { apiPost } from "@/lib/api"
-import { getAllListMembers } from "@/lib/list-member-utils"
 import { shouldHideTaskPriority, shouldHideTaskWhen, shouldHideTaskComments } from "@/lib/public-list-utils"
 import { format } from "date-fns"
 import { useTheme } from "@/contexts/theme-context"
@@ -43,8 +43,7 @@ import {
   needsScrollIntoViewHandling,
   getFocusProtectionThreshold,
   needsMobileFormHandling,
-  isMobileDevice,
-  is1ColumnView
+  isMobileDevice
 } from "@/lib/layout-detection"
 
 // Stable event type arrays to prevent re-subscriptions
@@ -109,9 +108,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     uploadingReplyFile, setUploadingReplyFile, showingActionsFor, setShowingActionsFor } = state.comments
 
   const { showDeleteConfirmation, setShowDeleteConfirmation, showCopyConfirmation, setShowCopyConfirmation,
-    copyIncludeComments, setCopyIncludeComments, copyTargetListId, setCopyTargetListId,
-    showShareModal, setShowShareModal, shareUrl, setShareUrl, loadingShareUrl, setLoadingShareUrl,
-    shareUrlCopied, setShareUrlCopied } = state.modals
+    copyIncludeComments, setCopyIncludeComments, copyTargetListId, setCopyTargetListId } = state.modals
+
+  // Share-by-link owns its own state — see hooks/task-detail/useTaskShareLink.
+  const { showShareModal, shareUrl, loadingShareUrl, shareUrlCopied,
+    openShareModal, copyShareUrl, closeShareModal } = useTaskShareLink(task.id)
 
   const { searchTerm: listSearchTerm, setSearchTerm: setListSearchTerm, showSuggestions: showListSuggestions,
     setShowSuggestions: setShowListSuggestions, selectedIndex: selectedSuggestionIndex, setSelectedIndex: setSelectedSuggestionIndex,
@@ -120,45 +121,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
   const { assigneeRef: assigneeEditRef, descriptionRef: descriptionEditRef,
     descriptionTextareaRef } = state.editing
-
-  // Priority color helper function (matches production-task-manager)
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 3: return 'rgb(239, 68, 68)' // Red - highest priority
-      case 2: return 'rgb(251, 191, 36)' // Yellow - medium priority  
-      case 1: return 'rgb(59, 130, 246)' // Blue - low priority
-      default: return 'rgb(107, 114, 128)' // Gray - no priority
-    }
-  }
-
-  // Helper function to get list privacy icon
-  const getListPrivacyIcon = (list: any) => {
-    const privacy = list?.privacy
-
-    if (!privacy && !list) {
-      return null
-    }
-
-    // Check if list is PUBLIC first
-    if (privacy === 'PUBLIC') {
-      return <Globe className="w-4 h-4 text-green-500" /> // Green globe for public
-    }
-
-    // Check if list is SHARED (has more than just the owner) using consolidated utility
-    const allMembers = getAllListMembers(list)
-    const hasAdditionalMembers = allMembers.length > 1 // More than just the owner
-    if (hasAdditionalMembers) {
-      return <Users className="w-4 h-4 text-blue-500" /> // Blue users for shared
-    }
-    
-    // Default to private - no icon
-    return null
-  }
-
-  // Helper function to determine if we should show mobile-style attachment buttons
-  const shouldShowMobileAttachmentButtons = () => {
-    return isMobileDevice() || isIPadDevice() || is1ColumnView()
-  }
 
   // Scroll area ref for auto-scrolling when new comments are added.
   // Tracked as IDS, not a count: the task object is replaced wholesale on every
@@ -790,64 +752,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     setShowCopyConfirmation(false)
   }
 
-  // Share handlers
-  const handleShareClick = async () => {
-    setShowShareModal(true)
-    setShareUrlCopied(false)
-    setShareUrl(null)
-
-    // Generate shortcode for all tasks
-    setLoadingShareUrl(true)
-
-    try {
-      const response = await fetch('/api/v1/shortcodes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetType: 'task',
-          targetId: task.id
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.url) {
-          setShareUrl(data.url)
-        } else {
-          console.error('No URL in response:', data)
-          setShareUrl(null)
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Failed to generate share URL:', response.status, errorData)
-        setShareUrl(null)
-      }
-    } catch (error) {
-      console.error('Error generating share URL:', error)
-      setShareUrl(null)
-    } finally {
-      setLoadingShareUrl(false)
-    }
-  }
-
-  const handleCopyShareUrl = async () => {
-    if (shareUrl) {
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        setShareUrlCopied(true)
-        setTimeout(() => setShareUrlCopied(false), 2000)
-      } catch (error) {
-        console.error('Failed to copy URL:', error)
-      }
-    }
-  }
-
-  const handleCloseShareModal = () => {
-    setShowShareModal(false)
-    setShareUrl(null)
-    setShareUrlCopied(false)
-  }
-
   // Debug mode: Test reminder handler
   const handleTestReminder = () => {
     triggerManualReminder(task)
@@ -955,58 +859,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     })
     setTempRepeating(repeating)
     setEditingRepeating(false)
-  }
-
-  const getCustomRepeatingSummary = (repeatingData: any): string => {
-    if (!repeatingData || repeatingData.type !== 'custom') return 'Custom'
-    
-    const { unit, interval } = repeatingData
-    let summary = `Every ${interval} ${unit}`
-    
-    switch (unit) {
-      case 'weeks':
-        if (repeatingData.weekdays?.length) {
-          summary += ` on ${repeatingData.weekdays.map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(', ')}`
-        }
-        break
-        
-      case 'months':
-        if (repeatingData.monthRepeatType === 'same_date' && repeatingData.monthDay) {
-          summary += ` on the ${repeatingData.monthDay}${getOrdinalSuffix(repeatingData.monthDay)}`
-        } else if (repeatingData.monthRepeatType === 'same_weekday' && repeatingData.monthWeekday) {
-          const { weekday, weekOfMonth } = repeatingData.monthWeekday
-          summary += ` on the ${weekOfMonth}${getOrdinalSuffix(weekOfMonth)} ${weekday.charAt(0).toUpperCase() + weekday.slice(1)}`
-        }
-        break
-        
-      case 'years':
-        if (repeatingData.month && repeatingData.day) {
-          const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-          const monthName = monthNames[repeatingData.month - 1]
-          summary += ` on ${monthName} ${repeatingData.day}${getOrdinalSuffix(repeatingData.day)}`
-        }
-        break
-    }
-    
-    // Add end condition info
-    if (repeatingData.endCondition === 'after_occurrences' && repeatingData.endAfterOccurrences) {
-      summary += ` (${repeatingData.endAfterOccurrences} times)`
-    } else if (repeatingData.endCondition === 'until_date' && repeatingData.endUntilDate) {
-      const endDate = new Date(repeatingData.endUntilDate)
-      summary += ` until ${endDate.toLocaleDateString()}`
-    }
-    
-    return summary
-  }
-
-  const getOrdinalSuffix = (num: number): string => {
-    if (num >= 11 && num <= 13) return 'th'
-    switch (num % 10) {
-      case 1: return 'st'
-      case 2: return 'nd'
-      case 3: return 'rd'
-      default: return 'th'
-    }
   }
 
   const handleSaveLists = () => {
@@ -1409,7 +1261,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onCancelTitle={handleCancelTitle}
         reminderDebugMode={reminderDebugMode}
         onCopy={handleCopyClick}
-        onShare={handleShareClick}
+        onShare={openShareModal}
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
@@ -1576,13 +1428,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onCopy={onCopy}
         onClose={onClose}
         showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
         shareUrl={shareUrl}
-        setShareUrl={setShareUrl}
         loadingShareUrl={loadingShareUrl}
-        setLoadingShareUrl={setLoadingShareUrl}
         shareUrlCopied={shareUrlCopied}
-        setShareUrlCopied={setShareUrlCopied}
+        onCopyShareUrl={copyShareUrl}
+        onCloseShareModal={closeShareModal}
       />
     </div>
     </>

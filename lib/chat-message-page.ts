@@ -14,6 +14,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { parseLimit } from '@/lib/pagination'
 
 export const MESSAGE_AUTHOR_SELECT = {
   id: true,
@@ -62,10 +63,7 @@ export async function fetchChatMessagePage(args: {
 
   // A client asking for 5000 messages gets 100. NaN from a garbage `limit`
   // falls back to the default rather than propagating into the query.
-  const requested = typeof args.limit === 'number'
-    ? args.limit
-    : parseInt(String(args.limit ?? ''), 10)
-  const limit = Math.min(Number.isNaN(requested) ? DEFAULT_LIMIT : requested, MAX_LIMIT)
+  const limit = parseLimit(args.limit, { fallback: DEFAULT_LIMIT, max: MAX_LIMIT })
 
   const where: { channelId: string; createdAt?: { lt: Date } } = { channelId }
   if (before) {

@@ -42,8 +42,12 @@ describe('useTaskDetailState', () => {
 
     expect(result.current.modals).toHaveProperty('showDeleteConfirmation')
     expect(result.current.modals).toHaveProperty('showCopyConfirmation')
-    expect(result.current.modals).toHaveProperty('showShareModal')
-    expect(result.current.modals).toHaveProperty('shareUrl')
+
+    // Share state deliberately does NOT live here any more (task 72cb4a13):
+    // it moved to useTaskShareLink, which owns the state and the actions
+    // together so the flow cannot be half-copied into a third component.
+    expect(result.current.modals).not.toHaveProperty('showShareModal')
+    expect(result.current.modals).not.toHaveProperty('shareUrl')
   })
 
   it('should expose all editing state', () => {
