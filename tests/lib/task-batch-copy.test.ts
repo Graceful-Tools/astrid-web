@@ -182,3 +182,53 @@ describe('batchCopyTask (task e0613ae5)', () => {
     expect(data.creatorId).toBe(USER)
   })
 })
+
+describe('list membership must be visible to the access check (task 73733c3d)', () => {
+  it('loads listMembers with the source task', async () => {
+    // This asserts the QUERY, not the logic, and that is deliberate: the bug is
+    // that `include: { lists: true }` returns bare TaskList rows with no
+    // listMembers, so hasExplicitListRole resolves membership from a relation
+    // that was never fetched and only the OWNER ever passes. A test that fed a
+    // hand-built list WITH listMembers into the mock would pass against the
+    // broken code, because the mock returns whatever it is told regardless of
+    // the include.
+    await batchCopyTask(baseArgs())
+
+    const include = (mockPrisma.task.findUnique.mock.calls[0][0] as never as {
+      include: { lists: unknown }
+    }).include
+
+    expect(include.lists).toMatchObject({ include: { listMembers: true } })
+  })
+
+  it('lets a plain member of the source list copy a private task', async () => {
+    // Bob is neither creator nor assignee; he is a member of the list the task
+    // sits on. He can see the task in the UI, so he must be able to copy it.
+    mockPrisma.task.findUnique.mockResolvedValue(
+      sourceTask({
+        creatorId: 'alice',
+        assigneeId: null,
+        lists: [{
+          id: 'src',
+          ownerId: 'alice',
+          privacy: 'PRIVATE',
+          listMembers: [{ userId: USER, role: 'member' }],
+        }],
+      }) as never
+    )
+
+    expect((await batchCopyTask(baseArgs())).ok).toBe(true)
+  })
+
+  it('still refuses a non-member', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue(
+      sourceTask({
+        creatorId: 'alice',
+        assigneeId: null,
+        lists: [{ id: 'src', ownerId: 'alice', privacy: 'PRIVATE', listMembers: [] }],
+      }) as never
+    )
+
+    expect(await batchCopyTask(baseArgs())).toMatchObject({ ok: false, status: 403 })
+  })
+})

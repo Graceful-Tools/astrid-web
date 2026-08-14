@@ -35,9 +35,14 @@ export async function batchCopyTask(args: {
     return { ok: false, status: 400, error: 'Task ID and target list IDs are required' }
   }
 
+  // listMembers is not optional detail here: hasExplicitListRole below resolves
+  // membership from this relation, and `lists: true` returns bare TaskList rows
+  // without it. With the relation missing, only `ownerId` could ever match, so
+  // a member of the list was told they had no access to a task they could see
+  // in the UI. (Task 73733c3d.)
   const originalTask = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { lists: true },
+    include: { lists: { include: { listMembers: true } } },
   })
 
   if (!originalTask) {
