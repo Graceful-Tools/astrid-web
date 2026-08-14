@@ -14,7 +14,8 @@ import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import { hasExplicitListRole, canUserManageList } from "@/lib/list-permissions"
+import { hasExplicitListRole } from "@/lib/list-permissions"
+import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
 
 const log = createLogger('v1.comments.id')
 
@@ -178,14 +179,7 @@ export const PUT = withAuth<RouteContext>(
     // which drops the actor server-side.
     try {
       const task = existingComment.task
-      const userIds = new Set<string>()
-      if (task.creatorId) userIds.add(task.creatorId)
-      if (task.assigneeId) userIds.add(task.assigneeId)
-      for (const list of task.lists) {
-        for (const memberId of getListMemberIds(list as never)) {
-          userIds.add(memberId)
-        }
-      }
+      const userIds = commentAudience(task)
 
       if (userIds.size > 0) {
         broadcastToUsers(Array.from(userIds), {
@@ -281,15 +275,8 @@ export const DELETE = withAuth<RouteContext>(
 
     const task = existingComment.task
 
-    // Check permissions: comment author OR task creator/assignee OR list owners/admins
-    const isCommentAuthor = existingComment.authorId === auth.userId
-    const isTaskCreator = task.creatorId === auth.userId
-    const isTaskAssignee = task.assigneeId === auth.userId
-    const isListOwnerOrAdmin = task.lists.some(
-      list => canUserManageList({ id: auth.userId }, list as never)
-    )
-
-    if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
+    // Author, the people responsible for the task, or a list admin.
+    if (!canDeleteComment(existingComment.authorId, task, auth.userId)) {
       return NextResponse.json(
         { error: 'You can only delete your own comments or comments on tasks you manage' },
         { status: 403 }

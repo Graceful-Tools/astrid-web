@@ -3,7 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
-import { canUserManageList } from "@/lib/list-permissions"
+import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
 
 const log = createLogger('comments.[id]')
 
@@ -72,19 +72,8 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     // Send SSE notification to all users with access to the task
     try {
       const task = existingComment.task
-      const userIds = new Set<string>()
-
-      // Add task creator and assignee
-      if (task.creatorId) userIds.add(task.creatorId)
-      if (task.assigneeId) userIds.add(task.assigneeId)
-
-      // Add all users who have access to the task through lists
-      for (const list of task.lists) {
-        if (list.ownerId) userIds.add(list.ownerId)
-
-        // Add all list members (unified in listMembers table)
-        list.listMembers.forEach(member => userIds.add(member.userId))
-      }
+      // Editor stays in the audience: the client filters on data.userId below.
+      const userIds = commentAudience(task)
 
       if (userIds.size > 0) {
         const { broadcastToUsers } = await import("@/lib/sse-utils")
@@ -157,15 +146,8 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     const task = existingComment.task
 
-    // Check permissions: comment author OR task/list owners/admins can delete
-    const isCommentAuthor = existingComment.authorId === session.user.id
-    const isTaskCreator = task.creatorId === session.user.id
-    const isTaskAssignee = task.assigneeId === session.user.id
-    const isListOwnerOrAdmin = task.lists.some(
-      (list) => canUserManageList({ id: session.user.id }, list as never),
-    )
-
-    if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
+    // Author, the people responsible for the task, or a list admin.
+    if (!canDeleteComment(existingComment.authorId, task, session.user.id)) {
       return NextResponse.json({ error: "You can only delete your own comments or comments on tasks you manage" }, { status: 403 })
     }
 
@@ -176,19 +158,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     // Send SSE notification to all users with access to the task
     try {
-      const userIds = new Set<string>()
-
-      // Add task creator and assignee
-      if (task.creatorId) userIds.add(task.creatorId)
-      if (task.assigneeId) userIds.add(task.assigneeId)
-
-      // Add all users who have access to the task through lists
-      for (const list of task.lists) {
-        if (list.ownerId) userIds.add(list.ownerId)
-
-        // Add all list members (unified in listMembers table)
-        list.listMembers.forEach(member => userIds.add(member.userId))
-      }
+      const userIds = commentAudience(task)
 
       if (userIds.size > 0) {
         const { broadcastToUsers } = await import("@/lib/sse-utils")
