@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { unwrapTask } from '@/lib/v1-response'
+import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskOperations } from "@/hooks/useTaskOperations"
@@ -1057,7 +1057,12 @@ export function useTaskManagerController({
         throw new Error(`Failed to update list: ${response.status} ${response.statusText}`)
       }
 
-      const result = await response.json()
+      // v1 wraps: PUT /api/v1/lists/:id returns { list, meta }. Reading `.id`
+      // off the envelope gave undefined, so the reconcile below matched NO
+      // list and the server's version — including any field it normalises, and
+      // taskCount — was silently dropped, leaving the optimistic value in
+      // place until a reload. (Task 72717eff.)
+      const result = unwrapList<TaskList>(await response.json())
 
       if (fieldsChanged.length > 0) {
         trackListEdited({
@@ -1066,11 +1071,15 @@ export function useTaskManagerController({
         })
       }
 
-      listState.setLists((prevLists: TaskList[]) =>
-        prevLists.map((list: TaskList) =>
-          list.id === result.id ? result : list
+      // A null here means the body was neither shape — keep the optimistic
+      // value rather than writing a null into the list array.
+      if (result) {
+        listState.setLists((prevLists: TaskList[]) =>
+          prevLists.map((list: TaskList) =>
+            list.id === result.id ? result : list
+          )
         )
-      )
+      }
 
       toast({
         title: "List updated",
