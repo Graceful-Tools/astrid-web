@@ -1,88 +1,28 @@
 /**
  * Shortcodes API v1
  *
- * RESTful endpoint for shortcode operations
  * POST /api/v1/shortcodes - Create shortcode for sharing
- * GET /api/v1/shortcodes - Get shortcodes for a target
+ * GET  /api/v1/shortcodes - Get shortcodes for a target
+ *
+ * The access rule lives in lib/shortcode-target-access.ts and is shared with
+ * the legacy route, where it had been copy-pasted between POST and GET.
+ * (Task e0613ae5.)
+ *
+ * Unlike legacy, this route builds share URLs from the configured base URL
+ * rather than the request's Host header — an OAuth client's Host is not a
+ * signal about where the link should point.
  */
 
 import { NextResponse } from 'next/server'
 import { createShortcode, getShortcodesForTarget, buildShortcodeUrl } from '@/lib/shortcode'
-import { prisma } from '@/lib/prisma'
+import {
+  checkShortcodeTargetAccess,
+  type ShortcodeTargetAccess,
+  type ShortcodeTargetType,
+} from '@/lib/shortcode-target-access'
 import { withAuth } from '@/lib/api-auth-wrapper'
 
-type TargetType = 'task' | 'list'
-
-type AccessResult =
-  | { ok: true }
-  | { ok: false; status: number; error: string; message: string }
-
-/**
- * Validates targetType + targetId and confirms the caller has access. Returns
- * `{ ok: true }` on success, otherwise an HTTP-shaped failure object that the
- * handler renders directly.
- */
-async function checkTargetAccess(
-  targetType: unknown,
-  targetId: unknown,
-  userId: string
-): Promise<AccessResult> {
-  if (!targetType || !targetId) {
-    return { ok: false, status: 400, error: 'Validation error', message: 'targetType and targetId are required' }
-  }
-
-  if (targetType !== 'task' && targetType !== 'list') {
-    return { ok: false, status: 400, error: 'Validation error', message: 'targetType must be "task" or "list"' }
-  }
-
-  if (targetType === 'task') {
-    const task = await prisma.task.findUnique({
-      where: { id: targetId as string },
-      include: { lists: true }
-    })
-
-    if (!task) {
-      return { ok: false, status: 404, error: 'Not found', message: 'Task not found' }
-    }
-
-    if (task.creatorId === userId) return { ok: true }
-
-    const listIds = task.lists.map(list => list.id)
-    const hasAccess = await prisma.taskList.findFirst({
-      where: {
-        id: { in: listIds },
-        OR: [
-          { ownerId: userId },
-          { listMembers: { some: { userId } } }
-        ]
-      }
-    })
-
-    if (!hasAccess) {
-      return { ok: false, status: 403, error: 'Forbidden', message: "You don't have access to this task" }
-    }
-
-    return { ok: true }
-  }
-
-  const list = await prisma.taskList.findFirst({
-    where: {
-      id: targetId as string,
-      OR: [
-        { ownerId: userId },
-        { listMembers: { some: { userId } } }
-      ]
-    }
-  })
-
-  if (!list) {
-    return { ok: false, status: 404, error: 'Not found', message: 'List not found or access denied' }
-  }
-
-  return { ok: true }
-}
-
-function denied(result: Extract<AccessResult, { ok: false }>, authSource: string) {
+function denied(result: Extract<ShortcodeTargetAccess, { ok: false }>, authSource: string) {
   return NextResponse.json(
     {
       error: result.error,
@@ -109,11 +49,11 @@ export const POST = withAuth(
     const body = await req.json()
     const { targetType, targetId, expiresAt } = body
 
-    const access = await checkTargetAccess(targetType, targetId, auth.userId)
+    const access = await checkShortcodeTargetAccess(targetType, targetId, auth.userId)
     if (!access.ok) return denied(access, auth.source)
 
     const shortcode = await createShortcode({
-      targetType: targetType as TargetType,
+      targetType: targetType as ShortcodeTargetType,
       targetId,
       userId: auth.userId,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined
@@ -138,11 +78,11 @@ export const GET = withAuth(
     const targetType = searchParams.get('targetType')
     const targetId = searchParams.get('targetId')
 
-    const access = await checkTargetAccess(targetType, targetId, auth.userId)
+    const access = await checkShortcodeTargetAccess(targetType, targetId, auth.userId)
     if (!access.ok) return denied(access, auth.source)
 
     const shortcodes = await getShortcodesForTarget(
-      targetType as TargetType,
+      targetType as ShortcodeTargetType,
       targetId as string
     )
 
