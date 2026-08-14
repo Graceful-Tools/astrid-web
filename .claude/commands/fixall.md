@@ -49,6 +49,32 @@ of three it is:
    explicitly asks for both. **Do the web half here**, including any API work, then
    **file the iOS companion** on the Astrid iOS To-do spelling out the contract to
    match. Do not implement the Swift side from this repo.
+   ```bash
+   npx tsx scripts/file-ios-task.ts "[ios] <what iOS must do>" "<contract to match>" -p 2
+   ```
+
+**Anything that needs a Swift change gets filed on the iOS board before you move
+on.** That covers all three of these, not just case (3):
+
+- the iOS half of cross-platform work you just did here;
+- a client-side gap you noticed while working an unrelated task;
+- a server change that iOS must adopt for the fix to be observable at all.
+
+The last one is the trap, because the web work looks finished. The mobile session
+renewal is the example: the server re-issues the token correctly, but until iOS
+persists it the user is still signed out at thirty days, so a reader of `main`
+would reasonably conclude the bug was fixed when it was not yet.
+
+**A finding recorded only in a comment on the web board does not reach the loop
+that could act on it.** `scripts/file-ios-task.ts` resolves the board by name and
+refuses to write if it is missing — a companion filed onto no board is worse than
+none, because it looks filed. It also skips a title already open there, so a
+scheduled re-run does not file the same companion twice.
+
+**Say what iOS has to match, not just what is wrong.** Name the endpoint, the
+fields, and the cases that are easy to get wrong — a field that is *absent* rather
+than null, a value that means something different from its absence, an ordering
+constraint. The iOS loop cannot read this repo's diff.
 
 **The test for (2) vs (3) is where the code lives, not who reported it or what the
 title says.** A `[mac]` tag means a Mac user hit it, not that the cause is Mac-only.
@@ -150,8 +176,14 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
    what you found.
 
 6. **When Ready is empty**, summarize in a few lines: tasks completed, tasks routed
-   to the iOS board, tasks skipped and why, and which branches are waiting to ship —
-   **by title, not by id or commit hash**. Then ask whether to ship.
+   to the iOS board, **iOS companions filed**, tasks skipped and why, and which
+   branches are waiting to ship — **by title, not by id or commit hash**. Then ask
+   whether to ship.
+
+   Companions belong in that summary rather than only on the board, because they
+   are the part of the work that is *not* done and is not visible in this repo.
+   A run that says "fixed" while the user-visible half is still waiting on iOS
+   has told Jon the wrong thing.
 
 ## For UI tasks: look at it
 
