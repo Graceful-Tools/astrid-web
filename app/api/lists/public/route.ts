@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { parseLimit } from "@/lib/pagination"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { getPopularPublicLists, searchPublicLists, getRecentPublicLists } from "@/lib/copy-utils"
 import { RedisCache } from "@/lib/redis"
@@ -20,7 +21,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const query = searchParams.get("q")
-    const limit = parseInt(searchParams.get("limit") || "10")
+    // Capped and NaN-safe. Was parseInt with no ceiling, so ?limit=1000000
+    // became take: 1000000 on a public listing endpoint. Default stays 10:
+    // four web callers rely on this page size. (Task e0613ae5.)
+    const limit = parseLimit(searchParams.get("limit"), { fallback: 10, max: 100 })
     const sortBy = searchParams.get("sortBy") || "popular"
     const ownerId = searchParams.get("ownerId")
 

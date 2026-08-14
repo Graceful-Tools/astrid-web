@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { parseLimit } from '@/lib/pagination'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
@@ -23,7 +24,9 @@ export const GET = withAuth(
   async (req, auth) => {
     const { searchParams } = new URL(req.url)
     const sortBy = searchParams.get('sortBy') || 'popular'
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+    // Math.min(NaN, 100) is NaN, so the old cap never rescued a non-numeric
+    // limit — it reached Prisma's take. (Task e0613ae5.)
+    const limit = parseLimit(searchParams.get('limit'), { fallback: 50, max: 100 })
 
     // Build query for public lists
     const whereClause: any = {
