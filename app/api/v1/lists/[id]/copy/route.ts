@@ -94,9 +94,14 @@ export const POST = withAuth<RouteContext>(
     })
 
     if (!result.success) {
+      // 400, matching legacy. copyListWithTasks returns { success: false } for
+      // business-rule refusals — most often "Access denied to copy this list" —
+      // and reporting those as 500 told the caller we had broken: the client
+      // retries something that can never succeed, and a real outage becomes
+      // indistinguishable from a permission denial in the logs. (Task e0613ae5.)
       return NextResponse.json(
         { error: result.error || 'Failed to copy list' },
-        { status: 500 }
+        { status: 400 }
       )
     }
 
