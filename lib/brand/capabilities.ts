@@ -72,6 +72,7 @@ export const CAPABILITIES = {
    * the capability first (see lib/project-mode.ts, which does both in order).
    */
   projectMode: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE),
+  taskCost: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST),
 
   // --- Other services -----------------------------------------------------
   /** Creating tasks by emailing the inbound address. */

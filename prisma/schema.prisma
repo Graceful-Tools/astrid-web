@@ -36,70 +36,70 @@ model Session {
 }
 
 model User {
-  id                           String               @id @default(cuid())
+  id                           String                 @id @default(cuid())
   name                         String?
-  email                        String               @unique
+  email                        String                 @unique
   emailVerified                DateTime?
   image                        String?
-  createdAt                    DateTime             @default(now())
-  updatedAt                    DateTime             @updatedAt
-  isActive                     Boolean              @default(true)
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  isActive                     Boolean                @default(true)
   pendingEmail                 String?
-  emailVerificationToken       String?              @unique
+  emailVerificationToken       String?                @unique
   emailTokenExpiresAt          DateTime?
   aiAssistantSettings          String?
-  defaultDueTime               String?              @default("17:00")
-  subtaskDisplay               String?              @default("indented") // "indented" (in lists) | "under_parent" (detail only)
-  mcpEnabled                   Boolean              @default(true)
+  defaultDueTime               String?                @default("17:00")
+  subtaskDisplay               String?                @default("indented") // "indented" (in lists) | "under_parent" (detail only)
+  mcpEnabled                   Boolean                @default(true)
   mcpSettings                  String?
   aiAgentConfig                String?
   aiAgentType                  String?
-  isAIAgent                    Boolean              @default(false)
+  isAIAgent                    Boolean                @default(false)
   webhookUrl                   String?
-  defaultNewListMcpAccessLevel String               @default("WRITE")
-  defaultNewListMcpEnabled     Boolean              @default(true)
-  defaultTaskDueOffset         String?              @default("1_week")
-  emailToTaskEnabled           Boolean              @default(true)
+  defaultNewListMcpAccessLevel String                 @default("WRITE")
+  defaultNewListMcpEnabled     Boolean                @default(true)
+  defaultTaskDueOffset         String?                @default("1_week")
+  emailToTaskEnabled           Boolean                @default(true)
   emailToTaskListId            String?
-  smartTaskCreationEnabled     Boolean              @default(true)
+  smartTaskCreationEnabled     Boolean                @default(true)
   invitedBy                    String?
-  isPlaceholder                Boolean              @default(false)
-  statsCompletedTasks          Int                  @default(0)
-  statsInspiredTasks           Int                  @default(0)
-  statsSupportedTasks          Int                  @default(0)
+  isPlaceholder                Boolean                @default(false)
+  statsCompletedTasks          Int                    @default(0)
+  statsInspiredTasks           Int                    @default(0)
+  statsSupportedTasks          Int                    @default(0)
   statsLastCalculated          DateTime?
   myTasksPreferences           String?
   accounts                     Account[]
   authenticators               Authenticator[]
   comments                     Comment[]
   githubIntegrations           GitHubIntegration[]
-  receivedInvitations          Invitation[]         @relation("InvitationReceiver")
-  sentInvitations              Invitation[]         @relation("InvitationSender")
-  createdInvites               ListInvite[]         @relation("ListInviteCreator")
-  listMemberships              ListMember[]         @relation("ListMembership")
+  receivedInvitations          Invitation[]           @relation("InvitationReceiver")
+  sentInvitations              Invitation[]           @relation("InvitationSender")
+  createdInvites               ListInvite[]           @relation("ListInviteCreator")
+  listMemberships              ListMember[]           @relation("ListMembership")
   mcpTokens                    MCPToken[]
-  oauthClients                 OAuthClient[]        @relation("OAuthClients")
-  oauthTokens                  OAuthToken[]         @relation("OAuthTokens")
-  ownedProjects                Project[]            @relation("ProjectOwner")
-  projectMemberships           ProjectMember[]      @relation("ProjectMembership")
+  oauthClients                 OAuthClient[]          @relation("OAuthClients")
+  oauthTokens                  OAuthToken[]           @relation("OAuthTokens")
+  ownedProjects                Project[]              @relation("ProjectOwner")
+  projectMemberships           ProjectMember[]        @relation("ProjectMembership")
   pushSubscriptions            PushSubscription[]
   reminderQueue                ReminderQueue[]
   reminderSettings             ReminderSettings?
   webhookConfig                UserWebhookConfig?
   secureFiles                  SecureFile[]
   sessions                     Session[]
-  assignedTasks                Task[]               @relation("TaskAssignee")
-  createdTasks                 Task[]               @relation("TaskCreator")
-  ownedLists                   TaskList[]           @relation("ListOwner")
-  analyticsEvents              AnalyticsEvent[]     @relation("AnalyticsEvents")
-  adminUser                    AdminUser?           @relation("AdminUsers")
+  assignedTasks                Task[]                 @relation("TaskAssignee")
+  createdTasks                 Task[]                 @relation("TaskCreator")
+  ownedLists                   TaskList[]             @relation("ListOwner")
+  analyticsEvents              AnalyticsEvent[]       @relation("AnalyticsEvents")
+  adminUser                    AdminUser?             @relation("AdminUsers")
   chatMessages                 ChatMessage[]
-  addressBookContacts          AddressBookContact[] @relation("AddressBookContacts")
-  userListFavorites            UserListFavorite[]   @relation("UserFavorites")
-  integrations                 Integration[]        @relation("UserIntegrations")
-  copilotCredential            CopilotCredential?   @relation("UserCopilotCredential")
+  addressBookContacts          AddressBookContact[]   @relation("AddressBookContacts")
+  userListFavorites            UserListFavorite[]     @relation("UserFavorites")
+  integrations                 Integration[]          @relation("UserIntegrations")
+  copilotCredential            CopilotCredential?     @relation("UserCopilotCredential")
   featureAccessRequests        FeatureAccessRequest[] @relation("UserFeatureAccessRequests")
-  notifications                Notification[]       @relation("UserNotifications")
+  notifications                Notification[]         @relation("UserNotifications")
 
   @@index([email])
   @@index([emailVerified])
@@ -227,17 +227,17 @@ model TaskList {
 }
 
 model Project {
-  id          String          @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name        String
-  description String?
-  color       String          @default("#3b82f6")
-  imageUrl    String?
-  ownerId     String
+  id           String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name         String
+  description  String?
+  color        String          @default("#3b82f6")
+  imageUrl     String?
+  ownerId      String
   /// Short prefix for this project's task identifiers, e.g. "AST" in AST-142
   /// (task 12f54df4). Unique per owner, not globally: two people may both have
   /// an "AST" and forcing global uniqueness would hand out ugly keys for no
   /// benefit. Null for projects created before identifiers existed.
-  key         String?
+  key          String?
   /// Per-project custom board states — a Project-Mode-only feature (AWTD-562).
   /// Shape: [{ role, name, description?, order }]. The defaults
   /// (ready/doing/waiting) are code constants shared by every board and are
@@ -248,12 +248,12 @@ model Project {
   /// concurrent creation from web, iOS, MCP and agents is the normal case here,
   /// not an edge case. Never decremented: identifiers are not reused, including
   /// after delete, or a branch named ast-142-* would come to mean another task.
-  nextSequence Int            @default(1)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     ProjectMember[]
-  lists       TaskList[]
+  nextSequence Int             @default(1)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      ProjectMember[]
+  lists        TaskList[]
 
   @@unique([ownerId, key])
   @@index([ownerId])
@@ -277,20 +277,20 @@ model ProjectMember {
 }
 
 model Task {
-  id              String              @id @default(dbgenerated("(gen_random_uuid())::text"))
-  title           String
-  description     String              @default("")
-  priority        Int                 @default(0)
-  repeating       String              @default("never")
-  repeatingData   Json?
-  isPrivate       Boolean             @default(true)
-  completed       Boolean             @default(false)
+  id                 String             @id @default(dbgenerated("(gen_random_uuid())::text"))
+  title              String
+  description        String             @default("")
+  priority           Int                @default(0)
+  repeating          String             @default("never")
+  repeatingData      Json?
+  isPrivate          Boolean            @default(true)
+  completed          Boolean            @default(false)
   /// When the task was completed. Backdatable by sync (a task completed in
   /// Google/GitHub keeps its real completion time). Null for legacy rows —
   /// consumers fall back to updatedAt.
-  completedAt     DateTime?
+  completedAt        DateTime?
   /// Where the completion happened: astrid | google | github | apple.
-  completedSource String?
+  completedSource    String?
   /// Why the task was closed, when it was not simply done (task 11042ae3):
   /// canceled | duplicate | not_planned. Null means completed normally, or
   /// still open — so every existing query keeps working untouched.
@@ -298,15 +298,15 @@ model Task {
   /// Closing as canceled still sets `completed = true`: the task leaves active
   /// views, lands in the virtual Done column and respects the recently-completed
   /// window exactly as before. Only the rendering and the reporting differ.
-  closedReason    String?
+  closedReason       String?
   /// Human-readable identifier, e.g. "AST-142" (task 12f54df4). Denormalized
   /// from the project key + sequence so display and lookup need no join.
   /// Null for tasks that were never in a project — a solo user never sees one.
   /// Permanent once minted: a task moved out of a project keeps it.
-  identifier      String?
+  identifier         String?
   /// The numeric half of `identifier`, kept for ordering and for re-deriving
   /// the string if a project is ever re-keyed.
-  sequence        Int?
+  sequence           Int?
   /// Board status as a STATE on the task (task AWTD-562): ready | doing |
   /// waiting | <a project's custom role>. Null means Inbox; Done is derived
   /// from `completed`, so neither is ever stored.
@@ -316,43 +316,53 @@ model Task {
   /// (or two members of a board resolved different columns). As a field on the
   /// shared task both hold, and "at most one status" is true by construction
   /// rather than enforced by a normalizer.
-  statusRole      String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  assigneeId      String?
-  creatorId       String?
-  originalTaskId  String?
-  sourceListId    String?
-  dueDateTime     DateTime?
-  isAllDay        Boolean             @default(false)
-  reminderSent    Boolean             @default(false)
-  reminderTime    DateTime?
-  reminderType    String?
-  aiAgentId       String?
-  clientRequestId String?             @unique
-  occurrenceCount Int                 @default(0)
-  repeatFrom      RepeatFromMode      @default(COMPLETION_DATE)
-  timerDuration   Int?
-  lastTimerValue  String?
+  statusRole         String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  assigneeId         String?
+  creatorId          String?
+  originalTaskId     String?
+  sourceListId       String?
+  dueDateTime        DateTime?
+  isAllDay           Boolean            @default(false)
+  reminderSent       Boolean            @default(false)
+  reminderTime       DateTime?
+  reminderType       String?
+  aiAgentId          String?
+  clientRequestId    String?            @unique
+  occurrenceCount    Int                @default(0)
+  repeatFrom         RepeatFromMode     @default(COMPLETION_DATE)
+  timerDuration      Int?
+  lastTimerValue     String?
   // Subtasks: self-relation. SetNull on parent delete — subtasks promote to
   // top-level rather than being silently destroyed. (originalTaskId/sourceListId
   // are copy-lineage; do NOT overload them for hierarchy.)
-  parentTaskId    String?
-  parentTask      Task?               @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
-  subtasks        Task[]              @relation("TaskSubtasks")
-  externalLinks   ExternalTaskLink[]  @relation("TaskExternalLinks")
-  attachments     Attachment[]
-  codingWorkflow  CodingTaskWorkflow?
-  comments        Comment[]
-  events          TaskEvent[]
-  notifications   Notification[]
-  reminderQueue   ReminderQueue[]
-  secureFiles     SecureFile[]
-  aiAgent         AIAgent?            @relation(fields: [aiAgentId], references: [id])
-  assignee        User?               @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator         User?               @relation("TaskCreator", fields: [creatorId], references: [id])
-  lists           TaskList[]          @relation("TaskToTaskList")
+  parentTaskId       String?
+  parentTask         Task?              @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks           Task[]             @relation("TaskSubtasks")
+  externalLinks      ExternalTaskLink[] @relation("TaskExternalLinks")
+  attachments        Attachment[]
+  /// Expected cost in cents at the time work was authorised. Null = never
+  /// estimated, which is the overwhelmingly common case and draws no UI.
+  /// Snapshot semantics: records what we believed BEFORE the work and is never
+  /// recomputed, otherwise variance measures nothing. (Task 315949e1.)
+  costEstimateCents  Int?
+  /// How the estimate was produced: human | cohort | model.
+  costEstimateSource String?
 
+  codingWorkflow CodingTaskWorkflow?
+  comments       Comment[]
+  costEvents     TaskCostEvent[]
+  events         TaskEvent[]
+  notifications  Notification[]
+  reminderQueue  ReminderQueue[]
+  secureFiles    SecureFile[]
+  aiAgent        AIAgent?            @relation(fields: [aiAgentId], references: [id])
+  assignee       User?               @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator        User?               @relation("TaskCreator", fields: [creatorId], references: [id])
+  lists          TaskList[]          @relation("TaskToTaskList")
+
+  @@unique([identifier])
   @@index([assigneeId])
   @@index([aiAgentId])
   @@index([creatorId])
@@ -372,7 +382,6 @@ model Task {
   @@index([parentTaskId])
   @@index([closedReason])
   @@index([statusRole])
-  @@unique([identifier])
 }
 
 /// Append-only task activity history (task 51a4b8ff).
@@ -1070,23 +1079,23 @@ model FeatureFlagTarget {
 /// through the existing FeatureFlagTarget INCLUDE mechanism; this row only
 /// remembers that someone asked and what for.
 model FeatureAccessRequest {
-  id          String    @id @default(cuid())
-  userId      String
+  id            String    @id @default(cuid())
+  userId        String
   /// Matches a FEATURE_KEYS value in lib/feature-flags.ts.
-  featureKey  String
+  featureKey    String
   /// Free-text "what would you use this for" — the qualitative half of the signal.
-  useCase     String?
+  useCase       String?
   /// PENDING | GRANTED | DECLINED
-  status      String    @default("PENDING")
+  status        String    @default("PENDING")
   /// Set when an admin grants or declines, for queue triage.
-  reviewedAt  DateTime?
-  reviewedBy  String?
+  reviewedAt    DateTime?
+  reviewedBy    String?
   /// True for users auto-granted at migration time because they already had a
   /// board. Counted separately so they don't pollute the demand signal.
-  grandfathered Boolean @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  user        User      @relation("UserFeatureAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
+  grandfathered Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation("UserFeatureAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, featureKey])
   @@index([featureKey, status, createdAt])
@@ -1236,4 +1245,41 @@ model DeletionLog {
 
   @@index([entity, deletedAt])
   @@index([deletedAt])
+}
+
+/// Append-only ledger of what a task ACTUALLY cost. (Task 315949e1.)
+///
+/// A task's actual cost is sum(costCents) over its events. Deliberately NOT
+/// denormalised onto Task in v1 — add a cached column only after a measurement
+/// shows the sum is slow, and say so in the commit.
+///
+/// Why the money is stored and not derived: token counts are facts, money is a
+/// fact about a price list that changes. Multiplying tokens by today's prices at
+/// read time would silently re-price every historical task whenever a provider
+/// changed rates, and last quarter's variance analysis would quietly become
+/// fiction. So costCents is computed once at write time and never recomputed. A
+/// wrong price is corrected with a compensating event, not an UPDATE — the
+/// ledger is the audit trail.
+model TaskCostEvent {
+  id           String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  taskId       String
+  /// Which agent incurred it, when we know.
+  aiAgentId    String?
+  provider     String
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  /// Cost in cents, COMPUTED AND FROZEN AT WRITE TIME.
+  costCents    Int
+  /// Idempotency key from the reporter, so a retried report is not
+  /// double-counted. Unique per task, not globally: two different tasks may
+  /// legitimately be reported under the same run id by different agents.
+  externalId   String?
+  createdAt    DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, externalId])
+  @@index([taskId])
+  @@index([aiAgentId, createdAt])
 }
