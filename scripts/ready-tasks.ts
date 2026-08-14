@@ -7,7 +7,10 @@
  * that there is nothing to do. `GET /api/v1/tasks?listId=` filters server-side,
  * so the whole check is one call.
  *
- * BOTH lists are required, because `Ready` is NOT a sublist of the web board:
+ * Takes a board: `ready-tasks.ts` (web, default) or `ready-tasks.ts ios`. Both
+ * loops share it so neither can drift from the other's guarantees.
+ *
+ * BOTH lists are required, because `Ready` is NOT a sublist of a board:
  * it is a single account-wide `listType: 'status'` list that every board shares
  * — Astrid iOS To-do, Voteelo, Career, all of them. Filtering on `Ready` alone
  * queues whatever Jon happened to mark ready anywhere, and the web loop would
@@ -24,8 +27,36 @@
 // scope with every other script and `main` collides at typecheck time.
 export {}
 
+import {
+  isClaimableByAgent,
+  describeAssignee,
+  type AssignableTask,
+} from "@/lib/ready-queue-scope"
+
 const READY_LIST_NAME = "Ready"
-const BOARD_LIST_NAME = "Astrid Web To-do"
+
+/**
+ * Which board to scope to. Both loops use this script so that the guarantees
+ * are the same for each — Ready ∩ board, unassigned-or-Claude, loud failure on
+ * a missing list, and a printed reason for everything skipped. A second copy of
+ * this for iOS would drift, and the drift would be silent: a queue that is
+ * wrong in this script looks exactly like a quiet day.
+ *
+ *   npx tsx scripts/ready-tasks.ts        # web (default)
+ *   npx tsx scripts/ready-tasks.ts ios
+ */
+const BOARDS: Record<string, string> = {
+  web: "Astrid Web To-do",
+  ios: "Astrid iOS To-do",
+}
+
+const boardArg = (process.argv[2] || "web").toLowerCase()
+const BOARD_LIST_NAME = BOARDS[boardArg]
+
+if (!BOARD_LIST_NAME) {
+  console.error(`❌ Unknown board "${boardArg}". Expected one of: ${Object.keys(BOARDS).join(", ")}`)
+  process.exit(1)
+}
 
 async function main() {
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
@@ -88,8 +119,18 @@ async function main() {
 
   // Ready ∩ Astrid Web To-do. Anything else in Ready belongs to another board
   // and another agent.
-  const mine = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
+  const onBoard = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
   const others = all.filter((task: { listIds?: string[] }) => !(task.listIds ?? []).includes(board.id))
+
+  // ...and unassigned, or assigned to Claude.
+  //
+  // An assignee is a claim. A task assigned to a person is that person's, even
+  // when it sits in Ready — the loop picking it up means two people writing the
+  // same fix, or Jon's own in-progress work being redone underneath him. Ready
+  // says "this is actionable", not "this is unclaimed", so the two conditions
+  // are separate and both are required.
+  const mine = onBoard.filter((task: AssignableTask) => isClaimableByAgent(task))
+  const claimed = onBoard.filter((task: AssignableTask) => !isClaimableByAgent(task))
 
   // Print what was filtered out. Silently dropping it would make a Ready queue
   // full of iOS work look identical to an empty one, and Jon would have no way
@@ -98,6 +139,17 @@ async function main() {
     console.log(`(${others.length} Ready task(s) on other boards — not this loop's:)`)
     for (const task of others) {
       console.log(`  — ${task.title}`)
+    }
+  }
+
+  // Same reasoning as above: a queue held up by claimed work must not look like
+  // an idle one. Naming the assignee is what lets Jon see that the loop is
+  // waiting on a person rather than out of things to do.
+  if (claimed.length > 0) {
+    console.log(`(${claimed.length} Ready task(s) assigned to someone else — not this loop's:)`)
+    for (const task of claimed) {
+      const who = describeAssignee(task)
+      console.log(`  — ${task.title}  [${who}]`)
     }
   }
 
