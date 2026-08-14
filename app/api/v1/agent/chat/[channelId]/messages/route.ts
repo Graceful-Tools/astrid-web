@@ -5,6 +5,10 @@
  */
 
 import { NextResponse } from 'next/server'
+import {
+  isV1CommentType,
+  V1_COMMENT_TYPE_VALUES,
+} from '@/lib/api-contracts/v1-request-shapes'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -38,6 +42,18 @@ export const POST = withAgentAuth<RouteContext>(
 
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 })
+    }
+
+    // ChatMessage.type is the same Postgres CommentType enum as Comment.type.
+    // Unvalidated, an unknown label reached the Prisma driver and surfaced as a
+    // 500 where the caller deserved a 400 — third instance of this shape, after
+    // list `privacy` and comment `type`. The enum is case-sensitive, so "text"
+    // fails like a typo. (Task 87e19910.)
+    if (type !== undefined && !isV1CommentType(type)) {
+      return NextResponse.json(
+        { error: `type must be one of: ${V1_COMMENT_TYPE_VALUES.join(', ')}` },
+        { status: 400 }
+      )
     }
 
     if (clientRequestId) {
