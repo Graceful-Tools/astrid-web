@@ -3,14 +3,18 @@
  *
  * Dismiss a single reminder. With `{ dismissAll: true }` in the body,
  * dismisses all pending reminders for the same task and marks the task
- * `reminderSent: true`. Mirrors the legacy behavior.
+ * `reminderSent: true`.
+ *
+ * The rule lives in lib/reminder-dismiss.ts and is shared with the legacy
+ * route; this handler owns only OAuth scope auth and the `meta` envelope,
+ * which is what actually differs between the two. (Task e0613ae5.)
  */
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { dismissReminder } from '@/lib/reminder-dismiss'
 
 const log = createLogger('v1.reminders.dismiss')
 
@@ -29,47 +33,19 @@ export const POST = withAuth<RouteContext>(
       const body = await req.text()
       const { dismissAll } = body ? DismissSchema.parse(JSON.parse(body)) : { dismissAll: false }
 
-      const reminder = await prisma.reminderQueue.findUnique({ where: { id: reminderId } })
-      if (!reminder) {
-        return NextResponse.json({ error: 'Reminder not found' }, { status: 404 })
-      }
-      if (reminder.userId !== auth.userId) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-      }
+      const result = await dismissReminder({
+        reminderId,
+        userId: auth.userId,
+        dismissAll,
+      })
 
-      let dismissedCount = 0
-
-      if (dismissAll && reminder.taskId) {
-        const taskReminders = await prisma.reminderQueue.findMany({
-          where: { taskId: reminder.taskId, userId: auth.userId, status: 'pending' },
-        })
-        await prisma.reminderQueue.deleteMany({
-          where: { taskId: reminder.taskId, userId: auth.userId, status: 'pending' },
-        })
-        dismissedCount = taskReminders.length
-        await prisma.task.update({
-          where: { id: reminder.taskId },
-          data: { reminderSent: true },
-        })
-      } else {
-        await prisma.reminderQueue.delete({ where: { id: reminderId } })
-        dismissedCount = 1
-        if (reminder.taskId) {
-          const remaining = await prisma.reminderQueue.count({
-            where: { taskId: reminder.taskId, userId: auth.userId, status: 'pending' },
-          })
-          if (remaining === 0) {
-            await prisma.task.update({
-              where: { id: reminder.taskId },
-              data: { reminderSent: true },
-            })
-          }
-        }
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: result.status })
       }
 
       return NextResponse.json({
         success: true as const,
-        dismissedCount,
+        dismissedCount: result.dismissedCount,
         meta: { apiVersion: 'v1' as const, authSource: auth.source },
       })
     } catch (error) {

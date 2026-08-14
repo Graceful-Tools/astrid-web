@@ -1,12 +1,19 @@
+/**
+ * POST /api/reminders/:id/dismiss (legacy)
+ *
+ * The dismiss rule lives in lib/reminder-dismiss.ts and is shared with the v1
+ * route. This handler owns only what is genuinely legacy: session auth, and a
+ * response with no `meta` envelope. (Task e0613ae5.)
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
-import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
+import { dismissReminder } from '@/lib/reminder-dismiss'
 
 const log = createLogger('reminders.[id].dismiss')
-
 
 const DismissSchema = z.object({
   dismissAll: z.boolean().optional().default(false),
@@ -18,7 +25,7 @@ export async function POST(
 ) {
   try {
     const session = await getUnifiedSession()
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -29,86 +36,21 @@ export async function POST(
     const body = await request.text()
     const { dismissAll } = body ? DismissSchema.parse(JSON.parse(body)) : { dismissAll: false }
 
-    // Find the reminder and verify ownership
     const { id: reminderId } = await context.params
 
-    const reminder = await prisma.reminderQueue.findUnique({
-      where: { id: reminderId },
+    const result = await dismissReminder({
+      reminderId,
+      userId: session.user.id,
+      dismissAll,
     })
 
-    if (!reminder) {
-      return NextResponse.json(
-        { error: 'Reminder not found' },
-        { status: 404 }
-      )
-    }
-
-    if (reminder.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      )
-    }
-
-    let dismissedCount = 0
-
-    if (dismissAll && reminder.taskId) {
-      // Dismiss all reminders for this task
-      const taskReminders = await prisma.reminderQueue.findMany({
-        where: {
-          taskId: reminder.taskId,
-          userId: session.user.id,
-          status: 'pending',
-        },
-      })
-
-      await prisma.reminderQueue.deleteMany({
-        where: {
-          taskId: reminder.taskId,
-          userId: session.user.id,
-          status: 'pending',
-        },
-      })
-
-      dismissedCount = taskReminders.length
-
-      // Update task to mark reminder as sent (dismissed)
-      if (reminder.taskId) {
-        await prisma.task.update({
-          where: { id: reminder.taskId },
-          data: { reminderSent: true },
-        })
-      }
-    } else {
-      // Dismiss only this specific reminder
-      await prisma.reminderQueue.delete({
-        where: { id: reminderId },
-      })
-
-      dismissedCount = 1
-
-      // If this was the only pending reminder for the task, update task status
-      if (reminder.taskId) {
-        const remainingReminders = await prisma.reminderQueue.count({
-          where: {
-            taskId: reminder.taskId,
-            userId: session.user.id,
-            status: 'pending',
-          },
-        })
-
-        if (remainingReminders === 0) {
-          await prisma.task.update({
-            where: { id: reminder.taskId },
-            data: { reminderSent: true },
-          })
-        }
-      }
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
     }
 
     return NextResponse.json({
       success: true,
-      dismissedCount,
+      dismissedCount: result.dismissedCount,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

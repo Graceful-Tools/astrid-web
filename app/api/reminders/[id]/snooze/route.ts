@@ -1,12 +1,20 @@
+/**
+ * POST /api/reminders/:id/snooze (legacy)
+ *
+ * The snooze rule lives in lib/reminder-snooze.ts and is shared with the v1
+ * route. This handler owns only what is genuinely legacy: session auth, and a
+ * response with no `meta` envelope (pinned by tests/api/legacy-contract.test.ts).
+ * (Task e0613ae5.)
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
-import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
+import { snoozeReminder } from '@/lib/reminder-snooze'
 
 const log = createLogger('reminders.[id].snooze')
-
 
 const SnoozeSchema = z.object({
   minutes: z.number().min(1).max(10080), // 1 minute to 1 week
@@ -18,7 +26,7 @@ export async function POST(
 ) {
   try {
     const session = await getUnifiedSession()
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -27,61 +35,22 @@ export async function POST(
     }
 
     const { minutes } = SnoozeSchema.parse(await request.json())
-
-    // Find the reminder and verify ownership
     const { id: reminderId } = await context.params
 
-    const reminder = await prisma.reminderQueue.findUnique({
-      where: { id: reminderId },
+    const result = await snoozeReminder({
+      reminderId,
+      userId: session.user.id,
+      minutes,
     })
 
-    if (!reminder) {
-      return NextResponse.json(
-        { error: 'Reminder not found' },
-        { status: 404 }
-      )
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
     }
-
-    if (reminder.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      )
-    }
-
-    // Check snooze limit
-    const reminderData = reminder.data as any || {}
-    const currentSnoozeCount = reminderData.snoozeCount || 0
-    if (currentSnoozeCount >= 5) {
-      return NextResponse.json(
-        { error: 'maximum snooze limit reached (5 times)' },
-        { status: 400 }
-      )
-    }
-
-    // Calculate new scheduled time
-    const newScheduledFor = new Date(Date.now() + minutes * 60 * 1000)
-
-    // Update reminder
-    const updatedReminder = await prisma.reminderQueue.update({
-      where: { id: reminderId },
-      data: {
-        scheduledFor: newScheduledFor,
-        retryCount: (reminder.retryCount || 0) + 1,
-        status: 'pending',
-        data: {
-          ...reminderData,
-          snoozedAt: new Date(),
-          snoozeCount: currentSnoozeCount + 1,
-          originalScheduledFor: reminderData.originalScheduledFor || reminder.scheduledFor,
-        },
-      },
-    })
 
     return NextResponse.json({
       success: true,
-      scheduledFor: updatedReminder.scheduledFor,
-      snoozeCount: currentSnoozeCount + 1,
+      scheduledFor: result.scheduledFor,
+      snoozeCount: result.snoozeCount,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
