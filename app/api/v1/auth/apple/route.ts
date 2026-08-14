@@ -10,6 +10,7 @@
  * isolation while iOS migrates from legacy → v1.
  */
 
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose'
@@ -48,6 +49,11 @@ async function verifyAppleToken(identityToken: string): Promise<AppleJWTPayload>
 }
 
 async function appleSignInHandler(request: NextRequest) {
+  // See the note in the v1 Google route: the brand switch must close this door
+  // too, and before the body is read. (Task 3ba0719f.)
+  const blocked = capabilityGate('authApple')
+  if (blocked) return blocked
+
   try {
     const { identityToken, fullName } = await request.json()
 
