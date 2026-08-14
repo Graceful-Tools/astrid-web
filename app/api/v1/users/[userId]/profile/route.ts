@@ -57,10 +57,14 @@ export const GET = withAuth<RouteContext>(
         user: {
           id: profileUser.id,
           name: profileUser.name,
-          email: profileUser.email,
           image: profileUser.image,
           // Email is disclosed only on your OWN profile — returning any user's
           // email to any authenticated caller is an info-disclosure.
+          //
+          // There used to be an unconditional `email: profileUser.email` ABOVE
+          // this line. A spread of `{}` overrides nothing, so on someone else's
+          // profile the earlier value simply survived and this gate never
+          // gated. Keep this spread the ONLY place email is set.
           ...(isOwnProfile ? { email: profileUser.email } : {}),
           createdAt: profileUser.createdAt,
           isAIAgent: profileUser.isAIAgent,
