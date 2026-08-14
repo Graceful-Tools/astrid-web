@@ -15,44 +15,10 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { put } from '@vercel/blob'
 import { randomUUID } from 'crypto'
+import { validateUploadFile, MAX_DIRECT_UPLOAD_BYTES } from '@/lib/upload-validation'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.upload')
-
-const ALLOWED_FILE_TYPES: Record<string, string[]> = {
-  jpg: ['image/jpeg'],
-  jpeg: ['image/jpeg'],
-  png: ['image/png'],
-  gif: ['image/gif'],
-  webp: ['image/webp'],
-  pdf: ['application/pdf'],
-  txt: ['text/plain'],
-  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-  pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
-}
-const ALLOWED_EXTENSIONS = Object.keys(ALLOWED_FILE_TYPES)
-
-function validateUploadFile(file: File): { valid: boolean; extension: string; error?: string } {
-  const parts = file.name.toLowerCase().split('.')
-  const extension = parts.length > 1 ? parts.pop() || '' : ''
-  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
-    return {
-      valid: false,
-      extension: '',
-      error: `File extension not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,
-    }
-  }
-  const allowedMimes = ALLOWED_FILE_TYPES[extension]
-  if (!allowedMimes.includes(file.type)) {
-    return {
-      valid: false,
-      extension: '',
-      error: `File type mismatch. Expected ${allowedMimes.join(' or ')} for .${extension} file`,
-    }
-  }
-  return { valid: true, extension }
-}
 
 export const POST = withAuth(
   { scopes: ['attachments:write'], tag: 'v1.upload' },
@@ -62,7 +28,7 @@ export const POST = withAuth(
       const file = formData.get('file') as File | null
       if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
 
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
         return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
       }
       const validation = validateUploadFile(file)

@@ -3,55 +3,11 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { put } from "@vercel/blob"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
+import { validateUploadFile, MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload-validation"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('upload')
 
-
-// Allowed file extensions and their corresponding MIME types
-const ALLOWED_FILE_TYPES: Record<string, string[]> = {
-  // Images
-  'jpg': ['image/jpeg'],
-  'jpeg': ['image/jpeg'],
-  'png': ['image/png'],
-  'gif': ['image/gif'],
-  'webp': ['image/webp'],
-  // Documents
-  'pdf': ['application/pdf'],
-  'txt': ['text/plain'],
-  'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  'xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-  'pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
-}
-
-const ALLOWED_EXTENSIONS = Object.keys(ALLOWED_FILE_TYPES)
-
-function validateUploadFile(file: File): { valid: boolean; extension: string; error?: string } {
-  // Get extension from filename (lowercase, no dots)
-  const filenameParts = file.name.toLowerCase().split('.')
-  const extension = filenameParts.length > 1 ? filenameParts.pop() || '' : ''
-
-  // Check if extension is in whitelist
-  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
-    return {
-      valid: false,
-      extension: '',
-      error: `File extension not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`
-    }
-  }
-
-  // Check if MIME type matches the extension
-  const allowedMimeTypes = ALLOWED_FILE_TYPES[extension]
-  if (!allowedMimeTypes.includes(file.type)) {
-    return {
-      valid: false,
-      extension: '',
-      error: `File type mismatch. Expected ${allowedMimeTypes.join(' or ')} for .${extension} file`
-    }
-  }
-
-  return { valid: true, extension }
-}
 
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
@@ -97,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
       return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 })
     }
 
