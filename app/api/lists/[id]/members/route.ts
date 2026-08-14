@@ -121,21 +121,14 @@ export async function GET(
 
     // Get pending invites (excluding those for users who are already members)
     const memberEmails = new Set(members.map(m => m.user.email).filter(Boolean))
-    const invites = await prisma.listInvite.findMany({
+    const invites = await prisma.invitation.findMany({
       where: {
         listId,
+        type: "LIST_SHARING",
+        status: "PENDING",
         NOT: {
           email: {
             in: Array.from(memberEmails)
-          }
-        }
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true
           }
         }
       },
@@ -311,16 +304,24 @@ export async function POST(
         message: "Member added and invitation sent successfully" 
       })
     } else {
-      // For new users, create invitation record and send email
+      // For new users, create invitation record and send email.
+      //
+      // Invitation, not ListInvite: /api/invitations/:token — the route the
+      // emailed link resolves against — reads Invitation and has no knowledge
+      // of ListInvite, so a row written there could never be accepted and the
+      // recipient hit a dead end. type/listId/role are what its LIST_SHARING
+      // branch upserts the ListMember from. (Task 706230e3.)
       const token = crypto.randomBytes(32).toString('hex')
-      
-      await prisma.listInvite.create({
+
+      await prisma.invitation.create({
         data: {
+          type: "LIST_SHARING",
           listId,
           email,
           token,
           role,
-          createdBy: session.user.id
+          senderId: session.user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         }
       })
 

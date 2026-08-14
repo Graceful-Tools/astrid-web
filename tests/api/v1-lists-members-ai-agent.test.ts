@@ -18,6 +18,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { findUnique: vi.fn(), findFirst: vi.fn() },
     listInvite: { findMany: vi.fn() },
+    invitation: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   },
 }))
 
@@ -65,7 +66,7 @@ beforeEach(() => {
       { role: 'member', user: agent },
     ],
   } as never)
-  mockPrisma.listInvite.findMany.mockResolvedValue([] as never)
+  mockPrisma.invitation.findMany.mockResolvedValue([] as never)
 })
 
 describe('GET /api/v1/lists/[id]/members isAIAgent (task dc143ab2)', () => {
