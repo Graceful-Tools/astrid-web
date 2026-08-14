@@ -6,6 +6,11 @@
  */
 
 import { NextResponse } from 'next/server'
+import {
+  isV1CommentType,
+  V1_COMMENT_TYPE_VALUES,
+  type V1CommentCreateRequest,
+} from '@/lib/api-contracts/v1-request-shapes'
 import { Prisma } from '@prisma/client'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
@@ -153,9 +158,20 @@ export const POST = withAuth<RouteContext>(
   { scopes: ['comments:write'], tag: 'v1.tasks.comments' },
   async (req, auth, { params }) => {
     const { id: taskId } = await params
-    const body = await req.json()
+    const body: V1CommentCreateRequest = await req.json()
 
-    // content must be a string; trim+fileId together cover the no-content case
+    // NOTE (task 87e19910): this route is STRICTER than its two siblings.
+    // Legacy POST /api/tasks/:id/comments and POST /api/v1/chat/.../messages
+    // both accept an attachment-only body with `content` absent; only this
+    // one demands the key be present and a string, so `{ fileId }` alone 400s
+    // here and succeeds there.
+    //
+    // Deliberately left as-is rather than aligned. No client trips it: iOS
+    // types `content` as a non-optional String in CreateCommentOutboxPayload
+    // and always sends it, empty string included. Relaxing validation with no
+    // caller asking is a behaviour change bought for nothing — but the
+    // divergence is worth a name, because the next person to read the
+    // interface will assume all three agree.
     if (typeof body.content !== 'string') {
       return NextResponse.json(
         { error: 'content must be a string' },
@@ -166,6 +182,18 @@ export const POST = withAuth<RouteContext>(
     if (!body.content?.trim() && !body.fileId) {
       return NextResponse.json(
         { error: 'Content or file attachment is required' },
+        { status: 400 }
+      )
+    }
+
+    // `type` lands in a Postgres enum column. Unvalidated, an unknown label
+    // reached the Prisma driver and surfaced as a 500 — the caller deserves a
+    // 400 that names the accepted values, and the enum is case-sensitive, so
+    // "text" fails exactly like a typo. Second instance of this shape after
+    // POST /api/v1/lists `privacy`. (Task 87e19910.)
+    if (body.type !== undefined && !isV1CommentType(body.type)) {
+      return NextResponse.json(
+        { error: `type must be one of: ${V1_COMMENT_TYPE_VALUES.join(', ')}` },
         { status: 400 }
       )
     }

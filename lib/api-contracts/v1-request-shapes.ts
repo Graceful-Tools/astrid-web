@@ -125,11 +125,36 @@ export interface V1TaskCreateRequest {
 
 // ── Comments ──────────────────────────────────────────────────────────
 
+/**
+ * Mirrors the `CommentType` enum in schema.prisma.
+ *
+ * A union rather than `string`, for the same reason as V1ListPrivacy: the
+ * value reaches a Postgres enum column directly, so a loose type turns a bad
+ * request into a Prisma driver error — a 500 where the caller deserved a 400.
+ * types/api.ts has carried this union for the legacy route all along; the v1
+ * shape file said `string`, and typing the route is what surfaced the gap.
+ * (Task 87e19910.)
+ */
+export type V1CommentType = 'TEXT' | 'MARKDOWN' | 'ATTACHMENT'
+
+export const V1_COMMENT_TYPE_VALUES: readonly V1CommentType[] = ['TEXT', 'MARKDOWN', 'ATTACHMENT']
+
+export function isV1CommentType(value: unknown): value is V1CommentType {
+  return typeof value === 'string' && (V1_COMMENT_TYPE_VALUES as readonly string[]).includes(value)
+}
+
 /** POST /api/v1/tasks/:id/comments */
 export interface V1CommentCreateRequest {
-  /** Required unless `fileId` is present — a comment may be an attachment alone. */
-  content?: string
-  type?: string
+  /**
+   * REQUIRED on this route, and present-as-a-string at that — unlike its two
+   * siblings. Legacy POST /api/tasks/:id/comments and the v1 chat message
+   * route both accept an attachment-only body with `content` absent; this one
+   * rejects it with 400 "content must be a string" before the fileId branch is
+   * ever reached. Typed accordingly rather than aspirationally: an optional
+   * `content` here would describe a request the route does not accept.
+   */
+  content: string
+  type?: V1CommentType
   /** SecureFile id to attach. Only files uploaded by the caller may be linked. */
   fileId?: string
   parentCommentId?: string | null

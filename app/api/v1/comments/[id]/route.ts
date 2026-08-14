@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import type { V1CommentUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -102,7 +103,7 @@ export const PUT = withAuth<RouteContext>(
   { scopes: ['comments:write'], tag: 'v1.comments.id' },
   async (req, auth, { params }) => {
     const { id } = await params
-    const body = await req.json()
+    const body: V1CommentUpdateRequest = await req.json()
 
     // Whitespace-only content is rejected and stored content is trimmed, as the
     // legacy route has always done. v1 checked only for a non-empty string, so
