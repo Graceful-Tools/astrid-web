@@ -436,6 +436,34 @@ export class RedisCache {
       await this.delPattern(`lists:user:${userId}*`)
       await this.delPattern(`members:list:*`)
     },
+    /**
+     * Clear every cached list set for ONE user — the legacy key and the v1 key —
+     * and nothing global.
+     *
+     * A user's lists are cached twice: `lists:user:<id>` for GET /api/lists and
+     * `lists:user:<id>:v1` for GET /api/v1/lists, the one iOS syncs from. Writes
+     * that hand-rolled `del(keys.userLists(id))` cleared only the first, so a
+     * list changed on web stayed stale on iOS for the rest of the 5-minute TTL
+     * (task 070bddf8).
+     *
+     * Use this, not `invalidate.userLists`, from write paths that change one
+     * user's list set. `userLists` additionally wipes `members:list:*` for every
+     * list on the account, which is right after a membership change and far too
+     * broad after, say, a task update.
+     *
+     * Best-effort by design: a Redis outage must not fail the write that
+     * triggered it. The worst case is a stale read until the TTL expires.
+     */
+    userListsAllVersions: async (userId: string) => {
+      try {
+        await Promise.all([
+          this.del(this.keys.userLists(userId)),
+          this.del(this.keys.userListsV1(userId)),
+        ])
+      } catch (error) {
+        log.error({ err: error }, `Failed to invalidate list caches for user ${userId}`)
+      }
+    },
     taskUpdate: async (taskId: string, userId: string, listIds?: string[]) => {
       await this.delPattern(`tasks:user:${userId}*`)
       // Same blast-radius guard as userTasks: only clear the affected per-list

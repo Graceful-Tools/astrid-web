@@ -434,7 +434,7 @@ export async function POST(request: NextRequest) {
     await Promise.all(
       [...new Set(userIdsToInvalidate)].map(async (userId) => { // Remove duplicates with Set
         try {
-          await RedisCache.del(RedisCache.keys.userLists(userId))
+          await RedisCache.invalidate.userListsAllVersions(userId)
           log.info(`✅ Cache invalidated for user: ${userId}`)
         } catch (error) {
           log.error({ err: error }, `❌ Failed to invalidate cache for user ${userId}:`)

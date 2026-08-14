@@ -619,7 +619,7 @@ export async function POST(request: NextRequest) {
               })
 
               const memberIds = getListMemberIds(updatedList as any)
-              await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+              await Promise.all(memberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)))
               await broadcastToUsers(memberIds, {
                 type: 'list_updated',
                 data: updatedList

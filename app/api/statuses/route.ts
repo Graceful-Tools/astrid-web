@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await RedisCache.del(RedisCache.keys.userLists(session.user.id))
+      await RedisCache.invalidate.userListsAllVersions(session.user.id)
     } catch (error) {
       log.error({ err: error }, "Failed to invalidate user lists cache")
     }

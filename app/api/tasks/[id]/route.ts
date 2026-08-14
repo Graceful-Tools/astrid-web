@@ -508,7 +508,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           })
 
           const memberIds = getListMemberIds(updatedList)
-          await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+          await Promise.all(memberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)))
           await broadcastToUsers(memberIds, {
             type: 'list_updated',
             data: updatedList
@@ -892,7 +892,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
             })
 
             const memberIds = getListMemberIds(updatedList)
-            await Promise.all(memberIds.map(userId => RedisCache.del(RedisCache.keys.userLists(userId))))
+            await Promise.all(memberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)))
             await broadcastToUsers(memberIds, {
               type: 'list_updated',
               data: updatedList
