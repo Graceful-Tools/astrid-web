@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { dispatchChatMentions } from '@/lib/chat-mention-dispatch'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
@@ -176,6 +177,25 @@ export const POST = withAuth<RouteContext>(
       }
     } catch (sseError) {
       log.error({ err: sseError }, 'Failed to broadcast chat_message_created')
+    }
+
+    // @mentions. v1 dispatched none of these, so a mention sent from iOS
+    // reached nobody — no push for a mentioned person, no chat_mention for an
+    // external agent. Astrid is excluded on purpose; iOS answers her on
+    // device. Full reasoning in lib/chat-mention-dispatch.ts. (Task 26311472.)
+    //
+    // Failure here must not fail a message that is already saved and
+    // broadcast, so it is caught rather than awaited into the response.
+    try {
+      await dispatchChatMentions({
+        content,
+        channelId,
+        messageId: message.id,
+        senderId: auth.userId,
+        senderName: message.author?.name || 'Someone',
+      })
+    } catch (mentionError) {
+      log.error({ err: mentionError }, 'Failed to dispatch chat mentions')
     }
 
     const headers: Record<string, string> = {}
