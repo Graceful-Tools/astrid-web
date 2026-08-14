@@ -18,7 +18,7 @@
  * mutations, and pointing the rule at exactly the sharp edge is what makes it
  * worth obeying.
  *
- * A RATCHET, NOT A BAN. 127 of these exist across 62 files, and plenty are
+ * A RATCHET, NOT A BAN. 126 of these exist across 62 files, and plenty are
  * defensible: admin dashboards, debug pages and the auth flows have no useful
  * offline story. Failing the suite on all of them would get this file deleted,
  * so it fails only when the number GOES UP.
@@ -38,8 +38,13 @@ const ROOT = process.cwd()
 /**
  * Client-side raw `fetch()` MUTATIONS to this app's API, as of task 72717eff
  * (2026-08-14). Lower as call sites adopt lib/api; raise only with a reason.
+ *
+ * 127 -> 126 when the branch was merged: extracting useTaskShareLink collapsed
+ * the share-link POST that task-detail.tsx and task-detail-viewonly.tsx each
+ * issued into one call in the hook. Neither branch could see that on its own —
+ * the slack check found it in the merge, which is the case it exists for.
  */
-const CEILING = 127
+const CEILING = 126
 
 const CLIENT_DIRS = ['app', 'components', 'hooks', 'contexts', 'lib']
 const FETCH_TO_API = /fetch\(\s*[`'"]([^`'"]*\/api\/[^`'"]*)[`'"]/g
