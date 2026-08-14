@@ -17,6 +17,12 @@ here and file the iOS companion. Never commit to `astrid-ios`.
 Full rules, including the one case where reading `astrid-ios` is legitimate, are in
 [`/fixall`](./fixall.md) → *Scope*.
 
+**Only work tasks that are unassigned or assigned to Claude.** An assignee is a
+claim: a task assigned to a person is that person's, even when it is in Ready.
+`scripts/ready-tasks.ts` applies this and names whoever it skipped. If something
+assigned to someone else is genuinely yours, ask Jon to reassign it rather than
+working around the filter.
+
 Refer to tasks by **title** in every report; Jon does not read task ids.
 
 ## Steps

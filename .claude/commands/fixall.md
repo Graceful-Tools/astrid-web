@@ -11,6 +11,21 @@ a no-op, not busywork.
 not triaged. `Ready` is Jon's signal that a task is actually actionable. Working
 anything else is not autonomy, it is picking your own work.
 
+**Only unassigned tasks, or ones assigned to Claude.** An assignee is a claim.
+A task assigned to a person is that person's, even when it sits in Ready — taking
+it means two people writing the same fix, or Jon's own half-finished work being
+redone underneath him. `Ready` says *this is actionable*, not *this is unclaimed*.
+
+`scripts/ready-tasks.ts` enforces it (the rule itself is `lib/ready-queue-scope.ts`,
+tested), and prints what it skipped **with the assignee's name** — a queue held up
+by claimed work must not look like an idle one. If a task is assigned to someone
+and you believe it is genuinely yours, say so and let Jon reassign it; do not work
+around the filter.
+
+The conservative case is deliberate: a task that IS assigned but whose assignee
+cannot be resolved counts as someone else's. Claiming it on a guess costs
+duplicated work; skipping it costs one line of output.
+
 **The queue is `Ready` ∩ `Astrid Web To-do`, and both halves are required.** `Ready` is
 not a sublist of the web board — it is one account-wide `listType: 'status'` list that
 every board shares, including `Astrid iOS To-do`, Voteelo and Career. Filtering on

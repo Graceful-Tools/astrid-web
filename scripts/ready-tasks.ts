@@ -24,6 +24,12 @@
 // scope with every other script and `main` collides at typecheck time.
 export {}
 
+import {
+  isClaimableByAgent,
+  describeAssignee,
+  type AssignableTask,
+} from "@/lib/ready-queue-scope"
+
 const READY_LIST_NAME = "Ready"
 const BOARD_LIST_NAME = "Astrid Web To-do"
 
@@ -88,8 +94,18 @@ async function main() {
 
   // Ready ∩ Astrid Web To-do. Anything else in Ready belongs to another board
   // and another agent.
-  const mine = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
+  const onBoard = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
   const others = all.filter((task: { listIds?: string[] }) => !(task.listIds ?? []).includes(board.id))
+
+  // ...and unassigned, or assigned to Claude.
+  //
+  // An assignee is a claim. A task assigned to a person is that person's, even
+  // when it sits in Ready — the loop picking it up means two people writing the
+  // same fix, or Jon's own in-progress work being redone underneath him. Ready
+  // says "this is actionable", not "this is unclaimed", so the two conditions
+  // are separate and both are required.
+  const mine = onBoard.filter((task: AssignableTask) => isClaimableByAgent(task))
+  const claimed = onBoard.filter((task: AssignableTask) => !isClaimableByAgent(task))
 
   // Print what was filtered out. Silently dropping it would make a Ready queue
   // full of iOS work look identical to an empty one, and Jon would have no way
@@ -98,6 +114,17 @@ async function main() {
     console.log(`(${others.length} Ready task(s) on other boards — not this loop's:)`)
     for (const task of others) {
       console.log(`  — ${task.title}`)
+    }
+  }
+
+  // Same reasoning as above: a queue held up by claimed work must not look like
+  // an idle one. Naming the assignee is what lets Jon see that the loop is
+  // waiting on a person rather than out of things to do.
+  if (claimed.length > 0) {
+    console.log(`(${claimed.length} Ready task(s) assigned to someone else — not this loop's:)`)
+    for (const task of claimed) {
+      const who = describeAssignee(task)
+      console.log(`  — ${task.title}  [${who}]`)
     }
   }
 
