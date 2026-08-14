@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-request-shapes'
 import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
 import { listVisibilityWhere } from "@/lib/list-permissions"
@@ -171,6 +172,17 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!data.name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    }
+
+    // The Postgres enum rejects an unknown label as a driver error, which this
+    // route would surface as a 500. v1 has guarded this since task 87e19910;
+    // legacy is the endpoint the web client uses, so it is the one users could
+    // actually hit. Case matters — 'private' is not 'PRIVATE'. (Task e0613ae5.)
+    if (data.privacy !== undefined && !isV1ListPrivacy(data.privacy)) {
+      return NextResponse.json(
+        { error: `privacy must be one of: ${V1_LIST_PRIVACY_VALUES.join(', ')}` },
+        { status: 400 }
+      )
     }
 
     // Create the list first to get the ID, then assign consistent default image
