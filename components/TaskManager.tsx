@@ -476,6 +476,8 @@ export function TaskManager({
       handleEditTaskDescription={controller.handleEditTaskDescription}
       handleAddTaskComment={controller.handleAddTaskComment}
       handleAssignToNoOne={controller.handleAssignToNoOne}
+      handleOutdentTask={controller.handleOutdentTask}
+      handleIndentTask={controller.handleIndentTask}
       handleShowHotkeyMenu={controller.handleShowHotkeyMenu}
       handleTaskDragStart={controller.handleTaskDragStart}
       handleTaskDragHover={controller.handleTaskDragHover}

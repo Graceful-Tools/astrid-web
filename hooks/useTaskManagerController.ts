@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskOperations } from "@/hooks/useTaskOperations"
 import { playTaskCompleteSound } from "@/lib/task-sounds"
+import { indentTask, outdentTask } from "@/lib/subtask-nesting"
 import { useFilterState } from "@/hooks/useFilterState"
 import {
   shouldShowCompletedByFilter,
@@ -1423,6 +1424,23 @@ export function useTaskManagerController({
     await handleUpdateTask(updatedTask)
   }, [selectedTask, handleUpdateTask])
 
+  // Nesting by keyboard. The rules live in lib/subtask-nesting so this and the iOS/Mac
+  // port cannot disagree about what a keystroke means; both return null for a no-op, so
+  // pressing the key on a task with nowhere to go never becomes a write.
+  const handleOutdentTask = useCallback(async () => {
+    if (!selectedTask) return
+    const change = outdentTask(selectedTask, listState.tasks)
+    if (!change) return
+    await handleUpdateTask({ ...selectedTask, parentTaskId: change.parentTaskId })
+  }, [selectedTask, listState.tasks, handleUpdateTask])
+
+  const handleIndentTask = useCallback(async () => {
+    if (!selectedTask) return
+    const change = indentTask(selectedTask, listState.tasks)
+    if (!change) return
+    await handleUpdateTask({ ...selectedTask, parentTaskId: change.parentTaskId })
+  }, [selectedTask, listState.tasks, handleUpdateTask])
+
   const [showHotkeyMenu, setShowHotkeyMenu] = useState(false)
 
   const handleShowHotkeyMenu = useCallback(() => {
@@ -1592,6 +1610,8 @@ export function useTaskManagerController({
     handleEditTaskDescription,
     handleAddTaskComment,
     handleAssignToNoOne,
+    handleOutdentTask,
+    handleIndentTask,
     handleShowHotkeyMenu,
     handleTaskDragHover: dragDropState.handleTaskDragHover,
     handleTaskDragLeaveTask: dragDropState.handleTaskDragLeaveTask,

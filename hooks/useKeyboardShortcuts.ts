@@ -25,6 +25,10 @@ export interface KeyboardShortcutHandlers {
   onEditTaskDescription: () => void
   onAddTaskComment: () => void
   onAssignToNoOne: () => void
+  /** Move the selected task one level OUT of its parent. */
+  onOutdentTask: () => void
+  /** Nest the selected task under its previous sibling. */
+  onIndentTask: () => void
 
   // UI
   onShowHotkeyMenu: () => void
@@ -62,6 +66,8 @@ export const KEYBOARD_SHORTCUTS = [
   { key: "j", description: "Select next task", action: "onSelectNextTask" },
   { key: "↑", description: "Select previous task", action: "onSelectPreviousTask" },
   { key: "↓", description: "Select next task", action: "onSelectNextTask" },
+  { key: "[", description: "Move task out of its parent", action: "onOutdentTask" },
+  { key: "]", description: "Nest task under the task above", action: "onIndentTask" },
   { key: "?", description: "Show hotkey listing", action: "onShowHotkeyMenu" },
 ] as const
 
@@ -110,6 +116,22 @@ export function useKeyboardShortcuts({
         if (selectedTask) {
           event.preventDefault()
           handlers.onCompleteTask()
+        }
+        break
+
+      // Bracket convention for nesting. The arrows are already due-date-earlier/later,
+      // so they were never available for this.
+      case '[':
+        if (selectedTask) {
+          event.preventDefault()
+          handlers.onOutdentTask()
+        }
+        break
+
+      case ']':
+        if (selectedTask) {
+          event.preventDefault()
+          handlers.onIndentTask()
         }
         break
 
