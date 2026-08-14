@@ -187,12 +187,16 @@ export const POST = withAuth(
     // lib/api-contracts/v1-request-shapes.ts. (Task 87e19910.)
     const body = (await req.json()) as V1ListCreateRequest
 
-    if (!body.name || typeof body.name !== 'string') {
+    // Trimmed and non-blank, as legacy has always required. A bare typeof check
+    // passes "   ", which creates a list that renders as an unidentifiable
+    // blank row. (Task e0613ae5.)
+    if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
       return NextResponse.json(
         { error: 'name is required and must be a string' },
         { status: 400 }
       )
     }
+    const name = body.name.trim()
 
     // The Postgres enum rejects an unknown label as a driver error, which the
     // route would surface as a 500. A caller who sends a bad value deserves a
@@ -206,7 +210,7 @@ export const POST = withAuth(
 
     const list = await prisma.taskList.create({
       data: {
-        name: body.name,
+        name,
         description: body.description || '',
         color: body.color || '#3b82f6',
         imageUrl: body.imageUrl,
