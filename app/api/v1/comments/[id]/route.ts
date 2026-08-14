@@ -14,7 +14,8 @@ import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import { hasExplicitListRole, canUserManageList } from "@/lib/list-permissions"
+import { hasExplicitListRole } from "@/lib/list-permissions"
+import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
 
 const log = createLogger('v1.comments.id')
 
@@ -103,16 +104,40 @@ export const PUT = withAuth<RouteContext>(
     const { id } = await params
     const body = await req.json()
 
-    if (!body.content || typeof body.content !== 'string') {
+    // Whitespace-only content is rejected and stored content is trimmed, as the
+    // legacy route has always done. v1 checked only for a non-empty string, so
+    // a comment of "   " was accepted and saved. (Task 130508e3.)
+    if (!body.content || typeof body.content !== 'string' || body.content.trim() === '') {
       return NextResponse.json(
         { error: 'content is required and must be a string' },
         { status: 400 }
       )
     }
+    const content = body.content.trim()
 
+    // The task and its lists come along because the broadcast below needs the
+    // audience — everyone who can see this comment.
     const existingComment = await prisma.comment.findUnique({
       where: { id },
-      select: { authorId: true }
+      select: {
+        authorId: true,
+        task: {
+          select: {
+            id: true,
+            title: true,
+            creatorId: true,
+            assigneeId: true,
+            lists: {
+              select: {
+                id: true,
+                name: true,
+                ownerId: true,
+                listMembers: { select: { userId: true } },
+              },
+            },
+          },
+        },
+      },
     })
 
     if (!existingComment) {
@@ -128,7 +153,7 @@ export const PUT = withAuth<RouteContext>(
 
     const comment = await prisma.comment.update({
       where: { id },
-      data: { content: body.content, updatedAt: new Date() },
+      data: { content, updatedAt: new Date() },
       include: {
         author: {
           select: { id: true, name: true, email: true, image: true }
@@ -144,6 +169,46 @@ export const PUT = withAuth<RouteContext>(
         }
       }
     })
+
+    // Tell everyone looking at this task. Without it, an edit made from iOS left
+    // every open web client showing the old text until it refetched — the
+    // legacy PUT has always broadcast this. (Task 130508e3.)
+    //
+    // The editor stays IN the audience on purpose: components/task-detail.tsx
+    // filters on data.userId itself. That is the opposite of DELETE below,
+    // which drops the actor server-side.
+    try {
+      const task = existingComment.task
+      const userIds = commentAudience(task)
+
+      if (userIds.size > 0) {
+        broadcastToUsers(Array.from(userIds), {
+          type: 'comment_updated',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            taskTitle: task.title,
+            commentId: comment.id,
+            commentContent: comment.content.substring(0, 100),
+            editorName: auth.user?.name || auth.user?.email || 'Someone',
+            userId: auth.userId,
+            listNames: task.lists.map(list => list.name),
+            comment: {
+              id: comment.id,
+              content: comment.content,
+              type: comment.type,
+              author: comment.author,
+              createdAt: comment.createdAt,
+              updatedAt: comment.updatedAt,
+              parentCommentId: comment.parentCommentId,
+            },
+          },
+        })
+      }
+    } catch (sseError) {
+      // Best-effort: the edit is already committed.
+      log.error({ err: sseError }, 'Failed to broadcast comment_updated')
+    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -210,15 +275,8 @@ export const DELETE = withAuth<RouteContext>(
 
     const task = existingComment.task
 
-    // Check permissions: comment author OR task creator/assignee OR list owners/admins
-    const isCommentAuthor = existingComment.authorId === auth.userId
-    const isTaskCreator = task.creatorId === auth.userId
-    const isTaskAssignee = task.assigneeId === auth.userId
-    const isListOwnerOrAdmin = task.lists.some(
-      list => canUserManageList({ id: auth.userId }, list as never)
-    )
-
-    if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
+    // Author, the people responsible for the task, or a list admin.
+    if (!canDeleteComment(existingComment.authorId, task, auth.userId)) {
       return NextResponse.json(
         { error: 'You can only delete your own comments or comments on tasks you manage' },
         { status: 403 }
