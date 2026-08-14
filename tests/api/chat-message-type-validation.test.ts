@@ -18,10 +18,10 @@
  * the caller deserved a 400, exactly as it did for comments and for list
  * privacy. Third instance of one bug class.
  *
- * These two routes are covered here. The v1 chat messages route has the same
- * defect and is fixed on fix/v1-chat-mention-dispatch instead, because that
- * branch already edits the file and editing it from two branches buys a merge
- * conflict for nothing.
+ * All four are now covered. The v1 chat messages route was the last to land:
+ * the guard and that file lived on different branches, so it waited for the
+ * merge rather than being fixed twice or cherry-picked. It is also the one iOS
+ * posts to, which is why it is worth having waited for rather than skipped.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -97,6 +97,35 @@ describe('POST /api/chat/channels/:id/messages validates type (task 87e19910)', 
 
   it('400s the lower-case spelling of a real type', async () => {
     const { POST } = await import('@/app/api/chat/channels/[channelId]/messages/route')
+
+    expect((await POST(post({ content: 'hi', type: 'text' }), ctx)).status).toBe(400)
+    expect(chatMessageCreate).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/v1/chat/channels/:id/messages validates type (task 87e19910)', () => {
+  function post(body: unknown) {
+    return new NextRequest('http://localhost/api/v1/chat/channels/channel-1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  }
+
+  const ctx = { params: Promise.resolve({ channelId: 'channel-1' }) } as never
+
+  it('400s an unknown type instead of letting Prisma 500', async () => {
+    const { POST } = await import('@/app/api/v1/chat/channels/[channelId]/messages/route')
+
+    const response = await POST(post({ content: 'hi', type: 'BANANA' }), ctx)
+
+    expect(response.status).toBe(400)
+    expect((await response.json()).error).toContain('TEXT')
+    expect(chatMessageCreate).not.toHaveBeenCalled()
+  })
+
+  it('400s the lower-case spelling of a real type', async () => {
+    const { POST } = await import('@/app/api/v1/chat/channels/[channelId]/messages/route')
 
     expect((await POST(post({ content: 'hi', type: 'text' }), ctx)).status).toBe(400)
     expect(chatMessageCreate).not.toHaveBeenCalled()
