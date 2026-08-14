@@ -5,11 +5,11 @@
 import { BRAND } from '@/lib/brand/config'
 import { agentEmail, UNKNOWN_CREATOR_EMAIL } from '@/lib/brand/agent-emails'
 import { NextRequest, NextResponse } from 'next/server'
+import { getTaskForUser } from '@/services/task.service'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { createLogger } from '@/lib/logger'
-import { hasExplicitListRole } from "@/lib/list-permissions"
 
 const log = createLogger('coding-workflow.create')
 
@@ -34,37 +34,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the task exists and user has access
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        creator: true,
-        assignee: true,
-        lists: {
-          include: {
-            owner: true,
-            listMembers: {
-              include: {
-                user: true
-              }
-            }
-          }
-        }
-      }
-    })
-
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    // Fetch and authorise together — services/task.service.ts owns both, so the
+    // include shape and the check cannot drift apart. (Task 017a569a.)
+    const access = await getTaskForUser(taskId, session.user.id)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
     }
-
-    // Check if user has permission to create workflow for this task
-    const userHasAccess =
-      task.creatorId === session.user.id ||
-      task.assigneeId === session.user.id ||
-      task.lists.some(list => hasExplicitListRole({ id: session.user.id }, list as never))
-
-    if (!userHasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
+    const task = access.task
 
     // Verify assignee is a coding agent
     const assignee = await prisma.user.findUnique({
