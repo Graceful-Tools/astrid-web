@@ -146,6 +146,22 @@ export function TaskHeader({
            *  than navigating back). */}
           {compact ? (
             <div className="flex flex-col items-center -my-1 flex-shrink-0">
+              {onToggleFullScreen && (
+                // The compact header used to omit this entirely, so a board
+                // card's details had no way to expand however long the
+                // description was. Same handler-decides rule as the roomy
+                // branch below — the caller opts in. (Task 52bf1efb)
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleFullScreen}
+                  className="theme-text-muted hover:theme-text-primary h-6 w-6 p-0"
+                  aria-label={fullScreen ? "Exit full screen" : "Full screen"}
+                  title={fullScreen ? "Exit full screen" : "Full screen"}
+                >
+                  {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </Button>
+              )}
               {onClose && (
                 <Button
                   variant="ghost"

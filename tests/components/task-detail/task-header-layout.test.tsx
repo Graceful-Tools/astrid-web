@@ -125,10 +125,18 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
   })
 
-  it('NEVER offers it on the inline/board panel', () => {
-    // The inline panel is deliberately a peek; a full-screen escape hatch there
-    // would fight the board it is embedded in.
+  it('offers it on the compact/inline panel too (task 52bf1efb)', () => {
+    // This used to assert the opposite — the compact header omitted the control
+    // on the reasoning that an inline panel is a peek. Jon asked for it on the
+    // board card, where the expanded card IS the only way to read the task, so
+    // the compact header now carries the toggle above its collapse chevron.
     renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn() })
+    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+  })
+
+  it('still omits it on the compact panel when no handler is passed', () => {
+    // The opt-in is the gate, in both header layouts.
+    renderHeader({ onClose: vi.fn(), compact: true })
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
   })
 

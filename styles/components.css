@@ -618,6 +618,22 @@ html, body {
   @apply absolute inset-0 w-full;
 }
 
+/* Full screen from an INLINE panel — the expanded card on the status board
+ * (task 52bf1efb).
+ *
+ * The rule above cannot serve this case. A board card has no wrapper that
+ * expands to the viewport, so `absolute inset-0` would size the "full screen"
+ * panel to the card it is sitting in — a control that visibly does nothing.
+ * Fixed positioning against the viewport is the whole point here.
+ *
+ * z-index 60 matches the expanded desktop pane, which is above the floating
+ * app header (z-50); a full-screen panel painted under the header is the bug
+ * that rule was written to fix.
+ */
+.task-panel-expanded-viewport {
+  @apply fixed inset-0 w-full z-[60] rounded-none;
+}
+
 /* For 3-column layouts with visible sidebar */
 @media (min-width: 1100px) {
   .task-panel-desktop {

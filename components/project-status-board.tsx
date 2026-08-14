@@ -404,6 +404,7 @@ export function ProjectStatusBoard({
                           onCopy={onCopyTask}
                           readOnly={!canEdit}
                           inline
+                          allowFullScreen
                         />
                       </div>
                     )
