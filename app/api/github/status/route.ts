@@ -1,16 +1,17 @@
 /**
- * GitHub Connection Status API
+ * GitHub Connection Status API (legacy)
  * Checks if user has complete GitHub + AI setup
+ *
+ * The payload is built by lib/github-status.ts and shared with the v1 route.
+ * This handler owns only session auth. (Task e0613ae5.)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
-import { prisma } from '@/lib/prisma'
-import { hasCopilotCredential } from '@/lib/copilot/oauth'
+import { getGitHubStatus } from '@/lib/github-status'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('github.status')
-
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,78 +20,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check GitHub integrations (user may have multiple)
-    const githubIntegrations = await prisma.gitHubIntegration.findMany({
-      where: { userId: session.user.id }
-    })
+    const status = await getGitHubStatus(session.user.id, 'github/status')
 
-    // Check if user has AI API keys configured
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { mcpSettings: true }
-    })
-
-    const mcpSettings = user?.mcpSettings ? (typeof user.mcpSettings === 'string' ? JSON.parse(user.mcpSettings) : user.mcpSettings) : {}
-    const apiKeys = mcpSettings.apiKeys || {}
-    const configuredProviders = Object.keys(apiKeys).filter(provider =>
-      apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini'].includes(provider)
+    log.info(
+      {
+        userId: session.user.id,
+        isGitHubConnected: status.isGitHubConnected,
+        userApiKeys: status.userApiKeys,
+        availableProviders: status.aiProviders,
+      },
+      '[GitHub Status] Checked status for user',
     )
-    // Copilot authenticates via GitHub OAuth, so its credential lives in
-    // CopilotCredential rather than mcpSettings.apiKeys and must be checked
-    // separately — same as lib/ai/orchestrator/factory.ts does.
-    if (await hasCopilotCredential(session.user.id)) configuredProviders.push('copilot')
 
-    // Check if user has MCP tokens
-    const mcpTokens = await prisma.mCPToken.findMany({
-      where: { userId: session.user.id }
-    })
-
-    // Aggregate data from all integrations
-    const connectedInstallationIds: number[] = []
-    const allRepositories: any[] = []
-
-    for (const integration of githubIntegrations) {
-      if (integration.installationId) {
-        connectedInstallationIds.push(integration.installationId)
-      }
-      const repos = integration.repositories as any[] || []
-      allRepositories.push(...repos)
-    }
-
-    const isGitHubConnected = connectedInstallationIds.length > 0
-    const hasAIKeys = configuredProviders.length > 0
-    const hasMCPToken = mcpTokens.length > 0
-    const repositoryCount = allRepositories.length
-
-    // For coding workflows (GitHub connected), all agents are available via worker's API keys
-    // For non-coding workflows (no GitHub), only user's configured API keys work
-    const availableProviders = isGitHubConnected
-      ? ['claude', 'openai', 'gemini', ...(configuredProviders.includes('copilot') ? ['copilot'] : [])] // Worker has all provider keys except Copilot, which is per-user OAuth
-      : configuredProviders // User's personal API keys
-
-    log.info({ userId: session.user.id }, '🔍 [GitHub Status] Checking status for user')
-    log.info({ isGitHubConnected }, '  - GitHub connected:')
-    log.info({ configuredProviders }, '  - User API keys:')
-    log.info({ availableProviders }, '  - Available providers:')
-
-    return NextResponse.json({
-      isGitHubConnected,
-      hasAIKeys,
-      hasMCPToken,
-      repositoryCount,
-      mcpTokenCount: mcpTokens.length,
-      isFullyConfigured: isGitHubConnected && hasMCPToken,
-      githubIntegration: isGitHubConnected ? {
-        installationId: connectedInstallationIds[0], // Primary installation for backward compatibility
-        repositoryCount,
-        repositories: allRepositories, // Include repos so UI can check which installations are connected
-        connectedInstallationIds // List of all connected installation IDs
-      } : null,
-      installationCount: connectedInstallationIds.length,
-      aiProviders: availableProviders,
-      userApiKeys: configuredProviders // User's own configured keys (for non-coding)
-    })
-
+    return NextResponse.json(status)
   } catch (error) {
     log.error({ err: error }, 'Error checking GitHub status:')
     return NextResponse.json(
