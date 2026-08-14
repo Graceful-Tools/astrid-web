@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { inviteRateLimiter } from '@/lib/rate-limiter'
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { canUserManageMembers, canAssignRole, prismaToTaskList, getUserRoleInList } from "@/lib/list-permissions"
@@ -23,6 +24,26 @@ export const POST = withAuth<RouteContext>(
   { scopes: ['lists:manage_members'], tag: 'v1.lists.invite' },
   async (req, auth, { params }) => {
     try {
+      // Per-user invite rate limit (spam guard — invites email arbitrary
+      // addresses, with a caller-supplied message, from our domain).
+      //
+      // The legacy route has had this since it was written; v1 did not, which
+      // made the guard bypassable simply by calling this endpoint instead.
+      // Checked before any lookup so a limited caller cannot burn queries
+      // either. (Task e0613ae5.)
+      const inviteRate = await inviteRateLimiter.checkRateLimitByKeyAsync(`invite:${auth.userId}`)
+      if (!inviteRate.allowed) {
+        return NextResponse.json(
+          { error: 'Too many invitations. Please try again later.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': Math.ceil((inviteRate.resetTime - Date.now()) / 1000).toString(),
+            },
+          }
+        )
+      }
+
       const { id: listId } = await params
       const { email, role, message } = await req.json()
 
