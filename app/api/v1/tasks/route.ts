@@ -7,6 +7,7 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
+import type { V1TaskCreateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { Prisma } from '@prisma/client'
 import { getDeprecationWarning, type AuthContext } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
@@ -284,7 +285,10 @@ export const GET = withAuth(
 export const POST = withAuth(
   { scopes: ['tasks:write'], tag: 'v1.tasks' },
   async (req, auth) => {
-    const body = await req.json()
+    // Typed rather than `any`, so a misspelled field is a build error instead
+    // of one that silently never applies. Not validation — a cast cannot make a
+    // client honest. See lib/api-contracts/v1-request-shapes.ts. (Task 87e19910.)
+    const body = (await req.json()) as V1TaskCreateRequest
 
     if (!body.title || typeof body.title !== 'string') {
       return NextResponse.json(
@@ -364,8 +368,14 @@ export const POST = withAuth(
 
       // The assignee (if not the creator) must be a member/owner of one of the
       // task's lists — otherwise arbitrary users could be assigned tasks.
-      if (body.assigneeId && body.assigneeId !== auth.userId
-          && !lists.some(l => hasListAccess(l as any, body.assigneeId))) {
+      //
+      // Hoisted to a const because the `&&` narrowing does not survive into the
+      // closure below: `body` is mutable, so TypeScript cannot know assigneeId
+      // is still a string by the time the callback runs. Correct at runtime
+      // either way; this makes it checkable. (Task 87e19910.)
+      const requestedAssigneeId = body.assigneeId
+      if (requestedAssigneeId && requestedAssigneeId !== auth.userId
+          && !lists.some(l => hasListAccess(l as any, requestedAssigneeId))) {
         return NextResponse.json(
           { error: 'Assignee must be a member of one of the task lists' },
           { status: 400 }

@@ -90,18 +90,32 @@ export interface V1TaskUpdateRequest {
   closedReason?: string | null
 }
 
-/** POST /api/v1/tasks */
+/**
+ * POST /api/v1/tasks
+ *
+ * Field set read off the handler, and it is NARROWER than the update shape in
+ * two ways worth stating rather than leaving to be discovered:
+ *
+ * - `completed`, `repeatingData` and `repeatFrom` are accepted on PUT but
+ *   IGNORED here. Create hardcodes `completed: false`. Declaring them would
+ *   invite a client to send them and expect them to stick.
+ * - `when` exists only here — a legacy alias older clients still send, treated
+ *   as an all-day date at UTC midnight.
+ */
 export interface V1TaskCreateRequest {
   title: string
   description?: string
   priority?: number
-  completed?: boolean
   dueDateTime?: string | null
+  /**
+   * Legacy alias for `dueDateTime`, still sent by older clients. Always
+   * interpreted as all-day and truncated to UTC midnight, and only consulted
+   * when `dueDateTime` is absent.
+   */
+  when?: string | null
   isAllDay?: boolean
   isPrivate?: boolean
   repeating?: string | null
-  repeatingData?: Record<string, unknown> | null
-  repeatFrom?: string | null
   assigneeId?: string | null
   parentTaskId?: string | null
   listIds?: string[]

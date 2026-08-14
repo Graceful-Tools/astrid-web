@@ -67,10 +67,9 @@ describe('v1 request contract — V1TaskUpdateRequest (PUT /api/v1/tasks/:id)', 
 
 describe('v1 request contract — V1TaskCreateRequest (POST /api/v1/tasks)', () => {
   const EXPECTED_KEYS = [
-    'title', 'description', 'priority', 'completed',
-    'dueDateTime', 'isAllDay', 'isPrivate',
-    'repeating', 'repeatingData', 'repeatFrom',
-    'assigneeId', 'parentTaskId', 'listIds', 'clientRequestId',
+    'title', 'description', 'priority',
+    'dueDateTime', 'when', 'isAllDay', 'isPrivate',
+    'repeating', 'assigneeId', 'parentTaskId', 'listIds', 'clientRequestId',
   ] as const satisfies ReadonlyArray<keyof V1TaskCreateRequest>
 
   it('requires only a title', () => {
