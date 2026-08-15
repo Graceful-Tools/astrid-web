@@ -117,6 +117,25 @@ export interface V1TaskUpdateRequest {
   /** Board-column semantics; see the status handling in the route. */
   statusRole?: string | null
   closedReason?: string | null
+
+  /**
+   * Completion provenance. All three were ACCEPTED by the route and missing
+   * from this interface until typing the handler surfaced them (task 87e19910)
+   * — the gap this file exists to prevent, found in this file's own subject.
+   *
+   * `completedAt` backdates the completion; omitted, the server stamps now.
+   * `completedSource` records which surface completed it (astrid | google |
+   * github | apple), defaulting to 'astrid'. Both are ignored unless the same
+   * request also sets `completed: true`; uncompleting clears them.
+   */
+  completedAt?: string | null
+  completedSource?: string | null
+  /**
+   * The client's local date at completion time, used to decide which day a
+   * recurring task rolls to. Distinct from `completedAt`: a user completing at
+   * 11pm in their zone may be on the next UTC day already.
+   */
+  localCompletionDate?: string | null
 }
 
 /**
@@ -310,4 +329,85 @@ export interface V1TaskBatchCopyRequest {
    * flag rather than testing this for null.
    */
   assigneeId?: string | null
+}
+
+/**
+ * Validate the scalar TYPES on a task update body (task 87e19910).
+ *
+ * PUT /api/v1/tasks/:id copied request fields into `const data: any = {}`
+ * behind only an `!== undefined` check, so `priority: "high"` handed Prisma a
+ * string for an Int column and the caller got a 500 for a plainly bad request.
+ * Same shape as the enum bugs fixed earlier under this task, except these
+ * columns are scalars, so the driver raises a validation error rather than an
+ * invalid-enum-value one. Indistinguishable from the caller's side.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO: it checks types, not business rules.
+ * Membership for `assigneeId`, cycle detection for `parentTaskId` and access
+ * for `listIds` are all validated later in the route against data this
+ * function cannot see. Returning ok here means "the shape is sane", not
+ * "the write is allowed".
+ *
+ * THE EMPTY STRING IS A VALUE, NOT A TYPE ERROR. iOS clears fields with `''`
+ * because its encoder omits nil optionals (task 1e53501f). Rejecting `''` for
+ * being empty would silently break clearing on mobile, so the only thing
+ * checked here is that it IS a string.
+ */
+export type V1ValidationResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
+const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+
+export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
+  if (typeof body !== 'object' || body === null) return { ok: false, error: 'body must be an object' }
+  const b = body as Record<string, unknown>
+
+  const wrong = (field: string, expected: string) => ({
+    ok: false as const,
+    error: `${field} must be ${expected}`,
+  })
+
+  for (const f of ['title', 'description'] as const) {
+    if (b[f] !== undefined && typeof b[f] !== 'string') return wrong(f, 'a string')
+  }
+  for (const f of ['completed', 'isAllDay', 'isPrivate'] as const) {
+    if (b[f] !== undefined && typeof b[f] !== 'boolean') return wrong(f, 'a boolean')
+  }
+  if (b.priority !== undefined && !isFiniteNumber(b.priority)) return wrong('priority', 'a number')
+
+  for (const f of ['timerDuration', 'lastTimerValue'] as const) {
+    if (b[f] !== undefined && b[f] !== null && !isFiniteNumber(b[f])) return wrong(f, 'a number or null')
+  }
+  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason'] as const) {
+    if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
+  }
+
+  if (b.dueDateTime !== undefined && b.dueDateTime !== null) {
+    if (typeof b.dueDateTime !== 'string') return wrong('dueDateTime', 'an ISO 8601 string or null')
+    // '' is the mobile clear, handled by the route — not a parse candidate.
+    if (b.dueDateTime !== '' && Number.isNaN(new Date(b.dueDateTime).getTime())) {
+      // new Date('garbage') yields Invalid Date rather than throwing, which is
+      // how an unparseable value reached the driver instead of being rejected.
+      return { ok: false, error: 'dueDateTime must be a valid ISO 8601 date' }
+    }
+  }
+
+  // Same Invalid Date trap as dueDateTime — this one also reaches `new Date()`.
+  if (b.completedAt !== undefined && b.completedAt !== null) {
+    if (typeof b.completedAt !== 'string') return wrong('completedAt', 'an ISO 8601 string or null')
+    if (b.completedAt !== '' && Number.isNaN(new Date(b.completedAt).getTime())) {
+      return { ok: false, error: 'completedAt must be a valid ISO 8601 date' }
+    }
+  }
+  for (const f of ['completedSource', 'localCompletionDate'] as const) {
+    if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
+  }
+
+  if (b.listIds !== undefined) {
+    if (!Array.isArray(b.listIds) || b.listIds.some(v => typeof v !== 'string')) {
+      return wrong('listIds', 'an array of strings')
+    }
+  }
+
+  return { ok: true }
 }

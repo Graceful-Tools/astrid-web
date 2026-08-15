@@ -25,6 +25,7 @@ import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { recordStateChangeComment } from '@/lib/task-update-handler'
+import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('v1.tasks.id')
@@ -148,7 +149,16 @@ export const PUT = withAuth<RouteContext>(
 
     await requireTaskAccess(auth.userId, taskId)
 
-    const body = await req.json()
+    const body: V1TaskUpdateRequest = await req.json()
+
+    // Types only — membership, cycles and list access are validated further
+    // down against data this cannot see. Without it a wrong-typed scalar went
+    // straight into `data` and surfaced as a 500 from the driver where the
+    // caller deserved a 400. (Task 87e19910.)
+    const shape = validateV1TaskUpdate(body)
+    if (!shape.ok) {
+      return NextResponse.json({ error: shape.error }, { status: 400 })
+    }
 
     const data: any = {}
 
@@ -360,7 +370,9 @@ export const PUT = withAuth<RouteContext>(
         taskId,
         existingTask.completed,
         body.completed,
-        body.localCompletionDate
+        // null and undefined mean the same thing to the helper (it guards with
+        // a truthiness check); the coercion is for the type, not the behaviour.
+        body.localCompletionDate ?? undefined
       )
     }
 
