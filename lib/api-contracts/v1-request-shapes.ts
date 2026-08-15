@@ -50,6 +50,31 @@
  *
  * Every field is optional: absent means "do not touch". The nulls are load
  * bearing and each means something different from absence.
+ *
+ * MOBILE CLEARS WITH `''`, NOT `null` — do not "tidy" that away.
+ * -------------------------------------------------------------
+ * iOS cannot send null on these. `UpdateTaskRequest.encode(to:)` is
+ * `encodeIfPresent` throughout, so a nil optional is OMITTED — that is how the
+ * client says "leave unchanged". To CLEAR a field it sends an empty string.
+ *
+ * So `'' | null` is the accepted set for every clearable field below, and the
+ * route honours both today. If someone reads this file, decides the
+ * empty-string case is sloppiness and tightens the route to null-only, iOS
+ * silently stops clearing due dates, unassigning, and promoting subtasks: no
+ * error, the write just does nothing, and it reads as a client bug.
+ * (Task 1e53501f; the client half is pinned by V1RequestShapeContractTests.)
+ *
+ * TWO OF THE THREE ARE EXPLICIT, ONE IS INCIDENTAL — the incidental one is the
+ * fragile one:
+ *
+ *     dueDateTime    `=== '' || === null`   explicit, hard to remove by accident
+ *     parentTaskId   `=== null || === ''`   explicit
+ *     assigneeId     `body.assigneeId || null`   INCIDENTAL
+ *
+ * `assigneeId` only works because `||` treats `''` as falsy. Changing it to
+ * `??` — the usual "modernise this" edit, and correct-looking in isolation —
+ * would keep null working and break empty string, which is the only form iOS
+ * can send. tests/api/v1-task-update-clearing.test.ts pins all three.
  */
 export interface V1TaskUpdateRequest {
   title?: string
@@ -73,13 +98,17 @@ export interface V1TaskUpdateRequest {
   repeatingData?: Record<string, unknown> | null
   repeatFrom?: string | null
 
-  /** `null` unassigns. Membership is validated server-side against the task's lists. */
+  /**
+   * `null` OR `''` unassigns — see the mobile-clears note above; iOS sends `''`.
+   * Membership is validated server-side against the task's lists.
+   */
   assigneeId?: string | null
 
   timerDuration?: number | null
   lastTimerValue?: number | null
 
   /** `null` or `''` promotes a subtask to top level. Cycles are rejected server-side. */
+  /** `null` or `''` promotes the task to top-level. Cycles are rejected server-side. */
   parentTaskId?: string | null
 
   /** Full replacement, not a delta. Access to every id is validated before connecting. */
