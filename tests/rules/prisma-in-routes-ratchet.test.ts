@@ -31,8 +31,13 @@ const ROOT = process.cwd()
 /**
  * Route files importing @/lib/prisma directly, as of service-layer slice 1
  * (2026-08-14). Lower this as slices land; raise it only with a stated reason.
+ *
+ * 151 -> 150 on 2026-08-15: extracting the tools-workflow core into
+ * lib/coding-workflow/start-tools-workflow.ts (task 46acd19c) took the Prisma
+ * import out of that route. The slack check is what noticed — a ceiling left
+ * above the real number stops ratcheting.
  */
-const CEILING = 151
+const CEILING = 150
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

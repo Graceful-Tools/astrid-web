@@ -6,22 +6,22 @@
  *
  * Date: January 11, 2025
  * Replacement: Direct AIOrchestrator.executeCompleteWorkflow() calls
+ *
+ * The work itself lives in lib/coding-workflow/start-tools-workflow.ts so that
+ * server callers can invoke it directly rather than fetching this app's own
+ * HTTP API — see that file for why. This handler owns auth and nothing else.
  */
 
-import { getAgentConfig } from '@/lib/ai/agent-config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
-import { prisma } from '@/lib/prisma'
 import { getTaskForUser } from '@/services/task.service'
-import { AIOrchestrator } from '@/lib/ai-orchestrator'
+import { startToolsWorkflow } from '@/lib/coding-workflow/start-tools-workflow'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api.coding-workflow.start-tools-workflow')
 
-
 export async function POST(request: NextRequest) {
   try {
-    // Verify user session
     const session = await getUnifiedSession()
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -36,147 +36,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (userComment) {
-      log.info('🤖 [Tools Workflow] Starting for task:', taskId, '(responding to user comment)')
-      log.info({ userComment }, '   User comment:')
-    } else {
-      log.info({ taskId }, '🤖 [Tools Workflow] Starting for task:')
-    }
-
-    // AUTHORISE FIRST. This route checked only that the caller was signed in,
-    // so any authenticated user could start a coding workflow against another
-    // user's task — reading it, and billing the run to the list owner, since
-    // configuredByUserId below comes from the LIST rather than the caller.
-    // Its sibling coding-workflow/create always had this check. (Task 017a569a.)
+    // AUTHORISE FIRST. This route once verified only that the caller was signed
+    // in, so any authenticated user could start a coding workflow against
+    // another user's task — reading it, and billing the run to the LIST OWNER,
+    // since the API keys come from the list's aiAgentConfiguredBy rather than
+    // from the caller. (Task 017a569a.)
     const access = await getTaskForUser(taskId, session.user.id)
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status })
     }
 
-    // Re-fetched rather than reused: this handler needs aiAgent and two list
-    // columns the access shape does not carry, and widening the shared include
-    // for one deprecated caller would cost every other caller the extra joins.
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        assignee: true,
-        aiAgent: true,
-        lists: {
-          select: {
-            aiAgentConfiguredBy: true,
-            githubRepositoryId: true
-          }
-        }
-      }
-    })
-
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    const result = await startToolsWorkflow({ taskId, repository, userComment })
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
     }
 
-    // Get the user who configured the AI agent (has API keys)
-    // Find first list with a repository (task may be in multiple lists)
-    const listWithRepo = task.lists?.find(l => l.githubRepositoryId)
-    const configuredByUserId = listWithRepo?.aiAgentConfiguredBy || task.lists[0]?.aiAgentConfiguredBy || session.user.id
+    log.info({ taskId, workflowId: result.workflowId }, 'Workflow started')
 
-    // Get the AI agent ID (either from aiAgent or assignee)
-    const aiAgentId = task.aiAgent?.id || (task.assignee?.isAIAgent ? task.assignee.id : null)
-    if (!aiAgentId) {
-      return NextResponse.json({ error: 'Task is not assigned to an AI agent' }, { status: 400 })
-    }
-
-    // Determine AI service from the assigned agent
-    let aiService: 'claude' | 'openai' = 'claude' // default
-    if (task.assignee?.isAIAgent && task.assignee.email) {
-      // This workflow only supports claude/openai; other agents keep the default.
-      const service = getAgentConfig(task.assignee.email)?.service
-      if (service === 'claude' || service === 'openai') {
-        aiService = service
-      }
-    }
-
-    log.info(`🤖 [Workflow] Determined AI service: ${aiService} for agent: ${task.assignee?.email}`)
-
-    // Redirect to AIOrchestrator (improved Phase 1-3 system)
-    log.info('🚀 [Workflow] Redirecting to AIOrchestrator...')
-    log.info({ taskId }, '   Task ID:')
-    log.info({ configuredByUserId }, '   User ID:')
-    log.info({ repository }, '   Repository:')
-
-    // Create AI Orchestrator using the static factory method
-    const orchestrator = await AIOrchestrator.createForTaskWithService(taskId, configuredByUserId, aiService)
-
-    // Create or find coding workflow record
-    let workflow = await prisma.codingTaskWorkflow.findFirst({
-      where: { taskId }
-    })
-
-    if (!workflow) {
-      workflow = await prisma.codingTaskWorkflow.create({
-        data: {
-          taskId,
-          status: 'PLANNING',
-          aiService: aiService,
-          metadata: {
-            webhookTriggered: false,
-            directAssignment: true,
-            startedAt: new Date().toISOString()
-          }
-        }
-      })
-    }
-
-    // Execute the AI workflow asynchronously
-    const workflowId = workflow.id
-    orchestrator.executeCompleteWorkflow(workflowId, taskId)
-      .then(() => {
-        log.info('✅ [Workflow] Completed successfully via AIOrchestrator')
-      })
-      .catch(async (error) => {
-        log.error({ err: error }, '❌ [Workflow] Failed:')
-        log.error(error.stack, '   Error stack:')
-
-        // Update workflow status to FAILED to prevent stuck workflows
-        try {
-          await prisma.codingTaskWorkflow.update({
-            where: { id: workflowId },
-            data: {
-              status: 'FAILED',
-              metadata: {
-                error: error.message,
-                failedAt: new Date().toISOString()
-              }
-            }
-          })
-        } catch (e) {
-          log.error({ err: e }, '❌ [Workflow] Failed to update workflow status:')
-        }
-
-        // Post error to task
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/tasks/${taskId}/comments`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: `❌ **Workflow error**\n\n\`\`\`\n${error.message}\n\`\`\``,
-            type: 'MARKDOWN'
-          })
-        }).catch(e => log.error({ err: e }, 'Failed to post error comment:'))
-      })
-
-    // Return immediately
     return NextResponse.json({
       success: true,
       message: 'Workflow started via AIOrchestrator',
-      taskId
+      taskId,
     })
-
   } catch (error) {
-    log.error({ err: error }, '❌ [Tools Workflow] Error:')
-
+    log.error({ err: error }, 'Error starting tools workflow')
     return NextResponse.json(
       {
         error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

@@ -39,12 +39,17 @@ const ROOT = process.cwd()
  * Client-side raw `fetch()` MUTATIONS to this app's API, as of task 72717eff
  * (2026-08-14). Lower as call sites adopt lib/api; raise only with a reason.
  *
+ * 126 -> 125 on 2026-08-15: lib/webhooks/comment-notifier stopped fetching this
+ * app's own /api/coding-workflow/start-tools-workflow and now calls the function
+ * directly (task 46acd19c). A server-to-server self-fetch was never a client
+ * mutation, but it counted like one — and removing it is the same win either way.
+ *
  * 127 -> 126 when the branch was merged: extracting useTaskShareLink collapsed
  * the share-link POST that task-detail.tsx and task-detail-viewonly.tsx each
  * issued into one call in the hook. Neither branch could see that on its own —
  * the slack check found it in the merge, which is the case it exists for.
  */
-const CEILING = 126
+const CEILING = 125
 
 const CLIENT_DIRS = ['app', 'components', 'hooks', 'contexts', 'lib']
 const FETCH_TO_API = /fetch\(\s*[`'"]([^`'"]*\/api\/[^`'"]*)[`'"]/g
