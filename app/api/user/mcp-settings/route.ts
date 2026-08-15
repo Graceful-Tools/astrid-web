@@ -32,10 +32,30 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('user.mcp-settings')
 
 
+/**
+ * The canonical values, matching Prisma's MCPAccessLevel. Exported shape is
+ * asserted against the schema by tests/api/mcp-settings-access-level-enum.
+ */
+const MCP_ACCESS_LEVELS = ['READ', 'WRITE', 'BOTH'] as const
+
 const UpdateUserMCPSettingsSchema = z.object({
   mcpEnabled: z.boolean().optional(),
   defaultNewListMcpEnabled: z.boolean().optional(),
-  defaultNewListMcpAccessLevel: z.enum(['READ', 'write', 'both']).optional(),
+  /**
+   * Case-insensitive, validated against the canonical values. (Task 87e19910.)
+   *
+   * This read z.enum(['READ', 'write', 'both']) — a mixed-case list that
+   * REJECTED the two canonical values WRITE and BOTH with a 400. The lowercase
+   * pair did work, because the handler upper-cased before writing, so the bug
+   * was one-directional: canonical input was refused, not corrupted.
+   *
+   * Upper-casing here rather than in the handler means the parsed value is
+   * already the value written, so the schema states the contract instead of
+   * leaving it to a .toUpperCase() forty lines away.
+   */
+  defaultNewListMcpAccessLevel: z
+    .preprocess(v => (typeof v === 'string' ? v.toUpperCase() : v), z.enum(MCP_ACCESS_LEVELS))
+    .optional(),
 })
 
 export async function GET() {
@@ -90,7 +110,8 @@ export async function PUT(request: NextRequest) {
       updateData.defaultNewListMcpEnabled = validatedData.defaultNewListMcpEnabled
     }
     if (validatedData.defaultNewListMcpAccessLevel !== undefined) {
-      updateData.defaultNewListMcpAccessLevel = validatedData.defaultNewListMcpAccessLevel.toUpperCase()
+      // Already canonical — the schema upper-cases on parse.
+      updateData.defaultNewListMcpAccessLevel = validatedData.defaultNewListMcpAccessLevel
     }
 
     const updatedUser = await prisma.user.update({

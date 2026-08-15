@@ -1,6 +1,8 @@
 import { ChevronUp, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TaskLeadingControl } from "../task-leading-control"
+import { PublicTaskCopyButton } from "../public-task-copy-button"
+import { isPublicListTask } from "@/lib/public-list-utils"
 import { TaskActionMenu } from "./TaskActionMenu"
 import type { Task, User } from "../../types/task"
 
@@ -24,6 +26,13 @@ interface TaskHeaderProps {
   setTempTitle: (s: string) => void
   setEditingTitle: (b: boolean) => void
   onToggleComplete: () => void
+  /**
+   * View-only: the viewer cannot edit this task. Only affects the leading
+   * control here — on a PUBLIC list task the one action a viewer has is to
+   * copy it to their own list, which is what task-detail-viewonly offers in
+   * place of the completion control. (Task 72cb4a13.)
+   */
+  readOnly?: boolean
   onSaveTitle: () => void
   onCancelTitle: () => void
   // Action menu pass-through
@@ -54,6 +63,7 @@ export function TaskHeader({
   setTempTitle,
   setEditingTitle,
   onToggleComplete,
+  readOnly = false,
   onSaveTitle,
   onCancelTitle,
   reminderDebugMode,
@@ -93,8 +103,16 @@ export function TaskHeader({
               </svg>
             </Button>
           )}
-          {/* Three states, not two — an unassigned task must not look like one
-              you own (task 2bb1b196). Same rule as the row and quick add. */}
+          {readOnly && isPublicListTask(task) ? (
+            /* A viewer of a public task cannot complete it, so completion is
+               replaced by copy-to-my-list — matching task-detail-viewonly and
+               task-row-content, which already make this substitution. Gated on
+               readOnly as well as public so a user who CAN edit a public task
+               keeps the completion control they have today. */
+            <PublicTaskCopyButton onCopy={onCopy} />
+          ) : (
+          /* Three states, not two — an unassigned task must not look like one
+              you own (task 2bb1b196). Same rule as the row and quick add. */
           <TaskLeadingControl
             assigneeId={task.assigneeId}
             currentUserId={currentUser?.id}
@@ -104,6 +122,7 @@ export function TaskHeader({
             repeating={task.repeating !== 'never'}
             onToggleComplete={onToggleComplete}
           />
+          )}
           {editingTitle ? (
             <textarea
               value={tempTitle}
