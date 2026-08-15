@@ -65,7 +65,13 @@ export type UploadValidation =
  * the *validated* value rather than re-parsing the untrusted filename.
  */
 export function validateUploadFile(
-  file: File,
+  /**
+   * Only the name and MIME type are read, so this is deliberately NOT `File`:
+   * the secure-upload routes validate metadata that arrives as JSON, with no
+   * File object anywhere. A real `File` satisfies this structurally, so every
+   * existing caller is unaffected. (Task c09f3eb1.)
+   */
+  file: { name: string; type: string },
   allowlist: FileTypeAllowlist = ATTACHMENT_FILE_TYPES,
 ): UploadValidation {
   const allowedExtensions = Object.keys(allowlist)
