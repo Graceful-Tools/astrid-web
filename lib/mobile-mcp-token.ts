@@ -65,16 +65,23 @@ export async function resolveMobileSessionUser(request: NextRequest): Promise<Se
  * The returned `token` is plaintext and is the only time it exists in that
  * form — storage is hashed and encrypted (see lib/mcp-token).
  *
- * `token` is `string | null` because resolveMCPPlaintext can fail to recover
- * one: a row written during the hash-only phase, before the encryption
- * backfill, has no `tokenEncrypted` and a `token` column that is already a
- * hash. Both routes have always passed that null straight to the client — the
- * looseness was hidden by untyped JSON, not intended — so this preserves it
- * rather than changing behaviour inside a refactor. Filed separately.
+ * A live row whose plaintext CANNOT be recovered is treated as no token at all,
+ * and a fresh one is minted. Such a row has no `tokenEncrypted` and a `token`
+ * column that is already a hash — written during the hash-only phase, before
+ * the encryption backfill.
+ *
+ * Both routes used to return that null to the client: a 200 carrying nothing
+ * usable, every later MCP call failing with no indication why, and — because
+ * the dead row is still active and unexpired — the same answer for up to 90
+ * days. Minting recovers the user immediately. (Task 54cb7083.)
+ *
+ * Production had zero such rows when this was fixed, so nobody was stuck; the
+ * path is reachable again after any restore from a pre-backfill dump, which is
+ * why it is closed rather than left as a known trap.
  */
 export async function mintOrReturnMobileToken(
   userId: string,
-): Promise<{ token: string | null; userId: string }> {
+): Promise<{ token: string; userId: string }> {
   const existingToken = await prisma.mCPToken.findFirst({
     where: {
       userId,
@@ -86,7 +93,13 @@ export async function mintOrReturnMobileToken(
   })
 
   if (existingToken) {
-    return { token: resolveMCPPlaintext(existingToken), userId: existingToken.userId }
+    const plaintext = resolveMCPPlaintext(existingToken)
+    // Truthiness, not `!== null`: an empty string type-checks as string and
+    // would be handed to the client as a token.
+    if (plaintext) {
+      return { token: plaintext, userId: existingToken.userId }
+    }
+    // Otherwise fall through and mint — the row exists but is unusable.
   }
 
   const token = generateMCPToken()
