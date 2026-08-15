@@ -4,47 +4,10 @@ import { writeFile } from "fs/promises"
 import { join } from "path"
 import { randomBytes } from "crypto"
 import { createLogger } from '@/lib/logger'
+import { validateUploadFile, IMAGE_FILE_TYPES } from '@/lib/upload-validation'
 
 const log = createLogger('lists.upload-image')
 
-
-// Allowed image extensions and their corresponding MIME types
-const ALLOWED_IMAGE_TYPES: Record<string, string[]> = {
-  'jpg': ['image/jpeg'],
-  'jpeg': ['image/jpeg'],
-  'png': ['image/png'],
-  'gif': ['image/gif'],
-  'webp': ['image/webp'],
-}
-
-const ALLOWED_EXTENSIONS = Object.keys(ALLOWED_IMAGE_TYPES)
-
-function validateImageFile(file: File): { valid: boolean; extension: string; error?: string } {
-  // Get extension from filename (lowercase, no dots)
-  const filenameParts = file.name.toLowerCase().split('.')
-  const extension = filenameParts.length > 1 ? filenameParts.pop() || '' : ''
-
-  // Check if extension is in whitelist
-  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
-    return {
-      valid: false,
-      extension: '',
-      error: `File extension not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`
-    }
-  }
-
-  // Check if MIME type matches the extension
-  const allowedMimeTypes = ALLOWED_IMAGE_TYPES[extension]
-  if (!allowedMimeTypes.includes(file.type)) {
-    return {
-      valid: false,
-      extension: '',
-      error: `File type mismatch. Expected ${allowedMimeTypes.join(' or ')} for .${extension} file`
-    }
-  }
-
-  return { valid: true, extension }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file extension and MIME type
-    const validation = validateImageFile(file)
+    const validation = validateUploadFile(file, IMAGE_FILE_TYPES)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }

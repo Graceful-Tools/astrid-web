@@ -39,6 +39,19 @@ export const ATTACHMENT_FILE_TYPES: FileTypeAllowlist = {
 }
 
 /** Direct uploads are capped at 10MB; anything larger goes through the SecureFile chain. */
+/**
+ * List cover images. Deliberately NARROWER than ATTACHMENT_FILE_TYPES — a list
+ * image must not accept .docx. The policies stay separate; only the algorithm
+ * is shared. (Task c09f3eb1.)
+ */
+export const IMAGE_FILE_TYPES: FileTypeAllowlist = {
+  jpg: ['image/jpeg'],
+  jpeg: ['image/jpeg'],
+  png: ['image/png'],
+  gif: ['image/gif'],
+  webp: ['image/webp'],
+}
+
 export const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024
 
 export type UploadValidation =

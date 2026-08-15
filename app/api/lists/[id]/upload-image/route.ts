@@ -3,49 +3,11 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { validateUploadFile, IMAGE_FILE_TYPES } from '@/lib/upload-validation'
 import { canUserManageList } from "@/lib/list-permissions"
 
 const log = createLogger('lists.[id].upload-image')
 
-
-// Allowed image extensions and their corresponding MIME types
-const ALLOWED_IMAGE_TYPES: Record<string, string[]> = {
-  'jpg': ['image/jpeg'],
-  'jpeg': ['image/jpeg'],
-  'png': ['image/png'],
-  'gif': ['image/gif'],
-  'webp': ['image/webp'],
-}
-
-const ALLOWED_EXTENSIONS = Object.keys(ALLOWED_IMAGE_TYPES)
-const ALLOWED_MIME_TYPES = Object.values(ALLOWED_IMAGE_TYPES).flat()
-
-function validateImageFile(file: File): { valid: boolean; mimeType: string; error?: string } {
-  // Get extension from filename (lowercase, no dots)
-  const filenameParts = file.name.toLowerCase().split('.')
-  const extension = filenameParts.length > 1 ? filenameParts.pop() || '' : ''
-
-  // Check if extension is in whitelist
-  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
-    return {
-      valid: false,
-      mimeType: '',
-      error: `File extension not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`
-    }
-  }
-
-  // Check if MIME type matches the extension
-  const allowedMimeTypes = ALLOWED_IMAGE_TYPES[extension]
-  if (!allowedMimeTypes.includes(file.type)) {
-    return {
-      valid: false,
-      mimeType: '',
-      error: `File type mismatch. Expected ${allowedMimeTypes.join(' or ')} for .${extension} file`
-    }
-  }
-
-  return { valid: true, mimeType: file.type }
-}
 
 export async function POST(
   request: NextRequest,
@@ -66,7 +28,7 @@ export async function POST(
     }
 
     // Validate file extension and MIME type
-    const validation = validateImageFile(file)
+    const validation = validateUploadFile(file, IMAGE_FILE_TYPES)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
@@ -75,7 +37,10 @@ export async function POST(
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64 = buffer.toString('base64')
-    const imageUrl = `data:${validation.mimeType};base64,${base64}`
+    // file.type is the VALIDATED mime here: validateUploadFile only
+    // succeeds when file.type is in the allowlist for this extension, which
+    // is exactly what the old local helper returned as `mimeType`.
+    const imageUrl = `data:${file.type};base64,${base64}`
 
     // Get the list and verify permissions
     const list = await prisma.taskList.findUnique({
