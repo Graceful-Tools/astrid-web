@@ -112,7 +112,7 @@ export async function pullIssuesForLink(args: {
       metadata: {
         number: String(i.number),
         parent: '', // parent issue number, filled from GraphQL below
-        assigneeUserId: '', // Astrid user mapped from GitHub assignees below
+        assigneeUserId: '', // local user mapped from GitHub assignees below
         commentCount: String(i.comments ?? 0),
         labels: (i.labels as any[]).map(l => (typeof l === 'string' ? l : l.name)).join(','),
         assignees: (i.assignees as any[]).map(a => a.login).join(','),
@@ -148,7 +148,7 @@ export async function pullIssuesForLink(args: {
     }
   }
 
-  // Assignee mapping: GitHub logins → Astrid users, via each user's own
+  // Assignee mapping: GitHub logins → local users, via each user's own
   // GITHUB_ISSUES integration (externalAccountId = their login). First
   // resolvable assignee wins; unresolvable assignees stay unmapped.
   const allLogins = Array.from(
