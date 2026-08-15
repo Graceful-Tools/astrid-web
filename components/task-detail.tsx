@@ -1271,6 +1271,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       <TaskHeader
         task={task}
         currentUser={currentUser}
+        readOnly={readOnly}
         onClose={onClose}
         tempCompleted={tempCompleted}
         tempTitle={tempTitle}
