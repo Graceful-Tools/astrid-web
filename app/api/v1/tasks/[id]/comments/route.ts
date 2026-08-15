@@ -26,7 +26,7 @@ import {
   findCommentByClientRequestId,
   isDuplicateClientRequestId,
 } from '@/lib/comment-idempotency'
-import { hasExplicitListRole } from "@/lib/list-permissions"
+import { userCanAccessTask } from "@/services/task.service"
 
 const log = createLogger('v1.tasks.comments')
 
@@ -54,15 +54,25 @@ const taskAccessInclude = {
   lists: { select: listSelection },
 } as const
 
+/**
+ * The shared rule — services/task.service.ts (task 017a569a, slice 4).
+ *
+ * Kept as a named local wrapper rather than inlining the call at both sites,
+ * because the name is what makes the two conditions below readable:
+ * `hasStandardAccess && !isPublicTask` says more than the predicate would.
+ *
+ * The null guard stays here. userCanAccessTask takes a task, and this route
+ * reaches its call sites with one already checked for existence; keeping the
+ * `!task` case local means the shared predicate does not have to pretend a
+ * missing task is an access question.
+ *
+ * PUBLIC-list handling deliberately does NOT move into the service — see
+ * taskIsInPublicList below. The caller decides whether public access applies;
+ * the service only answers membership.
+ */
 function userHasStandardTaskAccess(task: any, userId: string): boolean {
   if (!task) return false
-
-  if (task.creatorId === userId || task.assigneeId === userId) {
-    return true
-  }
-
-  // Canonical role lookup rather than an inline owner/member compare (task e2803305).
-  return (task.lists || []).some((list: any) => hasExplicitListRole({ id: userId }, list))
+  return userCanAccessTask(task, userId)
 }
 
 function taskIsInPublicList(task: any): boolean {

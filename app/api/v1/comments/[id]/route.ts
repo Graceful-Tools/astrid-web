@@ -15,7 +15,7 @@ import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import { hasExplicitListRole } from "@/lib/list-permissions"
+import { userCanAccessTask } from "@/services/task.service"
 import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
 
 const log = createLogger('v1.comments.id')
@@ -61,13 +61,19 @@ export const GET = withAuth<RouteContext>(
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 })
     }
 
-    // Verify user has access to the task
-    const hasAccess =
-      comment.task.creatorId === auth.userId ||
-      comment.task.assigneeId === auth.userId ||
-      comment.task.lists.some(
-        (list: any) => hasExplicitListRole({ id: auth.userId }, list)
-      )
+    // Verify user has access to the task — the shared rule,
+    // services/task.service.ts (task 017a569a, slice 5). Fifth copy of this
+    // three-way check to be folded in, and the only one that was fully inline
+    // rather than behind a local helper.
+    //
+    // NOTE for anyone tightening this later: the fetch above selects
+    // listMembers WITHOUT `role`. That is sufficient for an ACCESS check,
+    // which only asks whether a membership exists. It would NOT be sufficient
+    // for a manage-level check — getUserRoleInList reads `role` to distinguish
+    // admin, so with it unselected every admin resolves as a plain member and
+    // canUserManageList would deny them. Select `role` before changing this to
+    // a management gate.
+    const hasAccess = userCanAccessTask(comment.task, auth.userId)
 
     if (!hasAccess) {
       return NextResponse.json(
