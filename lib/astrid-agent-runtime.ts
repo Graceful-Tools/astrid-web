@@ -545,10 +545,20 @@ interface ProcessMessageParams {
   userName: string
   channelId: string
   listId: string | null
+  /**
+   * Idempotency key for the REPLY row. `ChatMessage.clientRequestId` is unique,
+   * so a second generation racing the first fails its insert with P2002 and is
+   * swallowed rather than posting a duplicate reply.
+   *
+   * Only the server-handoff path passes this (task f0700542). Legacy callers
+   * omit it and behave exactly as before — an undefined clientRequestId is not
+   * covered by the unique index. (Task f0700542.)
+   */
+  replyClientRequestId?: string
 }
 
 export async function processAstridMessage(params: ProcessMessageParams): Promise<void> {
-  const { userMessage, userId, userName, channelId, listId } = params
+  const { userMessage, userId, userName, channelId, listId, replyClientRequestId } = params
 
   // Resolve Astrid user and recipients up front for typing indicator
   let recipients: string[] = []
@@ -664,7 +674,13 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
 
     // Post response as Astrid (already looked up at the top)
     const message = await prisma.chatMessage.create({
-      data: { channelId, authorId: astridUser.id, content: response, type: 'MARKDOWN' },
+      data: {
+        channelId,
+        authorId: astridUser.id,
+        content: response,
+        type: 'MARKDOWN',
+        clientRequestId: replyClientRequestId,
+      },
       include: {
         author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } },
       },
