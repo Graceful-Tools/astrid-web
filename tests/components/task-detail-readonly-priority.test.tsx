@@ -176,6 +176,22 @@ describe('TaskDetail readOnly priority (task 72cb4a13)', () => {
     expect(priorityButtons().every(b => b.disabled)).toBe(true)
   })
 
+  it('DELIBERATE: completion stays available to a read-only viewer', () => {
+    // Not a bug, and I nearly "fixed" it. task-detail-viewonly — the canonical
+    // read-only surface — wires the same control to handleToggleComplete,
+    // which calls onUpdate. Checking off a shared task is not editing it, and
+    // TaskLeadingControl's own doc says tapping any of the three marks
+    // completes the task. Pinned so the next reader does not mistake this for
+    // the priority escape above; the two look identical from the outside.
+    const onUpdate = vi.fn()
+    render(<TaskDetail {...mockProps} onUpdate={onUpdate} readOnly />)
+
+    const leading = screen.getByRole('button', { name: /unassigned/i })
+    fireEvent.click(leading)
+
+    expect(onUpdate).toHaveBeenCalled()
+  })
+
   it('still saves a priority change when editable', () => {
     const onUpdate = vi.fn()
     render(<TaskDetail {...mockProps} onUpdate={onUpdate} />)
