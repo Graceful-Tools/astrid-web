@@ -15,7 +15,6 @@ import {
   findCommentByClientRequestId,
   isDuplicateClientRequestId,
 } from '@/lib/comment-idempotency'
-import { getUserRoleInList } from "@/lib/list-permissions"
 
 const log = createLogger('tasks.[id].comments')
 
@@ -150,28 +149,6 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
-
-    // Debug: Log permission check details for POST
-    log.info({
-      taskId: task.id,
-      userId: session.user.id,
-      isAssignee: task.assigneeId === session.user.id,
-      isCreator: task.creatorId === session.user.id,
-      listCount: task.lists.length,
-      listIds: task.lists.map(l => l.id)
-    }, '🔍 Comment permission check POST:')
-
-    // Check each list's access individually for debugging
-    task.lists.forEach((list, index) => {
-      const listAccess = canAccessList(list, session.user.id)
-      log.info({
-        index,
-        listId: list.id,
-        access: listAccess,
-        isOwner: getUserRoleInList({ id: session.user.id }, list as never) === 'owner',
-        listMemberCount: list.listMembers?.length || 0,
-      }, '🔍 List access')
-    })
 
     // ── Idempotency: clientRequestId-based (offline retry safety) ─────────
     // Mirrors /api/v1/tasks/[id]/comments POST. Required because iOS replays
