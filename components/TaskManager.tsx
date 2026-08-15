@@ -495,6 +495,8 @@ export function TaskManager({
       dragTargetPosition={controller.dragTargetPosition}
       manualSortActive={controller.manualSortActive}
       manualSortPreviewActive={controller.manualSortPreviewActive}
+      promoteTargetVisible={controller.promoteTargetVisible}
+      handleTaskDropOnPromoteTarget={controller.handleTaskDropOnPromoteTarget}
       showHotkeyMenu={controller.showHotkeyMenu}
       setShowHotkeyMenu={controller.setShowHotkeyMenu}
       handleListCopied={controller.handleListCopied}

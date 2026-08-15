@@ -142,6 +142,9 @@ interface MainContentProps {
   dragTargetPosition: 'above' | 'below' | 'end' | null
   manualSortActive: boolean
   manualSortPreviewActive: boolean
+  /** True while a subtask is in flight — see lib/subtask-promotion (task b00a1f94). */
+  promoteTargetVisible: boolean
+  handleTaskDropOnPromoteTarget: () => Promise<void>
 
   // Utility functions
   canEditListSettingsMemo: (list: TaskList) => boolean
@@ -229,6 +232,8 @@ export function MainContent({
   dragTargetPosition,
   manualSortActive,
   manualSortPreviewActive,
+  promoteTargetVisible,
+  handleTaskDropOnPromoteTarget,
   canEditListSettingsMemo,
   getSelectedListInfo,
   taskManagerRef,
@@ -904,6 +909,25 @@ export function MainContent({
                 ref={taskListContainerRef}
                 className={isMobile ? "space-y-2.5" : "space-y-2.5"}
               >
+                {/* Move out of subtask (task b00a1f94). Appears only while a
+                    task that HAS a parent is being dragged: a permanent strip
+                    would be noise, since most tasks are not subtasks. It sits
+                    at the top so it is reachable without dragging to the end
+                    of a long list. */}
+                {promoteTargetVisible && (
+                  <div
+                    data-testid="promote-to-top-level-target"
+                    aria-label="Move out of subtask"
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault()
+                      void handleTaskDropOnPromoteTarget()
+                    }}
+                    className="mb-1 rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-sm text-blue-700 dark:text-blue-300 text-center"
+                  >
+                    Drop here to move out of its parent task
+                  </div>
+                )}
                 {shouldVirtualizeTaskList(finalFilteredTasks.length, manualSortActive) ? (
                   <VirtualizedTaskList
                     tasks={finalFilteredTasks}

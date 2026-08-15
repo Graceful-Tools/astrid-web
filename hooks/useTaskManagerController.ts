@@ -1514,6 +1514,7 @@ export function useTaskManagerController({
     isShiftDrag: dragDropState.isShiftDrag,
     dragTargetTaskId: dragDropState.dragTargetTaskId,
     dragTargetPosition: dragDropState.dragTargetPosition,
+    promoteTargetVisible: dragDropState.promoteTargetVisible,
 
     // Computed state
     finalTasks: listState.finalTasks,
@@ -1627,6 +1628,7 @@ export function useTaskManagerController({
     handleTaskDragHoverEnd: dragDropState.handleTaskDragHoverEnd,
     handleTaskDragStart: dragDropState.handleTaskDragStart,
     handleTaskDragEnd: dragDropState.handleTaskDragEnd,
+    handleTaskDropOnPromoteTarget: dragDropState.handleTaskDropOnPromoteTarget,
     handleListDragEnter: dragDropState.handleListDragEnter,
     handleListDragLeave: dragDropState.handleListDragLeave,
     handleListDragOver: dragDropState.handleListDragOver,

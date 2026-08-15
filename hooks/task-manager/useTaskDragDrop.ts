@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { flushSync } from "react-dom"
-import { apiPost } from "@/lib/api"
+import { apiPost, apiPut } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import type { Task, TaskList } from "@/types/task"
+import { resolvePromotion, shouldShowPromoteTarget } from "@/lib/subtask-promotion"
 
 // Type for task operations hook return value
 interface TaskOperations {
@@ -34,6 +35,8 @@ export interface UseTaskDragDropReturn {
   dragTargetTaskId: string | null
   dragTargetPosition: 'above' | 'below' | 'end' | null
   manualSortPreviewActive: boolean
+  /** True while a task that HAS a parent is in flight — the only time unnesting means anything. */
+  promoteTargetVisible: boolean
 
   // Handlers
   handleTaskDragStart: (taskId: string) => void
@@ -45,6 +48,7 @@ export interface UseTaskDragDropReturn {
   handleTaskDragHover: (taskId: string, position: 'above' | 'below') => void
   handleTaskDragLeaveTask: (taskId: string) => void
   handleTaskDragHoverEnd: () => void
+  handleTaskDropOnPromoteTarget: () => Promise<void>
 }
 
 export function useTaskDragDrop({
@@ -451,6 +455,64 @@ export function useTaskDragDrop({
     applyManualOrderLocally
   ])
 
+  // Only while a subtask is in flight (task b00a1f94).
+  const draggedTask = activeDragTaskId ? tasks.find(item => item.id === activeDragTaskId) : null
+  const promoteTargetVisible = shouldShowPromoteTarget(draggedTask)
+
+  /**
+   * Drop on "move out of subtask": clear the parent link.
+   *
+   * Optimistic, because the row has to visibly leave its nesting the moment you
+   * let go — waiting for the round trip is what makes a drag feel broken.
+   */
+  const handleTaskDropOnPromoteTarget = useCallback(async () => {
+    const task = activeDragTaskId ? tasks.find(item => item.id === activeDragTaskId) : null
+    const promotion = resolvePromotion(task)
+    if (!task || !promotion) {
+      clearTaskDragState()
+      return
+    }
+
+    dropHandledRef.current = true
+    const previousParentId = task.parentTaskId
+
+    setTasks(prev => prev.map(item =>
+      item.id === task.id ? { ...item, parentTaskId: null } : item
+    ))
+
+    try {
+      // Calls the API directly rather than through `newTaskOperations`: the
+      // hook is constructed with `newTaskOperations: null as any` and never
+      // reconnected, so anything routed through it fails into a catch. Tracked
+      // separately; this path must not inherit that.
+      const response = await apiPut(`/api/tasks/${promotion.taskId}`, {
+        ...task,
+        parentTaskId: null,
+      })
+      if (!response.ok) {
+        const detail = await response.text()
+        throw new Error(detail || "Failed to move task out of its parent")
+      }
+
+      toast({
+        title: "Moved out of subtask",
+        description: `"${task.title}" is now a top-level task.`,
+        duration: 2500,
+      })
+    } catch (error) {
+      setTasks(prev => prev.map(item =>
+        item.id === task.id ? { ...item, parentTaskId: previousParentId } : item
+      ))
+      toast({
+        title: "Unable to move task",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      clearTaskDragState()
+    }
+  }, [activeDragTaskId, tasks, toast, clearTaskDragState, setTasks])
+
   // Drop on list handler
   const handleTaskDropOnList = useCallback(async (listId: string, options: { shiftKey: boolean }) => {
     if (!activeDragTaskId) {
@@ -663,6 +725,7 @@ export function useTaskDragDrop({
     dragTargetTaskId,
     dragTargetPosition,
     manualSortPreviewActive,
+    promoteTargetVisible,
 
     // Handlers
     handleTaskDragStart,
@@ -673,6 +736,7 @@ export function useTaskDragDrop({
     handleTaskDropOnList,
     handleTaskDragHover,
     handleTaskDragLeaveTask,
-    handleTaskDragHoverEnd
+    handleTaskDragHoverEnd,
+    handleTaskDropOnPromoteTarget
   }
 }

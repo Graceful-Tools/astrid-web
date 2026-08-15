@@ -44,3 +44,30 @@ export async function validateParentTask(
 
   return null
 }
+
+/**
+ * How a request body wants `parentTaskId` changed. (Task b00a1f94)
+ *
+ * Both task routes need this and `v1` had it inlined; the web route had it not
+ * at all, which is why the UI could not unnest a task. Shared so the two
+ * clients cannot disagree about what "no parent" looks like on the wire — iOS
+ * sends `''`, web sends `null`, and both must mean the same thing.
+ *
+ * `skip` is the important case: a PUT that never mentions `parentTaskId` must
+ * leave the nesting alone rather than clearing it.
+ */
+export type ParentTaskUpdate =
+  | { skip: true }
+  | { skip: false; parentTaskId: string | null }
+
+export function readParentTaskIdFromBody(body: { parentTaskId?: unknown }): ParentTaskUpdate {
+  const raw = body?.parentTaskId
+
+  if (raw === undefined) return { skip: true }
+  if (raw === null || raw === '') return { skip: false, parentTaskId: null }
+  if (typeof raw === 'string') return { skip: false, parentTaskId: raw }
+
+  // Neither a string nor a clear-signal: ignore it rather than handing Prisma
+  // something that is not an id.
+  return { skip: true }
+}
