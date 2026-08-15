@@ -9,6 +9,9 @@
     },
     "app/api/sse/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/cron/github-sync/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -27,6 +30,10 @@
     {
       "path": "/api/cron/abandoned-uploads",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/github-sync",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
