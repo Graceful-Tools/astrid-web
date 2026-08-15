@@ -215,17 +215,21 @@ export async function notifyCommentOnAssignedTask(
       if (repository && isCodingAgent(task.assignee)) {
         log.info(`🤖 Internal coding agent - triggering tools workflow for comment response`)
         try {
-          const baseUrl = getBaseUrl()
-          await fetch(`${baseUrl}/api/coding-workflow/start-tools-workflow`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              taskId: task.id,
-              repository,
-              userComment: commentContent,
-            }),
+          // Called DIRECTLY, not over HTTP. The fetch this replaces carried no
+          // cookie, so the route's session check answered 401 and the workflow
+          // never started — while the success line below still printed, because
+          // it did not inspect the response. (Task 46acd19c.)
+          const { startToolsWorkflow } = await import('@/lib/coding-workflow/start-tools-workflow')
+          const result = await startToolsWorkflow({
+            taskId: task.id,
+            repository,
+            userComment: commentContent,
           })
-          log.info(`✅ Tools workflow triggered for comment: "${commentContent}"`)
+          if (result.ok) {
+            log.info(`✅ Tools workflow triggered for comment: "${commentContent}"`)
+          } else {
+            log.error({ error: result.error, taskId: task.id }, '❌ Tools workflow refused')
+          }
         } catch (error) {
           log.error({ err: error }, `❌ Failed to trigger tools workflow:`)
         }
