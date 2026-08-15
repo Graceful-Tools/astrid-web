@@ -68,6 +68,21 @@ interface TaskDetailProps {
   onSaveNew?: (task: Task) => Promise<void>
   selectedTaskElement?: HTMLElement | null
   readOnly?: boolean  // If true, shows view-only mode (no editing)
+  /**
+   * Whether the viewer may post comments. Separate from `readOnly` on purpose:
+   * on a shared list a member who cannot EDIT a task can still COMMENT on it,
+   * which is the whole reason task-detail-viewonly renders a CommentSection
+   * (it passes readOnly={!canComment} rather than reusing one flag for both).
+   *
+   * `readOnly` used to decide this too, and that conflation is live rather than
+   * theoretical: project-status-board passes readOnly={!canEdit}, so a member
+   * who can view but not edit a task on the board gets no comment box today.
+   *
+   * Defaults to !readOnly so every existing caller behaves exactly as before —
+   * this prop only ADDS the ability to say "cannot edit, may comment". Changing
+   * what the status board passes is a separate, visible change (task 72cb4a13).
+   */
+  canComment?: boolean
   inline?: boolean
   /**
    * Whether this pane can be expanded to full screen. Set by whoever renders
@@ -84,8 +99,14 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
+
+  // Editing and commenting are separate permissions — see the canComment prop.
+  // Defaulting to !readOnly preserves every current caller's behaviour exactly,
+  // so this widening is a no-op until a caller passes canComment explicitly.
+  const canPostComments = canComment ?? !readOnly
+
   // SSE subscriptions handled by useSSESubscription hook below
   const { reminderDebugMode } = useSettings()
   const { triggerManualReminder } = useReminders(currentUser.id)
@@ -1381,7 +1402,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       </div>
 
       {/* Floating comment input bar - outside scroll area, sticks to bottom */}
-      {!shouldHideTaskComments(task) && !readOnly && (
+      {!shouldHideTaskComments(task) && canPostComments && (
         <CommentInputBar
           task={task}
           currentUser={currentUser}
