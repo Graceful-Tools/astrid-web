@@ -105,8 +105,23 @@ function validateFileType(file: File): { valid: boolean; error?: string } {
   const extension = fileName.slice(lastDotIndex)
   const allowedMimes = EXTENSION_MIME_MAP[extension]
 
-  // If we have a mapping, validate MIME matches extension
-  if (allowedMimes && !allowedMimes.includes(file.type)) {
+  // The extension must be KNOWN, not merely non-contradictory. This read
+  // `if (allowedMimes && ...)`, so an extension absent from the map skipped the
+  // check entirely and rode in on its declared MIME alone: `evil.html` sent as
+  // image/png was accepted and stored with its .html extension. The extension
+  // decides the stored filename and therefore what gets served back, which is
+  // what makes that worth rejecting. (Task c09f3eb1.)
+  //
+  // Nothing legitimate is refused by this: the map covers all 24 allowed MIME
+  // types, so every extension a permitted file can carry is already present.
+  if (!allowedMimes) {
+    return {
+      valid: false,
+      error: `File extension '${extension}' is not allowed`
+    }
+  }
+
+  if (!allowedMimes.includes(file.type)) {
     return {
       valid: false,
       error: `File extension '${extension}' does not match MIME type '${file.type}'`
