@@ -762,6 +762,10 @@ export function TaskFieldEditors({
               value={tempPriority}
               onChange={handleSavePriority}
               label="Priority"
+              // Every other field here gates its click behind !readOnly; this
+              // one rendered ungated, so priority stayed editable to a viewer
+              // who could edit nothing else. (Task 72cb4a13.)
+              disabled={readOnly}
             />
           )}
         {isPublicListTask ? (

@@ -7,14 +7,24 @@ interface PriorityPickerProps {
   label?: string
   showLabel?: boolean
   className?: string
+  /**
+   * Render the controls inert AND visibly unavailable. Defaults false, so
+   * existing callers are unchanged.
+   *
+   * Added because task detail's read-only mode gated every other field's click
+   * but rendered this component ungated, leaving priority editable to viewers
+   * who could not edit anything else. (Task 72cb4a13.)
+   */
+  disabled?: boolean
 }
 
-export function PriorityPicker({ value, onChange}: PriorityPickerProps) {
+export function PriorityPicker({ value, onChange, disabled = false }: PriorityPickerProps) {
   return (
     <div className="flex space-x-2 mt-1 col-span-2">
       <Button
         size="sm"
         variant="outline"
+        disabled={disabled}
         onClick={() => onChange(0)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 0 
@@ -27,6 +37,7 @@ export function PriorityPicker({ value, onChange}: PriorityPickerProps) {
       <Button
         size="sm"
         variant="outline"
+        disabled={disabled}
         onClick={() => onChange(1)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 1 
@@ -39,6 +50,7 @@ export function PriorityPicker({ value, onChange}: PriorityPickerProps) {
       <Button
         size="sm"
         variant="outline"
+        disabled={disabled}
         onClick={() => onChange(2)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 2 
@@ -51,6 +63,7 @@ export function PriorityPicker({ value, onChange}: PriorityPickerProps) {
       <Button
         size="sm"
         variant="outline"
+        disabled={disabled}
         onClick={() => onChange(3)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 3 
