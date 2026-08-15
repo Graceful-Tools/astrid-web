@@ -16,6 +16,7 @@
 
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { decode } from 'next-auth/jwt'
 import { mcpTokenStorageFields, resolveMCPPlaintext } from '@/lib/mcp-token'
 import { generateMCPToken } from '@/lib/mcp-token-utils'
 
@@ -33,6 +34,31 @@ export type SessionResolution =
  * getUnifiedSession: these routes exist to bootstrap token auth for a client
  * that only has a cookie, so the cookie is the whole input.
  */
+/**
+ * Is this cookie a valid, unexpired NextAuth JWT?
+ *
+ * Used only to tell "signed in a way we do not support here" apart from
+ * "not signed in", so the 401 can say which. A decode failure means the cookie
+ * is neither a database session nor a readable JWT, which is the genuinely
+ * invalid case.
+ */
+async function looksLikeValidJwtSession(cookieValue: string): Promise<boolean> {
+  try {
+    const decoded = await decode({
+      token: cookieValue,
+      secret: process.env.NEXTAUTH_SECRET!,
+    })
+    if (!decoded?.id) return false
+    // An expired JWT is not "signed in with the wrong method", it is expired.
+    if (typeof decoded.exp === 'number' && decoded.exp < Math.floor(Date.now() / 1000)) {
+      return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function resolveMobileSessionUser(request: NextRequest): Promise<SessionResolution> {
   const sessionCookie =
     request.cookies.get('next-auth.session-token') ||
@@ -48,6 +74,29 @@ export async function resolveMobileSessionUser(request: NextRequest): Promise<Se
   })
 
   if (!session) {
+    // The cookie may be a perfectly valid JWT rather than a database session.
+    // Passkey/WebAuthn sign-in issues JWTs (strategy: 'jwt'), Apple/Google
+    // mobile sign-in issues database Session rows, and these routes only
+    // understand the latter.
+    //
+    // Saying "invalid session" to a passkey user is actively misleading: they
+    // ARE signed in, GET /api/v1/auth/mobile-session validates them, and the
+    // message sends them looking for a broken integration instead of an
+    // unsupported sign-in method. 33 authenticators are registered in
+    // production, so this is a real audience. (Task c9a38b36.)
+    //
+    // This does NOT widen who can mint a token — deciding whether JWT sessions
+    // should be accepted is a separate call. It only makes the refusal
+    // truthful.
+    if (await looksLikeValidJwtSession(sessionCookie.value)) {
+      return {
+        ok: false,
+        status: 401,
+        error:
+          'Unauthorized - MCP tokens require an Apple or Google sign-in. ' +
+          'Passkey sessions cannot mint one.',
+      }
+    }
     return { ok: false, status: 401, error: 'Unauthorized - Invalid session' }
   }
 
