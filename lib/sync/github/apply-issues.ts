@@ -8,11 +8,11 @@
  * resolution and the deletion policy, which is why web sync does not exist and
  * why three GitHub links in production are driven entirely from a phone.
  *
- * THE TRAP THIS FILE EXISTS TO AVOID. The pull COMMITS THE CURSOR by default.
- * A driver that pulls and then fails to apply would advance the watermark past
- * issues nobody imported, and those issues would never be offered again —
- * silent, permanent data loss that looks like "sync is quiet". So the caller
- * pulls with deferCursor and commits only after this returns without error.
+ * THE TRAP THIS FILE EXISTS TO AVOID. A driver that pulls and then fails to
+ * apply must not advance the `since` watermark: issues nobody imported would
+ * never be offered again — silent, permanent data loss that looks like "sync is
+ * quiet". So the caller commits the cursor only after this returns without
+ * throwing, and this rethrows everything except a concurrent-create.
  *
  * SCOPE: CREATE AND UPDATE ONLY. Deletion is deliberately absent.
  * ------------------------------------------------------------
@@ -30,18 +30,11 @@
 
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import type { PulledIssue } from '@/lib/sync/github/pull-issues'
 
 const log = createLogger('sync.github.apply')
 
-/** One provider-neutral item as the pull returns it. */
-export interface PulledIssue {
-  remoteId: string
-  title: string
-  body?: string | null
-  completed?: boolean
-  updatedAt?: string | null
-  metadata?: Record<string, unknown>
-}
+export type { PulledIssue }
 
 export interface ApplyResult {
   created: number
@@ -59,9 +52,9 @@ export interface ApplyResult {
  * rewrite that task and clobber any local edit made in between.
  */
 function isStale(item: PulledIssue, existingRemoteUpdatedAt: Date | null): boolean {
-  if (!item.updatedAt) return false
+  if (!item.remoteUpdatedAt) return false
   if (!existingRemoteUpdatedAt) return false
-  return new Date(item.updatedAt) <= existingRemoteUpdatedAt
+  return new Date(item.remoteUpdatedAt) <= existingRemoteUpdatedAt
 }
 
 export async function applyPulledIssues(args: {
@@ -79,8 +72,13 @@ export async function applyPulledIssues(args: {
   const result: ApplyResult = { created: 0, updated: 0, skipped: 0 }
 
   // A link that only pushes must never have remote state written into Astrid.
-  if (link.direction === 'PUSH_ONLY') {
-    log.info({ linkId: link.id }, 'Link is push-only; nothing to apply')
+  //
+  // The value is EXPORT (Astrid -> GitHub). Named from Astrid's point of view,
+  // so "export" is the push-only direction; there is no PUSH_ONLY member. An
+  // earlier draft guarded on that invented name, which made this check dead
+  // code and would have let an export-only link be overwritten from GitHub.
+  if (link.direction === 'EXPORT') {
+    log.info({ linkId: link.id }, 'Link is export-only; nothing to apply')
     return { ...result, skipped: items.length }
   }
 
@@ -105,14 +103,16 @@ export async function applyPulledIssues(args: {
         where: { id: existing.astridTaskId },
         data: {
           title: item.title,
-          description: item.body ?? undefined,
-          completed: item.completed ?? undefined,
+          description: item.notes ?? '',
+          completed: item.completed,
+          completedAt: item.completedAt ? new Date(item.completedAt) : null,
+          closedReason: item.closedReason ?? null,
         },
       })
       await prisma.externalTaskLink.update({
         where: { id: existing.id },
         data: {
-          remoteUpdatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
+          remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
           lastSyncedAt: new Date(),
         },
       })
@@ -128,10 +128,14 @@ export async function applyPulledIssues(args: {
         const task = await tx.task.create({
           data: {
             title: item.title,
-            description: item.body ?? undefined,
-            completed: item.completed ?? false,
+            description: item.notes ?? '',
+            completed: item.completed,
+            completedAt: item.completedAt ? new Date(item.completedAt) : null,
+            closedReason: item.closedReason ?? null,
             creatorId: link.userId,
-            assigneeId: (item.metadata?.assigneeUserId as string) || undefined,
+            // '' means no assignee resolved to an Astrid user — leave it unset
+            // rather than writing an empty string into a relation.
+            assigneeId: item.metadata.assigneeUserId || undefined,
             lists: { connect: { id: link.astridListId } },
           },
         })
@@ -143,7 +147,7 @@ export async function applyPulledIssues(args: {
             provider: 'GITHUB_ISSUES',
             remoteId: item.remoteId,
             remoteContainerId: link.remoteContainerId,
-            remoteUpdatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
+            remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : null,
             lastSyncedAt: new Date(),
           },
         })

@@ -32,6 +32,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { applyPulledIssues } from '@/lib/sync/github/apply-issues'
+import type { PulledIssue } from '@/lib/sync/github/pull-issues'
 
 const LINK = {
   id: 'link-1',
@@ -45,11 +46,22 @@ const LINK = {
 const issue = (over: Record<string, unknown> = {}) => ({
   remoteId: 'owner/repo#1',
   title: 'Fix the thing',
-  body: 'details',
+  notes: 'details',
   completed: false,
-  updatedAt: '2026-08-15T10:00:00Z',
+  completedAt: null,
+  closedReason: null,
+  remoteUpdatedAt: '2026-08-15T10:00:00Z',
+  metadata: {
+    number: '1',
+    parent: '',
+    assigneeUserId: '',
+    commentCount: '0',
+    labels: '',
+    assignees: '',
+    state_reason: '',
+  },
   ...over,
-})
+}) as never
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -102,9 +114,12 @@ describe('applyPulledIssues (task d8de37c1)', () => {
     expect(taskUpdate).not.toHaveBeenCalled()
   })
 
-  it('applies nothing for a push-only link', async () => {
+  it('applies nothing for an export-only link', async () => {
+    // EXPORT is the real push-only value. An earlier draft of both the guard
+    // AND this test used an invented 'PUSH_ONLY', so the test passed while the
+    // guard was dead code — the enum is EXPORT | IMPORT | BIDIRECTIONAL.
     const result = await applyPulledIssues({
-      link: { ...LINK, direction: 'PUSH_ONLY' },
+      link: { ...LINK, direction: 'EXPORT' },
       items: [issue(), issue({ remoteId: 'owner/repo#2' })],
     })
 
@@ -130,6 +145,27 @@ describe('applyPulledIssues (task d8de37c1)', () => {
     const result = await applyPulledIssues({ link: LINK, items: [issue()] })
 
     expect(result).toMatchObject({ created: 0, skipped: 1 })
+  })
+
+  it('reads the field names the pull actually emits', async () => {
+    // Regression guard for a bug caught in review: this module originally
+    // declared its own PulledIssue with `body`/`updatedAt`, but the pull emits
+    // `notes`/`remoteUpdatedAt`. Nothing failed to compile — the optional
+    // fields were simply always undefined, so descriptions never synced and
+    // isStale never fired, meaning every run reapplied every issue. The type
+    // now comes FROM the pull, and this asserts the values reach Prisma.
+    const item: PulledIssue = issue({ notes: 'the real body' })
+    findFirst.mockResolvedValue({
+      id: 'etl-1',
+      astridTaskId: 'task-1',
+      remoteUpdatedAt: new Date('2026-08-15T09:00:00Z'),
+    })
+
+    await applyPulledIssues({ link: LINK, items: [item] })
+
+    expect(taskUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: 'the real body' }) }),
+    )
   })
 
   it('PROPAGATES a non-unique failure so the caller does not commit the cursor', async () => {
