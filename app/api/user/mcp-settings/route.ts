@@ -35,7 +35,11 @@ const log = createLogger('user.mcp-settings')
 const UpdateUserMCPSettingsSchema = z.object({
   mcpEnabled: z.boolean().optional(),
   defaultNewListMcpEnabled: z.boolean().optional(),
-  defaultNewListMcpAccessLevel: z.enum(['READ', 'write', 'both']).optional(),
+  // Must match Prisma's MCPAccessLevel exactly. This read ['READ', 'write',
+  // 'both'], so WRITE and BOTH were rejected with a 400 while the two
+  // lowercase values were accepted and passed to the driver, which rejects
+  // them with a 500 — exactly one of the three settings worked. (Task 87e19910.)
+  defaultNewListMcpAccessLevel: z.enum(['READ', 'WRITE', 'BOTH']).optional(),
 })
 
 export async function GET() {
