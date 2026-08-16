@@ -690,6 +690,15 @@
         "viewDesc": "查看所有可用的键盘快捷键以高效管理任务",
         "quickAccess": "在任务管理器中随时按?打开键盘快捷键。"
       },
+      "taskDisplayMode": {
+        "title": "任务详情布局",
+        "description": "任务中优先级、负责人和状态的显示方式（跨设备同步）",
+        "label": "布局",
+        "list": "列表",
+        "project": "项目",
+        "listDesc": "复选框用于完成任务，优先级和负责人各占一行。",
+        "projectDesc": "紧凑模式。点按复选框会打开优先级、负责人、状态和完成。"
+      },
       "emailToTask": {
         "title": "邮件创建任务",
         "description": "通过发送邮件到{inboundTaskEmail}即时创建任务",

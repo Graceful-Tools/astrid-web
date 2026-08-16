@@ -690,6 +690,15 @@
         "viewDesc": "檢視所有可用的鍵盤快速鍵以高效管理任務",
         "quickAccess": "在任務管理器中隨時按?開啟鍵盤快速鍵。"
       },
+      "taskDisplayMode": {
+        "title": "任務詳情版面",
+        "description": "任務中優先順序、負責人與狀態的顯示方式（跨裝置同步）",
+        "label": "版面",
+        "list": "清單",
+        "project": "專案",
+        "listDesc": "核取方塊用於完成任務，優先順序與負責人各佔一列。",
+        "projectDesc": "精簡模式。點按核取方塊會開啟優先順序、負責人、狀態與完成。"
+      },
       "emailToTask": {
         "title": "郵件建立任務",
         "description": "透過傳送郵件到{inboundTaskEmail}即時建立任務",

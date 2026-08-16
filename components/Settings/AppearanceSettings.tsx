@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTheme } from "@/contexts/theme-context"
 import { KeyboardShortcutsMenu } from "@/components/keyboard-shortcuts-menu"
 import { useTranslations } from "@/lib/i18n/client"
+import { DEFAULT_TASK_DISPLAY_MODE, normalizeTaskDisplayMode } from "@/lib/task-display-mode"
+import { apiCall } from "@/lib/api"
 import {
   Palette,
   Sun,
@@ -18,7 +20,8 @@ import {
   Keyboard,
   Mail,
   Sparkles,
-  ListTree
+  ListTree,
+  LayoutList
 } from "lucide-react"
 
 interface AppearanceSettingsProps {
@@ -30,6 +33,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   const [smartTaskCreationEnabled, setSmartTaskCreationEnabled] = useState(true)
   const [subtaskDisplay, setSubtaskDisplay] = useState('indented')
+  const [taskDisplayMode, setTaskDisplayMode] = useState<string>(DEFAULT_TASK_DISPLAY_MODE)
   const { t } = useTranslations()
 
   // Load smart task creation setting
@@ -41,6 +45,10 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
           const data = await response.json()
           setSmartTaskCreationEnabled(data.smartTaskCreationEnabled ?? true)
           setSubtaskDisplay(data.subtaskDisplay ?? 'indented')
+          // Through the normalizer rather than `?? 'list'`: a build that does
+          // not know a stored mode must fall back to the safe design instead
+          // of showing an empty selector.
+          setTaskDisplayMode(normalizeTaskDisplayMode(data.taskDisplayMode))
         }
       } catch (error) {
         console.error('Error loading settings:', error)
@@ -57,6 +65,26 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subtaskDisplay: value })
+      })
+    } catch (error) {
+      console.error('Error saving setting:', error)
+    }
+  }
+
+  // Save task display mode
+  //
+  // Through apiCall rather than a bare fetch: it carries the shared credentials
+  // and headers and routes failures through the same cache-invalidation path as
+  // the rest of the client layer. The neighbouring handlers above still use raw
+  // fetch — they predate lib/api and are counted by the raw-fetch ratchet
+  // (tests/rules/raw-fetch-mutations-ratchet.test.ts); a new one must not add to
+  // that number.
+  const handleTaskDisplayModeChange = async (value: string) => {
+    setTaskDisplayMode(value)
+    try {
+      await apiCall('/api/v1/users/me/smart-tasks', {
+        method: 'PATCH',
+        body: JSON.stringify({ taskDisplayMode: value })
       })
     } catch (error) {
       console.error('Error saving setting:', error)
@@ -282,6 +310,44 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <span><strong>Lists:</strong> &quot;#shopping Buy groceries&quot;, &quot;#work Finish report&quot;</span>
                   </li>
                 </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Task detail layout */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex items-center space-x-2">
+                <LayoutList className="w-5 h-5 text-green-500" />
+                <span>{t("settingsPages.appearancePage.taskDisplayMode.title")}</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                {t("settingsPages.appearancePage.taskDisplayMode.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div className="flex-1">
+                  <Label className="font-medium theme-text-primary">
+                    {t("settingsPages.appearancePage.taskDisplayMode.label")}
+                  </Label>
+                  <p className="text-sm theme-text-muted">
+                    {t(`settingsPages.appearancePage.taskDisplayMode.${taskDisplayMode}Desc`)}
+                  </p>
+                </div>
+                <Select value={taskDisplayMode} onValueChange={handleTaskDisplayModeChange}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="list">
+                      {t("settingsPages.appearancePage.taskDisplayMode.list")}
+                    </SelectItem>
+                    <SelectItem value="project">
+                      {t("settingsPages.appearancePage.taskDisplayMode.project")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

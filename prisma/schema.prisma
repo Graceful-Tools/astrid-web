@@ -50,6 +50,14 @@ model User {
   aiAssistantSettings          String?
   defaultDueTime               String?                @default("17:00")
   subtaskDisplay               String?                @default("indented") // "indented" (in lists) | "under_parent" (detail only)
+  /// Which task-detail design this user sees: "list" (checkbox completes the
+  /// task; priority and assignee get their own rows) or "project" (compact —
+  /// the checkbox opens a popover carrying priority, assignee, board state and
+  /// completion). Everyone defaults to list, existing rows included: the column
+  /// default covers new users and lib/task-display-mode.ts normalizes the null
+  /// that pre-migration rows read back as. NOT the project_mode feature flag,
+  /// which is access to projects/boards rather than a display preference.
+  taskDisplayMode              String?                @default("list")
   mcpEnabled                   Boolean                @default(true)
   mcpSettings                  String?
   aiAgentConfig                String?

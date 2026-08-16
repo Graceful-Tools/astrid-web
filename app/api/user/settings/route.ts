@@ -9,6 +9,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
+import { isTaskDisplayMode } from '@/lib/task-display-mode'
 
 const log = createLogger('user.settings')
 
@@ -29,6 +30,7 @@ export async function GET() {
         defaultDueTime: true,
         smartTaskCreationEnabled: true,
         subtaskDisplay: true,
+        taskDisplayMode: true,
       }
     })
 
@@ -54,13 +56,21 @@ export async function PATCH(request: NextRequest) {
     const data = await request.json()
 
     // Validate allowed fields
-    const allowedFields = ['emailToTaskEnabled', 'defaultTaskDueOffset', 'defaultDueTime', 'emailToTaskListId', 'smartTaskCreationEnabled', 'subtaskDisplay']
+    const allowedFields = ['emailToTaskEnabled', 'defaultTaskDueOffset', 'defaultDueTime', 'emailToTaskListId', 'smartTaskCreationEnabled', 'subtaskDisplay', 'taskDisplayMode']
     const updateData: any = {}
 
     for (const field of allowedFields) {
       if (field in data) {
         updateData[field] = data[field]
       }
+    }
+
+    // Validate taskDisplayMode. Through the shared helper, not an inline
+    // ['list','project']: this route and the v1 one must not drift on what is
+    // allowed, or the toggle would depend on which client last wrote it
+    // (task ffa5bbb5).
+    if ('taskDisplayMode' in updateData && !isTaskDisplayMode(updateData.taskDisplayMode)) {
+      return NextResponse.json({ error: 'Invalid taskDisplayMode value' }, { status: 400 })
     }
 
     // Validate subtaskDisplay values
@@ -119,6 +129,7 @@ export async function PATCH(request: NextRequest) {
         defaultDueTime: true,
         smartTaskCreationEnabled: true,
         subtaskDisplay: true,
+        taskDisplayMode: true,
       }
     })
 

@@ -690,6 +690,15 @@
         "viewDesc": "효율적인 작업 관리를 위한 모든 사용 가능한 키보드 단축키 보기",
         "quickAccess": "작업 관리자 어디서나 ?를 눌러 키보드 단축키를 엽니다."
       },
+      "taskDisplayMode": {
+        "title": "작업 상세 레이아웃",
+        "description": "작업에서 우선순위, 담당자, 상태가 표시되는 방식 (기기 간 동기화)",
+        "label": "레이아웃",
+        "list": "목록",
+        "project": "프로젝트",
+        "listDesc": "체크박스로 작업을 완료하며, 우선순위와 담당자는 각각 별도의 행을 가집니다.",
+        "projectDesc": "간결하게 표시. 체크박스를 누르면 우선순위, 담당자, 상태, 완료가 열립니다."
+      },
       "emailToTask": {
         "title": "이메일에서 작업",
         "description": "{inboundTaskEmail}로 이메일을 보내 즉시 작업 생성",
