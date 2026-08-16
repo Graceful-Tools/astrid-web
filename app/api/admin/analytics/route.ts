@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
               'web-iPhone': latestStats.dauWebIPhone,
               'web-android': latestStats.dauWebAndroid,
               'iOS-app': latestStats.dauIOSApp,
+              'mac-app': latestStats.dauMacApp,
               'API-other': latestStats.dauAPIOther,
               unknown: latestStats.dauUnknown,
             },

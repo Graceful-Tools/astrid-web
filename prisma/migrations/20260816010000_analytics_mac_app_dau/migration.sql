@@ -1,0 +1,15 @@
+-- Mac app DAU bucket (task b4591534).
+--
+-- Purely additive, with a default, so no existing row is rewritten and no
+-- existing query changes meaning. A deployment that never sees a Mac request
+-- carries a column of zeros.
+--
+-- The traffic already exists: the iOS/Mac client has sent `x-platform: mac-app`
+-- on every request since build 232, and detectPlatform read x-platform before
+-- any user-agent sniffing — but there was no Mac member of AnalyticsPlatform,
+-- so it landed in UNKNOWN. This column is where it goes from now on.
+--
+-- NOT BACKFILLED, deliberately: past days' Mac traffic is inside dauUnknown and
+-- cannot be separated after the fact — the daily rows store counts, not the
+-- requests they were derived from. Mac numbers start from this deploy.
+ALTER TABLE "DailyStats" ADD COLUMN IF NOT EXISTS "dauMacApp" INTEGER NOT NULL DEFAULT 0;

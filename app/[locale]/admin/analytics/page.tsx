@@ -30,6 +30,7 @@ interface DailyStats {
   dauWebIPhone: number
   dauWebAndroid: number
   dauIOSApp: number
+  dauMacApp: number
   dauAPIOther: number
   dauUnknown: number
   taskCreated: number
@@ -218,6 +219,7 @@ export default function AnalyticsDashboard() {
     'iPhone Web': stat.dauWebIPhone,
     'Android Web': stat.dauWebAndroid,
     'iOS App': stat.dauIOSApp,
+    'Mac App': stat.dauMacApp,
     API: stat.dauAPIOther,
     Unknown: stat.dauUnknown,
   }))
@@ -229,6 +231,7 @@ export default function AnalyticsDashboard() {
       stat.dauWebIPhone > 0 ||
       stat.dauWebAndroid > 0 ||
       stat.dauIOSApp > 0 ||
+      stat.dauMacApp > 0 ||
       stat.dauAPIOther > 0 ||
       stat.dauUnknown > 0
   )
