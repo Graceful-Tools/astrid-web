@@ -21,6 +21,7 @@ import { createLogger } from '@/lib/logger'
 import { githubTokenFor, isValidRepoId } from '@/lib/sync/github'
 import { pullIssuesForLink } from '@/lib/sync/github/pull-issues'
 import { applyPulledIssues } from '@/lib/sync/github/apply-issues'
+import { directionPulls, pushTasksForLink } from '@/lib/sync/github/push-tasks'
 
 const log = createLogger('sync.github.run')
 
@@ -30,16 +31,20 @@ export interface SyncRunSummary {
   updated: number
   skipped: number
   failed: number
+  /** Outbound: Astrid edits sent to GitHub. */
+  pushed: number
+  /** Outbound: links whose push watermark was initialised without pushing. */
+  seeded: number
 }
 
 export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
   const links = await prisma.externalListLink.findMany({
     where: {
       provider: 'GITHUB_ISSUES',
-      // EXPORT is the push-only direction (Astrid -> GitHub); those links have
-      // nothing to apply, and excluding them here keeps a one-way link from
-      // costing a GitHub round trip every run.
-      direction: { not: 'EXPORT' },
+      // Every direction is fetched now. EXPORT used to be excluded here, which
+      // was backwards once there is an outbound leg: EXPORT is precisely the
+      // direction that should push. Which legs run is decided per link below.
+      // (Jon: "Make it directional.")
     },
     select: {
       id: true,
@@ -52,7 +57,9 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
     },
   })
 
-  const summary: SyncRunSummary = { links: links.length, created: 0, updated: 0, skipped: 0, failed: 0 }
+  const summary: SyncRunSummary = {
+    links: links.length, created: 0, updated: 0, skipped: 0, failed: 0, pushed: 0, seeded: 0,
+  }
 
   for (const link of links) {
     try {
@@ -66,6 +73,21 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
         // Not worth alerting on: the user disconnected GitHub. Leave the cursor
         // untouched so nothing is lost if they reconnect.
         log.info({ linkId: link.id }, 'No GitHub token for link owner; skipping')
+        continue
+      }
+
+      // PUSH FIRST. Pushing bumps the issue's updated_at, so doing it before
+      // the pull means a just-pushed change is never re-read in the same pass.
+      // The remoteUpdatedAt written by the push is what makes the echo stale.
+      const pushedResult = await pushTasksForLink({ link, token })
+      summary.pushed += pushedResult.pushed
+      summary.seeded += pushedResult.seeded
+
+      if (!directionPulls(link.direction)) {
+        log.info(
+          { linkId: link.id, direction: link.direction, ...pushedResult },
+          'Push-only link; skipping pull',
+        )
         continue
       }
 
