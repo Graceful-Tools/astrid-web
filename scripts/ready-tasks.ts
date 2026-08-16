@@ -142,11 +142,20 @@ async function main() {
     }
   }
 
-  // Same reasoning as above: a queue held up by claimed work must not look like
-  // an idle one. Naming the assignee is what lets Jon see that the loop is
-  // waiting on a person rather than out of things to do.
+  // Same reasoning as above: a queue held up by work the loop may not take must not
+  // look like an idle one. Naming the assignee is what lets Jon see whether it is
+  // waiting on a person or simply waiting to be handed something.
+  //
+  // The wording covers BOTH reasons now. Since assignment became the handshake,
+  // "unassigned" is the common case, and calling that "assigned to someone else"
+  // was plainly wrong — it read as a claim by a person who did not exist.
   if (claimed.length > 0) {
-    console.log(`(${claimed.length} Ready task(s) assigned to someone else — not this loop's:)`)
+    const unassigned = claimed.filter(task => !task.assigneeId).length
+    const reason =
+      unassigned === claimed.length ? 'not assigned to this loop'
+      : unassigned === 0 ? 'assigned to someone else'
+      : `${unassigned} unassigned, ${claimed.length - unassigned} assigned to someone else`
+    console.log(`(${claimed.length} Ready task(s) — ${reason}:)`)
     for (const task of claimed) {
       const who = describeAssignee(task)
       console.log(`  — ${task.title}  [${who}]`)
