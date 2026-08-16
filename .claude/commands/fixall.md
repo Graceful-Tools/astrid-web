@@ -11,20 +11,60 @@ a no-op, not busywork.
 not triaged. `Ready` is Jon's signal that a task is actually actionable. Working
 anything else is not autonomy, it is picking your own work.
 
-**Only unassigned tasks, or ones assigned to Claude.** An assignee is a claim.
-A task assigned to a person is that person's, even when it sits in Ready — taking
-it means two people writing the same fix, or Jon's own half-finished work being
-redone underneath him. `Ready` says *this is actionable*, not *this is unclaimed*.
+**ONLY tasks assigned to Claude.** Assignment is the handshake (Jon, 2026-08-15).
+Not unassigned, not "looks like agent work" — assigned.
+
+Unassigned used to qualify, on the reasoning that nobody had claimed it. That made
+`Ready` mean *actionable AND unclaimed*, so anything Jon dropped into Ready to think
+about was fair game for a loop that would start on it within fifteen minutes.
+Requiring the assignment inverts the default: nothing is yours until it is handed
+over, and Ready goes back to meaning only *ready*.
 
 `scripts/ready-tasks.ts` enforces it (the rule itself is `lib/ready-queue-scope.ts`,
 tested), and prints what it skipped **with the assignee's name** — a queue held up
-by claimed work must not look like an idle one. If a task is assigned to someone
-and you believe it is genuinely yours, say so and let Jon reassign it; do not work
-around the filter.
+by someone else's work must not look like an idle one. If something is genuinely
+yours, say so and let Jon assign it; do not work around the filter.
 
 The conservative case is deliberate: a task that IS assigned but whose assignee
 cannot be resolved counts as someone else's. Claiming it on a guess costs
 duplicated work; skipping it costs one line of output.
+
+## Say on the board what you are doing
+
+The board is where Jon looks. A task being worked and a task nobody has touched must
+not look identical there.
+
+**Starting a task → move it to `Doing`.** Do this BEFORE the strategy comment, so the
+window where the board is wrong is as small as possible:
+
+```bash
+npx tsx scripts/set-task-status.ts <taskId> Doing
+```
+
+**Blocked on Jon → hand it back: assign to him AND move it to `Waiting`.** Both, not
+one. Assigning alone leaves it sitting in Doing, which reads as in-progress; moving
+alone leaves it assigned to Claude, which reads as still yours:
+
+```bash
+npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
+npx tsx scripts/set-task-status.ts <taskId> Waiting
+```
+
+Then say on the task what decision you need. A task in Waiting with no question on it
+is just a task nobody is working.
+
+Either order is safe — a half-done handoff lands the task outside the queue's scope
+whichever step succeeded, so the loop will not pick it back up mid-handoff.
+
+**Use `set-task-status.ts`, never `move-task-to-list.ts`.** Status is a SECOND
+membership alongside the board, and `PUT` replaces the whole `listIds` set, so
+`move-task-to-list.ts` — correct for moving between boards — would put the task on
+Doing and take it off the board, out of every queue, findable only by id. The status
+script keeps the board, refuses to write if the task would be stranded, and reads
+back to prove it.
+
+**Completing a task takes it out of `Doing` on its own** — no status change needed
+before marking it complete.
 
 **The queue is `Ready` ∩ `Astrid Web To-do`, and both halves are required.** `Ready` is
 not a sublist of the web board — it is one account-wide `listType: 'status'` list that
@@ -120,12 +160,17 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor
   breakage, close that task with a one-line explanation rather than leaving a false
   alarm on the board.
-- **If a task is ambiguous or needs a product decision, skip it**, comment on the task
+- **If a task is ambiguous or needs a product decision, hand it back** — assign it to
+  Jon and move it to `Waiting` (see "Say on the board what you are doing") — comment
   saying exactly what decision is needed, and move to the next one. Do not guess at
   intent, and do not stall the whole run on one blocked task.
 - **If a task is blocked by something outside the repo** — a client rollout, a
-  third-party outage, a decision only Jon can make — say so on the task and move on.
-  Do not close it, and do not work around the block by breaking users.
+  third-party outage, a decision only Jon can make — hand it back the same way: assign
+  to Jon, move to `Waiting`, say what is blocking it. Do not close it, and do not work
+  around the block by breaking users.
+  - The point of `Waiting` is that a re-run stops re-reading it. A blocked task left in
+    Ready is re-examined every fifteen minutes forever and reported as blocked every
+    time, which is the no-op loop this file exists to avoid.
 - **If every Ready task is blocked, say so in a few lines and stop.** A run that ends
   with "nothing actionable" is a correct run. Do not invent adjacent work to fill it;
   re-checking a blocked task costs one call, and inventing work costs a review.

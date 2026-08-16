@@ -11,10 +11,17 @@ import { describe, it, expect } from 'vitest'
 import { isClaimableByAgent, describeAssignee } from '@/lib/ready-queue-scope'
 
 describe('isClaimableByAgent', () => {
-  it('takes an unassigned task', () => {
-    expect(isClaimableByAgent({ assigneeId: null })).toBe(true)
-    expect(isClaimableByAgent({})).toBe(true)
-    expect(isClaimableByAgent({ assigneeId: '' })).toBe(true)
+  // Jon, 2026-08-15: "only chose tasks assigned to Claude".
+  //
+  // Unassigned USED to qualify, on the reasoning that nobody had claimed it. That
+  // reading made Ready mean "actionable and unclaimed", so anything Jon dropped into
+  // Ready to think about was fair game for a loop that would start work on it within
+  // fifteen minutes. Assignment is now the handshake: a task is the loop's only when
+  // someone hands it over.
+  it('leaves an UNASSIGNED task alone — assignment is the handshake', () => {
+    expect(isClaimableByAgent({ assigneeId: null })).toBe(false)
+    expect(isClaimableByAgent({})).toBe(false)
+    expect(isClaimableByAgent({ assigneeId: '' })).toBe(false)
   })
 
   it('takes a task assigned to the agent itself', () => {
@@ -74,6 +81,14 @@ describe('describeAssignee', () => {
   })
 
   it('never returns an empty string, so the skip line always says something', () => {
-    expect(describeAssignee({})).toBe('unknown')
+    expect(describeAssignee({})).not.toBe('')
+    expect(describeAssignee({ assigneeId: 'u1' })).not.toBe('')
+  })
+
+  // Unassigned is now the COMMON skip rather than an edge case, so it has to read as a
+  // normal state. "unknown" sent a reader looking for a data bug that was not there.
+  it('says unassigned rather than unknown when nobody has it', () => {
+    expect(describeAssignee({})).toBe('unassigned')
+    expect(describeAssignee({ assigneeId: null })).toBe('unassigned')
   })
 })
