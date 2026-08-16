@@ -159,6 +159,12 @@ export const GET = withAuth(
           parentTaskId: true,
           lists: {
             select: {
+              // Required for permission checks: getUserRoleInList resolves
+              // OWNER from this. Without it an owner who is not also a
+              // listMembers row resolves to NO role, and the task renders
+              // read-only — which is what happened to every task carrying a
+              // status, since lists[0] is the status list. (Task 5208e723.)
+              ownerId: true,
               id: true,
               name: true,
               color: true,
