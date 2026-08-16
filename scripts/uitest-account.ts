@@ -50,6 +50,51 @@ const COOKIE_NAME = '__Secure-next-auth.session-token'
 const prisma = new PrismaClient()
 
 /**
+ * Every query here names its columns instead of going through a Prisma model.
+ *
+ * This script targets the DEPLOYED database, and the generated client is built from the
+ * checked-in schema, which runs ahead of it — `Task.costEstimateMicrocents` and
+ * `User.taskDisplayMode` are both in the client and not in production today. A model-level
+ * `findUnique` selects every column it knows about, so it fails on a column that has not
+ * shipped, and it fails on a query that had nothing to do with the new field. Naming columns
+ * keeps this working across that gap in both directions.
+ */
+async function ensureAccount(quiet: boolean): Promise<{ id: string; email: string | null; name: string | null }> {
+  const found: any[] = await prisma.$queryRawUnsafe(
+    `SELECT id, email, name FROM "User" WHERE email = $1`, EMAIL)
+  if (found.length) {
+    if (!quiet) console.log(`• Account: ${EMAIL} (${found[0].id})`)
+    return found[0]
+  }
+
+  const id = randomUUID()
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "User" (id, email, name, "emailVerified") VALUES ($1, $2, $3, NOW())`,
+    id, EMAIL, NAME)
+  if (!quiet) console.log(`✅ Created ${EMAIL} (${id})`)
+  return { id, email: EMAIL, name: NAME }
+}
+
+/**
+ * One list of its own, so the suite has somewhere to work that is not a real board.
+ */
+async function ensureList(userId: string, quiet: boolean): Promise<string> {
+  const found: any[] = await prisma.$queryRawUnsafe(
+    `SELECT id FROM "TaskList" WHERE "ownerId" = $1 AND name = $2 LIMIT 1`, userId, LIST_NAME)
+  if (found.length) {
+    if (!quiet) console.log(`• List: "${LIST_NAME}" (${found[0].id})`)
+    return found[0].id
+  }
+
+  const id = randomUUID()
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "TaskList" (id, name, "ownerId", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, NOW(), NOW())`, id, LIST_NAME, userId)
+  if (!quiet) console.log(`✅ Created list "${LIST_NAME}" (${id})`)
+  return id
+}
+
+/**
  * Put the account back into a known state.
  *
  * Signing the suite in was necessary and not sufficient: on an empty account every data-driven
@@ -62,14 +107,16 @@ const prisma = new PrismaClient()
 async function seedFixtures(userId: string, email: string | null, listId: string, quiet: boolean) {
   assertUITestAccount(email)
 
-  const existing = await prisma.task.findMany({
-    where: { lists: { some: { ownerId: userId } } },
-    select: { id: true },
-  })
+  const existing: any[] = await prisma.$queryRawUnsafe(
+    `SELECT t.id FROM "Task" t
+       JOIN "_TaskToTaskList" m ON m."A" = t.id
+       JOIN "TaskList" l ON l.id = m."B"
+      WHERE l."ownerId" = $1`, userId)
   const plan = planFixtureReset(existing.map(t => t.id))
 
-  if (plan.delete.length) {
-    await prisma.task.deleteMany({ where: { id: { in: plan.delete } } })
+  for (const id of plan.delete) {
+    await prisma.$executeRawUnsafe(`DELETE FROM "_TaskToTaskList" WHERE "A" = $1`, id)
+    await prisma.$executeRawUnsafe(`DELETE FROM "Task" WHERE id = $1`, id)
   }
 
   // Explicit columns rather than `prisma.task.create`. The generated client is built from the
@@ -79,14 +126,20 @@ async function seedFixtures(userId: string, email: string | null, listId: string
   // account actually lives on. Remove this note once the schema and production agree.
   for (const fixture of plan.create) {
     const taskId = randomUUID()
+    // ASSIGNED, not merely created by, the account. The app's landing view is "My Tasks",
+    // which filters on `assigneeId == currentUserId` — fixtures that only set `creatorId`
+    // exist on the server and are invisible in the app, so the suite lands on an empty screen
+    // and every test that taps a task row skips or fails. That is the bug one layer down from
+    // "the account is empty", and it looks identical from the outside.
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "Task" (id, title, priority, completed, "completedAt", "creatorId", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      `INSERT INTO "Task" (id, title, priority, completed, "completedAt", "creatorId", "assigneeId", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
       taskId,
       fixture.title,
       fixture.priority,
       fixture.completed,
       fixture.completed ? new Date() : null,
+      userId,
       userId
     )
     await prisma.$executeRawUnsafe(
@@ -109,24 +162,9 @@ async function main() {
     process.exit(1)
   }
 
-  let user = await prisma.user.findUnique({ where: { email: EMAIL } })
-  if (!user) {
-    user = await prisma.user.create({
-      data: { email: EMAIL, name: NAME, emailVerified: new Date() },
-    })
-    if (!quiet) console.log(`✅ Created ${EMAIL} (${user.id})`)
-  } else if (!quiet) {
-    console.log(`• Account already exists: ${EMAIL} (${user.id})`)
-  }
-
-  // One list of its own, so the suite has somewhere to create tasks that is not a
-  // real board. Tests that need an empty state can still make their own.
-  const list =
-    (await prisma.taskList.findFirst({ where: { ownerId: user.id, name: LIST_NAME } })) ??
-    (await prisma.taskList.create({ data: { name: LIST_NAME, ownerId: user.id } }))
-  if (!quiet) console.log(`• List: "${LIST_NAME}" (${list.id})`)
-
-  await seedFixtures(user.id, user.email, list.id, quiet)
+  const user = await ensureAccount(quiet)
+  const listId = await ensureList(user.id, quiet)
+  await seedFixtures(user.id, user.email, listId, quiet)
 
   const now = Math.floor(Date.now() / 1000)
   const exp = now + SESSION_MAX_AGE_SECONDS
