@@ -158,30 +158,27 @@ async function handleTaskAssigneeChange(
           const configuredByUserId = firstList?.aiAgentConfiguredBy || task.creatorId || firstList?.ownerId
 
           if (configuredByUserId) {
-            // Call the API route - this runs in a separate request with its own timeout
-            // Using fetch and awaiting to ensure request is sent before function terminates
-            log.info(`🚀 [PRISMA-MIDDLEWARE] Calling assistant workflow API at ${baseUrl}/api/assistant-workflow`)
+            // Call the workflow directly. It used to be reached by fetching this
+            // app's own /api/assistant-workflow — which is why that route had no
+            // authentication and worked for anyone who found the URL (task
+            // 12b3478d). Dynamic import because the workflow imports this module.
+            log.info(`🚀 [PRISMA-MIDDLEWARE] Running assistant workflow for task ${taskId}`)
             try {
-              const workflowResponse = await fetch(`${baseUrl}/api/assistant-workflow`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  taskId: task.id,
-                  agentEmail: assignee.email,
-                  creatorId: configuredByUserId,
-                  isCommentResponse: false
-                })
+              const { runAssistantWorkflow } = await import('@/lib/assistant-workflow/run-assistant-workflow')
+              const result = await runAssistantWorkflow({
+                taskId: task.id,
+                agentEmail: assignee.email,
+                creatorId: configuredByUserId,
+                isCommentResponse: false,
               })
 
-              if (workflowResponse.ok) {
-                const result = await workflowResponse.json()
-                log.info({ result }, `✅ [PRISMA-MIDDLEWARE] Assistant workflow API completed:`)
+              if (result.ok) {
+                log.info({ result }, `✅ [PRISMA-MIDDLEWARE] Assistant workflow completed:`)
               } else {
-                const errorText = await workflowResponse.text()
-                log.error(`❌ [PRISMA-MIDDLEWARE] Assistant workflow API failed: ${errorText}`)
+                log.error(`❌ [PRISMA-MIDDLEWARE] Assistant workflow failed: ${result.error}`)
               }
             } catch (err) {
-              log.error({ err: err }, `❌ [PRISMA-MIDDLEWARE] Failed to call assistant workflow API:`)
+              log.error({ err: err }, `❌ [PRISMA-MIDDLEWARE] Failed to run assistant workflow:`)
             }
           } else {
             log.info(`⚠️ [PRISMA-MIDDLEWARE] No user ID available to get API keys for assistant workflow`)

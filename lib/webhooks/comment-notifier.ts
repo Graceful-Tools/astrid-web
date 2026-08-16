@@ -236,24 +236,22 @@ export async function notifyCommentOnAssignedTask(
       } else {
         log.info(`🤖 Internal assistant agent - triggering real-time workflow for comment response`)
         try {
-          const baseUrl = getBaseUrl()
-          const response = await fetch(`${baseUrl}/api/assistant-workflow`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              taskId: task.id,
-              agentEmail: task.assignee.email,
-              creatorId: task.creatorId,
-              isCommentResponse: true,
-              userComment: commentContent,
-            }),
+          // Called directly rather than by fetching this app's own
+          // /api/assistant-workflow, which is why that route accepted anonymous
+          // requests and has now been deleted (task 12b3478d).
+          const { runAssistantWorkflow } = await import('@/lib/assistant-workflow/run-assistant-workflow')
+          const result = await runAssistantWorkflow({
+            taskId: task.id,
+            agentEmail: task.assignee.email,
+            creatorId: task.creatorId,
+            isCommentResponse: true,
+            userComment: commentContent,
           })
 
-          if (response.ok) {
+          if (result.ok) {
             log.info(`✅ Assistant workflow triggered for comment: "${commentContent}"`)
           } else {
-            const errorText = await response.text()
-            log.error(`❌ Assistant workflow failed: ${errorText}`)
+            log.error(`❌ Assistant workflow failed: ${result.error}`)
           }
         } catch (error) {
           log.error({ err: error }, `❌ Failed to trigger assistant workflow:`)
