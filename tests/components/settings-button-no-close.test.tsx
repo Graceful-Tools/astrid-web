@@ -55,6 +55,21 @@ vi.mock('@/components/keyboard-shortcuts-menu', () => ({
 }))
 
 // Mock ThemeContext
+// TaskDetail calls useSettings(), which throws outside a SettingsProvider.
+// This harness never needed it before: the read-only branch used to render
+// TaskDetailViewOnly, which had no such dependency. Converging the two (task
+// 72cb4a13) means the read-only pane is now a TaskDetail like any other, so it
+// carries TaskDetail's context requirements too.
+//
+// The app itself is unaffected — SettingsProvider wraps everything from
+// app/[locale]/layout.tsx via components/providers.tsx — so this is a harness
+// gap rather than a user-facing one. Mocked rather than wrapped in the real
+// provider, matching the other TaskDetail tests: these cases are about click
+// behaviour, not settings.
+vi.mock('@/contexts/settings-context', () => ({
+  useSettings: () => ({ reminderDebugMode: false }),
+}))
+
 vi.mock('@/contexts/theme-context', () => ({
   useTheme: () => ({
     theme: 'system',
