@@ -37,7 +37,7 @@ const ROOT = process.cwd()
  * import out of that route. The slack check is what noticed — a ceiling left
  * above the real number stops ratcheting.
  */
-const CEILING = 150
+const CEILING = 149 // 150 → 149: /api/assistant-workflow deleted (task 12b3478d)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

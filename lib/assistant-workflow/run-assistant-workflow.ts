@@ -1,5 +1,49 @@
+/**
+ * Run the assistant workflow for a task: build a prompt from the task and its
+ * recent conversation, call the creator's configured model, and post the answer
+ * as a comment authored by the agent.
+ *
+ * Extracted from app/api/assistant-workflow/route.ts so that SERVER CALLERS CAN
+ * CALL IT DIRECTLY instead of fetching this app's own HTTP API, and the route
+ * could then be deleted (task 12b3478d). Same shape as
+ * lib/coding-workflow/start-tools-workflow.ts, which Jon chose for the sibling
+ * problem in task 46acd19c.
+ *
+ * WHY THAT MATTERED HERE. The route had no authentication at all — no session,
+ * no scope, no secret — because its only three callers were server-side
+ * self-fetches with no credentials to send:
+ *
+ *     lib/prisma.ts                            (assignee-change middleware)
+ *     lib/webhooks/comment-notifier.ts
+ *     lib/webhooks/task-assignment-notifier.ts
+ *
+ * So anyone who could reach the URL could name any task id and read it back
+ * through the model's answer, and name any `creatorId` and spend that user's
+ * API credits. Where 46acd19c failed loudly-into-a-swallowed-catch, this one
+ * silently succeeded, which is why it went unnoticed.
+ *
+ * Calling the function removes the authentication question rather than
+ * answering it: there is no request, so there is no session to fake, no
+ * internal secret to leak, and no second way in. Nothing called it over HTTP
+ * from app/, components/, hooks/, scripts/ or astrid-ios, so nothing external
+ * lost an endpoint.
+ *
+ * AUTHORIZATION IS THE CALLER'S JOB, deliberately, as in start-tools-workflow.
+ * All three callers already know they are reacting to a write on a task whose
+ * assignee is an internal agent; they have no user identity to check, and
+ * inventing one here would be fiction.
+ *
+ * ONE TIMING NUANCE, worth knowing rather than fixing blind. vercel.json gives
+ * every `app/api/**` function 30s, and the deleted route ALSO declared
+ * `maxDuration = 60`. The callers awaited the fetch, so a slow model answer
+ * already outlived the calling request — the caller died at its own limit while
+ * the child invocation ran on and posted the comment anyway. Now the work
+ * shares the caller's budget, so a model answer that takes longer than the
+ * caller has is lost rather than late. If assistant replies start going missing
+ * on slow models, the fix is the callers' maxDuration, not a new endpoint.
+ */
+
 import { BRAND } from '@/lib/brand/config'
-import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
@@ -9,10 +53,6 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('assistant-workflow')
 
-
-export const runtime = 'nodejs'
-export const maxDuration = 60
-
 // Default models when user hasn't configured preferences
 const DEFAULT_MODELS = {
   claude: 'claude-sonnet-4-6',
@@ -21,28 +61,47 @@ const DEFAULT_MODELS = {
   copilot: 'gpt-4.1',
 } as const
 
-interface AssistantWorkflowRequest {
+export interface RunAssistantWorkflowArgs {
   taskId: string
   agentEmail: string
-  creatorId: string
+  /**
+   * Whose API key pays for the answer. Nullable because `Task.creatorId` is,
+   * and two of the three callers pass it straight through.
+   *
+   * Over HTTP that arrived as JSON `null` and nobody noticed; typing it here is
+   * how the compiler surfaced it. Behaviour is unchanged on purpose: a null id
+   * matches no user, the credential lookup comes back empty, and the task gets
+   * the "please configure an API key" comment. That comment is misleading for a
+   * task that simply has no creator, but changing it is a product question, not
+   * part of closing the auth hole.
+   */
+  creatorId: string | null
   isCommentResponse?: boolean
   userComment?: string
 }
 
 /**
- * Assistant Workflow - Real-time AI agent processing for non-coding tasks
+ * `commented` marks the outcomes where the user still got an explanation on the
+ * task even though no answer was produced — a missing API key, an OpenClaw
+ * agent, a failed model call.
  *
- * This handles tasks assigned to AI agents that don't require coding/GitHub.
- * Unlike the polling-based coding worker, this runs immediately when triggered.
+ * Those three used to come back as HTTP 200 with an `error` field, and every
+ * caller checked only `response.ok`, so a workflow that never ran logged as a
+ * success. Making them `ok: false` is why the call sites below now log them as
+ * failures; it changes log lines only, since nothing branched on the body.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const body: AssistantWorkflowRequest = await request.json()
-    const { taskId, agentEmail, creatorId, isCommentResponse, userComment } = body
+export type RunAssistantWorkflowResult =
+  | { ok: true; commentId: string; service: AIService }
+  | { ok: false; status: 400 | 404 | 500; error: string; commented?: boolean }
 
+export async function runAssistantWorkflow(
+  args: RunAssistantWorkflowArgs,
+): Promise<RunAssistantWorkflowResult> {
+  const { taskId, agentEmail, creatorId, isCommentResponse, userComment } = args
+
+  try {
     log.info(`🤖 [AssistantWorkflow] Processing task ${taskId} for agent ${agentEmail}`)
 
-    // Get task details
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -60,14 +119,14 @@ export async function POST(request: NextRequest) {
     })
 
     if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+      return { ok: false, status: 404, error: 'Task not found' }
     }
 
     // Determine which AI service to use based on agent email
     const service = getServiceFromEmail(agentEmail)
     if (!service) {
       log.error(`❌ [AssistantWorkflow] Unknown agent email: ${agentEmail}`)
-      return NextResponse.json({ error: 'Unknown AI agent' }, { status: 400 })
+      return { ok: false, status: 400, error: 'Unknown AI agent' }
     }
 
     // OpenClaw tasks now arrive via the channel plugin, not assistant-workflow
@@ -79,11 +138,11 @@ export async function POST(request: NextRequest) {
           content: `To use OpenClaw with ${BRAND.appName}, install the ${BRAND.appName} channel plugin in your OpenClaw instance. OpenClaw connects outbound to ${BRAND.appName} — no gateway URL needed.\n\nSee: https://github.com/Graceful-Tools/astrid-web/tree/main/packages/openclaw-astrid-channel`
         }
       })
-      return NextResponse.json({ error: 'OpenClaw uses channel plugin', commented: true })
+      return { ok: false, status: 400, error: 'OpenClaw uses channel plugin', commented: true }
     }
 
     // Get the creator's API key for this service
-    const apiKey = await getAIServiceCredential(creatorId, service)
+    const apiKey = await getAIServiceCredential(creatorId ?? '', service)
     if (!apiKey) {
       log.info(`⚠️ [AssistantWorkflow] No ${service} API key for user ${creatorId}`)
 
@@ -96,21 +155,21 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      return NextResponse.json({ error: 'No API key configured', commented: true })
+      return { ok: false, status: 400, error: 'No API key configured', commented: true }
     }
 
     // Build the prompt
     const prompt = buildPrompt(task, isCommentResponse, userComment)
 
     // Get user's model preference for this service
-    const userModel = await getCachedModelPreference(creatorId, service)
+    const userModel = await getCachedModelPreference(creatorId ?? '', service)
     const model = userModel || DEFAULT_MODELS[service]
     log.info(`🤖 [AssistantWorkflow] Using model: ${model} (user preference: ${userModel ? 'yes' : 'no'})`)
 
     // Call the appropriate AI service
     let response: string
     try {
-      response = await callAIService(service, apiKey, prompt, model, creatorId)
+      response = await callAIService(service, apiKey, prompt, model, creatorId ?? '')
     } catch (aiError: any) {
       log.error({ err: aiError }, `❌ [AssistantWorkflow] AI call failed:`)
 
@@ -123,7 +182,12 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      return NextResponse.json({ error: 'AI call failed', message: aiError.message })
+      return {
+        ok: false,
+        status: 500,
+        error: `AI call failed: ${aiError.message || 'Unknown error'}`,
+        commented: true,
+      }
     }
 
     // Check if response contains a file attachment
@@ -204,15 +268,11 @@ export async function POST(request: NextRequest) {
 
     log.info(`✅ [AssistantWorkflow] Posted response for task ${taskId}${fileId ? ' with attachment' : ''}`)
 
-    return NextResponse.json({
-      success: true,
-      commentId: comment.id,
-      service
-    })
+    return { ok: true, commentId: comment.id, service }
 
   } catch (error: any) {
     log.error({ err: error }, `❌ [AssistantWorkflow] Error:`)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return { ok: false, status: 500, error: error?.message || 'Unknown error' }
   }
 }
 
