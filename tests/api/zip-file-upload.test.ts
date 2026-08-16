@@ -144,7 +144,16 @@ describe('ZIP File Upload Support', () => {
       fileType: 'application/x-executable', // This should be rejected
     }
 
-    await expect(uploadFileToBlob(mockFakeZipFile, unsupportedRequest))
-      .rejects.toThrow('File type application/x-executable is not allowed')
+    // Still rejected, and now for a sharper reason. Before task c09f3eb1 this
+    // surface checked MIME only, so the refusal was "that type is not allowed".
+    // It now checks the extension too, and .zip carrying x-executable fails as
+    // a MISMATCH — the more precise complaint, and the one that also catches a
+    // permitted MIME arriving on a foreign extension.
+    //
+    // Asserting rejection rather than the wording: the security property is
+    // that this cannot be stored, not how the sentence reads.
+    await expect(uploadFileToBlob(mockFakeZipFile, unsupportedRequest)).rejects.toThrow(
+      /not allowed|mismatch/i,
+    )
   })
 })

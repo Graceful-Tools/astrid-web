@@ -3,7 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { uploadFileToBlob } from "@/lib/secure-storage"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
-import { validateUploadFile, type FileTypeAllowlist } from '@/lib/upload-validation'
+import { validateSecureUpload } from '@/lib/upload-validation'
 import {
   clientRequestIdFromContext,
   findSecureFileByClientRequestId,
@@ -25,33 +25,10 @@ const ATTACH_TARGETS = ['message', 'task']
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024
 
-// File extension to MIME type mapping for validation
-const EXTENSION_MIME_MAP: Record<string, string[]> = {
-  '.jpg': ['image/jpeg'],
-  '.jpeg': ['image/jpeg'],
-  '.png': ['image/png'],
-  '.gif': ['image/gif'],
-  '.webp': ['image/webp'],
-  '.svg': ['image/svg+xml'],
-  '.heic': ['image/heic'],
-  '.heif': ['image/heif'],
-  '.mp4': ['video/mp4'],
-  '.mov': ['video/quicktime'],
-  '.webm': ['video/webm'],
-  '.avi': ['video/x-msvideo'],
-  '.pdf': ['application/pdf'],
-  '.doc': ['application/msword'],
-  '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  '.xls': ['application/vnd.ms-excel'],
-  '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-  '.txt': ['text/plain'],
-  '.csv': ['text/csv', 'text/plain'],
-  '.md': ['text/markdown', 'text/plain'],
-  '.zip': ['application/zip', 'application/x-zip-compressed'],
-  '.mp3': ['audio/mpeg'],
-  '.wav': ['audio/wav'],
-  '.ogg': ['audio/ogg'],
-}
+// The extension/MIME policy is shared — see lib/upload-validation.ts. This
+// file used to carry its own map, which was the widest of the three secure
+// surfaces but still missed mkv, pptx and json that the other two allowed.
+// (Task c09f3eb1.)
 
 /**
  * Validate file type against this route's own allowlist.
@@ -66,12 +43,9 @@ const EXTENSION_MIME_MAP: Record<string, string[]> = {
  * sites below; the shared helper keys on the bare extension, so they are
  * stripped once here rather than at every lookup.
  */
-const SECURE_UPLOAD_FILE_TYPES: FileTypeAllowlist = Object.fromEntries(
-  Object.entries(EXTENSION_MIME_MAP).map(([ext, mimes]) => [ext.replace(/^\./, ''), mimes]),
-)
 
 function validateFileType(file: { name: string; type: string }): { valid: boolean; error?: string } {
-  const result = validateUploadFile(file, SECURE_UPLOAD_FILE_TYPES)
+  const result = validateSecureUpload(file.name, file.type)
   return result.valid ? { valid: true } : { valid: false, error: result.error }
 }
 

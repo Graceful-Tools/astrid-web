@@ -15,6 +15,7 @@
 import { put, del, getDownloadUrl } from "@vercel/blob"
 import { randomUUID } from "crypto"
 import { createLogger } from '@/lib/logger'
+import { validateSecureUpload } from '@/lib/upload-validation'
 
 const log = createLogger('secure-storage')
 
@@ -56,29 +57,13 @@ export async function uploadFileToBlob(
   blobUrl: string
   fileId: string
 }> {
-  // Validate file type
-  const allowedTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'video/mp4',
-    'video/quicktime',
-    'video/x-msvideo',
-    'video/webm',
-    'video/x-matroska',
-    'application/pdf',
-    'text/plain',
-    'text/markdown',
-    'application/json',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/zip'
-  ]
-
-  if (!allowedTypes.includes(request.fileType)) {
-    throw new Error(`File type ${request.fileType} is not allowed`)
+  // Validate name AND type together against the shared policy. This carried
+  // its own MIME-only list, which mattered more here than anywhere: the stored
+  // path below is built from the filename's extension, so an unchecked
+  // extension decides what the bytes are served as later. (Task c09f3eb1.)
+  const typeCheck = validateSecureUpload(request.fileName, request.fileType)
+  if (!typeCheck.valid) {
+    throw new Error(typeCheck.error)
   }
 
   // Validate file size (max 100MB)
