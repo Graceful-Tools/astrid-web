@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { normalizeTaskDisplayMode } from '@/lib/task-display-mode'
 import type { Task, TaskList } from "@/types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 
@@ -122,6 +123,8 @@ interface MainContentProps {
   handleAddTaskButtonClick: () => void
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => Promise<void>
   handleUpdateTask: (task: Task) => void
+  /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
+  taskDisplayMode: string
   handleLocalUpdateTask: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
@@ -214,6 +217,7 @@ export function MainContent({
   handleAddTaskButtonClick,
   handleTaskClick,
   handleUpdateTask,
+  taskDisplayMode,
   handleLocalUpdateTask,
   handleToggleTaskComplete,
   handleDeleteTask,
@@ -359,6 +363,14 @@ export function MainContent({
     handleTaskDragHover,
     handleTaskDragLeaveTask,
     handleTaskDragEnd,
+    // Adapted rather than cast: the props these arrive on are declared more
+    // loosely than the controller's own types (a void return, a bare string),
+    // and normalizing here means a mode that travelled down a long prop chain
+    // still cannot reach a row as an unrecognised value (task ffa5bbb5).
+    handleUpdateTask: async (updated: Task) => {
+      await handleUpdateTask(updated)
+    },
+    taskDisplayMode: normalizeTaskDisplayMode(taskDisplayMode),
   }
 
   // Single source of truth for a task row, shared by the plain and the

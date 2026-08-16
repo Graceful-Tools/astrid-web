@@ -166,6 +166,8 @@ interface TaskManagerViewProps {
   loadData: () => Promise<void>
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => void
   handleUpdateTask: (task: Task) => void
+  /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
+  taskDisplayMode: string
   handleLocalUpdateTask: (task: Task) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
@@ -344,6 +346,7 @@ const TaskManagerView = memo(function TaskManagerView({
   loadData,
   handleTaskClick,
   handleUpdateTask,
+  taskDisplayMode,
   handleLocalUpdateTask,
   handleToggleTaskComplete,
   handleDeleteTask,
@@ -926,6 +929,7 @@ const TaskManagerView = memo(function TaskManagerView({
             handleAddTaskButtonClick={handleAddTaskButtonClick}
             handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
             handleUpdateTask={handleUpdateTask}
+            taskDisplayMode={taskDisplayMode}
             handleLocalUpdateTask={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
             handleToggleTaskComplete={handleToggleTaskComplete}
             handleDeleteTask={handleDeleteTask}

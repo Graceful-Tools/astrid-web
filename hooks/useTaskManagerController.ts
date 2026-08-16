@@ -94,7 +94,7 @@ export function useTaskManagerController({
   const myTasksPreferences = useMyTasksPreferences()
 
   // User settings (synced across devices via SSE)
-  const { smartTaskCreationEnabled, subtaskDisplay } = useUserSettings()
+  const { smartTaskCreationEnabled, subtaskDisplay, taskDisplayMode } = useUserSettings()
 
   // Layout state (managed externally by useTaskManagerLayout)
   const isMobile = externalIsMobile || false
@@ -1591,6 +1591,9 @@ export function useTaskManagerController({
     handleManualRefresh: listState.handleManualRefresh,
     handleTaskClick,
     handleUpdateTask,
+    // Which task-detail design this user sees (task ffa5bbb5). Already
+    // normalized by useUserSettings, so consumers never see a raw string.
+    taskDisplayMode,
     handleLocalUpdateTask,
     handleToggleTaskComplete,
     handleDeleteTask,

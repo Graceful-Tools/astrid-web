@@ -2,6 +2,9 @@
 
 import React from "react"
 import { TaskRowContent } from "../../task-row-content"
+import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
+import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import type { Task } from "@/types/task"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
@@ -32,6 +35,8 @@ export type TaskRowControllerSlice = Pick<
   | 'handleTaskDragHover'
   | 'handleTaskDragLeaveTask'
   | 'handleTaskDragEnd'
+  | 'handleUpdateTask'
+  | 'taskDisplayMode'
 >
 
 export interface TaskRowProps {
@@ -96,9 +101,31 @@ export function TaskRow({
     handleTaskDragHover: onDragHover,
     handleTaskDragLeaveTask: onDragLeaveTask,
     handleTaskDragEnd: onDragEnd,
+    handleUpdateTask,
+    taskDisplayMode,
   } = controller
   const currentUserId = effectiveSession?.user?.id
   const isDragging = activeDragTaskId === task.id
+
+  // Project mode: tapping the leading control opens this sheet rather than
+  // completing the task (task ffa5bbb5).
+  const [optionsOpen, setOptionsOpen] = React.useState(false)
+  const compact = usesCompactTaskDetail(taskDisplayMode)
+
+  // Columns from the module, never a local list — status is a state on the
+  // task with per-project custom states (AWTD-562). `null` here because a list
+  // row is not on a project board, so it gets inbox + the user's states + done;
+  // the project board passes its own project and gets the custom ones too.
+  const statusColumns = React.useMemo(() => boardColumnsFor(null), [])
+
+  const applyColumn = React.useCallback(
+    (columnId: string) => {
+      const move = resolveColumnMove(task, columnId)
+      handleUpdateTask({ ...task, statusRole: move.statusRole, completed: move.completed })
+      setOptionsOpen(false)
+    },
+    [task, handleUpdateTask],
+  )
   // Unified card styling for both mobile and desktop
   const classNames = [
     'task-row task-card transition-theme relative theme-surface theme-border',
@@ -263,7 +290,37 @@ export function TaskRow({
           isMobile={isMobile}
           onToggleComplete={() => onToggleComplete(task.id)}
           onCopyPublic={() => onCopyPublic(task.id)}
+          displayMode={taskDisplayMode}
+          onOpenOptions={compact ? () => setOptionsOpen(true) : undefined}
         />
+        {compact && (
+          <PriorityAssigneePicker
+            isOpen={optionsOpen}
+            onClose={() => setOptionsOpen(false)}
+            onSelect={(priority, assignee) => {
+              handleUpdateTask({
+                ...task,
+                priority: priority as Task['priority'],
+                assigneeId: assignee?.id ?? null,
+                assignee: assignee ?? null,
+              })
+              setOptionsOpen(false)
+            }}
+            selectedPriority={task.priority}
+            selectedAssignee={task.assignee ?? null}
+            availableUsers={[]}
+            taskId={task.id}
+            listIds={(task.lists || []).map(list => list.id)}
+            statusColumns={statusColumns}
+            selectedColumnId={taskColumnId(task)}
+            onStatusSelect={applyColumn}
+            completed={Boolean(task.completed)}
+            onToggleComplete={() => {
+              onToggleComplete(task.id)
+              setOptionsOpen(false)
+            }}
+          />
+        )}
         {isTouchManualSort && manualSortActive && (
           <div
             className="absolute bottom-0.5 left-1/2 z-30 flex -translate-x-1/2 items-end justify-center"

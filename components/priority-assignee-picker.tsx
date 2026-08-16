@@ -6,6 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { useTranslations } from "@/lib/i18n/client"
+import type { BoardColumn } from "@/lib/task-status"
 
 interface PriorityAssigneePickerProps {
   isOpen: boolean
@@ -17,6 +18,31 @@ interface PriorityAssigneePickerProps {
   currentUser?: User
   taskId?: string
   listIds?: string[]
+  /**
+   * Board-state columns to offer, from `boardColumnsFor(project)` — inbox, the
+   * user's states, any project custom states, and done (task ffa5bbb5).
+   *
+   * OPTIONAL, and absent means no state section. mobile-quick-add opens this
+   * picker for a task that does not exist yet: no id, no board, nothing to
+   * move. Offering the move there would be a lie.
+   *
+   * Never build this list locally. Status is a state on the task with
+   * per-project custom states (AWTD-562), so a hardcoded ready/doing/waiting
+   * would be wrong on exactly the boards that have custom ones.
+   */
+  statusColumns?: BoardColumn[]
+  /** The task's current column, from `taskColumnId(task)`. */
+  selectedColumnId?: string
+  /** Receives a column id suitable for `resolveColumnMove`. */
+  onStatusSelect?: (columnId: string) => void
+  /** Present with onToggleComplete to offer completion. */
+  completed?: boolean
+  /**
+   * Complete or reopen. In project mode this is the ONLY route to completion —
+   * the leading control opens this sheet instead of completing — so it has to
+   * work in both directions.
+   */
+  onToggleComplete?: () => void
 }
 
 const PRIORITY_OPTIONS = [
@@ -35,7 +61,12 @@ export function PriorityAssigneePicker({
   availableUsers,
   currentUser,
   taskId,
-  listIds
+  listIds,
+  statusColumns,
+  selectedColumnId,
+  onStatusSelect,
+  completed,
+  onToggleComplete,
 }: PriorityAssigneePickerProps) {
   const { t } = useTranslations()
   const [tempPriority, setTempPriority] = useState(selectedPriority)
@@ -194,6 +225,62 @@ export function PriorityAssigneePicker({
 
           {/* Divider */}
           <div className="h-px bg-gray-200 dark:bg-gray-700" />
+
+          {/* Board State Section — only when the caller has a task to move. */}
+          {statusColumns && statusColumns.length > 0 && onStatusSelect && (
+            <>
+              <div className="px-4 py-4">
+                <h3
+                  className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3"
+                  id="task-options-board-state"
+                >
+                  {t('tasks.boardState')}
+                </h3>
+                <div
+                  className="flex flex-wrap gap-2"
+                  role="group"
+                  aria-labelledby="task-options-board-state"
+                >
+                  {statusColumns.map(column => {
+                    const isSelected = selectedColumnId === column.id
+                    return (
+                      <button
+                        key={column.id}
+                        type="button"
+                        onClick={() => onStatusSelect(column.id)}
+                        aria-pressed={isSelected}
+                        className={`h-9 px-3 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95 ${
+                          isSelected
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-transparent border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+                        }`}
+                      >
+                        {column.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="h-px bg-gray-200 dark:bg-gray-700" />
+            </>
+          )}
+
+          {/* Complete / reopen — project mode's only route to completion. */}
+          {onToggleComplete && (
+            <>
+              <div className="px-4 py-4">
+                <button
+                  type="button"
+                  data-testid="task-options-complete"
+                  onClick={onToggleComplete}
+                  className="w-full h-11 rounded-lg text-sm font-medium border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all duration-150 active:scale-95"
+                >
+                  {completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
+                </button>
+              </div>
+              <div className="h-px bg-gray-200 dark:bg-gray-700" />
+            </>
+          )}
 
           {/* Assignee Section */}
           <div className="px-4 py-4">
