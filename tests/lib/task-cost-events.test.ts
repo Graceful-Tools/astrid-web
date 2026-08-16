@@ -15,7 +15,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { recordTaskCost, getTaskActualCostCents } from '@/lib/task-cost-events'
+import { recordTaskCost, getTaskActualCostMicrocents } from '@/lib/task-cost-events'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 
@@ -27,7 +27,7 @@ const valid = {
   model: 'claude-opus-5',
   inputTokens: 1000,
   outputTokens: 500,
-  costCents: 42,
+  costMicrocents: 42,
 }
 
 beforeEach(() => {
@@ -59,22 +59,22 @@ describe('recordTaskCost (task 315949e1)', () => {
     expect(mockPrisma.taskCostEvent.create).not.toHaveBeenCalled()
   })
 
-  it('rejects a fractional costCents', async () => {
+  it('rejects a fractional costMicrocents', async () => {
     // Money here is whole cents; a float would make sums drift.
-    expect(await recordTaskCost({ ...valid, costCents: 4.2 })).toMatchObject({ ok: false, status: 400 })
+    expect(await recordTaskCost({ ...valid, costMicrocents: 4.2 })).toMatchObject({ ok: false, status: 400 })
   })
 
-  it('ACCEPTS a negative costCents', async () => {
+  it('ACCEPTS a negative costMicrocents', async () => {
     // That is how a compensating event corrects a wrong price without mutating
     // history. The ledger is append-only.
-    const result = await recordTaskCost({ ...valid, costCents: -42 })
+    const result = await recordTaskCost({ ...valid, costMicrocents: -42 })
 
     expect(result.ok).toBe(true)
   })
 
   it('accepts a zero-cost event', async () => {
     // A cached or free call still happened and is worth metering.
-    expect((await recordTaskCost({ ...valid, costCents: 0, inputTokens: 0, outputTokens: 0 })).ok).toBe(true)
+    expect((await recordTaskCost({ ...valid, costMicrocents: 0, inputTokens: 0, outputTokens: 0 })).ok).toBe(true)
   })
 
   it('trims provider and model before storing', async () => {
@@ -133,16 +133,78 @@ describe('recordTaskCost (task 315949e1)', () => {
   })
 })
 
-describe('getTaskActualCostCents (task 315949e1)', () => {
+describe('getTaskActualCostMicrocents (task 315949e1)', () => {
   it('sums the ledger', async () => {
-    mockPrisma.taskCostEvent.aggregate.mockResolvedValue({ _sum: { costCents: 137 } } as never)
+    mockPrisma.taskCostEvent.aggregate.mockResolvedValue({ _sum: { costMicrocents: 137 } } as never)
 
-    expect(await getTaskActualCostCents('task-1')).toBe(137)
+    expect(await getTaskActualCostMicrocents('task-1')).toBe(137)
   })
 
   it('reports zero for a task with no events', async () => {
-    mockPrisma.taskCostEvent.aggregate.mockResolvedValue({ _sum: { costCents: null } } as never)
+    mockPrisma.taskCostEvent.aggregate.mockResolvedValue({ _sum: { costMicrocents: null } } as never)
 
-    expect(await getTaskActualCostCents('task-1')).toBe(0)
+    expect(await getTaskActualCostMicrocents('task-1')).toBe(0)
+  })
+})
+
+describe("Jon's two phase-1 storage decisions (task 315949e1)", () => {
+  // Both are storage-SHAPE decisions, which is why they blocked phase 1:
+  // changing the unit or splitting a column after real rows exist means a
+  // migration plus a backfill of numbers nobody can reconstruct.
+
+  it('stores cache reads and cache writes as their own counts', async () => {
+    // "Store them separately." Cache reads bill at roughly a tenth of ordinary
+    // input and cache writes at a premium above it, so folding either into
+    // inputTokens would misprice exactly the long, heavily-cached agent runs
+    // this feature exists to measure.
+    mockPrisma.taskCostEvent.create.mockResolvedValue({ id: 'evt-1' } as never)
+
+    await recordTaskCost({
+      ...valid,
+      inputTokens: 100,
+      cacheReadTokens: 9000,
+      cacheWriteTokens: 500,
+    })
+
+    expect(mockPrisma.taskCostEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          inputTokens: 100,
+          cacheReadTokens: 9000,
+          cacheWriteTokens: 500,
+        }),
+      }),
+    )
+  })
+
+  it('treats absent cache counts as a real zero, not missing data', async () => {
+    // A provider that reports no cache usage has told us something true.
+    mockPrisma.taskCostEvent.create.mockResolvedValue({ id: 'evt-1' } as never)
+
+    await recordTaskCost({ ...valid })
+
+    expect(mockPrisma.taskCostEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ cacheReadTokens: 0, cacheWriteTokens: 0 }),
+      }),
+    )
+  })
+
+  it('rejects a malformed cache count rather than coercing it', async () => {
+    expect(await recordTaskCost({ ...valid, cacheReadTokens: -1 })).toMatchObject({ ok: false, status: 400 })
+    expect(await recordTaskCost({ ...valid, cacheWriteTokens: 1.5 })).toMatchObject({ ok: false, status: 400 })
+  })
+
+  it('keeps a sub-cent cost, which is what the unit change was for', async () => {
+    // At current model prices a single call routinely costs a fraction of a
+    // cent. In cents this row would have rounded to zero and the ledger would
+    // have recorded that the work was free.
+    mockPrisma.taskCostEvent.create.mockResolvedValue({ id: 'evt-1' } as never)
+
+    await recordTaskCost({ ...valid, costMicrocents: 3_000 }) // $0.00003
+
+    expect(mockPrisma.taskCostEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ costMicrocents: 3_000 }) }),
+    )
   })
 })
