@@ -11,8 +11,8 @@ a no-op, not busywork.
 not triaged. `Ready` is Jon's signal that a task is actually actionable. Working
 anything else is not autonomy, it is picking your own work.
 
-**ONLY tasks assigned to Claude.** Assignment is the handshake (Jon, 2026-08-15).
-Not unassigned, not "looks like agent work" — assigned.
+**ONLY tasks assigned to the identity for the current harness.** Assignment is the
+handshake (Jon, 2026-08-15). Not unassigned, not "looks like agent work" — assigned.
 
 Unassigned used to qualify, on the reasoning that nobody had claimed it. That made
 `Ready` mean *actionable AND unclaimed*, so anything Jon dropped into Ready to think
@@ -24,6 +24,23 @@ over, and Ready goes back to meaning only *ready*.
 tested), and prints what it skipped **with the assignee's name** — a queue held up
 by someone else's work must not look like an idle one. If something is genuinely
 yours, say so and let Jon assign it; do not work around the filter.
+
+## Select the harness explicitly
+
+Every queue read requires one of these selectors:
+
+| Harness selector | Assignment identity |
+|---|---|
+| `claude-code` | `claude@<BRAND.agentEmailDomain>` |
+| `github-copilot` | `copilot@<BRAND.agentEmailDomain>` |
+| `codex` | `codex@<BRAND.agentEmailDomain>` |
+| `astrid-server` | `astrid@<BRAND.agentEmailDomain>` |
+
+Pass `--harness <selector>` or set `ASTRID_FIXALL_HARNESS`; the CLI wins when both
+are present. There is deliberately no identity default, and unknown selectors fail
+closed. `codex` is a local polling identity distinct from the cloud
+`openai@<domain>` agent. `astrid-server` is for private/self-hosted runtimes using
+the existing brand-derived Astrid identity.
 
 The conservative case is deliberate: a task that IS assigned but whose assignee
 cannot be resolved counts as someone else's. Claiming it on a guess costs
@@ -43,7 +60,7 @@ npx tsx scripts/set-task-status.ts <taskId> Doing
 
 **Blocked on Jon → hand it back: assign to him AND move it to `Waiting`.** Both, not
 one. Assigning alone leaves it sitting in Doing, which reads as in-progress; moving
-alone leaves it assigned to Claude, which reads as still yours:
+alone leaves it assigned to the current harness, which reads as still yours:
 
 ```bash
 npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
@@ -155,8 +172,11 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
   autonomous; everything past that waits for an explicit go-ahead. Report what is
   ready to ship instead of shipping it. (CLAUDE.md rule 1 — it is stated there because
   an agent once got this wrong and shipped five migrations.)
-- **One branch per task** (`fix/<short-description>`), and `npm run predeploy` green
-  before the task is marked complete.
+- **One isolated branch/worktree per task**, and `npm run predeploy` green before the
+  task is marked complete. In a Copilot app session, use the branch and worktree the
+  session already created; do not run raw branch-creation commands inside it. Other
+  harnesses should reuse an already-isolated task branch or create one with their
+  native session/worktree workflow.
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor
   breakage, close that task with a one-line explanation rather than leaving a false
   alarm on the board.
@@ -181,7 +201,7 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
 
 1. **Read the Ready queue — one call**:
    ```bash
-   npx tsx scripts/ready-tasks.ts
+   npx tsx scripts/ready-tasks.ts --harness <selector>
    ```
    Prints `READY_EMPTY`, or the queue in the order to work it (priority high → low,
    then oldest first). It resolves `Ready` and `Astrid Web To-do` by NAME, filters
@@ -218,7 +238,8 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
      writing anything, and if it is done, say so with evidence rather than
      re-implementing it.
    - Post a short strategy comment to the task before writing code.
-   - Create a feature branch (`fix/<short-description>`).
+   - Work in the harness-provided isolated task branch/worktree. A Copilot app
+     session already has one; do not create a nested/raw branch there.
    - **RED-GREEN TDD (mandatory for bug fixes):**
      1. Write a failing test that reproduces the bug, citing the task id in the test
         name. Confirm it fails for the right reason.
@@ -228,7 +249,7 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
    - Post a completion report on the task and mark it complete.
 
 5. **RE-CHECK READY AFTER EVERY TASK — never work from the opening snapshot.**
-   Re-run `scripts/ready-tasks.ts`. New tasks arrive while work is in progress, and a
+   Re-run `scripts/ready-tasks.ts --harness <selector>`. New tasks arrive while work is in progress, and a
    REOPENED task looks exactly like
    one that was never done. A reopened task means the previous fix missed: re-read it
    and look for a different cause rather than re-closing it on the same reasoning. If

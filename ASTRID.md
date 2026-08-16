@@ -157,6 +157,7 @@ hooks/task-detail/useTaskDetailState.ts
 | `claude@astrid.cc` | Claude API | Code generation, review |
 | `openai@astrid.cc` | OpenAI API | Code generation, review |
 | `gemini@astrid.cc` | Gemini API | Code generation, review |
+| `codex@astrid.cc` | Local Codex CLI | Polling `/fixall` harness (not the OpenAI cloud agent) |
 | `openclaw@astrid.cc` | OpenClaw Gateway | Self-hosted agent (any model) |
 | `{name}.oc@astrid.cc` | OpenClaw Gateway | Named OpenClaw agents |
 

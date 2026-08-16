@@ -9,7 +9,7 @@
  */
 
 import { hasValidApiKey } from '@/lib/api-key-cache'
-import { agentEmail } from '@/lib/brand/agent-emails'
+import { agentEmail, LOCAL_HARNESS_AGENT_MAILBOXES } from '@/lib/brand/agent-emails'
 import { ENABLED_AGENT_MAILBOXES, getAgentConfig } from '@/lib/ai/agent-config'
 
 /**
@@ -20,9 +20,12 @@ import { ENABLED_AGENT_MAILBOXES, getAgentConfig } from '@/lib/ai/agent-config'
  * by suffix, since their local parts are not known ahead of time.
  */
 export function getAssignableAgentEmails(): string[] {
-  return ENABLED_AGENT_MAILBOXES
+  return [
+    ...ENABLED_AGENT_MAILBOXES
     .filter((mailbox) => mailbox !== 'astrid')
-    .map((mailbox) => agentEmail(mailbox))
+    .map((mailbox) => agentEmail(mailbox)),
+    ...LOCAL_HARNESS_AGENT_MAILBOXES.map(agentEmail),
+  ]
 }
 
 /**
@@ -43,5 +46,8 @@ export async function getKeyedAgentEmails(userId: string): Promise<string[]> {
     )
   )
 
-  return keyed.filter((email): email is string => email !== null)
+  return [
+    ...keyed.filter((email): email is string => email !== null),
+    ...LOCAL_HARNESS_AGENT_MAILBOXES.map(agentEmail),
+  ]
 }

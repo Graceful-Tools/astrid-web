@@ -298,9 +298,12 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/astrid_dev" npx tsx 
 
 ### **Current Registered AI Agents**
 
-The system currently supports these AI agents:
-- `claude@astrid.cc` - Claude-based coding assistant
-- `openai-codex@astrid.cc` - OpenAI Codex-based assistant
+Provider-backed agents use `claude@`, `openai@`, `gemini@`, and `copilot@` at the
+configured brand agent domain. Local Codex uses the separate `codex@<domain>`
+polling identity; it is not an alias for the cloud `openai@<domain>` agent. The
+default/private server identity is `astrid@<domain>`. See
+`lib/brand/agent-emails.ts` and `lib/ai/agent-config.ts` for the authoritative
+mailboxes and provider routing.
 
 ### **Adding New AI Agents**
 
@@ -308,15 +311,12 @@ To add a new AI agent to the system:
 
 #### **Step 1: Update the AI Agent Registry**
 
-Edit `/lib/ai-agent-registry.ts` and add the new agent email to the `AI_AGENT_EMAILS` array:
-
-```typescript
-const AI_AGENT_EMAILS = [
-  'claude@astrid.cc',
-  'openai-codex@astrid.cc',
-  'new-agent@astrid.cc',  // ← Add your new agent here
-] as const
-```
+Add provider-backed agents to `lib/ai/agent-config.ts`; their email is derived from
+the mailbox and configured brand domain. Polling-only local harnesses belong in
+`AGENT_MAILBOXES` and `LOCAL_HARNESS_AGENT_MAILBOXES` in
+`lib/brand/agent-emails.ts`, then in the seed profile in
+`scripts/create-specific-ai-agents.ts`. Do not give a local harness a provider
+configuration: that would let a cloud workflow consume its assignments.
 
 #### **Step 2: Create the AI Agent User**
 

@@ -30,7 +30,7 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
-import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import { isBrandAgentEmail, isLocalHarnessAgentEmail } from '@/lib/brand/agent-emails'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 
@@ -226,6 +226,12 @@ export async function notifyTaskAssignment(
 
     if (agentType === 'openclaw') {
       log.info(`🐾 OpenClaw agent detected — routing via SSE channel plugin (no webhook needed)`)
+      await sendSSENotification(task, payload, prisma)
+      return
+    }
+
+    if (isLocalHarnessAgentEmail(agentUser?.email)) {
+      log.info(`💻 Local harness ${agentName} will claim this assignment through its polling queue`)
       await sendSSENotification(task, payload, prisma)
       return
     }

@@ -20,7 +20,11 @@ import type { PrismaClient } from '@prisma/client'
 import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
-import { isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
+import {
+  isBrandAgentEmail,
+  isLocalHarnessAgentEmail,
+  isOpenClawAgentEmail,
+} from '@/lib/brand/agent-emails'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
 
@@ -192,6 +196,11 @@ export async function notifyCommentOnAssignedTask(
 
     if (agentType === 'openclaw') {
       log.info(`🐾 OpenClaw agent — comment notification delivered via SSE channel`)
+      return
+    }
+
+    if (isLocalHarnessAgentEmail(task.assignee.email)) {
+      log.info(`💻 Local harness ${task.assignee.name} will observe this comment through polling`)
       return
     }
 
