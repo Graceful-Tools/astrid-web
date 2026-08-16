@@ -1005,6 +1005,10 @@ model AnalyticsDailyStats {
   dauWebIPhone  Int @default(0)
   dauWebAndroid Int @default(0)
   dauIOSApp     Int @default(0)
+  /// The Mac app. Added with the platform itself (task b4591534); the client
+  /// has sent `x-platform: mac-app` since build 232, so before this the traffic
+  /// existed and was being counted as UNKNOWN.
+  dauMacApp     Int @default(0)
   dauAPIOther   Int @default(0)
   dauUnknown    Int @default(0)
 
