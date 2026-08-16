@@ -18,7 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import AppearanceSettings from '@/components/settings/AppearanceSettings'
+import AppearanceSettings from '@/components/Settings/AppearanceSettings'
 
 vi.mock('@/lib/i18n/client', () => ({ useTranslations: () => ({ t: (k: string) => k }) }))
 vi.mock('@/contexts/theme-context', () => ({

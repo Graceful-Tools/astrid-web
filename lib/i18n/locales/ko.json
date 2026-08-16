@@ -68,6 +68,7 @@
     "assignees": "담당자",
     "unassigned": "미지정",
     "unassignedMark": "미",
+    "taskOptions": "작업 옵션",
     "comments": "댓글",
     "attachments": "첨부파일",
     "subtasks": "하위 작업",
