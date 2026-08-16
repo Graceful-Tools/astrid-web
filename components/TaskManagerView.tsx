@@ -1032,6 +1032,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 task on a collaborative list can still comment on it — the rule
                 viewonly encoded and the reason it rendered a CommentSection. */}
             <TaskDetail
+              displayMode={taskDisplayMode}
               task={selectedTask}
               currentUser={effectiveSession.user}
               availableLists={lists}
@@ -1084,6 +1085,7 @@ const TaskManagerView = memo(function TaskManagerView({
             } : undefined}
           >
             <TaskDetail
+              displayMode={taskDisplayMode}
               task={selectedTask}
               currentUser={effectiveSession.user}
               availableLists={lists}

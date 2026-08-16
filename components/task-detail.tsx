@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, memo } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
@@ -20,6 +20,9 @@ import { PriorityPicker } from "./ui/priority-picker"
 import { TimePicker, formatConciseTime } from "./ui/time-picker"
 import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
+import { PriorityAssigneePicker } from "./priority-assignee-picker"
+import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
@@ -68,6 +71,8 @@ interface TaskDetailProps {
   onSaveNew?: (task: Task) => Promise<void>
   selectedTaskElement?: HTMLElement | null
   readOnly?: boolean  // If true, shows view-only mode (no editing)
+  /** Viewer's task display mode: 'list' | 'project'; absent means list (task ffa5bbb5). */
+  displayMode?: string | null
   /**
    * Whether the viewer may post comments. Separate from `readOnly` on purpose:
    * on a shared list a member who cannot EDIT a task can still COMMENT on it,
@@ -99,7 +104,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
 
   // Editing and commenting are separate permissions — see the canComment prop.
@@ -681,6 +686,14 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   // pane opts out because it is already full screen.
   const canFullScreen = allowFullScreen
   const isFullScreen = canFullScreen && fullScreen
+
+  // Project mode moves priority, assignee, board state and completion behind
+  // the leading control (task ffa5bbb5). The panel hosts the sheet because the
+  // detail view's own checkbox has to reach it too — compacting the rows away
+  // without providing this would REMOVE access rather than relocate it.
+  const compactTaskDetail = usesCompactTaskDetail(displayMode)
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const statusColumns = useMemo(() => boardColumnsFor(null), [])
 
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
@@ -1271,6 +1284,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       <TaskHeader
         task={task}
         currentUser={currentUser}
+        displayMode={displayMode}
+        onOpenOptions={compactTaskDetail ? () => setOptionsOpen(true) : undefined}
         readOnly={readOnly}
         onClose={onClose}
         tempCompleted={tempCompleted}
@@ -1291,6 +1306,38 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
       />
+      {compactTaskDetail && (
+        <PriorityAssigneePicker
+          isOpen={optionsOpen}
+          onClose={() => setOptionsOpen(false)}
+          onSelect={(priority, assignee) => {
+            onUpdate({
+              ...task,
+              priority: priority as Task['priority'],
+              assigneeId: assignee?.id ?? null,
+              assignee: assignee ?? null,
+            })
+            setOptionsOpen(false)
+          }}
+          selectedPriority={task.priority}
+          selectedAssignee={task.assignee ?? null}
+          availableUsers={[]}
+          taskId={task.id}
+          listIds={task.lists?.map(list => list.id)}
+          statusColumns={statusColumns}
+          selectedColumnId={taskColumnId(task)}
+          onStatusSelect={columnId => {
+            const move = resolveColumnMove(task, columnId)
+            onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
+            setOptionsOpen(false)
+          }}
+          completed={Boolean(task.completed)}
+          onToggleComplete={() => {
+            handleToggleComplete()
+            setOptionsOpen(false)
+          }}
+        />
+      )}
 
       <div
         className={`${inline ? 'max-h-[48vh]' : 'flex-1'} overflow-y-auto scrollbar-hide p-4 space-y-4 relative`}
@@ -1323,6 +1370,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           </div>
         )}
         <TaskFieldEditors
+          displayMode={displayMode}
           task={task}
           currentUser={currentUser}
           availableLists={availableLists}
