@@ -17,7 +17,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskDetail } from '@/components/task-detail'
-import { TaskDetailViewOnly } from '@/components/task-detail-viewonly'
 import type { Task, User, TaskList } from '@/types/task'
 import { ThemeProvider } from '@/contexts/theme-context'
 import { SettingsProvider } from '@/contexts/settings-context'
@@ -208,29 +207,39 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
   })
 })
 
-describe('TaskDetailViewOnly — expand to full screen (task 0ea0b818)', () => {
+describe('TaskDetail readOnly — expand to full screen (task 0ea0b818)', () => {
+  // These cases were written against TaskDetailViewOnly, which was deleted when
+  // the read-only pane converged onto TaskDetail (task 72cb4a13). The BEHAVIOUR
+  // they pin is unchanged and still worth pinning — a task you cannot edit is
+  // still one you want to read full width — so they are ported rather than
+  // dropped, now exercising the component that actually serves that surface.
+
   it('offers no toggle when the renderer did not opt in', () => {
     wrap(
-      <TaskDetailViewOnly
+      <TaskDetail
         task={task}
         currentUser={mockUser}
         onUpdate={vi.fn()}
+        onDelete={vi.fn()}
         onClose={vi.fn()}
+        readOnly
       />,
     )
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
   })
 
   it('expands and drops back — a task you cannot edit is still one you read', async () => {
-    // Read-only had no full-screen support at all before this task, on any
+    // Read-only had no full-screen support at all before task 0ea0b818, on any
     // screen size.
     const user = userEvent.setup()
     const { container } = wrap(
-      <TaskDetailViewOnly
+      <TaskDetail
         task={task}
         currentUser={mockUser}
         onUpdate={vi.fn()}
+        onDelete={vi.fn()}
         onClose={vi.fn()}
+        readOnly
         allowFullScreen
       />,
     )

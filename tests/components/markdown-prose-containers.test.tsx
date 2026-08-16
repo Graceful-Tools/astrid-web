@@ -56,8 +56,10 @@ describe('markdown surfaces render inside a .prose container (task 0a54e46f)', (
   // element that receives the rendered HTML. A source check states that
   // invariant directly instead of standing up a page to infer it.
   const DESCRIPTION_SURFACES = [
+    // task-detail-viewonly.tsx was deleted when the read-only pane converged
+    // onto TaskDetail (task 72cb4a13); TaskFieldEditors is now the single
+    // description surface for both editable and read-only viewers.
     'components/task-detail/TaskFieldEditors.tsx',
-    'components/task-detail-viewonly.tsx',
   ]
 
   it.each(DESCRIPTION_SURFACES)(

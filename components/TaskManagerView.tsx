@@ -11,7 +11,6 @@ import { PublicListsBrowser } from "./public-lists-browser"
 import { LoadingScreen } from "./loading-screen"
 import { ImagePicker } from "./image-picker"
 import { TaskDetail } from "./task-detail"
-import { TaskDetailViewOnly } from "./task-detail-viewonly"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -29,6 +28,7 @@ import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { canUserEditTask, canUserManageList } from "@/lib/list-permissions"
+import { isCollaborativePublicTask } from "@/lib/public-list-utils"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
 
@@ -1022,33 +1022,26 @@ const TaskManagerView = memo(function TaskManagerView({
             style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
             data-task-panel-desktop
           >
-            {canEdit ? (
-              <TaskDetail
-                task={selectedTask}
-                currentUser={effectiveSession.user}
-                availableLists={lists}
-                availableTasks={finalFilteredTasks}
-                onUpdate={handleUpdateTask}
-                onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-                onDelete={handleDeleteTask}
-                onClose={closeTaskDetail}
-                onCopy={handleCopyTask}
-                selectedTaskElement={selectedTaskElement}
-                allowFullScreen
-                readOnly={false}
-              />
-            ) : (
-              <TaskDetailViewOnly
-                task={selectedTask}
-                currentUser={effectiveSession.user}
-                availableLists={lists}
-                onUpdate={handleUpdateTask}
-                onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-                onClose={closeTaskDetail}
-                onCopy={handleCopyTask}
-                allowFullScreen
-              />
-            )}
+            {/* One component for both, since task-detail-viewonly was deleted
+                (task 72cb4a13). readOnly drops the editing affordances;
+                canComment stays separate because a member who cannot EDIT a
+                task on a collaborative list can still comment on it — the rule
+                viewonly encoded and the reason it rendered a CommentSection. */}
+            <TaskDetail
+              task={selectedTask}
+              currentUser={effectiveSession.user}
+              availableLists={lists}
+              availableTasks={finalFilteredTasks}
+              onUpdate={handleUpdateTask}
+              onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
+              onDelete={handleDeleteTask}
+              onClose={closeTaskDetail}
+              onCopy={handleCopyTask}
+              selectedTaskElement={selectedTaskElement}
+              allowFullScreen
+              readOnly={!canEdit}
+              canComment={canEdit || isCollaborativePublicTask(selectedTask)}
+            />
           </div>
         )
       })()}
@@ -1086,33 +1079,21 @@ const TaskManagerView = memo(function TaskManagerView({
               transition: 'none',
             } : undefined}
           >
-            {canEdit ? (
-              <TaskDetail
-                task={selectedTask}
-                currentUser={effectiveSession.user}
-                availableLists={lists}
-                availableTasks={finalFilteredTasks}
-                onUpdate={handleUpdateTask}
-                onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-                onDelete={handleDeleteTask}
-                onClose={handleMobileBack}
-                onCopy={handleCopyTask}
-                selectedTaskElement={null}
-                swipeToDismiss={taskDetailSwipeToDismiss}
-                readOnly={false}
-              />
-            ) : (
-              <TaskDetailViewOnly
-                task={selectedTask}
-                currentUser={effectiveSession.user}
-                availableLists={lists}
-                onUpdate={handleUpdateTask}
-                onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-                onClose={handleMobileBack}
-                onCopy={handleCopyTask}
-                swipeToDismiss={taskDetailSwipeToDismiss}
-              />
-            )}
+            <TaskDetail
+              task={selectedTask}
+              currentUser={effectiveSession.user}
+              availableLists={lists}
+              availableTasks={finalFilteredTasks}
+              onUpdate={handleUpdateTask}
+              onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
+              onDelete={handleDeleteTask}
+              onClose={handleMobileBack}
+              onCopy={handleCopyTask}
+              selectedTaskElement={null}
+              swipeToDismiss={taskDetailSwipeToDismiss}
+              readOnly={!canEdit}
+              canComment={canEdit || isCollaborativePublicTask(selectedTask)}
+            />
           </div>
         )
       })()}
