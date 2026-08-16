@@ -22,6 +22,9 @@ import {
   getTaskProjectColumnId,
   resolveProjectColumnMove,
 } from "@/lib/project-status"
+import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { useUserSettings } from "@/hooks/useUserSettings"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
@@ -104,6 +107,11 @@ export function ProjectStatusBoard({
   isOneColumn = false,
 }: ProjectStatusBoardProps) {
   const { t } = useTranslations()
+  // One call for the whole board rather than one per row (task ffa5bbb5).
+  const { taskDisplayMode } = useUserSettings()
+  const compact = usesCompactTaskDetail(taskDisplayMode)
+  const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
+
   const projectId = getProjectIdForBoard(lists, selectedListId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
     () => (projectId ? getProjectBoardColumns(lists, projectId) : []),
@@ -395,6 +403,7 @@ export function ProjectStatusBoard({
                         <TaskDetail
                           task={task}
                           currentUser={currentUser}
+                          displayMode={taskDisplayMode}
                           availableLists={lists}
                           availableTasks={availableTasks || boardTasks}
                           onUpdate={onUpdateTask}
@@ -451,6 +460,8 @@ export function ProjectStatusBoard({
                         isMobile={isOneColumn}
                         onToggleComplete={handleToggleComplete}
                         onCopyPublic={handleCopyPublic}
+                        displayMode={taskDisplayMode}
+                        onOpenOptions={compact ? () => setOptionsTaskId(task.id) : undefined}
                       />
                     </div>
                   )
@@ -485,6 +496,55 @@ export function ProjectStatusBoard({
         })}
         </div>
       </div>
+
+      {/* Project mode: the leading control on a card opens this instead of
+          completing the task (task ffa5bbb5).
+
+          THE BOARD PASSES ITS OWN COLUMNS, which is the whole reason this is
+          wired separately from the list rows. getProjectBoardColumns carries
+          the project's CUSTOM states and the list ids that back the defaults —
+          "custom states if relevant", in Jon's words. A list row has no project
+          and gets the plain trio; here they finally appear.
+
+          Selection routes through moveTaskToColumn, the same function
+          drag-and-drop uses, so a state set from the sheet and a card dragged
+          into a column cannot disagree about what the move means. */}
+      {compact && optionsTaskId && (() => {
+        const task = boardTasks.find(candidate => candidate.id === optionsTaskId)
+        if (!task) return null
+        return (
+          <PriorityAssigneePicker
+            isOpen
+            onClose={() => setOptionsTaskId(null)}
+            onSelect={(priority, assignee) => {
+              onUpdateTask({
+                ...task,
+                priority: priority as Task['priority'],
+                assigneeId: assignee?.id ?? null,
+                assignee: assignee ?? null,
+              })
+              setOptionsTaskId(null)
+            }}
+            selectedPriority={task.priority}
+            selectedAssignee={task.assignee ?? null}
+            availableUsers={[]}
+            taskId={task.id}
+            listIds={(task.lists || []).map(list => list.id)}
+            statusColumns={columns}
+            selectedColumnId={getTaskProjectColumnId(task, lists, projectId)}
+            onStatusSelect={columnId => {
+              const column = columns.find(candidate => candidate.id === columnId)
+              if (column) moveTaskToColumn(task.id, column)
+              setOptionsTaskId(null)
+            }}
+            completed={Boolean(task.completed)}
+            onToggleComplete={() => {
+              onUpdateTask({ ...task, completed: !task.completed })
+              setOptionsTaskId(null)
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }

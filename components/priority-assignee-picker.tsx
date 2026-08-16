@@ -6,7 +6,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { useTranslations } from "@/lib/i18n/client"
-import type { BoardColumn } from "@/lib/task-status"
 
 interface PriorityAssigneePickerProps {
   isOpen: boolean
@@ -29,8 +28,13 @@ interface PriorityAssigneePickerProps {
    * Never build this list locally. Status is a state on the task with
    * per-project custom states (AWTD-562), so a hardcoded ready/doing/waiting
    * would be wrong on exactly the boards that have custom ones.
+   *
+   * Typed structurally rather than as BoardColumn because the project board
+   * builds richer columns of its own (ProjectBoardColumn, carrying the backing
+   * status list) and the only thing this sheet needs from either is an id and a
+   * name. A cast at that call site would have hidden a real difference.
    */
-  statusColumns?: BoardColumn[]
+  statusColumns?: readonly { id: string; name: string }[]
   /** The task's current column, from `taskColumnId(task)`. */
   selectedColumnId?: string
   /** Receives a column id suitable for `resolveColumnMove`. */
