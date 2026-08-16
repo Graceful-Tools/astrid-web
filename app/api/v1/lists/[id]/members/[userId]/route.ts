@@ -13,6 +13,7 @@ import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { getUserRoleInList } from "@/lib/list-permissions"
+import { invalidateMemberCache } from '@/lib/list-member-operations'
 
 const log = createLogger('v1.lists.members.id')
 
@@ -184,6 +185,17 @@ export const DELETE = withAuth<RouteContext>(
         listId_userId: { listId: id, userId },
       }
     })
+
+    // The row is gone, but `userLists`/`userTasks` still name this member until
+    // the cache is cleared — so the next read puts them back and the removal
+    // looks like it never happened. That is the whole of task e27642cc: an
+    // agent removed from a list "keeps showing back up". Nothing was re-adding
+    // it; the write simply outlived its cache.
+    //
+    // The legacy handler has always done this. This one deleted, broadcast SSE
+    // and returned, never importing a cache module at all — so the divergence
+    // arrived the moment a caller moved from the legacy route to v1.
+    await invalidateMemberCache(userId)
 
     try {
       const memberIds = getListMemberIds(list as any)
