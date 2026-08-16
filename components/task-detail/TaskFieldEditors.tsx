@@ -13,6 +13,7 @@ import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { selectableLists } from "@/lib/status-lists"
 import { TaskFieldRow } from "./TaskFieldRow"
+import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
 import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, Flag as FlagIcon, List as ListIcon, FileText as FileTextIcon, User as UserIcon } from "lucide-react"
@@ -29,6 +30,8 @@ interface TaskFieldEditorsProps {
   onUpdate: (task: Task) => void
   readOnly?: boolean  // If true, disable all editing
   shouldHidePriority?: boolean  // Hide priority field for public lists
+  /** Viewer's task display mode; absent means list (task ffa5bbb5). */
+  displayMode?: string | null
   shouldHideWhen?: boolean  // Hide when/due date field for public lists
 
   // Editing state from useTaskDetailState
@@ -96,6 +99,7 @@ export function TaskFieldEditors({
   onUpdate,
   readOnly = false,
   shouldHidePriority = false,
+  displayMode,
   shouldHideWhen = false,
   editingTitle,
   setEditingTitle,
@@ -143,6 +147,10 @@ export function TaskFieldEditors({
   setTempAssignee,
   onInviteUser
 }: TaskFieldEditorsProps) {
+  // Project mode compacts priority and assignee out of the panel and behind
+  // the leading control's popover (task ffa5bbb5). Normalized rather than
+  // compared, so an unrecognised mode renders the safe layout.
+  const compactTaskDetail = usesCompactTaskDetail(displayMode)
   const { t } = useTranslations()
 
   // Local state for controlling Select dropdown open state
@@ -745,31 +753,26 @@ export function TaskFieldEditors({
       </TaskFieldRow>
       )}
 
-      {/* Priority row: Priority · Assignee on ONE line (task dcbbb0fa).
+      {/* Priority and Assignee.
        *
-       *  Priority leads because it is the row's label and its colour reads at a
-       *  glance; the assignee follows. Mirrors iOS/Mac 42013da7. A public-list
-       *  task shows its creator here instead of an assignee, which is why the
-       *  block below still branches on isPublicListTask. */}
-      {!shouldHidePriority && (
-      <TaskFieldRow
-        label={isPublicListTask ? "Created by" : "Priority"}
-        icon={isPublicListTask ? <UserIcon className="w-4 h-4" /> : <FlagIcon className="w-4 h-4" />}
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          {!isPublicListTask && (
-            <PriorityPicker
-              value={tempPriority}
-              onChange={handleSavePriority}
-              label="Priority"
-              // Every other field here gates its click behind !readOnly; this
-              // one rendered ungated, so priority stayed editable to a viewer
-              // who could edit nothing else. (Task 72cb4a13.)
-              disabled={readOnly}
-            />
-          )}
-        {isPublicListTask ? (
-          // For public list tasks, show creator (non-editable)
+       *  LIST MODE gives each its own row (task ffa5bbb5). They shared one row
+       *  — labelled "Priority", assignee beside the picker — since task
+       *  dcbbb0fa; Jon asked for "separate rows in task details in all
+       *  interfaces on board and list view for Priority and assigned".
+       *
+       *  PROJECT MODE drops both entirely: "we compact the task details so
+       *  priority and assignee and complete/mark as incomplete are accessed by
+       *  tapping on the checkbox". The leading control opens the popover that
+       *  carries them, so this is a move rather than a removal.
+       *
+       *  A PUBLIC-LIST TASK keeps its single "Created by" row and is not split.
+       *  It shows its creator INSTEAD of an assignee and hides the priority
+       *  picker, so splitting it would invent an assignee row for a task with
+       *  no assignee concept. */}
+      {!shouldHidePriority && !compactTaskDetail && (
+        isPublicListTask ? (
+          <TaskFieldRow label="Created by" icon={<UserIcon className="w-4 h-4" />}>
+            <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center space-x-2 px-2 py-1 rounded">
             {task.creator ? (
               <>
@@ -783,9 +786,27 @@ export function TaskFieldEditors({
               <span className="theme-text-muted">Unknown creator</span>
             )}
           </div>
+            </div>
+          </TaskFieldRow>
         ) : (
-          // For regular tasks, show editable assignee
-          (() => {
+          <>
+            <TaskFieldRow label="Priority" icon={<FlagIcon className="w-4 h-4" />}>
+              <PriorityPicker
+                value={tempPriority}
+                onChange={handleSavePriority}
+                label="Priority"
+                // Every other field here gates its click behind !readOnly; this
+                // one rendered ungated, so priority stayed editable to a viewer
+                // who could edit nothing else. (Task 72cb4a13.)
+                disabled={readOnly}
+              />
+            </TaskFieldRow>
+
+            <TaskFieldRow label="Assignee" icon={<UserIcon className="w-4 h-4" />}>
+              <div className="flex flex-wrap items-center gap-3">
+          {/* An IIFE, lifted verbatim from the combined row so the editor's
+              behaviour is unchanged by the split. */}
+          {(() => {
             return editingAssignee ? (
               <div ref={assigneeRef}>
                 <UserPicker
@@ -831,10 +852,11 @@ export function TaskFieldEditors({
                 )}
               </div>
             )
-          })()
-        )}
-        </div>
-      </TaskFieldRow>
+          })()}
+              </div>
+            </TaskFieldRow>
+          </>
+        )
       )}
 
       {/* Lists Field */}

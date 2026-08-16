@@ -18,6 +18,10 @@ import type { Task, User } from "../../types/task"
 interface TaskHeaderProps {
   task: Task
   currentUser: User
+  /** Viewer's task display mode; absent means list (task ffa5bbb5). */
+  displayMode?: string | null
+  /** Project mode: open the options popover instead of completing. */
+  onOpenOptions?: () => void
   onClose?: () => void
   // Title editing state from useTaskDetailState (parent owns it)
   tempCompleted: boolean
@@ -55,6 +59,8 @@ interface TaskHeaderProps {
 
 export function TaskHeader({
   task,
+  displayMode,
+  onOpenOptions,
   currentUser,
   onClose,
   tempCompleted,
@@ -121,6 +127,8 @@ export function TaskHeader({
             priority={task.priority}
             repeating={task.repeating !== 'never'}
             onToggleComplete={onToggleComplete}
+            displayMode={displayMode}
+            onOpenOptions={onOpenOptions}
           />
           )}
           {editingTitle ? (
