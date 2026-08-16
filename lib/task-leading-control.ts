@@ -17,9 +17,19 @@
  * This is the web mirror. Decide here, render in
  * `components/task-leading-control.tsx`, never per component.
  *
- * The MARK changes between the three; the ACTION does not — tapping any of
- * them completes the task.
+ * The MARK changes between the three; in LIST mode the ACTION does not —
+ * tapping any of them completes the task.
+ *
+ * PROJECT MODE CHANGES BOTH (task ffa5bbb5). Your own task shows YOUR photo
+ * rather than the checkbox — "assigned to you should also show your profile
+ * photo" — and tapping opens the options popover (priority, assignee, board
+ * state, complete) instead of completing outright. That sentence about the
+ * action being invariant was true for two years and is now conditional; it is
+ * left above rather than deleted because list mode is still the default and
+ * still works exactly that way.
  */
+
+import { usesCompactTaskDetail, type TaskDisplayMode } from '@/lib/task-display-mode'
 
 export type TaskLeadingControlKind = 'avatar' | 'checkbox' | 'unassigned'
 
@@ -28,20 +38,39 @@ export interface TaskLeadingControlInput {
   currentUserId?: string | null
   /** Completed tasks need a mark that can read as checked; "U" cannot. */
   completed?: boolean
+  /**
+   * The user's task display mode. Optional, and absent means list — every
+   * call site that predates task ffa5bbb5 omits it, and none of them may
+   * change behaviour. Normalized rather than compared directly so an
+   * unrecognised value renders the safe layout.
+   */
+  displayMode?: TaskDisplayMode | string | null
 }
 
 export function taskLeadingControlKind({
   assigneeId,
   currentUserId,
   completed = false,
+  displayMode,
 }: TaskLeadingControlInput): TaskLeadingControlKind {
   if (!assigneeId) {
     // A completed task must still show that it is completed, and the "U" mark
     // has no checked state to show. Fall back to the checkbox rather than
     // inventing a checked "U".
+    //
+    // Unchanged in project mode: "also show your photo" is about assignment,
+    // and a task nobody owns has no photo to show.
     return completed ? 'checkbox' : 'unassigned'
   }
-  return assigneeId === currentUserId ? 'checkbox' : 'avatar'
+
+  if (assigneeId !== currentUserId) return 'avatar'
+
+  // Your own task. In project mode it wears your photo — EXCEPT when it is
+  // completed, because an avatar has no checked state and completion has to
+  // stay legible in both modes. Same reasoning as the unassigned case above.
+  if (!completed && usesCompactTaskDetail(displayMode)) return 'avatar'
+
+  return 'checkbox'
 }
 
 /**
