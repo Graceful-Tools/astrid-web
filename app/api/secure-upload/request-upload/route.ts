@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { uploadFileToBlob } from "@/lib/secure-storage"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
+import { validateUploadFile, type FileTypeAllowlist } from '@/lib/upload-validation'
 import {
   clientRequestIdFromContext,
   findSecureFileByClientRequestId,
@@ -12,38 +13,11 @@ import {
 const log = createLogger('secure-upload.request-upload')
 
 
-// Allowed MIME types for file uploads
-const ALLOWED_MIME_TYPES = new Set([
-  // Images
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'image/heic',
-  'image/heif',
-  // Videos
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
-  'video/x-msvideo',
-  // Documents
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/plain',
-  'text/csv',
-  'text/markdown',
-  // Archives
-  'application/zip',
-  'application/x-zip-compressed',
-  // Audio
-  'audio/mpeg',
-  'audio/wav',
-  'audio/ogg',
-])
+// The MIME allowlist that used to live here was the value-set of
+// EXTENSION_MIME_MAP written out a second time — 24 entries in each, agreeing
+// exactly. The extension map is now the single statement of this route's
+// policy, so a type can no longer be permitted in one list and forgotten in
+// the other. (Task c09f3eb1.)
 
 // Maximum file size: 100MB
 /** Recognized values for the upload-intent discriminator (task ded31696). */
@@ -80,40 +54,25 @@ const EXTENSION_MIME_MAP: Record<string, string[]> = {
 }
 
 /**
- * Validate file type on the server side
- * Checks both MIME type and extension match
+ * Validate file type against this route's own allowlist.
+ *
+ * The ALGORITHM is shared (lib/upload-validation.ts); the POLICY is not, and
+ * should not be — this surface accepts video and audio that a list image must
+ * never accept. The helper takes the allowlist as a parameter precisely so the
+ * four upload paths can agree on the check without merging what they permit.
+ * (Task c09f3eb1.)
+ *
+ * EXTENSION_MIME_MAP keys carry a leading dot for readability at the call
+ * sites below; the shared helper keys on the bare extension, so they are
+ * stripped once here rather than at every lookup.
  */
-function validateFileType(file: File): { valid: boolean; error?: string } {
-  // Check MIME type is allowed
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    return {
-      valid: false,
-      error: `File type '${file.type}' is not allowed. Allowed types: images, videos, documents, and archives.`
-    }
-  }
+const SECURE_UPLOAD_FILE_TYPES: FileTypeAllowlist = Object.fromEntries(
+  Object.entries(EXTENSION_MIME_MAP).map(([ext, mimes]) => [ext.replace(/^\./, ''), mimes]),
+)
 
-  // Get file extension
-  const fileName = file.name.toLowerCase()
-  const lastDotIndex = fileName.lastIndexOf('.')
-  if (lastDotIndex === -1) {
-    return {
-      valid: false,
-      error: 'File must have an extension'
-    }
-  }
-
-  const extension = fileName.slice(lastDotIndex)
-  const allowedMimes = EXTENSION_MIME_MAP[extension]
-
-  // If we have a mapping, validate MIME matches extension
-  if (allowedMimes && !allowedMimes.includes(file.type)) {
-    return {
-      valid: false,
-      error: `File extension '${extension}' does not match MIME type '${file.type}'`
-    }
-  }
-
-  return { valid: true }
+function validateFileType(file: { name: string; type: string }): { valid: boolean; error?: string } {
+  const result = validateUploadFile(file, SECURE_UPLOAD_FILE_TYPES)
+  return result.valid ? { valid: true } : { valid: false, error: result.error }
 }
 
 /**
