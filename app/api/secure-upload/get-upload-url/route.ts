@@ -6,6 +6,7 @@ import { randomUUID } from "crypto"
 import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
 import { createLogger } from '@/lib/logger'
 import { findSecureFileByClientRequestId } from "@/lib/secure-file-idempotency"
+import { validateSecureUpload, SECURE_UPLOAD_MIME_TYPES } from '@/lib/upload-validation'
 
 const log = createLogger('secure-upload.get-upload-url')
 
@@ -37,24 +38,10 @@ async function getSession(request: NextRequest) {
   return { user: { id: dbSession.user.id } }
 }
 
-// Allowed file types for upload
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'video/mp4',
-  'video/quicktime',
-  'video/x-msvideo',
-  'video/webm',
-  'video/x-matroska',
-  'application/pdf',
-  'text/plain',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/zip'
-]
+// The policy lives in lib/upload-validation.ts and is shared with
+// request-upload and secure-storage. This file used to carry its own flat
+// MIME list with NO extension check, so an allowed MIME could arrive on any
+// extension at all. (Task c09f3eb1.)
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
@@ -89,9 +76,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!ALLOWED_TYPES.includes(fileType)) {
+    const typeCheck = validateSecureUpload(fileName, fileType)
+    if (!typeCheck.valid) {
       return NextResponse.json({
-        error: `File type ${fileType} is not allowed`
+        error: typeCheck.valid ? '' : typeCheck.error
       }, { status: 400 })
     }
 
@@ -238,7 +226,7 @@ export async function POST(request: NextRequest) {
         }),
       },
       maximumSizeInBytes: MAX_FILE_SIZE,
-      allowedContentTypes: ALLOWED_TYPES,
+      allowedContentTypes: SECURE_UPLOAD_MIME_TYPES as string[],
     })
 
     return NextResponse.json({

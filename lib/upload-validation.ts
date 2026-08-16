@@ -100,3 +100,74 @@ export function validateUploadFile(
 
   return { valid: true, extension }
 }
+
+/**
+ * The MAXIMAL upload policy, used by every secure-upload surface.
+ *
+ * Jon (task c09f3eb1): "We want to accept the maximum number of mime types but
+ * remain secure. You should validate the extension / mime type are the same
+ * though."
+ *
+ * So this is the UNION of what the three secure surfaces separately allowed —
+ * nothing that used to be accepted is dropped — expressed as extension -> MIME
+ * so the agreement between the two can actually be checked. Before this they
+ * disagreed in both directions:
+ *
+ *   request-upload   24 MIME types, WITH an extension map
+ *   get-upload-url   16 MIME types, MIME only — no extension check at all
+ *   secure-storage   17 MIME types, MIME only — and it builds the stored path
+ *                    from the extension, which is what makes an unchecked
+ *                    extension matter rather than being cosmetic
+ *
+ * mkv and pptx came only from the latter two; svg, heic/heif, audio, csv and
+ * markdown only from the first. All of them survive here.
+ *
+ * WHY EXTENSION AND MIME MUST AGREE: the extension decides the stored filename,
+ * and therefore what a browser is told the bytes are when they are served back.
+ * A MIME-only check lets `payload.html` through as `image/png`.
+ */
+export const SECURE_UPLOAD_FILE_TYPES: FileTypeAllowlist = {
+  jpg: ['image/jpeg'],
+  jpeg: ['image/jpeg'],
+  png: ['image/png'],
+  gif: ['image/gif'],
+  webp: ['image/webp'],
+  svg: ['image/svg+xml'],
+  heic: ['image/heic'],
+  heif: ['image/heif'],
+  mp4: ['video/mp4'],
+  mov: ['video/quicktime'],
+  webm: ['video/webm'],
+  avi: ['video/x-msvideo'],
+  mkv: ['video/x-matroska'],
+  pdf: ['application/pdf'],
+  doc: ['application/msword'],
+  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  xls: ['application/vnd.ms-excel'],
+  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+  txt: ['text/plain'],
+  csv: ['text/csv', 'text/plain'],
+  md: ['text/markdown', 'text/plain'],
+  json: ['application/json'],
+  zip: ['application/zip', 'application/x-zip-compressed'],
+  mp3: ['audio/mpeg'],
+  wav: ['audio/wav'],
+  ogg: ['audio/ogg'],
+}
+
+/** Every MIME type the secure surfaces accept, derived rather than restated. */
+export const SECURE_UPLOAD_MIME_TYPES: readonly string[] = Array.from(
+  new Set(Object.values(SECURE_UPLOAD_FILE_TYPES).flat()),
+)
+
+/**
+ * Validate a filename/MIME pair against the maximal policy.
+ *
+ * Separate from validateUploadFile only in that it takes the two fields
+ * directly: the secure routes carry filename and type as JSON metadata, with
+ * no File object to pass.
+ */
+export function validateSecureUpload(fileName: string, fileType: string): UploadValidation {
+  return validateUploadFile({ name: fileName, type: fileType }, SECURE_UPLOAD_FILE_TYPES)
+}
