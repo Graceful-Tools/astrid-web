@@ -20,6 +20,10 @@ export interface TaskRowContentProps {
   isMobile?: boolean
   onToggleComplete: () => void
   onCopyPublic: () => void
+  /** The viewer's task display mode; absent means list (task ffa5bbb5). */
+  displayMode?: string | null
+  /** Project mode: open the options popover instead of completing. */
+  onOpenOptions?: () => void
 }
 
 export function TaskRowContent({
@@ -29,6 +33,8 @@ export function TaskRowContent({
   isMobile,
   onToggleComplete,
   onCopyPublic,
+  displayMode,
+  onOpenOptions,
 }: TaskRowContentProps) {
   const { t } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
@@ -49,6 +55,8 @@ export function TaskRowContent({
           priority={task.priority}
           repeating={task.repeating !== 'never'}
           onToggleComplete={onToggleComplete}
+          displayMode={displayMode}
+          onOpenOptions={onOpenOptions}
         />
       )}
       <div className="flex-1 min-w-0">
