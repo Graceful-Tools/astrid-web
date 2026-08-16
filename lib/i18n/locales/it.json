@@ -690,6 +690,15 @@
         "viewDesc": "Vedi tutte le scorciatoie da tastiera disponibili per una gestione efficiente delle attività",
         "quickAccess": "Premi ? ovunque nel gestore attività per aprire le scorciatoie da tastiera."
       },
+      "taskDisplayMode": {
+        "title": "Layout dei dettagli attività",
+        "description": "Come priorità, assegnatario e stato appaiono in un'attività (sincronizzato tra dispositivi)",
+        "label": "Layout",
+        "list": "Elenco",
+        "project": "Progetto",
+        "listDesc": "La casella completa l'attività, e priorità e assegnatario hanno ciascuno la propria riga.",
+        "projectDesc": "Compatto. Toccando la casella si aprono priorità, assegnatario, stato e completa."
+      },
       "emailToTask": {
         "title": "Email a Attività",
         "description": "Crea attività istantaneamente inviando email a {inboundTaskEmail}",

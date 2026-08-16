@@ -690,6 +690,15 @@
         "viewDesc": "Veja todos os atalhos de teclado disponíveis para gerenciamento eficiente de tarefas",
         "quickAccess": "Pressione ? em qualquer lugar no gerenciador de tarefas para abrir atalhos de teclado."
       },
+      "taskDisplayMode": {
+        "title": "Layout dos detalhes da tarefa",
+        "description": "Como prioridade, responsável e estado aparecem numa tarefa (sincronizado entre dispositivos)",
+        "label": "Layout",
+        "list": "Lista",
+        "project": "Projeto",
+        "listDesc": "A caixa de seleção conclui a tarefa, e prioridade e responsável têm cada um a sua própria linha.",
+        "projectDesc": "Compacto. Tocar na caixa abre prioridade, responsável, estado e concluir."
+      },
       "emailToTask": {
         "title": "E-mail para Tarefa",
         "description": "Crie tarefas instantaneamente enviando e-mails para {inboundTaskEmail}",

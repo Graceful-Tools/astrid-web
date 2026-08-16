@@ -690,6 +690,15 @@
         "viewDesc": "See all available keyboard shortcuts for efficient task management",
         "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts."
       },
+      "taskDisplayMode": {
+        "title": "Task detail layout",
+        "description": "How priority, assignee and state appear on a task (synced across devices)",
+        "label": "Layout",
+        "list": "List",
+        "project": "Project",
+        "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
+        "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
+      },
       "emailToTask": {
         "title": "Email-to-Task",
         "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",

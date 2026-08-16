@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { isTaskDisplayMode } from '@/lib/task-display-mode'
 
 const log = createLogger('v1.users.me.smart-tasks')
 
@@ -19,6 +20,7 @@ const SELECT = {
   defaultDueTime: true,
   smartTaskCreationEnabled: true,
   subtaskDisplay: true,
+  taskDisplayMode: true,
 } as const
 
 export const GET = withAuth(
@@ -48,6 +50,7 @@ const ALLOWED = [
   'emailToTaskListId',
   'smartTaskCreationEnabled',
   'subtaskDisplay',
+  'taskDisplayMode',
 ] as const
 const VALID_OFFSETS = ['none', '1_day', '3_days', '1_week']
 /** The two layouts the task list can actually render. */
@@ -64,6 +67,19 @@ export const PATCH = withAuth(
         if (field in data) updateData[field] = data[field]
       }
 
+      // Rejected rather than coerced: a client that sends a mode this build
+      // does not know should learn it, instead of having the toggle silently
+      // do nothing. Validated through the shared helper so this surface and
+      // the legacy one cannot drift on what is allowed (task ffa5bbb5).
+      if (
+        'taskDisplayMode' in updateData &&
+        !isTaskDisplayMode(updateData.taskDisplayMode)
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid taskDisplayMode value' },
+          { status: 400 }
+        )
+      }
       if (
         updateData.subtaskDisplay &&
         !VALID_SUBTASK_DISPLAY.includes(updateData.subtaskDisplay as string)

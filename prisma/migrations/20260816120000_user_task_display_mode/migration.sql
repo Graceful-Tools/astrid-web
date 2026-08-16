@@ -1,0 +1,17 @@
+-- Task display mode: which task-detail design a user sees (task ffa5bbb5).
+--
+-- "list"    = the checkbox completes the task; priority and assignee get their
+--             own rows in task details.
+-- "project" = compact; the checkbox opens a popover carrying priority,
+--             assignee, board state and completion.
+--
+-- ADDITIVE AND DEFAULTED, so this is safe on a live table: existing rows get
+-- 'list' from the default, which is what the task asks for ("set all users and
+-- new users to list mode by default"). Nobody's task details change appearance
+-- on deploy — nothing reads the column yet, and when it is read, list is the
+-- design they already have.
+--
+-- Nullable to match subtaskDisplay next to it, and because the reader
+-- (lib/task-display-mode.ts) normalizes null to 'list' anyway: a row that
+-- somehow arrives without a value must not render an undefined design.
+ALTER TABLE "User" ADD COLUMN "taskDisplayMode" TEXT DEFAULT 'list';

@@ -690,6 +690,15 @@
         "viewDesc": "Ve todos los atajos de teclado disponibles para gestión eficiente de tareas",
         "quickAccess": "Presiona ? en cualquier lugar del gestor de tareas para abrir atajos de teclado."
       },
+      "taskDisplayMode": {
+        "title": "Diseño del detalle de tarea",
+        "description": "Cómo aparecen la prioridad, el responsable y el estado en una tarea (sincronizado entre dispositivos)",
+        "label": "Diseño",
+        "list": "Lista",
+        "project": "Proyecto",
+        "listDesc": "La casilla completa la tarea, y la prioridad y el responsable tienen cada uno su propia fila.",
+        "projectDesc": "Compacto. Al tocar la casilla se abren prioridad, responsable, estado y completar."
+      },
       "emailToTask": {
         "title": "Correo a Tarea",
         "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",

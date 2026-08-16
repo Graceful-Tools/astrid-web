@@ -690,6 +690,15 @@
         "viewDesc": "Bekijk alle beschikbare sneltoetsen voor efficiënt taakbeheer",
         "quickAccess": "Druk overal in de taakmanager op ? om sneltoetsen te openen."
       },
+      "taskDisplayMode": {
+        "title": "Indeling van taakdetails",
+        "description": "Hoe prioriteit, toegewezen persoon en status op een taak verschijnen (gesynchroniseerd tussen apparaten)",
+        "label": "Indeling",
+        "list": "Lijst",
+        "project": "Project",
+        "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
+        "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
+      },
       "emailToTask": {
         "title": "E-mail naar Taak",
         "description": "Maak direct taken door e-mails te sturen naar {inboundTaskEmail}",
