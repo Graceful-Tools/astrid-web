@@ -42,20 +42,27 @@ export type SessionResolution =
  * is neither a database session nor a readable JWT, which is the genuinely
  * invalid case.
  */
-async function looksLikeValidJwtSession(cookieValue: string): Promise<boolean> {
+/**
+ * The user id carried by a valid JWT session cookie, or null.
+ *
+ * Returns the id rather than a boolean because a JWT session is now ACCEPTED
+ * (task c9a38b36) — it used to answer only "is this a passkey user?" so the
+ * refusal could be worded truthfully.
+ */
+async function jwtSessionUserId(cookieValue: string): Promise<string | null> {
   try {
     const decoded = await decode({
       token: cookieValue,
       secret: process.env.NEXTAUTH_SECRET!,
     })
-    if (!decoded?.id) return false
+    if (!decoded?.id) return null
     // An expired JWT is not "signed in with the wrong method", it is expired.
     if (typeof decoded.exp === 'number' && decoded.exp < Math.floor(Date.now() / 1000)) {
-      return false
+      return null
     }
-    return true
+    return decoded.id as string
   } catch {
-    return false
+    return null
   }
 }
 
@@ -74,28 +81,24 @@ export async function resolveMobileSessionUser(request: NextRequest): Promise<Se
   })
 
   if (!session) {
-    // The cookie may be a perfectly valid JWT rather than a database session.
-    // Passkey/WebAuthn sign-in issues JWTs (strategy: 'jwt'), Apple/Google
-    // mobile sign-in issues database Session rows, and these routes only
-    // understand the latter.
+    // No database Session row, so the cookie may be a JWT instead. Passkey /
+    // WebAuthn sign-in issues JWTs (strategy: 'jwt'); Apple and Google mobile
+    // sign-in write Session rows. These routes understood only the latter, so
+    // a passkey user — signed in, and validated by GET
+    // /api/v1/auth/mobile-session — could not mint a token at all.
     //
-    // Saying "invalid session" to a passkey user is actively misleading: they
-    // ARE signed in, GET /api/v1/auth/mobile-session validates them, and the
-    // message sends them looking for a broken integration instead of an
-    // unsupported sign-in method. 33 authenticators are registered in
-    // production, so this is a real audience. (Task c9a38b36.)
+    // ACCEPTED as of task c9a38b36, on Jon's call. The system already trusts a
+    // JWT for the equivalent job: that mobile-session route decodes one and
+    // issues a mobile session from it. Treating the same identity as
+    // insufficient here was an artefact of these two routes being written
+    // against the database-session shape, not a decision anyone made. 33
+    // authenticators are registered in production.
     //
-    // This does NOT widen who can mint a token — deciding whether JWT sessions
-    // should be accepted is a separate call. It only makes the refusal
-    // truthful.
-    if (await looksLikeValidJwtSession(sessionCookie.value)) {
-      return {
-        ok: false,
-        status: 401,
-        error:
-          'Unauthorized - MCP tokens require an Apple or Google sign-in. ' +
-          'Passkey sessions cannot mint one.',
-      }
+    // The refusals that remain are real ones: an expired JWT, a JWT with no
+    // subject, and an unreadable cookie all still fail.
+    const jwtUserId = await jwtSessionUserId(sessionCookie.value)
+    if (jwtUserId) {
+      return { ok: true, userId: jwtUserId }
     }
     return { ok: false, status: 401, error: 'Unauthorized - Invalid session' }
   }
