@@ -91,8 +91,8 @@ jobs:
             if [ -z "$table_name" ]; then
               continue
             fi
-            # Search for CREATE TABLE with this name, allowing for optional schema prefix like "public".
-            if ! grep -qE "CREATE TABLE (\"public\"\\.)?\"${table_name}\"" prisma/migrations/*/migration.sql 2>/dev/null; then
+            # Allow idempotent migrations and an optional schema prefix.
+            if ! grep -qE "CREATE TABLE (IF NOT EXISTS )?(\"public\"\\.)?\"${table_name}\"" prisma/migrations/*/migration.sql 2>/dev/null; then
               MISSING_TABLES="${MISSING_TABLES}CREATE TABLE \"${table_name}\"\n"
             fi
           done <<< "$SCHEMA_TABLES"
