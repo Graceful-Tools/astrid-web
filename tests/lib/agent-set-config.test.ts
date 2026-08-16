@@ -54,6 +54,15 @@ describe('agent registry defaults (task 97208a72)', () => {
     expect(getAgentModel('openclaw@astrid.cc')).toBe('anthropic/claude-opus-4-5')
   })
 
+  it('registers local Codex as a distinct assignable identity, not the cloud OpenAI provider', async () => {
+    const { getAssignableAgentEmails } = await import('@/lib/ai/assignable-agents')
+    const { getAgentConfig } = await import('@/lib/ai/agent-config')
+
+    expect(getAssignableAgentEmails()).toContain('codex@astrid.cc')
+    expect(getAgentConfig('codex@astrid.cc')).toBeNull()
+    expect(getAgentConfig('openai@astrid.cc')?.service).toBe('openai')
+  })
+
   it('resolves {name}.oc@ addresses to the openclaw config', async () => {
     const { getAgentConfig, getAgentService } = await import('@/lib/ai/agent-config')
 

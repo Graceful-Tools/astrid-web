@@ -113,6 +113,19 @@ implementation, not before. Follow the per-task coding workflow in
 **Task scripts:** `get-astrid-tasks.ts` (pull), `analyze-task.ts <id>` (analyze),
 `add-task-comment.ts <id> "..."` (comment), `complete-task-with-workflow.ts <id>` (complete).
 
+For autonomous `/fixall`, use the single portable definition in
+[`.claude/commands/fixall.md`](../.claude/commands/fixall.md). Every queue read is:
+
+```bash
+npx tsx scripts/ready-tasks.ts [web|ios] --harness <selector>
+```
+
+`ASTRID_FIXALL_HARNESS` is the environment fallback; CLI wins. Valid selectors are
+`claude-code`, `github-copilot`, `codex`, and `astrid-server`. They map respectively
+to the brand-derived `claude@`, `copilot@`, `codex@`, and `astrid@` identities.
+Missing or unknown selectors fail closed. Codex is deliberately distinct from the
+cloud `openai@` agent.
+
 ---
 
 ## 4. Quality gates

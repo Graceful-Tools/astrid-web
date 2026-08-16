@@ -7,8 +7,9 @@
  * that there is nothing to do. `GET /api/v1/tasks?listId=` filters server-side,
  * so the whole check is one call.
  *
- * Takes a board: `ready-tasks.ts` (web, default) or `ready-tasks.ts ios`. Both
- * loops share it so neither can drift from the other's guarantees.
+ * Takes a board plus an explicit harness identity:
+ * `ready-tasks.ts [web|ios] --harness <selector>`. The board defaults to web;
+ * the harness has no default because guessing could claim another agent's work.
  *
  * BOTH lists are required, because `Ready` is NOT a sublist of a board:
  * it is a single account-wide `listType: 'status'` list that every board shares
@@ -20,7 +21,7 @@
  * Exits 0 with "READY_EMPTY" when there is nothing queued, so a scheduled run
  * can stop without parsing anything.
  *
- *   npx tsx scripts/ready-tasks.ts
+ *   npx tsx scripts/ready-tasks.ts --harness github-copilot
  */
 
 // `export {}` makes this a module. Without it the file shares the global
@@ -30,33 +31,36 @@ export {}
 import {
   isClaimableByAgent,
   describeAssignee,
+  resolveReadyQueueOptions,
   type AssignableTask,
 } from "@/lib/ready-queue-scope"
 
 const READY_LIST_NAME = "Ready"
+const BOARD_LIST_NAMES = {
+  web: "Astrid Web To-do",
+  ios: "Astrid iOS To-do",
+} as const
 
 /**
  * Which board to scope to. Both loops use this script so that the guarantees
- * are the same for each — Ready ∩ board, unassigned-or-Claude, loud failure on
+ * are the same for each — Ready ∩ board, exact harness assignee, loud failure on
  * a missing list, and a printed reason for everything skipped. A second copy of
  * this for iOS would drift, and the drift would be silent: a queue that is
  * wrong in this script looks exactly like a quiet day.
  *
- *   npx tsx scripts/ready-tasks.ts        # web (default)
- *   npx tsx scripts/ready-tasks.ts ios
+ *   npx tsx scripts/ready-tasks.ts --harness claude-code
+ *   npx tsx scripts/ready-tasks.ts ios --harness codex
  */
-const BOARDS: Record<string, string> = {
-  web: "Astrid Web To-do",
-  ios: "Astrid iOS To-do",
+function loadOptions() {
+  try {
+    return resolveReadyQueueOptions(process.argv.slice(2), process.env)
+  } catch (error) {
+    console.error(`❌ ${error instanceof Error ? error.message : error}`)
+    process.exit(1)
+  }
 }
-
-const boardArg = (process.argv[2] || "web").toLowerCase()
-const BOARD_LIST_NAME = BOARDS[boardArg]
-
-if (!BOARD_LIST_NAME) {
-  console.error(`❌ Unknown board "${boardArg}". Expected one of: ${Object.keys(BOARDS).join(", ")}`)
-  process.exit(1)
-}
+const options = loadOptions()
+const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
 
 async function main() {
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
@@ -122,15 +126,15 @@ async function main() {
   const onBoard = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
   const others = all.filter((task: { listIds?: string[] }) => !(task.listIds ?? []).includes(board.id))
 
-  // ...and unassigned, or assigned to Claude.
+  // ...and assigned to this exact harness identity.
   //
   // An assignee is a claim. A task assigned to a person is that person's, even
   // when it sits in Ready — the loop picking it up means two people writing the
   // same fix, or Jon's own in-progress work being redone underneath him. Ready
   // says "this is actionable", not "this is unclaimed", so the two conditions
   // are separate and both are required.
-  const mine = onBoard.filter((task: AssignableTask) => isClaimableByAgent(task))
-  const claimed = onBoard.filter((task: AssignableTask) => !isClaimableByAgent(task))
+  const mine = onBoard.filter((task: AssignableTask) => isClaimableByAgent(task, options.harness))
+  const claimed = onBoard.filter((task: AssignableTask) => !isClaimableByAgent(task, options.harness))
 
   // Print what was filtered out. Silently dropping it would make a Ready queue
   // full of iOS work look identical to an empty one, and Jon would have no way

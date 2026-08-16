@@ -165,6 +165,16 @@ export const oauthTokenRateLimiter = new RateLimiter({
   }
 })
 
+export const oauthRegistrationRateLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 20,
+  keyGenerator: (request) => {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+               request.headers.get('x-real-ip') || 'unknown'
+    return `oauth-register:${ip}`
+  }
+})
+
 // Per-user invite rate limit (keyed by user id via checkRateLimitByKeyAsync):
 // invites send mail to arbitrary addresses from the Astrid domain, so cap the
 // spam blast radius.

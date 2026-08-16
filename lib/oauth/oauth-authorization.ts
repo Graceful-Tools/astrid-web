@@ -25,6 +25,8 @@ export interface AuthorizationRequestParams {
   scope?: string
   state?: string
   responseType?: string
+  codeChallenge?: string
+  codeChallengeMethod?: string
 }
 
 interface AuthorizationClient {
@@ -35,11 +37,12 @@ interface AuthorizationClient {
   redirectUris: string[]
   grantTypes: string[]
   scopes: OAuthScope[]
+  tokenEndpointAuthMethod: string
   owner: {
     id: string
     name: string | null
     email: string | null
-  }
+  } | null
 }
 
 export interface AuthorizationContext {
@@ -47,6 +50,8 @@ export interface AuthorizationContext {
   redirectUri: string
   scopes: OAuthScope[]
   state?: string
+  codeChallenge?: string
+  codeChallengeMethod?: 'S256'
 }
 
 function normalizeScopeString(scopes: OAuthScope[]): string {
@@ -56,7 +61,15 @@ function normalizeScopeString(scopes: OAuthScope[]): string {
 export async function validateAuthorizationRequest(
   params: AuthorizationRequestParams
 ): Promise<AuthorizationContext> {
-  const { clientId, redirectUri, scope, state, responseType } = params
+  const {
+    clientId,
+    redirectUri,
+    scope,
+    state,
+    responseType,
+    codeChallenge,
+    codeChallengeMethod,
+  } = params
 
   if (!clientId) {
     throw new OAuthAuthorizationError('invalid_client', 'Missing client_id')
@@ -86,6 +99,7 @@ export async function validateAuthorizationRequest(
       redirectUris: true,
       grantTypes: true,
       scopes: true,
+      tokenEndpointAuthMethod: true,
       user: {
         select: {
           id: true,
@@ -109,6 +123,25 @@ export async function validateAuthorizationRequest(
 
   if (!validateRedirectUri(clientRecord.redirectUris, redirectUri)) {
     throw new OAuthAuthorizationError('invalid_grant', 'Invalid redirect_uri')
+  }
+
+  const isPublicClient = clientRecord.tokenEndpointAuthMethod === 'none'
+  if (codeChallenge && codeChallengeMethod !== 'S256') {
+    throw new OAuthAuthorizationError(
+      'invalid_request',
+      'Only code_challenge_method=S256 is supported',
+    )
+  }
+  if (
+    isPublicClient &&
+    (!codeChallenge ||
+      codeChallengeMethod !== 'S256' ||
+      !/^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge))
+  ) {
+    throw new OAuthAuthorizationError(
+      'invalid_request',
+      'Public OAuth clients require an S256 PKCE code challenge',
+    )
   }
 
   const availableScopes = validateScopes(clientRecord.scopes)
@@ -154,11 +187,14 @@ export async function validateAuthorizationRequest(
     redirectUris: clientRecord.redirectUris,
     grantTypes: clientRecord.grantTypes,
     scopes: availableScopes,
-    owner: {
-      id: clientRecord.user.id,
-      name: clientRecord.user.name,
-      email: clientRecord.user.email,
-    },
+    tokenEndpointAuthMethod: clientRecord.tokenEndpointAuthMethod,
+    owner: clientRecord.user
+      ? {
+          id: clientRecord.user.id,
+          name: clientRecord.user.name,
+          email: clientRecord.user.email,
+        }
+      : null,
   }
 
   return {
@@ -166,6 +202,8 @@ export async function validateAuthorizationRequest(
     redirectUri,
     scopes: uniqueScopes,
     state: state || undefined,
+    codeChallenge: codeChallenge || undefined,
+    codeChallengeMethod: codeChallenge ? 'S256' : undefined,
   }
 }
 
@@ -177,7 +215,9 @@ export async function createAuthorizationRedirect(
     context.client.id,
     userId,
     context.redirectUri,
-    context.scopes
+    context.scopes,
+    context.codeChallenge,
+    context.codeChallengeMethod,
   )
 
   const redirectUrl = new URL(context.redirectUri)

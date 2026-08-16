@@ -21,10 +21,28 @@ export const AGENT_MAILBOXES = {
   openai: 'openai',
   gemini: 'gemini',
   copilot: 'copilot',
+  codex: 'codex',
   openclaw: 'openclaw',
 } as const
 
 export type AgentMailbox = keyof typeof AGENT_MAILBOXES
+
+/**
+ * Agent users owned by a local polling harness rather than a server AI provider.
+ *
+ * Keep these outside AI_AGENT_CONFIG: treating Codex as OpenAI would let the cloud
+ * OpenAI workflow consume tasks assigned to the local Codex CLI.
+ */
+export const LOCAL_HARNESS_AGENT_MAILBOXES = [AGENT_MAILBOXES.codex] as const
+
+/** Does this address belong to a polling-only local harness identity? */
+export function isLocalHarnessAgentEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const normalized = email.toLowerCase()
+  return LOCAL_HARNESS_AGENT_MAILBOXES.some(
+    (mailbox) => normalized === agentEmail(mailbox).toLowerCase(),
+  )
+}
 
 /** Build an agent identity address, e.g. agentEmail('claude') -> claude@astrid.cc */
 export function agentEmail(mailbox: string): string {

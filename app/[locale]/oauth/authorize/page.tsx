@@ -57,6 +57,8 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
     scope: normalizeParam(resolvedSearchParams.scope),
     state: normalizeParam(resolvedSearchParams.state),
     responseType: normalizeParam(resolvedSearchParams.response_type),
+    codeChallenge: normalizeParam(resolvedSearchParams.code_challenge),
+    codeChallengeMethod: normalizeParam(resolvedSearchParams.code_challenge_method),
   }
 
   let context = null
@@ -118,6 +120,8 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
     const scope = formData.get("scope")?.toString()
     const state = formData.get("state")?.toString()
     const decision = formData.get("decision")?.toString() || "deny"
+    const codeChallenge = formData.get("code_challenge")?.toString()
+    const codeChallengeMethod = formData.get("code_challenge_method")?.toString()
 
     const requestContext = await validateAuthorizationRequest({
       clientId,
@@ -125,6 +129,8 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
       scope,
       state,
       responseType: "code",
+      codeChallenge,
+      codeChallengeMethod,
     })
 
     if (decision === "deny") {
@@ -173,7 +179,9 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                 </div>
               </div>
               <div className="text-xs theme-text-muted">
-                Developed by {context.client.owner.email || context.client.owner.name || `${BRAND.appName} user`}
+                {context.client.owner
+                  ? `Developed by ${context.client.owner.email || context.client.owner.name || `${BRAND.appName} user`}`
+                  : 'Dynamically registered by your MCP client'}
               </div>
             </CardContent>
           </Card>
@@ -219,6 +227,12 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                 <input type="hidden" name="redirect_uri" value={context.redirectUri} />
                 <input type="hidden" name="scope" value={scopeSummary} />
                 {context.state && <input type="hidden" name="state" value={context.state} />}
+                {context.codeChallenge && (
+                  <>
+                    <input type="hidden" name="code_challenge" value={context.codeChallenge} />
+                    <input type="hidden" name="code_challenge_method" value="S256" />
+                  </>
+                )}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     variant="outline"
