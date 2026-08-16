@@ -30,16 +30,22 @@ export interface AssignableTask {
 /**
  * May an autonomous loop take this task?
  *
- * True when nobody has claimed it, or when the assignee is the agent itself.
+ * ONLY when it is assigned to the agent. Assignment is the handshake.
  *
- * Deliberately conservative about missing data: `assignee` may be absent, null,
- * or present without an email depending on how the task was serialised. When a
- * task IS assigned but the identity cannot be confirmed, the safe reading is
- * "someone else's" — claiming it on a guess is the failure that costs duplicated
- * work, while skipping it costs one line of output telling Jon why.
+ * Unassigned used to qualify too, on the reasoning that nobody had claimed it
+ * (Jon, 2026-08-15: "only chose tasks assigned to Claude"). That reading made
+ * `Ready` mean "actionable AND unclaimed", so anything dropped into Ready to
+ * think about was fair game for a loop that would start on it within fifteen
+ * minutes. Requiring the assignment inverts the default: nothing is the loop's
+ * until someone hands it over, and Ready can go back to meaning only "ready".
+ *
+ * Still deliberately conservative about missing data: `assignee` may be absent,
+ * null, or present without an email depending on how the task was serialised.
+ * An assignment that cannot be confirmed reads as somebody else's — claiming on
+ * a guess costs duplicated work, skipping costs one line of output saying why.
  */
 export function isClaimableByAgent(task: AssignableTask): boolean {
-  if (!task.assigneeId) return true
+  if (!task.assigneeId) return false
 
   const email = task.assignee?.email
   if (!email) return false
@@ -47,7 +53,14 @@ export function isClaimableByAgent(task: AssignableTask): boolean {
   return email.toLowerCase().split('@')[0] === CLAUDE_MAILBOX
 }
 
-/** Human-readable owner, for explaining why a task was skipped. */
+/**
+ * Human-readable owner, for explaining why a task was skipped.
+ *
+ * "unassigned" is now the COMMON skip, not an edge case, so it says so. Printing
+ * `unknown` for it read as a data problem and sent a reader looking for a bug that
+ * was not there — the task simply had not been handed over yet.
+ */
 export function describeAssignee(task: AssignableTask): string {
+  if (!task.assigneeId) return 'unassigned'
   return task.assignee?.name || task.assignee?.email || task.assigneeId || 'unknown'
 }
