@@ -342,11 +342,11 @@ model Task {
   subtasks           Task[]             @relation("TaskSubtasks")
   externalLinks      ExternalTaskLink[] @relation("TaskExternalLinks")
   attachments        Attachment[]
-  /// Expected cost in cents at the time work was authorised. Null = never
+  /// Expected cost in MICROCENTS at the time work was authorised. Null = never
   /// estimated, which is the overwhelmingly common case and draws no UI.
   /// Snapshot semantics: records what we believed BEFORE the work and is never
   /// recomputed, otherwise variance measures nothing. (Task 315949e1.)
-  costEstimateCents  Int?
+  costEstimateMicrocents Int?
   /// How the estimate was produced: human | cohort | model.
   costEstimateSource String?
 
@@ -1269,8 +1269,26 @@ model TaskCostEvent {
   model        String
   inputTokens  Int
   outputTokens Int
-  /// Cost in cents, COMPUTED AND FROZEN AT WRITE TIME.
-  costCents    Int
+  /// Tokens served from the provider's prompt cache, kept SEPARATE from
+  /// inputTokens because they are billed at roughly a tenth of the rate
+  /// (Jon, task 315949e1: "Store them separately"). Collapsing them into one
+  /// input number would make the recorded cost materially wrong for exactly
+  /// the workloads worth measuring — long agent runs with big cached prompts,
+  /// which is most of what this app does.
+  cacheReadTokens  Int @default(0)
+  /// Tokens written INTO the cache. Anthropic bills these at a premium over
+  /// ordinary input, so they are neither input nor cache-read; a third column
+  /// is the only shape that prices all three correctly.
+  cacheWriteTokens Int @default(0)
+  /// Cost in MICROCENTS, COMPUTED AND FROZEN AT WRITE TIME.
+  ///
+  /// Not cents: model prices are quoted per million tokens and a single call
+  /// routinely costs a fraction of a cent, so cents would round almost every
+  /// row to zero. Not a float: 0.1 + 0.2 drift accumulates across aggregation,
+  /// and totals that do not add up destroy trust in the whole feature. An
+  /// integer count of microcents (1 dollar = 100,000,000) sums exactly over
+  /// millions of rows and costs one formatting helper.
+  costMicrocents Int
   /// Idempotency key from the reporter, so a retried report is not
   /// double-counted. Unique per task, not globally: two different tasks may
   /// legitimately be reported under the same run id by different agents.

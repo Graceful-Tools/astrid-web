@@ -6,7 +6,8 @@
  * user without the flag sees nothing." This is the write path that has to work
  * before anything else in the spec is worth building.
  *
- * Body: { provider, model, inputTokens, outputTokens, costCents, externalId? }
+ * Body: { provider, model, inputTokens, outputTokens, costMicrocents,
+ *         cacheReadTokens?, cacheWriteTokens?, externalId? }
  *
  * Gated on the task_cost capability + flag, and scoped to `tasks:write` — the
  * existing write permission, per the spec's instruction not to invent a
@@ -48,7 +49,11 @@ export const POST = withAuth<RouteContext>(
         model: body.model,
         inputTokens: body.inputTokens,
         outputTokens: body.outputTokens,
-        costCents: body.costCents,
+        // Optional: a provider that reports no cache usage is reporting a real
+        // zero, so absence is accepted and only a malformed value is refused.
+        cacheReadTokens: body.cacheReadTokens,
+        cacheWriteTokens: body.cacheWriteTokens,
+        costMicrocents: body.costMicrocents,
         externalId: typeof body.externalId === 'string' ? body.externalId : null,
       })
 
