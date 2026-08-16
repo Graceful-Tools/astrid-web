@@ -1,0 +1,19 @@
+-- Actually add the Mac DAU column (task b4591534, repairing task ffa5bbb5's deploy).
+--
+-- WHY A SECOND MIGRATION rather than a fix to the first one. 20260816010000
+-- named the table "DailyStats"; the model is AnalyticsDailyStats and has no
+-- @@map, so it failed on production with 42P01. A failed migration blocks every
+-- migration behind it, which is how an analytics column stopped an unrelated
+-- User.taskDisplayMode column from being added and left two settings endpoints
+-- returning 500.
+--
+-- Editing the original in place is not enough. scripts/build-with-migrations.js
+-- clears failed migrations before deploying, and for a migration containing
+-- ALTER TABLE it resolves them as APPLIED without running them — correct for a
+-- migration that half-succeeded, but it means the corrected 010000 will never
+-- execute on production. This one carries a later timestamp so it runs after
+-- that resolution.
+--
+-- IF NOT EXISTS on both, so a fresh database (where the corrected 010000 does
+-- run) reaches the same place as production without either colliding.
+ALTER TABLE "AnalyticsDailyStats" ADD COLUMN IF NOT EXISTS "dauMacApp" INTEGER NOT NULL DEFAULT 0;

@@ -12,4 +12,12 @@
 -- NOT BACKFILLED, deliberately: past days' Mac traffic is inside dauUnknown and
 -- cannot be separated after the fact — the daily rows store counts, not the
 -- requests they were derived from. Mac numbers start from this deploy.
-ALTER TABLE "DailyStats" ADD COLUMN IF NOT EXISTS "dauMacApp" INTEGER NOT NULL DEFAULT 0;
+-- CORRECTED 2026-08-16: this said "DailyStats". There is no such table — the
+-- model is AnalyticsDailyStats and carries no @@map, so the deploy failed with
+-- 42P01 and, because a failed migration blocks the ones behind it, took the
+-- unrelated User.taskDisplayMode migration down with it. Production had already
+-- moved past this record by the time it was fixed, so the column is actually
+-- added by 20260816130000_analytics_mac_app_dau_fix; this line is what makes a
+-- FRESH database correct, and the IF NOT EXISTS is what keeps the two from
+-- colliding.
+ALTER TABLE "AnalyticsDailyStats" ADD COLUMN IF NOT EXISTS "dauMacApp" INTEGER NOT NULL DEFAULT 0;
