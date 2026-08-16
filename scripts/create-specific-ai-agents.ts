@@ -16,7 +16,7 @@ import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
 import { loadScriptEnv } from './lib/load-env'
 import { ENABLED_AGENT_MAILBOXES, AI_AGENT_CONFIG } from '../lib/ai/agent-config'
-import { agentEmail } from '../lib/brand/agent-emails'
+import { agentEmail, LOCAL_HARNESS_AGENT_MAILBOXES } from '../lib/brand/agent-emails'
 
 // Load .env.local for database URL
 loadScriptEnv()
@@ -32,6 +32,7 @@ const SEED_PROFILE: Record<string, { name: string; image: string }> = {
   openai: { name: 'OpenAI Agent', image: 'openai.png' },
   gemini: { name: 'Gemini Agent', image: 'gemini.png' },
   copilot: { name: 'GitHub Copilot Agent', image: 'copilot.png' },
+  codex: { name: 'Codex Agent', image: 'openai.png' },
   openclaw: { name: 'OpenClaw Worker', image: 'openclaw.svg' },
 }
 
@@ -41,7 +42,10 @@ async function createSpecificAIAgents() {
 
     // The default assistant is seeded by ensureAstridAgent() on first use and has no
     // provider image of its own, so it is not seeded here.
-    const mailboxes = ENABLED_AGENT_MAILBOXES.filter((m) => m !== 'astrid' && m in SEED_PROFILE)
+    const mailboxes = [
+      ...ENABLED_AGENT_MAILBOXES.filter((m) => m !== 'astrid' && m in SEED_PROFILE),
+      ...LOCAL_HARNESS_AGENT_MAILBOXES,
+    ]
     const agents = []
 
     for (const mailbox of mailboxes) {
@@ -51,7 +55,7 @@ async function createSpecificAIAgents() {
         name: profile.name,
         image: `${BLOB_BASE}/${profile.image}`,
         isAIAgent: true,
-        aiAgentType: AI_AGENT_CONFIG[email].agentType,
+        aiAgentType: AI_AGENT_CONFIG[email]?.agentType || 'local_harness_agent',
         isActive: true,
       }
 

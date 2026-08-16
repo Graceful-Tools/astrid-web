@@ -47,9 +47,9 @@ exactly one place:
 - Codex reads this file (`AGENTS.md`) automatically; it does **not** use Claude Code's
   `.claude/` permission system. The `npm run validate:settings:fix` step in
   docs/CLI_OPERATIONS.md §3 is Claude-Code-only — skip it under Codex.
-- There is no `codex@astrid.cc` cloud agent. Registered agents are `claude@astrid.cc`,
-  `openai@astrid.cc`, `gemini@astrid.cc`, `openclaw@astrid.cc`. Codex here is a *local*
-  CLI, not a registered task assignee.
+- Local Codex claims only tasks assigned to the distinct brand-derived
+  `codex@<agent-domain>` polling identity. It is not the cloud OpenAI agent
+  (`openai@<agent-domain>`) and must never claim that agent's assignments.
 - Response style: lead with the outcome, reference files as `path:line`, keep turns short.
 
 ---

@@ -8,7 +8,8 @@ it drifts).
 **Capabilities:** Code generation, code review, planning, GitHub operations.
 
 > **Note:** This is the *cloud* OpenAI agent. The *local* Codex CLI reads
-> [AGENTS.md](./AGENTS.md) instead.
+> [AGENTS.md](./AGENTS.md) instead and uses the distinct
+> `codex@<BRAND.agentEmailDomain>` assignment identity.
 
 ---
 
