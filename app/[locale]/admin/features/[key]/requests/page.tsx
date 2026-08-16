@@ -1,21 +1,29 @@
 'use client'
 
 /**
- * Feature access request queue (task dd7172d8).
+ * One feature's access request queue (task dd7172d8; made per-feature by
+ * task 3cef96ef).
  *
- * This page answers the question the gate exists to answer: **how many people
- * actually want Project Mode?** The demand tiles are the headline; the queue
+ * This page answers the question a gate exists to answer: **how many people
+ * actually want this feature?** The demand tiles are the headline; the queue
  * below is how you act on it.
  *
  * Granting here is the admin opt-in — it adds the user as an INCLUDE target on
- * the `project_mode` flag, which is seeded SELECTED_USERS, so a grant takes
- * effect immediately without touching the rollout page.
+ * the flag, so for a flag seeded SELECTED_USERS the grant takes effect
+ * immediately without touching the rollout page.
+ *
+ * IT USED TO BE /admin/feature-requests WITH A HARDCODED project_mode. The API
+ * behind it already took a featureKey and validated it against FEATURE_KEYS —
+ * only the page pinned one value, so the other two features had no queue at
+ * all. It now lives under the feature it belongs to, which is what makes
+ * "pending requests should be per-feature" true of the URL as well as the data.
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Check, Inbox, TrendingUp, UserCheck, UserX, Users } from 'lucide-react'
+import Link from 'next/link'
+import { Check, ChevronLeft, Inbox, TrendingUp, UserCheck, UserX, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,24 +40,24 @@ interface RequestRow {
   user: { id: string; email: string; name: string | null } | null
 }
 
-const FEATURE_KEY = 'project_mode'
-
 export default function FeatureRequestsPage() {
   const { status } = useSession()
   const router = useRouter()
+  const params = useParams<{ key: string }>()
+  const featureKey = typeof params?.key === 'string' ? params.key : ''
   const [demand, setDemand] = useState<FeatureDemandSummary | null>(null)
   const [requests, setRequests] = useState<RequestRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const response = await fetch(`/api/admin/feature-requests?featureKey=${FEATURE_KEY}`)
+    const response = await fetch(`/api/admin/feature-requests?featureKey=${encodeURIComponent(featureKey)}`)
     if (response.status === 403) { setError('Admin access required'); return }
     if (!response.ok) { setError('Unable to load access requests'); return }
     const data = await response.json()
     setDemand(data.demand)
     setRequests(data.requests)
-  }, [])
+  }, [featureKey])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/auth/signin')
@@ -86,9 +94,12 @@ export default function FeatureRequestsPage() {
   return (
     <div className="container mx-auto max-w-5xl px-4 py-6 sm:py-8">
       <header className="mb-6 border-b pb-4">
+        <Link href={`/admin/features/${featureKey}`} className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
+          <ChevronLeft className="h-4 w-4" />Back to rollout
+        </Link>
         <h1 className="text-2xl font-bold">Access Requests</h1>
         <p className="text-sm text-muted-foreground">
-          Who is asking for Project Mode, and how many of them there are.
+          Who is asking for this feature, and how many of them there are.
         </p>
       </header>
 
@@ -105,7 +116,7 @@ export default function FeatureRequestsPage() {
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2"><Inbox className="h-5 w-5" />Pending</CardTitle>
           <CardDescription>
-            Granting adds the user to the Project Mode include list — it takes effect immediately.
+            Granting adds the user to this feature&apos;s include list — it takes effect immediately.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
