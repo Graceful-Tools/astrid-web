@@ -776,10 +776,11 @@ model MCPToken {
 model OAuthClient {
   id                 String                   @id @default(cuid())
   clientId           String                   @unique
-  clientSecret       String
+  clientSecret       String?
+  tokenEndpointAuthMethod String               @default("client_secret_post")
   name               String
   description        String?
-  userId             String
+  userId             String?
   redirectUris       String[]
   grantTypes         String[]                 @default(["client_credentials"])
   scopes             String[]                 @default(["tasks:read", "tasks:write", "lists:read", "lists:write"])
@@ -788,7 +789,7 @@ model OAuthClient {
   updatedAt          DateTime                 @updatedAt
   lastUsedAt         DateTime?
   authorizationCodes OAuthAuthorizationCode[]
-  user               User                     @relation("OAuthClients", fields: [userId], references: [id], onDelete: Cascade)
+  user               User?                    @relation("OAuthClients", fields: [userId], references: [id], onDelete: Cascade)
   tokens             OAuthToken[]
 
   @@index([userId])
@@ -825,6 +826,8 @@ model OAuthAuthorizationCode {
   userId      String
   redirectUri String
   scopes      String[]
+  codeChallenge String?
+  codeChallengeMethod String?
   expiresAt   DateTime
   usedAt      DateTime?
   createdAt   DateTime    @default(now())

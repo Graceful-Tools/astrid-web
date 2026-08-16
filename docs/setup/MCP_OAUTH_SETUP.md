@@ -202,6 +202,11 @@ over OAuth — no local build, no manual token. VS Code discovers the OAuth serv
 from Astrid's RFC 9728 metadata and opens a browser to sign you in on first
 connect.
 
+Astrid supports OAuth dynamic client registration and S256 PKCE, so public MCP
+hosts—including Copilot CLI, Codex, and IDE integrations that cannot safely store
+a client secret—can register themselves during that first connection. You do not
+need to create an API Access client or paste a secret into their configuration.
+
 **1. Add the server to `.vscode/mcp.json`** (workspace) — or your user `mcp.json`
 via the *MCP: Open User Configuration* command:
 
@@ -221,6 +226,10 @@ via the *MCP: Open User Configuration* command:
 scopes. The Astrid tools then appear in Copilot agent mode's tool picker.
 
 Notes:
+- OAuth clients that support RFC 7591 use
+  `/api/v1/oauth/register`, then complete authorization-code OAuth with S256 PKCE.
+  Confidential server integrations can continue using a manually created client
+  and `client_credentials`; the two client types remain separate.
 - **Either host works.** `astrid.cc/mcp` and `www.astrid.cc/mcp` are both fine —
   `/mcp` is exempt from the apex→www redirect. It used to redirect, and clients
   dropped the `Authorization` header when they followed it, producing a 401 that
