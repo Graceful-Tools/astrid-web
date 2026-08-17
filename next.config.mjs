@@ -24,15 +24,20 @@ const ContentSecurityPolicy = `
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
-  },
+  // Next 16 removed the `eslint` config key along with `next lint`; linting is its own
+  // step (`npm run lint`) and the quality gates run it separately, so nothing is lost by
+  // dropping it. Keeping it made the whole config invalid.
   typescript: {
     ignoreBuildErrors: process.env.NODE_ENV === 'production',
   },
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
-    domains: ['lh3.googleusercontent.com', 'images.unsplash.com'],
+    // `images.domains` is removed in Next 16 in favour of `remotePatterns`, which pins the
+    // scheme and path rather than trusting every URL on the host.
+    remotePatterns: [
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
   },
   serverExternalPackages: ['@prisma/client', 'pino', 'pino-pretty', 'thread-stream'],
   // /api/downloads reads these out of public/ at request time. Next only ships
