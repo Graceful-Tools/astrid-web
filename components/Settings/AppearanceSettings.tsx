@@ -1,7 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTheme } from "@/contexts/theme-context"
 import { KeyboardShortcutsMenu } from "@/components/keyboard-shortcuts-menu"
 import { useTranslations } from "@/lib/i18n/client"
-import { DEFAULT_TASK_DISPLAY_MODE, normalizeTaskDisplayMode } from "@/lib/task-display-mode"
-import { apiCall } from "@/lib/api"
+import { useUserSettings } from "@/hooks/useUserSettings"
 import {
   Palette,
   Sun,
@@ -31,79 +30,30 @@ interface AppearanceSettingsProps {
 export default function AppearanceSettings({ onNavigate }: AppearanceSettingsProps) {
   const { theme, setTheme } = useTheme()
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
-  const [smartTaskCreationEnabled, setSmartTaskCreationEnabled] = useState(true)
-  const [subtaskDisplay, setSubtaskDisplay] = useState('indented')
-  const [taskDisplayMode, setTaskDisplayMode] = useState<string>(DEFAULT_TASK_DISPLAY_MODE)
+  /**
+   * Read and write these through the SHARED hook, not a private copy
+   * (task 9523d634).
+   *
+   * This component used to fetch /api/v1/users/me/smart-tasks itself and keep
+   * its own useState for the same three fields that useUserSettings already
+   * holds — a third copy alongside TasksSettings. Changing a setting here left
+   * the live TaskManager showing the old value until a reload, because nothing
+   * told it. The hook also rolls a rejected write back and says so, which the
+   * private savers here did not: they logged to the console and left the
+   * control flipped.
+   */
+  const {
+    updateSettings,
+    smartTaskCreationEnabled,
+    subtaskDisplay,
+    taskDisplayMode,
+  } = useUserSettings()
   const { t } = useTranslations()
 
-  // Load smart task creation setting
-  useEffect(() => {
-    const loadSetting = async () => {
-      try {
-        const response = await fetch('/api/v1/users/me/smart-tasks')
-        if (response.ok) {
-          const data = await response.json()
-          setSmartTaskCreationEnabled(data.smartTaskCreationEnabled ?? true)
-          setSubtaskDisplay(data.subtaskDisplay ?? 'indented')
-          // Through the normalizer rather than `?? 'list'`: a build that does
-          // not know a stored mode must fall back to the safe design instead
-          // of showing an empty selector.
-          setTaskDisplayMode(normalizeTaskDisplayMode(data.taskDisplayMode))
-        }
-      } catch (error) {
-        console.error('Error loading settings:', error)
-      }
-    }
-    loadSetting()
-  }, [])
-
-  // Save subtask display setting
-  const handleSubtaskDisplayChange = async (value: string) => {
-    setSubtaskDisplay(value)
-    try {
-      await fetch('/api/v1/users/me/smart-tasks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subtaskDisplay: value })
-      })
-    } catch (error) {
-      console.error('Error saving setting:', error)
-    }
-  }
-
-  // Save task display mode
-  //
-  // Through apiCall rather than a bare fetch: it carries the shared credentials
-  // and headers and routes failures through the same cache-invalidation path as
-  // the rest of the client layer. The neighbouring handlers above still use raw
-  // fetch — they predate lib/api and are counted by the raw-fetch ratchet
-  // (tests/rules/raw-fetch-mutations-ratchet.test.ts); a new one must not add to
-  // that number.
-  const handleTaskDisplayModeChange = async (value: string) => {
-    setTaskDisplayMode(value)
-    try {
-      await apiCall('/api/v1/users/me/smart-tasks', {
-        method: 'PATCH',
-        body: JSON.stringify({ taskDisplayMode: value })
-      })
-    } catch (error) {
-      console.error('Error saving setting:', error)
-    }
-  }
-
-  // Save smart task creation setting
-  const handleSmartTaskCreationChange = async (enabled: boolean) => {
-    setSmartTaskCreationEnabled(enabled)
-    try {
-      await fetch('/api/v1/users/me/smart-tasks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ smartTaskCreationEnabled: enabled })
-      })
-    } catch (error) {
-      console.error('Error saving setting:', error)
-    }
-  }
+  const handleSubtaskDisplayChange = (value: string) => updateSettings({ subtaskDisplay: value })
+  const handleTaskDisplayModeChange = (value: string) => updateSettings({ taskDisplayMode: value })
+  const handleSmartTaskCreationChange = (enabled: boolean) =>
+    updateSettings({ smartTaskCreationEnabled: enabled })
 
   return (
     <>

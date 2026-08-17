@@ -132,6 +132,32 @@ export const PATCH = withAuth(
         select: SELECT,
       })
 
+      // Tell this user's other devices (task 9523d634).
+      //
+      // hooks/useUserSettings.ts has subscribed to `user_settings_updated`
+      // since it was written, and NOTHING emitted it — the "synced across
+      // devices" claim in its header was false and the sync was a no-op. Jon's
+      // decision (a) was to keep settings online-only and make the parts that
+      // pretend to work actually work, so the event is emitted rather than the
+      // subscription deleted. Same shape as the my-tasks-preferences route,
+      // which has always emitted its own event correctly.
+      //
+      // THIS USER ONLY: these are personal preferences, and the array is how
+      // they would leak to every account.
+      //
+      // The write has already committed, so a broadcast failure is logged and
+      // swallowed — it must never turn a saved setting into an error.
+      try {
+        const { broadcastToUsers } = await import('@/lib/sse-utils')
+        broadcastToUsers([auth.userId], {
+          type: 'user_settings_updated',
+          timestamp: new Date().toISOString(),
+          data: updated,
+        })
+      } catch (sseError) {
+        log.error({ err: sseError }, 'Failed to send user_settings_updated SSE')
+      }
+
       return NextResponse.json({
         ...updated,
         meta: { apiVersion: 'v1' as const, authSource: auth.source },
