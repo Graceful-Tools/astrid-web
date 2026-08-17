@@ -190,12 +190,24 @@ export function PriorityAssigneePicker({
 
       {/* Bottom Sheet */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 transform transition-transform duration-200 ease-out ${
+        /*
+         * NOT FULL WIDTH (task 8599e136). `inset-x-0` stretched this sheet edge
+         * to edge on every screen, which on a desktop window is a very wide
+         * strip holding four small controls. It is capped and centred now;
+         * `inset-x-0` stays so it still fills a phone, where full width IS the
+         * right answer for a bottom sheet.
+         *
+         * TALLER, because the height was the reason the assignee list was
+         * cramped: 50vh had to hold priority, board state, complete/reopen AND
+         * a scrolling list of people. 85vh gives the list room; the inner
+         * container scrolls rather than the sheet growing past the viewport.
+         */
+        className={`fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md transform transition-transform duration-200 ease-out ${
           isClosing ? 'translate-y-full' : 'translate-y-0'
         }`}
-        style={{ maxHeight: '50vh' }}
+        style={{ maxHeight: '85vh' }}
       >
-        <div className="bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl overflow-hidden">
+        <div className="flex max-h-[85vh] flex-col overflow-y-auto rounded-t-2xl bg-white shadow-xl dark:bg-gray-800 sm:rounded-2xl sm:mb-4">
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-2">
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
@@ -212,7 +224,11 @@ export function PriorityAssigneePicker({
                     key={option.value}
                     type="button"
                     onClick={() => handlePrioritySelect(option.value)}
-                    className={`flex-1 h-11 rounded-lg flex items-center justify-center font-medium text-lg transition-all duration-150 active:scale-95 ${
+                    /* A rounded SQUARE, not a stretched bar (task 8599e136).
+                       `flex-1` made each option as wide as a quarter of the
+                       screen; a priority chip carries one or three characters
+                       and reads better as a fixed square. */
+                    className={`h-12 w-12 rounded-xl flex items-center justify-center font-medium text-lg transition-all duration-150 active:scale-95 ${
                       isSelected
                         ? `${option.bgColor} text-white`
                         : `bg-transparent border-2 ${option.borderColor} ${option.textColor}`
