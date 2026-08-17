@@ -513,6 +513,28 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
   // Subscribe to SSE events for real-time comment and task updates using centralized SSE Manager
   // Uses taskRef.current to always access the latest task state and avoid stale closure issues
+  /**
+   * Apply a change that ARRIVED from the server.
+   *
+   * Never `onUpdate` here (task da325f65). onUpdate is wired to
+   * handleUpdateTask, which PUTs to /api/v1/tasks/:id — so handling an inbound
+   * event that way turned every change RECEIVED into one SENT. The guard inside
+   * only skips events from the current user, so a second person's edit echoed
+   * straight back, their client echoed it again, and two open task details
+   * ping-ponged the task indefinitely.
+   *
+   * onLocalUpdate updates state and stops. The comment refresh below already
+   * used it, for the same reason: the data is already the server's.
+   *
+   * SCOPED TO THIS CALLBACK ONLY. The user-initiated save handlers below
+   * (title, priority, assignee, completion...) must keep calling onUpdate —
+   * they are the writes. A first attempt at this fix replaced them too and the
+   * SSE tests still passed, because they only asserted what must NOT happen;
+   * tests/components/task-detail-sse-no-writeback.test.tsx now also asserts
+   * that a user edit DOES reach onUpdate.
+   */
+  const applyRemote = onLocalUpdate ?? (() => {})
+
   useSSESubscription(TASK_DETAIL_EVENT_TYPES, (event) => {
     // Don't process SSE for new/unsaved tasks
     if (isNewTask) {
@@ -550,7 +572,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             )
 
-            onUpdate({
+            applyRemote({
               ...currentTask,
               comments: updatedComments
             })
@@ -583,7 +605,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             )
 
-            onUpdate({
+            applyRemote({
               ...currentTask,
               ...updatedTask,
               comments: mergedComments  // Use merged comments, not replacement
@@ -593,7 +615,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             // This handles cases where task metadata changed but comments are the same
             const { comments: _, ...taskWithoutComments } = updatedTask
             if (Object.keys(taskWithoutComments).length > 1) { // More than just 'id'
-              onUpdate({
+              applyRemote({
                 ...currentTask,
                 ...taskWithoutComments,
                 comments: existingComments  // Preserve existing comments
@@ -617,7 +639,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             c.id === comment.id ? { ...c, ...comment } : c
           )
 
-          onUpdate({
+          applyRemote({
             ...currentTask,
             comments: updatedComments
           })
@@ -636,7 +658,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           const existingComments = currentTask.comments || []
           const filteredComments = existingComments.filter(c => c.id !== commentId)
 
-          onUpdate({
+          applyRemote({
             ...currentTask,
             comments: filteredComments
           })
