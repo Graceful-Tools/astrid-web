@@ -101,7 +101,7 @@ export const apiPost = async (endpoint: string, data: any) => {
     let tempId = `temp-${Date.now()}`
 
     // Check for nested comment endpoint: /api/tasks/{taskId}/comments
-    const commentMatch = endpoint.match(/\/api\/tasks\/([^\/]+)\/comments/)
+    const commentMatch = endpoint.match(/\/api\/(?:v1\/)?tasks\/([^\/]+)\/comments/)
     if (commentMatch) {
       entity = 'comment'
 
@@ -144,7 +144,7 @@ export const apiPost = async (endpoint: string, data: any) => {
     }
 
     // Check for direct entity endpoints: /api/tasks, /api/lists
-    const directMatch = endpoint.match(/\/api\/(tasks|lists)$/)
+    const directMatch = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists)$/)
     if (directMatch) {
       entity = directMatch[1].slice(0, -1) as 'task' | 'list' // Remove 's'
 
@@ -170,13 +170,30 @@ export const apiPost = async (endpoint: string, data: any) => {
 }
 
 export const apiPut = async (endpoint: string, data: any) => {
+  // The `(?:v1\/)?` in every matcher below is load-bearing (task f2178a55).
+  //
+  // These patterns were written when the only routes were /api/tasks and
+  // /api/lists. `/api/v1/tasks/abc` does not match `/api/(tasks|lists)/...` —
+  // the segment after /api/ is `v1` — so when the callers moved to v1 the
+  // offline queue silently stopped firing for every one of them, without a line
+  // of the offline machinery changing. Editing a task with no connection
+  // dropped the edit; promoting a subtask, still on the legacy route, kept
+  // working. That asymmetry is what surfaced it.
+  //
+  // Non-capturing on purpose: the entity name is derived from the NEXT group
+  // (`taskMatch[1].slice(0, -1)`), so a capturing group here would shift it.
+  //
+  // Deliberately still anchored on the entity segment rather than loosened
+  // further: `/api/v1/users/me/smart-tasks` ends in "tasks" and must not be
+  // queued as a task mutation. tests/lib/api-offline-queue-v1-urls.test.ts
+  // pins that case alongside the ones that should queue.
   // Check if offline or updating a temp task
-  const taskIdMatch = endpoint.match(/\/api\/tasks\/(temp-[^\/]+)/)
-  const listIdMatch = endpoint.match(/\/api\/lists\/(temp-[^\/]+)/)
+  const taskIdMatch = endpoint.match(/\/api\/(?:v1\/)?tasks\/(temp-[^\/]+)/)
+  const listIdMatch = endpoint.match(/\/api\/(?:v1\/)?lists\/(temp-[^\/]+)/)
 
   if (isOfflineMode() || taskIdMatch || listIdMatch) {
     // Extract entity type and ID
-    const taskMatch = endpoint.match(/\/api\/(tasks|lists|comments)\/([^\/]+)/)
+    const taskMatch = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists|comments)\/([^\/]+)/)
     if (taskMatch) {
       const entity = taskMatch[1].slice(0, -1) as 'task' | 'list' | 'comment' // Remove 's' from plural
       const entityId = taskMatch[2]
@@ -238,7 +255,7 @@ export const apiPut = async (endpoint: string, data: any) => {
 export const apiDelete = async (endpoint: string) => {
   // Check if offline
   if (isOfflineMode()) {
-    const match = endpoint.match(/\/api\/(tasks|lists|comments)\/([^\/]+)/)
+    const match = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists|comments)\/([^\/]+)/)
     if (match) {
       const entity = match[1].slice(0, -1) as 'task' | 'list' | 'comment'
       const entityId = match[2]
