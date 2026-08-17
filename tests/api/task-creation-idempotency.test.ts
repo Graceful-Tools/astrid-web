@@ -3,7 +3,7 @@
  *
  * Tests clientRequestId-based idempotency for both /api/v1/tasks and /api/tasks endpoints.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest'
 import { NextRequest } from 'next/server'
 
 // ── Mocks ──────────────────────────────────────────────────────────────
@@ -93,6 +93,25 @@ const mockTask = {
 }
 
 // ── Tests: /api/v1/tasks ──────────────────────────────────────────────
+
+/**
+ * Warm the route module before the timed tests (task aca946b8).
+ *
+ * Every test here does `await import('@/app/api/v1/tasks/route')` in its body, so the FIRST one paid
+ * the transform-and-import cost of that whole module graph inside its 5000ms
+ * budget. Alone that is fine; under the full suite it competes with every other
+ * worker for CPU and the first test times out. That is exactly what was
+ * observed — the failing test was always the first in the file, isolation
+ * always passed, and a re-run on the same commit passed with the transform
+ * cache warm.
+ *
+ * Importing here moves the cost out of the assertion window (and a hook gets
+ * the 10s budget rather than a test's 5s). The `await import` calls inside the
+ * tests then hit the module cache and are free.
+ */
+beforeAll(async () => {
+  await import('@/app/api/v1/tasks/route')
+})
 
 describe('Task Creation Idempotency — POST /api/v1/tasks', () => {
   beforeEach(() => {

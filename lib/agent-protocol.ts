@@ -26,8 +26,14 @@ export interface AgentTask {
   assignerName: string | null
   assignerId: string | null
   comments: AgentComment[]
-  createdAt: string
-  updatedAt: string
+  /**
+   * Null when the source row had no usable timestamp (task aca946b8). The
+   * alternative was throwing RangeError mid-broadcast, or inventing `now` —
+   * a lie the agent cannot tell apart from a real timestamp. Every other
+   * unknown on this payload is already `| null`, so this matches.
+   */
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface AgentComment {
@@ -36,7 +42,8 @@ export interface AgentComment {
   authorName: string | null
   authorId: string
   isAgent: boolean
-  createdAt: string
+  /** Null when unknown — see AgentTask.createdAt (task aca946b8). */
+  createdAt: string | null
 }
 
 export interface AgentEventPayload {
@@ -115,11 +122,30 @@ export function enrichTaskForAgent(task: any): AgentTask {
       authorName: c.author?.name || c.author?.email || null,
       authorId: c.author?.id || c.authorId,
       isAgent: c.author?.isAIAgent ?? false,
-      createdAt: new Date(c.createdAt).toISOString(),
+      createdAt: isoOrNull(c.createdAt),
     })),
-    createdAt: new Date(task.createdAt).toISOString(),
-    updatedAt: new Date(task.updatedAt).toISOString(),
+    createdAt: isoOrNull(task.createdAt),
+    updatedAt: isoOrNull(task.updatedAt),
   }
+}
+
+/**
+ * A date as ISO, or null when there isn't one (task aca946b8).
+ *
+ * `new Date(undefined).toISOString()` throws `RangeError: Invalid time value`.
+ * That never broke a request — both call sites in the v1 task route sit inside
+ * a `catch (sseError)` — but it printed a RangeError into the output of runs
+ * that PASSED, which read like a crash in the clear-a-due-date path and cost a
+ * second full run to disprove. A scary log line during a green run teaches
+ * people to distrust green.
+ *
+ * NULL RATHER THAN `now`: an invented timestamp is a lie the agent cannot tell
+ * apart from a real one. "I don't know" is the honest payload.
+ */
+function isoOrNull(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  const date = new Date(value as string)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
 // ── Event Type Mapping ────────────────────────────────────────────────
