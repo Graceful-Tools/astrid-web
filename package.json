@@ -234,7 +234,7 @@
     "@types/turndown": "^5.0.6",
     "@types/web-push": "^3.6.3",
     "@types/ws": "^8.18.1",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.10",
     "canvas": "^3.2.3",
     "eslint": "^9.39.5",
