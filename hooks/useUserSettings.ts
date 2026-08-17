@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSSESubscription } from './use-sse-subscription'
+import { useToast } from './use-toast'
 import {
   DEFAULT_TASK_DISPLAY_MODE,
   normalizeTaskDisplayMode,
@@ -35,6 +36,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 }
 
 export function useUserSettings() {
+  const { toast } = useToast()
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS)
   const [isLoading, setIsLoading] = useState(true)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -70,9 +72,36 @@ export function useUserSettings() {
   )
 
   // Update settings on server with debouncing
+  /**
+   * Apply a settings change optimistically, then persist it (task 9523d634).
+   *
+   * A REJECTED WRITE NOW ROLLS BACK. This used to log to the console and stop,
+   * so the switch stayed in its new position while the server had stored
+   * nothing — the user only found out when a reload silently undid it.
+   *
+   * ONLY THE ATTEMPTED KEYS revert. Other writes may land while a slow one is
+   * in flight, and restoring the whole object would undo them too.
+   */
   const updateSettings = useCallback(async (updates: Partial<UserSettings>) => {
-    // Optimistically update local state
-    setSettings(prev => ({ ...prev, ...updates }))
+    // What these keys were before the optimistic change, so a failure can put
+    // exactly them back.
+    let previous: Partial<UserSettings> = {}
+    setSettings(prev => {
+      previous = Object.fromEntries(
+        Object.keys(updates).map(key => [key, prev[key as keyof UserSettings]]),
+      ) as Partial<UserSettings>
+      return { ...prev, ...updates }
+    })
+
+    const revert = (reason: string) => {
+      setSettings(prev => ({ ...prev, ...previous }))
+      toast({
+        title: 'Setting not saved',
+        description: 'Your change was reverted. Please try again.',
+        variant: 'destructive',
+      })
+      console.error(`[UserSettings] ${reason}`)
+    }
 
     // Debounce API call (300ms)
     if (updateTimeoutRef.current) {
@@ -88,13 +117,14 @@ export function useUserSettings() {
         })
 
         if (!response.ok) {
-          console.error('[UserSettings] Failed to update settings:', response.status)
+          revert(`Failed to update settings: ${response.status}`)
         }
       } catch (error) {
-        console.error('[UserSettings] Error updating settings:', error)
+        revert(`Error updating settings: ${String(error)}`)
       }
     }, 300)
-  }, [])
+     
+  }, [toast])
 
   // Individual setters
   const setSmartTaskCreationEnabled = useCallback((value: boolean) => {
