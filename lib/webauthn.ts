@@ -5,6 +5,7 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server"
+import { isoUint8Array } from "@simplewebauthn/server/helpers"
 import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
@@ -233,8 +234,10 @@ export async function getRegistrationOptions(userId: string, email: string, requ
   // Build exclude credentials list (only if there are existing ones)
   const excludeCredentials = existingAuthenticators.length > 0
     ? existingAuthenticators.map((auth) => ({
-        id: Buffer.from(auth.credentialID, "base64url"),
-        type: "public-key" as const,
+        // v13 takes the credential id as the base64url STRING, which is exactly what the
+        // column already holds — the old Buffer round-trip was decoding it only for the
+        // library to re-encode it. Stored bytes are unchanged, so existing passkeys still match.
+        id: auth.credentialID,
         transports: auth.transports?.split(",") as AuthenticatorTransportFuture[] | undefined,
       }))
     : undefined
@@ -242,7 +245,10 @@ export async function getRegistrationOptions(userId: string, email: string, requ
   const options = await generateRegistrationOptions({
     rpName,
     rpID: resolveRpID(requestOrigin),
-    userID: userId,
+    // v13 takes the user handle as bytes rather than a string. This is the value the
+    // authenticator stores alongside the passkey; sign-in looks credentials up by
+    // credential id, not by user handle, so existing passkeys are unaffected.
+    userID: isoUint8Array.fromUTF8String(userId),
     userName: email,
     userDisplayName: email.split("@")[0] || email,
     attestationType: "none",
@@ -283,15 +289,18 @@ export async function verifyRegistration(
     log.info({ verified: verification.verified }, "[WebAuthn] Verification result:")
 
     if (verification.verified && verification.registrationInfo) {
-      const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo
+      // v13 groups the credential fields under `credential` and hands back the id already
+      // base64url-encoded. The values written to the columns are byte-for-byte what v9
+      // wrote, so rows created before and after this upgrade are indistinguishable.
+      const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo
 
       // Store the credential
       await prisma.authenticator.create({
         data: {
           userId,
-          credentialID: Buffer.from(credentialID).toString("base64url"),
-          credentialPublicKey: Buffer.from(credentialPublicKey).toString("base64"),
-          counter: BigInt(counter),
+          credentialID: credential.id,
+          credentialPublicKey: Buffer.from(credential.publicKey).toString("base64"),
+          counter: BigInt(credential.counter),
           credentialDeviceType,
           credentialBackedUp,
           transports: response.response.transports?.join(","),
@@ -309,7 +318,7 @@ export async function verifyRegistration(
 }
 
 export async function getAuthenticationOptions(email?: string, requestOrigin?: string) {
-  let allowCredentials: { id: Uint8Array; type: "public-key"; transports?: AuthenticatorTransportFuture[] }[] | undefined
+  let allowCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[] | undefined
 
   if (email) {
     // If email is provided, only allow credentials for that user
@@ -320,8 +329,7 @@ export async function getAuthenticationOptions(email?: string, requestOrigin?: s
 
     if (user && user.authenticators.length > 0) {
       allowCredentials = user.authenticators.map((auth) => ({
-        id: Buffer.from(auth.credentialID, "base64url"),
-        type: "public-key" as const,
+        id: auth.credentialID,
         transports: auth.transports?.split(",") as AuthenticatorTransportFuture[] | undefined,
       }))
     }
@@ -359,9 +367,12 @@ export async function verifyAuthentication(
       expectedOrigin: origins,
       expectedRPID: resolveRpID(requestOrigin),
       requireUserVerification: false, // We use "preferred" in options, so don't require it
-      authenticator: {
-        credentialID: Buffer.from(authenticator.credentialID, "base64url"),
-        credentialPublicKey: Buffer.from(authenticator.credentialPublicKey, "base64"),
+      // v13 renamed `authenticator` to `credential` and takes the id as the stored
+      // base64url string. The public key is still raw bytes, still decoded from the same
+      // base64 column.
+      credential: {
+        id: authenticator.credentialID,
+        publicKey: new Uint8Array(Buffer.from(authenticator.credentialPublicKey, "base64")),
         counter: Number(authenticator.counter),
         transports: authenticator.transports?.split(",") as AuthenticatorTransportFuture[] | undefined,
       },
