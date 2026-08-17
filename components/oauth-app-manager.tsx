@@ -13,6 +13,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Trash2, Plus, Key, Copy, Check, AlertTriangle, FlaskConical, Pencil } from 'lucide-react'
 import { OAUTH_SCOPES, SCOPE_GROUPS, type OAuthScope } from '@/lib/oauth/oauth-scopes'
+import {
+  mergeOAuthRedirectUris,
+  OAUTH_REDIRECT_PRESETS,
+} from '@/lib/oauth/oauth-client-presets'
+import { useTranslations } from '@/lib/i18n/client'
 import type { GrantType } from '@/types/oauth'
 import { toast } from 'sonner'
 
@@ -57,6 +62,7 @@ const GRANT_TYPE_OPTIONS: Array<{
 
 export function OAuthAppManager() {
   const router = useRouter()
+  const { t } = useTranslations()
   const [clients, setClients] = useState<OAuthClient[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -817,6 +823,24 @@ export function OAuthAppManager() {
                 className="mt-1 font-mono text-sm"
                 rows={3}
               />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  setRedirectUrisInput(current =>
+                    mergeOAuthRedirectUris(current, OAUTH_REDIRECT_PRESETS.vscodeCopilot)
+                  )
+                  setSelectedGrantTypes(current =>
+                    current.includes('authorization_code')
+                      ? current
+                      : [...current, 'authorization_code']
+                  )
+                }}
+              >
+                {t('settingsPages.aiIntegrations.mcp.vscodeTitle')}
+              </Button>
               <p className="text-xs theme-text-muted mt-2">
                 One URL per line. Required for authorization code flow (ChatGPT, web apps). {BRAND.appName} will only redirect to URLs listed here.
               </p>
