@@ -8,4 +8,9 @@
  * stream contract is identical.
  */
 
-export { GET, runtime } from '../../sse/route'
+export { GET } from '../../sse/route'
+
+// Next 16 reads route segment config statically and cannot follow a re-export, so
+// `runtime` is declared here rather than forwarded. It must stay in step with
+// app/api/sse/route.ts, which declares the same value.
+export const runtime = 'nodejs'

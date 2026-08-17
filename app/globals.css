@@ -34,11 +34,10 @@
 .prose li:has(> input[type="checkbox"]) { list-style-type: none; margin-left: -1.25rem; }
 .prose li > input[type="checkbox"] { margin-right: 0.375rem; }
 
-/* Theme CSS Files */
-@import '../styles/themes/light-theme.css';
-@import '../styles/themes/dark-theme.css';
-@import '../styles/themes/ocean-theme.css';
-@import '../styles/components.css';
+/* The theme and component stylesheets are imported from app/[locale]/layout.tsx, not here.
+   They used to be @import rules at this point in the file, which is invalid CSS (@import must
+   come first) and fails to parse under Turbopack. Importing them from the layout keeps them
+   after this file in the bundle, preserving the cascade order these rules were written for. */
 
 @layer utilities {
   .text-balance {

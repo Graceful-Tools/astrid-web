@@ -8,6 +8,16 @@ import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { BRAND } from '@/lib/brand/config'
 import "../globals.css"
+// These four used to be `@import` rules at the BOTTOM of globals.css. That is invalid CSS —
+// @import must precede all other rules — which PostCSS tolerated and Turbopack (the Next 16
+// default) rejects. Hoisting them inside globals.css would have fixed the parse error by
+// moving theme and component rules ABOVE Tailwind's output, silently flipping the cascade
+// wherever a themed class competes with a utility. Importing them here instead keeps them
+// after globals.css in the bundle, so the cascade order is exactly what it was.
+import "../../styles/themes/light-theme.css"
+import "../../styles/themes/dark-theme.css"
+import "../../styles/themes/ocean-theme.css"
+import "../../styles/components.css"
 import { Providers } from "@/components/providers"
 import { SoundInitializer } from "@/components/sound-initializer"
 
