@@ -249,7 +249,49 @@ export const apiPut = async (endpoint: string, data: any) => {
     }
   }
 
-  return apiCall(endpoint, { method: "PUT", body: JSON.stringify(data) })
+  const response = await apiCall(endpoint, { method: "PUT", body: JSON.stringify(data) })
+  await persistTaskResponseToCache(endpoint, response)
+  return response
+}
+
+/**
+ * Put a server-confirmed task into the cache (task aaccb172).
+ *
+ * WHY THIS LIVES HERE. There were two update stacks: useTaskOperations
+ * persisted to IndexedDB, and useTaskManagerController.handleUpdateTask — the
+ * one bound to `onUpdate` for every field editor, board card and list row —
+ * did not. An edit made while online was invisible to the offline cache until a
+ * full re-sync. apiPut is the choke point all of them already pass through, so
+ * fixing it once covers the call sites nobody has enumerated, and leaves the
+ * controller's optimistic/rollback logic alone.
+ *
+ * The SERVER's copy is what gets stored, not the caller's optimistic object:
+ * the server normalises, stamps updatedAt, and may not accept everything sent.
+ *
+ * NEVER FAILS THE WRITE. The save already succeeded by this point; a cache
+ * problem must not make it look otherwise. CacheManager.setTask swallows
+ * IndexedDB errors internally, and this swallows anything else — including a
+ * body that is not JSON.
+ *
+ * TASKS ONLY, deliberately. Lists and comments have different response shapes
+ * and are not what this fix is about; they still do not populate the cache.
+ */
+async function persistTaskResponseToCache(endpoint: string, response: Response): Promise<void> {
+  if (!response.ok) return
+  if (!/\/api\/(?:v1\/)?tasks\/[^\/]+$/.test(endpoint)) return
+
+  try {
+    // Cloned so the caller can still read the body.
+    const body = await response.clone().json()
+    const task = body?.task ?? body
+    if (!task?.id) return
+
+    const { CacheManager } = await import('./cache-manager')
+    await CacheManager.setTask(task)
+  } catch {
+    // A successful save must not be reported as failed because the cache
+    // could not be updated.
+  }
 }
 
 export const apiDelete = async (endpoint: string) => {
