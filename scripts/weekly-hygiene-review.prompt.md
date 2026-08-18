@@ -43,10 +43,17 @@ curl -s -o /dev/null -w 'home   %{http_code} %{time_total}s\n' https://astrid.cc
 
 **Do not run `npm run monitor:vercel*`.** Even the `:no-fix` variant posts "Deployment Issues
 Resolved" comments onto real Astrid tasks, and `vercel` is not a dependency of this repo, so
-in this worktree it fails and then reports healthy anyway. On 2026-08-18 it wrote two
-misleading comments before it could be stopped. Production runtime logs are therefore out of
+in this worktree it fails and then reports healthy anyway. On 2026-08-18 it wrote three
+misleading comments before it could be stopped, the earliest four days earlier. Production runtime logs are therefore out of
 scope for this job until a genuinely read-only path exists — say so in your summary rather
 than reaching for that script.
+
+**Production deploys here are manual** — `./scripts/deploy-preview.sh --production` ships;
+merging to `main` does not. So **`main` running ahead of what production serves is the normal
+state, not a finding.** Do not file it. It is worth a line in your summary only when app code
+(not scripts or docs) has sat undeployed long enough to matter, and even then say what you
+verified rather than what you inferred: ask production what commit it is serving, never read
+deploy state off the deployment list, which carries several manual builds per commit.
 
 Weight the review toward **the week's diff** — that is where fresh regressions live — but do
 not ignore standing problems the tools surface.
