@@ -21,22 +21,27 @@ lives in exactly one place:
 
 ## Critical rules
 
-1. **Vercel auto-deploy is ON — pushing to `main` DEPLOYS TO PRODUCTION.** Verified
-   2026-08-01: a push to `main` produced a `target=production` deployment within
-   minutes, and every prior `Merge:` commit on `main` did the same.
-   - **Treat `git push origin main` as a production deploy** and get explicit approval
-     for the *push*, not just for a later `./scripts/deploy-preview.sh --production`.
-   - Prisma migrations on the branch **run during that build** with production env
-     (`DATABASE_URL_DIRECT` is Production-scoped). Verify migration impact against
-     production data *before* pushing.
-   - `./scripts/deploy-preview.sh --production` still exists for deploying without a
-     push, but it is no longer the only path to production.
+1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** Stated by
+   Jon 2026-08-18: *"For web / vercel we don't push from main to vercel. We push
+   manually."*
+   - **`./scripts/deploy-preview.sh --production` is the deploy.** Merged code sits
+     on `main` until someone runs it. Do not report work as shipped because you
+     pushed — check that a production deployment for that commit is `READY` and
+     serving.
+   - Prisma migrations **run during that deploy build** with production env
+     (`DATABASE_URL_DIRECT` is Production-scoped), so pending migrations apply when
+     you *deploy*, not when you push. Verify migration impact against production
+     data before deploying.
+   - Still ask before pushing to `main` (rule 3) — it is shared history, and the
+     deploy usually follows immediately.
 
-   > This rule previously claimed auto-deploy was OFF. It was wrong, and an agent
-   > relied on it to tell the user that merging to `main` was safe because nothing
-   > would deploy — five migrations shipped immediately, including one that rewrote
-   > task/list membership rows. Do not restore the old wording without re-verifying
-   > against the Vercel deployment list.
+   > This rule has now been wrong in BOTH directions. It said auto-deploy was OFF;
+   > an agent used that to call a merge safe and five migrations shipped. It was
+   > then rewritten to say auto-deploy was ON, "verified 2026-08-01" — also wrong,
+   > because that check mistook manually-triggered production builds for ones the
+   > push caused. **Do not restate this rule from memory or from the deployment
+   > list's shape.** Ask production what commit it is serving
+   > (docs/CLI_OPERATIONS.md §0).
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
 3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits

@@ -12,31 +12,51 @@ For project architecture, code patterns, and the per-task coding workflow, see
 
 ## 0. Deployment: the one rule that matters
 
-> ### ⚠️ Vercel auto-deploy is ON. Pushing to `main` DEPLOYS TO PRODUCTION.
-> `git push origin main` ships. Treat the **push** as the deploy and get explicit user
-> approval for it — not just for a later `--production` command. The build runs
-> `prisma migrate deploy` with production env (`DATABASE_URL_DIRECT` is
-> Production-scoped), so **every pending migration on the branch applies on push**.
-> Verify migration impact against production data *before* pushing.
+> ### ⚠️ Production deploys are MANUAL. Pushing to `main` does not ship.
+> **Stated by Jon 2026-08-18: "For web / vercel we don't push from main to vercel.
+> We push manually."** Nothing reaches `astrid.cc` until someone runs the deploy
+> command below. A push to `main` is a push, not a release.
+>
+> This cuts both ways, and both ways have burned an agent here:
+> - **Do not tell the user a merge is safe because it will not deploy.** It is safe
+>   from a *deploy*, but say what you actually verified, not what a doc claims.
+> - **Do not report work as shipped because you pushed.** It is not live until a
+>   production deployment for that commit is `READY` and serving.
+>
+> Prisma migrations run during the deploy build with production env
+> (`DATABASE_URL_DIRECT` is Production-scoped), so **pending migrations apply when
+> you deploy — not when you push.** Verify migration impact against production data
+> before running the deploy command.
 
-**Verified 2026-08-01.** A push to `main` produced a `target=production`,
-`state=READY` deployment within minutes, and the Vercel deployment list shows every
-prior `Merge:` commit on `main` did the same.
+**Observed 2026-08-18.** `main` moved `4d4a801 → 8f6bede` at 07:48 local. Thirteen
+minutes later the production deployment list still showed `4d4a801`, and the feature
+branch push produced no preview either — the GitHub integration created nothing.
+`./scripts/deploy-preview.sh --production` at 07:50 built `8f6bede` and put it live.
 
-> **This section previously said auto-deploy was OFF.** It was wrong. An agent relied
-> on it to tell the user that merging to `main` was safe because nothing would deploy;
-> five Prisma migrations shipped immediately, including one that rewrote task/list
-> membership rows. Nothing broke, but the user authorised a merge and got a deploy.
-> Before restoring the old wording, re-verify against
-> `GET /v6/deployments?projectId=…&target=production`.
+> **This section has now been wrong in both directions.** It said auto-deploy was OFF;
+> an agent used that to call a merge safe, and five migrations shipped. It was then
+> rewritten to say auto-deploy was ON, dated *verified 2026-08-01* — and that reading
+> was wrong too. The "verification" mistook production builds that a person or a
+> script had triggered manually for builds the push caused; every commit in the list
+> carries two or three production builds, which is the fingerprint of a manual
+> trigger racing an integration, not of one automatic deploy per push.
+>
+> **The lesson is not the current answer, it is the method.** Never infer deploy
+> behaviour from the deployment list alone, and never restate this section from
+> memory. Ask production what it is serving:
+> `GET /v6/deployments?projectId=…&target=production` and compare the newest
+> `READY` deployment's `meta.githubCommitSha` against `main`.
 
 To check what is actually live, compare the latest production deployment's commit SHA
 against `main`.
 
-**Deploy to production (only after the user says "ship it"):**
+**Deploy to production (only after the user says "ship it"). This is the step that
+ships — without it, merged code sits on `main` and no user ever sees it:**
 ```bash
 ./scripts/deploy-preview.sh --production      # → astrid.cc
 ```
+It deploys the **working directory**, not a commit, so check out the commit you mean
+to ship and confirm `git status` is clean before running it.
 Alternatives: Vercel dashboard → Deployments → **Promote to Production**; or the Vercel
 API `POST /v13/deployments` with `target:"production"`.
 
