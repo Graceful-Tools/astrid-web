@@ -1,27 +1,19 @@
 name: 'Production Deployment'
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    types: [closed]
-    branches: [main]
-    # Only trigger on merged PRs from staging
-    paths:
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'hooks/**'
-      - 'types/**'
-      - 'prisma/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'tailwind.config.js'
-      - 'next.config.js'
-      - '.github/workflows/**'
-
-  # Allow manual triggering
+  # Production deploys are MANUAL, by design. Trigger from the Actions tab, or run
+  # ./scripts/deploy-preview.sh --production.
+  #
+  # This workflow used to trigger on `push: branches: [main]`, with no path filter, and on
+  # `pull_request: types: [closed]`. Both deployed production — and because the deploy job
+  # runs `prisma migrate deploy`, both applied pending migrations to production. Merging a
+  # branch shipped it, roughly ten minutes later, whether or not anyone intended to deploy.
+  #
+  # The `closed` trigger was worse than it reads: it fires when a PR is closed whether or
+  # not it was merged, and no job checked `github.event.pull_request.merged`, despite a
+  # comment claiming it only ran for merged PRs. Closing a PR unmerged deployed production.
+  #
+  # Do not restore either trigger without deciding that merging should ship.
   workflow_dispatch:
     inputs:
       skip_tests:
