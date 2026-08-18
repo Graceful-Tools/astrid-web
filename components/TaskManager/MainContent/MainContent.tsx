@@ -15,7 +15,7 @@ import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
-import { getProjectStatusLists } from "@/lib/project-status"
+import { getBoardRowContext, getProjectStatusLists } from "@/lib/project-status"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
   Settings,
@@ -373,6 +373,15 @@ export function MainContent({
     taskDisplayMode: normalizeTaskDisplayMode(taskDisplayMode),
   }
 
+  // The board behind the selected list, or null. Built once for the whole list
+  // rather than per row: every row offers the same columns, and a row that
+  // resolved its current column against a different project than its buttons
+  // came from would render a picker with nothing selected (task 036ef139).
+  const boardRowContext = React.useMemo(
+    () => getBoardRowContext(lists, selectedListId),
+    [lists, selectedListId],
+  )
+
   // Single source of truth for a task row, shared by the plain and the
   // virtualized (very-long-list) render paths.
   const renderTaskRow = (task: Task) => (
@@ -389,6 +398,7 @@ export function MainContent({
       renderManualPlaceholderRow={renderManualPlaceholderRow}
       setDraggingTaskMetrics={setDraggingTaskMetrics}
       startMobileDrag={startMobileDrag}
+      board={boardRowContext}
     />
   )
 

@@ -232,6 +232,44 @@ export function getProjectBoardColumns(
 }
 
 /**
+ * The project board a selected list belongs to, if any.
+ *
+ * Lived in components/project-status-board.tsx until task 036ef139 gave the
+ * LIST view a second reason to ask the question; the component re-exports it so
+ * its existing callers are unchanged.
+ */
+export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
+  const selectedList = lists.find(list => list.id === selectedListId)
+  return selectedList?.projectId || null
+}
+
+/**
+ * Everything a task ROW needs to offer the board's status picker, or null when
+ * the selected list has no board (task 036ef139).
+ *
+ * Bundled rather than derived per row for two reasons. The columns are the same
+ * for every row in the list, so building them once is the cheaper shape; and
+ * `projectId`, `lists` and `columns` have to agree — a row resolving its current
+ * column against one project while its buttons came from another would render a
+ * picker with nothing selected.
+ */
+export interface BoardRowContext {
+  projectId: string
+  /** Needed to resolve the task's current column and its move. */
+  lists: TaskList[]
+  columns: ProjectBoardColumn[]
+}
+
+export function getBoardRowContext(
+  lists: TaskList[],
+  selectedListId: string,
+): BoardRowContext | null {
+  const projectId = getProjectIdForBoard(lists, selectedListId)
+  if (!projectId) return null
+  return { projectId, lists, columns: getProjectBoardColumns(lists, projectId) }
+}
+
+/**
  * Returns the board column id a task currently belongs to:
  *   completed=true              → virtual Done id
  *   has a real status list      → that list's id

@@ -24,6 +24,9 @@ export interface TaskRowContentProps {
   displayMode?: string | null
   /** Project mode: open the options popover instead of completing. */
   onOpenOptions?: () => void
+  /** The task's list is on a project board: tap opens the options popover
+   *  whatever the display mode (task 036ef139). */
+  onBoard?: boolean
 }
 
 export function TaskRowContent({
@@ -35,6 +38,7 @@ export function TaskRowContent({
   onCopyPublic,
   displayMode,
   onOpenOptions,
+  onBoard,
 }: TaskRowContentProps) {
   const { t } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
@@ -57,6 +61,7 @@ export function TaskRowContent({
           onToggleComplete={onToggleComplete}
           displayMode={displayMode}
           onOpenOptions={onOpenOptions}
+          onBoard={onBoard}
         />
       )}
       <div className="flex-1 min-w-0">
