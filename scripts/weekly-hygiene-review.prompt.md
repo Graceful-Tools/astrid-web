@@ -48,12 +48,23 @@ misleading comments before it could be stopped, the earliest four days earlier. 
 scope for this job until a genuinely read-only path exists — say so in your summary rather
 than reaching for that script.
 
-**Production deploys here are manual** — `./scripts/deploy-preview.sh --production` ships;
-merging to `main` does not. So **`main` running ahead of what production serves is the normal
-state, not a finding.** Do not file it. It is worth a line in your summary only when app code
-(not scripts or docs) has sat undeployed long enough to matter, and even then say what you
-verified rather than what you inferred: ask production what commit it is serving, never read
-deploy state off the deployment list, which carries several manual builds per commit.
+**Pushing to `main` deploys production and runs migrations.** Not through Vercel's git
+integration — that is off — but through `.github/workflows/production-deployment.yml`, which
+triggers on `push: branches: [main]` with no path filter (the `paths:` list applies only to
+the `pull_request` trigger) and runs `vercel build --prod` + `vercel deploy --prebuilt
+--prod`. The build runs `scripts/build-with-migrations.js`, which runs `prisma migrate
+deploy`. **A merge ships, and pending migrations apply during that build.**
+
+The trap is the delay: the deployment lands roughly **ten minutes** after the push, so
+production legitimately lags `main` for that window. Do not file that lag as a finding — it
+is the pipeline running. It is a finding only if a commit is still undeployed long after the
+window, or if its workflow run failed.
+
+If you report anything about deploy behaviour, the authoritative check is the **workflow file
+plus `gh run list --workflow=production-deployment.yml`**. Never infer a trigger from the
+Vercel deployment list: it shows what deployed, never what caused it, and `source=cli` reads
+as "a human ran this" when it is in fact Actions. That single misreading has now produced
+three confidently wrong versions of this rule, in both directions, each acted on.
 
 Weight the review toward **the week's diff** — that is where fresh regressions live — but do
 not ignore standing problems the tools surface.
