@@ -212,7 +212,7 @@
     "recharts": "^3.10.1",
     "redis": "^5.12.1",
     "resend": "^6.20.0",
-    "sonner": "^1.7.1",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.4",
