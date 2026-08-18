@@ -52,8 +52,8 @@ To find what production is serving (a different question from what triggers a de
 `GET https://api.vercel.com/v9/projects/<projectId>?teamId=<team>` →
 `targets.production.meta.githubCommitSha`.
 
-> **This section has now been wrong FOUR times. The pattern matters more than any
-> of the answers:**
+> **This section has been wrong three times — each one merged, and each one acted
+> on. The pattern matters more than any of the answers:**
 > 1. *"Auto-deploy is OFF."* An agent used it to call a merge safe; five migrations
 >    shipped, including one that rewrote task/list membership rows.
 > 2. *"Auto-deploy is ON — verified 2026-08-01."* Right conclusion, wrong evidence:
@@ -62,12 +62,15 @@ To find what production is serving (a different question from what triggers a de
 >    deploy. The check was **2m40s** after the push, against a ~10-minute pipeline,
 >    and the hand-run deploy that "proved" it simply won the race. This told agents
 >    merging was safe — the premise behind failure 1.
-> 4. *"Pushing to `main` ships."* True when written, obsolete within the hour,
->    because the workflow was changed rather than the prose.
 >
-> Every one of 1–3 came from inferring the *trigger* from the *deployment list*.
-> **Read the workflow file. Run `gh run list`. Never restate this section from
-> memory.**
+> **All three came from inferring the *trigger* from the *deployment list*.**
+> Read the workflow file. Run `gh run list`. Never restate this section from memory.
+>
+> A fourth version — *"pushing to `main` ships"* — was correct when written and
+> withdrawn unmerged within the hour, once #204 changed the workflow instead of the
+> prose. Not a failure; the process working. It is worth knowing only for this: a
+> rule about deploy behaviour can go stale the moment someone edits a trigger, so
+> the freshness of your check matters as much as its correctness.
 
 **Related, and still true:** `.github/workflows/monitor-deployments.yml` triggers on
 push to `main` and hourly, and runs `scripts/monitor-vercel-logs.ts`, which reports
