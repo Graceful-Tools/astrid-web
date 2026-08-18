@@ -166,6 +166,20 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
   const USER = 'user-1'
   const PROJECT = 'project-1'
 
+  /**
+   * A custom state is now stored on `Project.customStates` and the legacy
+   * `listType: 'status'` row is written alongside it, in one transaction,
+   * until the board reads the project instead of the rows (AWTD-562). So the
+   * project has to exist and the transaction has to actually run its callback.
+   */
+  beforeEach(() => {
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: null } as never)
+    vi.mocked(prisma.$transaction).mockImplementation((async (fn: unknown) =>
+      typeof fn === 'function'
+        ? await (fn as (tx: unknown) => unknown)(prisma)
+        : fn) as never)
+  })
+
   it('rejects an empty name', async () => {
     expect(await addUserStatus(USER, '   ', PROJECT)).toMatchObject({ error: 'invalid' })
     expect(mockListCreate).not.toHaveBeenCalled()
@@ -235,6 +249,51 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
     // Without a project the row is unreachable by the reader, which is the bug
     // this task exists for. Fail loudly instead of writing an inert row.
     expect(await addUserStatus(USER, 'Blocked', '')).toMatchObject({ error: 'invalid' })
+    expect(mockListCreate).not.toHaveBeenCalled()
+  })
+
+  it('stores the state on the project, not only as a list row (AWTD-562)', async () => {
+    // The durable home for a custom column is `Project.customStates`. The row
+    // is transitional; if only the row were written the state would vanish
+    // with it when the status lists are dropped.
+    mockFindMany.mockResolvedValue([] as never)
+    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+
+    await addUserStatus(USER, 'Blocked', PROJECT)
+
+    const update = vi.mocked(prisma.project.update).mock.calls[0]?.[0] as any
+    expect(update, 'the custom state was never written to the project').toBeDefined()
+    expect(update.where).toMatchObject({ id: PROJECT })
+    expect(update.data.customStates).toMatchObject([{ role: 'custom-blocked', name: 'Blocked' }])
+  })
+
+  it('keeps the stored state and the legacy row on the SAME role', async () => {
+    // The reader will deduplicate columns by role. Two roles for one column
+    // means the board grows a duplicate the moment it starts merging them.
+    mockFindMany.mockResolvedValue([] as never)
+    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+
+    const result = await addUserStatus(USER, 'In Review', PROJECT)
+
+    const rowRole = (mockListCreate.mock.calls[0][0] as any).data.statusRole
+    const stored = (vi.mocked(prisma.project.update).mock.calls[0]?.[0] as any).data.customStates
+    expect(rowRole).toBe(stored[0].role)
+    if ('state' in result) expect(result.state.role).toBe(rowRole)
+  })
+
+  it('does not write anything when the board is gone', async () => {
+    vi.mocked(prisma.project.findUnique).mockResolvedValue(null as never)
+    mockFindMany.mockResolvedValue([] as never)
+
+    expect(await addUserStatus(USER, 'Blocked', PROJECT)).toMatchObject({ error: 'invalid' })
+    expect(mockListCreate).not.toHaveBeenCalled()
+  })
+
+  it('refuses a name that would shadow a built-in status', async () => {
+    // Two columns called Ready is exactly the duplication this model removes.
+    mockFindMany.mockResolvedValue([] as never)
+
+    expect(await addUserStatus(USER, 'Ready', PROJECT)).toMatchObject({ error: 'invalid' })
     expect(mockListCreate).not.toHaveBeenCalled()
   })
 

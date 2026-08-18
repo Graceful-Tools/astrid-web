@@ -11,6 +11,8 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_PROJECT_STATUSES } from '@/lib/project-status'
+import { addCustomState } from '@/lib/project-custom-states'
+import type { StatusState } from '@/lib/task-status'
 
 /** Either the top-level client or a transaction client. */
 type PrismaLike = typeof prisma | Prisma.TransactionClient
@@ -310,13 +312,10 @@ export type AddUserStatusResult =
   | { error: 'duplicate'; message: string }
   | {
       list: Awaited<ReturnType<typeof fetchUserStatusLists>>[number]
+      /** The state as stored on `Project.customStates` — the durable copy. */
+      state: StatusState
       userIdsToInvalidate: Set<string>
     }
-
-/** Slugify a status name into a stable, role-safe identifier fragment. */
-function statusNameToRoleFragment(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'status'
-}
 
 /**
  * Add a custom status column to a board (board sub-task #5).
@@ -351,9 +350,23 @@ export async function addUserStatus(
     return { error: 'invalid', message: 'A status must belong to a board' }
   }
 
-  // Both scopes matter: the per-user defaults (projectId null) and this
-  // board's own custom states. A name may repeat across boards but not
-  // within one, and never against Ready/Doing/Waiting.
+  // The board's own `customStates` is the durable home for a custom column
+  // (AWTD-562). The `listType: 'status'` row is still written alongside it,
+  // because the board renders columns from list rows today — dropping the row
+  // now would store the state correctly and show the user nothing. The row
+  // goes when the reader flips; the two are kept in lockstep by sharing the
+  // role and order minted here.
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { customStates: true },
+  })
+  if (!project) {
+    return { error: 'invalid', message: 'Board not found' }
+  }
+
+  // Legacy rows are still checked for a name clash. `addCustomState` can only
+  // see `customStates`, so on a board whose customs predate this change it
+  // would happily mint a second column with the same name.
   const existing = await prisma.taskList.findMany({
     where: {
       ownerId: userId,
@@ -367,37 +380,51 @@ export async function addUserStatus(
     return { error: 'duplicate', message: 'A status with that name already exists' }
   }
 
+  const write = addCustomState(project.customStates, trimmed, {
+    takenRoles: existing.flatMap(s => (s.statusRole ? [s.statusRole] : [])),
+  })
+  if ('error' in write) {
+    // `reserved` has no wire code of its own; it is a bad request like any
+    // other malformed name, and the route maps `invalid` to 400.
+    return {
+      error: write.error === 'duplicate' ? 'duplicate' : 'invalid',
+      message: write.message,
+    }
+  }
+
   const maxOrder = existing.reduce(
     (max, s) => Math.max(max, typeof s.statusOrder === 'number' ? s.statusOrder : 0),
     0,
   )
-  const roles = new Set(existing.map(s => s.statusRole))
-  const base = `custom-${statusNameToRoleFragment(trimmed)}`
-  let statusRole = base
-  let suffix = 2
-  while (roles.has(statusRole)) {
-    statusRole = `${base}-${suffix++}`
-  }
 
-  const created = await prisma.taskList.create({
-    data: {
-      name: trimmed,
-      description: trimmed,
-      color: '#3b82f6',
-      privacy: 'PRIVATE',
-      ownerId: userId,
-      projectId,
-      listType: 'status',
-      statusRole,
-      statusOrder: maxOrder + 1,
-      statusDescription: trimmed,
-      statusCompleted: false,
-      imageUrl: null,
-    },
-    include: listInclude,
+  // One transaction: a project holding a state with no row would render a
+  // column the membership dual-write cannot target.
+  const created = await prisma.$transaction(async tx => {
+    await tx.project.update({
+      where: { id: projectId },
+      data: { customStates: write.states as unknown as Prisma.InputJsonValue },
+    })
+
+    return tx.taskList.create({
+      data: {
+        name: write.state.name,
+        description: write.state.name,
+        color: '#3b82f6',
+        privacy: 'PRIVATE',
+        ownerId: userId,
+        projectId,
+        listType: 'status',
+        statusRole: write.state.role,
+        statusOrder: maxOrder + 1,
+        statusDescription: write.state.name,
+        statusCompleted: false,
+        imageUrl: null,
+      },
+      include: listInclude,
+    })
   })
 
-  return { list: created, userIdsToInvalidate: new Set<string>([userId]) }
+  return { list: created, state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
 }
 
 /**

@@ -48,6 +48,17 @@ export const DEFAULT_STATES: readonly StatusState[] = [
 
 const DEFAULT_ROLES = new Set(DEFAULT_STATES.map(state => state.role))
 
+/**
+ * Is this a default role — one of the three every board shares?
+ *
+ * Exported so the custom-state writer has one place to ask. The default roles
+ * are code constants, so "is it default" is a question about this file and not
+ * about any row; asking a table would reintroduce the coupling AWTD-562 removed.
+ */
+export function isDefaultStatusRole(role: string | null | undefined): boolean {
+  return !!role && DEFAULT_ROLES.has(role)
+}
+
 export type BoardColumnKind = 'inbox' | 'status' | 'done'
 
 export interface BoardColumn {
