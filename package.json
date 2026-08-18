@@ -112,7 +112,8 @@
     "predeploy:ci": "tsx scripts/predeploy-self-healing.ts --ci",
     "deploy:canary": "tsx scripts/deploy-canary.ts",
     "prepare": "husky || true",
-    "check:reuse:warn": "tsx scripts/check-reuse.ts"
+    "check:reuse:warn": "tsx scripts/check-reuse.ts",
+    "hygiene:review": "zsh scripts/weekly-hygiene-review.sh"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

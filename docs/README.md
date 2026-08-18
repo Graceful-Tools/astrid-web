@@ -34,6 +34,7 @@ This directory contains all technical documentation for the Astrid task manageme
 - **[GitHub Integration](./ai-agents/GITHUB_CODING_AGENT_IMPLEMENTATION.md)** - Detailed implementation guide
 - **[Example Tasks](./ai-agents/example-tasks.md)** - Sample tasks for AI agents
 - **[Troubleshooting](./ai-agents/troubleshooting.md)** - Common issues and solutions
+- **[Weekly Hygiene Review](./WEEKLY_HYGIENE_REVIEW.md)** - Scheduled review that files hygiene/security/perf tasks to the Astrid board
 
 ### 🧪 Testing & Quality
 - **[MCP Testing Guide](./testing/MCP_TESTING_GUIDE.md)** - Complete MCP (Model Context Protocol) testing
