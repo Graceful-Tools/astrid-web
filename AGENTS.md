@@ -21,12 +21,13 @@ exactly one place:
 
 ## Critical rules
 
-1. **Vercel auto-deploy is ON — pushing to `main` DEPLOYS TO PRODUCTION.** Treat
-   `git push origin main` as the deploy and get explicit approval for the *push*.
-   Prisma migrations on the branch run during that build with production env, so
-   verify migration impact against production data before pushing.
-   (docs/CLI_OPERATIONS.md §0 — verified 2026-08-01; this rule previously claimed
-   auto-deploy was OFF and was wrong.)
+1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** Stated by
+   Jon 2026-08-18. `./scripts/deploy-preview.sh --production` is what puts code on
+   `astrid.cc`; until it runs and the deployment is `READY`, merged code is not
+   live. Prisma migrations run during that deploy build with production env, so
+   verify migration impact against production data before deploying.
+   (docs/CLI_OPERATIONS.md §0 — this rule has been wrong in both directions before;
+   ask production what commit it serves rather than restating it from memory.)
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
 3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits

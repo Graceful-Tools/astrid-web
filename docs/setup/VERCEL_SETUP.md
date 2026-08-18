@@ -1,8 +1,12 @@
-# Vercel Environment Setup for Auto-Deployment
+# Vercel Environment Setup
+
+> **Deploys are manual.** Pushing to `main` does not ship — `./scripts/deploy-preview.sh
+> --production` does. This page covers the environment the deploy build needs; see
+> [docs/CLI_OPERATIONS.md §0](../CLI_OPERATIONS.md) for how production is actually released.
 
 ## 🎯 Quick Setup Guide
 
-Your app is now configured to auto-deploy with database migrations! Here's what you need to do:
+The deploy build runs database migrations, so it needs these variables set:
 
 ### 1. Set Environment Variables in Vercel Dashboard
 
