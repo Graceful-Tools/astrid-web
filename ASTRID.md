@@ -213,18 +213,26 @@ Agents deploy feature branches to preview subdomains for review before merging:
 # → Live at: astrid.cc
 ```
 
+> **Merging does not ship.** Production is released by running the `--production`
+> command above — a push to `main` deploys nothing. Merged code sits there, seen by
+> nobody, until someone deploys it, and migrations apply during *that* build.
+> Full rule, and how to check what production is actually serving:
+> [docs/CLI_OPERATIONS.md §0](./docs/CLI_OPERATIONS.md). Do not restate the rule
+> from memory — it has been documented backwards in both directions.
+
 **How it works:**
 - Single Vercel project (`astrid-web`) with `*.astrid.cc` wildcard domain
 - Each feature branch gets its own subdomain (e.g., `feature-x.astrid.cc`)
 - Multiple features can be previewed simultaneously
-- User reviews preview → approves → agent merges to main → deploys production
+- User reviews preview → approves → agent merges to main → **and then deploys**
 
 **Agent workflow with previews:**
 1. Agent creates feature branch and implements changes
 2. Agent runs `./scripts/deploy-preview.sh` and posts preview URL to task
 3. User reviews at `<branch>.astrid.cc`
 4. User comments feedback or "ship it"
-5. Agent merges to main and deploys production
+5. Agent merges to main, **then runs the production deploy** — the merge alone
+   ships nothing
 
 **Setup for your own project:**
 1. Add a `*.yourdomain.com` wildcard domain to your Vercel project
