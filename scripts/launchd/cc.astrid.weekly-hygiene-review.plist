@@ -18,8 +18,14 @@
     <key>ProgramArguments</key>
     <array>
         <string>/opt/homebrew/bin/node</string>
-        <string>/Users/jonparis/Documents/mycode/astrid-dev/astrid-web/scripts/run-weekly-hygiene-review.mjs</string>
+        <string>/Users/jonparis/Documents/mycode/astrid-dev/astrid-web-hygiene/scripts/run-weekly-hygiene-review.mjs</string>
     </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HYGIENE_SELF_UPDATE</key>
+        <string>1</string>
+    </dict>
 
     <!-- Fridays at 15:50 local time. If the Mac is asleep, launchd runs it next time it wakes. -->
     <key>StartCalendarInterval</key>

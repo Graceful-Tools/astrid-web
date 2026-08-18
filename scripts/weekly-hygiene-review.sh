@@ -10,6 +10,9 @@
 #   ./scripts/weekly-hygiene-review.sh                # full run
 #   ./scripts/weekly-hygiene-review.sh --setup-only   # refresh the worktree, file nothing
 #
+# Set HYGIENE_SELF_UPDATE=1 only when running from a dedicated worktree nobody works in;
+# it hard-resets that checkout to origin/main so the schedule never depends on a branch.
+#
 # The review runs against a throwaway detached worktree pinned to origin/main, so it never
 # touches your working tree or current branch. It is read-only on code; its only side
 # effect is filing Astrid tasks.
@@ -31,6 +34,20 @@ export PATH="/opt/homebrew/bin:$PATH"
 cd "$REPO" || { echo "✗ cannot enter $REPO"; exit 1; }
 
 echo "════════ weekly hygiene review — $(date '+%Y-%m-%d %H:%M:%S %Z') ════════"
+
+# 0. Self-update. The scheduled job must not depend on whichever branch a shared checkout
+# happens to be sitting on, so it runs from a dedicated worktree that it re-pins to
+# origin/main itself. Only ever enable this for a checkout nobody works in — it discards
+# local state. It refuses to run if there is any, rather than destroying someone's work.
+if [ "${HYGIENE_SELF_UPDATE:-0}" = "1" ]; then
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "⚠ self-update skipped: $REPO has local changes (running whatever is checked out)"
+  else
+    git fetch origin main --quiet && git reset --hard origin/main --quiet \
+      && echo "→ self-updated to $(git log -1 --format='%h %s')" \
+      || echo "⚠ self-update failed, running the existing checkout"
+  fi
+fi
 
 [ -f "$PROMPT" ] || { echo "✗ missing prompt file: $PROMPT"; exit 1; }
 [ -x "$CLAUDE" ] || { echo "✗ claude not executable at $CLAUDE (set CLAUDE_BIN)"; exit 1; }
