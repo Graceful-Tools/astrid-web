@@ -4,8 +4,13 @@ import React from "react"
 import { TaskRowContent } from "../../task-row-content"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
+import {
+  type BoardRowContext,
+  getTaskProjectColumnId,
+  resolveProjectColumnMove,
+} from "@/lib/project-status"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
-import type { Task } from "@/types/task"
+import type { Task, TaskList } from "@/types/task"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
 interface DraggingTaskMetrics {
@@ -62,6 +67,15 @@ export interface TaskRowProps {
   // Row-local drag infrastructure owned by MainContent (not the controller)
   setDraggingTaskMetrics: (metrics: DraggingTaskMetrics | null) => void
   startMobileDrag: (taskId: string, touchIdentifier: number) => void
+
+  /**
+   * The project board this list belongs to, from `getBoardRowContext` — null
+   * on a list with no board, which is most of them (task 036ef139).
+   *
+   * Present, and tapping the leading control opens the options sheet with the
+   * BOARD's columns rather than completing the task.
+   */
+  board?: BoardRowContext | null
 }
 
 /**
@@ -85,6 +99,7 @@ export function TaskRow({
   setDraggingTaskMetrics,
   startMobileDrag,
   isSubtask,
+  board,
 }: TaskRowProps) {
   const {
     selectedTaskId,
@@ -108,23 +123,51 @@ export function TaskRow({
   const isDragging = activeDragTaskId === task.id
 
   // Project mode: tapping the leading control opens this sheet rather than
-  // completing the task (task ffa5bbb5).
+  // completing the task (task ffa5bbb5). A row on a BOARD opens it too, in
+  // every display mode (task 036ef139).
   const [optionsOpen, setOptionsOpen] = React.useState(false)
   const compact = usesCompactTaskDetail(taskDisplayMode)
+  const opensOptions = compact || Boolean(board)
 
   // Columns from the module, never a local list — status is a state on the
-  // task with per-project custom states (AWTD-562). `null` here because a list
-  // row is not on a project board, so it gets inbox + the user's states + done;
-  // the project board passes its own project and gets the custom ones too.
-  const statusColumns = React.useMemo(() => boardColumnsFor(null), [])
+  // task with per-project custom states (AWTD-562). `null` off a board, so the
+  // row gets inbox + the user's states + done; ON a board the columns come from
+  // the board itself, which is the only place its CUSTOM states exist.
+  const genericColumns = React.useMemo(() => boardColumnsFor(null), [])
+  const statusColumns = board ? board.columns : genericColumns
+
+  const selectedColumnId = board
+    ? getTaskProjectColumnId(task, board.lists, board.projectId)
+    : taskColumnId(task)
 
   const applyColumn = React.useCallback(
     (columnId: string) => {
+      setOptionsOpen(false)
+
+      if (board) {
+        const column = board.columns.find(candidate => candidate.id === columnId)
+        if (!column) return
+        // The board's own move function, so a state set from the row and a card
+        // dragged into a column cannot mean different things — including the
+        // status membership it strips and re-adds for clients still reading it.
+        const move = resolveProjectColumnMove(task, column, board.lists)
+        const listById = new Map(board.lists.map(entry => [entry.id, entry]))
+        const nextLists = move.listIds
+          .map(listId => listById.get(listId))
+          .filter((entry): entry is TaskList => Boolean(entry))
+        handleUpdateTask({
+          ...task,
+          completed: move.completed,
+          lists: nextLists,
+          statusRole: move.statusRole,
+        } as Task)
+        return
+      }
+
       const move = resolveColumnMove(task, columnId)
       handleUpdateTask({ ...task, statusRole: move.statusRole, completed: move.completed })
-      setOptionsOpen(false)
     },
-    [task, handleUpdateTask],
+    [task, handleUpdateTask, board],
   )
   // Unified card styling for both mobile and desktop
   const classNames = [
@@ -291,9 +334,10 @@ export function TaskRow({
           onToggleComplete={() => onToggleComplete(task.id)}
           onCopyPublic={() => onCopyPublic(task.id)}
           displayMode={taskDisplayMode}
-          onOpenOptions={compact ? () => setOptionsOpen(true) : undefined}
+          onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
+          onBoard={Boolean(board)}
         />
-        {compact && (
+        {opensOptions && (
           <PriorityAssigneePicker
             isOpen={optionsOpen}
             onClose={() => setOptionsOpen(false)}
@@ -312,7 +356,7 @@ export function TaskRow({
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}
             statusColumns={statusColumns}
-            selectedColumnId={taskColumnId(task)}
+            selectedColumnId={selectedColumnId}
             onStatusSelect={applyColumn}
             completed={Boolean(task.completed)}
             onToggleComplete={() => {

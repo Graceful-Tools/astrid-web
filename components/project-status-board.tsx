@@ -19,6 +19,7 @@ import {
   VIRTUAL_DONE_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
+  getProjectIdForBoard,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
 } from "@/lib/project-status"
@@ -41,11 +42,6 @@ interface ProjectStatusBoardProps {
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onCreateTask: (title: string, options?: { listIds?: string[] }) => Promise<string | null>
   isOneColumn?: boolean
-}
-
-export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
-  const selectedList = lists.find(list => list.id === selectedListId)
-  return selectedList?.projectId || null
 }
 
 /**

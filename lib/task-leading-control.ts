@@ -27,6 +27,11 @@
  * action being invariant was true for two years and is now conditional; it is
  * left above rather than deleted because list mode is still the default and
  * still works exactly that way.
+ *
+ * A BOARD'S TASK CHANGES THE ACTION ALONE (task 036ef139). Seen in list view,
+ * tapping it opens the same sheet — the board's states are otherwise
+ * unreachable from the row — but the mark stays the list-mode checkbox. See
+ * `leadingControlOpensOptions` below for why the two are decided separately.
  */
 
 import { usesCompactTaskDetail, type TaskDisplayMode } from '@/lib/task-display-mode'
@@ -45,6 +50,40 @@ export interface TaskLeadingControlInput {
    * unrecognised value renders the safe layout.
    */
   displayMode?: TaskDisplayMode | string | null
+}
+
+/**
+ * Does tapping the leading control open the options sheet rather than
+ * completing the task?
+ *
+ * TWO conditions, OR'd (task 036ef139):
+ *
+ *   project display mode  the user's own Appearance preference (task ffa5bbb5)
+ *   the task is on a BOARD  Jon: "In board view, when in 'list' mode the
+ *                         checkbox when tapped should provide the 'status'
+ *                         picker (inbox, ready, doing, waiting, done, or
+ *                         custom status)"
+ *
+ * Board membership had to be added rather than substituted. Until now the only
+ * route to the sheet was the display-mode preference, so a board's own tasks
+ * completed on tap for everyone who never opened Appearance — the board's
+ * states were unreachable from the row that belongs to them. Substituting
+ * would have taken the sheet away from project-mode users on a plain list,
+ * which nothing asked for.
+ *
+ * ONLY THE ACTION. The MARK still comes from `taskLeadingControlKind` and its
+ * display mode alone: "the checkbox when tapped" says the checkbox stays, so a
+ * board must not swap in the project-mode avatar for a user who never chose it.
+ */
+export function leadingControlOpensOptions({
+  displayMode,
+  onBoard = false,
+}: {
+  displayMode?: TaskDisplayMode | string | null
+  /** Is this task's list part of a project board? */
+  onBoard?: boolean
+}): boolean {
+  return usesCompactTaskDetail(displayMode) || onBoard
 }
 
 export function taskLeadingControlKind({
