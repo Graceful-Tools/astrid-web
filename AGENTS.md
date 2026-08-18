@@ -21,13 +21,15 @@ exactly one place:
 
 ## Critical rules
 
-1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** Stated by
-   Jon 2026-08-18. `./scripts/deploy-preview.sh --production` is what puts code on
-   `astrid.cc`; until it runs and the deployment is `READY`, merged code is not
-   live. Prisma migrations run during that deploy build with production env, so
-   verify migration impact against production data before deploying.
-   (docs/CLI_OPERATIONS.md §0 — this rule has been wrong in both directions before;
-   ask production what commit it serves rather than restating it from memory.)
+1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** True by
+   construction since #204 (2026-08-18): `production-deployment.yml` is
+   `workflow_dispatch` only. Deploy from the Actions tab or with
+   `./scripts/deploy-preview.sh --production`; migrations apply during that deploy,
+   so verify their impact against production data first. Do not report work as
+   shipped because you pushed.
+   (docs/CLI_OPERATIONS.md §0 — this rule has been wrong four times, mostly by
+   inferring the trigger from the Vercel deployment list, where Actions builds show
+   as `source=cli`. Read the workflow file and `gh run list`.)
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
 3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits

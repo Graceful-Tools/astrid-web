@@ -1,8 +1,9 @@
 # Vercel Environment Setup
 
-> **Deploys are manual.** Pushing to `main` does not ship — `./scripts/deploy-preview.sh
-> --production` does. This page covers the environment the deploy build needs; see
-> [docs/CLI_OPERATIONS.md §0](../CLI_OPERATIONS.md) for how production is actually released.
+> **Deploys are manual.** `.github/workflows/production-deployment.yml` is
+> `workflow_dispatch` only — pushing to `main` ships nothing. This page covers the
+> environment the deploy build needs; see
+> [docs/CLI_OPERATIONS.md §0](../CLI_OPERATIONS.md) for the full rule.
 
 ## 🎯 Quick Setup Guide
 

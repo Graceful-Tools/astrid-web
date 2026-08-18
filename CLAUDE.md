@@ -21,27 +21,27 @@ lives in exactly one place:
 
 ## Critical rules
 
-1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** Stated by
-   Jon 2026-08-18: *"For web / vercel we don't push from main to vercel. We push
-   manually."*
-   - **`./scripts/deploy-preview.sh --production` is the deploy.** Merged code sits
-     on `main` until someone runs it. Do not report work as shipped because you
-     pushed — check that a production deployment for that commit is `READY` and
-     serving.
-   - Prisma migrations **run during that deploy build** with production env
-     (`DATABASE_URL_DIRECT` is Production-scoped), so pending migrations apply when
-     you *deploy*, not when you push. Verify migration impact against production
-     data before deploying.
-   - Still ask before pushing to `main` (rule 3) — it is shared history, and the
-     deploy usually follows immediately.
+1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** True by
+   construction since 2026-08-18 (#204): `.github/workflows/production-deployment.yml`
+   is `workflow_dispatch` only. Deploy from the Actions tab or with
+   `./scripts/deploy-preview.sh --production`.
+   - **Do not report work as shipped because you pushed.** Merged code sits on
+     `main` until someone deploys it.
+   - Prisma migrations apply during that **deploy** (`DATABASE_URL_DIRECT` is
+     Production-scoped). Verify migration impact against production data before
+     deploying.
+   - Until #204 the same workflow ran on `push: [main]` (no path filter) and on
+     `pull_request: closed` — so merging shipped and migrated, and closing a PR
+     *unmerged* deployed too. Do not restore either trigger without deciding that
+     merging should ship.
 
-   > This rule has now been wrong in BOTH directions. It said auto-deploy was OFF;
-   > an agent used that to call a merge safe and five migrations shipped. It was
-   > then rewritten to say auto-deploy was ON, "verified 2026-08-01" — also wrong,
-   > because that check mistook manually-triggered production builds for ones the
-   > push caused. **Do not restate this rule from memory or from the deployment
-   > list's shape.** Ask production what commit it is serving
-   > (docs/CLI_OPERATIONS.md §0).
+   > This rule has been wrong FOUR times, three of them by inferring the trigger
+   > from the Vercel deployment list — where an Actions deploy appears as
+   > `source=cli` and reads as "a human did this". One version said "deploys are
+   > MANUAL" on the strength of a check made 2m40s into a ~10-minute pipeline.
+   > **Read `.github/workflows/production-deployment.yml` and `gh run list
+   > --workflow=production-deployment.yml`** — never the deployment list, never
+   > this rule from memory. (docs/CLI_OPERATIONS.md §0)
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
 3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits
