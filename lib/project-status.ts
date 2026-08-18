@@ -15,7 +15,7 @@
  */
 import type { Task, TaskList } from '@/types/task'
 import { statusListsForUser } from '@/lib/status-lists'
-import { DEFAULT_STATES } from '@/lib/task-status'
+import { DEFAULT_STATES, parseCustomStates } from '@/lib/task-status'
 
 /** The roles that always have a column, list-backed or not. */
 const DEFAULT_ROLES = new Set(DEFAULT_STATES.map(state => state.role))
@@ -147,6 +147,12 @@ export function getProjectStatusLists(lists: TaskList[], projectId?: string | nu
 export function getProjectBoardColumns(
   lists: TaskList[],
   projectId?: string | null,
+  /**
+   * The board's `Project.customStates` — the durable home for custom columns
+   * (task b346e377). Optional because callers that have not been plumbed
+   * through yet must keep rendering exactly the columns they render today.
+   */
+  customStates?: unknown,
 ): ProjectBoardColumn[] {
   const statuses = getProjectStatusLists(lists, projectId)
   const byRole = new Map<string, TaskList>(
@@ -175,10 +181,38 @@ export function getProjectBoardColumns(
     }
   })
 
-  // Custom states are project-scoped and have no config entry, so they still
-  // come from the rows — until they move to Project.customStates (2e41c645).
-  const customs = statuses
-    .filter(status => !DEFAULT_ROLES.has(status.statusRole ?? ''))
+  // Custom columns come from the PROJECT (task b346e377), merged BY ROLE with
+  // any legacy row. Three populations have to render correctly at once:
+  // states written since the writer landed (JSON + row), boards that predate
+  // it (row only), and boards after the rows are dropped (JSON only). Merging
+  // on anything but the role gives the first population two headers with the
+  // same name and a card that can only be in one of them.
+  const legacyCustoms = statuses.filter(status => !DEFAULT_ROLES.has(status.statusRole ?? ''))
+  const legacyByRole = new Map<string, TaskList>(
+    legacyCustoms.flatMap(status =>
+      status.statusRole ? [[status.statusRole as string, status] as const] : [],
+    ),
+  )
+
+  const stored = parseCustomStates(customStates)
+  const storedColumns = stored.map<ProjectBoardColumn>(state => {
+    const backing = legacyByRole.get(state.role)
+    return {
+      // The membership dual-write targets the LIST id, so the role becomes the
+      // id only once no row backs it. Switching early sends drops at a list
+      // that does not exist.
+      id: backing?.id ?? state.role,
+      // The project is the durable copy; a row's name can be stale.
+      name: state.name,
+      description: state.description || backing?.statusDescription || backing?.description || '',
+      kind: 'status',
+      statusList: backing,
+    }
+  })
+
+  const storedRoles = new Set(stored.map(state => state.role))
+  const unmigrated = legacyCustoms
+    .filter(status => !storedRoles.has(status.statusRole ?? ''))
     .map<ProjectBoardColumn>(status => ({
       id: status.id,
       name: status.name,
@@ -186,6 +220,8 @@ export function getProjectBoardColumns(
       kind: 'status',
       statusList: status,
     }))
+
+  const customs = [...storedColumns, ...unmigrated]
 
   return [
     { ...VIRTUAL_INBOX_COLUMN },
