@@ -18,10 +18,20 @@ pushes, or deploys. Its only side effect is filing tasks.
 
 ## Install
 
+The job runs from a **dedicated worktree** that nobody works in, so the schedule never
+depends on which branch a shared checkout happens to be sitting on:
+
 ```bash
+git worktree add ../astrid-web-hygiene main
 cp scripts/launchd/cc.astrid.weekly-hygiene-review.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cc.astrid.weekly-hygiene-review.plist
 ```
+
+The plist sets `HYGIENE_SELF_UPDATE=1`, which hard-resets that worktree to `origin/main` at
+the start of every run — so prompt and runner changes take effect the moment they land on
+main, with no reinstall. **Only ever set it for a checkout nobody works in.** It refuses to
+self-update if the worktree has local changes, and runs what is checked out instead, rather
+than destroying someone's work.
 
 Paths in the plist are absolute — launchd does not expand `~`. Edit them if your checkout
 lives elsewhere.
@@ -86,3 +96,4 @@ guardrails already encoded there:
 |----------|---------|---------|
 | `CLAUDE_BIN` | `~/.local/bin/claude` | Path to the Claude Code binary |
 | `HYGIENE_REVIEW_MODEL` | `opus` | Model used for the review |
+| `HYGIENE_SELF_UPDATE` | `0` | `1` hard-resets the runner's own checkout to `origin/main` first. Dedicated worktrees only. |
