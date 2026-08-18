@@ -10,11 +10,16 @@
  * wide sweep of the hottest path in the app to deliver one field the board
  * alone consumes. One cached request is the smaller change.
  *
- * MISSING IS NOT EMPTY. While the request is in flight this returns
- * `undefined`, not `[]`. `getProjectBoardColumns` renders legacy list-backed
- * columns when it gets no states, so `undefined` leaves the board exactly as
- * it is today; `[]` would assert "this board has no custom columns" and blink
- * them out on every load.
+ * WHILE THE REQUEST IS IN FLIGHT this returns `undefined`, and the board
+ * renders its legacy list-backed columns until the states land.
+ *
+ * `undefined` and `[]` are the SAME input to `getProjectBoardColumns`:
+ * `parseCustomStates` returns `[]` for any non-array (lib/task-status.ts), so
+ * both render the legacy row-backed columns and no stored ones. An earlier
+ * version of this comment claimed `[]` would "blink the columns out on every
+ * load" and that `undefined` avoided it — it does not, and there is nothing to
+ * avoid. Nothing downstream distinguishes the two today; if that ever changes,
+ * change it deliberately rather than relying on which one this returns.
  */
 
 import { useEffect, useState } from 'react'

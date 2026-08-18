@@ -235,8 +235,8 @@ export function getProjectBoardColumns(
  * The project board a selected list belongs to, if any.
  *
  * Lived in components/project-status-board.tsx until task 036ef139 gave the
- * LIST view a second reason to ask the question; the component re-exports it so
- * its existing callers are unchanged.
+ * LIST view a second reason to ask the question, and moved here so both callers
+ * import it from one place.
  */
 export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
   const selectedList = lists.find(list => list.id === selectedListId)
@@ -263,10 +263,18 @@ export interface BoardRowContext {
 export function getBoardRowContext(
   lists: TaskList[],
   selectedListId: string,
+  /**
+   * The board's `Project.customStates`, threaded straight through to
+   * `getProjectBoardColumns` (task 9ddf4a6f). Without it only legacy
+   * row-backed customs reach the row picker, so the LIST view and the BOARD
+   * disagree about one board's columns — and once Stage D drops the rows the
+   * picker loses custom states altogether.
+   */
+  customStates?: unknown,
 ): BoardRowContext | null {
   const projectId = getProjectIdForBoard(lists, selectedListId)
   if (!projectId) return null
-  return { projectId, lists, columns: getProjectBoardColumns(lists, projectId) }
+  return { projectId, lists, columns: getProjectBoardColumns(lists, projectId, customStates) }
 }
 
 /**
