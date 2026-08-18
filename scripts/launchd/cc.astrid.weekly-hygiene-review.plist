@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Weekly hygiene review. Install with:
+
+    cp scripts/launchd/cc.astrid.weekly-hygiene-review.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cc.astrid.weekly-hygiene-review.plist
+
+  Paths are absolute because launchd does not expand ~. Adjust them if your checkout
+  lives elsewhere. See docs/WEEKLY_HYGIENE_REVIEW.md.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>cc.astrid.weekly-hygiene-review</string>
+
+    <!-- node, not zsh: launchd's zsh has no TCC access to ~/Documents. See the shim. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/jonparis/Documents/mycode/astrid-dev/astrid-web-hygiene/scripts/run-weekly-hygiene-review.mjs</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HYGIENE_SELF_UPDATE</key>
+        <string>1</string>
+    </dict>
+
+    <!-- Fridays at 15:50 local time. If the Mac is asleep, launchd runs it next time it wakes. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>5</integer>
+        <key>Hour</key>
+        <integer>15</integer>
+        <key>Minute</key>
+        <integer>50</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/jonparis/Library/Logs/astrid-weekly-hygiene-review.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jonparis/Library/Logs/astrid-weekly-hygiene-review.log</string>
+</dict>
+</plist>
