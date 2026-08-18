@@ -48,12 +48,20 @@ misleading comments before it could be stopped, the earliest four days earlier. 
 scope for this job until a genuinely read-only path exists — say so in your summary rather
 than reaching for that script.
 
-**Production deploys here are manual** — `./scripts/deploy-preview.sh --production` ships;
-merging to `main` does not. So **`main` running ahead of what production serves is the normal
-state, not a finding.** Do not file it. It is worth a line in your summary only when app code
-(not scripts or docs) has sat undeployed long enough to matter, and even then say what you
-verified rather than what you inferred: ask production what commit it is serving, never read
-deploy state off the deployment list, which carries several manual builds per commit.
+**Production deploys are manual, and that is now enforced rather than assumed.**
+`.github/workflows/production-deployment.yml` triggers on `workflow_dispatch` only; ship
+either from the Actions tab or with `./scripts/deploy-preview.sh --production`. Pushing or
+merging to `main` does **not** deploy, and does not run migrations. So **`main` running ahead
+of what production serves is the expected state, not a finding** — do not file it.
+
+Be careful here, because this repo has been wrong about it three times, in both directions,
+and an agent acted on each. Until 2026-08-18 the workflow *did* trigger on push to main with
+no path filter, and on `pull_request: closed` with no `merged` guard — so merging shipped,
+and so did closing a PR without merging. If you report anything about deploy behaviour, the
+authoritative check is the **workflow file plus `gh run list --workflow=production-deployment.yml`**.
+Never infer a trigger from the Vercel deployment list: it shows what deployed, never what
+caused it, and `source=cli` reads as "a human ran this" when it is in fact Actions. That one
+misreading is the root of all three wrong versions.
 
 Weight the review toward **the week's diff** — that is where fresh regressions live — but do
 not ignore standing problems the tools surface.
