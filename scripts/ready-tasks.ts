@@ -1,22 +1,29 @@
 /**
- * Print the tasks currently in the **Ready** list on the Astrid Web To-do.
+ * Print the tasks a `/fixall` loop may work: on its board, in the **Ready**
+ * status, assigned to this harness.
  *
- * Written for the `/fixall` loop. The loop previously had to call
- * `get-astrid-tasks` and then one `analyze-task` PER TASK just to read list
- * membership, which the list script does not print — six requests to discover
- * that there is nothing to do. `GET /api/v1/tasks?listId=` filters server-side,
- * so the whole check is one call.
+ * The loop previously had to call `get-astrid-tasks` and then one `analyze-task`
+ * PER TASK just to read list membership, which the list script does not print —
+ * six requests to discover that there is nothing to do. `GET /api/v1/tasks?listId=`
+ * filters server-side, so the whole check is one call.
  *
  * Takes a board plus an explicit harness identity:
  * `ready-tasks.ts [web|ios] --harness <selector>`. The board defaults to web;
  * the harness has no default because guessing could claim another agent's work.
  *
- * BOTH lists are required, because `Ready` is NOT a sublist of a board:
- * it is a single account-wide `listType: 'status'` list that every board shares
- * — Astrid iOS To-do, Voteelo, Career, all of them. Filtering on `Ready` alone
- * queues whatever Jon happened to mark ready anywhere, and the web loop would
- * pick up iOS work that a second agent is already running against `astrid-ios`.
- * So a task qualifies only if it is on Ready AND on the Astrid Web To-do.
+ * READY IS A FIELD ON THE TASK, not a list it is attached to. Status used to be
+ * membership in an account-wide `listType: 'status'` list; AWTD-562 moved it to
+ * `Task.statusRole` because the list model could not be per-user and shared at
+ * once. Reading the old lists left the queue a shadow of the real state — a task
+ * Jon marked Ready in the app (which writes only the field) never showed up, and
+ * a task still carrying a legacy `Ready` membership stayed queued after it had
+ * moved on. So: fetch the BOARD, filter on the field.
+ *
+ * Scoping to the board is still required, and is now what the single query does.
+ * `Ready` is one status shared by every board on the account — Astrid iOS To-do,
+ * Voteelo, Career, all of them — so filtering on the status alone would queue
+ * whatever Jon marked ready anywhere, and the web loop would pick up iOS work a
+ * second agent is already running against `astrid-ios`.
  *
  * Exits 0 with "READY_EMPTY" when there is nothing queued, so a scheduled run
  * can stop without parsing anything.
@@ -29,24 +36,28 @@
 export {}
 
 import {
+  hasReadyStatus,
   isClaimableByAgent,
   describeAssignee,
   resolveReadyQueueOptions,
   type AssignableTask,
+  type StatusRoleTask,
 } from "@/lib/ready-queue-scope"
 
-const READY_LIST_NAME = "Ready"
 const BOARD_LIST_NAMES = {
   web: "Astrid Web To-do",
   ios: "Astrid iOS To-do",
 } as const
 
+/** One page is the whole point of this script; say so rather than truncate quietly. */
+const PAGE_LIMIT = 1000
+
 /**
  * Which board to scope to. Both loops use this script so that the guarantees
- * are the same for each — Ready ∩ board, exact harness assignee, loud failure on
- * a missing list, and a printed reason for everything skipped. A second copy of
- * this for iOS would drift, and the drift would be silent: a queue that is
- * wrong in this script looks exactly like a quiet day.
+ * are the same for each — the board, the Ready status field, the exact harness
+ * assignee, loud failure on a missing board, and a printed reason for everything
+ * skipped. A second copy of this for iOS would drift, and the drift would be
+ * silent: a queue that is wrong in this script looks exactly like a quiet day.
  *
  *   npx tsx scripts/ready-tasks.ts --harness claude-code
  *   npx tsx scripts/ready-tasks.ts ios --harness codex
@@ -61,6 +72,13 @@ function loadOptions() {
 }
 const options = loadOptions()
 const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
+
+type QueueTask = AssignableTask & StatusRoleTask & {
+  id: string
+  title: string
+  priority?: number
+  createdAt: string
+}
 
 async function main() {
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
@@ -89,68 +107,63 @@ async function main() {
   const { access_token: token } = await tokenResponse.json()
   const auth = { "X-OAuth-Token": token }
 
-  // Resolve both lists by NAME rather than hardcoding their ids: an id is
-  // account data, and a hardcoded one fails silently by returning an empty
-  // list, which reads exactly like "nothing to do".
+  // Resolve the board by NAME rather than hardcoding its id: an id is account
+  // data, and a hardcoded one fails silently by returning an empty list, which
+  // reads exactly like "nothing to do".
   const listsResponse = await fetch("https://astrid.cc/api/v1/lists", { headers: auth })
   const listsBody = await listsResponse.json()
   const lists = listsBody.lists ?? listsBody
-  const byName = (name: string) =>
-    (Array.isArray(lists) ? lists : []).find((list: { name?: string }) => list.name === name)
+  const board = (Array.isArray(lists) ? lists : []).find(
+    (list: { name?: string }) => list.name === BOARD_LIST_NAME,
+  )
 
-  const ready = byName(READY_LIST_NAME)
-  const board = byName(BOARD_LIST_NAME)
-
-  // Fail loudly on a missing list instead of degrading to an empty queue. A
-  // missing board is the more dangerous of the two: skipping the filter would
-  // silently widen the loop back to every board on the account.
-  if (!ready) {
-    console.error(`❌ No list named "${READY_LIST_NAME}" found — check the account, not the queue.`)
-    process.exit(1)
-  }
+  // Fail loudly on a missing board instead of degrading to an empty queue —
+  // skipping the filter would silently widen the loop to every board on the
+  // account, and returning nothing would look like an idle day.
   if (!board) {
     console.error(`❌ No list named "${BOARD_LIST_NAME}" found — refusing to run unscoped.`)
     process.exit(1)
   }
 
   const tasksResponse = await fetch(
-    `https://astrid.cc/api/v1/tasks?listId=${ready.id}&completed=false&limit=100`,
+    `https://astrid.cc/api/v1/tasks?listId=${board.id}&completed=false&limit=${PAGE_LIMIT}`,
     { headers: auth },
   )
   const tasksBody = await tasksResponse.json()
   const tasks = tasksBody.tasks ?? tasksBody
-  const all = Array.isArray(tasks) ? tasks : []
+  const all: QueueTask[] = Array.isArray(tasks) ? tasks : []
 
-  // Ready ∩ Astrid Web To-do. Anything else in Ready belongs to another board
-  // and another agent.
-  const onBoard = all.filter((task: { listIds?: string[] }) => (task.listIds ?? []).includes(board.id))
-  const others = all.filter((task: { listIds?: string[] }) => !(task.listIds ?? []).includes(board.id))
+  // A truncated page would hide queued work behind an untriaged backlog, and the
+  // loop would report a clean run. Say it rather than quietly working a subset.
+  const total = tasksBody?.meta?.total
+  if (typeof total === "number" && total > all.length) {
+    console.log(`(⚠️  board has ${total} open tasks; only the first ${all.length} were read)`)
+  }
+
+  // Ready is a STATE on the task. Everything else on the board is filed but not
+  // triaged — the backlog is the normal case here, so it is counted, not listed.
+  const ready = all.filter(hasReadyStatus)
+  const notReady = all.length - ready.length
 
   // ...and assigned to this exact harness identity.
   //
   // An assignee is a claim. A task assigned to a person is that person's, even
-  // when it sits in Ready — the loop picking it up means two people writing the
-  // same fix, or Jon's own in-progress work being redone underneath him. Ready
-  // says "this is actionable", not "this is unclaimed", so the two conditions
-  // are separate and both are required.
-  const mine = onBoard.filter((task: AssignableTask) => isClaimableByAgent(task, options.harness))
-  const claimed = onBoard.filter((task: AssignableTask) => !isClaimableByAgent(task, options.harness))
+  // when it is Ready — the loop picking it up means two people writing the same
+  // fix, or Jon's own in-progress work being redone underneath him. Ready says
+  // "this is actionable", not "this is unclaimed", so the two conditions are
+  // separate and both are required.
+  const mine = ready.filter(task => isClaimableByAgent(task, options.harness))
+  const claimed = ready.filter(task => !isClaimableByAgent(task, options.harness))
 
-  // Print what was filtered out. Silently dropping it would make a Ready queue
-  // full of iOS work look identical to an empty one, and Jon would have no way
-  // to tell that the web loop was idle for a reason he could fix.
-  if (others.length > 0) {
-    console.log(`(${others.length} Ready task(s) on other boards — not this loop's:)`)
-    for (const task of others) {
-      console.log(`  — ${task.title}`)
-    }
+  if (notReady > 0) {
+    console.log(`(${notReady} open task(s) on ${BOARD_LIST_NAME} without the Ready status — not queued)`)
   }
 
-  // Same reasoning as above: a queue held up by work the loop may not take must not
-  // look like an idle one. Naming the assignee is what lets Jon see whether it is
-  // waiting on a person or simply waiting to be handed something.
+  // A queue held up by work the loop may not take must not look like an idle one.
+  // Naming the assignee is what lets Jon see whether it is waiting on a person or
+  // simply waiting to be handed something.
   //
-  // The wording covers BOTH reasons now. Since assignment became the handshake,
+  // The wording covers BOTH reasons. Since assignment became the handshake,
   // "unassigned" is the common case, and calling that "assigned to someone else"
   // was plainly wrong — it read as a claim by a person who did not exist.
   if (claimed.length > 0) {

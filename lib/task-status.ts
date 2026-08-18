@@ -38,12 +38,22 @@ export interface StatusState {
 }
 
 /**
+ * The three default roles, named so callers outside a board never spell them as
+ * literals. The autonomous loops query `statusRole=ready` and write `doing` /
+ * `waiting`, and a typo there is invisible: it returns an empty queue, which
+ * reads exactly like a quiet day.
+ */
+export const READY_STATUS_ROLE = 'ready'
+export const DOING_STATUS_ROLE = 'doing'
+export const WAITING_STATUS_ROLE = 'waiting'
+
+/**
  * The per-user defaults, as data rather than rows. Every board shows these.
  */
 export const DEFAULT_STATES: readonly StatusState[] = [
-  { role: 'ready', name: 'Ready', description: 'Time to get to work!', order: 0 },
-  { role: 'doing', name: 'Doing', description: 'Active work in progress!', order: 1 },
-  { role: 'waiting', name: 'Waiting', description: 'Paused until the circumstances are right.', order: 2 },
+  { role: READY_STATUS_ROLE, name: 'Ready', description: 'Time to get to work!', order: 0 },
+  { role: DOING_STATUS_ROLE, name: 'Doing', description: 'Active work in progress!', order: 1 },
+  { role: WAITING_STATUS_ROLE, name: 'Waiting', description: 'Paused until the circumstances are right.', order: 2 },
 ]
 
 const DEFAULT_ROLES = new Set(DEFAULT_STATES.map(state => state.role))

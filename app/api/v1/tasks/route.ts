@@ -35,6 +35,8 @@ const log = createLogger('v1.tasks')
  * - completed: true/false
  * - priority: 0-2
  * - assigneeId: Filter by assignee
+ * - statusRole: Filter by board status (ready | doing | waiting | a project's
+ *   custom role). `none` selects Inbox — the tasks carrying no status at all.
  * - limit: Max results (default: 100)
  * - offset: Pagination offset (default: 0)
  * - includeComments: true/false (default: false)
@@ -50,6 +52,11 @@ export const GET = withAuth(
     const completed = completedParam !== null ? completedParam === 'true' : undefined
     const priority = url.searchParams.get('priority')
     const assigneeId = url.searchParams.get('assigneeId')
+    // Board status as a state on the task (AWTD-562). Filtering here rather than
+    // in the caller is what keeps a status query to ONE request: the old shape —
+    // fetch the board, filter client-side — silently truncates against `limit`,
+    // so a busy board can hide a ready task behind 100 unrelated ones.
+    const statusRole = url.searchParams.get('statusRole')
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000)
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const includeComments = url.searchParams.get('includeComments') === 'true'
@@ -114,6 +121,11 @@ export const GET = withAuth(
     }
     if (assigneeId) {
       where.assigneeId = assigneeId
+    }
+    // Inbox is the ABSENCE of a status, so it is a null column rather than a
+    // value — same distinction /api/v1/search draws for `status:none`.
+    if (statusRole) {
+      where.statusRole = statusRole === 'none' ? null : statusRole
     }
 
     const [tasks, total] = await Promise.all([
