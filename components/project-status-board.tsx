@@ -19,6 +19,7 @@ import {
   VIRTUAL_DONE_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
+  getProjectIdForBoard,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
 } from "@/lib/project-status"
@@ -43,10 +44,12 @@ interface ProjectStatusBoardProps {
   isOneColumn?: boolean
 }
 
-export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
-  const selectedList = lists.find(list => list.id === selectedListId)
-  return selectedList?.projectId || null
-}
+/**
+ * Re-exported: the definition moved to lib/project-status.ts when the list view
+ * gained a second use for it (task 036ef139). Importing a helper from a
+ * component file is what this leaves behind for existing callers.
+ */
+export { getProjectIdForBoard }
 
 /**
  * Scrollable body for a single board column (task a48b2d24). Each column owns

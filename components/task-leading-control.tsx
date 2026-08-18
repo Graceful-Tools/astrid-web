@@ -7,6 +7,7 @@ import { TaskCheckbox } from "@/components/task-checkbox"
 import { useTranslations } from "@/lib/i18n/client"
 import {
   getPriorityColor,
+  leadingControlOpensOptions,
   taskLeadingControlKind,
 } from "@/lib/task-leading-control"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
@@ -21,7 +22,9 @@ import { usesCompactTaskDetail } from "@/lib/task-display-mode"
  * `lib/task-leading-control.ts`.
  *
  * In LIST mode, tapping any of the three marks completes the task: the mark
- * changes, the action does not.
+ * changes, the action does not — unless the task is on a project BOARD (task
+ * 036ef139), where the tap opens the options popover so the board's states are
+ * reachable from the row. The mark is untouched there: still the checkbox.
  *
  * In PROJECT mode both change (task ffa5bbb5). Your own task wears your photo,
  * and tapping ANY of the three opens the options popover — priority, assignee,
@@ -52,6 +55,14 @@ interface TaskLeadingControlProps {
    * control is a worse regression than one behaving like list mode.
    */
   onOpenOptions?: () => void
+  /**
+   * Is this task's list part of a project board (task 036ef139)?
+   *
+   * On a board the tap opens the options sheet whatever the display mode, so
+   * the board's states are reachable from the row. Absent means no board,
+   * which is every call site that predates the task.
+   */
+  onBoard?: boolean
 }
 
 /** Priority-coloured square shared by the avatar and unassigned marks. */
@@ -67,6 +78,7 @@ export function TaskLeadingControl({
   onToggleComplete,
   displayMode,
   onOpenOptions,
+  onBoard = false,
 }: TaskLeadingControlProps) {
   const { t } = useTranslations()
   const borderColor = getPriorityColor(priority)
@@ -78,8 +90,14 @@ export function TaskLeadingControl({
   // DEAD CONTROL: the rule gave your own task an avatar, the avatar is only
   // clickable in project mode, and so nothing was tappable at all. Deciding the
   // effective mode once, here, is what keeps the mark and the action agreeing.
-  const opensOptions = usesCompactTaskDetail(displayMode) && Boolean(onOpenOptions)
-  const effectiveMode = opensOptions ? 'project' : 'list'
+  //
+  // The MARK and the ACTION are decided separately, and only on a board do they
+  // disagree (task 036ef139): there the checkbox stays a checkbox — Jon asked
+  // for "the checkbox when tapped" — while the tap opens the sheet.
+  const compactMark = usesCompactTaskDetail(displayMode) && Boolean(onOpenOptions)
+  const opensOptions =
+    leadingControlOpensOptions({ displayMode, onBoard }) && Boolean(onOpenOptions)
+  const effectiveMode = compactMark ? 'project' : 'list'
   const kind = taskLeadingControlKind({
     assigneeId,
     currentUserId,
