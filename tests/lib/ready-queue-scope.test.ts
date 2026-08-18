@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest'
 import {
   describeAssignee,
   FIXALL_HARNESS_MAILBOXES,
+  hasReadyStatus,
   isClaimableByAgent,
   resolveReadyQueueOptions,
 } from '@/lib/ready-queue-scope'
@@ -83,6 +84,48 @@ describe('isClaimableByAgent', () => {
     expect(isClaimableByAgent({ assigneeId: 'user-1', assignee: null }, 'claude-code')).toBe(false)
     expect(isClaimableByAgent({ assigneeId: 'user-1', assignee: { email: null } }, 'claude-code')).toBe(false)
     expect(isClaimableByAgent({ assigneeId: 'user-1', assignee: { name: 'Jon' } }, 'claude-code')).toBe(false)
+  })
+})
+
+describe('hasReadyStatus', () => {
+  // AWTD-562 moved board status off list membership and onto the task. The loops
+  // kept reading the old model, so a task Jon marked Ready in the app — which now
+  // only sets the field — never reached the queue, and a task left in the legacy
+  // `Ready` list stayed queued after it had been moved on. Both directions are the
+  // same bug: the queue was reading a shadow of the state.
+  it('queues a task whose status FIELD is ready', () => {
+    expect(hasReadyStatus({ statusRole: 'ready' })).toBe(true)
+  })
+
+  it('does not queue the other columns, or a task with no status at all', () => {
+    expect(hasReadyStatus({ statusRole: 'doing' })).toBe(false)
+    expect(hasReadyStatus({ statusRole: 'waiting' })).toBe(false)
+    expect(hasReadyStatus({ statusRole: null })).toBe(false)
+    expect(hasReadyStatus({})).toBe(false)
+  })
+
+  // The handback in /fixall is "assign to Jon AND set Waiting", and its whole point
+  // is that the next run stops re-reading the task. That only holds if the queue
+  // reads the same field the handback wrote.
+  it('drops a task the loop handed back to Waiting', () => {
+    expect(hasReadyStatus({ statusRole: 'waiting', completed: false })).toBe(false)
+  })
+
+  // Done carries no status by construction — the server nulls the field on
+  // completion. Belt and braces: a stale role on a completed task must not queue
+  // work that is already finished.
+  it('never queues a completed task, whatever the field says', () => {
+    expect(hasReadyStatus({ statusRole: 'ready', completed: true })).toBe(false)
+  })
+
+  it('tolerates the casing and padding a hand-written value arrives with', () => {
+    expect(hasReadyStatus({ statusRole: 'Ready' })).toBe(true)
+    expect(hasReadyStatus({ statusRole: ' ready ' })).toBe(true)
+  })
+
+  // A project's custom state is a column on that project's board, not this queue.
+  it('ignores a custom project state that merely sounds ready', () => {
+    expect(hasReadyStatus({ statusRole: 'ready-for-review' })).toBe(false)
   })
 })
 

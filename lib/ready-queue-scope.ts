@@ -6,11 +6,12 @@
  * everything in Ready will redo work a person is already doing, or write a
  * second fix for something Jon has half-finished.
  *
- * So the queue needs both conditions — on this board, AND handed to this exact
- * harness identity deliberately. This module owns the second one.
+ * So the queue needs both conditions — on this board with the Ready STATUS, AND
+ * handed to this exact harness identity deliberately. This module owns both
+ * predicates.
  *
  * Lives in lib/ rather than inside scripts/ready-tasks.ts because that script
- * calls main() at import, so the rule could not otherwise be tested without
+ * calls main() at import, so the rules could not otherwise be tested without
  * firing a network request.
  */
 
@@ -19,6 +20,9 @@ import {
   agentEmail,
   type AgentMailbox,
 } from '@/lib/brand/agent-emails'
+// The role lives with the states it belongs to. A second copy here would drift
+// silently: a wrong role matches nothing and reads as an empty queue.
+import { READY_STATUS_ROLE } from '@/lib/task-status'
 
 export const FIXALL_HARNESS_MAILBOXES = {
   'claude-code': AGENT_MAILBOXES.claude,
@@ -104,6 +108,35 @@ export function resolveReadyQueueOptions(
     board,
     harness: parseHarness(cliHarness ?? env.ASTRID_FIXALL_HARNESS),
   }
+}
+
+export interface StatusRoleTask {
+  statusRole?: string | null
+  completed?: boolean | null
+}
+
+/**
+ * Is this task in the Ready column? A ROLE on the task, not a list id.
+ *
+ * AWTD-562 moved board status off `listType: 'status'` membership and onto
+ * `Task.statusRole`, because the list model could not be per-user and shared at
+ * the same time. The queue read the lists for a while afterwards, which made it
+ * a shadow of the real state in both directions: a task Jon marked Ready in the
+ * app — which writes only the field — never appeared, and a task still holding a
+ * legacy `Ready` membership stayed queued after it had moved on.
+ *
+ * Exact match on the default role, so a project's custom state that merely reads
+ * as ready ("ready-for-review") stays on its own board rather than being swept
+ * into an autonomous loop.
+ *
+ * Completed is checked even though the server nulls the status on completion and
+ * the queue asks for open tasks anyway: it is the one condition where a stale
+ * value would mean re-doing finished work, and the invariant is worth stating
+ * where the queue can see it.
+ */
+export function hasReadyStatus(task: StatusRoleTask): boolean {
+  if (task.completed) return false
+  return (task.statusRole ?? '').trim().toLowerCase() === READY_STATUS_ROLE
 }
 
 export interface AssignableTask {

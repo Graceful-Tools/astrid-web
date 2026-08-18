@@ -1,11 +1,13 @@
 /**
- * Moving a task between the status lists — Ready, Doing, Waiting.
+ * Moving a task between the statuses — Ready, Doing, Waiting.
  *
- * Status is not a field on a task; it is membership of an account-wide
- * `listType: 'status'` list. A task therefore sits on TWO kinds of list at once:
- * its board (Astrid iOS To-do) and its status (Ready). "Move it to Doing" means
- * swapping only the second, and `PUT /api/v1/tasks/[id]` takes `listIds` as the
- * COMPLETE set — it replaces, it does not merge.
+ * Status IS a field on the task now (`Task.statusRole`, task AWTD-562), and that
+ * field is the source of truth. What remains here is the membership half of the
+ * dual-write: iOS still resolves board columns from the account-wide
+ * `listType: 'status'` lists, so while those rows exist a task sits on TWO kinds
+ * of list at once — its board (Astrid iOS To-do) and its status (Ready). "Move
+ * it to Doing" means swapping only the second, and `PUT /api/v1/tasks/[id]`
+ * takes `listIds` as the COMPLETE set — it replaces, it does not merge.
  *
  * So the obvious implementation is the destructive one. `scripts/move-task-to-list.ts`
  * sends `listIds: [target.id]`, which is right for its job (moving a task from one
@@ -24,7 +26,7 @@ export interface TaskListMembership {
   listType?: string | null
 }
 
-/** The three status lists a loop moves a task between. */
+/** The three statuses a loop moves a task between. */
 export const STATUS_READY = 'Ready'
 export const STATUS_DOING = 'Doing'
 export const STATUS_WAITING = 'Waiting'
@@ -49,16 +51,21 @@ export function isStatusList(list: TaskListMembership): boolean {
  * The complete `listIds` to PUT so the task ends up on `targetStatusListId` and no
  * other status list, keeping every board membership exactly as it was.
  *
+ * `null` means no list backs this status — the rows are on their way out, and the
+ * field carries the status on its own. The stale memberships are still stripped,
+ * because a task left on the old status list would keep rendering in the old
+ * column for any client still reading membership.
+ *
  * Idempotent: moving a task to the status it already has returns the same set.
  */
 export function listIdsForStatusChange(
   current: TaskListMembership[],
-  targetStatusListId: string,
+  targetStatusListId: string | null,
 ): string[] {
   const kept = current.filter(list => !isStatusList(list)).map(list => list.id)
   // Deduplicate rather than assume: the same list appearing twice in the payload
   // is not worth a failed write, and the set is small enough that this is free.
-  return Array.from(new Set([...kept, targetStatusListId]))
+  return Array.from(new Set(targetStatusListId ? [...kept, targetStatusListId] : kept))
 }
 
 /**
@@ -70,7 +77,7 @@ export function listIdsForStatusChange(
  */
 export function unsafeStatusChangeReason(
   current: TaskListMembership[],
-  targetStatusListId: string,
+  targetStatusListId: string | null,
 ): string | null {
   if (current.length === 0) {
     return 'the task has no list memberships at all — refusing to write a status onto nothing'
@@ -79,7 +86,11 @@ export function unsafeStatusChangeReason(
   if (boards.length === 0) {
     return 'the task is on no board, only status lists — moving it would strand it'
   }
-  if (!targetStatusListId) {
+  // `null` is deliberate — no row backs this status, and the field carries it.
+  // An empty string is not: that is a list object whose id failed to resolve,
+  // and PUTting it would attach the task to nothing under a plausible-looking
+  // payload.
+  if (targetStatusListId === '') {
     return 'no target status list id was resolved'
   }
   return null

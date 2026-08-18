@@ -26,6 +26,7 @@ import {
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { useUserSettings } from "@/hooks/useUserSettings"
+import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
@@ -109,9 +110,13 @@ export function ProjectStatusBoard({
   const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
 
   const projectId = getProjectIdForBoard(lists, selectedListId)
+  // Custom columns live on the project (task b346e377). Undefined while the
+  // read is in flight, which keeps the legacy list-backed columns rendering
+  // rather than blinking them out on every load.
+  const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
-    () => (projectId ? getProjectBoardColumns(lists, projectId) : []),
-    [lists, projectId],
+    () => (projectId ? getProjectBoardColumns(lists, projectId, customStates) : []),
+    [lists, projectId, customStates],
   )
   const selectedList = lists.find(list => list.id === selectedListId)
   const scrollRef = React.useRef<HTMLDivElement | null>(null)

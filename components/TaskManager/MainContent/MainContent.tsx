@@ -15,7 +15,8 @@ import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
-import { getBoardRowContext, getProjectStatusLists } from "@/lib/project-status"
+import { getBoardRowContext, getProjectIdForBoard, getProjectStatusLists } from "@/lib/project-status"
+import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
   Settings,
@@ -377,9 +378,19 @@ export function MainContent({
   // rather than per row: every row offers the same columns, and a row that
   // resolved its current column against a different project than its buttons
   // came from would render a picker with nothing selected (task 036ef139).
-  const boardRowContext = React.useMemo(
-    () => getBoardRowContext(lists, selectedListId),
+  //
+  // The project id is resolved first because the custom states are FETCHED by
+  // it, and the row picker has to read them the same way the board does — a
+  // picker built without them offers only the legacy row-backed customs, and
+  // once the rows are dropped, none at all (task 9ddf4a6f).
+  const boardProjectId = React.useMemo(
+    () => getProjectIdForBoard(lists, selectedListId),
     [lists, selectedListId],
+  )
+  const boardCustomStates = useProjectCustomStates(boardProjectId)
+  const boardRowContext = React.useMemo(
+    () => getBoardRowContext(lists, selectedListId, boardCustomStates),
+    [lists, selectedListId, boardCustomStates],
   )
 
   // Single source of truth for a task row, shared by the plain and the

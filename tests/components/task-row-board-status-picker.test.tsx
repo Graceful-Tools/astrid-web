@@ -25,7 +25,7 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/components/TaskManager/MainContent/TaskRow'
-import { getProjectBoardColumns } from '@/lib/project-status'
+import { getBoardRowContext, getProjectBoardColumns } from '@/lib/project-status'
 import type { Task, TaskList } from '@/types/task'
 
 vi.mock('@/lib/i18n/client', () => ({ useTranslations: () => ({ t: (k: string) => k }) }))
@@ -171,6 +171,42 @@ describe('a board list in list view (task 036ef139)', () => {
     const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(updated.completed).toBe(true)
     expect(updated.statusRole).toBeNull()
+  })
+})
+
+describe('a custom state with no backing list (task 9ddf4a6f)', () => {
+  // The population Stage D creates, and the one every board reaches once the
+  // `listType: 'status'` rows are dropped: the custom column exists ONLY in
+  // `Project.customStates`. The fixtures above cannot catch a picker that
+  // ignores the project's states, because their "Blocked" is a legacy status
+  // row that renders either way — which is how getBoardRowContext shipped
+  // dropping the states without a red test.
+  const listsWithoutTheRow = [boardList, ready, doing, waiting]
+  const CUSTOM_STATES = [{ role: 'blocked', name: 'Blocked', order: 0 }]
+
+  it("offers the project's custom state, built the way MainContent builds it", () => {
+    const board = getBoardRowContext(listsWithoutTheRow, 'board-list', CUSTOM_STATES)
+    const { container } = render(<TaskRow {...makeProps({ board: board! })} />)
+    tapTheLeadingControl(container)
+
+    const group = screen.getByRole('group', { name: 'tasks.boardState' })
+    expect(within(group).getByRole('button', { name: 'Blocked' })).toBeInTheDocument()
+  })
+
+  it('writes the custom role onto the task', () => {
+    const controller = makeController()
+    const board = getBoardRowContext(listsWithoutTheRow, 'board-list', CUSTOM_STATES)
+    const { container } = render(<TaskRow {...makeProps({ controller, board: board! })} />)
+    tapTheLeadingControl(container)
+
+    const group = screen.getByRole('group', { name: 'tasks.boardState' })
+    fireEvent.click(within(group).getByRole('button', { name: 'Blocked' }))
+
+    const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(updated.statusRole).toBe('blocked')
+    // No row backs the state, so there is no status membership to add — the
+    // board membership must survive on its own.
+    expect(updated.lists.map((entry: TaskList) => entry.id)).toEqual(['board-list'])
   })
 })
 
