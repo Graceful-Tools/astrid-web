@@ -45,13 +45,6 @@ interface ProjectStatusBoardProps {
 }
 
 /**
- * Re-exported: the definition moved to lib/project-status.ts when the list view
- * gained a second use for it (task 036ef139). Importing a helper from a
- * component file is what this leaves behind for existing callers.
- */
-export { getProjectIdForBoard }
-
-/**
  * Scrollable body for a single board column (task a48b2d24). Each column owns
  * its own vertical scroll container, so virtualization is wired per-column here
  * (a hook can't live in the parent's `columns.map`). Above the shared threshold
