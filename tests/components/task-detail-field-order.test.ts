@@ -27,10 +27,25 @@ const src = readFileSync(
   'utf8',
 )
 
-/** Where each field's row is declared in the file. */
+/**
+ * Where each field's row is declared in the file.
+ *
+ * Rows are located by their TRANSLATION KEY, not by English text: the labels go
+ * through `t()` (task bf57678e), so a literal search would silently find
+ * nothing and every ordering assertion would compare -1 against -1.
+ */
+const ROW_KEYS: Record<string, string> = {
+  Assignee: 'tasks.assignee',
+  When: 'tasks.when',
+  Priority: 'tasks.priority',
+  Lists: 'navigation.lists',
+}
+
 function rowPosition(label: string): number {
-  const index = src.indexOf(`<TaskFieldRow label="${label}"`)
-  expect(index, `no <TaskFieldRow label="${label}"> found`).toBeGreaterThan(-1)
+  const key = ROW_KEYS[label]
+  expect(key, `no translation key mapped for the ${label} row`).toBeDefined()
+  const index = src.indexOf(`<TaskFieldRow label={t('${key}')}`)
+  expect(index, `no <TaskFieldRow label={t('${key}')}> found`).toBeGreaterThan(-1)
   return index
 }
 
@@ -65,7 +80,7 @@ describe('list-mode task detail field order (task 4dd640d9)', () => {
   })
 
   it('marks the Priority row with !!! rather than a flag', () => {
-    const priorityRow = src.slice(rowPosition('Priority'), rowPosition('Priority') + 200)
+    const priorityRow = src.slice(rowPosition('Priority'), rowPosition('Priority') + 260)
 
     expect(priorityRow, 'the priority row still uses the flag icon').not.toContain('FlagIcon')
     // The marker is one component so the JSX stays on one line; follow it
