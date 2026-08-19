@@ -1,51 +1,23 @@
 #!/usr/bin/env npx tsx
 
 /**
- * Post the current Claude Code remote control session link to an Astrid task.
- * Reads the session info from ~/.claude/sessions/ and posts a comment with
- * the link so the user can follow along from any device.
+ * Post THIS Claude Code session's remote-control link to an Astrid task, so the
+ * task says who is working it and Jon can follow along from any device.
+ *
+ * Session identification lives in ./lib/calling-session.ts and is deliberately
+ * environment-driven: this script used to pick the most recently modified file
+ * in ~/.claude/sessions, which is the caller only when one session is running
+ * (task 8ee7e873). When the session cannot be identified it posts NOTHING —
+ * the link is a claim about who owns the task, and a wrong claim is worse than
+ * an unclaimed task.
  *
  * Usage: npx tsx scripts/post-session-link.ts <taskId>
  */
 
-import path from 'path'
-import fs from 'fs'
-import os from 'os'
 import { loadScriptEnv } from './lib/load-env'
+import { resolveCallingSession, sessionUrl } from './lib/calling-session'
 
 loadScriptEnv()
-
-function getSessionInfo(): { bridgeSessionId: string; name: string } | null {
-  const sessionsDir = path.join(os.homedir(), '.claude', 'sessions')
-
-  if (!fs.existsSync(sessionsDir)) return null
-
-  // Find the most recent session file
-  const files = fs.readdirSync(sessionsDir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => ({
-      name: f,
-      path: path.join(sessionsDir, f),
-      mtime: fs.statSync(path.join(sessionsDir, f)).mtimeMs
-    }))
-    .sort((a, b) => b.mtime - a.mtime)
-
-  if (files.length === 0) return null
-
-  try {
-    const data = JSON.parse(fs.readFileSync(files[0].path, 'utf-8'))
-    if (data.bridgeSessionId) {
-      return {
-        bridgeSessionId: data.bridgeSessionId,
-        name: data.name || 'Claude Code Session'
-      }
-    }
-  } catch {
-    // ignore parse errors
-  }
-
-  return null
-}
 
 async function postSessionLink() {
   const taskId = process.argv[2]
@@ -54,13 +26,16 @@ async function postSessionLink() {
     process.exit(1)
   }
 
-  const session = getSessionInfo()
+  const session = resolveCallingSession()
   if (!session) {
-    console.warn('⚠️ No active Claude Code session found')
+    console.warn(
+      '⚠️ Could not identify the calling session (no CLAUDE_CODE_BRIDGE_SESSION_ID, ' +
+        'no readable session file for CLAUDE_PID) — posting no link rather than a guessed one',
+    )
     return
   }
 
-  const sessionUrl = `https://claude.ai/code/sessions/${session.bridgeSessionId}`
+  const url = sessionUrl(session.bridgeSessionId)
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -90,7 +65,7 @@ async function postSessionLink() {
   const { access_token } = await tokenResponse.json()
 
   // Post comment with session link
-  const comment = `🔗 **Claude Code Session**: [${session.name}](${sessionUrl})\n\nFollow along or provide feedback via remote control.`
+  const comment = `🔗 **Claude Code Session**: [${session.name}](${url})\n\nFollow along or provide feedback via remote control.`
 
   const body: { content: string; type: string; aiAgentId?: string } = {
     content: comment,
@@ -112,7 +87,7 @@ async function postSessionLink() {
 
   if (response.ok) {
     console.log(`✅ Session link posted to task`)
-    console.log(`   📎 ${sessionUrl}`)
+    console.log(`   📎 ${url}`)
   } else {
     const error = await response.text()
     console.error('❌ Failed to post session link:', error)
