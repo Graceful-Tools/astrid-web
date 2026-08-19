@@ -12,40 +12,71 @@ For project architecture, code patterns, and the per-task coding workflow, see
 
 ## 0. Deployment: the one rule that matters
 
-> ### ⚠️ Production deploys are MANUAL. Pushing to `main` does not ship.
-> **Stated by Jon 2026-08-18: "For web / vercel we don't push from main to vercel.
-> We push manually."** Nothing reaches `astrid.cc` until someone runs the deploy
-> command below. A push to `main` is a push, not a release.
+> ### ⚠️ Production deploys are MANUAL — by construction, not by accident.
+> `.github/workflows/production-deployment.yml` has **`workflow_dispatch` only**.
+> Nothing reaches `astrid.cc` until someone deploys: the Actions tab, or
+> `./scripts/deploy-preview.sh --production`. A push to `main` is a push, not a
+> release.
 >
-> This cuts both ways, and both ways have burned an agent here:
-> - **Do not tell the user a merge is safe because it will not deploy.** It is safe
->   from a *deploy*, but say what you actually verified, not what a doc claims.
-> - **Do not report work as shipped because you pushed.** It is not live until a
->   production deployment for that commit is `READY` and serving.
+> **This became true on 2026-08-18 (#204), by changing the workflow.** Before that
+> the same workflow ran on `push: branches: [main]` with no path filter *and* on
+> `pull_request: types: [closed]` — so every merge shipped and applied migrations
+> about ten minutes later, and closing a PR **unmerged** also deployed production
+> (no job checked `github.event.pull_request.merged`, despite a comment claiming it
+> did). Do not restore either trigger without deciding that merging should ship.
 >
-> Prisma migrations run during the deploy build with production env
-> (`DATABASE_URL_DIRECT` is Production-scoped), so **pending migrations apply when
-> you deploy — not when you push.** Verify migration impact against production data
-> before running the deploy command.
+> Prisma migrations run inside that deploy — its own job and again via
+> `npm run build` → `scripts/build-with-migrations.js` — with production env
+> (`DATABASE_URL_DIRECT` is Production-scoped). **Pending migrations apply when you
+> deploy.** Verify migration impact against production data before deploying.
+>
+> Two failure modes, both of which have burned an agent here:
+> - **Do not report work as shipped because you pushed.** Merged code sits on `main`,
+>   seen by nobody, until someone deploys it.
+> - **Do not tell the user a merge is safe because it will not deploy** without
+>   checking the workflow *as of that commit*. That claim was true, then false, then
+>   true again — all in one day.
 
-**Observed 2026-08-18.** `main` moved `4d4a801 → 8f6bede` at 07:48 local. Thirteen
-minutes later the production deployment list still showed `4d4a801`, and the feature
-branch push produced no preview either — the GitHub integration created nothing.
-`./scripts/deploy-preview.sh --production` at 07:50 built `8f6bede` and put it live.
+**The authoritative check is the workflow, never the deployment list:**
+```bash
+gh run list --workflow=production-deployment.yml --limit 5   # what actually ran
+sed -n '1,25p' .github/workflows/production-deployment.yml    # what can trigger it
+```
+The Vercel deployment list shows what deployed, **never what caused it** — and
+GitHub Actions deploys through the Vercel CLI, so an Actions build appears as
+`source=cli`, indistinguishable from a hand-run one. `source=cli` reads as "a human
+did this" and means nothing of the sort. That single misreading produced three of
+the four wrong answers below.
 
-> **This section has now been wrong in both directions.** It said auto-deploy was OFF;
-> an agent used that to call a merge safe, and five migrations shipped. It was then
-> rewritten to say auto-deploy was ON, dated *verified 2026-08-01* — and that reading
-> was wrong too. The "verification" mistook production builds that a person or a
-> script had triggered manually for builds the push caused; every commit in the list
-> carries two or three production builds, which is the fingerprint of a manual
-> trigger racing an integration, not of one automatic deploy per push.
+To find what production is serving (a different question from what triggers a deploy):
+`GET https://api.vercel.com/v9/projects/<projectId>?teamId=<team>` →
+`targets.production.meta.githubCommitSha`.
+
+> **This section has been wrong three times — each one merged, and each one acted
+> on. The pattern matters more than any of the answers:**
+> 1. *"Auto-deploy is OFF."* An agent used it to call a merge safe; five migrations
+>    shipped, including one that rewrote task/list membership rows.
+> 2. *"Auto-deploy is ON — verified 2026-08-01."* Right conclusion, wrong evidence:
+>    production builds in the deployment list, cause unexamined.
+> 3. *"Deploys are MANUAL — 2026-08-18."* Written from a push that appeared not to
+>    deploy. The check was **2m40s** after the push, against a ~10-minute pipeline,
+>    and the hand-run deploy that "proved" it simply won the race. This told agents
+>    merging was safe — the premise behind failure 1.
 >
-> **The lesson is not the current answer, it is the method.** Never infer deploy
-> behaviour from the deployment list alone, and never restate this section from
-> memory. Ask production what it is serving:
-> `GET /v6/deployments?projectId=…&target=production` and compare the newest
-> `READY` deployment's `meta.githubCommitSha` against `main`.
+> **All three came from inferring the *trigger* from the *deployment list*.**
+> Read the workflow file. Run `gh run list`. Never restate this section from memory.
+>
+> A fourth version — *"pushing to `main` ships"* — was correct when written and
+> withdrawn unmerged within the hour, once #204 changed the workflow instead of the
+> prose. Not a failure; the process working. It is worth knowing only for this: a
+> rule about deploy behaviour can go stale the moment someone edits a trigger, so
+> the freshness of your check matters as much as its correctness.
+
+**Related, and still true:** `.github/workflows/monitor-deployments.yml` triggers on
+push to `main` and hourly, and runs `scripts/monitor-vercel-logs.ts`, which reports
+"✅ No failed deployments found!" when its own fetch fails and whose auto-resolve
+substring-matches `build`/`vercel` against task titles. It writes comments to the
+Astrid board. Do not trust or run it.
 
 To check what is actually live, compare the latest production deployment's commit SHA
 against `main`.

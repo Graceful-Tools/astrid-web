@@ -213,12 +213,12 @@ Agents deploy feature branches to preview subdomains for review before merging:
 # → Live at: astrid.cc
 ```
 
-> **Merging does not ship.** Production is released by running the `--production`
-> command above — a push to `main` deploys nothing. Merged code sits there, seen by
-> nobody, until someone deploys it, and migrations apply during *that* build.
-> Full rule, and how to check what production is actually serving:
-> [docs/CLI_OPERATIONS.md §0](./docs/CLI_OPERATIONS.md). Do not restate the rule
-> from memory — it has been documented backwards in both directions.
+> **Merging does not ship.** `production-deployment.yml` is `workflow_dispatch`
+> only (#204), so production is released by the `--production` command above or from
+> the Actions tab, and migrations apply during *that* deploy. Merged code sits on
+> `main`, seen by nobody, until someone deploys it. Full rule and how to verify:
+> [docs/CLI_OPERATIONS.md §0](./docs/CLI_OPERATIONS.md) — do not restate it from
+> memory, it has been documented wrongly four times.
 
 **How it works:**
 - Single Vercel project (`astrid-web`) with `*.astrid.cc` wildcard domain
