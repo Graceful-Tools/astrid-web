@@ -180,13 +180,24 @@ jobs:
         run: |
           echo "Deploying to Vercel preview..."
 
-          # Deploy to Vercel and capture output
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
-          echo "Deployment output:"
-          echo "$DEPLOYMENT_OUTPUT"
+          # Keep stdout and stderr APART. stdout carries the deployment URL;
+          # stderr carries the progress animation, which vercel redraws in
+          # place with cursor-control escapes. Folding them together with
+          # `2>&1` is what captured
+          #   \x1b[2K\x1b[1A\x1b[2K\x1b[GPreviewhttps://astrid-xxx.vercel.app
+          # on PR #206 — a URL no curl could resolve, which the E2E-on-preview
+          # job then spent five minutes failing to reach.
+          DEPLOYMENT_STDOUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>/tmp/vercel-deploy.err)
+          echo "Deployment stdout:"
+          echo "$DEPLOYMENT_STDOUT"
+          echo "Deployment stderr:"
+          cat /tmp/vercel-deploy.err
 
-          # Extract preview URL from output
-          PREVIEW_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
+          # Parsing lives in a script so it can be tested; the inline version
+          # could not be. See tests/scripts/extract-preview-url.test.ts.
+          PREVIEW_URL=$(printf '%s\n' "$DEPLOYMENT_STDOUT" | bash ./scripts/extract-preview-url.sh) \
+            || PREVIEW_URL=$(bash ./scripts/extract-preview-url.sh < /tmp/vercel-deploy.err) \
+            || true
 
           if [ -z "$PREVIEW_URL" ]; then
             echo "❌ Failed to extract preview URL from deployment output"
