@@ -68,9 +68,27 @@ html, body {
   border-bottom: none !important;
 }
 
-/* Content offset when mobile floating header is active - not used since mobile content is absolute positioned */
+/*
+ * Content offset when the mobile floating header is active.
+ *
+ * `.app-header-mobile-floating` is `position: fixed`, so it takes NO space in
+ * flow — it hovers over the content. Without this padding the first task in the
+ * list renders underneath it (task 8c090700).
+ *
+ * This block used to be EMPTY, with a comment saying padding could not work
+ * "because mobile content uses absolute inset-0". Both halves were stale: the
+ * mobile task-area wrapper resolves to `position: relative`, not absolute (see
+ * lib/task-area-position-classes.ts), so it is in normal flow and padding here
+ * is exactly what moves it.
+ *
+ * The height comes from the header itself at runtime — TaskManagerHeader
+ * publishes its measured bottom edge as `--mobile-floating-header-height` — so
+ * this does not carry a magic number that drifts the next time a control is
+ * added to the header. The fallback is the header's designed height: 56px box
+ * (20px from py-2.5, 36px content) plus its 8px margin.
+ */
 .app-body-with-floating-header {
-  /* padding doesn't work here because mobile content uses absolute inset-0 */
+  padding-top: var(--mobile-floating-header-height, 64px);
 }
 
 
