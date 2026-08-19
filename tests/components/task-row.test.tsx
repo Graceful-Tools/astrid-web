@@ -52,11 +52,19 @@ function makeController(overrides: Partial<TaskRowControllerSlice> = {}): TaskRo
 }
 
 function makeProps(overrides: Partial<TaskRowProps> = {}): TaskRowProps {
+  /*
+   * `dragCapability` defaults to the mirror of `isTouchManualSort`, which is
+   * exactly what that single flag used to mean before tablets needed both
+   * mechanisms at once (lib/touch-drag-sort.ts). Cases below that care about a
+   * tablet pass their own.
+   */
+  const touchOnly = overrides.isTouchManualSort ?? false
   return {
     task,
     controller: makeController(),
     isMobile: false,
     isTouchManualSort: false,
+    dragCapability: { touchDrag: touchOnly, html5Drag: !touchOnly },
     getPriorityColor: () => 'gray',
     draggingTaskMetrics: null,
     registerTaskRow: () => () => {},
@@ -117,6 +125,26 @@ describe('TaskRow (Stage 20a / task 0a16228c)', () => {
     )
     const row = container.querySelector('[data-task-id="task-1"]') as HTMLElement
     expect(row.getAttribute('draggable')).toBe('false')
+  })
+
+  it('gives a touch tablet BOTH the grabber and native draggable', () => {
+    // The iPad regression (2026-08-19): it had `draggable` it could not drive
+    // by finger, and no grabber. It needs both — finger and trackpad.
+    const controller = makeController({ manualSortActive: true })
+    const { container } = render(
+      <TaskRow
+        {...makeProps({
+          controller,
+          dragCapability: { touchDrag: true, html5Drag: true },
+        })}
+      />
+    )
+    const row = container.querySelector('[data-task-id="task-1"]') as HTMLElement
+    expect(row.getAttribute('draggable'), 'a trackpad on a tablet still drags').toBe('true')
+    expect(
+      row.querySelector('.absolute.bottom-0\\.5'),
+      'a finger on a tablet has nothing to grab',
+    ).not.toBeNull()
   })
 
   it('starts a mobile drag from the grab handle when manual sort is active', () => {
