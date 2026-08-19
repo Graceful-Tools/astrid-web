@@ -7,7 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ListSettingsHost } from "./ListSettingsHost"
 import { useLayoutType } from "../../enhanced-task-creation"
 import { AddTaskInput } from "../../add-task-input"
-import { isMobilePhoneDevice } from "@/lib/layout-detection"
+import { getDeviceType, isMobilePhoneDevice, isTouchDevice } from "@/lib/layout-detection"
+import { taskDragCapability } from "@/lib/touch-drag-sort"
+import { PROMOTE_DROP_TARGET_ID } from "@/lib/subtask-promotion"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
 import { TaskViewToggle } from "../Header/TaskViewToggle"
@@ -263,6 +265,25 @@ export function MainContent({
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
   const savedScrollPositionRef = React.useRef<number>(0)
   const isTouchManualSort = React.useMemo(() => isMobile && isMobilePhoneDevice(), [isMobile])
+  /*
+   * Which drag mechanisms this device can actually drive (see
+   * lib/touch-drag-sort.ts). A tablet gets BOTH: the finger needs the touch
+   * path, the trackpad still needs `draggable`. `isTouchManualSort` above stays
+   * phone-only — it is what turns HTML5 drag OFF, and a tablet must keep it.
+   */
+  const dragCapability = React.useMemo(
+    () =>
+      taskDragCapability({
+        isMobileLayout: Boolean(isMobile),
+        hasPhoneUserAgent: isMobilePhoneDevice(),
+        // No argument: getDeviceType resolves the layout itself. The
+        // useLayoutType() value is a DIFFERENT LayoutType union from this
+        // module's, so passing it through would be a coincidence of names.
+        isTablet: getDeviceType() === 'tablet',
+        hasTouch: isTouchDevice(),
+      }),
+    [isMobile, layoutType],
+  )
   const registerTaskRow = React.useCallback((taskId: string) => (node: HTMLDivElement | null) => {
     if (node) {
       const rect = node.getBoundingClientRect()
@@ -283,14 +304,35 @@ export function MainContent({
     setDraggingTaskMetrics(null)
   }, [handleTaskDragEnd])
 
+  /*
+   * Arriving over the promote strip cancels any pending reorder. The hook only
+   * reports the hover; the reorder target is this component's state, and
+   * without this a finger that grazed a row on its way to the strip would both
+   * unnest the task AND move it.
+   */
+  const handleTouchPromoteHover = React.useCallback(
+    (isOver: boolean) => {
+      if (isOver && dragTargetTaskId) {
+        handleTaskDragLeaveTask(dragTargetTaskId)
+      }
+    },
+    [dragTargetTaskId, handleTaskDragLeaveTask],
+  )
+
   const { startMobileDrag } = useMobileDragSort({
-    isTouchManualSort,
+    // Touch listeners follow the touch capability, not the phone flag — this is
+    // what lets an iPad drag at all.
+    isTouchManualSort: dragCapability.touchDrag,
     manualSortActive,
     activeDragTaskId,
     taskListContainerRef,
     onDragHover: handleTaskDragHover,
     onDragHoverEnd: handleTaskDragHoverEnd,
     onDragEnd: handleMobileDragEnd,
+    onPromoteHover: handleTouchPromoteHover,
+    onDropOnPromoteTarget: () => {
+      void handleTaskDropOnPromoteTarget()
+    },
   })
 
   // Save scroll position when entering task detail view on mobile
@@ -404,6 +446,7 @@ export function MainContent({
       controller={rowController}
       isMobile={isMobile}
       isTouchManualSort={isTouchManualSort}
+      dragCapability={dragCapability}
       draggingTaskMetrics={draggingTaskMetrics}
       registerTaskRow={registerTaskRow}
       taskMeasurementsRef={taskMeasurementsRef}
@@ -955,6 +998,7 @@ export function MainContent({
                     of a long list. */}
                 {promoteTargetVisible && (
                   <div
+                    id={PROMOTE_DROP_TARGET_ID}
                     data-testid="promote-to-top-level-target"
                     aria-label="Move out of subtask"
                     onDragOver={(event) => event.preventDefault()}

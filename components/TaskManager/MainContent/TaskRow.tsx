@@ -3,6 +3,7 @@
 import React from "react"
 import { TaskRowContent } from "../../task-row-content"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import type { TaskDragCapability } from "@/lib/touch-drag-sort"
 import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
 import {
   type BoardRowContext,
@@ -51,6 +52,14 @@ export interface TaskRowProps {
   controller: TaskRowControllerSlice
   isMobile: boolean
   isTouchManualSort: boolean
+  /**
+   * Which drag mechanisms this device can drive (lib/touch-drag-sort.ts).
+   *
+   * Separate from `isTouchManualSort` because a tablet needs BOTH: the grabber
+   * for a finger, `draggable` for a trackpad. `isTouchManualSort` stays the
+   * phone-only flag that turns HTML5 drag off.
+   */
+  dragCapability: TaskDragCapability
   draggingTaskMetrics: DraggingTaskMetrics | null
 
   // Per-row DOM registration + measurement cache (shared across the list)
@@ -92,6 +101,7 @@ export function TaskRow({
   controller,
   isMobile,
   isTouchManualSort,
+  dragCapability,
   draggingTaskMetrics,
   registerTaskRow,
   taskMeasurementsRef,
@@ -266,9 +276,9 @@ export function TaskRow({
         data-task-id={task.id}
         className={classNames.join(' ')}
         onClick={(e) => onTaskClick(task.id, e.currentTarget as HTMLElement)}
-        draggable={!isTouchManualSort}
+        draggable={dragCapability.html5Drag}
         onDragStart={(event) => {
-          if (isTouchManualSort) return
+          if (!dragCapability.html5Drag) return
           const rect = event.currentTarget.getBoundingClientRect()
           setDraggingTaskMetrics({ taskId: task.id, height: rect.height })
           taskMeasurementsRef.current.set(task.id, rect.height)
@@ -365,7 +375,7 @@ export function TaskRow({
             }}
           />
         )}
-        {isTouchManualSort && manualSortActive && (
+        {dragCapability.touchDrag && manualSortActive && (
           <div
             className="absolute bottom-0.5 left-1/2 z-30 flex -translate-x-1/2 items-end justify-center"
             style={mobileGrabberStyle}

@@ -100,6 +100,7 @@ function makeProps(overrides: Partial<TaskRowProps> = {}): TaskRowProps {
     controller: makeController(),
     isMobile: false,
     isTouchManualSort: false,
+    dragCapability: { touchDrag: false, html5Drag: true },
     draggingTaskMetrics: null,
     registerTaskRow: () => () => {},
     taskMeasurementsRef: { current: new Map() },
