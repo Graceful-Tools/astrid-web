@@ -217,13 +217,18 @@ The application uses **GitHub Actions** to deploy to Vercel, not Vercel's automa
 
 ### Quick Start
 
-**Deployments are triggered automatically:**
-- Push to `main` → Production deployment
-- Push to `staging` → Staging deployment
-- Open/update PR → Preview deployment
+**Production deploys are MANUAL.** `production-deployment.yml` is
+`workflow_dispatch` only, so pushing to `main` ships nothing — and because that
+build runs `prisma migrate deploy`, a merge does not apply migrations either.
 
-**Manual deployment:**
-Go to Actions → Select workflow → Run workflow
+- Production → Actions tab → *Production Deployment* → Run workflow
+  (or `./scripts/deploy-preview.sh --production`)
+- Preview → opening or updating a PR deploys one automatically
+
+The authoritative check is the workflow file plus
+`gh run list --workflow=production-deployment.yml`, never the Vercel deployment
+list: Actions deploys through the Vercel CLI, so its builds appear as
+`source=cli` and read as "a human did this".
 
 ### Setup Requirements
 

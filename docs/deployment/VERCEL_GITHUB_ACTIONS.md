@@ -1,6 +1,24 @@
 # Vercel Deployment via GitHub Actions
 
-This document explains how Astrid deploys to Vercel using GitHub Actions workflows instead of Vercel's automatic Git integration.
+This document explains how Astrid deploys to Vercel using GitHub Actions
+workflows instead of Vercel's automatic Git integration.
+
+> **Two separate facts, routinely conflated — and the conflation has produced
+> three wrong versions of the deploy rule:**
+>
+> 1. **Why Actions rather than Vercel's Git integration** — the integration
+>    blocks commits authored by an email with no Vercel account, which is every
+>    AI-agent commit. That is what the rest of this page is about.
+> 2. **Why production deploys are manual** — because
+>    `production-deployment.yml` is `workflow_dispatch` only. Nothing to do with
+>    the Git integration.
+>
+> Turning the Git integration off did NOT make deploys manual. While the
+> workflow still had `push: [main]`, merging deployed production and applied
+> migrations, with the integration off the whole time. Reasoning from
+> "integration is off" (or from `source=cli` in the deployment list) to "nothing
+> deploys automatically" is exactly the mistake that shipped five unreviewed
+> migrations.
 
 ## Why GitHub Actions Instead of Vercel Git Integration?
 
@@ -119,7 +137,7 @@ Check that your workflows have proper git configuration for any steps that creat
 ### From Local CLI (Command Line)
 
 ```bash
-# Deploy to production (pushes to main, auto-triggers workflow)
+# Deploy to production (dispatches the workflow — pushing alone does nothing)
 npm run deploy:production
 
 # Trigger any workflow manually
@@ -134,7 +152,7 @@ npm run deploy:trigger monitor       # Run deployment monitoring
 The Astrid AI Coding Agent at `astrid.cc/settings/coding-integration` can trigger deployments via:
 
 1. **Automatic PR Previews**: When the AI creates a PR, the `preview-deployment.yml` workflow automatically creates a preview URL
-2. **Production Deployment**: When a PR is merged to main, `production-deployment.yml` triggers
+2. **Production Deployment**: `production-deployment.yml` must be dispatched deliberately. Merging a PR to main does NOT trigger it.
 3. **Manual Trigger**: The AI agent can trigger workflows via the `repository_dispatch` event
 
 The cloud agent uses the `ASTRID_MCP_TOKEN` secret to authenticate and the workflows communicate back via webhooks to update task status.
@@ -155,10 +173,21 @@ The cloud agent uses the `ASTRID_MCP_TOKEN` secret to authenticate and the workf
 
 **File:** `.github/workflows/production-deployment.yml`
 
-**Triggers:**
-- Push to `main` branch
-- Pull request merged to `main`
-- Manual workflow dispatch
+**Trigger:** `workflow_dispatch` ONLY — a human (or `gh workflow run`) starts it.
+
+> **Pushing to `main` does not deploy, and merging a PR does not deploy.** Both
+> used to (`push: [main]` with no path filter, and `pull_request: closed`, which
+> fired even for PRs closed *unmerged*). PR #204 removed both triggers.
+>
+> Check the workflow file itself, never the Vercel deployment list — an Actions
+> deploy goes out through the Vercel CLI and appears there as `source=cli`,
+> indistinguishable from a hand-run one. Misreading that list is what produced
+> three wrong versions of this rule:
+>
+> ```bash
+> gh run list --workflow=production-deployment.yml --limit 5
+> sed -n '1,25p' .github/workflows/production-deployment.yml
+> ```
 
 **Steps:**
 1. Quality gates (tests, linting, typecheck)
@@ -169,8 +198,7 @@ The cloud agent uses the `ASTRID_MCP_TOKEN` secret to authenticate and the workf
 
 **Usage:**
 ```bash
-# Automatic: push to main
-git push origin main
+# There is no automatic path. Pushing to main ships nothing.
 
 # Manual via npm script
 npm run deploy:production
