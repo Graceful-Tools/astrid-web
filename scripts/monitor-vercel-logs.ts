@@ -247,7 +247,15 @@ class VercelLogMonitor {
   /**
    * Get recent deployments from Vercel
    */
-  async getRecentDeployments(): Promise<VercelDeployment[]> {
+  /**
+   * Recent deployments, or NULL when Vercel could not be reached.
+   *
+   * Null rather than `[]` because the two mean opposite things and this method
+   * used to conflate them (task aee6ce0d): a missing CLI, an expired token or a
+   * Vercel outage all returned an empty array, which monitor() read as "nothing
+   * failed" and acted on by closing the tasks tracking a real failure.
+   */
+  async getRecentDeployments(): Promise<VercelDeployment[] | null> {
     console.log('📡 Fetching recent Vercel deployments...')
 
     try {
@@ -309,7 +317,8 @@ class VercelLogMonitor {
       return deployments
     } catch (error) {
       console.error('❌ Failed to fetch deployments:', error)
-      return []
+      // NOT `[]`. An unfetchable list is not an empty one.
+      return null
     }
   }
 
@@ -661,13 +670,31 @@ The automated deployment monitoring system has confirmed that deployments are no
     try {
       // Get recent deployments
       const deployments = await this.getRecentDeployments()
+
+      // COULD NOT FETCH is not GOOD NEWS (task aee6ce0d). Saying nothing about
+      // deployment health is the only honest outcome here, and the run has to
+      // go red: this is on push-to-main and hourly cron, so a silent exit 0
+      // means an expired token hides a real production failure indefinitely.
+      if (deployments === null) {
+        console.error('❌ Could not reach Vercel — not asserting deployment health')
+        process.exitCode = 1
+        return
+      }
+
       const failedDeployments = deployments.filter(d => d.status === 'Error')
 
       if (failedDeployments.length === 0) {
         console.log('✅ No failed deployments found!')
 
-        // Mark any existing deployment issue tasks as resolved since deployments are healthy
-        await this.resolveDeploymentTasks()
+        // Mark any existing deployment issue tasks as resolved since deployments
+        // are healthy — but only when this run is allowed to change things.
+        // `--no-fix` is an audit, and an audit must not comment on and complete
+        // real tasks; it previously suppressed CODE fixes only.
+        if (applyFixes) {
+          await this.resolveDeploymentTasks()
+        } else {
+          console.log('ℹ️ --no-fix: leaving deployment issue tasks untouched')
+        }
         return
       }
 
