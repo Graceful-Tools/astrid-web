@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from '@/types/task'
@@ -177,7 +178,23 @@ export function PriorityAssigneePicker({
 
   if (!isOpen && !isClosing) return null
 
-  return (
+  /*
+   * PORTALLED TO document.body, and it has to be (Jon, 2026-08-18: the sheet
+   * "appears from wherever the list row is").
+   *
+   * `position: fixed` is resolved against the nearest ancestor that
+   * establishes a containing block, and on mobile this sheet is always inside
+   * one: `.task-card` carries `will-change: transform` (styles/components.css)
+   * and MainContent's mobile task-area wrapper carries the task-detail
+   * parallax `transform`, which it applies even at rest as
+   * `translateX(0) scale(1)`. So `fixed inset-x-0 bottom-0` pinned the sheet to
+   * the ROW, and the full-screen backdrop covered one card. Measured on a
+   * 390x664 viewport: sheet at y=158, backdrop 360x62.
+   *
+   * No styling escapes a transformed ancestor — the element has to leave the
+   * subtree. Same pattern as attachment-viewer and list-settings-popover.
+   */
+  const sheet = (
     <>
       {/* Backdrop */}
       <div
@@ -373,6 +390,11 @@ export function PriorityAssigneePicker({
       </div>
     </>
   )
+
+  // No document during SSR; the sheet only ever opens from a tap anyway.
+  if (typeof window === 'undefined') return null
+
+  return createPortal(sheet, document.body)
 }
 
 export default PriorityAssigneePicker
