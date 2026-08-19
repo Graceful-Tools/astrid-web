@@ -167,6 +167,29 @@ async function main() {
   const projectRoot = path.resolve(__dirname, '..');
   const prismaPath = path.join(projectRoot, 'prisma/schema.prisma');
 
+  /*
+   * --strict turns every "cannot verify" path into a FAILURE (task 1985804a).
+   *
+   * Without it this gate had never once run: it reads
+   * ASTRID_IOS_GITHUB_TOKEN || GITHUB_TOKEN, neither was set anywhere, and both
+   * deployment workflows invoked it with no `env:` block at all — Actions does
+   * not put GITHUB_TOKEN in the environment automatically. So it exited 0 and
+   * rendered as a passing "Check API/iOS Model Sync" in preview and production
+   * for its whole life, while subtasks, status roles and project boards grew in
+   * the schema with the web↔iOS drift guard inert.
+   *
+   * A gate that cannot verify must fail rather than pass, or wiring the secret
+   * silently regresses to a no-op the moment it is rotated away.
+   */
+  const strict = process.argv.includes('--strict');
+  // Annotated on the VARIABLE, not just the arrow: TypeScript only treats a
+  // call as never-returning for control-flow analysis when the callee is a
+  // function declaration or a const with an explicit never-returning type.
+  const unverified: () => never = () => process.exit(strict ? 1 : 0);
+  if (strict) {
+    console.log('🔒 --strict: an unverifiable check will FAIL rather than skip.\n');
+  }
+
   console.log('🔍 Checking model sync (Prisma Task ↔ iOS Task.swift)...\n');
 
   const token = getGithubToken();
@@ -175,20 +198,20 @@ async function main() {
     console.log(`   ${IOS_REPO} could not be fetched. This check is SKIPPED — not passed.`);
     console.log('   Set ASTRID_IOS_GITHUB_TOKEN (or GITHUB_TOKEN) to enable the real');
     console.log('   cross-repo check — e.g. in the weekly codebase-health-audit routine.');
-    process.exit(0);
+    unverified();
   }
 
   const swiftContent = await fetchIosTaskSwift(token);
   if (!swiftContent) {
-    console.log('\n⏭️  UNVERIFIED: could not retrieve iOS Task.swift — skipping (not a failure).');
-    process.exit(0);
+    console.log('\n⏭️  UNVERIFIED: could not retrieve iOS Task.swift.');
+    unverified();
   }
 
   const prismaFields = parsePrismaSchema(prismaPath);
   const swiftFields = parseSwiftTaskFromContent(swiftContent);
   if (swiftFields.size === 0) {
-    console.log('\n⏭️  UNVERIFIED: could not parse the Task struct from iOS Task.swift — skipping.');
-    process.exit(0);
+    console.log('\n⏭️  UNVERIFIED: could not parse the Task struct from iOS Task.swift.');
+    unverified();
   }
 
   console.log(`\n📊 Prisma Task: ${prismaFields.size} fields | iOS Task.swift: ${swiftFields.size} fields\n`);
@@ -238,7 +261,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  // An infra hiccup (network / auth) must never block the build — report + skip.
-  console.log(`⏭️  UNVERIFIED: model sync check errored (${err instanceof Error ? err.message : String(err)}) — skipping.`);
-  process.exit(0);
+  // An infra hiccup (network / auth) must not block a LOCAL run — but under
+  // --strict, "could not check" is a failure like any other unverifiable path.
+  console.log(`⏭️  UNVERIFIED: model sync check errored (${err instanceof Error ? err.message : String(err)}).`);
+  process.exit(process.argv.includes('--strict') ? 1 : 0);
 });

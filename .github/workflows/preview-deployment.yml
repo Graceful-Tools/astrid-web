@@ -115,7 +115,14 @@ jobs:
       - name: Check API/iOS Model Sync
         run: |
           echo "Checking if Prisma, Swift, and Core Data models are in sync..."
-          npm run check:model-sync
+          npm run check:model-sync -- --strict
+        env:
+          # The default GITHUB_TOKEN cannot read Graceful-Tools/astrid-ios — it
+          # is scoped to this repository — so the cross-repo check needs a PAT.
+          # Actions does not put GITHUB_TOKEN in the environment automatically
+          # either; without this block the step ran tokenless and exited 0,
+          # rendering as a passing gate that had never verified anything.
+          ASTRID_IOS_GITHUB_TOKEN: ${{ secrets.ASTRID_IOS_GITHUB_TOKEN }}
 
       - name: Check for API Breaking Changes
         run: |
