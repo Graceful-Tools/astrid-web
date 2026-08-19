@@ -26,6 +26,14 @@
  *     carrying one or three characters reads better as a fixed square.
  *   - 50vh had to hold priority, board state, complete/reopen AND a scrolling
  *     list of people, which is what left the assignee list cramped.
+ *
+ * These read `baseElement` (document.body), not `container`. The sheet is
+ * portaled out of its parent — it has to be, or `fixed bottom-0` anchors to the
+ * transformed task row instead of the screen (see
+ * priority-assignee-picker-portal.test.tsx) — so RTL's render container no
+ * longer holds it. Querying `container` here does not fail loudly: the
+ * per-button loops below would just iterate an empty list and pass while
+ * asserting nothing.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -46,16 +54,16 @@ const BASE = {
 }
 
 /** The positioned sheet wrapper — the element carrying the width constraint. */
-function sheet(container: HTMLElement) {
-  return container.querySelector('[class*="fixed"][class*="bottom-0"]') as HTMLElement
+function sheet(root: HTMLElement) {
+  return root.querySelector('[class*="fixed"][class*="bottom-0"]') as HTMLElement
 }
 
 beforeEach(() => vi.clearAllMocks())
 
 describe('the picker is not full width (task 8599e136)', () => {
   it('caps its width and centres itself', () => {
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    const el = sheet(container)
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    const el = sheet(baseElement)
 
     expect(el, 'no positioned sheet found').toBeTruthy()
     expect(el.className, 'the sheet has no max-width, so it spans the screen').toMatch(/max-w-/)
@@ -66,25 +74,25 @@ describe('the picker is not full width (task 8599e136)', () => {
 
   it('still spans a phone, where full width is correct for a bottom sheet', () => {
     // Capping must not turn into a narrow column on mobile.
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    expect(sheet(container).className).toMatch(/inset-x-0/)
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    expect(sheet(baseElement).className).toMatch(/inset-x-0/)
   })
 })
 
 describe('priority options are rounded squares (task 8599e136)', () => {
-  const priorityButtons = (container: HTMLElement) =>
-    Array.from(container.querySelectorAll('button')).filter(b =>
+  const priorityButtons = (root: HTMLElement) =>
+    Array.from(root.querySelectorAll('button')).filter(b =>
       /^(○|!+)$/.test((b.textContent || '').trim()),
     )
 
   it('renders all four options', () => {
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    expect(priorityButtons(container)).toHaveLength(4)
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    expect(priorityButtons(baseElement)).toHaveLength(4)
   })
 
   it('gives each an equal height and width rather than stretching it', () => {
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    for (const button of priorityButtons(container)) {
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    for (const button of priorityButtons(baseElement)) {
       expect(
         button.className,
         'a priority chip is stretching to fill the row instead of being square',
@@ -95,8 +103,8 @@ describe('priority options are rounded squares (task 8599e136)', () => {
   })
 
   it('rounds them', () => {
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    for (const button of priorityButtons(container)) {
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    for (const button of priorityButtons(baseElement)) {
       expect(button.className).toMatch(/rounded-/)
     }
   })
@@ -104,8 +112,8 @@ describe('priority options are rounded squares (task 8599e136)', () => {
 
 describe('there is room for the assignee list (task 8599e136)', () => {
   it('allows more height than the old 50vh', () => {
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    const el = sheet(container)
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    const el = sheet(baseElement)
     const maxHeight = el.style.maxHeight
 
     expect(maxHeight).toMatch(/vh$/)
@@ -116,8 +124,8 @@ describe('there is room for the assignee list (task 8599e136)', () => {
   })
 
   it('scrolls its contents rather than growing past the viewport', () => {
-    const { container } = render(<PriorityAssigneePicker {...BASE} />)
-    const scroller = container.querySelector('[class*="overflow-y-auto"]')
+    const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
+    const scroller = baseElement.querySelector('[class*="overflow-y-auto"]')
     expect(scroller, 'a taller sheet with no scroll container can exceed the screen').toBeTruthy()
   })
 })

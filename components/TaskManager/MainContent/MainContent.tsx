@@ -15,6 +15,7 @@ import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
+import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
 import { getBoardRowContext, getProjectIdForBoard, getProjectStatusLists } from "@/lib/project-status"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
@@ -490,11 +491,16 @@ export function MainContent({
       {/* Task List Area */}
       <div
         ref={taskManagerRef}
-        className={`theme-bg-primary flex flex-col relative z-10 ${
-        isMobile
-          ? 'absolute inset-x-0 bottom-0 transition-all duration-300 ease-in-out'
-          : 'flex-1 min-w-0'
-      }`}
+        /*
+         * The positioning classes come from a helper because this wrapper used
+         * to carry `relative` and `absolute` at once, and `relative` won —
+         * which left the mobile BOARD with no height to size its scrolling
+         * columns against. See lib/task-area-position-classes.ts.
+         */
+        className={`theme-bg-primary flex flex-col z-10 ${taskAreaPositionClasses({
+          isMobile: Boolean(isMobile),
+          boardMode: Boolean(hasProjectBoard && taskViewMode === 'board'),
+        })} ${isMobile ? 'transition-all duration-300 ease-in-out' : ''}`}
       style={{
         // Mobile: offset for floating header (header height + margin)
         top: isMobile ? '0px' : undefined,
