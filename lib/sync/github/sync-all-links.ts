@@ -25,8 +25,22 @@ import { directionPulls, pushTasksForLink } from '@/lib/sync/github/push-tasks'
 
 const log = createLogger('sync.github.run')
 
+/**
+ * How many links one pass will touch.
+ *
+ * The caller is a cron route with `maxDuration = 60` and each link costs
+ * several sequential network round trips, so an unbounded pass is a pass that
+ * gets killed partway through (task df728fba). Bounding it makes the cut-off
+ * deliberate and, with the staleness ordering below, fair.
+ */
+export const MAX_LINKS_PER_PASS = 25
+
 export interface SyncRunSummary {
   links: number
+  /** True when more links were waiting than this pass would take. */
+  capped: boolean
+  /** How many links were left for the next pass. */
+  remaining: number
   created: number
   updated: number
   skipped: number
@@ -55,10 +69,29 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
       direction: true,
       cursor: true,
     },
+    /*
+     * STALENEST FIRST, and bounded. Without an orderBy, Postgres returns an
+     * unchanging table in a stable order, so a pass killed at 60s dropped the
+     * SAME TAIL on every one of the 96 runs a day — those links silently never
+     * synced, and the summary still counted them. Never-reconciled links lead;
+     * the longest-waiting follow. A run that only gets halfway leaves the rest
+     * at the front of the next one, fifteen minutes later.
+     */
+    orderBy: { lastReconciledAt: { sort: 'asc', nulls: 'first' } },
+    take: MAX_LINKS_PER_PASS,
+  })
+
+  // One cheap count so "we did not get to everyone" is visible rather than
+  // inferred from a log that only mentions the links it reached.
+  const totalLinks = await prisma.externalListLink.count({
+    where: { provider: 'GITHUB_ISSUES' },
   })
 
   const summary: SyncRunSummary = {
-    links: links.length, created: 0, updated: 0, skipped: 0, failed: 0, pushed: 0, seeded: 0,
+    links: links.length,
+    capped: totalLinks > links.length,
+    remaining: Math.max(0, totalLinks - links.length),
+    created: 0, updated: 0, skipped: 0, failed: 0, pushed: 0, seeded: 0,
   }
 
   for (const link of links) {
@@ -101,12 +134,21 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
       // Only now is it safe to move the watermark. A truncated listing still
       // commits: the cursor came from the last item we actually SAW, so the
       // next run resumes there rather than skipping the remainder.
-      if (cursor && cursor !== link.cursor) {
-        await prisma.externalListLink.update({
-          where: { id: link.id },
-          data: { cursor, lastReconciledAt: new Date() },
-        })
-      }
+      /*
+       * lastReconciledAt is written on EVERY completed link, not only when the
+       * cursor moved. It is now the sort key, so a link that syncs cleanly with
+       * nothing new would otherwise keep a stale timestamp, sit permanently at
+       * the front of the queue and starve everyone behind it — the ordering
+       * above would make the bug worse rather than better. The cursor itself is
+       * still only advanced when it actually changed.
+       */
+      await prisma.externalListLink.update({
+        where: { id: link.id },
+        data: {
+          lastReconciledAt: new Date(),
+          ...(cursor && cursor !== link.cursor ? { cursor } : {}),
+        },
+      })
 
       log.info({ linkId: link.id, repo: link.remoteContainerId, ...applied, truncated }, 'Link synced')
     } catch (error) {
