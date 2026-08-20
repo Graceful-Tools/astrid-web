@@ -188,9 +188,11 @@ If deployment fails:
 - [ ] Set `NEXTAUTH_URL` (your Vercel app URL)
 - [ ] Set other environment variables as needed
 - [ ] Commit and push your code
-- [ ] Watch Vercel build logs for migration success
+- [ ] **Dispatch the Production Deployment workflow** — pushing does not deploy
+- [ ] Watch the Actions run and Vercel build logs for migration success
 - [ ] Test `/api/health` endpoint
 - [ ] Test core app functionality
 - [ ] Update OAuth redirect URIs if using Google/GitHub auth
 
-Your app is now fully configured for automatic deployments with database migrations! 🚀
+Your app is now configured to run database migrations as part of the deploy build.
+Remember that the deploy itself is manual — see the note at the top of this page. 🚀
