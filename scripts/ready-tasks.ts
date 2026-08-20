@@ -39,8 +39,11 @@ import {
   hasReadyStatus,
   isClaimableByAgent,
   describeAssignee,
+  describeSchedule,
+  isDueToStart,
   resolveReadyQueueOptions,
   type AssignableTask,
+  type SchedulableTask,
   type StatusRoleTask,
 } from "@/lib/ready-queue-scope"
 
@@ -73,7 +76,7 @@ function loadOptions() {
 const options = loadOptions()
 const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
 
-type QueueTask = AssignableTask & StatusRoleTask & {
+type QueueTask = AssignableTask & StatusRoleTask & SchedulableTask & {
   id: string
   title: string
   priority?: number
@@ -152,8 +155,16 @@ async function main() {
   // fix, or Jon's own in-progress work being redone underneath him. Ready says
   // "this is actionable", not "this is unclaimed", so the two conditions are
   // separate and both are required.
-  const mine = ready.filter(task => isClaimableByAgent(task, options.harness))
+  const claimable = ready.filter(task => isClaimableByAgent(task, options.harness))
   const claimed = ready.filter(task => !isClaimableByAgent(task, options.harness))
+
+  // ...and not scheduled for later. A task with a date is not work for today, and a REPEATING
+  // task rolls forward to its next occurrence when it is completed — so a recurring chore
+  // leaves the queue on completion and returns by itself when it comes due, tracked in Astrid
+  // rather than in a cron file nobody can see (Jon, 2026-08-19).
+  const now = new Date()
+  const mine = claimable.filter(task => isDueToStart(task, now))
+  const scheduled = claimable.filter(task => !isDueToStart(task, now))
 
   if (notReady > 0) {
     console.log(`(${notReady} open task(s) on ${BOARD_LIST_NAME} without the Ready status — not queued)`)
@@ -179,6 +190,15 @@ async function main() {
     }
   }
 
+  // A queue waiting on the clock must not look like an idle one either — say WHEN, so a
+  // recurring task that is simply not due yet is visibly different from one nobody has queued.
+  if (scheduled.length > 0) {
+    console.log(`(${scheduled.length} Ready task(s) scheduled for later — not yet due:)`)
+    for (const task of [...scheduled].sort(byDueDate)) {
+      console.log(`  — ${task.title}  [due ${describeSchedule(task, now)}]`)
+    }
+  }
+
   if (mine.length === 0) {
     console.log("READY_EMPTY")
     return
@@ -195,6 +215,11 @@ async function main() {
     const stars = "★".repeat(task.priority ?? 0) || "—"
     console.log(`  ${task.id}  ${stars.padEnd(3)}  ${task.title}`)
   }
+}
+
+/** Soonest first, so the next thing to come due is the first thing listed. */
+function byDueDate(a: QueueTask, b: QueueTask) {
+  return new Date(a.dueDateTime ?? 0).getTime() - new Date(b.dueDateTime ?? 0).getTime()
 }
 
 main().catch(error => {

@@ -139,6 +139,60 @@ export function hasReadyStatus(task: StatusRoleTask): boolean {
   return (task.statusRole ?? '').trim().toLowerCase() === READY_STATUS_ROLE
 }
 
+/**
+ * A task that may carry a date.
+ *
+ * `dueDateTime` is the single date field the API returns; `isAllDay` says whether the time
+ * within it means anything. An all-day task carries midnight, so it becomes workable at the
+ * start of its day, which is what "don't start until the date" means.
+ */
+export interface SchedulableTask {
+  dueDateTime?: string | null
+  isAllDay?: boolean | null
+}
+
+/**
+ * May the loop START this task yet?
+ *
+ * Jon, 2026-08-19: "If a task has a date don't start until the date or time of the task.
+ * Therefore we can have fixall respond to recurring tasks and track them in Astrid."
+ *
+ * RECURRENCE NEEDS NOTHING ELSE. Completing a repeating task rolls it forward to its next
+ * occurrence — that is `RepeatingTaskCalculator`'s job and it already happens — and this rule
+ * then holds the task until that moment arrives. So "check recurring tasks" and "respect the
+ * date" are one rule seen twice: a recurring chore lands back in the queue by itself, on its
+ * own schedule, tracked in Astrid rather than in a cron file no one can see.
+ *
+ * A task with NO date is workable now, which is every task the loop has taken until today.
+ *
+ * An UNREADABLE date is treated as no date rather than as "never". Stranding a task on a value
+ * nobody can see would look exactly like an empty queue, every run, with nothing saying why —
+ * and silence is the failure mode this whole script is written against.
+ */
+export function isDueToStart(task: SchedulableTask, now: Date): boolean {
+  const due = parseDue(task.dueDateTime)
+  if (!due) return true
+  return due.getTime() <= now.getTime()
+}
+
+/**
+ * When a held task becomes workable, for the skipped-with-a-reason line. Empty when the task
+ * carries no date, so callers can print it unconditionally.
+ */
+export function describeSchedule(task: SchedulableTask, now: Date): string {
+  const due = parseDue(task.dueDateTime)
+  if (!due || due.getTime() <= now.getTime()) return ''
+  return task.isAllDay
+    ? due.toISOString().slice(0, 10)
+    : due.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+}
+
+function parseDue(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export interface AssignableTask {
   assigneeId?: string | null
   assignee?: { email?: string | null; name?: string | null } | null
