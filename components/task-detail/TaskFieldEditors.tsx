@@ -488,7 +488,7 @@ export function TaskFieldEditors({
        *  no assignee concept. */}
       {!shouldHidePriority && !compactTaskDetail && (
         isPublicListTask ? (
-          <TaskFieldRow label="Created by" icon={<UserIcon className="w-4 h-4" />}>
+          <TaskFieldRow label={t('tasks.createdBy')} icon={<UserIcon className="w-4 h-4" />}>
             <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center space-x-2 px-2 py-1 rounded">
             {task.creator ? (
@@ -506,7 +506,7 @@ export function TaskFieldEditors({
             </div>
           </TaskFieldRow>
         ) : (
-            <TaskFieldRow label="Assignee" icon={<UserIcon className="w-4 h-4" />}>
+            <TaskFieldRow label={t('tasks.assignee')} icon={<UserIcon className="w-4 h-4" />}>
               <div className="flex flex-wrap items-center gap-3">
           {/* An IIFE, lifted verbatim from the combined row so the editor's
               behaviour is unchanged by the split. */}
@@ -571,7 +571,7 @@ export function TaskFieldEditors({
        *  so an undated task shows a single "Add date" control rather than
        *  three empty ones. */}
       {!shouldHideWhen && (
-      <TaskFieldRow label="When" icon={<CalendarIcon className="w-4 h-4" />} align="start">
+      <TaskFieldRow label={t('tasks.when')} icon={<CalendarIcon className="w-4 h-4" />} align="start">
         <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-2 min-w-0" data-testid="when-date">
         {editingWhen ? (
@@ -875,11 +875,14 @@ export function TaskFieldEditors({
       {/* Priority — third, after Date. A public-list task has no priority
        *  picker; its Who slot showed "Created by" above. */}
       {!shouldHidePriority && !compactTaskDetail && !isPublicListTask && (
-            <TaskFieldRow label="Priority" icon={<PriorityRowIcon />}>
+            <TaskFieldRow label={t('tasks.priority')} icon={<PriorityRowIcon />}>
               <PriorityPicker
                 value={tempPriority}
                 onChange={handleSavePriority}
-                label="Priority"
+                /* No `label` passed: PriorityPicker declares the prop but never
+                   renders it, and the row above already carries the translated
+                   label. Passing an English literal to a prop nobody displays is
+                   dead weight that reads as untranslated copy. */
                 // Every other field here gates its click behind !readOnly; this
                 // one rendered ungated, so priority stayed editable to a viewer
                 // who could edit nothing else. (Task 72cb4a13.)
@@ -890,7 +893,7 @@ export function TaskFieldEditors({
 
 
       {/* Lists Field */}
-      <TaskFieldRow label="Lists" icon={<ListIcon className="w-4 h-4" />} align="start">
+      <TaskFieldRow label={t('navigation.lists')} icon={<ListIcon className="w-4 h-4" />} align="start">
         {editingLists ? (
           <div className="space-y-3">
             {/* Search input with autocomplete */}
@@ -1001,7 +1004,7 @@ export function TaskFieldEditors({
       </TaskFieldRow>
 
       {/* Description Field */}
-      <TaskFieldRow label="Description" icon={<FileTextIcon className="w-4 h-4" />} align="start">
+      <TaskFieldRow label={t('tasks.taskDescription')} icon={<FileTextIcon className="w-4 h-4" />} align="start">
         {editingDescription ? (
           <div ref={descriptionRef}>
             <textarea
