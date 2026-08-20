@@ -11,8 +11,10 @@ import { describe, it, expect } from 'vitest'
 import {
   describeAssignee,
   FIXALL_HARNESS_MAILBOXES,
+  describeSchedule,
   hasReadyStatus,
   isClaimableByAgent,
+  isDueToStart,
   resolveReadyQueueOptions,
 } from '@/lib/ready-queue-scope'
 import { agentEmail } from '@/lib/brand/agent-emails'
@@ -187,5 +189,65 @@ describe('describeAssignee', () => {
   it('says unassigned rather than unknown when nobody has it', () => {
     expect(describeAssignee({})).toBe('unassigned')
     expect(describeAssignee({ assigneeId: null })).toBe('unassigned')
+  })
+})
+
+/**
+ * A task with a date is not work for today.
+ *
+ * Jon, 2026-08-19: "If a task has a date don't start until the date or time of
+ * the task. Therefore we can have fixall respond to recurring tasks and track
+ * them in Astrid."
+ *
+ * Recurrence needs nothing else: completing a repeating task rolls it forward to
+ * its next occurrence, which is in the future, and this rule then holds it until
+ * that moment arrives. So "check recurring tasks" and "respect the date" are the
+ * same rule seen twice.
+ */
+describe('isDueToStart', () => {
+  const now = new Date('2026-08-19T18:00:00.000Z')
+
+  it('starts a task with no date at all — the ordinary case, unchanged', () => {
+    expect(isDueToStart({}, now)).toBe(true)
+    expect(isDueToStart({ dueDateTime: null }, now)).toBe(true)
+  })
+
+  it('holds a task whose time has not arrived', () => {
+    expect(isDueToStart({ dueDateTime: '2026-08-19T18:00:01.000Z' }, now)).toBe(false)
+    expect(isDueToStart({ dueDateTime: '2026-12-25T09:00:00.000Z' }, now)).toBe(false)
+  })
+
+  it('starts a task once its time has arrived, and keeps starting it after', () => {
+    expect(isDueToStart({ dueDateTime: '2026-08-19T18:00:00.000Z' }, now)).toBe(true)
+    expect(isDueToStart({ dueDateTime: '2026-08-19T17:59:59.000Z' }, now)).toBe(true)
+    expect(isDueToStart({ dueDateTime: '2026-01-01T00:00:00.000Z' }, now)).toBe(true)
+  })
+
+  it('starts an all-day task from the beginning of its day, not the end', () => {
+    // An all-day task carries midnight, so "due today" is due already by 18:00.
+    expect(isDueToStart({ dueDateTime: '2026-08-19T00:00:00.000Z', isAllDay: true }, now)).toBe(true)
+    expect(isDueToStart({ dueDateTime: '2026-08-20T00:00:00.000Z', isAllDay: true }, now)).toBe(false)
+  })
+
+  /**
+   * A value that cannot be parsed must not stall the task forever. Silence is the
+   * failure mode to avoid: an unreadable date would look exactly like an empty
+   * queue, every run, with nothing saying why.
+   */
+  it('starts a task whose date is unreadable rather than stranding it', () => {
+    expect(isDueToStart({ dueDateTime: 'not-a-date' }, now)).toBe(true)
+    expect(isDueToStart({ dueDateTime: '' }, now)).toBe(true)
+  })
+})
+
+describe('describeSchedule', () => {
+  const now = new Date('2026-08-19T18:00:00.000Z')
+
+  it('says when a held task becomes workable, so a waiting queue is not a silent one', () => {
+    expect(describeSchedule({ dueDateTime: '2026-08-20T09:30:00.000Z' }, now)).toContain('2026-08-20')
+  })
+
+  it('has nothing to say about a task with no date', () => {
+    expect(describeSchedule({}, now)).toBe('')
   })
 })
