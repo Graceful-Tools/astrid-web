@@ -101,7 +101,9 @@
     "addNewTask": "新增工作...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
-    "wontDoChip": "Won't do"
+    "wontDoChip": "Won't do",
+    "when": "時間",
+    "createdBy": "建立者"
   },
   "lists": {
     "list": "列表",

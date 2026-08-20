@@ -101,7 +101,9 @@
     "addNewTask": "新しいタスクを追加...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
-    "wontDoChip": "Won't do"
+    "wontDoChip": "Won't do",
+    "when": "日時",
+    "createdBy": "作成者"
   },
   "lists": {
     "list": "リスト",
