@@ -194,6 +194,22 @@ export function PriorityAssigneePicker({
    * No styling escapes a transformed ancestor — the element has to leave the
    * subtree. Same pattern as attachment-viewer and list-settings-popover.
    */
+  /*
+   * The sheet is a React child of the row that opened it, and in project mode
+   * that row's onClick opens task details — so every tap inside the sheet did
+   * two things (task 465e71e6).
+   *
+   * PORTALLING DID NOT FIX IT. React propagates events through the REACT tree,
+   * not the DOM tree, so a sheet living under <body> still delivers its clicks
+   * to the row's handler. The escape has to be explicit.
+   *
+   * Stopped at the two portal roots rather than on each control: an unhandled
+   * gap in the middle of the sheet is invisible until someone taps exactly
+   * there. The sheet's own handlers still run — this stops the event LEAVING,
+   * it does not stop it arriving.
+   */
+  const stopLeaking = (event: React.MouseEvent) => event.stopPropagation()
+
   const sheet = (
     <>
       {/* Backdrop */}
@@ -201,7 +217,11 @@ export function PriorityAssigneePicker({
         className={`fixed inset-0 bg-black z-40 transition-opacity duration-200 ${
           isClosing ? 'opacity-0' : 'opacity-30'
         }`}
-        onClick={handleBackdropClick}
+        onClick={(event) => {
+          // Dismiss, but do not also hand the tap to the row underneath.
+          stopLeaking(event)
+          handleBackdropClick(event)
+        }}
         aria-hidden="true"
       />
 
@@ -223,6 +243,7 @@ export function PriorityAssigneePicker({
           isClosing ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{ maxHeight: '85vh' }}
+        onClick={stopLeaking}
       >
         <div className="flex max-h-[85vh] flex-col overflow-y-auto rounded-t-2xl bg-white shadow-xl dark:bg-gray-800 sm:rounded-2xl sm:mb-4">
           {/* Handle */}
