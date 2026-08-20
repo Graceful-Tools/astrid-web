@@ -197,6 +197,57 @@ export function TaskManagerHeader({
     )
   }
 
+  /*
+   * Publish the floating header's real bottom edge, so the content below can
+   * clear it (task 8c090700).
+   *
+   * `.app-header-mobile-floating` is `position: fixed` and takes no space in
+   * flow, so without an offset the first task renders underneath it. The offset
+   * is measured rather than hardcoded because the header's height depends on
+   * what is in it — a hardcoded value silently goes wrong the next time a
+   * control is added, and "the first row is slightly under the header" is
+   * exactly the kind of drift nobody files twice.
+   */
+  const headerRef = React.useRef<HTMLDivElement | null>(null)
+  const isFloating = Boolean(isMobile && showHamburgerMenu)
+
+  React.useEffect(() => {
+    const node = headerRef.current
+    if (!isFloating || !node || typeof window === 'undefined') {
+      // Not floating: the header is in flow and takes its own space, so any
+      // published offset must be withdrawn or the content sits too low.
+      document.documentElement.style.removeProperty('--mobile-floating-header-height')
+      return
+    }
+
+    const publish = () => {
+      // bottom, not height: it includes the 8px margin and any safe-area inset,
+      // which is what the content actually has to clear.
+      const bottom = node.getBoundingClientRect().bottom
+      document.documentElement.style.setProperty(
+        '--mobile-floating-header-height',
+        `${Math.round(bottom)}px`,
+      )
+    }
+
+    publish()
+
+    // Guarded: ResizeObserver is absent in jsdom and in older browsers, and a
+    // missing API must not take the header down with it. Without the observer
+    // the offset is still published once, which is correct until the header
+    // changes size.
+    const observer =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(publish) : null
+    observer?.observe(node)
+    window.addEventListener('orientationchange', publish)
+
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('orientationchange', publish)
+      document.documentElement.style.removeProperty('--mobile-floating-header-height')
+    }
+  }, [isFloating])
+
   // Build header classes - add floating style on mobile
   const headerClasses = [
     "app-header theme-header relative overflow-hidden",
@@ -286,7 +337,7 @@ export function TaskManagerHeader({
   }
 
   return (
-    <div className={headerClasses}>
+    <div ref={headerRef} className={headerClasses}>
       {(
         // Mobile/Narrow Desktop List View: Unified flex layout with hamburger menu
         <div className="flex items-center justify-between w-full max-w-full min-h-[44px]">
