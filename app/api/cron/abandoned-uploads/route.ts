@@ -7,6 +7,7 @@ import {
   ABANDONED_UPLOAD_GRACE_MS,
 } from "@/lib/abandoned-uploads"
 import { createLogger } from '@/lib/logger'
+import { requireCronSecret } from "@/lib/cron-auth"
 
 const log = createLogger('cron.abandoned-uploads')
 
@@ -23,11 +24,10 @@ const log = createLogger('cron.abandoned-uploads')
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify the request is from Vercel cron
-    const authHeader = request.headers.get("authorization")
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Verify the request is from Vercel cron. Fails CLOSED: no
+    // CRON_SECRET configured means nobody gets in.
+    const blocked = requireCronSecret(request)
+    if (blocked) return blocked
 
     log.info("🔄 Sweeping abandoned composer uploads...")
     const startTime = Date.now()

@@ -15,14 +15,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { syncAllGithubLinks } from '@/lib/sync/github/sync-all-links'
+import { requireCronSecret } from '@/lib/cron-auth'
 
 export const maxDuration = 60
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Fails CLOSED: no CRON_SECRET configured means nobody gets in.
+  const blocked = requireCronSecret(request)
+  if (blocked) return blocked
 
   const summary = await syncAllGithubLinks()
   return NextResponse.json({ ok: true, ...summary })
