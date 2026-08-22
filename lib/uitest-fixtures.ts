@@ -18,7 +18,7 @@
  */
 
 /** The only account this seeder may ever touch. */
-export const UITEST_ACCOUNT_EMAIL = 'uitest@astrid.cc'
+export const UITEST_ACCOUNT_EMAIL = `uitest@${BRAND.domain}`
 
 /** The list the suite works in. */
 export const UITEST_LIST_NAME = 'UI Test List'
@@ -80,3 +80,4 @@ export interface FixturePlan {
 export function planFixtureReset(existingTaskIds: readonly string[]): FixturePlan {
   return { delete: [...existingTaskIds], create: UITEST_FIXTURE_TASKS }
 }
+import { BRAND } from '@/lib/brand/config'
