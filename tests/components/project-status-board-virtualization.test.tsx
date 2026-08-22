@@ -50,16 +50,17 @@ function makeTask(overrides: Partial<Task> & { id: string }): Task {
 describe('ProjectStatusBoard virtualizes very long columns (task a48b2d24)', () => {
   const projectId = 'project-1'
   const domain = makeList({ id: 'domain', name: 'Astrid Web', projectId, listType: 'regular' })
-  const ready = makeList({ id: 'ready', name: 'Ready', projectId, listType: 'status', statusRole: 'ready', statusOrder: 0 })
 
   function renderBoard(taskCount: number) {
+    // A card is in a column because of its `statusRole`, not a membership
+    // (Stage D, task b7b0c2f5) — so every one of these lands in Ready.
     const tasks = Array.from({ length: taskCount }, (_, i) =>
-      makeTask({ id: `t-${i}`, lists: [domain, ready] }),
+      makeTask({ id: `t-${i}`, lists: [domain], statusRole: 'ready' } as never),
     )
     return render(
       <ProjectStatusBoard
         allTasks={tasks}
-        lists={[domain, ready]}
+        lists={[domain]}
         selectedListId={domain.id}
         currentUser={null}
         onUpdateTask={() => {}}

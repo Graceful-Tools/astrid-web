@@ -10,53 +10,11 @@
 
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { DEFAULT_PROJECT_STATUSES } from '@/lib/project-status'
-import { addCustomState } from '@/lib/project-custom-states'
+import { addCustomState, renameCustomState } from '@/lib/project-custom-states'
 import type { StatusState } from '@/lib/task-status'
 
 /** Either the top-level client or a transaction client. */
 type PrismaLike = typeof prisma | Prisma.TransactionClient
-
-/**
- * Get-or-create the user's global status lists (Ready / Doing / Waiting).
- *
- * Status lists are per-user singletons — `projectId: null`, `listType:
- * "status"` — shared across every project board the user has, rather
- * than duplicated per project. This helper is idempotent: it creates
- * only the roles the user is missing and returns the full set ordered
- * by `statusOrder`.
- */
-export async function ensureUserStatusLists(userId: string, client: PrismaLike = prisma) {
-  const existing = await client.taskList.findMany({
-    where: { ownerId: userId, listType: 'status', projectId: null },
-  })
-  const haveRoles = new Set(existing.map(list => list.statusRole))
-  const missing = DEFAULT_PROJECT_STATUSES.filter(status => !haveRoles.has(status.role))
-
-  if (missing.length > 0) {
-    await client.taskList.createMany({
-      data: missing.map(status => ({
-        name: status.name,
-        description: status.description,
-        color: '#3b82f6',
-        privacy: 'PRIVATE' as const,
-        ownerId: userId,
-        projectId: null,
-        listType: 'status',
-        statusRole: status.role,
-        statusOrder: status.order,
-        statusDescription: status.description,
-        statusCompleted: false,
-        imageUrl: null,
-      })),
-    })
-  }
-
-  return client.taskList.findMany({
-    where: { ownerId: userId, listType: 'status', projectId: null },
-    orderBy: { statusOrder: 'asc' },
-  })
-}
 
 const safeUserSelect = {
   id: true,
@@ -85,58 +43,27 @@ const projectInclude = {
 }
 
 /**
- * Fetch the user's per-user global status lists with the same include
- * shape as a project's embedded lists. Status lists are `projectId: null`
- * so they are NOT part of any project's `lists` relation — we merge them
- * in explicitly so each project response embeds the full board (regular
- * domain lists + the shared status columns).
+ * List every project the user owns or is a member of.
+ *
+ * Board columns are NOT in this response and no longer need to be: since
+ * Stage D (task b7b0c2f5) the three defaults come from `DEFAULT_STATES`
+ * config and a board's custom columns from its own `Project.customStates`,
+ * so there is nothing per-user left to merge in. This used to fetch the
+ * `listType: 'status'` rows and append them to every project's `lists`, and
+ * to lazily re-seed them on a plain read — which is why the seeder had to go
+ * in the same change as the migration that deleted them.
  */
-async function fetchUserStatusLists(userId: string, client: PrismaLike = prisma) {
-  return client.taskList.findMany({
-    where: { ownerId: userId, listType: 'status', projectId: null },
-    include: listInclude,
-    orderBy: { statusOrder: 'asc' },
-  })
-}
-
-/** List every project the user owns or is a member of. */
 export async function listProjectsForUser(userId: string) {
-  const [projects, statusLists] = await Promise.all([
-    prisma.project.findMany({
-      where: {
-        OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
-        ],
-      },
-      include: projectInclude,
-      orderBy: { createdAt: 'desc' },
-    }),
-    fetchUserStatusLists(userId),
-  ])
-
-  // Lazy backfill of the per-user global status lists, gated to the rare case
-  // that actually needs it: the user has at least one board but is missing a
-  // default status column (a board created before the per-user-status
-  // migration). The hot path — no boards, or status lists already present —
-  // skips the write path and the second fetch entirely. Board creation
-  // (createProjectFromList / createProjectForUser) seeds these directly, so a
-  // board-less user never needs them pre-created here.
-  let effectiveStatusLists = statusLists
-  if (projects.length > 0) {
-    const haveRoles = new Set(statusLists.map(s => s.statusRole))
-    const missingDefault = DEFAULT_PROJECT_STATUSES.some(s => !haveRoles.has(s.role))
-    if (missingDefault) {
-      await ensureUserStatusLists(userId)
-      effectiveStatusLists = await fetchUserStatusLists(userId)
-    }
-  }
-
-  // Embed the shared status columns into every project's list set.
-  return projects.map(project => ({
-    ...project,
-    lists: [...project.lists, ...effectiveStatusLists],
-  }))
+  return prisma.project.findMany({
+    where: {
+      OR: [
+        { ownerId: userId },
+        { members: { some: { userId } } },
+      ],
+    },
+    include: projectInclude,
+    orderBy: { createdAt: 'desc' },
+  })
 }
 
 export interface CreateProjectInput {
@@ -147,13 +74,11 @@ export interface CreateProjectInput {
 }
 
 /**
- * Create a project. Status lists are NOT seeded per project — they are
- * per-user globals (see {@link ensureUserStatusLists}); a project's board
- * is the intersection of its domain tasks with those shared statuses.
- * We ensure the user's global status lists exist so a brand-new board
- * has its Ready / Doing / Waiting columns.
+ * Create a project.
  *
- * Inbox and Done are virtual columns — never created as rows. See
+ * No status rows are written. A new board gets its Ready / Doing / Waiting
+ * columns from `DEFAULT_STATES` config, and Inbox and Done stay virtual —
+ * none of the five is a row (task b7b0c2f5). See
  * docs/product/project-status-board.md for the invariants.
  */
 export async function createProjectForUser(userId: string, input: CreateProjectInput) {
@@ -172,21 +97,10 @@ export async function createProjectForUser(userId: string, input: CreateProjectI
       },
     })
 
-    // Per-user global status lists — shared across every board, created
-    // once per user rather than duplicated per project.
-    await ensureUserStatusLists(userId, tx)
-
-    const [project, statusLists] = await Promise.all([
-      tx.project.findUniqueOrThrow({
-        where: { id: createdProject.id },
-        include: projectInclude,
-      }),
-      fetchUserStatusLists(userId, tx),
-    ])
-    // Embed the shared status columns so the response carries the full
-    // board (regular domain lists + status columns) — they are
-    // `projectId: null` and thus absent from the project's relation.
-    return { ...project, lists: [...project.lists, ...statusLists] }
+    return tx.project.findUniqueOrThrow({
+      where: { id: createdProject.id },
+      include: projectInclude,
+    })
   })
 }
 
@@ -250,17 +164,12 @@ export async function createProjectFromList(
       data: { projectId: created.id, listType: 'regular' },
     })
 
-    await ensureUserStatusLists(userId, tx)
+    const project = await tx.project.findUniqueOrThrow({
+      where: { id: created.id },
+      include: projectInclude,
+    })
 
-    const [project, statusLists] = await Promise.all([
-      tx.project.findUniqueOrThrow({ where: { id: created.id }, include: projectInclude }),
-      fetchUserStatusLists(userId, tx),
-    ])
-
-    return {
-      project: { ...project, lists: [...project.lists, ...statusLists] },
-      list: updatedList,
-    }
+    return { project, list: updatedList }
   })
 }
 
@@ -311,8 +220,7 @@ export type AddUserStatusResult =
   | { error: 'invalid'; message: string }
   | { error: 'duplicate'; message: string }
   | {
-      list: Awaited<ReturnType<typeof fetchUserStatusLists>>[number]
-      /** The state as stored on `Project.customStates` — the durable copy. */
+      /** The state as stored on `Project.customStates` — now the only copy. */
       state: StatusState
       userIdsToInvalidate: Set<string>
     }
@@ -320,17 +228,18 @@ export type AddUserStatusResult =
 /**
  * Add a custom status column to a board (board sub-task #5).
  *
- * **Scoped to the project, not to the user** (task 109d8a91). `05dc842` made
- * the reader — `statusListsForUser` — keep a custom role only when
- * `list.projectId` matches the board being rendered, on the grounds that a
- * custom state belongs to one board and must not leak onto another. This
- * writer was left on `projectId: null`, which the reader can never match, so
- * every custom status was created and then rendered on no board at all,
- * including the one it was added from.
+ * **Scoped to the project, not to the user** (task 109d8a91): a custom state
+ * belongs to one board and must not leak onto another. The three default
+ * roles are config, shared by every board, and are not stored anywhere.
  *
- * The three default roles stay per-user singletons; only custom ones are
- * project-scoped. Appended after the existing statuses by `statusOrder`.
- * Rename/reorder reuse PUT /api/lists/[id].
+ * Writes `Project.customStates` and nothing else. Until Stage D
+ * (task b7b0c2f5) this also wrote a `listType: 'status'` TaskList alongside
+ * it, because the board rendered its columns from those rows; the rows are
+ * deleted now and the board reads `customStates` directly, so the second
+ * write would recreate exactly what the migration removed.
+ *
+ * Rename and reorder are NOT here — see `renameCustomState` in
+ * lib/project-custom-states.ts, which has no route yet.
  */
 export async function addUserStatus(
   userId: string,
@@ -345,17 +254,11 @@ export async function addUserStatus(
     return { error: 'invalid', message: 'Status name is too long (40 characters max)' }
   }
   if (!projectId) {
-    // Without a project the row is unreachable by the reader. Fail loudly
-    // rather than writing another inert status.
+    // A custom state is stored ON the board. Without one there is nowhere to
+    // put it — fail loudly rather than writing an inert status.
     return { error: 'invalid', message: 'A status must belong to a board' }
   }
 
-  // The board's own `customStates` is the durable home for a custom column
-  // (AWTD-562). The `listType: 'status'` row is still written alongside it,
-  // because the board renders columns from list rows today — dropping the row
-  // now would store the state correctly and show the user nothing. The row
-  // goes when the reader flips; the two are kept in lockstep by sharing the
-  // role and order minted here.
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { customStates: true },
@@ -364,25 +267,11 @@ export async function addUserStatus(
     return { error: 'invalid', message: 'Board not found' }
   }
 
-  // Legacy rows are still checked for a name clash. `addCustomState` can only
-  // see `customStates`, so on a board whose customs predate this change it
-  // would happily mint a second column with the same name.
-  const existing = await prisma.taskList.findMany({
-    where: {
-      ownerId: userId,
-      listType: 'status',
-      OR: [{ projectId: null }, { projectId }],
-    },
-    select: { name: true, statusOrder: true, statusRole: true },
-  })
-
-  if (existing.some(s => s.name.trim().toLowerCase() === trimmed.toLowerCase())) {
-    return { error: 'duplicate', message: 'A status with that name already exists' }
-  }
-
-  const write = addCustomState(project.customStates, trimmed, {
-    takenRoles: existing.flatMap(s => (s.statusRole ? [s.statusRole] : [])),
-  })
+  // Name clashes — with another custom column, and with a built-in whose name
+  // is config rather than data — are both `validateName`'s job inside
+  // `addCustomState`. Custom roles are namespaced `custom-*`, so a role can
+  // only collide with another custom one, and those all live in `customStates`.
+  const write = addCustomState(project.customStates, trimmed)
   if ('error' in write) {
     // `reserved` has no wire code of its own; it is a bad request like any
     // other malformed name, and the route maps `invalid` to 400.
@@ -392,39 +281,12 @@ export async function addUserStatus(
     }
   }
 
-  const maxOrder = existing.reduce(
-    (max, s) => Math.max(max, typeof s.statusOrder === 'number' ? s.statusOrder : 0),
-    0,
-  )
-
-  // One transaction: a project holding a state with no row would render a
-  // column the membership dual-write cannot target.
-  const created = await prisma.$transaction(async tx => {
-    await tx.project.update({
-      where: { id: projectId },
-      data: { customStates: write.states as unknown as Prisma.InputJsonValue },
-    })
-
-    return tx.taskList.create({
-      data: {
-        name: write.state.name,
-        description: write.state.name,
-        color: '#3b82f6',
-        privacy: 'PRIVATE',
-        ownerId: userId,
-        projectId,
-        listType: 'status',
-        statusRole: write.state.role,
-        statusOrder: maxOrder + 1,
-        statusDescription: write.state.name,
-        statusCompleted: false,
-        imageUrl: null,
-      },
-      include: listInclude,
-    })
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { customStates: write.states as unknown as Prisma.InputJsonValue },
   })
 
-  return { list: created, state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
+  return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
 }
 
 /**
@@ -451,4 +313,62 @@ export async function collectProjectMemberUserIds(
     project.members.forEach((member) => userIds.add(member.userId))
   }
   return Array.from(userIds)
+}
+
+export type RenameUserStatusResult =
+  | { error: 'invalid'; message: string }
+  | { error: 'duplicate'; message: string }
+  | { error: 'not_found'; message: string }
+  | { state: StatusState; userIdsToInvalidate: Set<string> }
+
+/**
+ * Rename a board's CUSTOM status column.
+ *
+ * Rename used to be a `PUT /api/v1/lists/[id]` on the row backing the column.
+ * Stage D (task b7b0c2f5) deleted the rows, so this is where a rename lives
+ * now — against `Project.customStates`, the only durable copy.
+ *
+ * The three defaults are NOT renameable here, and deliberately: they are
+ * `DEFAULT_STATES` config shared by every board and every user, so there is
+ * nowhere per-board to put a new name. Renaming one used to work; no
+ * production board had ever done it. Tracked separately.
+ *
+ * The role is preserved across a rename — see `renameCustomState`. Minting a
+ * fresh one would orphan every task carrying the old role.
+ */
+export async function renameUserStatus(
+  userId: string,
+  role: string,
+  name: string,
+  projectId: string,
+): Promise<RenameUserStatusResult> {
+  if (!projectId) {
+    return { error: 'invalid', message: 'A status must belong to a board' }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { customStates: true },
+  })
+  if (!project) {
+    return { error: 'not_found', message: 'Board not found' }
+  }
+
+  const write = renameCustomState(project.customStates, role, name)
+  if ('error' in write) {
+    if (write.error === 'not-found') {
+      return { error: 'not_found', message: write.message }
+    }
+    return {
+      error: write.error === 'duplicate' ? 'duplicate' : 'invalid',
+      message: write.message,
+    }
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { customStates: write.states as unknown as Prisma.InputJsonValue },
+  })
+
+  return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
 }

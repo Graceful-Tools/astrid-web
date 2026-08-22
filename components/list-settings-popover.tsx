@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ListSortAndFilters } from "./list-sort-and-filters"
 import { ListMembership } from "./list-membership"
 import { ListAdminSettings } from "./list-admin-settings"
+import type { ProjectBoardColumn } from "@/lib/project-status"
 import { ManageStatusesPanel } from "./list-admin/ManageStatusesPanel"
 import type { TaskList, User } from "../types/task"
 import { Lock, Unlock, X, Filter, Users, Settings, KanbanSquare } from "lucide-react"
@@ -26,7 +27,7 @@ interface ListSettingsPopoverProps {
   onProjectBoardCreated?: (projectLists: TaskList[]) => void
   onProjectBoardRemoved?: (projectId: string, detachedListIds: string[]) => void
   /** The user's global board status lists (Ready/Doing/Waiting + custom). */
-  statuses?: TaskList[]
+  statuses?: ProjectBoardColumn[]
   /** Reload lists after a status column is renamed/reordered/added. */
   onStatusesChanged?: () => void
   open?: boolean

@@ -147,7 +147,7 @@ export function TaskRow({
   const statusColumns = board ? board.columns : genericColumns
 
   const selectedColumnId = board
-    ? getTaskProjectColumnId(task, board.lists, board.projectId)
+    ? getTaskProjectColumnId(task, board.columns)
     : taskColumnId(task)
 
   const applyColumn = React.useCallback(
@@ -157,9 +157,9 @@ export function TaskRow({
       if (board) {
         const column = board.columns.find(candidate => candidate.id === columnId)
         if (!column) return
-        // The board's own move function, so a state set from the row and a card
-        // dragged into a column cannot mean different things — including the
-        // status membership it strips and re-adds for clients still reading it.
+        // The board's own move function, so a state set from the row and a
+        // card dragged into a column cannot mean different things — including
+        // the stale status membership it strips.
         const move = resolveProjectColumnMove(task, column, board.lists)
         const listById = new Map(board.lists.map(entry => [entry.id, entry]))
         const nextLists = move.listIds
