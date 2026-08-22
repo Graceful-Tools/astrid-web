@@ -480,6 +480,7 @@ export function TaskManager({
       handleOutdentTask={controller.handleOutdentTask}
       handleIndentTask={controller.handleIndentTask}
       handleShowHotkeyMenu={controller.handleShowHotkeyMenu}
+      handleShowCommandPalette={controller.handleShowCommandPalette}
       handleTaskDragStart={controller.handleTaskDragStart}
       handleTaskDragHover={controller.handleTaskDragHover}
       handleTaskDragLeaveTask={controller.handleTaskDragLeaveTask}
@@ -500,6 +501,9 @@ export function TaskManager({
       handleTaskDropOnPromoteTarget={controller.handleTaskDropOnPromoteTarget}
       showHotkeyMenu={controller.showHotkeyMenu}
       setShowHotkeyMenu={controller.setShowHotkeyMenu}
+      showCommandPalette={controller.showCommandPalette}
+      setShowCommandPalette={controller.setShowCommandPalette}
+      handleExecuteCommand={controller.handleExecuteCommand}
       handleListCopied={controller.handleListCopied}
       setShowPublicBrowser={modals.setShowPublicBrowser}
 

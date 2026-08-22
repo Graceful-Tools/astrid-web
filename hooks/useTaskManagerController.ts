@@ -1461,9 +1461,20 @@ export function useTaskManagerController({
   }, [selectedTask, listState.tasks, handleUpdateTask])
 
   const [showHotkeyMenu, setShowHotkeyMenu] = useState(false)
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
 
   const handleShowHotkeyMenu = useCallback(() => {
     setShowHotkeyMenu(true)
+  }, [])
+
+  const handleShowCommandPalette = useCallback(() => {
+    setShowCommandPalette(true)
+  }, [])
+
+  const handleExecuteCommand = useCallback((command: any) => {
+    // This is a placeholder that will be overridden in TaskManagerView
+    // where we have access to all the keyboard shortcut handlers
+    setShowCommandPalette(false)
   }, [])
 
   const handleListCopied = useCallback(async (copiedList: any) => {
@@ -1636,6 +1647,7 @@ export function useTaskManagerController({
     handleOutdentTask,
     handleIndentTask,
     handleShowHotkeyMenu,
+    handleShowCommandPalette,
     handleTaskDragHover: dragDropState.handleTaskDragHover,
     handleTaskDragLeaveTask: dragDropState.handleTaskDragLeaveTask,
     handleTaskDragHoverEnd: dragDropState.handleTaskDragHoverEnd,
@@ -1650,6 +1662,11 @@ export function useTaskManagerController({
     // Hotkey menu state
     showHotkeyMenu,
     setShowHotkeyMenu,
+
+    // Command palette state
+    showCommandPalette,
+    setShowCommandPalette,
+    handleExecuteCommand,
 
     // Public list handlers
     handleListCopied,

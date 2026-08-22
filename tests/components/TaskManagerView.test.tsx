@@ -55,7 +55,8 @@ vi.mock('@/hooks/useKeyboardShortcuts', () => ({
     shortcuts: [],
     showHotkeyMenu: false,
     setShowHotkeyMenu: vi.fn()
-  })
+  }),
+  KEYBOARD_SHORTCUTS: []
 }))
 
 describe('TaskManagerView', () => {
@@ -203,10 +204,16 @@ describe('TaskManagerView', () => {
     handleAddTaskComment: vi.fn(),
     handleAssignToNoOne: vi.fn(),
     handleShowHotkeyMenu: vi.fn(),
+    handleShowCommandPalette: vi.fn(),
 
     // Hotkey menu state
     showHotkeyMenu: false,
     setShowHotkeyMenu: vi.fn(),
+
+    // Command palette state
+    showCommandPalette: false,
+    setShowCommandPalette: vi.fn(),
+    handleExecuteCommand: vi.fn(),
 
     // Misc
     handleListCopied: vi.fn(),

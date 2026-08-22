@@ -18,6 +18,7 @@ import { Copy } from "lucide-react"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 import { AddTaskInput } from "./add-task-input"
 import { KeyboardShortcutsMenu } from "./keyboard-shortcuts-menu"
+import { CommandPaletteDialog } from "./command-palette-dialog"
 import { ChatPanel } from "./chat/ChatPanel"
 import { ChatToggle } from "./chat/ChatToggle"
 import SettingsPanel from "./Settings/SettingsPanel"
@@ -235,10 +236,16 @@ interface TaskManagerViewProps {
   handleOutdentTask: () => void
   handleIndentTask: () => void
   handleShowHotkeyMenu: () => void
+  handleShowCommandPalette: () => void
 
   // Hotkey menu state
   showHotkeyMenu: boolean
   setShowHotkeyMenu: (show: boolean) => void
+
+  // Command palette state
+  showCommandPalette: boolean
+  setShowCommandPalette: (show: boolean) => void
+  handleExecuteCommand: (command: any) => void
 
   // Public browser handlers
   handleListCopied: (copiedList: any) => Promise<void>
@@ -413,8 +420,12 @@ const TaskManagerView = memo(function TaskManagerView({
   handleOutdentTask,
   handleIndentTask,
   handleShowHotkeyMenu,
+  handleShowCommandPalette,
   showHotkeyMenu,
   setShowHotkeyMenu,
+  showCommandPalette,
+  setShowCommandPalette,
+  handleExecuteCommand,
   handleListCopied,
   setShowPublicBrowser,
   activePanel,
@@ -589,6 +600,7 @@ const TaskManagerView = memo(function TaskManagerView({
     onOutdentTask: handleOutdentTask,
     onIndentTask: handleIndentTask,
     onShowHotkeyMenu: handleShowHotkeyMenu,
+    onShowCommandPalette: handleShowCommandPalette,
   }
 
   const keyboardShortcuts = useKeyboardShortcuts({
@@ -1183,6 +1195,15 @@ const TaskManagerView = memo(function TaskManagerView({
       <KeyboardShortcutsMenu
         isOpen={showHotkeyMenu}
         onClose={() => setShowHotkeyMenu(false)}
+      />
+
+      {/* Command Palette Dialog */}
+      <CommandPaletteDialog
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onExecuteCommand={handleExecuteCommand}
+        selectedTask={selectedTask}
+        handlers={keyboardShortcutHandlers}
       />
     </div>
   )

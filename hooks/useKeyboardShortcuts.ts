@@ -32,6 +32,7 @@ export interface KeyboardShortcutHandlers {
 
   // UI
   onShowHotkeyMenu: () => void
+  onShowCommandPalette: () => void
 }
 
 interface UseKeyboardShortcutsProps {
@@ -80,6 +81,21 @@ export function useKeyboardShortcuts({
   const [showHotkeyMenu, setShowHotkeyMenu] = useState(false)
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const key = event.key
+    const isCtrlPressed = event.ctrlKey || event.metaKey
+
+    // Cmd-K opens the command palette globally (except when in the palette itself)
+    if ((isCtrlPressed || event.metaKey) && key.toLowerCase() === 'k') {
+      // Don't open if already in command palette
+      const activeElement = document.activeElement as HTMLElement | null
+      const inCommandPalette = activeElement?.closest('[role="dialog"][aria-label*="Command"]')
+      if (!inCommandPalette) {
+        event.preventDefault()
+        handlers.onShowCommandPalette()
+        return
+      }
+    }
+
     // Don't handle shortcuts if disabled or if user is typing in an input
     if (!isEnabled || isInputFocused) return
 
@@ -97,9 +113,7 @@ export function useKeyboardShortcuts({
       return
     }
 
-    const key = event.key
     const isShiftPressed = event.shiftKey
-    const isCtrlPressed = event.ctrlKey || event.metaKey
 
     // Ignore if modifier keys are pressed (except for arrow keys and specific combinations)
     if ((isCtrlPressed || isShiftPressed) && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
