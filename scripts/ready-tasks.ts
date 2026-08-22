@@ -1,6 +1,6 @@
 /**
  * Print the tasks a `/fixall` loop may work: on its board, in the **Ready**
- * status, assigned to this harness.
+ * status, and either unassigned or assigned to this harness.
  *
  * The loop previously had to call `get-astrid-tasks` and then one `analyze-task`
  * PER TASK just to read list membership, which the list script does not print —
@@ -25,7 +25,7 @@
  * whatever Jon marked ready anywhere, and the web loop would pick up iOS work a
  * second agent is already running against `astrid-ios`.
  *
- * Exits 0 with "READY_EMPTY" when there is nothing queued, so a scheduled run
+ * Exits 0 with "READY_EMPTY" when there is nothing queued, so a 15-minute run
  * can stop without parsing anything.
  *
  *   npx tsx scripts/ready-tasks.ts --harness github-copilot
@@ -58,7 +58,8 @@ const PAGE_LIMIT = 1000
 /**
  * Which board to scope to. Both loops use this script so that the guarantees
  * are the same for each — the board, the Ready status field, the exact harness
- * assignee, loud failure on a missing board, and a printed reason for everything
+ * assignee/unassigned scope, loud failure on a missing board, and a printed
+ * reason for everything
  * skipped. A second copy of this for iOS would drift, and the drift would be
  * silent: a queue that is wrong in this script looks exactly like a quiet day.
  *
@@ -128,8 +129,10 @@ async function main() {
     process.exit(1)
   }
 
+  // Keep the queue read efficient for scheduled runs: one scoped board request
+  // with server-side Ready filtering and lean list payloads.
   const tasksResponse = await fetch(
-    `https://astrid.cc/api/v1/tasks?listId=${board.id}&completed=false&limit=${PAGE_LIMIT}`,
+    `https://astrid.cc/api/v1/tasks?listId=${board.id}&completed=false&statusRole=ready&leanListMembers=1&limit=${PAGE_LIMIT}`,
     { headers: auth },
   )
   const tasksBody = await tasksResponse.json()
@@ -143,18 +146,13 @@ async function main() {
     console.log(`(⚠️  board has ${total} open tasks; only the first ${all.length} were read)`)
   }
 
-  // Ready is a STATE on the task. Everything else on the board is filed but not
-  // triaged — the backlog is the normal case here, so it is counted, not listed.
+  // Ready is a STATE on the task, filtered server-side above for efficiency.
   const ready = all.filter(hasReadyStatus)
-  const notReady = all.length - ready.length
 
-  // ...and assigned to this exact harness identity.
+  // ...and either unassigned or assigned to this exact harness identity.
   //
-  // An assignee is a claim. A task assigned to a person is that person's, even
-  // when it is Ready — the loop picking it up means two people writing the same
-  // fix, or Jon's own in-progress work being redone underneath him. Ready says
-  // "this is actionable", not "this is unclaimed", so the two conditions are
-  // separate and both are required.
+  // A task assigned to a person is still that person's claim; the unassigned
+  // case is intentionally claimable for this loop per current workflow policy.
   const claimable = ready.filter(task => isClaimableByAgent(task, options.harness))
   const claimed = ready.filter(task => !isClaimableByAgent(task, options.harness))
 
@@ -166,24 +164,14 @@ async function main() {
   const mine = claimable.filter(task => isDueToStart(task, now))
   const scheduled = claimable.filter(task => !isDueToStart(task, now))
 
-  if (notReady > 0) {
-    console.log(`(${notReady} open task(s) on ${BOARD_LIST_NAME} without the Ready status — not queued)`)
-  }
-
   // A queue held up by work the loop may not take must not look like an idle one.
   // Naming the assignee is what lets Jon see whether it is waiting on a person or
   // simply waiting to be handed something.
   //
-  // The wording covers BOTH reasons. Since assignment became the handshake,
-  // "unassigned" is the common case, and calling that "assigned to someone else"
-  // was plainly wrong — it read as a claim by a person who did not exist.
+  // At this point all unassigned tasks are already claimable, so anything left
+  // here is assigned to someone else or has malformed assignment data.
   if (claimed.length > 0) {
-    const unassigned = claimed.filter(task => !task.assigneeId).length
-    const reason =
-      unassigned === claimed.length ? 'not assigned to this loop'
-      : unassigned === 0 ? 'assigned to someone else'
-      : `${unassigned} unassigned, ${claimed.length - unassigned} assigned to someone else`
-    console.log(`(${claimed.length} Ready task(s) — ${reason}:)`)
+    console.log(`(${claimed.length} Ready task(s) assigned to someone else:)`)
     for (const task of claimed) {
       const who = describeAssignee(task)
       console.log(`  — ${task.title}  [${who}]`)
