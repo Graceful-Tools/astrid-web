@@ -17,6 +17,8 @@ import { prisma } from '@/lib/prisma'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { getAgentService } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
+import { fanOutComment } from '@/lib/notifications'
+import { persistNotifications } from '@/lib/notification-store'
 
 const log = createLogger('comments.post-comment-side-effects')
 
@@ -106,7 +108,8 @@ async function notifyMentionsAndTriggerAgents(
   commenter: CommenterInfo
 ): Promise<void> {
   const mentionedUserIds = extractMentionedUserIds(comment.content || '')
-  if (mentionedUserIds.size === 0) return
+
+  await persistInAppCommentNotifications(comment, task, commenter, mentionedUserIds)
 
   let pushService: import('@/lib/push-notification-service').PushNotificationService | null = null
   const commenterName = commenter.name || commenter.email || 'Someone'
@@ -153,6 +156,33 @@ async function notifyMentionsAndTriggerAgents(
       }
     } catch (err) {
       log.error({ err: err }, `[comments] mention handling failed for user ${mentionedUserId}:`)
+    }
+  }
+
+  async function persistInAppCommentNotifications(
+    comment: CommentInfo,
+    task: TaskInfo,
+    commenter: CommenterInfo,
+    mentionedUserIds: Set<string>
+  ): Promise<void> {
+    try {
+      await persistNotifications({
+        targets: fanOutComment({
+          actorId: commenter.id,
+          audience: {
+            assigneeId: task.assigneeId,
+            creatorId: task.creatorId,
+            mentionedUserIds: Array.from(mentionedUserIds),
+          },
+        }),
+        context: {
+          taskId: task.id,
+          commentId: comment.id,
+          actorId: commenter.id,
+        },
+      })
+    } catch (err) {
+      log.error({ err: err }, '[comments] failed to persist in-app notifications:')
     }
   }
 
