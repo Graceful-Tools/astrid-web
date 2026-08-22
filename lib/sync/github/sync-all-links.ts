@@ -104,8 +104,10 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
       const token = await githubTokenFor(link.userId)
       if (!token) {
         // Not worth alerting on: the user disconnected GitHub. Leave the cursor
-        // untouched so nothing is lost if they reconnect.
+        // untouched so nothing is lost if they reconnect. The link still gets a
+        // reconciled timestamp so it doesn't monopolize the front of the queue.
         log.info({ linkId: link.id }, 'No GitHub token for link owner; skipping')
+        await touchLastReconciledAt(link.id)
         continue
       }
 
@@ -121,6 +123,7 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
           { linkId: link.id, direction: link.direction, ...pushedResult },
           'Push-only link; skipping pull',
         )
+        await touchLastReconciledAt(link.id)
         continue
       }
 
@@ -155,9 +158,21 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
       // Deliberately no cursor write on this path — see the header.
       summary.failed++
       log.error({ err: error, linkId: link.id }, 'Link sync failed; cursor left untouched')
+      await touchLastReconciledAt(link.id)
     }
   }
 
   log.info(summary, 'GitHub sync run complete')
   return summary
+}
+
+async function touchLastReconciledAt(linkId: string): Promise<void> {
+  try {
+    await prisma.externalListLink.update({
+      where: { id: linkId },
+      data: { lastReconciledAt: new Date() },
+    })
+  } catch (error) {
+    log.error({ err: error, linkId }, 'Failed to stamp lastReconciledAt')
+  }
 }
