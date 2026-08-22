@@ -1,8 +1,8 @@
-Check the **Ready** list on the Astrid Web To-do and autonomously work every task on it to completion using the /fixstuff workflow. Designed to be safe to re-run on a schedule.
+Check the **Ready** tasks on the Astrid Web To-do and autonomously work every task on it to completion using the /fixstuff workflow. Designed to be safe to re-run on a schedule.
 
 ## Goal
 
-**Drive the Ready list to empty.** Unlike `/fixstuff`, this does not ask which task to
+**Drive the Ready queue to empty.** Unlike `/fixstuff`, this does not ask which task to
 work on — it takes them in priority order and keeps going until nothing is left.
 It stops on its own when Ready is clear, so a scheduled re-run that finds it empty is
 a no-op, not busywork.
@@ -66,13 +66,9 @@ back to prove it.
 **Completing a task takes it out of `Doing` on its own** — no status change needed
 before marking it complete.
 
-**The queue is `Ready` ∩ `Astrid Web To-do`, and both halves are required.** `Ready` is
-not a sublist of the web board — it is one account-wide `listType: 'status'` list that
-every board shares, including `Astrid iOS To-do`, Voteelo and Career. Filtering on
-`Ready` alone queues whatever Jon marked ready *anywhere*. `scripts/ready-tasks.ts`
-does the intersection, prints the Ready tasks it excluded (so a queue full of other
-boards' work never looks like an empty one), and exits non-zero rather than running
-unscoped if either list is missing.
+**The queue is `statusRole=ready` on `Astrid Web To-do`.** Ready is now task state, not a
+separate status list. `scripts/ready-tasks.ts` scopes by board list id, then filters to
+`statusRole === "ready"` so this loop only works ready tasks on the web board.
 
 ## Scope: one board, one repo
 
@@ -184,18 +180,16 @@ Reading it to verify or progress an *iOS task* is the other agent's job.
    npx tsx scripts/ready-tasks.ts
    ```
    Prints `READY_EMPTY`, or the queue in the order to work it (priority high → low,
-   then oldest first). It resolves `Ready` and `Astrid Web To-do` by NAME, filters
-   server-side via `listId`, then keeps only the tasks on both.
+   then oldest first). It resolves `Astrid Web To-do` by name, filters server-side via
+   `listId`, then keeps only tasks whose `statusRole` is `ready`.
 
    This replaces `get-astrid-tasks` + one `analyze-task` per task, which cost six
    requests to discover there was nothing to do. Use `get-astrid-tasks.ts web` only
    when you want the whole board, not the queue.
 
    Note the failure mode it is written to avoid: a wrong list id returns an empty
-   result, which reads exactly like "nothing to do". The script errors loudly if
-   either list is missing by name rather than reporting an empty queue — and a
-   missing board is the worse of the two, since dropping that filter silently
-   widens the loop to every board on the account.
+   result, which reads exactly like "nothing to do". The script errors loudly if the
+   board list is missing by name rather than reporting an empty queue.
 
 2. **If it prints `READY_EMPTY`**, say so in one line and stop. Nothing else to do.
 
