@@ -23,7 +23,7 @@
  *   Done        =  completed = true
  */
 import type { Task, TaskList } from '@/types/task'
-import { DEFAULT_STATES, parseCustomStates } from '@/lib/task-status'
+import { DEFAULT_STATES, parseCustomStates, isDefaultStatusRole } from '@/lib/task-status'
 
 export type ProjectStatusRole = 'ready' | 'doing' | 'waiting' | 'custom'
 
@@ -104,17 +104,21 @@ export function isProjectStatusList(list: Pick<TaskList, 'listType'> | null | un
  * anything but its role.
  */
 export function getProjectBoardColumns(customStates?: unknown): ProjectBoardColumn[] {
-  // The three defaults are CONFIG — they are not stored anywhere, so every
-  // board has them and no migration can take them away.
+  const allCustomStates = parseCustomStates(customStates)
+  // Built-in overrides (e.g. renamed defaults) stored alongside custom states.
+  const defaultOverrides = new Map(
+    allCustomStates.filter(s => isDefaultStatusRole(s.role)).map(s => [s.role, s]),
+  )
+  const customs = allCustomStates.filter(s => !isDefaultStatusRole(s.role))
+
   const defaults = DEFAULT_STATES.map<ProjectBoardColumn>(state => ({
     id: state.role,
-    name: state.name,
+    name: defaultOverrides.get(state.role)?.name ?? state.name,
     description: state.description || '',
     kind: 'status',
   }))
 
-  // Custom columns come from the PROJECT and only from the project.
-  const customs = parseCustomStates(customStates).map<ProjectBoardColumn>(state => ({
+  const customCols = customs.map<ProjectBoardColumn>(state => ({
     id: state.role,
     name: state.name,
     description: state.description || '',
@@ -124,7 +128,7 @@ export function getProjectBoardColumns(customStates?: unknown): ProjectBoardColu
   return [
     { ...VIRTUAL_INBOX_COLUMN },
     ...defaults,
-    ...customs,
+    ...customCols,
     { ...VIRTUAL_DONE_COLUMN },
   ]
 }

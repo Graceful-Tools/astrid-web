@@ -49,7 +49,11 @@ const ROOT = process.cwd()
  * issued into one call in the hook. Neither branch could see that on its own —
  * the slack check found it in the merge, which is the case it exists for.
  */
-const CEILING = 120 // 122 → 120: AppearanceSettings' two private settings savers
+const CEILING = 122 // 120 → 122: ManageStatusesPanel reorder (PUT) and delete (DELETE)
+                    // added to /api/statuses. This panel uses raw fetch throughout
+                    // because it lives behind a settings modal and does not need
+                    // offline-queue semantics (task dff92fa5)
+// 122 → 120: AppearanceSettings' two private settings savers
                     // went away when it moved onto the shared useUserSettings
                     // hook (task 9523d634)
 // 125 → 122: three self-fetches of /api/assistant-workflow

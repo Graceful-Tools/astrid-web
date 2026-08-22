@@ -20,7 +20,7 @@
  * clear the tasks still carrying it.
  */
 
-import { parseCustomStates, isDefaultStatusRole, type StatusState } from '@/lib/task-status'
+import { parseCustomStates, isDefaultStatusRole, DEFAULT_STATES, type StatusState } from '@/lib/task-status'
 
 /** Longest name that fits a column header without truncating. */
 export const MAX_STATUS_NAME_LENGTH = 40
@@ -105,7 +105,110 @@ export interface AddCustomStateOptions {
   takenRoles?: Iterable<string>
 }
 
-/** Append a custom state. Returns the full new array plus the state added. */
+/** Direction for reorder operations. */
+export type ReorderDirection = 'up' | 'down'
+
+/**
+ * Move a custom state one slot in the given direction.
+ *
+ * Only custom columns are reorderable: the three default roles (ready/doing/
+ * waiting) have a fixed semantic order shared by every board and cannot be
+ * repositioned. The `order` values of the two swapped states are exchanged so
+ * the relative position of every other state is preserved.
+ *
+ * If the target is already at the boundary (first when moving up, last when
+ * moving down) the function is a no-op and returns the unchanged array.
+ */
+export function reorderCustomState(
+  raw: unknown,
+  role: string,
+  direction: ReorderDirection,
+): CustomStateWrite {
+  if (isDefaultStatusRole(role)) {
+    return { error: 'reserved', message: 'Built-in status order cannot be changed' }
+  }
+
+  const allStates = parseCustomStates(raw)
+  const defaultOverrides = allStates.filter(s => isDefaultStatusRole(s.role))
+  const customs = allStates.filter(s => !isDefaultStatusRole(s.role))
+
+  const sorted = [...customs].sort((a, b) => a.order - b.order)
+  const idx = sorted.findIndex(s => s.role === role)
+  if (idx === -1) {
+    return { error: 'not-found', message: 'That status does not exist on this board' }
+  }
+
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (swapIdx < 0 || swapIdx >= sorted.length) {
+    // Already at the boundary — no-op.
+    return { states: [...defaultOverrides, ...sorted], state: sorted[idx] }
+  }
+
+  const updated = sorted.map((s, i) => {
+    if (i === idx) return { ...s, order: sorted[swapIdx].order }
+    if (i === swapIdx) return { ...s, order: sorted[idx].order }
+    return s
+  })
+
+  const state = updated.find(s => s.role === role)!
+  return { states: [...defaultOverrides, ...updated], state }
+}
+
+/**
+ * Store a per-board name override for one of the three built-in columns.
+ *
+ * The defaults (Ready/Doing/Waiting) are shared config constants — there is no
+ * row to rename. This writes an override entry into `customStates` so the board
+ * can show a different label while still routing tasks by the original role.
+ * `getProjectBoardColumns` / `boardColumnsFor` apply it at render time.
+ *
+ * The role is preserved: tasks still point at "ready", "doing", or "waiting".
+ * Only the display name changes.
+ */
+export function renameBuiltinState(raw: unknown, role: string, name: string): CustomStateWrite {
+  if (!isDefaultStatusRole(role)) {
+    return { error: 'invalid', message: 'Use renameCustomState for custom columns' }
+  }
+
+  const trimmed = name.trim()
+  if (!trimmed) {
+    return { error: 'invalid', message: 'Status name cannot be empty' }
+  }
+  if (trimmed.length > MAX_STATUS_NAME_LENGTH) {
+    return { error: 'invalid', message: `Status name is too long (${MAX_STATUS_NAME_LENGTH} characters max)` }
+  }
+
+  // Prevent a built-in from being renamed to another built-in's default name.
+  // Allow renaming it back to its OWN original name (e.g. "Starting" → "Ready").
+  const defaultState = DEFAULT_STATES.find(s => s.role === role)!
+  if (
+    isDefaultStatusRole(trimmed.toLowerCase()) &&
+    trimmed.toLowerCase() !== defaultState.name.toLowerCase()
+  ) {
+    return { error: 'reserved', message: `"${trimmed}" is a built-in status` }
+  }
+
+  // Check for name clashes with any state on this board.
+  const allStates = parseCustomStates(raw)
+  const clash = allStates.some(
+    s => s.role !== role && s.name.toLowerCase() === trimmed.toLowerCase(),
+  )
+  if (clash) {
+    return { error: 'duplicate', message: 'A status with that name already exists' }
+  }
+
+  const existing = allStates.find(s => s.role === role)
+  const state: StatusState = {
+    role,
+    name: trimmed,
+    order: existing?.order ?? defaultState.order,
+  }
+  // Replace any existing override for this role, then append the new one.
+  const states = allStates.filter(s => s.role !== role)
+  return { states: [...states, state], state }
+}
+
+
 export function addCustomState(
   raw: unknown,
   name: string,

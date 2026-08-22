@@ -95,8 +95,9 @@ export interface TaskLike {
  * Tolerant by design: a malformed config returns an empty list rather than
  * throwing, because a bad row in a JSON column must never take a board down.
  *
- * A custom state may not shadow a default role — two columns with the same id
- * is the duplication class this whole change exists to remove.
+ * Custom states may also store per-board overrides for the three default roles
+ * (ready/doing/waiting) — for example, a renamed built-in. Those entries are
+ * returned alongside true custom states and distinguished by `isDefaultStatusRole`.
  */
 export function parseCustomStates(raw: unknown): StatusState[] {
   if (!Array.isArray(raw)) return []
@@ -108,7 +109,6 @@ export function parseCustomStates(raw: unknown): StatusState[] {
     const role = typeof candidate.role === 'string' ? candidate.role.trim() : ''
     const name = typeof candidate.name === 'string' ? candidate.name.trim() : ''
     if (!role || !name) continue
-    if (DEFAULT_ROLES.has(role)) continue
     if (byRole.has(role)) continue
 
     byRole.set(role, {
@@ -129,13 +129,18 @@ export function parseCustomStates(raw: unknown): StatusState[] {
  * Derived, so no arrangement of data can produce a duplicate column.
  */
 export function boardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
-  const customs = parseCustomStates(project?.customStates)
+  const allCustomStates = parseCustomStates(project?.customStates)
+  // Built-in overrides (renamed defaults) stored in customStates.
+  const defaultOverrides = new Map(
+    allCustomStates.filter(s => DEFAULT_ROLES.has(s.role)).map(s => [s.role, s]),
+  )
+  const customs = allCustomStates.filter(s => !DEFAULT_ROLES.has(s.role))
 
   return [
     { id: INBOX_COLUMN_ID, name: 'Inbox', description: 'Move them to "Ready" when they are... ready!', kind: 'inbox' },
     ...[...DEFAULT_STATES, ...customs].map<BoardColumn>(state => ({
       id: state.role,
-      name: state.name,
+      name: defaultOverrides.get(state.role)?.name ?? state.name,
       description: state.description ?? '',
       kind: 'status',
     })),

@@ -10,8 +10,8 @@
 
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { addCustomState, renameCustomState } from '@/lib/project-custom-states'
-import type { StatusState } from '@/lib/task-status'
+import { addCustomState, renameCustomState, renameBuiltinState, reorderCustomState, removeCustomState, type ReorderDirection } from '@/lib/project-custom-states'
+import { isDefaultStatusRole, type StatusState } from '@/lib/task-status'
 
 /** Either the top-level client or a transaction client. */
 type PrismaLike = typeof prisma | Prisma.TransactionClient
@@ -354,7 +354,11 @@ export async function renameUserStatus(
     return { error: 'not_found', message: 'Board not found' }
   }
 
-  const write = renameCustomState(project.customStates, role, name)
+  // Dispatch to the right writer: defaults are stored as per-board overrides,
+  // custom states live as regular entries in the same JSON column.
+  const write = isDefaultStatusRole(role)
+    ? renameBuiltinState(project.customStates, role, name)
+    : renameCustomState(project.customStates, role, name)
   if ('error' in write) {
     if (write.error === 'not-found') {
       return { error: 'not_found', message: write.message }
@@ -369,6 +373,99 @@ export async function renameUserStatus(
     where: { id: projectId },
     data: { customStates: write.states as unknown as Prisma.InputJsonValue },
   })
+
+  return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
+}
+
+export type ReorderUserStatusResult =
+  | { error: 'invalid'; message: string }
+  | { error: 'not_found'; message: string }
+  | { state: StatusState; userIdsToInvalidate: Set<string> }
+
+/** Move a custom board-status column one slot up or down. */
+export async function reorderUserStatus(
+  userId: string,
+  role: string,
+  direction: ReorderDirection,
+  projectId: string,
+): Promise<ReorderUserStatusResult> {
+  if (!projectId) {
+    return { error: 'invalid', message: 'A status must belong to a board' }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { customStates: true },
+  })
+  if (!project) {
+    return { error: 'not_found', message: 'Board not found' }
+  }
+
+  const write = reorderCustomState(project.customStates, role, direction)
+  if ('error' in write) {
+    if (write.error === 'not-found') {
+      return { error: 'not_found', message: write.message }
+    }
+    return { error: 'invalid', message: write.message }
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { customStates: write.states as unknown as Prisma.InputJsonValue },
+  })
+
+  return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
+}
+
+export type RemoveUserStatusResult =
+  | { error: 'invalid'; message: string }
+  | { error: 'not_found'; message: string }
+  | { state: StatusState; userIdsToInvalidate: Set<string> }
+
+/**
+ * Delete a custom board-status column.
+ *
+ * Clears `statusRole` on every task that was in the column so those tasks fall
+ * back to Inbox rather than vanishing from the board.
+ */
+export async function removeUserStatus(
+  userId: string,
+  role: string,
+  projectId: string,
+): Promise<RemoveUserStatusResult> {
+  if (!projectId) {
+    return { error: 'invalid', message: 'A status must belong to a board' }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { customStates: true, lists: { select: { id: true } } },
+  })
+  if (!project) {
+    return { error: 'not_found', message: 'Board not found' }
+  }
+
+  const write = removeCustomState(project.customStates, role)
+  if ('error' in write) {
+    if (write.error === 'not-found') {
+      return { error: 'not_found', message: write.message }
+    }
+    return { error: 'invalid', message: write.message }
+  }
+
+  const listIds = project.lists.map(l => l.id)
+  await prisma.$transaction([
+    // Clear the role on tasks that were in this column.
+    prisma.task.updateMany({
+      where: { listId: { in: listIds }, statusRole: role },
+      data: { statusRole: null },
+    }),
+    // Remove the state from the board config.
+    prisma.project.update({
+      where: { id: projectId },
+      data: { customStates: write.states as unknown as Prisma.InputJsonValue },
+    }),
+  ])
 
   return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
 }

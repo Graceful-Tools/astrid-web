@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import { createLogger } from "@/lib/logger"
-import { addUserStatus, renameUserStatus } from "@/lib/projects-service"
+import { addUserStatus, renameUserStatus, reorderUserStatus, removeUserStatus } from "@/lib/projects-service"
 import { prisma } from "@/lib/prisma"
 
 const log = createLogger("api.statuses")
@@ -134,6 +134,117 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ state: result.state })
   } catch (error) {
     log.error({ err: error }, "Error renaming custom status:")
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+/**
+ * Reorder a custom board-status column one slot up or down.
+ *
+ * Body: { role, direction: "up" | "down", projectId }
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getUnifiedSession(request)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const role = typeof body.role === "string" ? body.role : ""
+    const direction = body.direction === "up" || body.direction === "down" ? body.direction : null
+    const projectId = typeof body.projectId === "string" ? body.projectId : ""
+
+    if (!projectId) {
+      return NextResponse.json({ error: "A status must belong to a board" }, { status: 400 })
+    }
+    if (!role) {
+      return NextResponse.json({ error: "Which status to move is required" }, { status: 400 })
+    }
+    if (!direction) {
+      return NextResponse.json({ error: "direction must be 'up' or 'down'" }, { status: 400 })
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { ownerId: true },
+    })
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+    if (project.ownerId !== session.user.id) {
+      return NextResponse.json({ error: "Only the board owner can reorder statuses" }, { status: 403 })
+    }
+
+    const result = await reorderUserStatus(session.user.id, role, direction, projectId)
+    if ("error" in result) {
+      const status = result.error === "not_found" ? 404 : 400
+      return NextResponse.json({ error: result.message }, { status })
+    }
+
+    try {
+      await RedisCache.invalidate.userListsAllVersions(session.user.id)
+    } catch (error) {
+      log.error({ err: error }, "Failed to invalidate user lists cache")
+    }
+
+    return NextResponse.json({ state: result.state })
+  } catch (error) {
+    log.error({ err: error }, "Error reordering status:")
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+/**
+ * Delete a custom board-status column.
+ *
+ * Body: { role, projectId }
+ * Tasks in the column have their statusRole cleared (→ Inbox).
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getUnifiedSession(request)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const role = typeof body.role === "string" ? body.role : ""
+    const projectId = typeof body.projectId === "string" ? body.projectId : ""
+
+    if (!projectId) {
+      return NextResponse.json({ error: "A status must belong to a board" }, { status: 400 })
+    }
+    if (!role) {
+      return NextResponse.json({ error: "Which status to delete is required" }, { status: 400 })
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { ownerId: true },
+    })
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+    if (project.ownerId !== session.user.id) {
+      return NextResponse.json({ error: "Only the board owner can delete a status" }, { status: 403 })
+    }
+
+    const result = await removeUserStatus(session.user.id, role, projectId)
+    if ("error" in result) {
+      const status = result.error === "not_found" ? 404 : 400
+      return NextResponse.json({ error: result.message }, { status })
+    }
+
+    try {
+      await RedisCache.invalidate.userListsAllVersions(session.user.id)
+    } catch (error) {
+      log.error({ err: error }, "Failed to invalidate user lists cache")
+    }
+
+    return NextResponse.json({ state: result.state })
+  } catch (error) {
+    log.error({ err: error }, "Error deleting status:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
