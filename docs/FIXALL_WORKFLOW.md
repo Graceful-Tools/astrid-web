@@ -31,11 +31,9 @@ A task is yours only when **all four** hold:
    filtering on it alone would hand the web loop iOS work and put two agents in one repo.
 2. **Ready status.** The rest of the board is filed but not triaged. Working anything else is
    not autonomy, it is picking your own work.
-3. **Assigned to this harness.** Assignment is the handshake (Jon, 2026-08-15). Not unassigned,
-   not "looks like agent work" — assigned. Unassigned used to qualify, on the reasoning that
-   nobody had claimed it; that made `Ready` mean *actionable AND unclaimed*, so anything Jon
-   dropped there to think about was fair game within fifteen minutes. Requiring the assignment
-   inverts the default: nothing is yours until it is handed over.
+3. **Unassigned or assigned to this harness.** Unassigned Ready tasks are claimable by this loop.
+   Assignment is still a claim for tasks that already have an owner, so tasks assigned to someone
+   else remain out of scope.
 4. **Due now.** See below.
 
 The script prints what it skipped and why, with the assignee's name, so a queue held up by

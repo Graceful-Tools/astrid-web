@@ -419,12 +419,15 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 ### **Vercel Cron Configuration** ([vercel.json](../vercel.json))
 
+Five crons handle scheduled tasks across the platform:
+
 ```json
 "crons": [
-  {
-    "path": "/api/cron/reminders",
-    "schedule": "* * * * *"  // Every minute
-  }
+  { "path": "/api/cron/reminders", "schedule": "* * * * *" },           // Every minute
+  { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" },      // Every 15 minutes
+  { "path": "/api/cron/abandoned-uploads", "schedule": "0 4 * * *" },   // Daily at 4 AM UTC
+  { "path": "/api/cron/analytics", "schedule": "0 8 * * *" },            // Daily at 8 AM UTC
+  { "path": "/api/cron/system-tasks", "schedule": "0 0 * * 0" }         // Weekly Sunday at midnight UTC
 ]
 ```
 
@@ -441,22 +444,33 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 - `EmailReminderService`: Send reminder emails
 - `PushNotificationService`: Send push notifications
 
-#### **Reminder Types**
-1. **Immediate Reminders**: Tasks due now or past due
-2. **Scheduled Reminders**: Custom reminder times
-3. **Daily Digest**: Summary at user's preferred time (default 9 AM)
-4. **Weekly Digest**: Sunday summary of upcoming week
+### **GitHub Sync Cron** ([app/api/cron/github-sync/route.ts](../app/api/cron/github-sync/route.ts))
 
-#### **Queue Management** (`ReminderQueue` model)
-- Status tracking: `pending`, `sent`, `failed`, `dismissed`, `snoozed`
-- Retry logic for failed deliveries
-- User-specific reminder settings (`ReminderSettings` model)
+#### **Executed Every 15 Minutes**
+- Syncs GitHub issue and PR descriptions with task fields
+- Runs independently of any app being open (server-driven sync)
+- Keeps task status, description, and linked entities in sync with GitHub source
 
-### **Manual Trigger** (Development Only)
-```bash
-POST /api/cron/reminders
-{ "type": "due" | "daily" | "weekly" | "retry" | "all" }
-```
+### **Abandoned Uploads Cleanup** ([app/api/cron/abandoned-uploads/route.ts](../app/api/cron/abandoned-uploads/route.ts))
+
+#### **Executed Daily at 4 AM UTC**
+- Reclaims files uploaded for comments or chat messages that were never sent
+- Cleans up database rows and storage blobs after grace period (default 7 days)
+- Prevents storage waste from incomplete message composition
+
+### **Analytics Aggregation** ([app/api/cron/analytics/route.ts](../app/api/cron/analytics/route.ts))
+
+#### **Executed Daily at 8 AM UTC**
+- Aggregates previous day's events into `AnalyticsDailyStats`
+- Generates usage reports and metrics
+- Stores historical analytics data for dashboards
+
+### **System Tasks** ([app/api/cron/system-tasks/route.ts](../app/api/cron/system-tasks/route.ts))
+
+#### **Executed Weekly on Sundays at Midnight UTC**
+- Creates verify email tasks for unverified users without an existing verify task
+- Handles other system-level maintenance tasks
+- Keeps user authentication state clean
 
 ## AI Agent System
 

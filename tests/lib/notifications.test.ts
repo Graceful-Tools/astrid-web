@@ -13,6 +13,7 @@ import {
   notificationKindFor,
   shouldDeliverExternally,
   hasNotificationSurface,
+  buildNotificationRows,
 } from '@/lib/notifications'
 
 describe('notificationKindFor (ab0572cb)', () => {
@@ -162,5 +163,35 @@ describe('hasNotificationSurface (ab0572cb)', () => {
   it('is true once anything is shared', () => {
     expect(hasNotificationSurface({ sharedListCount: 1, projectCount: 0 })).toBe(true)
     expect(hasNotificationSurface({ sharedListCount: 0, projectCount: 1 })).toBe(true)
+  })
+})
+
+describe('buildNotificationRows (ab0572cb)', () => {
+  it('maps notification targets into notification rows and deduplicates identical rows', () => {
+    const rows = buildNotificationRows(
+      [
+        { userId: 'alice', kind: 'assigned' },
+        { userId: 'alice', kind: 'assigned' },
+        { userId: 'bob', kind: 'mentioned' },
+      ],
+      { taskId: 'task-1', commentId: 'comment-1', actorId: 'actor-1' }
+    )
+
+    expect(rows).toEqual([
+      {
+        userId: 'alice',
+        kind: 'assigned',
+        taskId: 'task-1',
+        commentId: 'comment-1',
+        actorId: 'actor-1',
+      },
+      {
+        userId: 'bob',
+        kind: 'mentioned',
+        taskId: 'task-1',
+        commentId: 'comment-1',
+        actorId: 'actor-1',
+      },
+    ])
   })
 })

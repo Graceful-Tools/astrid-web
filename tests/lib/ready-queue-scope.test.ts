@@ -20,17 +20,10 @@ import {
 import { agentEmail } from '@/lib/brand/agent-emails'
 
 describe('isClaimableByAgent', () => {
-  // Jon, 2026-08-15: "only chose tasks assigned to Claude".
-  //
-  // Unassigned USED to qualify, on the reasoning that nobody had claimed it. That
-  // reading made Ready mean "actionable and unclaimed", so anything Jon dropped into
-  // Ready to think about was fair game for a loop that would start work on it within
-  // fifteen minutes. Assignment is now the handshake: a task is the loop's only when
-  // someone hands it over.
-  it('leaves an UNASSIGNED task alone — assignment is the handshake', () => {
-    expect(isClaimableByAgent({ assigneeId: null }, 'claude-code')).toBe(false)
-    expect(isClaimableByAgent({}, 'claude-code')).toBe(false)
-    expect(isClaimableByAgent({ assigneeId: '' }, 'claude-code')).toBe(false)
+  it('takes an UNASSIGNED task', () => {
+    expect(isClaimableByAgent({ assigneeId: null }, 'claude-code')).toBe(true)
+    expect(isClaimableByAgent({}, 'claude-code')).toBe(true)
+    expect(isClaimableByAgent({ assigneeId: '' }, 'claude-code')).toBe(true)
   })
 
   it('takes a task assigned to the agent itself', () => {
@@ -184,8 +177,7 @@ describe('describeAssignee', () => {
     expect(describeAssignee({ assigneeId: 'u1' })).not.toBe('')
   })
 
-  // Unassigned is now the COMMON skip rather than an edge case, so it has to read as a
-  // normal state. "unknown" sent a reader looking for a data bug that was not there.
+  // Unassigned still has to render clearly in queue reporting.
   it('says unassigned rather than unknown when nobody has it', () => {
     expect(describeAssignee({})).toBe('unassigned')
     expect(describeAssignee({ assigneeId: null })).toBe('unassigned')

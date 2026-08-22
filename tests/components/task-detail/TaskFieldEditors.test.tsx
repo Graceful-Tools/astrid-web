@@ -264,6 +264,34 @@ describe('TaskFieldEditors', () => {
       )
       expect(setEditingLists).toHaveBeenCalledWith(false)
     })
+
+    it('shows label lists in suggestions and allows selecting them', () => {
+      const setTempLists = vi.fn()
+      const labelList: TaskList = {
+        id: 'label-1',
+        name: 'Bug',
+        color: '#ef4444',
+        privacy: 'PRIVATE' as const,
+        ownerId: 'user-1',
+        listType: 'label' as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+
+      render(
+        <TaskFieldEditors
+          {...defaultProps}
+          editingLists={true}
+          availableLists={[...mockLists, labelList]}
+          listSearchTerm="bug"
+          showListSuggestions={true}
+          setTempLists={setTempLists}
+        />
+      )
+
+      fireEvent.click(screen.getByText('Bug'))
+      expect(setTempLists).toHaveBeenCalledWith([labelList])
+    })
   })
 
   describe('When row — Date · Time · Repeat (dcbbb0fa)', () => {

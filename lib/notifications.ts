@@ -12,6 +12,7 @@
  */
 
 import type { TaskEventKind, TaskEventActorType } from '@/lib/task-events'
+import type { Prisma } from '@prisma/client'
 
 export const NOTIFICATION_KINDS = [
   'assigned',
@@ -23,6 +24,15 @@ export const NOTIFICATION_KINDS = [
 ] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
+
+export const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
+  assigned: 'Assigned',
+  mentioned: 'Mentioned',
+  replied: 'Replied',
+  commented: 'Commented',
+  status_changed: 'Status changed',
+  completed: 'Completed',
+}
 
 /**
  * Who is interested in a task.
@@ -49,6 +59,12 @@ export interface FanOutInput {
 export interface NotificationTarget {
   userId: string
   kind: NotificationKind
+}
+
+export interface NotificationRecordContext {
+  taskId?: string | null
+  commentId?: string | null
+  actorId?: string | null
 }
 
 /**
@@ -138,6 +154,29 @@ export function fanOutComment(input: {
   if (input.actorId) targets.delete(input.actorId)
 
   return Array.from(targets, ([userId, kind]) => ({ userId, kind }))
+}
+
+export function buildNotificationRows(
+  targets: NotificationTarget[],
+  context: NotificationRecordContext
+): Prisma.NotificationCreateManyInput[] {
+  const rows: Prisma.NotificationCreateManyInput[] = []
+  const seen = new Set<string>()
+
+  for (const target of targets) {
+    const key = `${target.userId}:${target.kind}:${context.taskId ?? ''}:${context.commentId ?? ''}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    rows.push({
+      userId: target.userId,
+      kind: target.kind,
+      taskId: context.taskId ?? null,
+      commentId: context.commentId ?? null,
+      actorId: context.actorId ?? null,
+    })
+  }
+
+  return rows
 }
 
 export interface DeliveryPreferences {

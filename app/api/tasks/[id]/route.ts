@@ -11,6 +11,8 @@ import { canUserEditTask } from "@/lib/list-permissions"
 import { parseClosedReason } from "@/lib/closed-reason"
 import { diffTaskEvents, recordTaskEvents } from "@/lib/task-events"
 import { invalidateUserStats } from "@/lib/user-stats"
+import { fanOutEvent } from "@/lib/notifications"
+import { persistNotifications } from "@/lib/notification-store"
 import {
   TASK_FULL_INCLUDE,
   TASK_PERMISSION_INCLUDE,
@@ -461,6 +463,54 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         }
       ),
     })
+
+    const commenterIds = Array.from(
+      new Set(
+        (updatedTask.comments ?? [])
+          .filter((comment: { authorId?: string | null } | null | undefined): comment is { authorId: string } =>
+            Boolean(comment && comment.authorId)
+          )
+          .map((comment) => comment.authorId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      )
+    )
+    const taskAudience = {
+      assigneeId: updatedTask.assigneeId,
+      creatorId: updatedTask.creatorId,
+      commenterIds,
+    }
+    for (const event of diffTaskEvents(
+      {
+        title: existingTask.title,
+        completed: existingTask.completed,
+        closedReason: existingTask.closedReason,
+        priority: existingTask.priority,
+        assigneeId: existingTask.assigneeId,
+        dueDateTime: existingTask.dueDateTime,
+        listIds: existingTask.lists.map((list) => list.id),
+      },
+      {
+        title: updatedTask.title,
+        completed: updatedTask.completed,
+        closedReason: updatedTask.closedReason,
+        priority: updatedTask.priority,
+        assigneeId: updatedTask.assigneeId,
+        dueDateTime: updatedTask.dueDateTime,
+        listIds: updatedTask.lists.map((list) => list.id),
+      }
+    )) {
+      await persistNotifications({
+        targets: fanOutEvent({
+          kind: event.kind,
+          actorId: session.user.id,
+          audience: taskAudience,
+        }),
+        context: {
+          taskId,
+          actorId: session.user.id,
+        },
+      })
+    }
 
     // Track state changes and create system comment.
     const stateChangeComment = await recordStateChangeComment({

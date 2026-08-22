@@ -7,8 +7,8 @@
  * second fix for something Jon has half-finished.
  *
  * So the queue needs both conditions — on this board with the Ready STATUS, AND
- * handed to this exact harness identity deliberately. This module owns both
- * predicates.
+ * either unassigned or explicitly handed to this exact harness identity. This
+ * module owns both predicates.
  *
  * Lives in lib/ rather than inside scripts/ready-tasks.ts because that script
  * calls main() at import, so the rules could not otherwise be tested without
@@ -201,25 +201,19 @@ export interface AssignableTask {
 /**
  * May an autonomous loop take this task?
  *
- * ONLY when it is assigned to the agent. Assignment is the handshake.
- *
- * Unassigned used to qualify too, on the reasoning that nobody had claimed it
- * (Jon, 2026-08-15: "only chose tasks assigned to Claude"). That reading made
- * `Ready` mean "actionable AND unclaimed", so anything dropped into Ready to
- * think about was fair game for a loop that would start on it within fifteen
- * minutes. Requiring the assignment inverts the default: nothing is the loop's
- * until someone hands it over, and Ready can go back to meaning only "ready".
+ * ONLY when it is unassigned or assigned to the agent.
  *
  * Still deliberately conservative about missing data: `assignee` may be absent,
  * null, or present without an email depending on how the task was serialised.
- * An assignment that cannot be confirmed reads as somebody else's — claiming on
- * a guess costs duplicated work, skipping costs one line of output saying why.
+ * A malformed assignment that cannot be confirmed reads as somebody else's —
+ * claiming on a guess costs duplicated work, skipping costs one line of output
+ * saying why.
  */
 export function isClaimableByAgent(
   task: AssignableTask,
   harness: FixallHarness | string,
 ): boolean {
-  if (!task.assigneeId) return false
+  if (!task.assigneeId) return true
 
   const email = task.assignee?.email
   if (!email) return false

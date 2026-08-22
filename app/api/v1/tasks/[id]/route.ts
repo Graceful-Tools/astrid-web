@@ -25,6 +25,8 @@ import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { recordStateChangeComment } from '@/lib/task-update-handler'
+import { fanOutEvent } from '@/lib/notifications'
+import { persistNotifications } from '@/lib/notification-store'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
@@ -603,6 +605,21 @@ export const PUT = withAuth<RouteContext>(
     // projects. actorType distinguishes agent traffic, which is the whole
     // point: an agent silently reassigning work must leave a trace.
     if (existingTask) {
+      const taskAudience = {
+        assigneeId: task.assigneeId,
+        creatorId: task.creatorId,
+        commenterIds: Array.from(
+          new Set(
+            (task.comments ?? [])
+              .filter((comment: { authorId?: string | null } | null | undefined): comment is { authorId: string } =>
+                Boolean(comment && comment.authorId)
+              )
+              .map((comment) => comment.authorId)
+              .filter((id): id is string => typeof id === 'string' && id.length > 0)
+          )
+        ),
+      }
+
       await recordTaskEvents({
         taskId,
         actorId: auth.userId,
@@ -628,6 +645,39 @@ export const PUT = withAuth<RouteContext>(
           }
         ),
       })
+
+      for (const event of diffTaskEvents(
+        {
+          title: existingTask.title,
+          completed: existingTask.completed,
+          closedReason: existingTask.closedReason,
+          priority: existingTask.priority,
+          assigneeId: existingTask.assigneeId,
+          dueDateTime: existingTask.dueDateTime,
+          listIds: existingTask.lists.map(list => list.id),
+        },
+        {
+          title: task.title,
+          completed: task.completed,
+          closedReason: task.closedReason,
+          priority: task.priority,
+          assigneeId: task.assigneeId,
+          dueDateTime: task.dueDateTime,
+          listIds: task.lists.map(list => list.id),
+        }
+      )) {
+        await persistNotifications({
+          targets: fanOutEvent({
+            kind: event.kind,
+            actorId: auth.userId,
+            audience: taskAudience,
+          }),
+          context: {
+            taskId,
+            actorId: auth.userId,
+          },
+        })
+      }
     }
 
     // System comment for state changes (assignee/priority/etc.).

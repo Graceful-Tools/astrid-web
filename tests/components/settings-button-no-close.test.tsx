@@ -32,7 +32,8 @@ vi.mock('@/hooks/useKeyboardShortcuts', () => ({
     shortcuts: [],
     showHotkeyMenu: false,
     setShowHotkeyMenu: vi.fn()
-  })
+  }),
+  KEYBOARD_SHORTCUTS: []
 }))
 
 // Mock UserMenu

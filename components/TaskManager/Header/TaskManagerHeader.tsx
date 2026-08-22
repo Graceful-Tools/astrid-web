@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, Settings, Filter } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
+import { NotificationBell } from "@/components/notification-bell"
 import { useTranslations } from "@/lib/i18n/client"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { getMyTasksFilterText, getPriorityColorClass } from "@/lib/task-manager-utils"
@@ -409,6 +410,8 @@ export function TaskManagerHeader({
               render a duplicate ChatToggle icon. */}
           <div className="flex items-center gap-1 flex-shrink-0">
             <TaskViewToggle {...taskViewToggleProps} />
+
+            <NotificationBell />
 
             {!headerToggle.unified && onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
               <ChatToggle

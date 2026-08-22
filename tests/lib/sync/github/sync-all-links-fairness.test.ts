@@ -64,6 +64,10 @@ const update = vi.fn(async ({ where, data }: any) => {
   return row
 })
 
+const githubTokenFor = vi.fn(async () => 'token')
+const pullIssuesForLink = vi.fn(async () => ({ items: [], cursor: null, truncated: false }))
+const pushTasksForLink = vi.fn(async () => ({ pushed: 0, seeded: false }))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     externalListLink: {
@@ -75,20 +79,20 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/sync/github', () => ({
-  githubTokenFor: vi.fn(async () => 'token'),
+  githubTokenFor,
   isValidRepoId: () => true,
 }))
 vi.mock('@/lib/sync/github/pull-issues', () => ({
   // A clean pass with nothing new: no cursor movement. This is the case that
   // used to leave lastReconciledAt stale forever.
-  pullIssuesForLink: vi.fn(async () => ({ items: [], cursor: null, truncated: false })),
+  pullIssuesForLink,
 }))
 vi.mock('@/lib/sync/github/apply-issues', () => ({
   applyPulledIssues: vi.fn(async () => ({ created: 0, updated: 0, skipped: 0 })),
 }))
 vi.mock('@/lib/sync/github/push-tasks', () => ({
   directionPulls: () => true,
-  pushTasksForLink: vi.fn(async () => ({ pushed: 0, seeded: false })),
+  pushTasksForLink,
 }))
 
 const { syncAllGithubLinks, MAX_LINKS_PER_PASS } = await import('@/lib/sync/github/sync-all-links')
@@ -108,6 +112,9 @@ function seed(count: number) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  githubTokenFor.mockResolvedValue('token')
+  pullIssuesForLink.mockResolvedValue({ items: [], cursor: null, truncated: false })
+  pushTasksForLink.mockResolvedValue({ pushed: 0, seeded: false })
 })
 
 describe('syncAllGithubLinks fairness', () => {
@@ -156,6 +163,24 @@ describe('syncAllGithubLinks fairness', () => {
     await syncAllGithubLinks()
 
     expect(table[0].lastReconciledAt, 'a clean, empty sync left the link stale').not.toBeNull()
+  })
+
+  it('stamps lastReconciledAt when a link is skipped for missing credentials', async () => {
+    seed(1)
+    githubTokenFor.mockResolvedValueOnce(null)
+
+    await syncAllGithubLinks()
+
+    expect(table[0].lastReconciledAt, 'a skipped link stayed stale').not.toBeNull()
+  })
+
+  it('stamps lastReconciledAt when a link fails', async () => {
+    seed(1)
+    pullIssuesForLink.mockRejectedValueOnce(new Error('boom'))
+
+    await syncAllGithubLinks()
+
+    expect(table[0].lastReconciledAt, 'a failed link stayed stale').not.toBeNull()
   })
 
   it('reports when the batch was capped, so a short pass is visible', async () => {

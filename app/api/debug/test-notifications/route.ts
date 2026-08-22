@@ -1,6 +1,7 @@
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
+import { requireAdmin, AdminAuthError } from '@/lib/admin-auth'
 import { prisma } from "@/lib/prisma"
 import { PushNotificationService } from "@/lib/push-notification-service"
 import { z } from "zod"
@@ -51,8 +52,27 @@ export async function POST(request: NextRequest) {
       testCounts.set(userKey, { date: today, count: 1 })
     }
 
-    // Determine target user for the notification
-    const targetEmail = targetUserEmail || session.user.email
+    // Determine target user for the notification.
+    // Non-admins may only test against themselves.
+    let targetEmail = session.user.email
+    if (targetUserEmail) {
+      const callerEmail = session.user.email.toLowerCase()
+      const requestedEmail = targetUserEmail.toLowerCase()
+      if (requestedEmail !== callerEmail) {
+        if (!session.user.id) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+        try {
+          await requireAdmin(session.user.id)
+        } catch (error) {
+          if (error instanceof AdminAuthError) {
+            return NextResponse.json({ error: error.message }, { status: 403 })
+          }
+          throw error
+        }
+      }
+      targetEmail = targetUserEmail
+    }
     
     // Get target user settings
     const user = await prisma.user.findUnique({
@@ -141,8 +161,6 @@ export async function POST(request: NextRequest) {
             message: `User ${user.email} has no active push subscriptions. They need to enable notifications in their browser.`,
             testsRemaining: MAX_TESTS_PER_DAY - (testCounts.get(userKey)?.count || 0),
             debugInfo: {
-              userId: user.id,
-              userEmail: user.email,
               subscriptionsFound: 0,
               instruction: "User needs to: 1) Allow notifications in browser, 2) Register for push notifications via Service Worker"
             }

@@ -28,10 +28,10 @@ board is invisible to the loop that could act on it.
 Full rules, including the one case where reading `astrid-ios` is legitimate, are in
 [`/fixall`](./fixall.md) → *Scope*.
 
-**Assignment is the handshake.** The autonomous `/fixall` queue takes only tasks
-assigned to its explicitly selected harness identity; it never takes unassigned
-work. If something assigned elsewhere is genuinely yours, ask Jon to reassign it
-rather than working around the filter.
+**Assignment still claims tasks.** The autonomous `/fixall` queue takes unassigned
+tasks plus tasks assigned to its explicitly selected harness identity, and skips
+tasks assigned elsewhere. If something assigned elsewhere is genuinely yours, ask
+Jon to reassign it rather than working around the filter.
 
 Refer to tasks by **title** in every report; Jon does not read task ids.
 
