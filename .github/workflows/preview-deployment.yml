@@ -37,10 +37,10 @@ jobs:
       build-success: ${{ steps.build-status.outputs.success }}
     steps:
       - name: Checkout PR
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -91,8 +91,8 @@ jobs:
             if [ -z "$table_name" ]; then
               continue
             fi
-            # Search for CREATE TABLE with this name, allowing for optional schema prefix like "public".
-            if ! grep -qE "CREATE TABLE (\"public\"\\.)?\"${table_name}\"" prisma/migrations/*/migration.sql 2>/dev/null; then
+            # Allow idempotent migrations and an optional schema prefix.
+            if ! grep -qE "CREATE TABLE (IF NOT EXISTS )?(\"public\"\\.)?\"${table_name}\"" prisma/migrations/*/migration.sql 2>/dev/null; then
               MISSING_TABLES="${MISSING_TABLES}CREATE TABLE \"${table_name}\"\n"
             fi
           done <<< "$SCHEMA_TABLES"
@@ -158,10 +158,10 @@ jobs:
       deployment-id: ${{ steps.deploy.outputs.deployment-id }}
     steps:
       - name: Checkout PR
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -180,13 +180,24 @@ jobs:
         run: |
           echo "Deploying to Vercel preview..."
 
-          # Deploy to Vercel and capture output
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
-          echo "Deployment output:"
-          echo "$DEPLOYMENT_OUTPUT"
+          # Keep stdout and stderr APART. stdout carries the deployment URL;
+          # stderr carries the progress animation, which vercel redraws in
+          # place with cursor-control escapes. Folding them together with
+          # `2>&1` is what captured
+          #   \x1b[2K\x1b[1A\x1b[2K\x1b[GPreviewhttps://astrid-xxx.vercel.app
+          # on PR #206 — a URL no curl could resolve, which the E2E-on-preview
+          # job then spent five minutes failing to reach.
+          DEPLOYMENT_STDOUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>/tmp/vercel-deploy.err)
+          echo "Deployment stdout:"
+          echo "$DEPLOYMENT_STDOUT"
+          echo "Deployment stderr:"
+          cat /tmp/vercel-deploy.err
 
-          # Extract preview URL from output
-          PREVIEW_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -E 'https://.*\.vercel\.app' | tail -1 | tr -d ' ')
+          # Parsing lives in a script so it can be tested; the inline version
+          # could not be. See tests/scripts/extract-preview-url.test.ts.
+          PREVIEW_URL=$(printf '%s\n' "$DEPLOYMENT_STDOUT" | bash ./scripts/extract-preview-url.sh) \
+            || PREVIEW_URL=$(bash ./scripts/extract-preview-url.sh < /tmp/vercel-deploy.err) \
+            || true
 
           if [ -z "$PREVIEW_URL" ]; then
             echo "❌ Failed to extract preview URL from deployment output"
@@ -244,10 +255,10 @@ jobs:
     continue-on-error: true  # Don't fail the workflow if E2E tests fail
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -315,7 +326,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run npm audit
         run: |

@@ -12,11 +12,12 @@ import { UserPicker } from "@/components/user-picker"
 import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { selectableLists } from "@/lib/status-lists"
+import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
-import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, Flag as FlagIcon, List as ListIcon, FileText as FileTextIcon, User as UserIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, List as ListIcon, FileText as FileTextIcon, User as UserIcon } from "lucide-react"
 import { format } from "date-fns"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { formatDateForDisplay } from "@/lib/date-utils"
@@ -90,6 +91,22 @@ interface TaskFieldEditorsProps {
 
   // Invite handler
   onInviteUser: (email: string, message?: string) => Promise<void>
+}
+
+/**
+ * The Priority row's marker: the app's own `!!!`, not a flag icon that only ever
+ * said "some field about importance" (task 4dd640d9).
+ *
+ * CONSTANT BY DESIGN — it names the field while the picker beside it reports the
+ * value, so it must not follow the task's own priority. Same rule as
+ * `PriorityGlyph.rowIcon` on iOS/Mac.
+ */
+function PriorityRowIcon() {
+  return (
+    <span aria-hidden="true" className="w-4 text-center text-xs font-bold leading-none">
+      {PRIORITY_ROW_GLYPH}
+    </span>
+  )
 }
 
 export function TaskFieldEditors({
@@ -443,6 +460,108 @@ export function TaskFieldEditors({
 
   return (
     <>
+      {/* FIELD ORDER: Who, Date, Priority, Lists (task 4dd640d9).
+       *
+       *  Stated once in lib/task-detail-field-order.ts and pinned by
+       *  tests/components/task-detail-field-order.test.ts, mirroring
+       *  TaskDetailFieldOrder.swift on iOS/Mac. Before this, all three
+       *  platforms rendered Priority before Who — the same wrong order
+       *  written out three times, which is why it is stated once now.
+       *
+       *  Who and Priority are separate blocks rather than one, because Date
+       *  sits BETWEEN them. They still share their conditions exactly. */}
+      {/* Priority and Assignee.
+       *
+       *  LIST MODE gives each its own row (task ffa5bbb5). They shared one row
+       *  — labelled "Priority", assignee beside the picker — since task
+       *  dcbbb0fa; Jon asked for "separate rows in task details in all
+       *  interfaces on board and list view for Priority and assigned".
+       *
+       *  PROJECT MODE drops both entirely: "we compact the task details so
+       *  priority and assignee and complete/mark as incomplete are accessed by
+       *  tapping on the checkbox". The leading control opens the popover that
+       *  carries them, so this is a move rather than a removal.
+       *
+       *  A PUBLIC-LIST TASK keeps its single "Created by" row and is not split.
+       *  It shows its creator INSTEAD of an assignee and hides the priority
+       *  picker, so splitting it would invent an assignee row for a task with
+       *  no assignee concept. */}
+      {!shouldHidePriority && !compactTaskDetail && (
+        isPublicListTask ? (
+          <TaskFieldRow label={t('tasks.createdBy')} icon={<UserIcon className="w-4 h-4" />}>
+            <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-2 px-2 py-1 rounded">
+            {task.creator ? (
+              <>
+                <Avatar className="w-6 h-6">
+                  <AvatarImage src={task.creator.image || "/placeholder.svg"} />
+                  <AvatarFallback>{task.creator.name?.charAt(0) || task.creator.email?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <span className="text-blue-600 dark:text-blue-400">{task.creator.name || task.creator.email}</span>
+              </>
+            ) : (
+              <span className="theme-text-muted">Unknown creator</span>
+            )}
+          </div>
+            </div>
+          </TaskFieldRow>
+        ) : (
+            <TaskFieldRow label={t('tasks.assignee')} icon={<UserIcon className="w-4 h-4" />}>
+              <div className="flex flex-wrap items-center gap-3">
+          {/* An IIFE, lifted verbatim from the combined row so the editor's
+              behaviour is unchanged by the split. */}
+          {(() => {
+            return editingAssignee ? (
+              <div ref={assigneeRef}>
+                <UserPicker
+                  selectedUser={tempAssignee}
+                  taskId={task.id}
+                  listIds={task.lists?.map(list => list.id)}
+                  includeAIAgents={true}
+                  onUserSelect={(user) => {
+                    setTempAssignee(user)
+                    // Auto-save immediately when user is selected or unassigned
+                    const updatedTask = { ...task, assignee: user, assigneeId: user?.id || null }
+                    onUpdate(updatedTask)
+                    // Always close the editor after selection
+                    setEditingAssignee(false)
+                  }}
+                  onInviteUser={onInviteUser}
+                  placeholder="Search users or enter email..."
+                  inline={true}
+                  autoFocus={true}
+                />
+              </div>
+            ) : (
+              <div
+                className={`flex items-center space-x-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
+                onClick={() => !readOnly && setEditingAssignee(true)}
+              >
+                {task.assignee ? (
+                  <>
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={task.assignee.image || "/placeholder.svg"} />
+                      <AvatarFallback>{task.assignee.name?.charAt(0) || task.assignee.email?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-blue-600 dark:text-blue-400">{task.assignee.name || task.assignee.email}</span>
+                  </>
+                ) : (
+                  <>
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src="/placeholder.svg" />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <span className="theme-text-muted">Unassigned</span>
+                  </>
+                )}
+              </div>
+            )
+          })()}
+              </div>
+            </TaskFieldRow>
+        )
+      )}
+
       {/* When row: Date · Time · Repeat on ONE line (task dcbbb0fa).
        *
        *  Previously three stacked rows, each with its own label and padding.
@@ -452,7 +571,7 @@ export function TaskFieldEditors({
        *  so an undated task shows a single "Add date" control rather than
        *  three empty ones. */}
       {!shouldHideWhen && (
-      <TaskFieldRow label="When" icon={<CalendarIcon className="w-4 h-4" />} align="start">
+      <TaskFieldRow label={t('tasks.when')} icon={<CalendarIcon className="w-4 h-4" />} align="start">
         <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-2 min-w-0" data-testid="when-date">
         {editingWhen ? (
@@ -753,114 +872,28 @@ export function TaskFieldEditors({
       </TaskFieldRow>
       )}
 
-      {/* Priority and Assignee.
-       *
-       *  LIST MODE gives each its own row (task ffa5bbb5). They shared one row
-       *  — labelled "Priority", assignee beside the picker — since task
-       *  dcbbb0fa; Jon asked for "separate rows in task details in all
-       *  interfaces on board and list view for Priority and assigned".
-       *
-       *  PROJECT MODE drops both entirely: "we compact the task details so
-       *  priority and assignee and complete/mark as incomplete are accessed by
-       *  tapping on the checkbox". The leading control opens the popover that
-       *  carries them, so this is a move rather than a removal.
-       *
-       *  A PUBLIC-LIST TASK keeps its single "Created by" row and is not split.
-       *  It shows its creator INSTEAD of an assignee and hides the priority
-       *  picker, so splitting it would invent an assignee row for a task with
-       *  no assignee concept. */}
-      {!shouldHidePriority && !compactTaskDetail && (
-        isPublicListTask ? (
-          <TaskFieldRow label="Created by" icon={<UserIcon className="w-4 h-4" />}>
-            <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center space-x-2 px-2 py-1 rounded">
-            {task.creator ? (
-              <>
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={task.creator.image || "/placeholder.svg"} />
-                  <AvatarFallback>{task.creator.name?.charAt(0) || task.creator.email?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className="text-blue-600 dark:text-blue-400">{task.creator.name || task.creator.email}</span>
-              </>
-            ) : (
-              <span className="theme-text-muted">Unknown creator</span>
-            )}
-          </div>
-            </div>
-          </TaskFieldRow>
-        ) : (
-          <>
-            <TaskFieldRow label="Priority" icon={<FlagIcon className="w-4 h-4" />}>
+      {/* Priority — third, after Date. A public-list task has no priority
+       *  picker; its Who slot showed "Created by" above. */}
+      {!shouldHidePriority && !compactTaskDetail && !isPublicListTask && (
+            <TaskFieldRow label={t('tasks.priority')} icon={<PriorityRowIcon />}>
               <PriorityPicker
                 value={tempPriority}
                 onChange={handleSavePriority}
-                label="Priority"
+                /* No `label` passed: PriorityPicker declares the prop but never
+                   renders it, and the row above already carries the translated
+                   label. Passing an English literal to a prop nobody displays is
+                   dead weight that reads as untranslated copy. */
                 // Every other field here gates its click behind !readOnly; this
                 // one rendered ungated, so priority stayed editable to a viewer
                 // who could edit nothing else. (Task 72cb4a13.)
                 disabled={readOnly}
               />
             </TaskFieldRow>
-
-            <TaskFieldRow label="Assignee" icon={<UserIcon className="w-4 h-4" />}>
-              <div className="flex flex-wrap items-center gap-3">
-          {/* An IIFE, lifted verbatim from the combined row so the editor's
-              behaviour is unchanged by the split. */}
-          {(() => {
-            return editingAssignee ? (
-              <div ref={assigneeRef}>
-                <UserPicker
-                  selectedUser={tempAssignee}
-                  taskId={task.id}
-                  listIds={task.lists?.map(list => list.id)}
-                  includeAIAgents={true}
-                  onUserSelect={(user) => {
-                    setTempAssignee(user)
-                    // Auto-save immediately when user is selected or unassigned
-                    const updatedTask = { ...task, assignee: user, assigneeId: user?.id || null }
-                    onUpdate(updatedTask)
-                    // Always close the editor after selection
-                    setEditingAssignee(false)
-                  }}
-                  onInviteUser={onInviteUser}
-                  placeholder="Search users or enter email..."
-                  inline={true}
-                  autoFocus={true}
-                />
-              </div>
-            ) : (
-              <div
-                className={`flex items-center space-x-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
-                onClick={() => !readOnly && setEditingAssignee(true)}
-              >
-                {task.assignee ? (
-                  <>
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src={task.assignee.image || "/placeholder.svg"} />
-                      <AvatarFallback>{task.assignee.name?.charAt(0) || task.assignee.email?.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-blue-600 dark:text-blue-400">{task.assignee.name || task.assignee.email}</span>
-                  </>
-                ) : (
-                  <>
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src="/placeholder.svg" />
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                    <span className="theme-text-muted">Unassigned</span>
-                  </>
-                )}
-              </div>
-            )
-          })()}
-              </div>
-            </TaskFieldRow>
-          </>
-        )
       )}
 
+
       {/* Lists Field */}
-      <TaskFieldRow label="Lists" icon={<ListIcon className="w-4 h-4" />} align="start">
+      <TaskFieldRow label={t('navigation.lists')} icon={<ListIcon className="w-4 h-4" />} align="start">
         {editingLists ? (
           <div className="space-y-3">
             {/* Search input with autocomplete */}
@@ -971,7 +1004,7 @@ export function TaskFieldEditors({
       </TaskFieldRow>
 
       {/* Description Field */}
-      <TaskFieldRow label="Description" icon={<FileTextIcon className="w-4 h-4" />} align="start">
+      <TaskFieldRow label={t('tasks.taskDescription')} icon={<FileTextIcon className="w-4 h-4" />} align="start">
         {editingDescription ? (
           <div ref={descriptionRef}>
             <textarea

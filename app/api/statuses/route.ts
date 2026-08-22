@@ -18,6 +18,11 @@ export const dynamic = "force-dynamic"
  * the board being rendered. Only the three default roles are per-user
  * singletons that appear everywhere.
  *
+ * The state is stored on `Project.customStates` (AWTD-562); the
+ * `listType: 'status'` row is written alongside it only while the board still
+ * renders columns from list rows. `state` is the durable half of the response
+ * and `list` is the transitional one — new clients should read `state`.
+ *
  * Body: { name, projectId }. Rename/reorder use PUT /api/lists/[id].
  */
 export async function POST(request: NextRequest) {
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
       log.error({ err: error }, "Failed to invalidate user lists cache")
     }
 
-    return NextResponse.json({ list: result.list })
+    return NextResponse.json({ list: result.list, state: result.state })
   } catch (error) {
     log.error({ err: error }, "Error adding custom status:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

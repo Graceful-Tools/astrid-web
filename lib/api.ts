@@ -101,7 +101,7 @@ export const apiPost = async (endpoint: string, data: any) => {
     let tempId = `temp-${Date.now()}`
 
     // Check for nested comment endpoint: /api/tasks/{taskId}/comments
-    const commentMatch = endpoint.match(/\/api\/tasks\/([^\/]+)\/comments/)
+    const commentMatch = endpoint.match(/\/api\/(?:v1\/)?tasks\/([^\/]+)\/comments/)
     if (commentMatch) {
       entity = 'comment'
 
@@ -144,7 +144,7 @@ export const apiPost = async (endpoint: string, data: any) => {
     }
 
     // Check for direct entity endpoints: /api/tasks, /api/lists
-    const directMatch = endpoint.match(/\/api\/(tasks|lists)$/)
+    const directMatch = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists)$/)
     if (directMatch) {
       entity = directMatch[1].slice(0, -1) as 'task' | 'list' // Remove 's'
 
@@ -170,13 +170,30 @@ export const apiPost = async (endpoint: string, data: any) => {
 }
 
 export const apiPut = async (endpoint: string, data: any) => {
+  // The `(?:v1\/)?` in every matcher below is load-bearing (task f2178a55).
+  //
+  // These patterns were written when the only routes were /api/tasks and
+  // /api/lists. `/api/v1/tasks/abc` does not match `/api/(tasks|lists)/...` —
+  // the segment after /api/ is `v1` — so when the callers moved to v1 the
+  // offline queue silently stopped firing for every one of them, without a line
+  // of the offline machinery changing. Editing a task with no connection
+  // dropped the edit; promoting a subtask, still on the legacy route, kept
+  // working. That asymmetry is what surfaced it.
+  //
+  // Non-capturing on purpose: the entity name is derived from the NEXT group
+  // (`taskMatch[1].slice(0, -1)`), so a capturing group here would shift it.
+  //
+  // Deliberately still anchored on the entity segment rather than loosened
+  // further: `/api/v1/users/me/smart-tasks` ends in "tasks" and must not be
+  // queued as a task mutation. tests/lib/api-offline-queue-v1-urls.test.ts
+  // pins that case alongside the ones that should queue.
   // Check if offline or updating a temp task
-  const taskIdMatch = endpoint.match(/\/api\/tasks\/(temp-[^\/]+)/)
-  const listIdMatch = endpoint.match(/\/api\/lists\/(temp-[^\/]+)/)
+  const taskIdMatch = endpoint.match(/\/api\/(?:v1\/)?tasks\/(temp-[^\/]+)/)
+  const listIdMatch = endpoint.match(/\/api\/(?:v1\/)?lists\/(temp-[^\/]+)/)
 
   if (isOfflineMode() || taskIdMatch || listIdMatch) {
     // Extract entity type and ID
-    const taskMatch = endpoint.match(/\/api\/(tasks|lists|comments)\/([^\/]+)/)
+    const taskMatch = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists|comments)\/([^\/]+)/)
     if (taskMatch) {
       const entity = taskMatch[1].slice(0, -1) as 'task' | 'list' | 'comment' // Remove 's' from plural
       const entityId = taskMatch[2]
@@ -232,13 +249,55 @@ export const apiPut = async (endpoint: string, data: any) => {
     }
   }
 
-  return apiCall(endpoint, { method: "PUT", body: JSON.stringify(data) })
+  const response = await apiCall(endpoint, { method: "PUT", body: JSON.stringify(data) })
+  await persistTaskResponseToCache(endpoint, response)
+  return response
+}
+
+/**
+ * Put a server-confirmed task into the cache (task aaccb172).
+ *
+ * WHY THIS LIVES HERE. There were two update stacks: useTaskOperations
+ * persisted to IndexedDB, and useTaskManagerController.handleUpdateTask — the
+ * one bound to `onUpdate` for every field editor, board card and list row —
+ * did not. An edit made while online was invisible to the offline cache until a
+ * full re-sync. apiPut is the choke point all of them already pass through, so
+ * fixing it once covers the call sites nobody has enumerated, and leaves the
+ * controller's optimistic/rollback logic alone.
+ *
+ * The SERVER's copy is what gets stored, not the caller's optimistic object:
+ * the server normalises, stamps updatedAt, and may not accept everything sent.
+ *
+ * NEVER FAILS THE WRITE. The save already succeeded by this point; a cache
+ * problem must not make it look otherwise. CacheManager.setTask swallows
+ * IndexedDB errors internally, and this swallows anything else — including a
+ * body that is not JSON.
+ *
+ * TASKS ONLY, deliberately. Lists and comments have different response shapes
+ * and are not what this fix is about; they still do not populate the cache.
+ */
+async function persistTaskResponseToCache(endpoint: string, response: Response): Promise<void> {
+  if (!response.ok) return
+  if (!/\/api\/(?:v1\/)?tasks\/[^\/]+$/.test(endpoint)) return
+
+  try {
+    // Cloned so the caller can still read the body.
+    const body = await response.clone().json()
+    const task = body?.task ?? body
+    if (!task?.id) return
+
+    const { CacheManager } = await import('./cache-manager')
+    await CacheManager.setTask(task)
+  } catch {
+    // A successful save must not be reported as failed because the cache
+    // could not be updated.
+  }
 }
 
 export const apiDelete = async (endpoint: string) => {
   // Check if offline
   if (isOfflineMode()) {
-    const match = endpoint.match(/\/api\/(tasks|lists|comments)\/([^\/]+)/)
+    const match = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists|comments)\/([^\/]+)/)
     if (match) {
       const entity = match[1].slice(0, -1) as 'task' | 'list' | 'comment'
       const entityId = match[2]

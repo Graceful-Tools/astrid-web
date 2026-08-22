@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createVerifyEmailTasksForUnverifiedUsers } from "@/lib/system-tasks"
 import { createLogger } from '@/lib/logger'
+import { requireCronSecret } from "@/lib/cron-auth"
 
 const log = createLogger('cron.system-tasks')
 
@@ -16,11 +17,10 @@ export async function GET(request: NextRequest) {
   try {
     log.info("🔄 Processing system tasks...")
 
-    // Verify the request is from Vercel cron
-    const authHeader = request.headers.get("authorization")
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Verify the request is from Vercel cron. Fails CLOSED: no
+    // CRON_SECRET configured means nobody gets in.
+    const blocked = requireCronSecret(request)
+    if (blocked) return blocked
 
     const startTime = Date.now()
 

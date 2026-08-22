@@ -12,6 +12,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import {
   validateClientCredentials,
+  validateOAuthClient,
   supportsGrantType,
   validateRedirectUri,
 } from '@/lib/oauth/oauth-client-manager'
@@ -185,14 +186,14 @@ async function handleAuthorizationCodeFlow(
     client_id,
     client_secret,
     redirect_uri,
+    code_verifier,
   } = params
 
-  if (!code || !client_id || !client_secret || !redirect_uri) {
+  if (!code || !client_id || !redirect_uri) {
     return oauthError('invalid_request', 'Missing required parameters')
   }
 
-  // Validate client credentials
-  const client = await validateClientCredentials(client_id, client_secret)
+  const client = await validateOAuthClient(client_id, client_secret)
   if (!client) {
     return oauthError('invalid_client', 'Invalid client credentials', 401)
   }
@@ -214,7 +215,8 @@ async function handleAuthorizationCodeFlow(
   const tokenResponse = await exchangeAuthorizationCode(
     code,
     client.id,
-    redirect_uri
+    redirect_uri,
+    code_verifier,
   )
 
   if (!tokenResponse) {
@@ -242,12 +244,12 @@ async function handleRefreshTokenFlow(
 ): Promise<NextResponse> {
   const { refresh_token, client_id, client_secret } = params
 
-  if (!refresh_token || !client_id || !client_secret) {
+  if (!refresh_token || !client_id) {
     return oauthError('invalid_request', 'Missing required parameters')
   }
 
   // Validate client credentials
-  const client = await validateClientCredentials(client_id, client_secret)
+  const client = await validateOAuthClient(client_id, client_secret)
   if (!client) {
     return oauthError('invalid_client', 'Invalid client credentials', 401)
   }

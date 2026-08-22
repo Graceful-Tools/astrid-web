@@ -101,7 +101,9 @@
     "addNewTask": "새 작업 추가...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
-    "wontDoChip": "Won't do"
+    "wontDoChip": "Won't do",
+    "when": "일시",
+    "createdBy": "작성자"
   },
   "lists": {
     "list": "목록",

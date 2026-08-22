@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from '@/types/task'
@@ -177,25 +178,74 @@ export function PriorityAssigneePicker({
 
   if (!isOpen && !isClosing) return null
 
-  return (
+  /*
+   * PORTALLED TO document.body, and it has to be (Jon, 2026-08-18: the sheet
+   * "appears from wherever the list row is").
+   *
+   * `position: fixed` is resolved against the nearest ancestor that
+   * establishes a containing block, and on mobile this sheet is always inside
+   * one: `.task-card` carries `will-change: transform` (styles/components.css)
+   * and MainContent's mobile task-area wrapper carries the task-detail
+   * parallax `transform`, which it applies even at rest as
+   * `translateX(0) scale(1)`. So `fixed inset-x-0 bottom-0` pinned the sheet to
+   * the ROW, and the full-screen backdrop covered one card. Measured on a
+   * 390x664 viewport: sheet at y=158, backdrop 360x62.
+   *
+   * No styling escapes a transformed ancestor — the element has to leave the
+   * subtree. Same pattern as attachment-viewer and list-settings-popover.
+   */
+  /*
+   * The sheet is a React child of the row that opened it, and in project mode
+   * that row's onClick opens task details — so every tap inside the sheet did
+   * two things (task 465e71e6).
+   *
+   * PORTALLING DID NOT FIX IT. React propagates events through the REACT tree,
+   * not the DOM tree, so a sheet living under <body> still delivers its clicks
+   * to the row's handler. The escape has to be explicit.
+   *
+   * Stopped at the two portal roots rather than on each control: an unhandled
+   * gap in the middle of the sheet is invisible until someone taps exactly
+   * there. The sheet's own handlers still run — this stops the event LEAVING,
+   * it does not stop it arriving.
+   */
+  const stopLeaking = (event: React.MouseEvent) => event.stopPropagation()
+
+  const sheet = (
     <>
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black z-40 transition-opacity duration-200 ${
           isClosing ? 'opacity-0' : 'opacity-30'
         }`}
-        onClick={handleBackdropClick}
+        onClick={(event) => {
+          // Dismiss, but do not also hand the tap to the row underneath.
+          stopLeaking(event)
+          handleBackdropClick(event)
+        }}
         aria-hidden="true"
       />
 
       {/* Bottom Sheet */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 transform transition-transform duration-200 ease-out ${
+        /*
+         * NOT FULL WIDTH (task 8599e136). `inset-x-0` stretched this sheet edge
+         * to edge on every screen, which on a desktop window is a very wide
+         * strip holding four small controls. It is capped and centred now;
+         * `inset-x-0` stays so it still fills a phone, where full width IS the
+         * right answer for a bottom sheet.
+         *
+         * TALLER, because the height was the reason the assignee list was
+         * cramped: 50vh had to hold priority, board state, complete/reopen AND
+         * a scrolling list of people. 85vh gives the list room; the inner
+         * container scrolls rather than the sheet growing past the viewport.
+         */
+        className={`fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md transform transition-transform duration-200 ease-out ${
           isClosing ? 'translate-y-full' : 'translate-y-0'
         }`}
-        style={{ maxHeight: '50vh' }}
+        style={{ maxHeight: '85vh' }}
+        onClick={stopLeaking}
       >
-        <div className="bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl overflow-hidden">
+        <div className="flex max-h-[85vh] flex-col overflow-y-auto rounded-t-2xl bg-white shadow-xl dark:bg-gray-800 sm:rounded-2xl sm:mb-4">
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-2">
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
@@ -212,7 +262,11 @@ export function PriorityAssigneePicker({
                     key={option.value}
                     type="button"
                     onClick={() => handlePrioritySelect(option.value)}
-                    className={`flex-1 h-11 rounded-lg flex items-center justify-center font-medium text-lg transition-all duration-150 active:scale-95 ${
+                    /* A rounded SQUARE, not a stretched bar (task 8599e136).
+                       `flex-1` made each option as wide as a quarter of the
+                       screen; a priority chip carries one or three characters
+                       and reads better as a fixed square. */
+                    className={`h-12 w-12 rounded-xl flex items-center justify-center font-medium text-lg transition-all duration-150 active:scale-95 ${
                       isSelected
                         ? `${option.bgColor} text-white`
                         : `bg-transparent border-2 ${option.borderColor} ${option.textColor}`
@@ -357,6 +411,11 @@ export function PriorityAssigneePicker({
       </div>
     </>
   )
+
+  // No document during SSR; the sheet only ever opens from a tap anyway.
+  if (typeof window === 'undefined') return null
+
+  return createPortal(sheet, document.body)
 }
 
 export default PriorityAssigneePicker

@@ -17,7 +17,7 @@
  * modernisation that keeps null working and breaks the only form iOS can send.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/api-auth-wrapper', () => ({
@@ -76,6 +76,25 @@ beforeEach(() => {
   vi.clearAllMocks()
   taskFindUnique.mockResolvedValue(TASK)
   taskUpdate.mockResolvedValue({ ...TASK, lists: TASK.lists, comments: [] })
+})
+
+/**
+ * Warm the route module before the timed tests (task aca946b8).
+ *
+ * Every test here does `await import('@/app/api/v1/tasks/[id]/route')` in its body, so the FIRST one paid
+ * the transform-and-import cost of that whole module graph inside its 5000ms
+ * budget. Alone that is fine; under the full suite it competes with every other
+ * worker for CPU and the first test times out. That is exactly what was
+ * observed — the failing test was always the first in the file, isolation
+ * always passed, and a re-run on the same commit passed with the transform
+ * cache warm.
+ *
+ * Importing here moves the cost out of the assertion window (and a hook gets
+ * the 10s budget rather than a test's 5s). The `await import` calls inside the
+ * tests then hit the module cache and are free.
+ */
+beforeAll(async () => {
+  await import('@/app/api/v1/tasks/[id]/route')
 })
 
 describe('PUT /api/v1/tasks/:id accepts empty string as a clear (task 1e53501f)', () => {

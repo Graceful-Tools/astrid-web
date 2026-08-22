@@ -7,7 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ListSettingsHost } from "./ListSettingsHost"
 import { useLayoutType } from "../../enhanced-task-creation"
 import { AddTaskInput } from "../../add-task-input"
-import { isMobilePhoneDevice } from "@/lib/layout-detection"
+import { getDeviceType, isMobilePhoneDevice, isTouchDevice } from "@/lib/layout-detection"
+import { taskDragCapability } from "@/lib/touch-drag-sort"
+import { PROMOTE_DROP_TARGET_ID } from "@/lib/subtask-promotion"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
 import { TaskViewToggle } from "../Header/TaskViewToggle"
@@ -15,7 +17,9 @@ import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
-import { getProjectStatusLists } from "@/lib/project-status"
+import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
+import { getBoardRowContext, getProjectIdForBoard, getProjectStatusLists } from "@/lib/project-status"
+import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
   Settings,
@@ -261,6 +265,25 @@ export function MainContent({
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
   const savedScrollPositionRef = React.useRef<number>(0)
   const isTouchManualSort = React.useMemo(() => isMobile && isMobilePhoneDevice(), [isMobile])
+  /*
+   * Which drag mechanisms this device can actually drive (see
+   * lib/touch-drag-sort.ts). A tablet gets BOTH: the finger needs the touch
+   * path, the trackpad still needs `draggable`. `isTouchManualSort` above stays
+   * phone-only — it is what turns HTML5 drag OFF, and a tablet must keep it.
+   */
+  const dragCapability = React.useMemo(
+    () =>
+      taskDragCapability({
+        isMobileLayout: Boolean(isMobile),
+        hasPhoneUserAgent: isMobilePhoneDevice(),
+        // No argument: getDeviceType resolves the layout itself. The
+        // useLayoutType() value is a DIFFERENT LayoutType union from this
+        // module's, so passing it through would be a coincidence of names.
+        isTablet: getDeviceType() === 'tablet',
+        hasTouch: isTouchDevice(),
+      }),
+    [isMobile, layoutType],
+  )
   const registerTaskRow = React.useCallback((taskId: string) => (node: HTMLDivElement | null) => {
     if (node) {
       const rect = node.getBoundingClientRect()
@@ -281,14 +304,35 @@ export function MainContent({
     setDraggingTaskMetrics(null)
   }, [handleTaskDragEnd])
 
+  /*
+   * Arriving over the promote strip cancels any pending reorder. The hook only
+   * reports the hover; the reorder target is this component's state, and
+   * without this a finger that grazed a row on its way to the strip would both
+   * unnest the task AND move it.
+   */
+  const handleTouchPromoteHover = React.useCallback(
+    (isOver: boolean) => {
+      if (isOver && dragTargetTaskId) {
+        handleTaskDragLeaveTask(dragTargetTaskId)
+      }
+    },
+    [dragTargetTaskId, handleTaskDragLeaveTask],
+  )
+
   const { startMobileDrag } = useMobileDragSort({
-    isTouchManualSort,
+    // Touch listeners follow the touch capability, not the phone flag — this is
+    // what lets an iPad drag at all.
+    isTouchManualSort: dragCapability.touchDrag,
     manualSortActive,
     activeDragTaskId,
     taskListContainerRef,
     onDragHover: handleTaskDragHover,
     onDragHoverEnd: handleTaskDragHoverEnd,
     onDragEnd: handleMobileDragEnd,
+    onPromoteHover: handleTouchPromoteHover,
+    onDropOnPromoteTarget: () => {
+      void handleTaskDropOnPromoteTarget()
+    },
   })
 
   // Save scroll position when entering task detail view on mobile
@@ -373,6 +417,25 @@ export function MainContent({
     taskDisplayMode: normalizeTaskDisplayMode(taskDisplayMode),
   }
 
+  // The board behind the selected list, or null. Built once for the whole list
+  // rather than per row: every row offers the same columns, and a row that
+  // resolved its current column against a different project than its buttons
+  // came from would render a picker with nothing selected (task 036ef139).
+  //
+  // The project id is resolved first because the custom states are FETCHED by
+  // it, and the row picker has to read them the same way the board does — a
+  // picker built without them offers only the legacy row-backed customs, and
+  // once the rows are dropped, none at all (task 9ddf4a6f).
+  const boardProjectId = React.useMemo(
+    () => getProjectIdForBoard(lists, selectedListId),
+    [lists, selectedListId],
+  )
+  const boardCustomStates = useProjectCustomStates(boardProjectId)
+  const boardRowContext = React.useMemo(
+    () => getBoardRowContext(lists, selectedListId, boardCustomStates),
+    [lists, selectedListId, boardCustomStates],
+  )
+
   // Single source of truth for a task row, shared by the plain and the
   // virtualized (very-long-list) render paths.
   const renderTaskRow = (task: Task) => (
@@ -383,12 +446,14 @@ export function MainContent({
       controller={rowController}
       isMobile={isMobile}
       isTouchManualSort={isTouchManualSort}
+      dragCapability={dragCapability}
       draggingTaskMetrics={draggingTaskMetrics}
       registerTaskRow={registerTaskRow}
       taskMeasurementsRef={taskMeasurementsRef}
       renderManualPlaceholderRow={renderManualPlaceholderRow}
       setDraggingTaskMetrics={setDraggingTaskMetrics}
       startMobileDrag={startMobileDrag}
+      board={boardRowContext}
     />
   )
 
@@ -469,11 +534,16 @@ export function MainContent({
       {/* Task List Area */}
       <div
         ref={taskManagerRef}
-        className={`theme-bg-primary flex flex-col relative z-10 ${
-        isMobile
-          ? 'absolute inset-x-0 bottom-0 transition-all duration-300 ease-in-out'
-          : 'flex-1 min-w-0'
-      }`}
+        /*
+         * The positioning classes come from a helper because this wrapper used
+         * to carry `relative` and `absolute` at once, and `relative` won —
+         * which left the mobile BOARD with no height to size its scrolling
+         * columns against. See lib/task-area-position-classes.ts.
+         */
+        className={`theme-bg-primary flex flex-col z-10 ${taskAreaPositionClasses({
+          isMobile: Boolean(isMobile),
+          boardMode: Boolean(hasProjectBoard && taskViewMode === 'board'),
+        })} ${isMobile ? 'transition-all duration-300 ease-in-out' : ''}`}
       style={{
         // Mobile: offset for floating header (header height + margin)
         top: isMobile ? '0px' : undefined,
@@ -928,6 +998,7 @@ export function MainContent({
                     of a long list. */}
                 {promoteTargetVisible && (
                   <div
+                    id={PROMOTE_DROP_TARGET_ID}
                     data-testid="promote-to-top-level-target"
                     aria-label="Move out of subtask"
                     onDragOver={(event) => event.preventDefault()}

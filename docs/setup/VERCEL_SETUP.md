@@ -1,8 +1,13 @@
-# Vercel Environment Setup for Auto-Deployment
+# Vercel Environment Setup
+
+> **Deploys are manual.** `.github/workflows/production-deployment.yml` is
+> `workflow_dispatch` only — pushing to `main` ships nothing. This page covers the
+> environment the deploy build needs; see
+> [docs/CLI_OPERATIONS.md §0](../CLI_OPERATIONS.md) for the full rule.
 
 ## 🎯 Quick Setup Guide
 
-Your app is now configured to auto-deploy with database migrations! Here's what you need to do:
+The deploy build runs database migrations, so it needs these variables set:
 
 ### 1. Set Environment Variables in Vercel Dashboard
 
@@ -183,9 +188,11 @@ If deployment fails:
 - [ ] Set `NEXTAUTH_URL` (your Vercel app URL)
 - [ ] Set other environment variables as needed
 - [ ] Commit and push your code
-- [ ] Watch Vercel build logs for migration success
+- [ ] **Dispatch the Production Deployment workflow** — pushing does not deploy
+- [ ] Watch the Actions run and Vercel build logs for migration success
 - [ ] Test `/api/health` endpoint
 - [ ] Test core app functionality
 - [ ] Update OAuth redirect URIs if using Google/GitHub auth
 
-Your app is now fully configured for automatic deployments with database migrations! 🚀
+Your app is now configured to run database migrations as part of the deploy build.
+Remember that the deploy itself is manual — see the note at the top of this page. 🚀

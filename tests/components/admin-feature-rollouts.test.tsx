@@ -1,11 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import FeatureRolloutsPage from '@/app/[locale]/admin/features/page'
+import FeatureRolloutPage from '@/app/[locale]/admin/features/[key]/page'
 
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: { user: { id: 'admin-1', email: 'jon@gracefultools.com' } }, status: 'authenticated' }),
 }))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+// The rollout editor is now keyed by the URL (task 3cef96ef), so the route
+// params are part of its contract: without a key it finds no flag.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useParams: () => ({ key: 'google_tasks' }),
+}))
 
 const response = {
   flags: [{
@@ -21,13 +26,13 @@ const response = {
   }],
 }
 
-describe('FeatureRolloutsPage', () => {
+describe('FeatureRolloutPage (per-feature, task 3cef96ef)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => response }))
   })
 
   it('keeps a clearly named save action visible at the top and bottom', async () => {
-    render(<FeatureRolloutsPage />)
+    render(<FeatureRolloutPage />)
     await waitFor(() => expect(screen.getByText('Effective access')).toBeInTheDocument())
     expect(screen.getAllByRole('button', { name: 'Save changes' })).toHaveLength(2)
     expect(screen.getByText('All changes saved')).toBeInTheDocument()
@@ -36,7 +41,7 @@ describe('FeatureRolloutsPage', () => {
   })
 
   it('explains override precedence and effective disabled behavior', async () => {
-    render(<FeatureRolloutsPage />)
+    render(<FeatureRolloutPage />)
     await waitFor(() => expect(screen.getAllByText('Off for everyone. Saved overrides are retained but inactive.')).toHaveLength(2))
     expect(screen.getByText(/Nobody disables access for everyone/)).toBeInTheDocument()
     expect(screen.getByLabelText('Include when active')).toBeInTheDocument()
@@ -56,7 +61,7 @@ describe('FeatureRolloutsPage', () => {
       }),
     }))
 
-    render(<FeatureRolloutsPage />)
+    render(<FeatureRolloutPage />)
 
     await waitFor(() => expect(screen.getByText('Rollout paused')).toBeInTheDocument())
     expect(screen.getByText(/tester@astrid.cc will not receive Google Tasks until master availability is on/i)).toBeInTheDocument()
@@ -77,7 +82,7 @@ describe('FeatureRolloutsPage', () => {
       }),
     }))
 
-    render(<FeatureRolloutsPage />)
+    render(<FeatureRolloutPage />)
 
     await waitFor(() => expect(screen.getByText('Nobody means nobody')).toBeInTheDocument())
     expect(screen.getByText(/saved inclusion is inactive until you select Selected users/i)).toBeInTheDocument()

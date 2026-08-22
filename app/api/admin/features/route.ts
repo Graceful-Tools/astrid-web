@@ -49,10 +49,31 @@ export async function GET() {
     where: { id: { in: userIds } }, select: { id: true, email: true, name: true },
   }) : []
   const usersById = new Map(users.map(user => [user.id, user]))
+
+  // How many people are waiting on each feature. This is the number that tells
+  // an admin which feature to open from the index, so it ships with the list
+  // rather than costing one request per feature to render a badge (task
+  // 3cef96ef).
+  //
+  // PENDING only: granted and declined rows stay as the audit trail, so
+  // counting every row would show a queue that never empties.
+  const pendingByKey = new Map(
+    (
+      await prisma.featureAccessRequest.groupBy({
+        by: ['featureKey'],
+        where: { status: 'PENDING' },
+        _count: { _all: true },
+      })
+    ).map(row => [row.featureKey, row._count._all]),
+  )
+
   return NextResponse.json({
     flags: flags.map(flag => ({
       ...flag,
       targets: flag.targets.map(target => ({ ...target, user: usersById.get(target.userId) ?? null })),
+      // Always a number, including zero — an absent key would make "no
+      // requests" indistinguishable from "the count failed to load".
+      pendingRequests: pendingByKey.get(flag.key) ?? 0,
     })),
   })
 }

@@ -65,6 +65,20 @@ export function verifyClientSecret(secret: string, hash: string): boolean {
   )
 }
 
+export function verifyCodeChallenge(
+  verifier: string,
+  challenge: string,
+  method: string,
+): boolean {
+  if (method !== 'S256' || verifier.length < 43 || verifier.length > 128) {
+    return false
+  }
+  const actual = crypto.createHash('sha256').update(verifier).digest('base64url')
+  const expected = Buffer.from(challenge)
+  const candidate = Buffer.from(actual)
+  return expected.length === candidate.length && crypto.timingSafeEqual(expected, candidate)
+}
+
 /**
  * Generate access token for client credentials flow
  */
@@ -301,7 +315,9 @@ export async function generateAuthorizationCode(
   clientId: string,
   userId: string,
   redirectUri: string,
-  scopes: string[]
+  scopes: string[],
+  codeChallenge?: string,
+  codeChallengeMethod?: string,
 ): Promise<string> {
   const code = `astrid_code_${generateSecureToken(TOKEN_LENGTHS.AUTHORIZATION_CODE)}`
   const expiresAt = new Date(Date.now() + TOKEN_LIFETIMES.AUTHORIZATION_CODE * 1000)
@@ -314,6 +330,8 @@ export async function generateAuthorizationCode(
       userId,
       redirectUri,
       scopes: validScopes,
+      codeChallenge,
+      codeChallengeMethod,
       expiresAt,
     },
   })
@@ -327,7 +345,8 @@ export async function generateAuthorizationCode(
 export async function exchangeAuthorizationCode(
   code: string,
   clientId: string,
-  redirectUri: string
+  redirectUri: string,
+  codeVerifier?: string,
 ): Promise<{
   accessToken: string
   refreshToken: string
@@ -349,6 +368,18 @@ export async function exchangeAuthorizationCode(
   })
 
   if (!authCode) {
+    return null
+  }
+
+  if (
+    authCode.codeChallenge &&
+    (!codeVerifier ||
+      !verifyCodeChallenge(
+        codeVerifier,
+        authCode.codeChallenge,
+        authCode.codeChallengeMethod || '',
+      ))
+  ) {
     return null
   }
 

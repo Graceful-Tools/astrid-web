@@ -1,15 +1,9 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// eslint-config-next 16 ships a native flat config, and ESLint 10 no longer bundles
+// @eslint/eslintrc, so the FlatCompat bridge that used to load "next/core-web-vitals" is
+// both unavailable and unnecessary — the config is imported directly instead.
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
 
 const eslintConfig = [
   {
@@ -26,7 +20,7 @@ const eslintConfig = [
       "public/**"
     ]
   },
-  ...compat.extends("next/core-web-vitals"),
+  ...nextCoreWebVitals,
   {
     plugins: {
       "@typescript-eslint": tsPlugin
@@ -37,6 +31,24 @@ const eslintConfig = [
     rules: {
       "@next/next/no-img-element": "off",
       "react-hooks/exhaustive-deps": "warn",
+
+      // React Compiler rules, new in eslint-config-next 16. They flag 136 pre-existing
+      // findings — 88 of them set-state-in-effect — across ~50 files. Those are worth
+      // fixing, but each one is a behavioural change to a hook, and burying that in a
+      // dependency upgrade is how a framework bump gets blamed for a runtime regression
+      // it did not cause.
+      //
+      // So they run as warnings, exactly like the Phase 0 rollout below: the backlog is
+      // visible, the build is not broken by it, and each rule flips to "error" as its
+      // findings are cleared. Tracked as its own task rather than left as a silent "off".
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/use-memo": "warn",
+      "react-hooks/static-components": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/incompatible-library": "warn",
+      "@next/next/no-location-assign-relative-destination": "warn",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "off"
     }

@@ -29,7 +29,14 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        'bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent',
+        // `--spacing(8)` is Tailwind v4 syntax and this project is on v3.4, so it compiled to
+        // `var(--spacing(8))` — invalid CSS that every browser silently drops, leaving
+        // --cell-size unset and the day cells sized by their content. 2rem is what
+        // `--spacing(8)` means (8 x 0.25rem) and what shadcn intends here.
+        //
+        // Next 16 builds with Turbopack, whose CSS parser rejects this outright rather than
+        // dropping it, which is how a long-standing bug turned into a build failure.
+        'bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent',
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className

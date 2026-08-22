@@ -21,12 +21,15 @@ exactly one place:
 
 ## Critical rules
 
-1. **Vercel auto-deploy is ON — pushing to `main` DEPLOYS TO PRODUCTION.** Treat
-   `git push origin main` as the deploy and get explicit approval for the *push*.
-   Prisma migrations on the branch run during that build with production env, so
-   verify migration impact against production data before pushing.
-   (docs/CLI_OPERATIONS.md §0 — verified 2026-08-01; this rule previously claimed
-   auto-deploy was OFF and was wrong.)
+1. **Production deploys are MANUAL — pushing to `main` does NOT ship.** True by
+   construction since #204 (2026-08-18): `production-deployment.yml` is
+   `workflow_dispatch` only. Deploy from the Actions tab or with
+   `./scripts/deploy-preview.sh --production`; migrations apply during that deploy,
+   so verify their impact against production data first. Do not report work as
+   shipped because you pushed.
+   (docs/CLI_OPERATIONS.md §0 — this rule has been wrong four times, mostly by
+   inferring the trigger from the Vercel deployment list, where Actions builds show
+   as `source=cli`. Read the workflow file and `gh run list`.)
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
 3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits
@@ -47,9 +50,9 @@ exactly one place:
 - Codex reads this file (`AGENTS.md`) automatically; it does **not** use Claude Code's
   `.claude/` permission system. The `npm run validate:settings:fix` step in
   docs/CLI_OPERATIONS.md §3 is Claude-Code-only — skip it under Codex.
-- There is no `codex@astrid.cc` cloud agent. Registered agents are `claude@astrid.cc`,
-  `openai@astrid.cc`, `gemini@astrid.cc`, `openclaw@astrid.cc`. Codex here is a *local*
-  CLI, not a registered task assignee.
+- Local Codex claims only tasks assigned to the distinct brand-derived
+  `codex@<agent-domain>` polling identity. It is not the cloud OpenAI agent
+  (`openai@<agent-domain>`) and must never claim that agent's assignments.
 - Response style: lead with the outcome, reference files as `path:line`, keep turns short.
 
 ---

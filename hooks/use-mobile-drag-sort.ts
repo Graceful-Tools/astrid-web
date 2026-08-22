@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
+import { PROMOTE_DROP_TARGET_ID } from "@/lib/subtask-promotion"
 
 interface UseMobileDragSortOptions {
   /** True when this device should use the touch manual-sort path (phone). */
@@ -15,6 +16,22 @@ interface UseMobileDragSortOptions {
   onDragHoverEnd: () => void
   /** Called on touchend / touchcancel — parent applies the reorder. */
   onDragEnd: () => void
+  /**
+   * Called when the finger moves onto or off the "move out of subtask" strip.
+   *
+   * REPORTING ONLY. The pending reorder target is MainContent's state, not
+   * this hook's, so clearing it on arrival is the parent's call — it already
+   * has handleTaskDragLeaveTask for that. Deciding here would mean guessing at
+   * a target the hook cannot see.
+   */
+  onPromoteHover?: (isOver: boolean) => void
+  /**
+   * Called on touchend while over that strip, before onDragEnd.
+   *
+   * Optional so a caller that has not wired promotion yet keeps today's
+   * behaviour (the drop simply ends the drag) instead of throwing mid-gesture.
+   */
+  onDropOnPromoteTarget?: () => void
 }
 
 interface UseMobileDragSortReturn {
@@ -48,10 +65,14 @@ export function useMobileDragSort(opts: UseMobileDragSortOptions): UseMobileDrag
     onDragHover,
     onDragHoverEnd,
     onDragEnd,
+    onPromoteHover,
+    onDropOnPromoteTarget,
   } = opts
 
   const [mobileDragState, setMobileDragState] = useState<{ taskId: string } | null>(null)
   const mobileDragTouchIdRef = useRef<number | null>(null)
+  /** Whether the finger is currently over the promote strip. */
+  const overPromoteTargetRef = useRef(false)
 
   const startMobileDrag = useCallback((taskId: string, touchIdentifier: number) => {
     mobileDragTouchIdRef.current = touchIdentifier
@@ -63,6 +84,7 @@ export function useMobileDragSort(opts: UseMobileDragSortOptions): UseMobileDrag
     if (!activeDragTaskId) {
       setMobileDragState(null)
       mobileDragTouchIdRef.current = null
+      overPromoteTargetRef.current = false
     }
   }, [activeDragTaskId])
 
@@ -71,6 +93,7 @@ export function useMobileDragSort(opts: UseMobileDragSortOptions): UseMobileDrag
     if ((!manualSortActive || !isTouchManualSort) && mobileDragState) {
       setMobileDragState(null)
       mobileDragTouchIdRef.current = null
+      overPromoteTargetRef.current = false
     }
   }, [manualSortActive, isTouchManualSort, mobileDragState])
 
@@ -102,6 +125,21 @@ export function useMobileDragSort(opts: UseMobileDragSortOptions): UseMobileDrag
       event.preventDefault()
 
       const targetElement = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null
+
+      // The promote strip is checked FIRST and returns early. It sits inside
+      // the list, so a finger over it is not over a row, and treating it as a
+      // reorder hover would arm a move the user did not ask for.
+      const overPromoteTarget = Boolean(
+        targetElement?.closest(`#${PROMOTE_DROP_TARGET_ID}`),
+      )
+      if (overPromoteTarget !== overPromoteTargetRef.current) {
+        overPromoteTargetRef.current = overPromoteTarget
+        onPromoteHover?.(overPromoteTarget)
+      }
+      if (overPromoteTarget) {
+        return
+      }
+
       if (targetElement) {
         const taskElement = targetElement.closest<HTMLElement>("[data-task-id]")
         if (taskElement) {
@@ -140,8 +178,18 @@ export function useMobileDragSort(opts: UseMobileDragSortOptions): UseMobileDrag
         return
       }
       event.preventDefault()
+
+      // Drop THEN end, the same order the HTML5 path fires drop and dragend in.
+      // onDragEnd still runs on a promote drop: it is what clears
+      // activeDragTaskId and the row's opacity-0 flight state, so skipping it
+      // would leave the row invisible after a successful move.
+      const promoted = overPromoteTargetRef.current
+      overPromoteTargetRef.current = false
       setMobileDragState(null)
       mobileDragTouchIdRef.current = null
+      if (promoted) {
+        onDropOnPromoteTarget?.()
+      }
       onDragEnd()
     }
 
@@ -163,6 +211,8 @@ export function useMobileDragSort(opts: UseMobileDragSortOptions): UseMobileDrag
     onDragHover,
     onDragHoverEnd,
     onDragEnd,
+    onPromoteHover,
+    onDropOnPromoteTarget,
   ])
 
   return { startMobileDrag }

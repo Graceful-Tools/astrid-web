@@ -22,6 +22,12 @@
 import { execSync, spawn } from 'child_process'
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import path from 'path'
+import {
+  DEPLOY_MONITOR_TAG,
+  deploymentFingerprint,
+  isDeploymentMonitorTask,
+  selectResolvableTasks,
+} from './lib/deployment-monitor-tasks'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
@@ -144,8 +150,16 @@ class VercelLogMonitor {
     try {
       console.log(`📝 Updating Astrid task: ${taskId}`)
 
+      // PUT, not PATCH: app/api/v1/tasks/[id] exports GET, PUT and DELETE, so
+      // every PATCH returned 405 and no completion ever landed. The route
+      // applies only the fields present in the body — listIds is untouched when
+      // absent — so a partial update is safe.
+      //
+      // ORDER MATTERS: this was fixed only alongside the filter tightening
+      // above. On its own it would have converted a harmless 405 into silently
+      // closing real bugs.
       const response = await fetch(`https://astrid.cc/api/v1/tasks/${taskId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'X-OAuth-Token': token,
           'Content-Type': 'application/json'
@@ -228,11 +242,13 @@ class VercelLogMonitor {
       const tasks = data.tasks || []
 
       // Look for existing deployment tasks with similar error patterns
+      // Same tightening as resolveDeploymentTasks: identify our own tasks by
+      // the marker, not by common words. Less dangerous here because it is
+      // ANDed with an error-pattern match and only leads to an update rather
+      // than a completion — but it is the same mistake, so it goes too.
       const existingTask = tasks.find((task: any) =>
         !task.completed &&
-        (task.title.toLowerCase().includes('deployment') ||
-         task.title.toLowerCase().includes('build') ||
-         task.title.toLowerCase().includes('vercel')) &&
+        isDeploymentMonitorTask(task) &&
         (task.title.toLowerCase().includes(errorPattern.toLowerCase()) ||
          task.description?.toLowerCase().includes(errorPattern.toLowerCase()))
       )
@@ -247,7 +263,15 @@ class VercelLogMonitor {
   /**
    * Get recent deployments from Vercel
    */
-  async getRecentDeployments(): Promise<VercelDeployment[]> {
+  /**
+   * Recent deployments, or NULL when Vercel could not be reached.
+   *
+   * Null rather than `[]` because the two mean opposite things and this method
+   * used to conflate them (task aee6ce0d): a missing CLI, an expired token or a
+   * Vercel outage all returned an empty array, which monitor() read as "nothing
+   * failed" and acted on by closing the tasks tracking a real failure.
+   */
+  async getRecentDeployments(): Promise<VercelDeployment[] | null> {
     console.log('📡 Fetching recent Vercel deployments...')
 
     try {
@@ -309,7 +333,8 @@ class VercelLogMonitor {
       return deployments
     } catch (error) {
       console.error('❌ Failed to fetch deployments:', error)
-      return []
+      // NOT `[]`. An unfetchable list is not an empty one.
+      return null
     }
   }
 
@@ -608,13 +633,10 @@ vercel logs <deployment-url>
       const tasks = data.tasks || []
 
       // Find deployment failure tasks that are still open
-      const deploymentTasks = tasks.filter((task: any) =>
-        !task.completed &&
-        (task.title.toLowerCase().includes('deployment failure') ||
-         task.title.toLowerCase().includes('deployment monitoring') ||
-         task.title.toLowerCase().includes('vercel') ||
-         task.title.toLowerCase().includes('build'))
-      )
+      // Match the marker this script WRITES, never the words a human might
+      // type (task d893debc). The old substring match on 'build' selected a
+      // substantive open task about iOS adoption and commented on it.
+      const deploymentTasks = selectResolvableTasks(tasks as any[])
 
       if (deploymentTasks.length === 0) {
         console.log('ℹ️  No deployment issue tasks found to resolve')
@@ -661,13 +683,31 @@ The automated deployment monitoring system has confirmed that deployments are no
     try {
       // Get recent deployments
       const deployments = await this.getRecentDeployments()
+
+      // COULD NOT FETCH is not GOOD NEWS (task aee6ce0d). Saying nothing about
+      // deployment health is the only honest outcome here, and the run has to
+      // go red: this is on push-to-main and hourly cron, so a silent exit 0
+      // means an expired token hides a real production failure indefinitely.
+      if (deployments === null) {
+        console.error('❌ Could not reach Vercel — not asserting deployment health')
+        process.exitCode = 1
+        return
+      }
+
       const failedDeployments = deployments.filter(d => d.status === 'Error')
 
       if (failedDeployments.length === 0) {
         console.log('✅ No failed deployments found!')
 
-        // Mark any existing deployment issue tasks as resolved since deployments are healthy
-        await this.resolveDeploymentTasks()
+        // Mark any existing deployment issue tasks as resolved since deployments
+        // are healthy — but only when this run is allowed to change things.
+        // `--no-fix` is an audit, and an audit must not comment on and complete
+        // real tasks; it previously suppressed CODE fixes only.
+        if (applyFixes) {
+          await this.resolveDeploymentTasks()
+        } else {
+          console.log('ℹ️ --no-fix: leaving deployment issue tasks untouched')
+        }
         return
       }
 
@@ -722,7 +762,11 @@ ${logs.slice(0, 1000)}...
 
               const title = `🚨 Deployment Failure: ${finding.pattern.description}`
 
-              const description = `## Deployment Error Details
+              // Machine-readable marker FIRST, so a later run can recognise
+              // this task without guessing from its wording (task d893debc).
+              const description = `${deploymentFingerprint(deployment.url)}
+
+## Deployment Error Details
 
 **First Detected**: ${new Date().toLocaleString()}
 **Deployment**: ${deployment.url}
@@ -787,7 +831,9 @@ ${applyFixes && finding.pattern.autoFix ? '🔧 Auto-fix will be attempted by mo
 
           // Create a general investigation task for unknown errors
           const title = `🔍 Unknown Deployment Failure`
-          const description = `## Unknown Deployment Error
+          const description = `${deploymentFingerprint(deployment.url)}
+
+## Unknown Deployment Error
 
 **Detected**: ${new Date().toLocaleString()}
 **Deployment**: ${deployment.url}
