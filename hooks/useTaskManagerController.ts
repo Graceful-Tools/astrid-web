@@ -6,6 +6,7 @@ import { useTaskOperations } from "@/hooks/useTaskOperations"
 import { playTaskCompleteSound } from "@/lib/task-sounds"
 import { indentTask, outdentTask } from "@/lib/subtask-nesting"
 import { useFilterState } from "@/hooks/useFilterState"
+import { useTaskSearch } from "@/hooks/use-task-search"
 import {
   shouldShowCompletedByFilter,
   type RecentlyCompletedWindow,
@@ -244,6 +245,7 @@ export function useTaskManagerController({
       return workingOrder.length > 0 ? workingOrder : undefined
     }, [listState.lists, myTasksPreferences.filters.manualSortOrder, listState.tasks, listState.currentUserId])
   })
+  const taskSearch = useTaskSearch(newFilterState.filters.search)
 
   const manualSortActive = useMemo(() => {
     if (!navigationState.selectedListId) return false
@@ -285,6 +287,7 @@ export function useTaskManagerController({
     try {
       const currentList = listState.lists.find(l => l.id === navigationState.selectedListId)
       let filtered = [...listState.finalTasks]
+      const isUniversalSearch = newFilterState.filters.search.trim().length > 0
 
       // Subtasks never render as top-level rows; in "indented" display mode
       // they're spliced under their parent after filtering (below).
@@ -296,10 +299,14 @@ export function useTaskManagerController({
           subtasksByParent.set(t.parentTaskId, arr)
         }
       }
-      filtered = filtered.filter(t => !t.parentTaskId)
+      if (!isUniversalSearch) {
+        filtered = filtered.filter(t => !t.parentTaskId)
+      }
 
-      // Check if we're in universal search mode
-      const isUniversalSearch = newFilterState.filters.search.trim().length > 0
+      if (isUniversalSearch) {
+        const matchingTaskIds = new Set(taskSearch.taskIds)
+        filtered = filtered.filter(task => matchingTaskIds.has(task.id))
+      }
 
       // Skip list pre-filtering if in universal search mode
       if (!isUniversalSearch) {
@@ -333,7 +340,8 @@ export function useTaskManagerController({
         effectiveSession?.user?.id,
         listState.lists,
         !isUniversalSearch,
-        false
+        false,
+        isUniversalSearch
       )
 
       // Indented display (default): splice each visible parent's subtasks
@@ -343,7 +351,7 @@ export function useTaskManagerController({
       // Whether to splice at all combines the per-list showSubtasks toggle
       // with the user's subtaskDisplay — one rule, one module, so iOS ports
       // it rather than re-deriving it (task dce843a1).
-      if (shouldShowSubtasksInList(currentList?.showSubtasks, subtaskDisplay) && subtasksByParent.size > 0) {
+      if (!isUniversalSearch && shouldShowSubtasksInList(currentList?.showSubtasks, subtaskDisplay) && subtasksByParent.size > 0) {
         const window = (currentList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
         const mode = newFilterState.filters.completed as CompletionFilterMode
         const now = new Date()
@@ -369,7 +377,7 @@ export function useTaskManagerController({
       console.error("Error filtering tasks:", error)
       return listState.finalTasks
     }
-  }, [listState.finalTasks, listState.lists, navigationState.selectedListId, effectiveSession?.user?.id, newFilterState, subtaskDisplay])
+  }, [listState.finalTasks, listState.lists, navigationState.selectedListId, effectiveSession?.user?.id, newFilterState, subtaskDisplay, taskSearch.taskIds])
 
   // Selected task
   const selectedTask = useMemo(() => {
@@ -1517,7 +1525,7 @@ export function useTaskManagerController({
     publicLists: listState.publicLists,
     collaborativePublicLists: listState.collaborativePublicLists,
     suggestedPublicLists: listState.suggestedPublicLists,
-    loading: listState.loading,
+    loading: listState.loading || taskSearch.isSearching,
     isCreatingTask,
     selectedTaskId,
     isTaskPaneClosing: taskPaneState.isTaskPaneClosing,
