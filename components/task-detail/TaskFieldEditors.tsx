@@ -12,12 +12,13 @@ import { UserPicker } from "@/components/user-picker"
 import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { selectableLists } from "@/lib/status-lists"
+import { filterLabelLists, isLabelList } from "@/lib/list-flavors"
 import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
-import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, List as ListIcon, FileText as FileTextIcon, User as UserIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, List as ListIcon, FileText as FileTextIcon, Tag, User as UserIcon } from "lucide-react"
 import { format } from "date-fns"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { formatDateForDisplay } from "@/lib/date-utils"
@@ -434,11 +435,10 @@ export function TaskFieldEditors({
   // List filtering
   const getFilteredLists = () => {
     const selectedListIds = new Set(tempLists.map(l => l.id))
-    // selectableLists drops status lists (a state, not a destination) and
-    // labels as well as virtual lists. This previously filtered only virtual
-    // lists, so a user with two boards was offered nine status lists here —
-    // three "Ready", three "Doing", three "Waiting".
-    return selectableLists(availableLists)
+    // Domain lists remain task destinations; label lists are tags that can also
+    // be applied here. Both exclude virtual/status machinery.
+    const labels = filterLabelLists(availableLists).filter(list => !(list as { isVirtual?: boolean }).isVirtual)
+    return [...selectableLists(availableLists), ...labels]
       .filter(list => !selectedListIds.has(list.id))
       .filter(list => {
         if (!listSearchTerm) return true
@@ -448,7 +448,9 @@ export function TaskFieldEditors({
   }
 
   const getListPrivacyIcon = (list: any, useWhiteColor = false) => {
-    if (list.privacy === 'PUBLIC') {
+    if (isLabelList(list)) {
+      return <Tag className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} style={useWhiteColor ? undefined : { color: list.color || '#3b82f6' }} />
+    } else if (list.privacy === 'PUBLIC') {
       return <Globe className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} />
     } else if (list.privacy === 'SHARED') {
       return <Users className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} />
