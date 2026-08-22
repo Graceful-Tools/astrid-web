@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import { createLogger } from "@/lib/logger"
-import { addUserStatus } from "@/lib/projects-service"
+import { addUserStatus, renameUserStatus } from "@/lib/projects-service"
 import { prisma } from "@/lib/prisma"
 
 const log = createLogger("api.statuses")
@@ -18,10 +18,10 @@ export const dynamic = "force-dynamic"
  * the board being rendered. Only the three default roles are per-user
  * singletons that appear everywhere.
  *
- * The state is stored on `Project.customStates` (AWTD-562); the
- * `listType: 'status'` row is written alongside it only while the board still
- * renders columns from list rows. `state` is the durable half of the response
- * and `list` is the transitional one — new clients should read `state`.
+ * The state is stored on `Project.customStates` (AWTD-562) and nowhere else.
+ * Stage D (task b7b0c2f5) deleted the `listType: 'status'` rows this used to
+ * write alongside it, so the response carries `state` only — the `list` half
+ * is gone with the rows.
  *
  * Body: { name, projectId }. Rename/reorder use PUT /api/lists/[id].
  */
@@ -67,9 +67,73 @@ export async function POST(request: NextRequest) {
       log.error({ err: error }, "Failed to invalidate user lists cache")
     }
 
-    return NextResponse.json({ list: result.list, state: result.state })
+    return NextResponse.json({ state: result.state })
   } catch (error) {
     log.error({ err: error }, "Error adding custom status:")
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+/**
+ * Rename a board's custom status column.
+ *
+ * Body: { role, name, projectId }. The role is preserved across the rename —
+ * tasks point at their column by `statusRole`, so minting a new one would
+ * orphan every card in it.
+ *
+ * Only CUSTOM columns are renameable: the three defaults are config shared by
+ * every board (task b7b0c2f5). `renameCustomState` reports those as not-found,
+ * because they are not in `customStates` at all.
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getUnifiedSession(request)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const role = typeof body.role === "string" ? body.role : ""
+    const name = typeof body.name === "string" ? body.name : ""
+    const projectId = typeof body.projectId === "string" ? body.projectId : ""
+
+    if (!projectId) {
+      return NextResponse.json({ error: "A status must belong to a board" }, { status: 400 })
+    }
+    if (!role) {
+      return NextResponse.json({ error: "Which status to rename is required" }, { status: 400 })
+    }
+
+    // Same authorization as POST: projectId arrives from the client, so the
+    // board is what gets checked, not merely being signed in.
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { ownerId: true },
+    })
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+    if (project.ownerId !== session.user.id) {
+      return NextResponse.json({ error: "Only the board owner can rename a status" }, { status: 403 })
+    }
+
+    const result = await renameUserStatus(session.user.id, role, name, projectId)
+
+    if ("error" in result) {
+      const status = result.error === "duplicate" ? 409 : result.error === "not_found" ? 404 : 400
+      return NextResponse.json({ error: result.message }, { status })
+    }
+
+    try {
+      await RedisCache.invalidate.userListsAllVersions(session.user.id)
+    } catch (error) {
+      log.error({ err: error }, "Failed to invalidate user lists cache")
+    }
+
+    return NextResponse.json({ state: result.state })
+  } catch (error) {
+    log.error({ err: error }, "Error renaming custom status:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

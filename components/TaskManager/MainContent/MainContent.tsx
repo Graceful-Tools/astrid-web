@@ -18,7 +18,7 @@ import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { ProjectStatusBoard } from "@/components/project-status-board"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
-import { getBoardRowContext, getProjectIdForBoard, getProjectStatusLists } from "@/lib/project-status"
+import { getBoardRowContext, getProjectIdForBoard } from "@/lib/project-status"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
@@ -436,6 +436,14 @@ export function MainContent({
     [lists, selectedListId, boardCustomStates],
   )
 
+  // The Statuses settings tab manages the SAME columns the board renders. It
+  // used to be handed the `listType: 'status'` rows; Stage D deleted them, and
+  // a panel still reading rows would show an empty tab (task b7b0c2f5).
+  const boardStatusColumns = React.useMemo(
+    () => (boardRowContext?.columns ?? []).filter(column => column.kind === 'status'),
+    [boardRowContext],
+  )
+
   // Single source of truth for a task row, shared by the plain and the
   // virtualized (very-long-list) render paths.
   const renderTaskRow = (task: Task) => (
@@ -806,7 +814,7 @@ export function MainContent({
               isViewingFromFeatured={isViewingFromFeatured}
               selectedListInfo={getSelectedListInfo()}
               filterState={newFilterState}
-              statuses={getProjectStatusLists(lists, lists.find(l => l.id === selectedListId)?.projectId)}
+              statuses={boardStatusColumns}
               onEditImage={handleListImageClick}
               onLeave={handleLeaveList}
               onListUpdate={onListUpdate}
@@ -1078,7 +1086,7 @@ export function MainContent({
               isViewingFromFeatured={isViewingFromFeatured}
               selectedListInfo={getSelectedListInfo()}
               filterState={newFilterState}
-              statuses={getProjectStatusLists(lists, lists.find(l => l.id === selectedListId)?.projectId)}
+              statuses={boardStatusColumns}
               onEditImage={handleListImageClick}
               onLeave={handleLeaveList}
               onListUpdate={onListUpdate}

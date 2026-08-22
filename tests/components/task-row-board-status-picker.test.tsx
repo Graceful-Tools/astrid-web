@@ -54,13 +54,13 @@ function list(overrides: Partial<TaskList> & { id: string; name: string }): Task
 
 const PROJECT_ID = 'project-1'
 const boardList = list({ id: 'board-list', name: 'Launch', projectId: PROJECT_ID, listType: 'regular' })
-const ready = list({ id: 'ready', name: 'Ready', projectId: null, listType: 'status', statusRole: 'ready', statusOrder: 0 })
-const doing = list({ id: 'doing', name: 'Doing', projectId: null, listType: 'status', statusRole: 'doing', statusOrder: 1 })
-const waiting = list({ id: 'waiting', name: 'Waiting', projectId: null, listType: 'status', statusRole: 'waiting', statusOrder: 2 })
-// A per-project custom column — the thing boardColumnsFor(null) cannot know about.
-const blocked = list({ id: 'blocked', name: 'Blocked', projectId: PROJECT_ID, listType: 'status', statusRole: 'blocked', statusOrder: 3 })
 
-const LISTS = [boardList, ready, doing, waiting, blocked]
+const LISTS = [boardList]
+
+// A per-project custom column — the thing boardColumnsFor(null) cannot know
+// about. It lives on the project since Stage D (task b7b0c2f5); there is no
+// `listType: 'status'` row behind it any more.
+const CUSTOM_STATES = [{ role: 'custom-blocked', name: 'Blocked', order: 0 }]
 
 const task = {
   id: 'task-1',
@@ -114,7 +114,7 @@ function makeProps(overrides: Partial<TaskRowProps> = {}): TaskRowProps {
 const boardContext = {
   projectId: PROJECT_ID,
   lists: LISTS,
-  columns: getProjectBoardColumns(LISTS, PROJECT_ID),
+  columns: getProjectBoardColumns(CUSTOM_STATES),
 }
 
 function tapTheLeadingControl(container: HTMLElement) {
@@ -156,9 +156,10 @@ describe('a board list in list view (task 036ef139)', () => {
     const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(updated.statusRole).toBe('doing')
     expect(updated.completed).toBe(false)
-    // Routed through resolveProjectColumnMove, so the backing list membership
-    // moves with the state exactly as a drag would leave it.
-    expect(updated.lists.map((entry: TaskList) => entry.id)).toEqual(['board-list', 'doing'])
+    // Routed through resolveProjectColumnMove, so the row and a drag leave the
+    // task identically — and neither adds a status membership, because the
+    // rows a membership could point at no longer exist.
+    expect(updated.lists.map((entry: TaskList) => entry.id)).toEqual(['board-list'])
   })
 
   it('marks the task complete when Done is chosen', () => {
@@ -176,14 +177,12 @@ describe('a board list in list view (task 036ef139)', () => {
 })
 
 describe('a custom state with no backing list (task 9ddf4a6f)', () => {
-  // The population Stage D creates, and the one every board reaches once the
-  // `listType: 'status'` rows are dropped: the custom column exists ONLY in
-  // `Project.customStates`. The fixtures above cannot catch a picker that
-  // ignores the project's states, because their "Blocked" is a legacy status
-  // row that renders either way — which is how getBoardRowContext shipped
-  // dropping the states without a red test.
-  const listsWithoutTheRow = [boardList, ready, doing, waiting]
-  const CUSTOM_STATES = [{ role: 'blocked', name: 'Blocked', order: 0 }]
+  // Every board is this population now: the custom column exists ONLY in
+  // `Project.customStates`. This suite was added because the original
+  // fixtures could not catch a picker that ignores the project's states —
+  // their "Blocked" was a legacy status row that rendered either way, which
+  // is how getBoardRowContext shipped dropping the states without a red test.
+  const listsWithoutTheRow = [boardList]
 
   it("offers the project's custom state, built the way MainContent builds it", () => {
     const board = getBoardRowContext(listsWithoutTheRow, 'board-list', CUSTOM_STATES)
@@ -204,7 +203,7 @@ describe('a custom state with no backing list (task 9ddf4a6f)', () => {
     fireEvent.click(within(group).getByRole('button', { name: 'Blocked' }))
 
     const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
-    expect(updated.statusRole).toBe('blocked')
+    expect(updated.statusRole).toBe('custom-blocked')
     // No row backs the state, so there is no status membership to add — the
     // board membership must survive on its own.
     expect(updated.lists.map((entry: TaskList) => entry.id)).toEqual(['board-list'])

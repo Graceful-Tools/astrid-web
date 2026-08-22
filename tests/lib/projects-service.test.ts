@@ -70,80 +70,12 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('ensureUserStatusLists', () => {
-  it('creates all three global status lists when the user has none', async () => {
-    mockFindMany
-      .mockResolvedValueOnce([] as any) // existing lookup
-      .mockResolvedValueOnce([ // final ordered fetch
-        statusRow('ready', 0),
-        statusRow('doing', 1),
-        statusRow('waiting', 2),
-      ] as any)
-
-    const result = await ensureUserStatusLists('user-1')
-
-    expect(mockCreateMany).toHaveBeenCalledTimes(1)
-    const created = (mockCreateMany.mock.calls[0][0] as any).data
-    expect(created.map((row: any) => row.statusRole)).toEqual(['ready', 'doing', 'waiting'])
-    // Per-user global: projectId null, owned by the user.
-    expect(created.every((row: any) => row.projectId === null)).toBe(true)
-    expect(created.every((row: any) => row.ownerId === 'user-1')).toBe(true)
-    expect(created.every((row: any) => row.listType === 'status')).toBe(true)
-    expect(result).toHaveLength(3)
-  })
-
-  it('only creates the roles the user is missing', async () => {
-    mockFindMany
-      .mockResolvedValueOnce([statusRow('ready', 0)] as any)
-      .mockResolvedValueOnce([
-        statusRow('ready', 0),
-        statusRow('doing', 1),
-        statusRow('waiting', 2),
-      ] as any)
-
-    await ensureUserStatusLists('user-1')
-
-    const created = (mockCreateMany.mock.calls[0][0] as any).data
-    expect(created.map((row: any) => row.statusRole)).toEqual(['doing', 'waiting'])
-  })
-
-  it('is idempotent — creates nothing when all three already exist', async () => {
-    const all = [statusRow('ready', 0), statusRow('doing', 1), statusRow('waiting', 2)]
-    mockFindMany
-      .mockResolvedValueOnce(all as any)
-      .mockResolvedValueOnce(all as any)
-
-    await ensureUserStatusLists('user-1')
-
-    expect(mockCreateMany).not.toHaveBeenCalled()
-  })
-
-  it('runs its DB work against the supplied transaction client', async () => {
-    const tx = {
-      taskList: {
-        findMany: vi.fn()
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([statusRow('ready', 0)]),
-        createMany: vi.fn(),
-      },
-    }
-
-    await ensureUserStatusLists('user-1', tx as any)
-
-    expect(tx.taskList.findMany).toHaveBeenCalled()
-    expect(tx.taskList.createMany).toHaveBeenCalled()
-    // The top-level client must not be touched when a tx client is passed.
-    expect(mockFindMany).not.toHaveBeenCalled()
-    expect(mockCreateMany).not.toHaveBeenCalled()
-  })
-})
-
 describe('listProjectsForUser', () => {
-  it('embeds the per-user global status lists into every project\'s list set', async () => {
-    // Status lists are projectId:null so they are not in any project's
-    // `lists` relation — listProjectsForUser must merge them in.
-    const status = [statusRow('ready', 0), statusRow('doing', 1), statusRow('waiting', 2)]
-    mockFindMany.mockResolvedValue(status as any)
+  it('returns each project with only its own lists', async () => {
+    // It used to fetch the per-user `listType: 'status'` rows and append them
+    // to every project, so each board carried its columns as list rows. Stage
+    // D (task b7b0c2f5) made columns config, so there is nothing to merge —
+    // and, critically, this read no longer writes.
     mockProjectFindMany.mockResolvedValue([
       { id: 'p1', name: 'Board A', lists: [{ id: 'domain-a', listType: 'regular' }] },
       { id: 'p2', name: 'Board B', lists: [] },
@@ -152,13 +84,20 @@ describe('listProjectsForUser', () => {
     const projects = await listProjectsForUser('user-1')
 
     expect(projects).toHaveLength(2)
-    // Each project keeps its own domain lists AND the 3 shared statuses.
-    expect(projects[0].lists.map((l: any) => l.id)).toEqual([
-      'domain-a', 'ready', 'doing', 'waiting',
-    ])
-    expect(projects[1].lists.map((l: any) => l.id)).toEqual([
-      'ready', 'doing', 'waiting',
-    ])
+    expect(projects[0].lists.map((l: any) => l.id)).toEqual(['domain-a'])
+    expect(projects[1].lists).toEqual([])
+  })
+
+  it('never writes on a plain read', async () => {
+    // The lazy backfill that used to live here re-seeded the status rows on an
+    // ordinary "list my projects" call — which would have undone the migration
+    // within minutes of the deploy.
+    mockProjectFindMany.mockResolvedValue([{ id: 'p1', name: 'Board A', lists: [] }] as any)
+
+    await listProjectsForUser('user-1')
+
+    expect(mockCreateMany).not.toHaveBeenCalled()
+    expect(mockListCreate).not.toHaveBeenCalled()
   })
 })
 
@@ -167,18 +106,24 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
   const PROJECT = 'project-1'
 
   /**
-   * A custom state is now stored on `Project.customStates` and the legacy
-   * `listType: 'status'` row is written alongside it, in one transaction,
-   * until the board reads the project instead of the rows (AWTD-562). So the
-   * project has to exist and the transaction has to actually run its callback.
+   * A custom state lives on `Project.customStates` and nowhere else since
+   * Stage D (task b7b0c2f5), so the board has to exist and there is exactly
+   * one write. The transaction this used to need existed only to keep the
+   * legacy row and the JSON in lockstep.
    */
   beforeEach(() => {
     vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: null } as never)
-    vi.mocked(prisma.$transaction).mockImplementation((async (fn: unknown) =>
-      typeof fn === 'function'
-        ? await (fn as (tx: unknown) => unknown)(prisma)
-        : fn) as never)
+    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
   })
+
+  /** The `customStates` the writer will be handed for this board. */
+  const boardWith = (...states: Array<{ role: string; name: string; order: number }>) => {
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: states } as never)
+  }
+
+  /** What was written to `Project.customStates`. */
+  const written = () =>
+    (vi.mocked(prisma.project.update).mock.calls[0]?.[0] as any)?.data?.customStates
 
   it('rejects an empty name', async () => {
     expect(await addUserStatus(USER, '   ', PROJECT)).toMatchObject({ error: 'invalid' })
@@ -186,125 +131,92 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
   })
 
   it('rejects a duplicate name (case-insensitive)', async () => {
-    mockFindMany.mockResolvedValue([
-      { name: 'Ready', statusOrder: 0, statusRole: 'ready' },
-    ] as never)
-    expect(await addUserStatus(USER, ' ready ', PROJECT)).toMatchObject({ error: 'duplicate' })
-    expect(mockListCreate).not.toHaveBeenCalled()
+    boardWith({ role: 'custom-blocked', name: 'Blocked', order: 0 })
+    expect(await addUserStatus(USER, ' blocked ', PROJECT)).toMatchObject({ error: 'duplicate' })
+    expect(prisma.project.update).not.toHaveBeenCalled()
   })
 
-  it('appends after the highest statusOrder with a unique custom role', async () => {
-    mockFindMany.mockResolvedValue([
-      { name: 'Ready', statusOrder: 0, statusRole: 'ready' },
-      { name: 'Doing', statusOrder: 1, statusRole: 'doing' },
-      { name: 'Waiting', statusOrder: 2, statusRole: 'waiting' },
-    ] as never)
-    mockListCreate.mockResolvedValue({ id: 'new', name: 'Blocked' } as never)
+  it('appends after the existing states with a unique custom role', async () => {
+    boardWith({ role: 'custom-first', name: 'First', order: 0 })
 
     const result = await addUserStatus(USER, '  Blocked  ', PROJECT)
-    expect('list' in result && result.list).toMatchObject({ id: 'new' })
-    const data = (mockListCreate.mock.calls[0][0] as any).data
-    expect(data).toMatchObject({
-      name: 'Blocked',
-      ownerId: USER,
-      listType: 'status',
-      statusOrder: 3,
-      statusRole: 'custom-blocked',
-    })
+
+    expect(written()).toMatchObject([
+      { role: 'custom-first', name: 'First' },
+      { role: 'custom-blocked', name: 'Blocked' },
+    ])
     if ('userIdsToInvalidate' in result) {
       expect([...result.userIdsToInvalidate]).toEqual([USER])
     }
   })
 
-  it('REGRESSION (task 109d8a91): writes the project id the reader requires', async () => {
-    // 05dc842 scoped the READER to per-project (statusListsForUser keeps a
-    // custom role only when list.projectId === projectId) and left the writer
-    // on projectId: null. The two can never agree, so every custom status was
-    // created and then rendered on no board at all — including the one it was
-    // added from.
-    mockFindMany.mockResolvedValue([] as never)
-    mockListCreate.mockResolvedValue({ id: 'new' } as never)
-
+  it('REGRESSION (task 109d8a91): the state is stored on THIS board', async () => {
+    // 05dc842 scoped the reader per-project and left the writer on
+    // projectId: null, so every custom status was created and then rendered on
+    // no board at all. Storing it on the project makes the two agree by
+    // construction — there is no second place for it to go.
     await addUserStatus(USER, 'Blocked', PROJECT)
 
-    const data = (mockListCreate.mock.calls[0][0] as any).data
-    expect(data.projectId).toBe(PROJECT)
+    const update = vi.mocked(prisma.project.update).mock.calls[0]?.[0] as any
+    expect(update.where).toMatchObject({ id: PROJECT })
   })
 
   it('REGRESSION (task 109d8a91): a status added on one board is not offered on another', async () => {
-    // The duplicate check must look at THIS project's statuses, not every
-    // status the user owns — otherwise adding "Blocked" to board B is refused
-    // because board A already has one.
-    mockFindMany.mockResolvedValue([] as never)
-    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+    // The duplicate check reads THIS board's states. Adding "Blocked" to board
+    // B must not be refused because board A already has one.
+    boardWith()
 
-    await addUserStatus(USER, 'Blocked', PROJECT)
-
-    const where = (mockFindMany.mock.calls.at(-1)![0] as any).where
-    expect(where).toMatchObject({ ownerId: USER, listType: 'status' })
-    expect(where.OR ?? where.projectId).toBeDefined()
+    expect(await addUserStatus(USER, 'Blocked', PROJECT)).toMatchObject({
+      state: { name: 'Blocked' },
+    })
   })
 
   it('refuses to create a custom status with no project to hang it on', async () => {
-    // Without a project the row is unreachable by the reader, which is the bug
-    // this task exists for. Fail loudly instead of writing an inert row.
+    // `customStates` is a column on the board. Without one there is nowhere to
+    // store the state — fail loudly instead of writing an inert status.
     expect(await addUserStatus(USER, 'Blocked', '')).toMatchObject({ error: 'invalid' })
-    expect(mockListCreate).not.toHaveBeenCalled()
+    expect(prisma.project.update).not.toHaveBeenCalled()
   })
 
-  it('stores the state on the project, not only as a list row (AWTD-562)', async () => {
-    // The durable home for a custom column is `Project.customStates`. The row
-    // is transitional; if only the row were written the state would vanish
-    // with it when the status lists are dropped.
-    mockFindMany.mockResolvedValue([] as never)
-    mockListCreate.mockResolvedValue({ id: 'new' } as never)
-
+  it('stores the state on the project and writes no list row (AWTD-562)', async () => {
     await addUserStatus(USER, 'Blocked', PROJECT)
 
     const update = vi.mocked(prisma.project.update).mock.calls[0]?.[0] as any
     expect(update, 'the custom state was never written to the project').toBeDefined()
-    expect(update.where).toMatchObject({ id: PROJECT })
     expect(update.data.customStates).toMatchObject([{ role: 'custom-blocked', name: 'Blocked' }])
+    expect(mockListCreate, 'Stage D deleted the rows; writing one recreates them')
+      .not.toHaveBeenCalled()
   })
 
-  it('keeps the stored state and the legacy row on the SAME role', async () => {
-    // The reader will deduplicate columns by role. Two roles for one column
-    // means the board grows a duplicate the moment it starts merging them.
-    mockFindMany.mockResolvedValue([] as never)
-    mockListCreate.mockResolvedValue({ id: 'new' } as never)
-
+  it('returns the same role it stored', async () => {
+    // A task points at its column by role, so the caller must be told the one
+    // that was actually written.
     const result = await addUserStatus(USER, 'In Review', PROJECT)
 
-    const rowRole = (mockListCreate.mock.calls[0][0] as any).data.statusRole
-    const stored = (vi.mocked(prisma.project.update).mock.calls[0]?.[0] as any).data.customStates
-    expect(rowRole).toBe(stored[0].role)
-    if ('state' in result) expect(result.state.role).toBe(rowRole)
+    if ('state' in result) expect(result.state.role).toBe(written()[0].role)
   })
 
   it('does not write anything when the board is gone', async () => {
     vi.mocked(prisma.project.findUnique).mockResolvedValue(null as never)
-    mockFindMany.mockResolvedValue([] as never)
 
     expect(await addUserStatus(USER, 'Blocked', PROJECT)).toMatchObject({ error: 'invalid' })
-    expect(mockListCreate).not.toHaveBeenCalled()
+    expect(prisma.project.update).not.toHaveBeenCalled()
   })
 
   it('refuses a name that would shadow a built-in status', async () => {
     // Two columns called Ready is exactly the duplication this model removes.
-    mockFindMany.mockResolvedValue([] as never)
-
+    // The built-ins are config now, so this check compares NAMES: "Ready"
+    // slugs to `custom-ready` and collides with no role at all.
     expect(await addUserStatus(USER, 'Ready', PROJECT)).toMatchObject({ error: 'invalid' })
-    expect(mockListCreate).not.toHaveBeenCalled()
+    expect(prisma.project.update).not.toHaveBeenCalled()
   })
 
   it('disambiguates a custom role that collides with an existing one', async () => {
-    mockFindMany.mockResolvedValue([
-      { name: 'Blocked', statusOrder: 0, statusRole: 'custom-blocked' },
-    ] as never)
-    mockListCreate.mockResolvedValue({ id: 'new' } as never)
+    boardWith({ role: 'custom-blocked', name: 'Blocked', order: 0 })
+
     await addUserStatus(USER, 'Blocked!', PROJECT)
-    const data = (mockListCreate.mock.calls[0][0] as any).data
-    expect(data.statusRole).toBe('custom-blocked-2')
+
+    expect(written()[1].role).toBe('custom-blocked-2')
   })
 })
 
