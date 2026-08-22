@@ -103,8 +103,12 @@ describe('custom state config (AWTD-562)', () => {
     expect(parseCustomStates([{ name: 'no role' }])).toEqual([])
   })
 
-  it('refuses a custom state that shadows a default role', () => {
-    expect(parseCustomStates([{ role: 'doing', name: 'Doing Again', order: 1 }])).toEqual([])
+  it('returns default-role entries as overrides (per-board renamed built-ins)', () => {
+    // Default roles in customStates are now allowed as name/order overrides,
+    // e.g. renaming "Ready" to "Starting" stores { role: 'ready', name: 'Starting' }.
+    const result = parseCustomStates([{ role: 'doing', name: 'Doing Again', order: 1 }])
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ role: 'doing', name: 'Doing Again' })
   })
 
   it('deduplicates and orders custom states', () => {

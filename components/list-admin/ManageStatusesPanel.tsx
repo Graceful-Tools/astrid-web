@@ -3,7 +3,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Check, Pencil } from "lucide-react"
+import { Plus, Check, Pencil, ChevronUp, ChevronDown, Trash2 } from "lucide-react"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import { isDefaultStatusRole } from "@/lib/task-status"
 import type { ProjectBoardColumn } from "@/lib/project-status"
@@ -21,26 +21,23 @@ interface ManageStatusesPanelProps {
 }
 
 /**
- * Rename / add board status columns. Lives in the list-settings "Statuses"
- * tab (shown when the list has a board enabled).
+ * Rename / reorder / add / delete board status columns. Lives in the
+ * list-settings "Statuses" tab (shown when the list has a board enabled).
  *
- * **What is editable changed with Stage D (task b7b0c2f5).** Every column used
- * to be a `listType: 'status'` TaskList, so this panel renamed and reordered
- * them with `PUT /api/v1/lists/[id]`. Those rows are deleted. A column is now
- * one of two things, and only one of them has somewhere to store an edit:
+ * **What is editable changed with Stage D (task b7b0c2f5).** Every column
+ * used to be a `listType: 'status'` TaskList; those rows are deleted. A
+ * column is now one of two things:
  *
  * - **Ready / Doing / Waiting** are `DEFAULT_STATES` config, shared by every
- *   board of every user. There is no per-board place to put a new name, so
- *   they are shown read-only. Renaming one was possible before and is not
- *   now; no production board had ever done it.
- * - **Custom columns** live on `Project.customStates`, so they rename through
- *   POST/PATCH `/api/statuses`.
+ *   board of every user. They can be renamed per-board via PATCH /api/statuses,
+ *   which stores the override in `Project.customStates`.
+ * - **Custom columns** live on `Project.customStates` and can be renamed,
+ *   reordered (PUT), or deleted (DELETE).
  *
- * Reorder is gone for the same reason and has no replacement yet — the
- * defaults render in config order and customs in the order they were added.
+ * Reorder is custom-only: the three defaults have a fixed semantic order
+ * (the standard workflow progression) and sit above all custom columns.
  */
 export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageStatusesPanelProps) {
-  // Pending-buffer editor: a hand-off saves the typed status name (task 7b60c7c5).
   const session = useSharedEditingSession()
   const [editingRole, setEditingRole] = React.useState<string | null>(null)
   const [editingName, setEditingName] = React.useState("")
@@ -99,6 +96,34 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, editingRole])
 
+  const handleReorder = (column: ProjectBoardColumn, direction: "up" | "down") => {
+    run(async () => {
+      const response = await fetch("/api/statuses", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: column.id, direction, projectId }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to reorder status")
+      }
+    })
+  }
+
+  const handleDelete = (column: ProjectBoardColumn) => {
+    run(async () => {
+      const response = await fetch("/api/statuses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: column.id, projectId }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to delete status")
+      }
+    })
+  }
+
   const handleAdd = () => {
     const name = newName.trim()
     if (!name) return
@@ -116,6 +141,9 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
     })
   }
 
+  // Custom-only statuses (for reorder boundary checks).
+  const customStatuses = statuses.filter(s => !isDefaultStatusRole(s.id))
+
   return (
     <div className="space-y-3">
       <p className="text-xs theme-text-muted">
@@ -126,8 +154,12 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
       <div className="space-y-1.5">
         {statuses.map((status) => {
           const isBuiltIn = isDefaultStatusRole(status.id)
+          const customIdx = isBuiltIn ? -1 : customStatuses.findIndex(s => s.id === status.id)
+          const canMoveUp = !isBuiltIn && customIdx > 0
+          const canMoveDown = !isBuiltIn && customIdx < customStatuses.length - 1
+
           return (
-            <div key={status.id} className="flex items-center gap-2" data-testid={`status-row-${status.id}`}>
+            <div key={status.id} className="flex items-center gap-1" data-testid={`status-row-${status.id}`}>
               {editingRole === status.id ? (
                 <>
                   <Input
@@ -144,21 +176,56 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
               ) : (
                 <>
                   <span className="flex-1 text-sm theme-text-primary truncate">{status.name}</span>
-                  {isBuiltIn ? (
-                    <span className="text-xs theme-text-muted shrink-0">Built-in</span>
-                  ) : (
+
+                  {/* Reorder: custom columns only */}
+                  {!isBuiltIn && (
+                    <div className="flex gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        disabled={busy || !canMoveUp}
+                        onClick={() => handleReorder(status, "up")}
+                        className="theme-text-muted hover:theme-text-primary p-1 disabled:opacity-30"
+                        aria-label={`Move ${status.name} up`}
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || !canMoveDown}
+                        onClick={() => handleReorder(status, "down")}
+                        className="theme-text-muted hover:theme-text-primary p-1 disabled:opacity-30"
+                        aria-label={`Move ${status.name} down`}
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Rename: all columns */}
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      session.beginEditing(`status-name:${status.id}`)
+                      setEditingRole(status.id)
+                      setEditingName(status.name)
+                    }}
+                    className="theme-text-muted hover:theme-text-primary p-1 shrink-0"
+                    aria-label={`Rename ${status.name}`}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Delete: custom columns only */}
+                  {!isBuiltIn && (
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => {
-                        session.beginEditing(`status-name:${status.id}`)
-                        setEditingRole(status.id)
-                        setEditingName(status.name)
-                      }}
-                      className="theme-text-muted hover:theme-text-primary p-1"
-                      aria-label={`Rename ${status.name}`}
+                      onClick={() => handleDelete(status)}
+                      className="theme-text-muted hover:text-red-500 p-1 shrink-0"
+                      aria-label={`Delete ${status.name}`}
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </>

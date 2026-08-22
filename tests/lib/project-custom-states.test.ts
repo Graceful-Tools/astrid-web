@@ -24,6 +24,8 @@ import {
   addCustomState,
   renameCustomState,
   removeCustomState,
+  reorderCustomState,
+  renameBuiltinState,
 } from '@/lib/project-custom-states'
 
 /** Narrowing helper: these functions return a union, and `.states` is on one arm. */
@@ -163,3 +165,90 @@ describe('removeCustomState', () => {
     expect(removeCustomState(null, 'ready')).toMatchObject({ error: 'reserved' })
   })
 })
+
+describe('reorderCustomState', () => {
+  it('moves a custom state up by swapping order values with its predecessor', () => {
+    const a = ok(addCustomState(null, 'Blocked'))
+    const b = ok(addCustomState(a.states, 'In Review'))
+    const result = ok(reorderCustomState(b.states, b.state.role, 'up'))
+    const sorted = result.states.slice().sort((x, y) => x.order - y.order)
+    expect(sorted[0].name).toBe('In Review')
+    expect(sorted[1].name).toBe('Blocked')
+  })
+
+  it('moves a custom state down', () => {
+    const a = ok(addCustomState(null, 'Blocked'))
+    const b = ok(addCustomState(a.states, 'In Review'))
+    const result = ok(reorderCustomState(b.states, a.state.role, 'down'))
+    const sorted = result.states.slice().sort((x, y) => x.order - y.order)
+    expect(sorted[0].name).toBe('In Review')
+    expect(sorted[1].name).toBe('Blocked')
+  })
+
+  it('is a no-op when the state is already at the top boundary', () => {
+    const a = ok(addCustomState(null, 'Blocked'))
+    const b = ok(addCustomState(a.states, 'In Review'))
+    const result = ok(reorderCustomState(b.states, a.state.role, 'up'))
+    const sorted = result.states.slice().sort((x, y) => x.order - y.order)
+    expect(sorted[0].name).toBe('Blocked')
+  })
+
+  it('is a no-op when the state is already at the bottom boundary', () => {
+    const a = ok(addCustomState(null, 'Blocked'))
+    const b = ok(addCustomState(a.states, 'In Review'))
+    const result = ok(reorderCustomState(b.states, b.state.role, 'down'))
+    const sorted = result.states.slice().sort((x, y) => x.order - y.order)
+    expect(sorted[1].name).toBe('In Review')
+  })
+
+  it('refuses to reorder a built-in role', () => {
+    expect(reorderCustomState(null, 'ready', 'up')).toMatchObject({ error: 'reserved' })
+  })
+
+  it('reports an unknown role', () => {
+    expect(reorderCustomState(null, 'custom-nope', 'up')).toMatchObject({ error: 'not-found' })
+  })
+})
+
+describe('renameBuiltinState', () => {
+  it('stores a name override for a built-in in the customStates array', () => {
+    const result = ok(renameBuiltinState(null, 'ready', 'Starting'))
+    expect(result.state.role).toBe('ready')
+    expect(result.state.name).toBe('Starting')
+    expect(result.states.some(s => s.role === 'ready' && s.name === 'Starting')).toBe(true)
+  })
+
+  it('preserves the role — tasks still point at "ready" after the rename', () => {
+    const result = ok(renameBuiltinState(null, 'ready', 'Starting'))
+    expect(result.state.role).toBe('ready')
+  })
+
+  it('allows renaming back to the original default name', () => {
+    // First rename to something else, then rename back.
+    const first = ok(renameBuiltinState(null, 'ready', 'Starting'))
+    const back = ok(renameBuiltinState(first.states, 'ready', 'Ready'))
+    expect(back.state.name).toBe('Ready')
+  })
+
+  it('blocks renaming a built-in to another built-in name', () => {
+    expect(renameBuiltinState(null, 'ready', 'Waiting')).toMatchObject({ error: 'reserved' })
+  })
+
+  it('blocks renaming to the name of a custom state on the same board', () => {
+    const custom = ok(addCustomState(null, 'Blocked'))
+    expect(renameBuiltinState(custom.states, 'ready', 'Blocked')).toMatchObject({ error: 'duplicate' })
+  })
+
+  it('rejects an empty name', () => {
+    expect(renameBuiltinState(null, 'ready', '   ')).toMatchObject({ error: 'invalid' })
+  })
+
+  it('rejects a name over 40 characters', () => {
+    expect(renameBuiltinState(null, 'ready', 'x'.repeat(41))).toMatchObject({ error: 'invalid' })
+  })
+
+  it('reports an error for a non-built-in role', () => {
+    expect(renameBuiltinState(null, 'custom-blocked', 'Whatever')).toMatchObject({ error: 'invalid' })
+  })
+})
+
