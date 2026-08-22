@@ -29,12 +29,6 @@ const domainList = {
   id: 'domain-1', name: 'Work', listType: 'list', projectId: PROJECT, privacy: 'SHARED',
 } as never
 
-/** A legacy custom column: a project-scoped status row. */
-const customRow = {
-  id: 'list-9', name: 'Blocked', listType: 'status', statusRole: 'custom-blocked',
-  statusOrder: 10, projectId: PROJECT, privacy: 'PRIVATE',
-} as never
-
 const CUSTOM_STATES = [{ role: 'custom-blocked', name: 'Blocked', order: 0 }]
 
 const customNames = (columns: { name: string }[]) =>
@@ -53,23 +47,23 @@ describe('getBoardRowContext custom columns (task 9ddf4a6f)', () => {
     expect(context!.columns.find(c => c.name === 'Blocked')?.id).toBe('custom-blocked')
   })
 
-  it('renders the same columns the board does, JSON and row together', () => {
-    // Population (1) from Stage B: state in JSON *and* a backing row. The row
-    // picker must show one "Blocked", not two, and must key it on the LIST id
-    // while the row exists — the membership dual-write targets that id.
-    const context = getBoardRowContext([domainList, customRow], 'domain-1', CUSTOM_STATES)
+  it('renders the same columns the board does', () => {
+    // The row picker and the board must not disagree about one board's
+    // columns — both go through getProjectBoardColumns with the same states.
+    const context = getBoardRowContext([domainList], 'domain-1', CUSTOM_STATES)
 
-    expect(customNames(context!.columns)).toEqual(['Blocked'])
-    expect(context!.columns.find(c => c.name === 'Blocked')?.id).toBe('list-9')
+    expect(context!.columns.map(c => c.name))
+      .toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Blocked', 'Done'])
   })
 
-  it('still renders a legacy row-backed custom when no states are passed', () => {
-    // The pre-Stage-B population, and the in-flight case: the hook returns
-    // undefined until the request lands, and that must leave the picker exactly
-    // as it is today rather than emptying it.
-    const context = getBoardRowContext([domainList, customRow], 'domain-1', undefined)
+  it('offers the three defaults while the states request is still in flight', () => {
+    // The hook returns undefined until it lands. Since Stage D the defaults
+    // are config, so the picker is usable immediately and the customs join
+    // when the read completes — rather than the picker being empty.
+    const context = getBoardRowContext([domainList], 'domain-1', undefined)
 
-    expect(customNames(context!.columns)).toEqual(['Blocked'])
+    expect(context!.columns.map(c => c.name))
+      .toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'])
   })
 
   it('is null for a list with no board at all', () => {

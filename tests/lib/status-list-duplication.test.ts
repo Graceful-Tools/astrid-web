@@ -5,18 +5,22 @@
  * Ready/Doing/Waiting set PER PROJECT, on top of the per-user set that
  * 20260516000000_per_user_status_lists had consolidated to exactly one. A user
  * with two boards ended up with nine status lists instead of three, and they
- * surface as duplicates in every list picker.
+ * surfaced as duplicates in every list picker.
  *
- * That is the precise problem the 20260516 migration existed to remove
- * ("dozens of duplicate status lists for users with many boards — unscalable").
+ * **Stage D (task b7b0c2f5) removed the class of bug, not just the instance:**
+ * board columns are config plus `Project.customStates`, so there is no set of
+ * rows left to duplicate and `statusListsForUser` — whose whole job was
+ * collapsing them — is gone. The suites that pinned its deduplication went
+ * with it.
  *
- * The rule these pin: **a user has exactly one Ready / Doing / Waiting, full
- * stop**, and status lists are never offered as a destination.
+ * What is still worth pinning is the picker rule, because a status row can
+ * still arrive in a client's list set from a cache written before the deploy,
+ * and it must never be offered as a destination.
  */
 
 import { describe, it, expect } from 'vitest'
 import { filterDomainLists, isDomainList } from '@/lib/list-flavors'
-import { selectableLists, statusListsForUser } from '@/lib/status-lists'
+import { selectableLists } from '@/lib/status-lists'
 
 const status = (id: string, role: string, ownerId: string, projectId: string | null) => ({
   id, name: role[0].toUpperCase() + role.slice(1), listType: 'status',
@@ -40,28 +44,6 @@ const jonsLists = [
   status('ios-doing', 'doing', 'jon', 'project-ios'),
   status('ios-waiting', 'waiting', 'jon', 'project-ios'),
 ]
-
-describe('a user has exactly one status list per role', () => {
-  it('REGRESSION: statusListsForUser collapses the duplicates to three', () => {
-    const statuses = statusListsForUser(jonsLists)
-    expect(statuses).toHaveLength(3)
-    expect(statuses.map(s => s.statusRole).sort()).toEqual(['doing', 'ready', 'waiting'])
-  })
-
-  it('prefers the durable per-user set over the per-project duplicates', () => {
-    // The per-user rows are the ones that survive; the project-scoped rows are
-    // what the bad migration added and what the cleanup removes.
-    expect(statusListsForUser(jonsLists).map(s => s.id).sort())
-      .toEqual(['personal-doing', 'personal-ready', 'personal-waiting'])
-  })
-
-  it('still returns a set when only per-project rows exist (mid-cleanup)', () => {
-    const partial = jonsLists.filter(l => !String((l as { id: string }).id).startsWith('personal-'))
-    const statuses = statusListsForUser(partial)
-    expect(statuses).toHaveLength(3)
-    expect(new Set(statuses.map(s => s.statusRole)).size).toBe(3)
-  })
-})
 
 describe('status lists are never offered as a destination', () => {
   it('REGRESSION: the list picker offers no status lists at all', () => {
@@ -89,34 +71,3 @@ describe('status lists are never offered as a destination', () => {
  * So the two kinds of status list are scoped differently on purpose, and the
  * cleanup must not confuse them.
  */
-describe('custom states are scoped to their project', () => {
-  const custom = (id: string, role: string, projectId: string) =>
-    ({ id, name: role, listType: 'status', statusRole: role, ownerId: 'jon',
-       projectId, privacy: 'PRIVATE', statusOrder: 5 }) as never
-
-  it('shows a project\'s custom state on that project\'s board', () => {
-    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
-    const ids = statusListsForUser(lists, 'project-web').map(l => (l as { id: string }).id)
-    expect(ids).toContain('web-blocked')
-  })
-
-  it('does NOT leak a custom state onto another project\'s board', () => {
-    // A per-project custom state is the whole point of it being per-project.
-    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
-    const ids = statusListsForUser(lists, 'project-ios').map(l => (l as { id: string }).id)
-    expect(ids).not.toContain('web-blocked')
-  })
-
-  it('still collapses the DEFAULT roles to one each alongside a custom state', () => {
-    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
-    const statuses = statusListsForUser(lists, 'project-web')
-    const defaults = statuses.filter(l => ['ready','doing','waiting'].includes((l as { statusRole: string }).statusRole))
-    expect(defaults).toHaveLength(3)
-    expect(defaults.every(l => !(l as { projectId: string | null }).projectId)).toBe(true)
-  })
-
-  it('omits custom states entirely when no project is in scope', () => {
-    const lists = [...jonsLists, custom('web-blocked', 'blocked', 'project-web')]
-    expect(statusListsForUser(lists).map(l => (l as { id: string }).id)).not.toContain('web-blocked')
-  })
-})

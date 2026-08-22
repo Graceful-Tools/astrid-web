@@ -111,12 +111,12 @@ export function ProjectStatusBoard({
 
   const projectId = getProjectIdForBoard(lists, selectedListId)
   // Custom columns live on the project (task b346e377). Undefined while the
-  // read is in flight, which keeps the legacy list-backed columns rendering
-  // rather than blinking them out on every load.
+  // read is in flight, so the three defaults render immediately and the
+  // customs join them when it lands.
   const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo<ProjectBoardColumn[]>(
-    () => (projectId ? getProjectBoardColumns(lists, projectId, customStates) : []),
-    [lists, projectId, customStates],
+    () => (projectId ? getProjectBoardColumns(customStates) : []),
+    [projectId, customStates],
   )
   const selectedList = lists.find(list => list.id === selectedListId)
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
@@ -316,7 +316,7 @@ export function ProjectStatusBoard({
         <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
           const tasksForColumn = boardTasks.filter(task =>
-            getTaskProjectColumnId(task, lists, projectId) === column.id
+            getTaskProjectColumnId(task, columns) === column.id
           )
           const isDoneColumn = column.kind === 'done'
           const isInboxColumn = column.kind === 'inbox'
@@ -532,7 +532,7 @@ export function ProjectStatusBoard({
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}
             statusColumns={columns}
-            selectedColumnId={getTaskProjectColumnId(task, lists, projectId)}
+            selectedColumnId={getTaskProjectColumnId(task, columns)}
             onStatusSelect={columnId => {
               const column = columns.find(candidate => candidate.id === columnId)
               if (column) moveTaskToColumn(task.id, column)
