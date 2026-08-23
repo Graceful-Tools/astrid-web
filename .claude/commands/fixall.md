@@ -1,78 +1,66 @@
-Check the **Ready** list on the Astrid Web To-do and autonomously work every task on it to completion. Designed to be safe to re-run on a schedule.
+Check the Astrid Web To-do list and autonomously work every Ready task to completion. Designed to
+be safe to re-run on a schedule.
 
 ## Goal
 
-**Drive the Ready list to empty.** Unlike `/fixstuff`, this does not ask which task to work on
-— it takes them in priority order and keeps going until nothing is left. It stops on its own
+**Drive the web Ready queue to empty.** Unlike `/fixstuff`, this does not ask which task to work
+on — it takes them in priority order and keeps going until nothing is left. It stops on its own
 when Ready is clear, so a scheduled re-run that finds it empty is a no-op, not busywork.
 
 ## The workflow itself is shared
 
-**Read [docs/FIXALL_WORKFLOW.md](../../docs/FIXALL_WORKFLOW.md) — it is the canonical
-description** of the queue (board ∩ Ready ∩ assignee ∩ due date), the board etiquette
-(`Doing` / `Waiting` / handing back), the per-task loop (strategy comment → branch → RED-GREEN
-TDD → gates → report), filing the other repo's half, and re-checking after every task.
+**Read [docs/FIXALL_WORKFLOW.md](../../docs/FIXALL_WORKFLOW.md) first**. It is the canonical
+workflow for both repos: queue rules (board ∩ Ready ∩ assignee ∩ due date), board etiquette
+(`Doing` / `Waiting` / handback), per-task loop (strategy comment → RED-GREEN TDD → gates →
+report), cross-repo filing, and re-checking after every task.
 
-That file is shared with astrid-ios because it is one workflow. This file holds only what is
-different **here**.
+This file only defines what is different for **astrid-web**.
 
-Pull the queue with:
+## Guardrails (do not skip)
+
+- **Do not push, merge, or deploy without explicit user approval.** Production deploys are
+  manual; pushing to `main` alone does not ship. Shipping still requires an explicit "Ready to
+  ship it?" / "ship it" handshake.
+- **A task is DONE when it is committed locally on its branch with web gates green.** Report it
+  as ready to ship, not shipped.
+- **One isolated branch/worktree per task.** In Copilot app sessions, use the branch/worktree the
+  session already created; do not run raw branch-creation commands.
+- **Required gates:** `npm run predeploy` and `npm run check:reuse`.
+- **Never leave red gates.** If a failing gate is unrelated, say that plainly with why; do not
+  proceed as if green.
+- **If a task is ambiguous or blocked on Jon, hand it back** by assigning to Jon and moving it to
+  `Waiting`, then continue with the next actionable Ready task.
+- **If all Ready tasks are blocked, report that and stop.** Do not invent side work.
+
+## Scope: one board, one repo
+
+This loop edits only `astrid-web`. If a task needs an iOS/macOS change, file the iOS companion
+task immediately:
 
 ```bash
-npx tsx scripts/ready-tasks.ts --harness <claude-code|github-copilot|codex|astrid-server>
+npx tsx scripts/file-ios-task.ts "[ios] <what iOS must do>" "<contract to match>" -p 2
 ```
 
-(The board defaults to `web`. The harness never defaults — guessing would claim another
-agent's work.)
+Then continue the web half here.
 
-## What is different here
+## Steps
 
-- **NEVER push, merge, or deploy. Not once, not "just this one".** On web,
-  `git push origin main` **is a production deploy**, and any Prisma migration on the branch
-  **runs against production during that build**. Committing locally is autonomous; everything
-  past that waits for an explicit go-ahead. Report what is ready to ship instead of shipping
-  it. (CLAUDE.md rule 1 — stated there because an agent once got this wrong and shipped five
-  migrations.)
-- **A task is DONE when it is committed on its branch with `npm run predeploy` green.** Say in
-  the completion report that it is ready to ship rather than that it shipped.
-- **One isolated branch/worktree per task.** In a Copilot app session, use the branch and
-  worktree the session already created; do not run raw branch-creation commands inside it.
-  Other harnesses should reuse an already-isolated task branch or create one with their native
-  session/worktree workflow.
-- **Gates:** `npm run predeploy`, plus `npm run check:reuse`.
-- **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
-  close that task with a one-line explanation rather than leaving a false alarm on the board.
-- **If a task is blocked by something outside the repo** — a client rollout, a third-party
-  outage, a decision only Jon can make — hand it back the same way as an ambiguous one: assign
-  to Jon, move to `Waiting`, say what is blocking it. Do not close it, and do not work around
-  the block by breaking users.
-- **If every Ready task is blocked, say so in a few lines and stop.** A run that ends with
-  "nothing actionable" is a correct run. Do not invent adjacent work to fill it; re-checking a
-  blocked task costs one call, and inventing work costs a review.
-
-## For UI tasks: look at it
-
-"The layout is broken" cannot be diagnosed from markup. The Chrome extension is often not
-connected, so use Playwright against a dev server instead: render the component in a throwaway
-route under `app/[locale]/`, screenshot it, and **measure the DOM** rather than trusting your
-eye. Delete the scaffolding afterwards and confirm `git status` is clean.
-
-Two traps worth knowing: a folder starting with `_` is a Next private folder and will 404, and
-swapping files under a running dev server corrupts its HMR state — restart it rather than
-debugging the 500.
+1. Pull the queue:
+   ```bash
+   npx tsx scripts/ready-tasks.ts --harness <claude-code|github-copilot|codex|astrid-server>
+   ```
+   (Board defaults to `web`; harness must be explicit.)
+2. If queue is empty, report empty and stop.
+3. For each queued task, follow `docs/FIXALL_WORKFLOW.md` plus web-specific gates above.
+4. Re-check the queue after every task using the same command.
+5. When queue is empty, summarize what was completed and what was skipped/blocked with reasons.
 
 ## Environment gotchas
 
-- `GET /api/v1/tasks/[id]` returns `{ task, meta }` — `body.lists` is undefined, and a script
-  that assumes otherwise will compute an empty list and strip every membership.
-- The repo's scripts load `.env.local` via dotenvx. A plain `import 'dotenv/config'` reads
-  `.env` instead and silently yields undefined ids.
-- `vercel` may not be on PATH, so `monitor:vercel` and `deploy-preview.sh` can fail. That does
-  not block local work; note it rather than fighting it.
-- **This file must exist on the branch you are working.** It lived only on an unmerged feature
-  branch once, so it vanished on every checkout and the loop ran on whatever happened to be
-  loaded in memory. If `/fixall` behaves unlike this document, check
-  `git ls-files .claude/commands/` first.
+- `GET /api/v1/tasks/[id]` returns `{ task, meta }`; `body.lists` is undefined.
+- Scripts load `.env.local` via dotenvx; `import "dotenv/config"` reads `.env` instead.
+- `vercel` missing on PATH may break deployment-monitor commands; this does not block local fixes.
 
-See [ASTRID.md](../../ASTRID.md) for architecture, [docs/CLI_OPERATIONS.md](../../docs/CLI_OPERATIONS.md)
-for deploy rules, and `/fixstuff` for the interactive, pick-one-task-at-a-time version.
+See [ASTRID.md](../../ASTRID.md) for coding workflow details,
+[docs/CLI_OPERATIONS.md](../../docs/CLI_OPERATIONS.md) for deploy/approval rules, and
+[`/fixstuff`](./fixstuff.md) for interactive, pick-one-task-at-a-time operation.
