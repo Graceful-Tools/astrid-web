@@ -210,7 +210,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     }
   }, [isMyTasks, myTasksPreferences, currentList])
 
-  const applyFiltersToTasks = useCallback((tasks: Task[], userId?: string, lists?: TaskList[], skipListFiltering = false, skipVirtualListFilters = false): Task[] => {
+  const applyFiltersToTasks = useCallback((tasks: Task[], userId?: string, lists?: TaskList[], skipListFiltering = false, skipVirtualListFilters = false, serverSearchApplied = false): Task[] => {
     let filtered = [...tasks]
 
     // console.log('🔍 applyFiltersToTasks:', { tasksCount: tasks.length, activeFilters, selectedListId })
@@ -248,7 +248,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
         // List not found, show no tasks
         filtered = []
       }
-    } else if (isUniversalSearch) {
+    } else if (isUniversalSearch && !serverSearchApplied) {
       // For universal search, filter to only tasks the user has access to
       filtered = filtered.filter(task => {
         // User has access to task if:
@@ -284,7 +284,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     // THEN: Apply other filters
     
     // Search filter
-    if (activeFilters.search.trim()) {
+    if (activeFilters.search.trim() && !serverSearchApplied) {
       const searchLower = activeFilters.search.toLowerCase()
       filtered = filtered.filter(task => 
         task.title.toLowerCase().includes(searchLower) ||

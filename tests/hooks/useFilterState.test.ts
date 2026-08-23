@@ -507,6 +507,27 @@ describe('useFilterState', () => {
   })
 
   describe('Universal Search', () => {
+    it('leaves server-selected grammar and comment matches intact', () => {
+      const { result } = renderHook(() => useFilterState({
+        selectedListId: 'list-1'
+      }))
+
+      act(() => {
+        result.current.setSearch('status:doing')
+      })
+
+      const filteredTasks = result.current.applyFiltersToTasks(
+        mockTasks,
+        'user-1',
+        mockLists,
+        false,
+        false,
+        true,
+      )
+
+      expect(filteredTasks).toHaveLength(2)
+    })
+
     it('should show ALL tasks (completed and incomplete) during search', () => {
       const { result } = renderHook(() => useFilterState({
         selectedListId: 'list-1'

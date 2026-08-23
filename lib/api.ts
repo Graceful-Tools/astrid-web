@@ -91,7 +91,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
 }
 
-export const apiGet = (endpoint: string) => apiCall(endpoint)
+export const apiGet = (endpoint: string, options: RequestInit = {}) => apiCall(endpoint, options)
 
 export const apiPost = async (endpoint: string, data: any) => {
   // Check if offline
