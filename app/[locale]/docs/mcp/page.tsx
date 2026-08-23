@@ -29,6 +29,14 @@ export default function MCPDocsPage() {
     }
   }, [])
 
+  const mcpUrl = `${hostOrigin}/mcp`
+  const copilotCliCommand = `copilot mcp add --transport http ${BRAND.wordmark} ${mcpUrl}`
+  const vscodeInstallUrl = `vscode:mcp/install?${encodeURIComponent(JSON.stringify({
+    name: BRAND.wordmark,
+    type: 'http',
+    url: mcpUrl,
+  }))}`
+
   return (
     <div className={`${scrollShellClassName} theme-bg-primary`}>
       {/* Header */}
@@ -90,15 +98,69 @@ export default function MCPDocsPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Setup */}
+          {/* GitHub Copilot */}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
                 <BookOpen className="w-5 h-5 text-blue-500" />
-                <span>Quick Setup</span>
+                <span>Connect GitHub Copilot</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                Connect your AI tool to {BRAND.appName} in four steps
+                No client ID, client secret, or callback URL to configure
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 text-sm">
+              <div>
+                <h3 className="font-semibold theme-text-primary">Copilot CLI</h3>
+                <p className="theme-text-secondary mt-1">Run this one command:</p>
+                <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto mt-2">
+                  <code className="text-xs font-mono theme-text-primary">{copilotCliCommand}</code>
+                </pre>
+                <p className="theme-text-muted text-xs mt-2">
+                  Using <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">/mcp add</code>?
+                  Set name to <strong>{BRAND.wordmark}</strong>, type to <strong>HTTP</strong>, URL to{' '}
+                  <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">{mcpUrl}</code>,
+                  leave headers empty, and keep tools set to <strong>*</strong>.
+                </p>
+              </div>
+
+              <div className="border-t theme-border pt-5">
+                <h3 className="font-semibold theme-text-primary">VS Code Copilot Chat</h3>
+                <p className="theme-text-secondary mt-1 mb-3">
+                  Install the same hosted server directly in VS Code:
+                </p>
+                <Button asChild>
+                  <a href={vscodeInstallUrl}>Install in VS Code</a>
+                </Button>
+                <p className="theme-text-muted text-xs mt-3">
+                  Or run <strong>MCP: Add Server</strong>, choose <strong>HTTP</strong>, and paste{' '}
+                  <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">{mcpUrl}</code>.
+                </p>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                <p className="theme-text-secondary">
+                  <strong className="theme-text-primary">Then sign in.</strong> Copilot discovers
+                  {' '}{BRAND.appName}&apos;s OAuth settings, registers itself, and opens your browser.
+                  Approve access and start asking Copilot about your tasks.
+                </p>
+                <p className="theme-text-muted text-xs mt-2">
+                  Do not create an OAuth app or enter a callback URL. Copilot supplies its temporary
+                  local callback automatically, and {BRAND.appName} validates it with PKCE.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Manual setup */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex items-center space-x-2">
+                <BookOpen className="w-5 h-5 text-blue-500" />
+                <span>Manual setup for older clients</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                Only use this when your client cannot perform OAuth discovery
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
