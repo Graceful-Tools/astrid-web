@@ -478,5 +478,34 @@ export function validateRedirectUri(
   registeredUris: string[],
   requestedUri: string
 ): boolean {
-  return registeredUris.includes(requestedUri)
+  if (registeredUris.includes(requestedUri)) return true
+
+  let requested: URL
+  try {
+    requested = new URL(requestedUri)
+  } catch {
+    return false
+  }
+
+  const loopbackIpHosts = new Set(['127.0.0.1', '[::1]'])
+  if (requested.protocol !== 'http:' || !loopbackIpHosts.has(requested.hostname)) {
+    return false
+  }
+
+  return registeredUris.some(registeredUri => {
+    try {
+      const registered = new URL(registeredUri)
+      return (
+        registered.protocol === 'http:' &&
+        registered.hostname === requested.hostname &&
+        registered.pathname === requested.pathname &&
+        registered.search === requested.search &&
+        registered.hash === requested.hash &&
+        registered.username === requested.username &&
+        registered.password === requested.password
+      )
+    } catch {
+      return false
+    }
+  })
 }

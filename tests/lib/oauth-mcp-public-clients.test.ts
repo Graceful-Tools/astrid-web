@@ -4,6 +4,7 @@ import {
   createPublicOAuthClient,
   validateOAuthClient,
   validatePublicClientRegistration,
+  validateRedirectUri,
 } from '@/lib/oauth/oauth-client-manager'
 import { verifyCodeChallenge } from '@/lib/oauth/oauth-token-manager'
 import {
@@ -125,6 +126,29 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     })).resolves.toEqual(expect.objectContaining({
       codeChallengeMethod: 'S256',
     }))
+  })
+
+  it('accepts Copilot CLI loopback callbacks when only the ephemeral port changes', () => {
+    expect(validateRedirectUri(
+      ['http://127.0.0.1:64831/'],
+      'http://127.0.0.1:50719/',
+    )).toBe(true)
+    expect(validateRedirectUri(
+      ['http://[::1]:64831/oauth/callback?client=copilot'],
+      'http://[::1]:50719/oauth/callback?client=copilot',
+    )).toBe(true)
+  })
+
+  it('keeps every non-port component of loopback callbacks exact', () => {
+    const registered = ['http://127.0.0.1:64831/oauth/callback?client=copilot']
+
+    expect(validateRedirectUri(registered, 'http://127.0.0.1:50719/other?client=copilot')).toBe(false)
+    expect(validateRedirectUri(registered, 'http://127.0.0.1:50719/oauth/callback?client=other')).toBe(false)
+    expect(validateRedirectUri(registered, 'http://localhost:50719/oauth/callback?client=copilot')).toBe(false)
+    expect(validateRedirectUri(
+      ['https://example.com:64831/oauth/callback'],
+      'https://example.com:50719/oauth/callback',
+    )).toBe(false)
   })
 
   it('binds the authorization code to the PKCE challenge and verifier', async () => {
