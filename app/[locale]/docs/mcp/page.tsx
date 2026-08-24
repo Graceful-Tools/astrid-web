@@ -226,6 +226,15 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                   Settings &rarr; API Testing
                 </Button>.
               </Step>
+
+              <Step n={5} title="Put it on a loop (optional)">
+                Connected by hand, this answers questions. On a schedule, it works your queue:
+                the harness asks <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono text-xs">get_agent_queue</code>{' '}
+                every half hour and does whatever you assigned it.{' '}
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/docs/loops')}>
+                  Run your agent on a loop
+                </Button>.
+              </Step>
             </CardContent>
           </Card>
 

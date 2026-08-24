@@ -266,6 +266,27 @@ export default class AstridMCPServerOAuth {
             },
           },
           {
+            name: "get_agent_queue",
+            description:
+              "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                agent: {
+                  type: "string",
+                  description:
+                    "Which agent identity this harness is — a mailbox (claude, codex, copilot, openai, gemini) or a full agent address. Required: guessing would claim another harness's work.",
+                },
+                listId: {
+                  type: "string",
+                  description:
+                    "Scope the queue to one list/board (optional). Use it when different boards are worked by different harnesses.",
+                },
+              },
+              required: ["agent"],
+            },
+          },
+          {
             name: "get_task",
             description: "Get detailed information about a specific task",
             inputSchema: {
@@ -438,6 +459,8 @@ export default class AstridMCPServerOAuth {
             return await this.getLists()
           case "get_tasks":
             return await this.getTasks(args)
+          case "get_agent_queue":
+            return await this.getAgentQueue(args)
           case "get_task":
             return await this.getTask(args)
           case "create_task":
@@ -482,6 +505,33 @@ export default class AstridMCPServerOAuth {
           ),
         },
       ],
+    }
+  }
+
+  /**
+   * The polling loop's one call.
+   *
+   * A thin proxy over GET /api/v1/agent-queue, which owns the queue rules
+   * (Ready + assigned to this identity + due). Doing the filtering here instead
+   * would put a second, drifting copy of "what may a loop work" in the MCP layer.
+   */
+  private async getAgentQueue(args: any) {
+    if (!args?.agent) {
+      throw new Error(
+        "agent is required — pass the identity this harness runs as (claude, codex, copilot, openai, gemini)."
+      )
+    }
+
+    const params = new URLSearchParams({ agent: String(args.agent) })
+    const listId = args.listId || this.defaultListId
+    if (listId) params.append("listId", String(listId))
+
+    const data = await this.oauthClient.makeRequest<unknown>(
+      `/api/v1/agent-queue?${params.toString()}`
+    )
+
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     }
   }
 

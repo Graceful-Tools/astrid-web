@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AIAPIKeyManager } from "@/components/ai-api-key-manager"
 import { OpenClawAgentManager } from "@/components/openclaw-agent-manager"
+import { AgentRuntimeSettings } from "@/components/agent-runtime-settings"
 import {
   Brain,
   Sparkles,
   Cloud,
   FileText,
   Bot,
-  Check
+  Check,
+  Terminal
 } from "lucide-react"
 import Image from "next/image"
 
@@ -177,6 +179,23 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
           </CardHeader>
           <CardContent>
             <OpenClawAgentManager />
+          </CardContent>
+        </Card>
+
+        {/* Where each agent runs */}
+        <Card className="theme-bg-secondary theme-border">
+          <CardHeader>
+            <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
+              <Terminal className="w-6 h-6 text-green-500" />
+              <span>Where your agents run</span>
+            </CardTitle>
+            <CardDescription className="theme-text-muted">
+              Let {BRAND.appName} call a provider on your API key, or keep the work in the
+              coding harness you already pay for and have it poll this queue on a loop.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgentRuntimeSettings />
           </CardContent>
         </Card>
 

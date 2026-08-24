@@ -16,6 +16,7 @@ import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { getAgentService } from '@/lib/ai/agent-config'
+import { isPollingOnlyAgent, resolveAgentRunOwnerId } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
 import { fanOutComment } from '@/lib/notifications'
 import { persistNotifications } from '@/lib/notification-store'
@@ -273,9 +274,21 @@ async function resumeCodingAgentWorkflow(
   const listWithRepo = task.lists?.find(l => l.githubRepositoryId)
   if (!listWithRepo?.githubRepositoryId) return
 
-  const { AIOrchestrator } = await import('@/lib/ai-orchestrator')
   const configuredByUserId =
-    listWithRepo.aiAgentConfiguredBy || task.creatorId || commenter.id
+    resolveAgentRunOwnerId({
+      aiAgentConfiguredBy: listWithRepo.aiAgentConfiguredBy,
+      creatorId: task.creatorId,
+    }) || commenter.id
+
+  // In polling mode the harness that owns this agent will see the comment on its
+  // own loop. Starting a workflow here would run the same task twice — once on
+  // the owner's metered key, once on the subscription they chose instead.
+  if (await isPollingOnlyAgent(task.assignee?.email, configuredByUserId)) {
+    log.info('[comments] assignee runs in polling mode — leaving the comment for its harness')
+    return
+  }
+
+  const { AIOrchestrator } = await import('@/lib/ai-orchestrator')
 
   let workflow = await prisma.codingTaskWorkflow.findUnique({
     where: { taskId: task.id },

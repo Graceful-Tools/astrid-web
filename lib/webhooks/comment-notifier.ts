@@ -22,9 +22,9 @@ import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import {
   isBrandAgentEmail,
-  isLocalHarnessAgentEmail,
   isOpenClawAgentEmail,
 } from '@/lib/brand/agent-emails'
+import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
 
@@ -199,13 +199,18 @@ export async function notifyCommentOnAssignedTask(
       return
     }
 
-    if (isLocalHarnessAgentEmail(task.assignee.email)) {
-      log.info(`💻 Local harness ${task.assignee.name} will observe this comment through polling`)
+    // Whoever owns this run pays for it and therefore chooses how it runs.
+    const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
+
+    // Polling mode: the user's own harness reads this comment off the task on its
+    // next loop. Pushing anything here — a webhook, a provider call — would be the
+    // second runtime working the same task, on a key the user chose not to spend.
+    if (await isPollingOnlyAgent(task.assignee.email, webhookUserId)) {
+      log.info(`💻 ${task.assignee.name} runs in polling mode — the harness will read this comment`)
       return
     }
 
     // FIRST: route through user-level Claude Code Remote webhook if configured.
-    const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
     log.info(`🔍 [WEBHOOK-TRACE] Comment: checking user webhook for ${webhookUserId}`)
     if (webhookUserId) {
       const userWebhookResult = await sendToUserWebhook(webhookUserId, 'comment.created', payload, agentType)

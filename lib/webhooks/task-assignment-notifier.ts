@@ -30,7 +30,8 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
-import { isBrandAgentEmail, isLocalHarnessAgentEmail } from '@/lib/brand/agent-emails'
+import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 
@@ -230,14 +231,20 @@ export async function notifyTaskAssignment(
       return
     }
 
-    if (isLocalHarnessAgentEmail(agentUser?.email)) {
-      log.info(`💻 Local harness ${agentName} will claim this assignment through its polling queue`)
+    // Whoever owns this run pays for it and therefore chooses how it runs.
+    const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
+
+    // Polling mode: the assignment IS the notification. It lands in the agent's
+    // queue and the user's own harness claims it on its next loop, so nothing is
+    // pushed and no provider is called. The SSE event still goes out — that is
+    // what makes the task appear in an open app immediately.
+    if (await isPollingOnlyAgent(agentUser?.email, webhookUserId)) {
+      log.info(`💻 ${agentName} runs in polling mode — the harness will claim this from its queue`)
       await sendSSENotification(task, payload, prisma)
       return
     }
 
     // FIRST: route through user-level Claude Code Remote webhook if configured.
-    const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
     log.info(`🔍 [WEBHOOK-TRACE] Checking user webhook for user ${webhookUserId} (creatorId: ${task.creatorId}, listOwner: ${task.lists?.[0]?.ownerId})...`)
     if (webhookUserId) {
       const userWebhookResult = await sendToUserWebhook(webhookUserId, event, payload, agentType)
