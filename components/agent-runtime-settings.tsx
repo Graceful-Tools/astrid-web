@@ -46,7 +46,7 @@ const AGENT_LABELS: Record<string, string> = {
 const DEFAULT_HARNESS: Record<string, string> = {
   claude: 'claude-code',
   codex: 'codex',
-  copilot: 'github',
+  copilot: 'copilot',
   openai: 'codex',
   gemini: 'gemini',
 }
@@ -90,17 +90,32 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
  * reader. One copy: a settings panel and a docs page that drift apart is how
  * someone ends up pasting a config that no longer matches the tool.
  */
-export function AgentLoopRecipes({ mailbox, origin }: { mailbox: string; origin: string }) {
+export function AgentLoopRecipes({
+  mailbox,
+  origin,
+  listId,
+}: {
+  mailbox: string
+  origin: string
+  /**
+   * Scope the loop to one list/board. The queue endpoint takes listId so that
+   * two harnesses working different boards never take each other's tasks —
+   * passing it here is what makes "run a /fixall loop per list" one paste.
+   */
+  listId?: string | null
+}) {
   const mcpUrl = `${origin}/mcp`
   // Same name /docs/mcp tells people to register, so one harness ends up with one
   // server entry rather than two half-configured ones.
   const serverName = BRAND.wordmark.toLowerCase()
-  const queueLine = `Call get_agent_queue with agent "${mailbox}". Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
+  const listClause = listId ? ` and listId "${listId}"` : ''
+  const queueLine = `Call get_agent_queue with agent "${mailbox}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
 
   return (
     <Tabs defaultValue={DEFAULT_HARNESS[mailbox] || 'claude-code'} className="w-full">
       <TabsList className="flex flex-wrap h-auto">
         <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
+        <TabsTrigger value="copilot">Copilot / VS Code</TabsTrigger>
         <TabsTrigger value="codex">Codex</TabsTrigger>
         <TabsTrigger value="github">GitHub Actions</TabsTrigger>
         <TabsTrigger value="gemini">Gemini CLI</TabsTrigger>
@@ -122,6 +137,32 @@ ${queueLine}`}
           label="Unattended alternative"
           code={`*/30 * * * * cd ~/code/your-project && claude -p "/${serverName}-queue" >> ~/${serverName}-loop.log 2>&1`}
         />
+      </TabsContent>
+
+      <TabsContent value="copilot" className="space-y-3 pt-3">
+        <CopyBlock
+          label="1. Connect the Copilot CLI to your queue"
+          code={`copilot mcp add --transport http ${serverName} ${mcpUrl}`}
+        />
+        <CopyBlock
+          label="Or add it to VS Code (.vscode/mcp.json)"
+          code={`{
+  "servers": {
+    "${serverName}": {
+      "type": "http",
+      "url": "${mcpUrl}"
+    }
+  }
+}`}
+        />
+        <CopyBlock
+          label="2. Run the loop on a schedule"
+          code={`*/30 * * * * cd ~/code/your-project && copilot -p "${queueLine}" --allow-all-tools >> ~/${serverName}-loop.log 2>&1`}
+        />
+        <p className="text-xs theme-text-muted">
+          On first run the CLI opens a browser to authorize — approve once and the schedule takes
+          over. Working in a GitHub repo instead? The GitHub Actions tab runs the same loop in CI.
+        </p>
       </TabsContent>
 
       <TabsContent value="codex" className="space-y-3 pt-3">
@@ -155,7 +196,7 @@ jobs:
       - name: Read the queue
         id: queue
         run: |
-          curl -sS "${origin}/api/v1/agent-queue?agent=${mailbox}" \\
+          curl -sS "${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}" \\
             -H "X-OAuth-Token: \${{ secrets.ASTRID_TOKEN }}" > queue.json
           echo "empty=$(jq -r .empty queue.json)" >> "$GITHUB_OUTPUT"
       # Every later step is skipped on a quiet run, so an empty queue costs

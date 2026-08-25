@@ -11,6 +11,7 @@
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { agentEmail, LOCAL_HARNESS_AGENT_MAILBOXES } from '@/lib/brand/agent-emails'
 import { ENABLED_AGENT_MAILBOXES, getAgentConfig } from '@/lib/ai/agent-config'
+import { getAgentExecutionModes } from '@/lib/ai/agent-execution-mode'
 
 /**
  * Every assignable agent address this deployment supports.
@@ -50,4 +51,28 @@ export async function getKeyedAgentEmails(userId: string): Promise<string[]> {
     ...keyed.filter((email): email is string => email !== null),
     ...LOCAL_HARNESS_AGENT_MAILBOXES.map(agentEmail),
   ]
+}
+
+/**
+ * The subset a user can actually hand work to: keyed agents PLUS every agent
+ * whose resolved execution mode is `polling`.
+ *
+ * `getKeyedAgentEmails` was the whole answer when the server ran every agent —
+ * no key, no runtime, nothing to offer. Polling mode broke that equivalence:
+ * a keyless claude@ is a perfectly working agent whose runtime is the user's
+ * own Claude Code loop, and hiding it from the assignee picker made the new
+ * workflow's step two ("assign it a task") impossible. The picker should offer
+ * what can WORK, not what the server can bill.
+ */
+export async function getOfferableAgentEmails(userId: string): Promise<string[]> {
+  const [keyed, modes] = await Promise.all([
+    getKeyedAgentEmails(userId),
+    getAgentExecutionModes(userId),
+  ])
+
+  const polling = Object.entries(modes)
+    .filter(([, mode]) => mode === 'polling')
+    .map(([mailbox]) => agentEmail(mailbox))
+
+  return [...new Set([...keyed, ...polling])]
 }

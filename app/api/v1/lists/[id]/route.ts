@@ -19,6 +19,7 @@ import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { canUserManageList } from "@/lib/list-permissions"
 import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
+import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 
 const log = createLogger('api.v1.lists.id')
@@ -205,6 +206,14 @@ export const PUT = withAuth<RouteContext>(
       if (body.virtualListType !== undefined) updateData.virtualListType = body.virtualListType
       if (body.githubRepositoryId !== undefined) updateData.githubRepositoryId = body.githubRepositoryId
       if (body.preferredAiProvider !== undefined) updateData.preferredAiProvider = body.preferredAiProvider
+      // Per-list default agent. This field was silently DROPPED here for months
+      // while two settings pickers wrote it — the select saved, answered 200,
+      // and sprang back on reload. Normalized because clients still send the
+      // legacy string[] shape, and stored in the object form so the one real
+      // reader (lib/resolve-default-agent.ts) sees a stable shape.
+      if (body.aiAgentsEnabled !== undefined) {
+        updateData.aiAgentsEnabled = normalizeAgentEnabledConfig(body.aiAgentsEnabled)
+      }
       // Attach / detach the list to a project status board. iOS's
       // "Create Board" flow POSTs a project then PUTs the list here
       // with { projectId } to attach it; passing null detaches.

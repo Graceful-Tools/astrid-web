@@ -14,7 +14,7 @@
 
 import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
 import { resolveSearchListIds } from '@/lib/user-search-scope'
-import { getAssignableAgentEmails, getKeyedAgentEmails } from '@/lib/ai/assignable-agents'
+import { getAssignableAgentEmails, getOfferableAgentEmails } from '@/lib/ai/assignable-agents'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
@@ -127,7 +127,7 @@ export const GET = withAuth(
       }
 
       if (includeAIAgents && aiAgents.length === 0) {
-        const availableEmails = await getKeyedAgentEmails(auth.userId)
+        const availableEmails = await getOfferableAgentEmails(auth.userId)
 
         if (availableEmails.length > 0) {
           const conds: object[] = []

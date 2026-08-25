@@ -40,6 +40,7 @@ vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn() }))
 vi.mock('@/lib/ai/assignable-agents', () => ({
   getAssignableAgentEmails: () => [],
   getKeyedAgentEmails: () => [],
+  getOfferableAgentEmails: () => [],
 }))
 vi.mock('@/lib/brand/agent-emails', () => ({ openClawEmailSuffix: () => '.oc@example.com' }))
 vi.mock('@/lib/ai-agent-utils', () => ({ isCodingAgent: () => false }))
