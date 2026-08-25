@@ -1,28 +1,23 @@
 "use client"
 
 /**
- * Where each agent actually runs — this server, or the user's own harness.
+ * The loop recipes — how each harness connects to the queue and runs it on a
+ * schedule. `AgentLoopRecipes` is rendered by the agent hub (per-agent, pinned
+ * to one identity), the per-list AI section (listId-scoped), and /docs/loops
+ * (everything, for a logged-out reader). One copy, because a settings snippet
+ * that drifts from the docs snippet is how someone pastes a config that no
+ * longer matches the tool.
  *
- * Two jobs, in the order someone needs them:
- *   1. Pick the runtime per agent (the toggle).
- *   2. If they picked polling, show them exactly how to point their harness at
- *      the queue and put it on a loop. That second half is the whole feature:
- *      "polling mode" without a copy-pasteable loop is just an agent that stopped
- *      answering.
- *
- * The setup snippets are deliberately concrete — a real MCP config and a real
- * schedule for each harness — because the alternative is a paragraph telling
- * people to "configure MCP", which is where every integration doc goes to die.
+ * The per-agent runtime toggle that used to live here became the mode control
+ * in components/agent-hub.tsx.
  */
 
 import { BRAND } from '@/lib/brand/config'
-import { useEffect, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Check, Copy, Cloud, Loader2, RefreshCw, Terminal } from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 import { toast } from 'sonner'
-import { apiGet, apiPut } from '@/lib/api'
 
 type AgentExecutionMode = 'api' | 'polling'
 
@@ -297,140 +292,5 @@ jobs:
         </p>
       </TabsContent>
     </Tabs>
-  )
-}
-
-export function AgentRuntimeSettings() {
-  const [agents, setAgents] = useState<AgentRuntime[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [origin, setOrigin] = useState(`https://${BRAND.domain}`)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') setOrigin(window.location.origin)
-
-    apiGet('/api/v1/users/me/agent-modes')
-      .then(r => r.json())
-      .then(data => {
-        setAgents(data.agents || [])
-        // Open the setup for whatever is already polling: someone arriving here
-        // with a polling agent needs the instructions, not another click.
-        const firstPolling = (data.agents || []).find((a: AgentRuntime) => a.mode === 'polling')
-        if (firstPolling) setExpanded(firstPolling.mailbox)
-      })
-      .catch(() => toast.error('Could not load agent runtimes'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  const setMode = async (mailbox: string, mode: AgentExecutionMode) => {
-    setSaving(mailbox)
-    // Optimistic: the toggle is the whole interaction, so it must not lag.
-    setAgents(prev => prev.map(a => (a.mailbox === mailbox ? { ...a, mode } : a)))
-
-    try {
-      // apiPut, not a raw fetch: the client API layer is what carries a write
-      // through a dropped connection instead of discarding it.
-      const response = await apiPut('/api/v1/users/me/agent-modes', { agent: mailbox, mode })
-      const data = await response.json()
-      setAgents(data.agents || [])
-      if (mode === 'polling') setExpanded(mailbox)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save')
-      // Put the row back rather than leaving the UI claiming a mode the server
-      // never accepted — a wrong answer here is a silent agent.
-      setAgents(prev =>
-        prev.map(a => (a.mailbox === mailbox ? { ...a, mode: mode === 'polling' ? 'api' : 'polling' } : a))
-      )
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  if (loading) {
-    return <div className="h-24 theme-bg-tertiary rounded-lg animate-pulse" />
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm theme-text-muted">
-        Every agent below is yours either way — same identity, same list, same comments.
-        This only decides who does the work.
-      </p>
-
-      <div className="space-y-3">
-        {agents.map(agent => {
-          const polling = agent.mode === 'polling'
-          const label = AGENT_LABELS[agent.mailbox] || agent.mailbox
-
-          return (
-            <div key={agent.mailbox} className="border theme-border rounded-lg overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-3 p-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium theme-text-primary">{label}</span>
-                    {agent.locked && (
-                      <Badge variant="outline" className="text-xs">
-                        Harness only
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs theme-text-muted truncate">{agent.email}</div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {saving === agent.mailbox && <Loader2 className="w-4 h-4 animate-spin theme-text-muted" />}
-                  <div className="inline-flex rounded-lg border theme-border overflow-hidden">
-                    <button
-                      type="button"
-                      disabled={agent.locked}
-                      onClick={() => setMode(agent.mailbox, 'api')}
-                      className={`px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${
-                        !polling ? 'bg-blue-500/15 text-blue-500' : 'theme-text-muted hover:theme-text-primary'
-                      } ${agent.locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <Cloud className="w-3.5 h-3.5" />
-                      {BRAND.appName} runs it
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMode(agent.mailbox, 'polling')}
-                      className={`px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${
-                        polling ? 'bg-green-500/15 text-green-500' : 'theme-text-muted hover:theme-text-primary'
-                      }`}
-                    >
-                      <Terminal className="w-3.5 h-3.5" />
-                      My harness polls
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {polling && (
-                <div className="border-t theme-border p-3 space-y-3 theme-bg-secondary">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs theme-text-muted">
-                      {BRAND.appName} will not call any provider for {label}. Assign it a task, mark
-                      the task <strong>Ready</strong>, and your harness picks it up on its next loop.
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => setExpanded(expanded === agent.mailbox ? null : agent.mailbox)}
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                      {expanded === agent.mailbox ? 'Hide setup' : 'Set up the loop'}
-                    </Button>
-                  </div>
-
-                  {expanded === agent.mailbox && <AgentLoopRecipes mailbox={agent.mailbox} origin={origin} />}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
   )
 }

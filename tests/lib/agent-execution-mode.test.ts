@@ -158,3 +158,22 @@ describe('isPollingOnlyAgent (reading a real user row)', () => {
     expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
   })
 })
+
+describe('webhook mode', () => {
+  it('is a stored choice the resolver honors', () => {
+    expect(isAgentExecutionMode('webhook')).toBe(true)
+    expect(
+      resolveAgentExecutionMode({ mailbox: 'claude', storedModes: { claude: 'webhook' } })
+    ).toBe('webhook')
+  })
+
+  it('does NOT suppress server dispatch — only polling does', async () => {
+    // Webhook users are pushed their work by the notifiers' webhook-first
+    // routing; skipping dispatch for them would silence their server.
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      mcpSettings: JSON.stringify({ agentModes: { claude: 'webhook' } }),
+    })
+    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(false)
+  })
+})
