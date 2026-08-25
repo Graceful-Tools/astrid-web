@@ -103,3 +103,19 @@ export function openClawEmailSuffix(): string {
  * follows the brand domain only so payloads stay internally consistent for a fork.
  */
 export const UNKNOWN_CREATOR_EMAIL = `unknown@${BRAND.agentEmailDomain}`
+
+/**
+ * The mailbox part of an agent identity, or null when the address is not one.
+ *
+ * `claude@astrid.cc` -> `claude`. OpenClaw workers (`buddy.oc@astrid.cc`) answer
+ * `openclaw`, because every one of them routes through the same channel plugin —
+ * callers that need the worker's own name already have the address.
+ *
+ * Exists so the ~5 sites that need "which built-in agent is this?" stop slicing at
+ * the `@` themselves; a hand-rolled split gets the OpenClaw case wrong every time.
+ */
+export function agentMailboxFromEmail(email: string | null | undefined): string | null {
+  if (!isBrandAgentEmail(email)) return null
+  if (isOpenClawAgentEmail(email)) return AGENT_MAILBOXES.openclaw
+  return email.slice(0, email.lastIndexOf('@')).toLowerCase()
+}

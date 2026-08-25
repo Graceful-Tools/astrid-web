@@ -6,14 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AIAPIKeyManager } from "@/components/ai-api-key-manager"
 import { OpenClawAgentManager } from "@/components/openclaw-agent-manager"
+import { AgentRuntimeSettings, AgentLoopRecipes } from "@/components/agent-runtime-settings"
+import AdvancedAgentHosting from "@/components/Settings/AdvancedAgentHosting"
 import {
   Brain,
   Sparkles,
-  Cloud,
   FileText,
   Bot,
-  Check
+  Check,
+  Plug,
+  Terminal
 } from "lucide-react"
+import Link from "next/link"
 import Image from "next/image"
 
 interface AgentsSettingsProps {
@@ -111,7 +115,53 @@ function AstridAgentSelector() {
   )
 }
 
-export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
+/**
+ * The front door: connect a harness, assign work, put it on a loop.
+ *
+ * Ungated on purpose — this is the zero-key path. Everything it teaches works
+ * before any API key or provider setup exists, because /mcp does OAuth
+ * discovery on its own and a keyless coding agent already defaults to polling.
+ */
+function ConnectCodingAgent() {
+  const [origin, setOrigin] = useState(`https://${BRAND.domain}`)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') setOrigin(window.location.origin)
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <ol className="space-y-2 text-sm theme-text-muted">
+        <li>
+          <strong className="theme-text-primary">1. Connect</strong> — run the one-line setup for
+          your coding tool below. It opens a browser to approve access; no API key, no token to
+          paste.
+        </li>
+        <li>
+          <strong className="theme-text-primary">2. Assign</strong> — your agent is already in the
+          assignee list. Assign it a task and mark the task <strong>Ready</strong>. Pick the GitHub
+          repository per list in List Settings → Admin.
+        </li>
+        <li>
+          <strong className="theme-text-primary">3. Loop</strong> — schedule the queue command so
+          the harness checks for work on its own. An empty queue costs one call and stops.
+        </li>
+      </ol>
+
+      <AgentLoopRecipes origin={origin} />
+
+      <p className="text-xs theme-text-muted">
+        More detail:{' '}
+        <Link href="/docs/mcp" className="text-blue-500 hover:underline">MCP connection docs</Link>
+        {' '}·{' '}
+        <Link href="/docs/loops" className="text-blue-500 hover:underline">running agents on a loop</Link>
+      </p>
+    </div>
+  )
+}
+
+// onNavigate stays in the signature — the settings registry passes it to every page.
+export default function AgentsSettings(_props: AgentsSettingsProps) {
   return (
     <div className="p-2 sm:p-4">
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
@@ -124,6 +174,40 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
           </div>
         </div>
 
+        {/* Connect a coding harness — the zero-key front door */}
+        <Card className="theme-bg-secondary theme-border border-green-500/30">
+          <CardHeader>
+            <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
+              <Plug className="w-6 h-6 text-green-500" />
+              <span>Connect your coding agent</span>
+            </CardTitle>
+            <CardDescription className="theme-text-muted">
+              Use the coding tool you already pay for — GitHub Copilot, Claude Code, Codex — as
+              your agent&apos;s runtime. Connect once, assign tasks, run a loop.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ConnectCodingAgent />
+          </CardContent>
+        </Card>
+
+        {/* Where each agent runs */}
+        <Card className="theme-bg-secondary theme-border">
+          <CardHeader>
+            <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
+              <Terminal className="w-6 h-6 text-green-500" />
+              <span>Where your agents run</span>
+            </CardTitle>
+            <CardDescription className="theme-text-muted">
+              Let {BRAND.appName} call a provider on your API key, or keep the work in the
+              coding harness you already pay for and have it poll this queue on a loop.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgentRuntimeSettings />
+          </CardContent>
+        </Card>
+
         {/* Astrid — default agent for private lists */}
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>
@@ -132,34 +216,12 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
               <span>{BRAND.appName}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Choose a model to power {BRAND.appName}. Mention <strong>@astrid</strong> in any chat or comment to get help.
+              Choose a model to power {BRAND.appName}. Mention <strong>@astrid</strong> in any chat or comment to get help.{' '}
               {BRAND.appName} can read tasks across your lists, respond to messages, and complete tasks before their due dates.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <AstridAgentSelector />
-          </CardContent>
-        </Card>
-
-        {/* Cloud Agents link */}
-        <Card
-          className="theme-bg-secondary theme-border cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => onNavigate('coding-agents')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
-                <Cloud className="w-8 h-8 text-indigo-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold theme-text-primary text-lg">
-                  Cloud Agent Settings
-                </h3>
-                <p className="text-sm theme-text-muted mt-1">
-                  Self-hosted SDK agents with GitHub integration
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -188,8 +250,9 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
               <span>Agent API Keys</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Add your API keys to enable AI agents (claude/openai/gemini/copilot@{BRAND.agentEmailDomain}).
-              You only need to configure one provider.
+              The alternative runtime: add a provider API key and {BRAND.appName} runs the agent
+              server-side — no harness, works from your phone. One provider is enough. Saving a
+              key switches that agent to &ldquo;{BRAND.appName} runs it&rdquo; above.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -197,6 +260,9 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
             <AIAPIKeyManager />
           </CardContent>
         </Card>
+
+        {/* Self-hosted SDK, webhooks, GitHub App — collapsed; most users never need it */}
+        <AdvancedAgentHosting />
 
         {/* List Instructions Tip */}
         <Card className="theme-bg-secondary theme-border border-dashed">
@@ -210,7 +276,8 @@ export default function AgentsSettings({ onNavigate }: AgentsSettingsProps) {
                   Write markdown in your list description to tell agents how to handle tasks — like a project brief.
                 </p>
                 <p className="text-xs theme-text-muted mt-2">
-                  Edit descriptions in List Settings → Admin → Description
+                  Set the repository, default agent, and per-list loop in List Settings → Admin →
+                  AI Agent; edit instructions under Description.
                 </p>
               </div>
             </div>

@@ -249,6 +249,23 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
                 </p>
                 <div className="grid gap-3">
                   <CopyField
+                    label={t("settingsPages.aiIntegrations.mcp.claudeTitle")}
+                    value={`claude mcp add --transport http ${BRAND.wordmark.toLowerCase()} ${remoteMcpUrl}`}
+                    field="mcpClaude"
+                    onCopy={copyValue}
+                    copiedField={copiedField}
+                  />
+                  <p className="text-xs theme-text-muted -mt-1">
+                    {t("settingsPages.aiIntegrations.mcp.claudeNote")}
+                  </p>
+                  <CopyField
+                    label={t("settingsPages.aiIntegrations.mcp.copilotTitle")}
+                    value={`copilot mcp add --transport http ${BRAND.wordmark.toLowerCase()} ${remoteMcpUrl}`}
+                    field="mcpCopilot"
+                    onCopy={copyValue}
+                    copiedField={copiedField}
+                  />
+                  <CopyField
                     label={t("settingsPages.aiIntegrations.mcp.serverUrl")}
                     value={remoteMcpUrl}
                     field="mcpServer"
@@ -258,6 +275,11 @@ export default function ApiAccessSettings({ onNavigate }: ApiAccessSettingsProps
                 </div>
                 <p className="text-xs theme-text-muted mt-2">
                   {t("settingsPages.aiIntegrations.mcp.note")}
+                </p>
+                <p className="text-xs mt-1">
+                  <Link href="/settings/agents" className="text-blue-500 hover:underline">
+                    {t("settingsPages.aiIntegrations.mcp.guidedSetup")}
+                  </Link>
                 </p>
 
                 <div className="mt-4">

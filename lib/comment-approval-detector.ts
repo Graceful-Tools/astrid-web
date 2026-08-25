@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { createAIAgentComment } from './ai-agent-comment-service'
+import { isPollingOnlyAgent, resolveAgentRunOwnerId } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('comment-approval-detector')
@@ -17,6 +18,39 @@ export type CommentAction =
   | { type: 'merge'; confidence: number }
   | { type: 'changes_requested'; confidence: number; feedback?: string }
   | { type: 'none'; confidence: 0 }
+
+/**
+ * Is this task's agent worked by the user's own harness rather than by us?
+ *
+ * Reads the assignee and the owner in one query so the four trigger paths share
+ * one answer. A task whose assignee cannot be read is NOT treated as polling —
+ * that would silently disable server-side workflows on a bad query, which is the
+ * failure mode this whole detector exists to avoid.
+ */
+async function isPollingOnlyRun(taskId: string): Promise<boolean> {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      creatorId: true,
+      assignee: { select: { email: true } },
+      lists: {
+        select: { ownerId: true, aiAgentConfiguredBy: true },
+        take: 1,
+      },
+    },
+  })
+
+  if (!task?.assignee?.email) return false
+
+  return isPollingOnlyAgent(
+    task.assignee.email,
+    resolveAgentRunOwnerId({
+      aiAgentConfiguredBy: task.lists[0]?.aiAgentConfiguredBy,
+      creatorId: task.creatorId,
+      listOwnerId: task.lists[0]?.ownerId,
+    })
+  )
+}
 
 /**
  * Detect the action type from comment content
@@ -94,6 +128,14 @@ export async function processCommentForWorkflowAction(
   authorId: string
 ): Promise<void> {
   try {
+    // Nothing here runs for an agent the user works in their own harness. Every
+    // branch below ends in an AIOrchestrator call on the owner's provider key, so
+    // the check belongs at the door rather than at each of the four triggers.
+    if (await isPollingOnlyRun(taskId)) {
+      log.info(`💻 [CommentAction] ${taskId} belongs to a polling-mode agent — leaving it queued`)
+      return
+    }
+
     // Check if this task has an active coding workflow
     const workflow = await prisma.codingTaskWorkflow.findUnique({
       where: { taskId },

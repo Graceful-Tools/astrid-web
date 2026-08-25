@@ -9,6 +9,7 @@ This directory contains all technical documentation for the Astrid task manageme
 - **[Authentication System](./AUTHENTICATION.md)** - Authentication implementation and security
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
+- **[Agent Polling Mode](./AGENT_POLLING_MODE.md)** - Let a user's own harness (Claude Code, Codex, Copilot, Gemini) work the agent's queue on a loop instead of Astrid calling a provider API
 
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration

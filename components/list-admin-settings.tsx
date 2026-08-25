@@ -7,12 +7,11 @@ import type { TaskList, User } from "../types/task"
 import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
-import { GithubIntegrationSection } from "@/components/list-admin/GithubIntegrationSection"
 import { ExternalSyncSection } from "./list-admin/ExternalSyncSection"
 import { ListNameSection } from "@/components/list-admin/ListNameSection"
 import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructionsSection"
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
-import { AstridAgentSection } from "@/components/list-admin/AstridAgentSection"
+import { ListAiAgentSection } from "@/components/list-admin/ListAiAgentSection"
 import { ListIdSection } from "@/components/list-admin/ListIdSection"
 
 interface ListAdminSettingsProps {
@@ -65,8 +64,8 @@ export function ListAdminSettings({
         onProjectBoardRemoved={onProjectBoardRemoved}
       />
 
-      {/* Astrid — AI agent for this list */}
-      <AstridAgentSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
+      {/* Everything AI about this list: model, repo, per-list loop */}
+      <ListAiAgentSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
 
       {/* Agent Instructions (List Description) */}
       <AgentInstructionsSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
@@ -75,13 +74,6 @@ export function ListAdminSettings({
 
       {/* Default task settings */}
       <DefaultTaskSettingsSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
-
-      {/* GitHub Repository Selection */}
-      <GithubIntegrationSection
-        list={list}
-        canEditSettings={canEditSettings}
-        onUpdate={onUpdate}
-      />
 
       {/* External sync: GitHub Issues / Google Tasks list links */}
       <ExternalSyncSection list={list} />

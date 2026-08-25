@@ -1,6 +1,6 @@
 import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
 import { resolveSearchListIds } from '@/lib/user-search-scope'
-import { getAssignableAgentEmails, getKeyedAgentEmails } from '@/lib/ai/assignable-agents'
+import { getAssignableAgentEmails, getOfferableAgentEmails } from '@/lib/ai/assignable-agents'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
     // Option 2: Include AI agents based on user's configured API keys (for My Tasks, etc.)
     if (includeAIAgents && aiAgents.length === 0) {
       // Check which API keys the user has configured
-      const availableAgentEmails = await getKeyedAgentEmails(session.user.id)
+      const availableAgentEmails = await getOfferableAgentEmails(session.user.id)
 
       if (availableAgentEmails.length > 0) {
         const searchConditions: any[] = []

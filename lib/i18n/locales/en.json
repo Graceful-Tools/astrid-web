@@ -908,7 +908,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "One command — it opens your browser to approve access, no keys to copy",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "Same one-command connect for the Copilot CLI",
+        "guidedSetup": "Guided setup with loop recipes in AI Agents settings"
       },
       "step1": {
         "badge": "Step 1",

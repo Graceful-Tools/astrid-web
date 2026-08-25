@@ -98,6 +98,52 @@ export default function MCPDocsPage() {
             </CardContent>
           </Card>
 
+          {/* Claude Code & Codex — the other two top harnesses, same one-command connect */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex items-center space-x-2">
+                <BookOpen className="w-5 h-5 text-green-500" />
+                <span>Connect Claude Code or Codex</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                Same zero-config flow: one command, approve in the browser
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 text-sm">
+              <div>
+                <h3 className="font-semibold theme-text-primary">Claude Code</h3>
+                <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto mt-2">
+                  <code className="text-xs font-mono theme-text-primary">{`claude mcp add --transport http ${BRAND.wordmark} ${mcpUrl}`}</code>
+                </pre>
+                <p className="theme-text-muted text-xs mt-2">
+                  Then run <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">/mcp</code>{' '}
+                  in a session and pick <strong>Authenticate</strong> — the browser opens, you approve, done.
+                </p>
+              </div>
+              <div className="border-t theme-border pt-5">
+                <h3 className="font-semibold theme-text-primary">Codex CLI</h3>
+                <p className="theme-text-secondary mt-1">Add to <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">~/.codex/config.toml</code>:</p>
+                <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto mt-2">
+                  <code className="text-xs font-mono theme-text-primary">{`[mcp_servers.${BRAND.wordmark}]
+command = "npx"
+args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
+                </pre>
+                <p className="theme-text-muted text-xs mt-2">
+                  <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">mcp-remote</code>{' '}
+                  handles the OAuth hand-off for clients that only speak stdio.
+                </p>
+              </div>
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <p className="theme-text-secondary text-xs">
+                  Once connected, ask for your queue — or put it on a schedule.{' '}
+                  <Button variant="link" className="p-0 h-auto text-xs" onClick={() => router.push('/docs/loops')}>
+                    Run your agent on a loop
+                  </Button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* GitHub Copilot */}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
@@ -224,6 +270,15 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                 You can also test operations in{' '}
                 <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/settings/api-testing')}>
                   Settings &rarr; API Testing
+                </Button>.
+              </Step>
+
+              <Step n={5} title="Put it on a loop (optional)">
+                Connected by hand, this answers questions. On a schedule, it works your queue:
+                the harness asks <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono text-xs">get_agent_queue</code>{' '}
+                every half hour and does whatever you assigned it.{' '}
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/docs/loops')}>
+                  Run your agent on a loop
                 </Button>.
               </Step>
             </CardContent>

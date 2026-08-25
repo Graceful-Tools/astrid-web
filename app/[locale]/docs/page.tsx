@@ -354,6 +354,14 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between"
+                onClick={() => router.push('/docs/loops')}
+              >
+                <span>Run Your Agent on a Loop</span>
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-between"
                 onClick={() => router.push('/docs/endpoints')}
               >
                 <span>View Complete API Reference</span>
