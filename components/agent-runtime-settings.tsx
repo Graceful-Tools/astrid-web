@@ -66,6 +66,33 @@ const TAB_MAILBOX: Record<string, string> = {
   cursor: 'claude',
 }
 
+/** Every harness tab, in display order. */
+const ALL_TABS: readonly string[] = ['claude-code', 'copilot', 'codex', 'github', 'gemini', 'cursor']
+
+const TAB_LABELS: Record<string, string> = {
+  'claude-code': 'Claude Code',
+  copilot: 'Copilot / VS Code',
+  codex: 'Codex',
+  github: 'GitHub Actions',
+  gemini: 'Gemini CLI',
+  cursor: 'Cursor',
+}
+
+/**
+ * Which tabs a PINNED agent identity shows. A pinned row already knows what
+ * runs it — offering six tabs there makes the reader pick their answer from
+ * five wrong ones. Copilot keeps two because both really are its harnesses:
+ * the CLI/VS Code locally, GitHub Actions in CI. Unpinned render sites (the
+ * connect card, the per-list loop, /docs/loops) keep everything.
+ */
+const MAILBOX_TABS: Record<string, readonly string[]> = {
+  claude: ['claude-code'],
+  copilot: ['copilot', 'github'],
+  codex: ['codex'],
+  openai: ['codex'],
+  gemini: ['gemini'],
+}
+
 function CopyBlock({ code, label }: { code: string; label: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -132,16 +159,23 @@ export function AgentLoopRecipes({
   const queueLine = (tab: string) =>
     `Call get_agent_queue with agent "${agentFor(tab)}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
 
+  const visibleTabs = (mailbox && MAILBOX_TABS[mailbox]) || ALL_TABS
+  const preferredTab = (mailbox && DEFAULT_HARNESS[mailbox]) || 'claude-code'
+
   return (
-    <Tabs defaultValue={(mailbox && DEFAULT_HARNESS[mailbox]) || 'claude-code'} className="w-full">
-      <TabsList className="flex flex-wrap h-auto">
-        <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
-        <TabsTrigger value="copilot">Copilot / VS Code</TabsTrigger>
-        <TabsTrigger value="codex">Codex</TabsTrigger>
-        <TabsTrigger value="github">GitHub Actions</TabsTrigger>
-        <TabsTrigger value="gemini">Gemini CLI</TabsTrigger>
-        <TabsTrigger value="cursor">Cursor</TabsTrigger>
-      </TabsList>
+    <Tabs
+      defaultValue={visibleTabs.includes(preferredTab) ? preferredTab : visibleTabs[0]}
+      className="w-full"
+    >
+      {/* One relevant recipe needs no picker chrome. Radix unmounts inactive
+          tab content, so hiding the triggers is the whole gate. */}
+      {visibleTabs.length > 1 && (
+        <TabsList className="flex flex-wrap h-auto">
+          {visibleTabs.map(tab => (
+            <TabsTrigger key={tab} value={tab}>{TAB_LABELS[tab]}</TabsTrigger>
+          ))}
+        </TabsList>
+      )}
 
       <TabsContent value="claude-code" className="space-y-3 pt-3">
         <CopyBlock label="1. Connect this workspace to your queue" code={`claude mcp add --transport http ${serverName} ${mcpUrl}`} />
