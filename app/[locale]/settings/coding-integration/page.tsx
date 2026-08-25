@@ -1,15 +1,19 @@
 "use client"
 
-export const dynamic = 'force-dynamic'
-
-import { Suspense } from "react"
-import { AuthenticatedApp } from "@/components/authenticated-app"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { LoadingScreen } from "@/components/loading-screen"
 
-export default function CodingIntegrationSettingsPage() {
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <AuthenticatedApp initialSettingsPage="coding-integration" />
-    </Suspense>
-  )
+/**
+ * Retired: this page declared itself deprecated for months and every section
+ * existed elsewhere. The agent story lives on the single AI Agents page.
+ */
+export default function LegacyCodingIntegrationPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/settings/agents')
+  }, [router])
+
+  return <LoadingScreen message="Redirecting to AI Agents..." />
 }

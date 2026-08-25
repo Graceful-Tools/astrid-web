@@ -8,7 +8,7 @@ export default function WebhookSettingsRedirect() {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace("/settings/coding-agents")
+    router.replace("/settings/agents")
   }, [router])
 
   return <LoadingScreen message="Redirecting to Coding Agents..." />

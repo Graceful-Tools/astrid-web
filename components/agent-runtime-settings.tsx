@@ -51,6 +51,21 @@ const DEFAULT_HARNESS: Record<string, string> = {
   gemini: 'gemini',
 }
 
+/**
+ * The inverse, for harness-first rendering: when no agent identity is pinned,
+ * each tab addresses the identity that harness normally runs as. This is what
+ * lets one "connect your coding agent" card serve every harness without first
+ * asking the reader which agent row they came from.
+ */
+const TAB_MAILBOX: Record<string, string> = {
+  'claude-code': 'claude',
+  copilot: 'copilot',
+  codex: 'codex',
+  github: 'copilot',
+  gemini: 'gemini',
+  cursor: 'claude',
+}
+
 function CopyBlock({ code, label }: { code: string; label: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -95,7 +110,11 @@ export function AgentLoopRecipes({
   origin,
   listId,
 }: {
-  mailbox: string
+  /**
+   * Pin every tab to one agent identity (the per-agent runtime rows do this).
+   * Omitted, each tab uses that harness's own identity via TAB_MAILBOX.
+   */
+  mailbox?: string
   origin: string
   /**
    * Scope the loop to one list/board. The queue endpoint takes listId so that
@@ -109,10 +128,12 @@ export function AgentLoopRecipes({
   // server entry rather than two half-configured ones.
   const serverName = BRAND.wordmark.toLowerCase()
   const listClause = listId ? ` and listId "${listId}"` : ''
-  const queueLine = `Call get_agent_queue with agent "${mailbox}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
+  const agentFor = (tab: string) => mailbox ?? TAB_MAILBOX[tab] ?? 'claude'
+  const queueLine = (tab: string) =>
+    `Call get_agent_queue with agent "${agentFor(tab)}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
 
   return (
-    <Tabs defaultValue={DEFAULT_HARNESS[mailbox] || 'claude-code'} className="w-full">
+    <Tabs defaultValue={(mailbox && DEFAULT_HARNESS[mailbox]) || 'claude-code'} className="w-full">
       <TabsList className="flex flex-wrap h-auto">
         <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
         <TabsTrigger value="copilot">Copilot / VS Code</TabsTrigger>
@@ -127,7 +148,7 @@ export function AgentLoopRecipes({
         <CopyBlock
           label="2. Save the loop as a command you can re-run"
           code={`# .claude/commands/${serverName}-queue.md
-${queueLine}`}
+${queueLine('claude-code')}`}
         />
         <CopyBlock label="3. Run it every 30 minutes in a session" code={`/loop 30m /${serverName}-queue`} />
         <p className="text-xs theme-text-muted">
@@ -157,7 +178,7 @@ ${queueLine}`}
         />
         <CopyBlock
           label="2. Run the loop on a schedule"
-          code={`*/30 * * * * cd ~/code/your-project && copilot -p "${queueLine}" --allow-all-tools >> ~/${serverName}-loop.log 2>&1`}
+          code={`*/30 * * * * cd ~/code/your-project && copilot -p "${queueLine('copilot')}" --allow-all-tools >> ~/${serverName}-loop.log 2>&1`}
         />
         <p className="text-xs theme-text-muted">
           On first run the CLI opens a browser to authorize — approve once and the schedule takes
@@ -174,7 +195,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}
         />
         <CopyBlock
           label="2. Run the loop on a schedule"
-          code={`*/30 * * * * cd ~/code/your-project && codex exec "${queueLine}" >> ~/${serverName}-loop.log 2>&1`}
+          code={`*/30 * * * * cd ~/code/your-project && codex exec "${queueLine('codex')}" >> ~/${serverName}-loop.log 2>&1`}
         />
       </TabsContent>
 
@@ -196,7 +217,7 @@ jobs:
       - name: Read the queue
         id: queue
         run: |
-          curl -sS "${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}" \\
+          curl -sS "${origin}/api/v1/agent-queue?agent=${agentFor('github')}${listId ? `&listId=${listId}` : ''}" \\
             -H "X-OAuth-Token: \${{ secrets.ASTRID_TOKEN }}" > queue.json
           echo "empty=$(jq -r .empty queue.json)" >> "$GITHUB_OUTPUT"
       # Every later step is skipped on a quiet run, so an empty queue costs
@@ -221,7 +242,7 @@ jobs:
         />
         <CopyBlock
           label="2. Run the loop on a schedule"
-          code={`*/30 * * * * cd ~/code/your-project && gemini -p "${queueLine}" >> ~/${serverName}-loop.log 2>&1`}
+          code={`*/30 * * * * cd ~/code/your-project && gemini -p "${queueLine('gemini')}" >> ~/${serverName}-loop.log 2>&1`}
         />
       </TabsContent>
 

@@ -10,8 +10,6 @@ const AgentsSettings = lazy(() => import("./AgentsSettings"))
 const ApiAccessSettings = lazy(() => import("./ApiAccessSettings"))
 const ContactsSettings = lazy(() => import("./ContactsSettings"))
 const DebugSettings = lazy(() => import("./DebugSettings"))
-const CodingIntegrationSettings = lazy(() => import("./CodingIntegrationSettings"))
-const CodingAgentsSettings = lazy(() => import("./CodingAgentsSettings"))
 const TasksSettings = lazy(() => import("./TasksSettings"))
 const ApiTestingSettings = lazy(() => import("./ApiTestingSettings"))
 const GithubSetupSettings = lazy(() => import("./GithubSetupSettings"))
@@ -27,8 +25,6 @@ export const SETTINGS_PAGE_TITLES: Record<string, string> = {
   'api-access': 'API Access',
   'contacts': 'Contacts',
   'debug': 'Debug',
-  'coding-integration': 'Coding Integration',
-  'coding-agents': 'Cloud Agents',
   'tasks': 'Task Settings',
   'api-testing': 'API Testing',
   'agents/github-setup': 'GitHub Setup',
@@ -52,8 +48,6 @@ export function renderSettingsPage(page: string, props: SettingsPageProps): Reac
     case "api-access": return <ApiAccessSettings {...props} />
     case "contacts": return <ContactsSettings {...props} />
     case "debug": return <DebugSettings {...props} />
-    case "coding-integration": return <CodingIntegrationSettings {...props} />
-    case "coding-agents": return <CodingAgentsSettings {...props} />
     case "tasks": return <TasksSettings {...props} />
     case "api-testing": return <ApiTestingSettings {...props} />
     case "agents/github-setup": return <GithubSetupSettings {...props} />

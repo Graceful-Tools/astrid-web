@@ -264,8 +264,6 @@ export function TaskManagerHeader({
     'api-access': t("settingsPages.apiAccess.title"),
     'contacts': t("settingsPages.contacts.title"),
     'debug': t("settingsPages.debug.title"),
-    'coding-integration': 'Coding Integration',
-    'coding-agents': 'Cloud Agents',
     'tasks': 'Task Settings',
     'api-testing': 'API Testing',
     'agents/github-setup': 'GitHub Setup',

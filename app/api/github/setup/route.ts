@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       if (existingConnection) {
         log.info(`⚠️ Installation ${installationId} already connected to another user`)
         return NextResponse.redirect(
-          new URL('/settings/coding-agents?github=already_connected', request.url)
+          new URL('/settings/agents?github=already_connected', request.url)
         )
       }
 
@@ -99,19 +99,19 @@ export async function GET(request: NextRequest) {
 
       log.info(`✅ GitHub App ${setupAction}ed for user ${userId}, installation ${installationId}, ${repositories.length} repos`)
 
-      // Redirect to coding-agents settings with success message
+      // Redirect to the agents settings page with success message
       return NextResponse.redirect(
-        new URL(`/settings/coding-agents?github=${setupAction === 'install' ? 'connected' : 'updated'}`, request.url)
+        new URL(`/settings/agents?github=${setupAction === 'install' ? 'connected' : 'updated'}`, request.url)
       )
     }
 
     // Default redirect to settings
-    return NextResponse.redirect(new URL('/settings/coding-agents', request.url))
+    return NextResponse.redirect(new URL('/settings/agents', request.url))
 
   } catch (error) {
     log.error({ err: error }, 'Error handling GitHub setup:')
     return NextResponse.redirect(
-      new URL('/settings/coding-agents?github=error', request.url)
+      new URL('/settings/agents?github=error', request.url)
     )
   }
 }

@@ -35,7 +35,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
           window.location.href = `/api/github/setup?${params.toString()}`
         } catch (error) {
           console.error('Error processing GitHub callback:', error)
-          onNavigate('coding-agents')
+          onNavigate('agents')
         }
       }
 
@@ -44,7 +44,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
   }, [status, installationId, code, setupAction, onNavigate])
 
   const handleContinue = () => {
-    onNavigate('coding-agents')
+    onNavigate('agents')
   }
 
   if (status === "loading") {
