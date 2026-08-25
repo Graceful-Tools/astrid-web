@@ -216,7 +216,7 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
               <span>{BRAND.appName}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Choose a model to power {BRAND.appName}. Mention <strong>@astrid</strong> in any chat or comment to get help.
+              Choose a model to power {BRAND.appName}. Mention <strong>@astrid</strong> in any chat or comment to get help.{' '}
               {BRAND.appName} can read tasks across your lists, respond to messages, and complete tasks before their due dates.
             </CardDescription>
           </CardHeader>

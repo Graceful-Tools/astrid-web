@@ -321,8 +321,7 @@ export function AgentRuntimeSettings() {
     <div className="space-y-4">
       <p className="text-sm theme-text-muted">
         Every agent below is yours either way — same identity, same list, same comments.
-        This only decides who does the work: {BRAND.appName} calling a provider on your API
-        key, or the coding harness you already pay for, picking the task up on its own loop.
+        This only decides who does the work.
       </p>
 
       <div className="space-y-3">
