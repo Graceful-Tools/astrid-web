@@ -34,7 +34,16 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('ai.agent-execution-mode')
 
-export const AGENT_EXECUTION_MODES = ['api', 'polling'] as const
+/**
+ * `api`     — this server calls the provider on the user's key.
+ * `polling` — the user's harness reads the queue; the server dispatches nothing.
+ * `webhook` — the user's self-hosted server (astrid-sdk) is pushed the work.
+ *             At dispatch time it behaves like `api` — the notifiers already
+ *             try the user's webhook first — so only `polling` suppresses
+ *             server-side dispatch. The mode exists so the UI can show webhook
+ *             setup for exactly the agents the user runs that way.
+ */
+export const AGENT_EXECUTION_MODES = ['api', 'polling', 'webhook'] as const
 export type AgentExecutionMode = (typeof AGENT_EXECUTION_MODES)[number]
 
 export function isAgentExecutionMode(value: unknown): value is AgentExecutionMode {

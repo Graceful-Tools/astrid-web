@@ -4,18 +4,17 @@ import { BRAND } from '@/lib/brand/config'
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AIAPIKeyManager } from "@/components/ai-api-key-manager"
-import { OpenClawAgentManager } from "@/components/openclaw-agent-manager"
-import { AgentRuntimeSettings, AgentLoopRecipes } from "@/components/agent-runtime-settings"
-import AdvancedAgentHosting from "@/components/Settings/AdvancedAgentHosting"
+import { AgentHub } from "@/components/agent-hub"
+import { GitHubIntegrationSettings } from "@/components/github-integration-settings"
+import { GitHubSharedSetup } from "@/components/github-shared-setup"
 import {
   Brain,
-  Sparkles,
   FileText,
   Bot,
   Check,
-  Plug,
-  Terminal
+  ChevronDown,
+  ChevronUp,
+  Github
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -116,47 +115,43 @@ function AstridAgentSelector() {
 }
 
 /**
- * The front door: connect a harness, assign work, put it on a loop.
- *
- * Ungated on purpose — this is the zero-key path. Everything it teaches works
- * before any API key or provider setup exists, because /mcp does OAuth
- * discovery on its own and a keyless coding agent already defaults to polling.
+ * The account-level GitHub App connection. Not agent-specific — every
+ * server-run coding agent creates branches and PRs through it — so it sits
+ * beside the agent list rather than inside any one row. Collapsed: connect
+ * once, then never look at it again.
  */
-function ConnectCodingAgent() {
-  const [origin, setOrigin] = useState(`https://${BRAND.domain}`)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') setOrigin(window.location.origin)
-  }, [])
+function GithubConnectionCard() {
+  const [open, setOpen] = useState(false)
 
   return (
-    <div className="space-y-4">
-      <ol className="space-y-2 text-sm theme-text-muted">
-        <li>
-          <strong className="theme-text-primary">1. Connect</strong> — run the one-line setup for
-          your coding tool below. It opens a browser to approve access; no API key, no token to
-          paste.
-        </li>
-        <li>
-          <strong className="theme-text-primary">2. Assign</strong> — your agent is already in the
-          assignee list. Assign it a task and mark the task <strong>Ready</strong>. Pick the GitHub
-          repository per list in List Settings → Admin.
-        </li>
-        <li>
-          <strong className="theme-text-primary">3. Loop</strong> — schedule the queue command so
-          the harness checks for work on its own. An empty queue costs one call and stops.
-        </li>
-      </ol>
-
-      <AgentLoopRecipes origin={origin} />
-
-      <p className="text-xs theme-text-muted">
-        More detail:{' '}
-        <Link href="/docs/mcp" className="text-blue-500 hover:underline">MCP connection docs</Link>
-        {' '}·{' '}
-        <Link href="/docs/loops" className="text-blue-500 hover:underline">running agents on a loop</Link>
-      </p>
-    </div>
+    <Card className="theme-bg-secondary theme-border">
+      <CardHeader>
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setOpen(!open)}
+        >
+          <div>
+            <CardTitle className="theme-text-primary flex items-center gap-2">
+              <Github className="w-5 h-5" />
+              GitHub connection
+            </CardTitle>
+            <CardDescription className="theme-text-muted">
+              Lets server-run agents create branches and pull requests. Pick the repository per
+              list in List Settings → Admin.
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm">
+            {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
+      </CardHeader>
+      {open && (
+        <CardContent className="space-y-4 pt-0">
+          <GitHubSharedSetup />
+          <GitHubIntegrationSettings />
+        </CardContent>
+      )}
+    </Card>
   )
 }
 
@@ -174,37 +169,24 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
           </div>
         </div>
 
-        {/* Connect a coding harness — the zero-key front door */}
+        {/* THE list: every agent, and per agent the one decision — who runs it.
+            Everything else (key, loop recipe, webhook) appears inline as the
+            answer to that choice. */}
         <Card className="theme-bg-secondary theme-border border-green-500/30">
           <CardHeader>
             <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Plug className="w-6 h-6 text-green-500" />
-              <span>Connect your coding agent</span>
+              <Bot className="w-6 h-6 text-green-500" />
+              <span>Your agents</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Use the coding tool you already pay for — GitHub Copilot, Claude Code, Codex — as
-              your agent&apos;s runtime. Connect once, assign tasks, run a loop.
+              Pick who runs each agent. <strong>{BRAND.appName} runs it</strong> needs that
+              provider&apos;s API key. <strong>My harness polls</strong> uses the coding tool you
+              already pay for — connect it once and put it on a loop. <strong>Webhook server</strong>{' '}
+              pushes work to a machine you host.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ConnectCodingAgent />
-          </CardContent>
-        </Card>
-
-        {/* Where each agent runs */}
-        <Card className="theme-bg-secondary theme-border">
-          <CardHeader>
-            <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Terminal className="w-6 h-6 text-green-500" />
-              <span>Where your agents run</span>
-            </CardTitle>
-            <CardDescription className="theme-text-muted">
-              Let {BRAND.appName} call a provider on your API key, or keep the work in the
-              coding harness you already pay for and have it poll this queue on a loop.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AgentRuntimeSettings />
+            <AgentHub />
           </CardContent>
         </Card>
 
@@ -225,44 +207,8 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
           </CardContent>
         </Card>
 
-        {/* OpenClaw Agents */}
-        <Card className="theme-bg-secondary theme-border">
-          <CardHeader>
-            <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Bot className="w-6 h-6 text-orange-500" />
-              <span>OpenClaw Agents</span>
-            </CardTitle>
-            <CardDescription className="theme-text-muted">
-              Connect your own AI agents via the OpenClaw protocol.
-              Agents get OAuth credentials and communicate via REST + SSE.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <OpenClawAgentManager />
-          </CardContent>
-        </Card>
-
-        {/* AI Agent API Keys */}
-        <Card className="theme-bg-secondary theme-border">
-          <CardHeader>
-            <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Sparkles className="w-6 h-6 text-yellow-500" />
-              <span>Agent API Keys</span>
-            </CardTitle>
-            <CardDescription className="theme-text-muted">
-              The alternative runtime: add a provider API key and {BRAND.appName} runs the agent
-              server-side — no harness, works from your phone. One provider is enough. Saving a
-              key switches that agent to &ldquo;{BRAND.appName} runs it&rdquo; above.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* API Key Configuration */}
-            <AIAPIKeyManager />
-          </CardContent>
-        </Card>
-
-        {/* Self-hosted SDK, webhooks, GitHub App — collapsed; most users never need it */}
-        <AdvancedAgentHosting />
+        {/* Account-level GitHub App — shared by every server-run coding agent */}
+        <GithubConnectionCard />
 
         {/* List Instructions Tip */}
         <Card className="theme-bg-secondary theme-border border-dashed">

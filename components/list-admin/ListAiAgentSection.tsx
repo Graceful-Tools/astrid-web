@@ -188,7 +188,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           <span>
             Connect GitHub to pick the repository a coding agent works in —{' '}
             <Link href="/settings/agents" className="text-blue-500 hover:underline">
-              Settings → AI Agents → Advanced
+              Settings → AI Agents → GitHub connection
             </Link>
           </span>
         </p>

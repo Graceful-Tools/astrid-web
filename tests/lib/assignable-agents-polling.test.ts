@@ -34,6 +34,22 @@ describe('getOfferableAgentEmails', () => {
     expect(offered).toContain('claude@astrid.cc')
     expect(offered).toContain('copilot@astrid.cc')
     expect(offered).toContain('codex@astrid.cc')
+    // Codex and OpenAI are one option; in polling mode the identity is codex@.
+    expect(offered).not.toContain('openai@astrid.cc')
+  })
+
+  it('offers openai@ and hides codex@ once the merged option runs server-side', async () => {
+    mockHasKey.mockImplementation(async (_u: string, service: string) => service === 'openai')
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      mcpSettings: JSON.stringify({ apiKeys: { openai: { encrypted: 'x', iv: 'y' } } }),
+    })
+
+    const offered = await getOfferableAgentEmails('u1')
+
+    expect(offered).toContain('openai@astrid.cc')
+    // Two names for the same agent would appear in every picker otherwise.
+    expect(offered).not.toContain('codex@astrid.cc')
   })
 
   it('does not duplicate an agent that is both keyed and offered', async () => {

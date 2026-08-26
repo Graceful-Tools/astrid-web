@@ -74,5 +74,17 @@ export async function getOfferableAgentEmails(userId: string): Promise<string[]>
     .filter(([, mode]) => mode === 'polling')
     .map(([mailbox]) => agentEmail(mailbox))
 
-  return [...new Set([...keyed, ...polling])]
+  const offered = new Set([...keyed, ...polling])
+
+  // Codex and OpenAI are ONE option in the product with two identities under
+  // it, and the user's chosen mode picks which one is real: server-run work is
+  // openai@ (it has the executor), harness work is codex@ (it has the queue).
+  // Offering both would put two names for the same agent in every picker.
+  if (modes.openai === 'polling') {
+    offered.delete(agentEmail('openai'))
+  } else {
+    offered.delete(agentEmail('codex'))
+  }
+
+  return [...offered]
 }
