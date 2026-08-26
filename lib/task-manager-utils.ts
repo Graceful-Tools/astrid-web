@@ -1,6 +1,11 @@
 import type { Task, TaskList } from '@/types/task'
 import { parseRelativeDate } from '@/lib/date-utils'
 import { applyVirtualListFilter } from '@/lib/virtual-list-utils'
+import {
+  shouldShowCompletedByFilter,
+  type CompletionFilterMode,
+  type RecentlyCompletedWindow,
+} from '@/lib/recently-completed-window'
 import type { WeeklyRepeatingPattern, Weekday } from '@/types/repeating'
 import { getNLPKeywords, type NLPKeywords } from '@/lib/i18n/nlp-keywords'
 import { createLogger } from '@/lib/logger'
@@ -408,16 +413,27 @@ export { canEditListSettings } from "@/lib/list-permissions"
 /**
  * Get fixed list task count (for built-in lists like "my-tasks", "today", etc.)
  */
-export function getFixedListTaskCount(tasks: Task[], listType: string, userId?: string): number {
+export function getFixedListTaskCount(
+  tasks: Task[],
+  listType: string,
+  userId?: string,
+  options?: {
+    completionFilter?: CompletionFilterMode
+    recentlyCompletedWindow?: RecentlyCompletedWindow | null
+  },
+): number {
   if (!tasks || !listType || !userId) return 0
 
+  const completionFilter = options?.completionFilter ?? 'default'
+  const window = options?.recentlyCompletedWindow ?? null
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
   switch (listType) {
     case "my-tasks":
       return tasks.filter(task =>
-        !task.completed && task.assigneeId === userId
+        (task.assigneeId === userId || (task.assigneeId === null && task.creatorId === userId)) &&
+        shouldShowCompletedByFilter(task, completionFilter, window, now)
       ).length
     case "today":
       return tasks.filter(task => {
