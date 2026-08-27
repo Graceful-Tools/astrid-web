@@ -76,11 +76,22 @@ export async function getOfferableAgentEmails(userId: string): Promise<string[]>
 
   const offered = new Set([...keyed, ...polling])
 
+  // "Don't use" means exactly that: an off agent is out of every picker, even
+  // when a key for its provider is still saved. The key survives so turning
+  // the agent back on needs no re-setup; hiding is the whole feature.
+  for (const [mailbox, mode] of Object.entries(modes)) {
+    if (mode === 'off') offered.delete(agentEmail(mailbox))
+  }
+
   // Codex and OpenAI are ONE option in the product with two identities under
   // it, and the user's chosen mode picks which one is real: server-run work is
   // openai@ (it has the executor), harness work is codex@ (it has the queue).
   // Offering both would put two names for the same agent in every picker.
-  if (modes.openai === 'polling') {
+  if (modes.openai === 'off') {
+    // One option, so off silences both identities.
+    offered.delete(agentEmail('openai'))
+    offered.delete(agentEmail('codex'))
+  } else if (modes.openai === 'polling') {
     offered.delete(agentEmail('openai'))
   } else {
     offered.delete(agentEmail('codex'))

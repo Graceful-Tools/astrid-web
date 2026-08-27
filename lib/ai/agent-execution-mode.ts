@@ -39,11 +39,16 @@ const log = createLogger('ai.agent-execution-mode')
  * `polling` — the user's harness reads the queue; the server dispatches nothing.
  * `webhook` — the user's self-hosted server (astrid-sdk) is pushed the work.
  *             At dispatch time it behaves like `api` — the notifiers already
- *             try the user's webhook first — so only `polling` suppresses
- *             server-side dispatch. The mode exists so the UI can show webhook
- *             setup for exactly the agents the user runs that way.
+ *             try the user's webhook first. The mode exists so the UI can show
+ *             webhook setup for exactly the agents the user runs that way.
+ * `off`     — the agent is not in use: hidden from pickers, and the server
+ *             dispatches nothing for it. Unlike `polling`, nothing is coming
+ *             to collect the work either — assignment to an off agent is
+ *             possible only for tasks assigned before it was turned off.
+ *
+ * Dispatch suppression is `polling` OR `off`; `api` and `webhook` dispatch.
  */
-export const AGENT_EXECUTION_MODES = ['api', 'polling', 'webhook'] as const
+export const AGENT_EXECUTION_MODES = ['api', 'polling', 'webhook', 'off'] as const
 export type AgentExecutionMode = (typeof AGENT_EXECUTION_MODES)[number]
 
 export function isAgentExecutionMode(value: unknown): value is AgentExecutionMode {
@@ -195,7 +200,11 @@ export async function isPollingOnlyAgent(
   agentEmailAddress: string | null | undefined,
   userId: string | null | undefined
 ): Promise<boolean> {
-  return (await getAgentExecutionMode(userId, agentEmailAddress)) === 'polling'
+  const mode = await getAgentExecutionMode(userId, agentEmailAddress)
+  // `off` suppresses dispatch for the same reason polling does — the server
+  // must not run this agent. The difference (nothing collects the queue
+  // either) matters to pickers, not to dispatch.
+  return mode === 'polling' || mode === 'off'
 }
 
 /** Every pollable agent's mode for one user, for the settings screen. */

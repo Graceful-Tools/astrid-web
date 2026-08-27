@@ -134,3 +134,29 @@ describe('AgentHub', () => {
     expect(await screen.findByTestId('openclaw-manager')).toBeInTheDocument()
   })
 })
+
+describe("AgentHub — Don't use", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    putMock.mockResolvedValue({ json: async () => ({ modes: {} }) })
+  })
+
+  it('offers the fourth mode on every row', async () => {
+    mockFetches(ALL_POLLING)
+    render(<AgentHub />)
+    await screen.findByText('claude@astrid.cc')
+
+    // One "Don't use" per non-OpenClaw row.
+    expect(screen.getAllByRole('button', { name: /Don't use/ })).toHaveLength(4)
+  })
+
+  it('explains the off state instead of showing any setup', async () => {
+    mockFetches({ ...ALL_POLLING, claude: 'off' })
+    render(<AgentHub />)
+    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+
+    expect(await screen.findByText(/does not appear in assignee pickers/)).toBeInTheDocument()
+    expect(screen.queryByText(/claude mcp add/)).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('sk-ant-...')).not.toBeInTheDocument()
+  })
+})

@@ -36,6 +36,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  CircleSlash,
   Cloud,
   Eye,
   EyeOff,
@@ -50,7 +51,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { apiCall, apiPost, apiPut } from '@/lib/api'
 
-type Mode = 'api' | 'polling' | 'webhook'
+type Mode = 'api' | 'polling' | 'webhook' | 'off'
 
 interface AgentRowConfig {
   key: string
@@ -115,6 +116,7 @@ const MODE_META: Record<Mode, { label: string; icon: typeof Cloud; tint: string 
   api: { label: `${BRAND.appName} runs it`, icon: Cloud, tint: 'text-blue-500 bg-blue-500/15' },
   polling: { label: 'My harness polls', icon: Terminal, tint: 'text-green-500 bg-green-500/15' },
   webhook: { label: 'Webhook server', icon: Webhook, tint: 'text-purple-500 bg-purple-500/15' },
+  off: { label: "Don't use", icon: CircleSlash, tint: 'text-gray-500 bg-gray-500/15' },
 }
 
 interface KeyStatus {
@@ -354,9 +356,13 @@ export function AgentHub() {
         const keyStatus = keys[row.service]
         const configured =
           mode !== 'api' || (row.oauth ? copilotConnected : keyStatus?.hasKey)
+        const isOff = mode === 'off'
 
         return (
-          <div key={row.key} className="border theme-border rounded-lg overflow-hidden">
+          <div
+            key={row.key}
+            className={`border theme-border rounded-lg overflow-hidden ${isOff ? 'opacity-60' : ''}`}
+          >
             <div
               className="flex flex-wrap items-center justify-between gap-3 p-3 cursor-pointer"
               onClick={() => setExpanded(isExpanded ? null : row.key)}
@@ -364,7 +370,7 @@ export function AgentHub() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium theme-text-primary">{row.label}</span>
-                  {!configured && (
+                  {!configured && !isOff && (
                     <Badge variant="outline" className="text-xs text-yellow-600 dark:text-yellow-400">
                       Needs setup
                     </Badge>
@@ -432,6 +438,14 @@ export function AgentHub() {
                     </p>
                     <AgentLoopRecipes mailbox={row.pollMailbox} origin={origin} />
                   </>
+                )}
+
+                {mode === 'off' && (
+                  <p className="text-xs theme-text-muted">
+                    This agent is out of the way: it does not appear in assignee pickers and{' '}
+                    {BRAND.appName} never runs it. Your saved settings and keys are kept — pick
+                    another mode to bring it back exactly as it was.
+                  </p>
                 )}
 
                 {mode === 'webhook' && (

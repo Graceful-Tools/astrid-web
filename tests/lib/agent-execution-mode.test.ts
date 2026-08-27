@@ -177,3 +177,24 @@ describe('webhook mode', () => {
     expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(false)
   })
 })
+
+describe("off mode — Don't use", () => {
+  it('is a stored choice the resolver honors, even over a saved key', () => {
+    expect(isAgentExecutionMode('off')).toBe(true)
+    expect(
+      resolveAgentExecutionMode({
+        mailbox: 'claude',
+        hasStoredCredential: true,
+        storedModes: { claude: 'off' },
+      })
+    ).toBe('off')
+  })
+
+  it('suppresses server dispatch like polling — the server must not run it', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      mcpSettings: JSON.stringify({ agentModes: { claude: 'off' } }),
+    })
+    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
+  })
+})
