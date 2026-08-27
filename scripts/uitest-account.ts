@@ -68,8 +68,13 @@ async function ensureAccount(quiet: boolean): Promise<{ id: string; email: strin
   }
 
   const id = randomUUID()
+  // "updatedAt" is NOT NULL with no database default — Prisma applies @updatedAt in the client,
+  // which a raw INSERT bypasses. Without it this fails with 23502 and the message names the
+  // whole row rather than the column, which reads like the account data is wrong. The TaskList
+  // insert below has always set both timestamps; this one drifted.
   await prisma.$executeRawUnsafe(
-    `INSERT INTO "User" (id, email, name, "emailVerified") VALUES ($1, $2, $3, NOW())`,
+    `INSERT INTO "User" (id, email, name, "emailVerified", "updatedAt")
+     VALUES ($1, $2, $3, NOW(), NOW())`,
     id, EMAIL, NAME)
   if (!quiet) console.log(`✅ Created ${EMAIL} (${id})`)
   return { id, email: EMAIL, name: NAME }

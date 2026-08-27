@@ -82,3 +82,41 @@ describe('getOfferableAgentEmails', () => {
     expect(offered).toContain('copilot@astrid.cc')
   })
 })
+
+describe("off agents — Don't use", () => {
+  beforeEach(() => {
+    mockHasKey.mockReset()
+    mockHasKey.mockResolvedValue(false)
+    mockPrisma.user.findUnique.mockReset()
+  })
+
+  it('hides an off agent from pickers even when its key is still saved', async () => {
+    mockHasKey.mockImplementation(async (_u: string, service: string) => service === 'claude')
+    // The key survives so turning the agent back on needs no re-setup;
+    // hiding is the whole feature.
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      mcpSettings: JSON.stringify({
+        apiKeys: { claude: { encrypted: 'x', iv: 'y' } },
+        agentModes: { claude: 'off' },
+      }),
+    })
+
+    const offered = await getOfferableAgentEmails('u1')
+
+    expect(offered).not.toContain('claude@astrid.cc')
+    expect(offered).toContain('copilot@astrid.cc')
+  })
+
+  it('silences BOTH identities when the merged Codex option is off', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      mcpSettings: JSON.stringify({ agentModes: { openai: 'off' } }),
+    })
+
+    const offered = await getOfferableAgentEmails('u1')
+
+    expect(offered).not.toContain('openai@astrid.cc')
+    expect(offered).not.toContain('codex@astrid.cc')
+  })
+})
