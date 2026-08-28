@@ -179,6 +179,12 @@ export interface Task {
   isPrivate: boolean
   completed: boolean
   /**
+   * When the task was completed. Backdatable by sync, so it is the real stamp;
+   * readers fall back to updatedAt when absent (lib/recently-completed-window.ts
+   * set the convention). Null/undefined while the task is open.
+   */
+  completedAt?: Date | string | null
+  /**
    * Why the task was closed, when it was not simply done (task 11042ae3):
    * "canceled" | "duplicate" | "not_planned". Null/undefined means completed
    * normally, or still open — so it renders nothing until someone uses it.

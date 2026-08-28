@@ -3,6 +3,7 @@ import { useMyTasksPreferences } from './useMyTasksPreferences'
 import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { applyDateFilter } from '@/lib/date-filter-utils'
+import { sortTasksForList } from '@/lib/task-sort'
 import {
   shouldShowCompletedByFilter,
   type CompletionFilterMode,
@@ -15,7 +16,7 @@ export interface FilterState {
   priority: number[]
   assignee: string[]
   dueDate: "all" | "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date"
-  sortBy: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "manual"
+  sortBy: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
 }
 
 interface UseFilterStateProps {
@@ -31,6 +32,7 @@ const getValidSortBy = (value?: string | null): FilterState['sortBy'] => {
     case "assignee":
     case "completed":
     case "incomplete":
+    case "completedAt":
     case "manual":
       return value
     // Legacy support: convert old "due_date" to "when"
@@ -338,100 +340,16 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
       })
     }
 
-    // Prepare manual sort ordering if needed
-    let manualOrderMap: Map<string, number> | null = null
-    if (activeFilters.sortBy === "manual") {
-      const manualOrder = getManualOrder?.(selectedListId) ?? []
-      manualOrderMap = new Map(manualOrder.map((id, index) => [id, index]))
-
-      const manualOrderSet = new Set(manualOrder)
-      if (manualOrderMap.size < filtered.length) {
-        const fallbackTasks = filtered
-          .filter(task => !manualOrderSet.has(task.id))
-          .sort((taskA, taskB) => {
-            const aCreated = taskA.createdAt ? new Date(taskA.createdAt).getTime() : 0
-            const bCreated = taskB.createdAt ? new Date(taskB.createdAt).getTime() : 0
-            return aCreated - bCreated
-          })
-
-        let nextIndex = manualOrderMap.size
-        fallbackTasks.forEach(task => {
-          if (!manualOrderMap!.has(task.id)) {
-            manualOrderMap!.set(task.id, nextIndex++)
-          }
-        })
-      }
-    }
-
-    // Apply sorting
-    const sortedTasks = [...filtered].sort((a, b) => {
-      switch (activeFilters.sortBy) {
-        case "priority":
-          return (b.priority || 0) - (a.priority || 0)
-
-        case "when":
-          // Sort by when/dueDate field (earlier dates first)
-          const aDate = a.when || a.dueDate
-          const bDate = b.when || b.dueDate
-          if (!aDate && !bDate) return 0
-          if (!aDate) return 1
-          if (!bDate) return -1
-          return new Date(aDate).getTime() - new Date(bDate).getTime()
-        
-        case "assignee":
-          const aName = a.assignee?.name || a.assignee?.email || "Unassigned"
-          const bName = b.assignee?.name || b.assignee?.email || "Unassigned"
-          return aName.localeCompare(bName)
-        
-        case "completed":
-          if (a.completed === b.completed) return 0
-          return a.completed ? 1 : -1
-        
-        case "incomplete":
-          if (a.completed === b.completed) return 0
-          return a.completed ? -1 : 1
-
-        case "manual":
-          if (!manualOrderMap) {
-            const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0
-            const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0
-            return aCreated - bCreated
-          }
-          return (manualOrderMap.get(a.id) ?? manualOrderMap.size) - (manualOrderMap.get(b.id) ?? manualOrderMap.size)
-        
-        case "auto":
-        default:
-          // Auto sort: Completion status → Priority → Due date
-          // Completed tasks go to the bottom
-
-          // 1. Completion status (incomplete first, completed at bottom)
-          if (a.completed !== b.completed) {
-            return a.completed ? 1 : -1
-          }
-
-          // 2. Priority (higher priority first)
-          if ((a.priority || 0) !== (b.priority || 0)) {
-            return (b.priority || 0) - (a.priority || 0)
-          }
-
-          // 3. Due date (earlier dates first, no date at end)
-          const aDue = a.dueDateTime || a.when
-          const bDue = b.dueDateTime || b.when
-          if (aDue && bDue) {
-            return new Date(aDue).getTime() - new Date(bDue).getTime()
-          }
-          if (aDue && !bDue) return -1
-          if (!aDue && bDue) return 1
-
-          // 4. Creation Date - earlier created first (tiebreaker)
-          if (a.createdAt && b.createdAt) {
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          }
-
-          // 5. Task name - alphabetical (final tiebreaker)
-          return a.title.localeCompare(b.title)
-      }
-    })
+    // Sorting lives in lib/task-sort.ts — one comparator for every surface.
+    // This hook used to carry a byte-for-byte copy of the switch (and of the
+    // manual-order fallback), which meant a new sort option had to be written
+    // twice or silently miss a surface. The completedAt option is when the
+    // duplicate finally bit.
+    const sortedTasks = sortTasksForList(
+      filtered,
+      activeFilters.sortBy,
+      activeFilters.sortBy === "manual" ? getManualOrder?.(selectedListId) ?? [] : undefined,
+    )
 
     // console.log('🔍 applyFiltersToTasks result:', { original: tasks.length, filtered: filtered.length, final: sortedTasks.length })
 

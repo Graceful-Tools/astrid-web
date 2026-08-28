@@ -28,8 +28,8 @@ interface FixedListSettingsPopoverProps {
   setFilterDueDate: (dueDate: "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date" | "all") => void
   filterCompletion: "completed" | "incomplete" | "all" | "default"
   setFilterCompletion: (completion: "completed" | "incomplete" | "all" | "default") => void
-  sortBy: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "manual"
-  setSortBy: (sort: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "manual") => void
+  sortBy: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
+  setSortBy: (sort: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual") => void
   hasActiveFilters: boolean
   clearAllFilters: () => void
 }
@@ -178,6 +178,7 @@ export function FixedListSettingsPopover({
                 <SelectItem value="assignee">Who</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="incomplete">Incomplete</SelectItem>
+                <SelectItem value="completedAt">Recently completed</SelectItem>
                 <SelectItem value="manual">Manual</SelectItem>
               </SelectContent>
             </Select>
