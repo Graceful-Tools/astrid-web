@@ -25,7 +25,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
+import { taskAreaPositionClasses, bodyClearsFloatingHeader } from '@/lib/task-area-position-classes'
 
 const classesOf = (result: string) => result.split(/\s+/).filter(Boolean)
 
@@ -65,5 +65,22 @@ describe('taskAreaPositionClasses', () => {
         ).toHaveLength(1)
       }
     }
+  })
+})
+
+describe('bodyClearsFloatingHeader (task 6443e6a2)', () => {
+  it('pads only when the header actually floats — mobile with the drawer', () => {
+    expect(bodyClearsFloatingHeader({ isMobile: true, isIOSDrawer: true })).toBe(true)
+  })
+
+  it('does NOT pad tablet/desktop board mode, where the header is in normal flow', () => {
+    // The regression: isIOSDrawer is true in board mode on ANY layout, but the
+    // header only floats on mobile. Padding here stacked on the in-flow
+    // header's height — a ~70px empty band above the board on iPad.
+    expect(bodyClearsFloatingHeader({ isMobile: false, isIOSDrawer: true })).toBe(false)
+  })
+
+  it('does not pad plain desktop, where there is no drawer at all', () => {
+    expect(bodyClearsFloatingHeader({ isMobile: false, isIOSDrawer: false })).toBe(false)
   })
 })

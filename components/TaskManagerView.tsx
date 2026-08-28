@@ -28,6 +28,7 @@ import { didEnterBoardMode } from "@/lib/board-mode-transition"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
+import { bodyClearsFloatingHeader } from "@/lib/task-area-position-classes"
 import { canUserEditTask, canUserManageList } from "@/lib/list-permissions"
 import { isCollaborativePublicTask } from "@/lib/public-list-utils"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
@@ -807,7 +808,7 @@ const TaskManagerView = memo(function TaskManagerView({
         />
 
         {/* Main Layout */}
-        <div className={`flex flex-1 min-h-0 app-body ${isIOSDrawer ? 'app-body-with-floating-header' : ''}`} {...swipeHandlers}>
+        <div className={`flex flex-1 min-h-0 app-body ${bodyClearsFloatingHeader({ isMobile, isIOSDrawer }) ? 'app-body-with-floating-header' : ''}`} {...swipeHandlers}>
           {/* Left Sidebar - only in non-iOS-drawer mode (desktop) */}
           {!isIOSDrawer && (
             <LeftSidebar
