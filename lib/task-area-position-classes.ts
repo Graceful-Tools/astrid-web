@@ -47,3 +47,29 @@ export function taskAreaPositionClasses({
   // Mobile list: unchanged.
   return 'relative'
 }
+
+/**
+ * Should the app body carry `.app-body-with-floating-header` (task 6443e6a2)?
+ *
+ * That class exists to clear the MOBILE floating header, which is
+ * `position: fixed` and takes no space in flow. The header only floats when
+ * `isMobile && showHamburgerMenu` (TaskManagerHeader's `isFloating`) — but the
+ * body used to pad whenever `isIOSDrawer`, which is `showHamburgerMenu ||
+ * isBoardMode`. On an iPad (and any desktop window) in board view the header
+ * is a normal in-flow bordered bar, so the padding stacked ON TOP of the
+ * header's real height — a ~70px band of empty background between the header
+ * and the board columns.
+ *
+ * One predicate, matching the header's own floating condition, so the two can
+ * no longer disagree: pad exactly when the header floats.
+ */
+export function bodyClearsFloatingHeader({
+  isMobile,
+  isIOSDrawer,
+}: {
+  isMobile: boolean
+  /** TaskManagerView passes this as the header's showHamburgerMenu. */
+  isIOSDrawer: boolean
+}): boolean {
+  return isMobile && isIOSDrawer
+}
