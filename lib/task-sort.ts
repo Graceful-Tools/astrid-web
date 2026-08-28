@@ -1,6 +1,6 @@
 import type { Task } from "@/types/task"
 
-export type TaskSortBy = "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "manual"
+export type TaskSortBy = "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
 
 export function compareTasksBySort(
   a: Task,
@@ -34,6 +34,22 @@ export function compareTasksBySort(
     case "incomplete":
       if (a.completed === b.completed) return 0
       return a.completed ? -1 : 1
+
+    case "completedAt": {
+      // Most recently completed first. Completed tasks lead — the sort exists
+      // to review what got done — and the open half keeps the default auto
+      // ordering so it stays a usable to-do list rather than scrambling.
+      if (a.completed !== b.completed) return a.completed ? -1 : 1
+      if (a.completed && b.completed) {
+        // completedAt is the real stamp (backdatable by sync); updatedAt is
+        // the legacy fallback — same convention as the recently-completed
+        // window (lib/recently-completed-window.ts).
+        const aStamp = new Date(a.completedAt ?? a.updatedAt ?? 0).getTime()
+        const bStamp = new Date(b.completedAt ?? b.updatedAt ?? 0).getTime()
+        return bStamp - aStamp
+      }
+      return compareTasksBySort(a, b, "auto")
+    }
 
     case "manual": {
       if (!manualOrderMap) {

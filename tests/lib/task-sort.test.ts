@@ -79,3 +79,42 @@ describe('sortTasksForList', () => {
     expect(sortTasksForList(tasks, 'manual', undefined).map(t => t.id)).toEqual(['early', 'late'])
   })
 })
+
+describe('completedAt sort — most recently completed first', () => {
+  it('orders completed tasks newest-completion-first, incomplete after', () => {
+    const tasks = [
+      baseTask({ id: 'open', completed: false }),
+      baseTask({ id: 'old-done', completed: true, completedAt: new Date('2026-08-01T10:00:00Z') }),
+      baseTask({ id: 'new-done', completed: true, completedAt: new Date('2026-08-27T10:00:00Z') }),
+    ]
+
+    expect(sortTasksForList(tasks, 'completedAt').map(t => t.id)).toEqual([
+      'new-done',
+      'old-done',
+      'open',
+    ])
+  })
+
+  it('falls back to updatedAt for a completed task with no completedAt', () => {
+    // Same convention as the recently-completed window: completedAt is the
+    // real stamp when sync backdated it, updatedAt is the legacy fallback.
+    const tasks = [
+      baseTask({ id: 'stamped', completed: true, completedAt: new Date('2026-08-10T00:00:00Z') }),
+      baseTask({ id: 'legacy', completed: true, updatedAt: new Date('2026-08-20T00:00:00Z') }),
+    ]
+
+    expect(sortTasksForList(tasks, 'completedAt').map(t => t.id)).toEqual(['legacy', 'stamped'])
+  })
+
+  it('keeps incomplete tasks in auto order among themselves', () => {
+    // The open half of the list should not scramble: it keeps the default
+    // ordering (priority, then due date) so the view stays useful.
+    const tasks = [
+      baseTask({ id: 'low', completed: false, priority: 1 }),
+      baseTask({ id: 'high', completed: false, priority: 3 }),
+      baseTask({ id: 'done', completed: true, completedAt: new Date('2026-08-27T10:00:00Z') }),
+    ]
+
+    expect(sortTasksForList(tasks, 'completedAt').map(t => t.id)).toEqual(['done', 'high', 'low'])
+  })
+})

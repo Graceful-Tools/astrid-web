@@ -358,6 +358,7 @@ export function ListSortAndFilters({
               <SelectItem value="assignee">Who</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="incomplete">Incomplete</SelectItem>
+              <SelectItem value="completedAt">Recently completed</SelectItem>
               <SelectItem value="manual">Manual</SelectItem>
             </SelectContent>
           </Select>

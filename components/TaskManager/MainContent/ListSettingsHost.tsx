@@ -24,7 +24,7 @@ import { isSystemListId } from "@/lib/list-permissions"
 
 type DueDateFilter = "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date" | "all"
 type CompletionFilter = "completed" | "incomplete" | "all" | "default"
-type SortBy = "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "manual"
+type SortBy = "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
 
 /** Mirrors the filter slice FixedListSettingsPopover consumes. */
 interface FilterState {
