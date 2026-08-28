@@ -99,8 +99,17 @@ self.addEventListener('fetch', (event) => {
     // App pages - network first with cache fallback
     event.respondWith(handlePageRequest(request));
   } else {
-    // Other requests - network first
-    event.respondWith(fetch(request));
+    // Other requests (e.g. OAuth authorize/callback navigations) - network
+    // only, but don't let a transient fetch failure surface as an unhandled
+    // rejection / opaque network-error response for the page.
+    event.respondWith(
+      fetch(request).catch((error) => {
+        return new Response(
+          `Network error: ${error && error.message ? error.message : 'Failed to fetch'}`,
+          { status: 503, statusText: 'Service Unavailable' }
+        );
+      })
+    );
   }
 });
 
