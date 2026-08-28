@@ -727,7 +727,7 @@ export function useTaskManagerController({
 
   const handleCreateTask = useCallback(async (
     taskTitle: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }
+    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string }
   ): Promise<string | null> => {
     if (!effectiveSession?.user || !taskTitle.trim() || isCreatingTask) {
       return null
@@ -782,6 +782,8 @@ export function useTaskManagerController({
         repeating: defaults.repeating,
         isPrivate: defaults.isPrivate,
         customRepeatingData: parsedTask.customRepeatingData || null,
+        // Board column at creation — a role, resolved by the board (task eb7fce2f).
+        statusRole: options?.statusRole,
       }
 
       toast({
@@ -811,7 +813,7 @@ export function useTaskManagerController({
 
   const handleQuickCreateTask = useCallback(async (
     title: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }
+    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string }
   ): Promise<string | null> => {
     try {
       await handleCreateTask(title, options)

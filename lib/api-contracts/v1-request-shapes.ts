@@ -167,6 +167,13 @@ export interface V1TaskCreateRequest {
   assigneeId?: string | null
   parentTaskId?: string | null
   listIds?: string[]
+  /**
+   * Board column at creation, as a ROLE ("ready" | "doing" | a project's
+   * custom role) — matching the update route. Never a list id: the rows
+   * behind columns are gone (AWTD-562/Stage D), and a role inside listIds
+   * 400s the whole create (task eb7fce2f). Absent means Inbox.
+   */
+  statusRole?: string | null
   /** Offline-retry idempotency key, 8–128 chars. See lib/comment-idempotency.ts. */
   clientRequestId?: string
 }

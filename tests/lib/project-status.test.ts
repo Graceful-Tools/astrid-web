@@ -8,6 +8,8 @@ import {
   getTaskProjectColumnId,
   normalizeProjectStatusListIds,
   resolveProjectColumnMove,
+  resolveProjectColumnCreate,
+  type ProjectBoardColumn,
 } from '@/lib/project-status'
 import type { Task, TaskList } from '@/types/task'
 
@@ -312,5 +314,38 @@ describe('a status the board cannot render falls back to Inbox (AWTD-562)', () =
     for (const role of ['ready', 'doing', 'custom-blocked', 'custom-gone', null]) {
       expect(columnIds.has(getTaskProjectColumnId(card(role), columns))).toBe(true)
     }
+  })
+})
+
+describe('resolveProjectColumnCreate (task eb7fce2f)', () => {
+  it('sends the status column as a ROLE, never as a list id', () => {
+    // The regression: the add-task form put the column id inside listIds, and
+    // since Stage D that id is a role — POST answered 400 "Invalid list IDs:
+    // ready" and adding a task to any board column failed.
+    const column: ProjectBoardColumn = { id: 'ready', name: 'Ready', description: '', kind: 'status' }
+
+    const payload = resolveProjectColumnCreate(column, 'domain-list-1')
+
+    expect(payload).toEqual({ listIds: ['domain-list-1'], statusRole: 'ready' })
+  })
+
+  it('creates into Inbox with no status at all', () => {
+    const column: ProjectBoardColumn = { id: '__virtual_inbox__', name: 'Inbox', description: '', kind: 'inbox' }
+
+    expect(resolveProjectColumnCreate(column, 'domain-list-1')).toEqual({
+      listIds: ['domain-list-1'],
+      statusRole: undefined,
+    })
+  })
+
+  it('omits listIds entirely when there is no domain list, rather than sending an empty array', () => {
+    // An empty listIds array means "in no list"; undefined lets the creator
+    // fall back to its own default. Those are different writes.
+    const column: ProjectBoardColumn = { id: 'doing', name: 'Doing', description: '', kind: 'status' }
+
+    expect(resolveProjectColumnCreate(column, undefined)).toEqual({
+      listIds: undefined,
+      statusRole: 'doing',
+    })
   })
 })
