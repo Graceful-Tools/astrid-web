@@ -1041,6 +1041,32 @@ model AnalyticsDailyStats {
   @@index([date])
 }
 
+/// Durable census of legacy /api/* traffic (task 641a7615, re-landed for
+/// task 058d80ad). One row per (day, route, method, platform); the retirement
+/// question — "is this route safe to delete yet?" — is answered by
+/// lib/legacy-api-usage.ts::summarizeLegacyUsage over these rows.
+///
+/// RE-LAND NOTE: production's migration ledger records the ORIGINAL migration
+/// (20260803060000_legacy_api_daily_usage) as applied on 2026-08-10, but the
+/// table was dropped during the outage cleanup and the ledger row left behind.
+/// Re-using that name would be silently skipped on deploy, so the re-land
+/// migration has a NEW name and idempotent SQL.
+model LegacyApiDailyUsage {
+  id       String   @id @default(cuid())
+  day      DateTime @db.Date // UTC midnight, so a "day" means one thing
+  route    String // normalised: /api/lists/:id
+  method   String
+  platform String // AnalyticsPlatform value: iOS-app, web-desktop, ...
+  count    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([day, route, method, platform])
+  @@index([route, day])
+  @@index([day])
+}
+
 model AdminUser {
   id        String   @id @default(cuid())
   userId    String   @unique
