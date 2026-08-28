@@ -22,6 +22,7 @@ import {
   getProjectIdForBoard,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
+  resolveProjectColumnCreate,
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
@@ -41,7 +42,7 @@ interface ProjectStatusBoardProps {
   onLocalUpdateTask?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
   onDeleteTask: (taskId: string) => void
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
-  onCreateTask: (title: string, options?: { listIds?: string[] }) => Promise<string | null>
+  onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
   isOneColumn?: boolean
 }
 
@@ -283,11 +284,10 @@ export function ProjectStatusBoard({
 
     setCreatingColumnId(column.id)
     try {
-      const listIds = [
-        defaultDomainList?.id,
-        column.kind === 'status' ? column.id : undefined,
-      ].filter((id): id is string => Boolean(id))
-      await onCreateTask(title, { listIds: listIds.length > 0 ? listIds : undefined })
+      // The column travels as a ROLE, never inside listIds — the same rule the
+      // move path already states. A role in listIds reads as a nonexistent
+      // list and 400s the whole create (task eb7fce2f).
+      await onCreateTask(title, resolveProjectColumnCreate(column, defaultDomainList?.id))
       setDrafts(prev => ({ ...prev, [column.id]: "" }))
     } finally {
       setCreatingColumnId(null)

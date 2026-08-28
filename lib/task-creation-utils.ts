@@ -17,6 +17,7 @@ export interface TaskCreationData {
   isAllDay?: boolean
   assigneeId?: string | null
   listIds?: string[]
+  statusRole?: string
 }
 
 export interface TaskCreationDependencies {
@@ -151,7 +152,10 @@ export function mapTaskDataForApi(taskData: TaskCreationData) {
     dueDateTime: dueDateTimeValue,
     isAllDay: taskData.isAllDay ?? false,
     assigneeId,
-    listIds: taskData.listIds || []
+    listIds: taskData.listIds || [],
+    // Board column at creation (task eb7fce2f); absent everywhere else, and
+    // absence means Inbox.
+    statusRole: taskData.statusRole
   }
 }
 

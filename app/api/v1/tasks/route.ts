@@ -481,6 +481,14 @@ export const POST = withAuth(
 
     // ── Subtasks: validate parentTaskId if provided ────────────────────
     const rawParentTaskId = typeof body.parentTaskId === 'string' && body.parentTaskId ? body.parentTaskId : null
+    // Board status at creation (task eb7fce2f). A ROLE, matching the update
+    // route: the board's add-task form sends the target column here so a task
+    // created on "Ready" lands on Ready — the column id must never travel
+    // inside listIds, where it reads as a nonexistent list and 400s the write.
+    const rawStatusRole =
+      typeof body.statusRole === 'string' && body.statusRole.trim()
+        ? body.statusRole.trim()
+        : null
     if (rawParentTaskId) {
       const parentError = await validateParentTask(rawParentTaskId)
       if (parentError) {
@@ -525,6 +533,7 @@ export const POST = withAuth(
             creatorId: auth.userId,
             clientRequestId: rawClientRequestId,
             parentTaskId: rawParentTaskId,
+            statusRole: rawStatusRole,
             dueDateTime,
             isAllDay,
             isPrivate: body.isPrivate ?? true,
@@ -613,6 +622,7 @@ export const POST = withAuth(
         sequence: minted?.sequence ?? null,
         clientRequestId: rawClientRequestId,
         parentTaskId: rawParentTaskId,
+        statusRole: rawStatusRole,
         dueDateTime,
         isAllDay,
         isPrivate: body.isPrivate ?? true,

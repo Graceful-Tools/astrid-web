@@ -212,6 +212,30 @@ export function getTaskProjectColumnId(
 }
 
 /**
+ * What the board's add-task form should SEND for a new task in this column
+ * (task eb7fce2f).
+ *
+ * The status column travels as a ROLE, never as a list id — same rule
+ * resolveProjectColumnMove states below, learned the hard way twice now: the
+ * rows behind columns are gone since Stage D, and a role inside `listIds`
+ * makes POST reject the whole create ("Invalid list IDs: ready"), which is how
+ * adding a task to a board column silently broke across that deploy.
+ *
+ * `listIds` is undefined (not []) when there is no domain list: an empty array
+ * means "in no list", undefined lets the creator fall back to its default —
+ * different writes.
+ */
+export function resolveProjectColumnCreate(
+  column: ProjectBoardColumn,
+  domainListId: string | undefined,
+): { listIds: string[] | undefined; statusRole: string | undefined } {
+  return {
+    listIds: domainListId ? [domainListId] : undefined,
+    statusRole: column.kind === 'status' ? column.id : undefined,
+  }
+}
+
+/**
  * Compute the post-move task state when dragging a task onto a board column.
  *   inbox  → strip the (global) status, completed=false
  *   done   → strip the (global) status, completed=true
