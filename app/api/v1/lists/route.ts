@@ -22,6 +22,7 @@ import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-
 import { listVisibilityWhere } from '@/lib/list-permissions'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
+import { serializeListAgentFields } from '@/lib/resolve-default-agent'
 import {
   createListWithImageOwnership,
   ListImageClaimError,
@@ -143,7 +144,7 @@ export const GET = withAuth(
           // the web and absent from this projection until now; a missing field
           // here is not an error, it is a feature silently switched off.
           defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, assigneeMap) as V1UserSummary | null,
-          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          ...serializeListAgentFields(list.aiAgentsEnabled),
           publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
