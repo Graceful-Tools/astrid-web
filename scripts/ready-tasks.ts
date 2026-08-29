@@ -35,6 +35,13 @@
 // scope with every other script and `main` collides at typecheck time.
 export {}
 
+// .env.local must beat inherited shell exports — a stale ~/.zshrc OAuth export
+// is the documented way every script here fails with invalid_client. This was
+// the one OAuth script not loading it (surfaced by the sweep's first write).
+import { loadScriptEnv } from './lib/load-env'
+
+loadScriptEnv()
+
 import {
   hasReadyStatus,
   isClaimableByAgent,
