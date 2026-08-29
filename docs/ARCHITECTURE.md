@@ -7,8 +7,8 @@ Astrid is a task management application built with clean separation of concerns 
 ## Technology Stack
 
 ### Core Framework
-- **Next.js 15.5** with App Router
-- **TypeScript** + **React 19**
+- **Next.js** with App Router
+- **TypeScript** + **React**
 - **Tailwind CSS** + **Shadcn/ui** components (based on Radix UI)
 
 ### Backend & Data
@@ -631,7 +631,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 ### **Hosting & Platform**
 
 #### **Vercel** (Primary Platform)
-- Next.js 15.5 hosting with automatic deployments
+- Next.js hosting; preview and production deployments are explicit workflows
 - Edge Functions for API routes (30s timeout, 60s for migrations)
 - Preview deployments for every PR
 - Automatic HTTPS and global CDN
