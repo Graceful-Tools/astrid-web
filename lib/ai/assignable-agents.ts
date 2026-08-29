@@ -55,7 +55,7 @@ export async function getKeyedAgentEmails(userId: string): Promise<string[]> {
 
 /**
  * The subset a user can actually hand work to: keyed agents PLUS every agent
- * whose resolved execution mode is `polling`.
+ * whose resolved execution mode is `polling` or `webhook`.
  *
  * `getKeyedAgentEmails` was the whole answer when the server ran every agent —
  * no key, no runtime, nothing to offer. Polling mode broke that equivalence:
@@ -70,11 +70,14 @@ export async function getOfferableAgentEmails(userId: string): Promise<string[]>
     getAgentExecutionModes(userId),
   ])
 
-  const polling = Object.entries(modes)
-    .filter(([, mode]) => mode === 'polling')
+  // polling and webhook both mean "a runtime the user provides" — the user's
+  // harness reads the queue, or their own server is pushed the work. Neither
+  // needs a provider key to be a working agent (task 9dbe0b17).
+  const selfRun = Object.entries(modes)
+    .filter(([, mode]) => mode === 'polling' || mode === 'webhook')
     .map(([mailbox]) => agentEmail(mailbox))
 
-  const offered = new Set([...keyed, ...polling])
+  const offered = new Set([...keyed, ...selfRun])
 
   // "Don't use" means exactly that: an off agent is out of every picker, even
   // when a key for its provider is still saved. The key survives so turning
