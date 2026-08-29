@@ -26,6 +26,7 @@ import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { recordStateChangeComment } from '@/lib/task-update-handler'
 import { notifyTaskUpdate } from '@/lib/notification-store'
+import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
@@ -103,7 +104,8 @@ export const GET = withAuth<RouteContext>(
             },
             secureFiles: true,
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
+          take: TASK_COMMENTS_RESPONSE_LIMIT,
         },
         attachments: true,
         // Legacy's TASK_FULL_INCLUDE carries these; v1 did not, and web reads
@@ -116,6 +118,10 @@ export const GET = withAuth<RouteContext>(
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
+
+    // Query is newest-first so the cap keeps recent comments; the wire order
+    // stays ascending, which is what clients always received (task a86b5bed).
+    task.comments?.reverse()
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -427,7 +433,8 @@ export const PUT = withAuth<RouteContext>(
                 },
               },
             },
-            orderBy: { createdAt: 'asc' as const },
+            orderBy: { createdAt: 'desc' as const },
+          take: TASK_COMMENTS_RESPONSE_LIMIT,
           },
         },
       })
@@ -438,6 +445,9 @@ export const PUT = withAuth<RouteContext>(
           { status: 404 }
         )
       }
+
+      // Wire order stays ascending under the newest-first cap (task a86b5bed).
+      task.comments?.reverse()
 
       log.info({ taskId, rolledForward: repeatingTaskResult.shouldRollForward }, 'Repeating task processed')
 
@@ -587,7 +597,8 @@ export const PUT = withAuth<RouteContext>(
             },
             secureFiles: true,
           },
-          orderBy: { createdAt: 'asc' as const },
+          orderBy: { createdAt: 'desc' as const },
+          take: TASK_COMMENTS_RESPONSE_LIMIT,
         },
         // Parity with legacy TASK_FULL_INCLUDE. This response replaces the
         // task in client state after every edit, so omitting these does not
@@ -597,6 +608,9 @@ export const PUT = withAuth<RouteContext>(
         secureFiles: true,
       },
     })
+
+    // Wire order stays ascending under the newest-first cap (task a86b5bed).
+    task.comments?.reverse()
 
     // Structured activity history (task 51a4b8ff). Same helper as the web
     // route, so the two surfaces cannot emit different events for the same

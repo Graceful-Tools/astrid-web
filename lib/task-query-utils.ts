@@ -9,6 +9,18 @@ import { Prisma } from '@prisma/client'
 import { PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 
 /**
+ * Upper bound on comments embedded in a single task response.
+ *
+ * Task responses used to embed the ENTIRE comment collection; a runaway
+ * GitHub comment-sync echo put 142k comments on one task, at which point the
+ * task's PUT answered 500 — the write landed, the response could not
+ * serialize (task a86b5bed). The cap keeps the NEWEST comments, so queries
+ * using it must order newest-first; older comments remain reachable through
+ * the comment endpoints.
+ */
+export const TASK_COMMENTS_RESPONSE_LIMIT = 500
+
+/**
  * Standard task include for full task data with relations.
  * Used across GET, PUT, DELETE operations.
  */
@@ -36,6 +48,7 @@ export const TASK_FULL_INCLUDE = {
     orderBy: {
       createdAt: 'desc' as const,
     },
+    take: TASK_COMMENTS_RESPONSE_LIMIT,
   },
   attachments: true,
   secureFiles: true,
