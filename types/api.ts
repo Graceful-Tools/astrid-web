@@ -18,6 +18,9 @@ export interface CreateTaskData {
   assigneeId?: string
   assigneeEmail?: string // For assigning to non-registered users
   clientRequestId?: string // Idempotency key for dedup (8-128 chars)
+  // Board column at creation — a ROLE, never a list id (tasks eb7fce2f,
+  // f58ece7c); POST /api/v1/tasks persists it. Absence means Inbox.
+  statusRole?: string
   attachments?: Array<{
     name: string
     url: string
