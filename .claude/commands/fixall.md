@@ -2,9 +2,14 @@ Check the **Ready** list on the Astrid Web To-do and autonomously work every tas
 
 ## Goal
 
-**Drive the Ready list to empty.** Unlike `/fixstuff`, this does not ask which task to work on
-— it takes them in priority order and keeps going until nothing is left. It stops on its own
-when Ready is clear, so a scheduled re-run that finds it empty is a no-op, not busywork.
+**Drive the Ready list to empty — and clear `RECHECK` / `REVIEW`.** Unlike `/fixstuff`, this
+does not ask which task to work on — it takes them in priority order and keeps going until
+nothing is left. The queue script also sweeps the board's lanes honest (dated Ready work parks
+in Waiting; met conditions promote back) and may print `RECHECK` (re-verify an external
+condition, then promote or bump its date) and `REVIEW` (Waiting with no recorded condition —
+give it one or hand it back) sections: those are part of the run, not commentary. It stops on
+its own when all three are clear, so a scheduled re-run that finds nothing is a no-op, not
+busywork.
 
 ## The workflow itself is shared
 
@@ -42,10 +47,11 @@ agent's work.)
 - **Gates:** `npm run predeploy`, plus `npm run check:reuse`.
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
   close that task with a one-line explanation rather than leaving a false alarm on the board.
-- **If a task is blocked by something outside the repo** — a client rollout, a third-party
-  outage, a decision only Jon can make — hand it back the same way as an ambiguous one: assign
-  to Jon, move to `Waiting`, say what is blocking it. Do not close it, and do not work around
-  the block by breaking users.
+- **If a task is blocked by something outside the repo**, park it in `Waiting` with the right
+  condition (docs/FIXALL_WORKFLOW.md → *Waiting carries its condition*): a decision only Jon
+  can make → assign to Jon with the question; blocked on another task → `BLOCKED-BY: <id>`;
+  blocked on an external event → `BLOCKED-ON: <condition>` plus a recheck due date. Do not
+  close it, and do not work around the block by breaking users.
 - **If every Ready task is blocked, say so in a few lines and stop.** A run that ends with
   "nothing actionable" is a correct run. Do not invent adjacent work to fill it; re-checking a
   blocked task costs one call, and inventing work costs a review.
