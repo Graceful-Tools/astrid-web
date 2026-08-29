@@ -113,9 +113,16 @@ jobs:
           echo "✅ Prisma schema matches migrations"
 
       - name: Check API/iOS Model Sync
+        # astrid-ios is public, so the default repo-scoped GITHUB_TOKEN can read
+        # it — no PAT needed. ASTRID_IOS_GITHUB_TOKEN (if ever set as a secret)
+        # takes precedence. --strict: an unverified check FAILS the step; this
+        # gate ran as a silent no-op rendered as a pass for weeks (task 1985804a).
+        env:
+          ASTRID_IOS_GITHUB_TOKEN: ${{ secrets.ASTRID_IOS_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking if Prisma, Swift, and Core Data models are in sync..."
-          npm run check:model-sync
+          npm run check:model-sync -- --strict
 
       - name: Check for API Breaking Changes
         run: |

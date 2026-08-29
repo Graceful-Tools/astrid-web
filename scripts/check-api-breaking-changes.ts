@@ -386,8 +386,10 @@ function main() {
   // Compare current Task fields with contract
   for (const [field] of taskFields) {
     if (!contract.Task[field as keyof typeof contract.Task]) {
-      // Skip common computed/local fields
-      const skipFields = new Set(['when', 'dueDate']);
+      // Skip common computed/local fields. subtaskDepth is a client-only
+      // nesting annotation (types/task.ts) — it never travels on the wire, so
+      // it does not belong in the API contract (task 1985804a).
+      const skipFields = new Set(['when', 'dueDate', 'subtaskDepth']);
       if (!skipFields.has(field)) {
         newFields.push({ entity: 'Task', field });
       }

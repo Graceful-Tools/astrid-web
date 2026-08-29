@@ -71,6 +71,14 @@ export const V1_TASK_FIELDS = {
   originalTaskId: { type: 'string', required: false },
   sourceListId: { type: 'string', required: false },
 
+  // Added 2026-08-29 (task 1985804a) — fields the API had been sending
+  // untracked since the day-one snapshot. All optional: adding them is
+  // non-breaking, and clients that ignore them keep working.
+  completedAt: { type: 'date', required: false },
+  closedReason: { type: 'string', required: false },
+  statusRole: { type: 'string', required: false },
+  parentTaskId: { type: 'string', required: false },
+
   // Legacy fields (kept for backward compatibility)
   when: { type: 'date', required: false, deprecated: true },
   dueDate: { type: 'date', required: false, deprecated: true },
@@ -125,6 +133,18 @@ export const V1_TASKLIST_FIELDS = {
   fallbackAiProvider: { type: 'string', required: false },
   githubRepositoryId: { type: 'string', required: false },
   aiAgentsEnabled: { type: 'array', required: false },
+
+  // Added 2026-08-29 (task 1985804a) — project-board and subtask-era fields
+  // the API had been sending untracked. All optional (non-breaking to add;
+  // a select that omits one is not a contract violation).
+  projectId: { type: 'string', required: false },
+  listType: { type: 'enum', values: ['regular', 'status'], required: false },
+  statusRole: { type: 'string', required: false },
+  statusOrder: { type: 'number', required: false },
+  statusDescription: { type: 'string', required: false },
+  statusCompleted: { type: 'boolean', required: false },
+  recentlyCompletedWindow: { type: 'object', required: false },
+  showSubtasks: { type: 'boolean', required: false },
 } as const;
 
 /**
