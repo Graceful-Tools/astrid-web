@@ -49,7 +49,8 @@ Refer to tasks by **title** in every report; Jon does not read task ids.
 
 3. **Pull web tasks**:
    ```bash
-   npx tsx scripts/get-astrid-tasks.ts
+   # astrid MCP tool — not a script, never the DB (deep repair only):
+   # get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }
    ```
 
 4. **Present the tasks** to the user and ask which one(s) to work on.

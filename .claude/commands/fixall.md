@@ -19,11 +19,12 @@ different **here**.
 Pull the queue with:
 
 ```bash
-npx tsx scripts/ready-tasks.ts --harness <claude-code|github-copilot|codex|astrid-server>
+get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }   # astrid MCP tool, not a script
+# (scripts/ready-tasks.ts web --harness claude-code is for debugging the predicates only; never the DB)
 ```
 
-(The board defaults to `web`. The harness never defaults — guessing would claim another
-agent's work.)
+(`agent` never defaults — guessing would claim another harness's work. Only tasks ASSIGNED to
+claude are returned; unassigned Ready tasks are someone's untriaged note.)
 
 ## What is different here
 

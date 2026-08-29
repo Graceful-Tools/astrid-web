@@ -14,31 +14,33 @@ twice is a rule that disagrees with itself.
 
 ## The queue
 
-```bash
-cd ../astrid-web && npx tsx scripts/ready-tasks.ts <web|ios> --harness <name>
+**Read and write tasks through the `astrid` MCP server** (`https://www.astrid.cc/mcp`), not
+scripts and never the database (Jon, 2026-08-29: the DB is for deep repair only).
+
+```
+get_agent_queue { agent: "claude", listId: "<board id>" }
 ```
 
-Prints `READY_EMPTY`, or the queue in the order to work it: priority high → low, then oldest
-first. Valid harnesses: `claude-code`, `github-copilot`, `codex`, `astrid-server`.
+Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
+`aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
+it, plus `held.scheduled` for anything waiting on its date. `agent` never defaults — guessing
+would claim another harness's work — and a typo fails loudly rather than answering "nothing".
 
-**One script, both loops**, so the guarantees are the same for each. A second implementation
-would drift, and the drift would be silent — a queue that is wrong looks exactly like a quiet
-day.
+The predicates are `lib/ready-queue-scope.ts`, the same ones `scripts/ready-tasks.ts` uses, so
+the local script and the MCP queue cannot silently disagree. (`ready-tasks.ts` remains for
+debugging the queue itself; it is not how a loop reads it.)
 
 A task is yours only when **all four** hold:
 
-1. **On the board** named for this loop. `Ready` is account-wide and shared by every board, so
-   filtering on it alone would hand the web loop iOS work and put two agents in one repo.
+1. **On the board** named for this loop — pass `listId`. `Ready` is account-wide and shared by
+   every board, so filtering on it alone would hand the web loop iOS work.
 2. **Ready status.** The rest of the board is filed but not triaged. Working anything else is
    not autonomy, it is picking your own work.
-3. **Unassigned or assigned to this harness.** Unassigned Ready tasks are claimable by this loop.
-   Assignment is still a claim for tasks that already have an owner, so tasks assigned to someone
-   else remain out of scope.
+3. **Assigned to this agent.** The MCP queue REQUIRES assignment — an unassigned Ready task is
+   somebody's untriaged note, not an invitation. (The local script also took unassigned tasks;
+   the MCP does not.) If something is genuinely yours, say so and let Jon assign it; do not
+   work around the filter.
 4. **Due now.** See below.
-
-The script prints what it skipped and why, with the assignee's name, so a queue held up by
-someone else's work never looks like an idle one. If something is genuinely yours, say so and
-let Jon assign it; do not work around the filter.
 
 ### A task with a date waits for its date
 
@@ -75,11 +77,14 @@ just "empty" — a quiet run and a finished one are different things.
 The board is where Jon looks. A task being worked and a task nobody has touched must not look
 identical there.
 
+The MCP server has no status or assign tool yet, so these two steps — and only these — use the
+OAuth scripts in astrid-web. Not the database.
+
 **Starting → move it to `Doing`**, before the strategy comment, so the window where the board
 is wrong is as small as possible:
 
 ```bash
-npx tsx scripts/set-task-status.ts <taskId> Doing
+cd ../astrid-web && npx tsx scripts/set-task-status.ts <taskId> Doing
 ```
 
 **Blocked on Jon → hand it back: assign to him AND move it to `Waiting`.** Both, not one.
@@ -111,19 +116,20 @@ write if the task would be stranded, and reads back to prove it.
 1. **Move it to `Doing`** (above), before anything else.
 2. **Post the session link** so Jon can follow on mobile:
    `npx tsx scripts/post-session-link.ts <taskId>`
-3. **Read the description AND the comments/attachments.** A screenshot attached to the task is
+3. **Read the description AND the comments/attachments** — `get_task` and `get_task_comments`. A screenshot attached to the task is
    usually the fastest route to the real cause.
 4. **Check where the fix actually lives before writing any.** If it belongs to the other repo,
    file it there NOW (below) rather than discovering it three steps later.
-5. **Post a short strategy comment** before writing code.
+5. **Post a short strategy comment** before writing code — `add_comment { taskId, content, type: "MARKDOWN" }`.
 6. **One branch per task**, `fix/<short-description>`.
 7. **RED-GREEN TDD, mandatory for bug fixes.** Write a failing test that reproduces the bug,
    citing the task id in the test name, and confirm it fails **for the right reason**. Then the
    minimum change to make it pass. Then refactor while green.
 8. **Run the repo's gates** and fix regressions.
 9. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
-10. **Post a completion report** and mark it complete. Say what it does in plain language, not
-    by commit hash or task id.
+10. **Post a completion report** (`add_comment`) and mark it complete
+    (`update_task { taskId, completed: true }`). Say what it does in plain language, not by
+    commit hash or task id.
 
 **Never leave a red gate.** A failing test that looks unrelated is still a failing test — say
 plainly that it is unrelated and why, rather than moving past it quietly.
@@ -147,18 +153,12 @@ have done so. A task parked on the wrong board is invisible to the loop that wor
 it just sits, and every re-run reports it as blocked. That is exactly what happened with the
 session bug, which idled for a full cycle before anyone noticed the work belonged elsewhere.
 
-```bash
-cd ../astrid-web
-cat > /tmp/other-half.json <<'JSON'
-[{ "title": "[web] <what the other side must do>", "priority": 3,
-   "description": "<contract, evidence, and what this side does once it exists>" }]
-JSON
-ASTRID_IOS_LIST_ID=<target board id> \
-  DATABASE_URL="$DATABASE_URL_PROD" npx tsx scripts/create-ios-tasks.ts /tmp/other-half.json
+```
+create_task { listId: "<target board id>", title: "[web] <what the other side must do>",
+              priority: 3, description: "<contract, evidence, and what this side does once it exists>" }
 ```
 
-(The script reads its list from `ASTRID_IOS_LIST_ID` despite the name, so overriding it targets
-either board. It skips titles that already exist, so re-running is safe.)
+(`get_tasks { listId }` first, so a re-run does not file the same title twice.)
 
 **What that task must contain**, because whoever picks it up will not have your context:
 
@@ -180,15 +180,15 @@ does not auto-deploy, so `main` having the fix changes nothing until someone dep
 
 ## After every task, re-check the list
 
-```bash
-cd ../astrid-web && npx tsx scripts/ready-tasks.ts <web|ios> --harness <name>
+```
+get_agent_queue { agent: "claude", listId: "<board id>" }
 ```
 
 **Never work from the opening snapshot.** New tasks arrive while work is in progress, and a
-REOPENED task looks exactly like one that was never done. Re-check with the SAME filtered
-script you opened with — the direct-DB alternative applies neither the board nor the assignee
-filter, so re-checking with it hands back work that was deliberately scoped out, including
-tasks someone has claimed since the run began.
+REOPENED task looks exactly like one that was never done. Re-check with the SAME call you opened
+with — a direct-DB read applies neither the board nor the assignee filter, so re-checking that
+way hands back work that was deliberately scoped out, including tasks someone has claimed
+since the run began.
 
 A reopened task means the previous fix missed. Re-read it and find a different cause rather
 than re-closing it on the same reasoning.
