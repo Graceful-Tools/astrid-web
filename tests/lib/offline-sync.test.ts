@@ -57,6 +57,8 @@ describe.sequential('OfflineSyncManager', () => {
 
   describe('queueMutation', () => {
     it('should queue a mutation operation', async () => {
+      mockNavigator(false)
+
       const mutation = await OfflineSyncManager.queueMutation(
         'create',
         'task',
@@ -79,13 +81,10 @@ describe.sequential('OfflineSyncManager', () => {
       expect(stored?.entityId).toBe('task-123')
     })
 
-    // This test passes in isolation but fails in suite due to test pollution
-    // The functionality is tested by other tests, so skipping this specific test
-    it.skip('should attempt sync immediately if online', async () => {
-      // Start offline to queue without auto-sync
-      mockNavigator(false)
+    it('should attempt sync immediately if online', async () => {
+      const syncSpy = vi.spyOn(OfflineSyncManager, 'syncPendingMutations')
+        .mockResolvedValue({ success: 0, failed: 0, errors: [] })
 
-      // Queue mutation
       await OfflineSyncManager.queueMutation(
         'create',
         'task',
@@ -95,25 +94,8 @@ describe.sequential('OfflineSyncManager', () => {
         { title: 'Test Task' }
       )
 
-      // Verify mutation was queued
-      const pending = await OfflineSyncManager.getPendingMutations()
-      expect(pending).toHaveLength(1)
-
-      // Go online and mock API response
-      mockNavigator(true)
-      ;(global.fetch as any).mockResolvedValue(
-        new Response(JSON.stringify({ task: { id: 'task-123' } }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' }
-        })
-      )
-
-      // Manually sync to test that sync works when online
-      const result = await OfflineSyncManager.syncPendingMutations()
-
-      // Should have attempted to sync
-      expect(result.success).toBe(1)
-      expect(global.fetch).toHaveBeenCalled()
+      expect(syncSpy).toHaveBeenCalledOnce()
+      syncSpy.mockRestore()
     })
 
     it('should not sync if offline', async () => {
