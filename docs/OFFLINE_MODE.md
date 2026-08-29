@@ -662,7 +662,7 @@ NODE_ENV=development
 ## Related Documentation
 
 - [Architecture Overview](./ARCHITECTURE.md)
-- [Service Workers](./PWA_GUIDE.md)
+- [Service worker implementation](../public/sw.js)
 - [Testing Strategy](./context/testing.md)
 - [API Contracts](./context/api_contracts.md)
 
@@ -672,4 +672,4 @@ NODE_ENV=development
 
 - File a bug: [GitHub Issues](https://github.com/your-repo/issues)
 - Join discussion: [Discord Community](#)
-- Read code: [`lib/offline-db.ts`](../lib/offline-db.ts), [`lib/offline-sync.ts`](../lib/offline-sync.ts)
+- Read code: [`lib/offline-db`](../lib/offline-db/index.ts), [`lib/offline-sync.ts`](../lib/offline-sync.ts)

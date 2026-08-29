@@ -22,6 +22,10 @@ import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-
 import { listVisibilityWhere } from '@/lib/list-permissions'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
+import {
+  createListWithImageOwnership,
+  ListImageClaimError,
+} from '@/lib/images/update-list-image'
 
 const log = createLogger('v1.lists')
 
@@ -208,42 +212,54 @@ export const POST = withAuth(
       )
     }
 
-    const list = await prisma.taskList.create({
-      data: {
-        name,
-        description: body.description || '',
-        color: body.color || '#3b82f6',
-        imageUrl: body.imageUrl,
-        privacy: body.privacy || 'PRIVATE',
-        ownerId: auth.userId,
-        defaultAssigneeId: body.defaultAssigneeId,
-        defaultPriority: body.defaultPriority,
-        defaultRepeating: body.defaultRepeating,
-        defaultIsPrivate: body.defaultIsPrivate,
-        defaultDueDate: body.defaultDueDate,
-        githubRepositoryId: body.githubRepositoryId,
-        preferredAiProvider: body.preferredAiProvider,
-        listMembers: body.memberIds?.length
-          ? {
-              create: body.memberIds.map((userId: string) => ({
-                userId,
-                role: 'member' as const,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        owner: {
-          select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true }
-        },
-        listMembers: {
+    let list
+    try {
+      list = await createListWithImageOwnership(
+        body.imageUrl,
+        auth.userId,
+        client => client.taskList.create({
+          data: {
+            name,
+            description: body.description || '',
+            color: body.color || '#3b82f6',
+            imageUrl: body.imageUrl,
+            privacy: body.privacy || 'PRIVATE',
+            ownerId: auth.userId,
+            defaultAssigneeId: body.defaultAssigneeId,
+            defaultPriority: body.defaultPriority,
+            defaultRepeating: body.defaultRepeating,
+            defaultIsPrivate: body.defaultIsPrivate,
+            defaultDueDate: body.defaultDueDate,
+            githubRepositoryId: body.githubRepositoryId,
+            preferredAiProvider: body.preferredAiProvider,
+            listMembers: body.memberIds?.length
+              ? {
+                  create: body.memberIds.map((userId: string) => ({
+                    userId,
+                    role: 'member' as const,
+                  })),
+                }
+              : undefined,
+          },
           include: {
-            user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
-          }
-        },
-        ...getTaskCountInclude({ includeCompleted: false })
-      },
-    })
+            owner: {
+              select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true }
+            },
+            listMembers: {
+              include: {
+                user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
+              }
+            },
+            ...getTaskCountInclude({ includeCompleted: false })
+          },
+        }),
+      )
+    } catch (error) {
+      if (error instanceof ListImageClaimError) {
+        return NextResponse.json({ error: error.message }, { status: 409 })
+      }
+      throw error
+    }
 
     const taskCount = await getMultipleListTaskCounts([list.id], { includeCompleted: false })
 

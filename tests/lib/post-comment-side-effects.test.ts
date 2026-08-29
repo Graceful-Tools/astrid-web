@@ -16,6 +16,20 @@ let assigneeUserIsAgent = false
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
+      findMany: vi.fn(async ({ where }: any) => {
+        const ids = where.id.in as string[]
+        return ids.flatMap(id => {
+          if (id === astridUserId) {
+            return [{ id, isAIAgent: true, email: 'astrid@astrid.cc' }]
+          }
+          if (id === 'human-1') return [{ id, isAIAgent: false, email: 'h1@example.com' }]
+          if (id === 'human-2') return [{ id, isAIAgent: false, email: 'h2@example.com' }]
+          if (id === 'agent-claude' && assigneeUserIsAgent) {
+            return [{ id, isAIAgent: true, email: 'claude@astrid.cc' }]
+          }
+          return []
+        })
+      }),
       findUnique: vi.fn(async ({ where }: any) => {
         if (where.id === astridUserId) {
           return { id: astridUserId, isAIAgent: true, email: 'astrid@astrid.cc' }
@@ -60,6 +74,7 @@ vi.mock('@/lib/ai-orchestrator', () => ({
 }))
 
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
+import { prisma } from '@/lib/prisma'
 
 const baseTask = {
   id: 'task-1',
@@ -126,6 +141,43 @@ describe('dispatchPostCommentSideEffects', () => {
     expect(sendCommentNotification).toHaveBeenCalledWith(
       'human-2',
       expect.objectContaining({ type: 'mention', taskId: 'task-1' })
+    )
+  })
+
+  it('AWTD-performance batches mentioned-user lookups', async () => {
+    await dispatchPostCommentSideEffects({
+      comment: {
+        id: 'c-1',
+        content: 'fyi @[Bob](human-2) and @[Astrid](astrid-uid)',
+      },
+      task: baseTask,
+      commenter: humanCommenter,
+    })
+
+    expect(prisma.user.findMany).toHaveBeenCalledTimes(1)
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['human-2', 'astrid-uid'] } },
+      select: { id: true, isAIAgent: true, email: true },
+    })
+    expect(prisma.user.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('falls back to isolated lookups when the batch query fails', async () => {
+    vi.mocked(prisma.user.findMany).mockRejectedValueOnce(new Error('database timeout'))
+
+    await dispatchPostCommentSideEffects({
+      comment: { id: 'c-1', content: 'fyi @[Bob](human-2)' },
+      task: baseTask,
+      commenter: humanCommenter,
+    })
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 'human-2' },
+      select: { id: true, isAIAgent: true, email: true },
+    })
+    expect(sendCommentNotification).toHaveBeenCalledWith(
+      'human-2',
+      expect.objectContaining({ type: 'mention' }),
     )
   })
 

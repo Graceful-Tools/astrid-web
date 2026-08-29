@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { prisma } from "@/lib/prisma"
-import { Prisma } from "@prisma/client"
 import { RedisCache, isRedisAvailable } from "@/lib/redis"
 import { getListMemberIds, hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
@@ -31,6 +30,7 @@ import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from
 import { validateParentTask, readParentTaskIdFromBody } from "@/lib/subtasks"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
+import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 
 const log = createLogger('api.tasks.id')
 
@@ -502,62 +502,11 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     if (data.listIds !== undefined) {
       const previousListIds = existingTask.lists.map((list) => list.id)
       const requestedListIdsForManualSort = validatedListIds ?? data.listIds
-      const unifiedListIds = Array.from(new Set([...previousListIds, ...requestedListIdsForManualSort]))
-
-      for (const candidateId of unifiedListIds) {
-        try {
-          const listRecord = await prisma.taskList.findUnique({
-            where: { id: candidateId },
-            select: {
-              id: true, sortBy: true, manualSortOrder: true, ownerId: true,
-              owner: { select: { id: true, name: true, email: true, image: true } },
-              listMembers: { select: { userId: true, role: true } },
-            },
-          })
-
-          if (!listRecord || listRecord.sortBy !== "manual") {
-            continue
-          }
-
-          const existingOrder = Array.isArray((listRecord as any).manualSortOrder)
-            ? (listRecord.manualSortOrder as string[])
-            : []
-
-          let nextOrder = existingOrder.filter(id => id !== taskId)
-
-          if (requestedListIdsForManualSort.includes(candidateId)) {
-            if (!nextOrder.includes(taskId)) {
-              nextOrder.push(taskId)
-            }
-          }
-
-          const hasChanged = nextOrder.length !== existingOrder.length || nextOrder.some((id, index) => existingOrder[index] !== id)
-
-          if (!hasChanged) {
-            continue
-          }
-
-          const updatedList = await prisma.taskList.update({
-            where: { id: candidateId },
-            data: {
-              manualSortOrder: nextOrder as Prisma.JsonArray
-            },
-            include: {
-              owner: { select: { id: true, name: true, email: true, image: true } },
-              listMembers: { select: { userId: true, role: true } },
-            },
-          })
-
-          const memberIds = getListMemberIds(updatedList)
-          await Promise.all(memberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)))
-          await broadcastToUsers(memberIds, {
-            type: 'list_updated',
-            data: updatedList
-          })
-        } catch (error) {
-          log.error('Failed to synchronize manual sort order for list', candidateId, error)
-        }
-      }
+      await syncManualSortMemberships({
+        taskId,
+        previousListIds,
+        requestedListIds: requestedListIdsForManualSort,
+      })
     }
 
     // Handle AI agent assignment using command pattern (prevents circular dependencies)
@@ -893,59 +842,11 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
     })
     await recordDeletion('task', taskId, taskAudience)
 
-    // Batch-fetch the candidate lists in one query (only manual-sort ones)
-    // and process updates in parallel — replaces the prior N+1 findUnique loop.
-    try {
-      const listIds = existingTask.lists.map(l => l.id)
-      const candidateLists = listIds.length > 0
-        ? await prisma.taskList.findMany({
-            where: { id: { in: listIds }, sortBy: 'manual' },
-            select: {
-              id: true, sortBy: true, manualSortOrder: true, ownerId: true,
-              owner: { select: { id: true, name: true, email: true, image: true } },
-              listMembers: { select: { userId: true, role: true } },
-            },
-          })
-        : []
-
-      const listsNeedingUpdate = candidateLists.filter(listRecord => {
-        const existingOrder = Array.isArray((listRecord as any).manualSortOrder)
-          ? (listRecord.manualSortOrder as string[])
-          : []
-        return existingOrder.includes(taskId)
-      })
-
-      await Promise.all(
-        listsNeedingUpdate.map(async listRecord => {
-          try {
-            const existingOrder = (listRecord.manualSortOrder as string[])
-            const nextOrder = existingOrder.filter(id => id !== taskId)
-
-            const updatedList = await prisma.taskList.update({
-              where: { id: listRecord.id },
-              data: {
-                manualSortOrder: nextOrder as Prisma.JsonArray
-              },
-              include: {
-                owner: { select: { id: true, name: true, email: true, image: true } },
-                listMembers: { select: { userId: true, role: true } },
-              },
-            })
-
-            const memberIds = getListMemberIds(updatedList)
-            await Promise.all(memberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)))
-            await broadcastToUsers(memberIds, {
-              type: 'list_updated',
-              data: updatedList
-            })
-          } catch (error) {
-            log.error({ err: error }, `Failed to update manual sort order after deletion for list ${listRecord.id}:`)
-          }
-        })
-      )
-    } catch (error) {
-      log.error({ err: error }, 'Failed to fetch candidate manual-sort lists for deletion:')
-    }
+    await syncManualSortMemberships({
+      taskId,
+      previousListIds: existingTask.lists.map(list => list.id),
+      requestedListIds: [],
+    })
 
     // Invalidate cache for all affected users BEFORE broadcasting SSE
     try {

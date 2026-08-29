@@ -305,11 +305,11 @@ Move to ASTRID.md:
 *AI agent context for the Astrid task management system*
 
 ## Project Overview
-- Unified monorepo: web app + iOS app
+- Separate web and iOS repositories
 - Tech stack summary
 
 ## Architecture
-- Web: Next.js 15, React 19, Prisma
+- Web: Next.js, React, Prisma
 - iOS: SwiftUI, Core Data
 - Shared: PostgreSQL, OAuth
 

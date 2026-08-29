@@ -8,6 +8,10 @@ import { getErrorMessage } from "@/lib/error-utils"
 import { hydrateListFavorites, hydrateSingleListFavorite, toggleFavorite } from "@/lib/favorites"
 import { createLogger } from '@/lib/logger'
 import {
+  createListWithImageOwnership,
+  deleteListWithImageRelease,
+} from "@/lib/images/update-list-image"
+import {
   validateMCPToken,
   getListMemberIdsByListId,
   getTokenAccessLevel,
@@ -193,25 +197,29 @@ export async function createList(accessToken: string, listData: any, userId: str
   }
 
   // Create the list first to get the ID, then assign consistent default image
-  let list = await prisma.taskList.create({
-    data: {
-      name: listData.name,
-      description: listData.description || '',
-      color: listData.color || '#3b82f6',
-      privacy: listData.privacy || 'PRIVATE',
-      imageUrl: listData.imageUrl, // Use provided imageUrl or null
-      ownerId: mcpToken.userId,
-      mcpAccessLevel: 'BOTH' // Token-level permissions control access
-    },
-    include: {
-      owner: {
-        select: { id: true, name: true, email: true }
+  let list = await createListWithImageOwnership(
+    listData.imageUrl,
+    mcpToken.userId,
+    client => client.taskList.create({
+      data: {
+        name: listData.name,
+        description: listData.description || '',
+        color: listData.color || '#3b82f6',
+        privacy: listData.privacy || 'PRIVATE',
+        imageUrl: listData.imageUrl,
+        ownerId: mcpToken.userId,
+        mcpAccessLevel: 'BOTH'
       },
-      _count: {
-        select: { tasks: true }
-      }
-    }
-  })
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true }
+        },
+        _count: {
+          select: { tasks: true }
+        }
+      },
+    }),
+  )
 
   // If no imageUrl was provided, assign a consistent default based on the list ID
   if (!list.imageUrl) {
@@ -397,9 +405,10 @@ export async function deleteList(accessToken: string, listId: string, userId: st
   }
 
   // Delete the list (cascades to tasks via Prisma schema)
-  await prisma.taskList.delete({
-    where: { id: listId }
-  })
+  await deleteListWithImageRelease(
+    listId,
+    client => client.taskList.delete({ where: { id: listId } }),
+  )
 
   // Broadcast SSE event for real-time updates
   try {

@@ -9,7 +9,7 @@
 ## Project Overview
 
 **Astrid** is a task management system with:
-- **Web App**: Next.js 15 + React 19
+- **Web App**: Next.js + React
 - **iOS App**: Native SwiftUI app
 - **Backend**: Next.js API routes + PostgreSQL
 
@@ -17,7 +17,7 @@
 
 ```
 astrid-web/  (this repository)
-├── app/              # Next.js 15 App Router (pages + API)
+├── app/              # Next.js App Router (pages + API)
 ├── components/       # React components
 ├── lib/              # Shared utilities and services
 ├── hooks/            # Custom React hooks
@@ -44,14 +44,18 @@ astrid-web/  (this repository)
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Next.js 15.5, React 19 |
-| Language | TypeScript 5 |
+| Framework | Next.js, React |
+| Language | TypeScript |
 | Database | PostgreSQL (Neon serverless) |
-| ORM | Prisma 6.14+ |
+| ORM | Prisma |
 | Auth | NextAuth.js (Google OAuth + Credentials) |
 | Styling | Tailwind CSS + Shadcn/ui (Radix) |
 | Testing | Vitest + Playwright |
 | Deployment | Vercel |
+
+Exact framework and tool versions live in
+[`docs/context/stack.md`](./docs/context/stack.md), where `npm run check:docs` verifies
+them against `package.json`.
 
 ### iOS Application
 

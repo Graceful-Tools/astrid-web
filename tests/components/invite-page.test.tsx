@@ -252,12 +252,13 @@ describe('InvitePage', () => {
       })
     })
 
-    it('always shows decline button', async () => {
+    it('hides the decline button from unauthenticated users', async () => {
       render(<InvitePage />)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Decline' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Sign In to Accept' })).toBeInTheDocument()
       })
+      expect(screen.queryByRole('button', { name: 'Decline' })).not.toBeInTheDocument()
     })
   })
 
@@ -380,8 +381,8 @@ describe('InvitePage', () => {
 
     it('declines invitation when decline button is clicked', async () => {
       ;(useSession as Mock).mockReturnValue({
-        data: null,
-        status: 'unauthenticated',
+        data: mockSession,
+        status: 'authenticated',
       })
 
       const declineMock = vi.fn().mockResolvedValue({

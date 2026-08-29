@@ -7,8 +7,8 @@ Astrid is a task management application built with clean separation of concerns 
 ## Technology Stack
 
 ### Core Framework
-- **Next.js 15.5** with App Router
-- **TypeScript** + **React 19**
+- **Next.js** with App Router
+- **TypeScript** + **React**
 - **Tailwind CSS** + **Shadcn/ui** components (based on Radix UI)
 
 ### Backend & Data
@@ -244,7 +244,7 @@ tests/
    - Used for SSE connection management and real-time state
    - Adapter pattern for unified interface across environments
 
-4. **IndexedDB Cache (Offline-First)** ([lib/offline-db.ts](../lib/offline-db.ts))
+4. **IndexedDB Cache (Offline-First)** ([lib/offline-db](../lib/offline-db/index.ts))
    - Client-side persistent storage using Dexie (IndexedDB wrapper)
    - Stores tasks, lists, users, comments for offline access
    - Mutation queue for offline operations sync
@@ -266,7 +266,7 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 #### **Components**
 
-1. **IndexedDB Storage** ([lib/offline-db.ts](../lib/offline-db.ts))
+1. **IndexedDB Storage** ([lib/offline-db](../lib/offline-db/index.ts))
    - Dexie-based database with versioned schema
    - Tables: `tasks`, `lists`, `users`, `comments`, `publicTasks`
    - Mutation queue: `mutations`, `idMappings`
@@ -482,7 +482,7 @@ Five crons handle scheduled tasks across the platform:
 5. **PR Creation** → AI creates pull request with preview deployment
 6. **Review & Merge** → User reviews and merges via comment ("merge")
 
-### **AI Orchestration Service** ([services/implementations/ai-orchestration.service.ts](../services/implementations/ai-orchestration.service.ts))
+### **AI Orchestration Service** ([lib/ai-orchestrator.ts](../lib/ai-orchestrator.ts))
 - Multi-provider support (Claude, OpenAI, Gemini, GitHub Copilot)
 - Automatic provider failover
 - Cached API keys for performance
@@ -631,7 +631,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 ### **Hosting & Platform**
 
 #### **Vercel** (Primary Platform)
-- Next.js 15.5 hosting with automatic deployments
+- Next.js hosting; preview and production deployments are explicit workflows
 - Edge Functions for API routes (30s timeout, 60s for migrations)
 - Preview deployments for every PR
 - Automatic HTTPS and global CDN
@@ -713,7 +713,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 - `GET /api/sse/status`: SSE active connections count
 - `GET /api/reminders/status`: Reminder system status
 
-#### **Deployment Monitoring** ([scripts/monitor-vercel-deployments.ts](../scripts/monitor-vercel-deployments.ts))
+#### **Deployment Monitoring** ([scripts/monitor-vercel-logs.ts](../scripts/monitor-vercel-logs.ts))
 - Automated deployment failure detection
 - Creates tasks for failed deployments
 - Error log analysis and auto-fix suggestions
@@ -734,7 +734,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 - E2E tests: `npm run test:e2e`
 - Build validation: `npm run build`
 
-#### **Pre-deployment Checks** ([scripts/predeploy.sh](../scripts/predeploy.sh))
+#### **Pre-deployment Checks** ([scripts/predeploy-self-healing.ts](../scripts/predeploy-self-healing.ts))
 ```bash
 npm run predeploy        # TypeScript + ESLint + Vitest
 npm run predeploy:full   # Includes Playwright E2E tests

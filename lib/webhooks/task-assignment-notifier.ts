@@ -32,6 +32,7 @@ import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
+import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 
@@ -200,10 +201,11 @@ export async function notifyTaskAssignment(
           'add_comment',
           'get_task_comments',
         ],
-        contextInstructions:
-          task.lists[0]?.description ||
+        contextInstructions: buildAgentContextInstructions(
+          task.lists[0]?.description,
           aiAgentConfig.contextInstructions ||
-          `You have been assigned a task in ${BRAND.appName}. Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+            `Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? ` This list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+        ),
       },
       creator: {
         id: task.creator?.id || task.creatorId,
@@ -397,7 +399,7 @@ async function sendPushNotification(
 
 /** SSE fanout to task creator + all members of the lists the task belongs to,
  *  excluding the AI agent itself. Errors are logged, not thrown. */
-async function sendSSENotification(
+export async function sendSSENotification(
   task: any,
   payload: TaskAssignmentWebhookPayload,
   prisma: PrismaClient,
@@ -409,23 +411,23 @@ async function sendSSENotification(
       notifyUserIds.add(task.creator?.id || task.creatorId)
     }
 
-    for (const list of task.lists) {
-      const listWithMembers = await prisma.taskList.findUnique({
-        where: { id: list.id },
-        include: {
-          owner: true,
-          listMembers: { include: { user: true } },
-        },
-      })
-
-      if (listWithMembers) {
-        if (listWithMembers.ownerId) {
-          notifyUserIds.add(listWithMembers.ownerId)
-        }
-        listWithMembers.listMembers.forEach(listMember => {
-          notifyUserIds.add(listMember.user.id)
+    const listIds = task.lists.map((list: { id: string }) => list.id)
+    const listsWithMembers = listIds.length > 0
+      ? await prisma.taskList.findMany({
+          where: { id: { in: listIds } },
+          select: {
+            id: true,
+            ownerId: true,
+            listMembers: { select: { userId: true } },
+          },
         })
+      : []
+
+    for (const list of listsWithMembers) {
+      if (list.ownerId) {
+        notifyUserIds.add(list.ownerId)
       }
+      list.listMembers.forEach(listMember => notifyUserIds.add(listMember.userId))
     }
 
     notifyUserIds.delete(task.assigneeId!)

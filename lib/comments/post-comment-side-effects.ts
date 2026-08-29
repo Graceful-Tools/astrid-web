@@ -114,15 +114,32 @@ async function notifyMentionsAndTriggerAgents(
 
   let pushService: import('@/lib/push-notification-service').PushNotificationService | null = null
   const commenterName = commenter.name || commenter.email || 'Someone'
+  const recipientIds = Array.from(mentionedUserIds).filter(id => id !== commenter.id)
+  let mentionedUsers: Array<{ id: string; isAIAgent: boolean; email: string | null }> = []
+  let batchLookupFailed = false
+  try {
+    mentionedUsers = recipientIds.length > 0
+      ? await prisma.user.findMany({
+        where: { id: { in: recipientIds } },
+        select: { id: true, isAIAgent: true, email: true },
+      })
+      : []
+  } catch (err) {
+    batchLookupFailed = true
+    log.error({ err }, '[comments] Batched mention lookup failed; using isolated lookups')
+  }
+  const mentionedUsersById = new Map(mentionedUsers.map(user => [user.id, user]))
 
   for (const mentionedUserId of mentionedUserIds) {
     if (mentionedUserId === commenter.id) continue
 
     try {
-      const mentionedUser = await prisma.user.findUnique({
-        where: { id: mentionedUserId },
-        select: { id: true, isAIAgent: true, email: true },
-      })
+      const mentionedUser = batchLookupFailed
+        ? await prisma.user.findUnique({
+            where: { id: mentionedUserId },
+            select: { id: true, isAIAgent: true, email: true },
+          })
+        : mentionedUsersById.get(mentionedUserId)
       if (!mentionedUser) continue
 
       if (mentionedUser.isAIAgent) {

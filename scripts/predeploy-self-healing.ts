@@ -205,6 +205,11 @@ class SelfHealingPredeploy {
         autoFixable: false,
       },
       {
+        name: 'Documentation Links',
+        command: 'npm run check:docs',
+        autoFixable: false,
+      },
+      {
         name: 'API Breaking Changes',
         command: 'npm run check:api-breaking',
         autoFixable: false,

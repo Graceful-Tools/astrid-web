@@ -42,7 +42,7 @@ export async function getUnifiedSession(request?: NextRequest) {
   }
 
   // Try database session (mobile app)
-  if (request) {
+  if (request?.cookies) {
     const cookies = request.cookies
     const sessionCookie = cookies.get("next-auth.session-token") || cookies.get("__Secure-next-auth.session-token")
 

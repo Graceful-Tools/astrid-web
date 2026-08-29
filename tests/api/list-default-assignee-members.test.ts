@@ -17,7 +17,8 @@ vi.mock('@/lib/prisma', () => ({
     },
     user: {
       findUnique: vi.fn(),
-    }
+    },
+    $transaction: vi.fn(),
   }
 }))
 
@@ -34,6 +35,9 @@ vi.mock('@/lib/auth-config', () => ({
 describe('List Default Assignee Member Management', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(prismaModule.prisma.$transaction as any).mockImplementation(
+      (operation: any) => operation(prismaModule.prisma),
+    )
     
     // Setup default mocks for all tests
     vi.mocked(prismaModule.prisma.listMember.findFirst).mockResolvedValue(null)
