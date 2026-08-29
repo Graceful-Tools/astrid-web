@@ -31,4 +31,21 @@ describe('GET /api/health', () => {
     expect(body.buildTimestamp).toBe('abc123')
     expect(body.buildTime).toBe('abc123')
   })
+
+  // The legacy census beacon silently records nothing when INTERNAL_API_SECRET
+  // is unset, and the 401 looks identical from outside whether the secret is
+  // wrong or missing. Health is the one place the answer is observable
+  // (task 488b0183).
+  it('reports whether the legacy census secret is configured', async () => {
+    safeHealthCheck.mockResolvedValue({ healthy: true, responseTime: 12, error: null })
+    ensureMigrations.mockResolvedValue(undefined)
+
+    process.env.INTERNAL_API_SECRET = 'shh'
+    let body = await (await GET(new Request('http://localhost/api/health') as any)).json()
+    expect(body.legacyCensusConfigured).toBe(true)
+
+    delete process.env.INTERNAL_API_SECRET
+    body = await (await GET(new Request('http://localhost/api/health') as any)).json()
+    expect(body.legacyCensusConfigured).toBe(false)
+  })
 })

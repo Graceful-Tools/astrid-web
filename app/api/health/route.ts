@@ -35,6 +35,10 @@ export async function GET(request: NextRequest) {
       commitSha,
       buildTimestamp: commitSha,
       buildTime: commitSha,
+      // Legacy-API census: middleware.ts drops every beacon when this is
+      // unset, with no log and no external symptom (the beacon 401s the same
+      // way for a wrong secret). This is the one observable answer.
+      legacyCensusConfigured: !!process.env.INTERNAL_API_SECRET,
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
       webhookSecretConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
       webhookUrl: process.env.CLAUDE_REMOTE_WEBHOOK_URL ? `${process.env.CLAUDE_REMOTE_WEBHOOK_URL.slice(0, 30)}...` : null
