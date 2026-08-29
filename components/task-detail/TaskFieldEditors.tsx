@@ -1058,7 +1058,10 @@ export function TaskFieldEditors({
           >
             {task.description ? (
               <div
-                className="prose prose-sm max-w-none theme-text-primary"
+                // min-w-0: this is a flex child; without it the intrinsic width of
+                // a code block stretches the row past the panel instead of letting
+                // `.prose pre` scroll horizontally (task 61a21152).
+                className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1"
                 dangerouslySetInnerHTML={{
                   __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm' })
                 }}
