@@ -22,7 +22,13 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     listMember: { create: vi.fn(), createMany: vi.fn() },
-    user: { findUnique: vi.fn() },
+    listInvite: { create: vi.fn() },
+    user: {
+      create: vi.fn(),
+      createMany: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+    },
     $transaction: vi.fn(async (fn: unknown) =>
       typeof fn === 'function' ? (fn as (tx: unknown) => unknown)({}) : fn
     ),
@@ -30,6 +36,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn() }))
+vi.mock('@/lib/email', () => ({ sendListInvitationEmail: vi.fn() }))
 
 vi.mock('@/lib/analytics-events', () => ({
   AnalyticsEventType: { LIST_ADDED: 'LIST_ADDED' },
@@ -146,5 +153,79 @@ describe('v1 POST /api/v1/lists trims the name (task e0613ae5)', () => {
 
     expect(res.status).toBe(400)
     expect(mockPrisma.taskList.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('legacy POST /api/lists batches list creation members', () => {
+  it('loads email members once and inserts all memberships in one batch', async () => {
+    mockPrisma.user.findMany.mockResolvedValue([
+      { id: 'email-user-1', email: 'one@example.com' },
+      { id: 'email-user-2', email: 'two@example.com' },
+    ] as never)
+    mockPrisma.user.findUnique.mockImplementation(async ({ where }) => {
+      if (where.email === 'one@example.com') {
+        return { id: 'email-user-1', email: where.email } as never
+      }
+      if (where.email === 'two@example.com') {
+        return { id: 'email-user-2', email: where.email } as never
+      }
+      return null
+    })
+    mockPrisma.listMember.create.mockResolvedValue({ id: 'membership' } as never)
+    mockPrisma.listInvite.create.mockResolvedValue({ id: 'invite' } as never)
+
+    const res = await legacyPOST(legacyReq({
+      name: 'Work',
+      privacy: 'SHARED',
+      adminIds: ['admin-1'],
+      memberIds: ['member-1'],
+      memberEmails: ['ONE@example.com', ' two@example.com '],
+    }))
+
+    expect(res.status).toBe(200)
+    expect(mockPrisma.user.findMany).toHaveBeenCalledTimes(1)
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
+    expect(mockPrisma.listMember.create).not.toHaveBeenCalled()
+    expect(mockPrisma.listMember.createMany).toHaveBeenCalledTimes(1)
+    expect(mockPrisma.listMember.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        { listId: 'list-1', userId: USER, role: 'admin' },
+        { listId: 'list-1', userId: 'admin-1', role: 'admin' },
+        { listId: 'list-1', userId: 'member-1', role: 'member' },
+        { listId: 'list-1', userId: 'email-user-1', role: 'member' },
+        { listId: 'list-1', userId: 'email-user-2', role: 'member' },
+      ]),
+      skipDuplicates: true,
+    })
+  })
+
+  it('creates missing email users in one race-safe batch and deduplicates invitations', async () => {
+    mockPrisma.user.findMany
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([
+        { id: 'new-user', email: 'new@example.com' },
+      ] as never)
+    mockPrisma.user.createMany.mockResolvedValue({ count: 1 } as never)
+    mockPrisma.listInvite.create.mockResolvedValue({ id: 'invite' } as never)
+
+    const res = await legacyPOST(legacyReq({
+      name: 'Work',
+      privacy: 'SHARED',
+      memberEmails: ['New@example.com', ' new@example.com '],
+    }))
+
+    expect(res.status).toBe(200)
+    expect(mockPrisma.user.createMany).toHaveBeenCalledWith({
+      data: [{ email: 'new@example.com', name: null }],
+      skipDuplicates: true,
+    })
+    expect(mockPrisma.user.findMany).toHaveBeenCalledTimes(2)
+    expect(mockPrisma.listInvite.create).toHaveBeenCalledTimes(1)
+    expect(mockPrisma.listMember.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        { listId: 'list-1', userId: 'new-user', role: 'member' },
+      ]),
+      skipDuplicates: true,
+    })
   })
 })

@@ -172,6 +172,13 @@ export async function POST(request: NextRequest) {
     }
 
     const data: CreateListData = await request.json()
+    const memberEmails = Array.isArray(data.memberEmails)
+      ? [...new Set(
+        data.memberEmails
+          .map(email => email.trim().toLowerCase())
+          .filter(Boolean)
+      )]
+      : []
 
     // Validate required fields
     if (!data.name?.trim()) {
@@ -241,34 +248,6 @@ export async function POST(request: NextRequest) {
         }),
       )
 
-      // Then add admins and members to ListMember table
-      if (data.adminIds && data.adminIds.length > 0) {
-        await Promise.all(
-          data.adminIds.map((userId: string) =>
-            prisma.listMember.create({
-              data: {
-                listId: list.id,
-                userId: userId,
-                role: 'admin'
-              }
-            })
-          )
-        )
-      }
-
-      if (data.memberIds && data.memberIds.length > 0) {
-        await Promise.all(
-          data.memberIds.map((userId: string) =>
-            prisma.listMember.create({
-              data: {
-                listId: list.id,
-                userId: userId,
-                role: 'member'
-              }
-            })
-          )
-        )
-      }
     } catch (error) {
       if (error instanceof ListImageClaimError) {
         return NextResponse.json({ error: error.message }, { status: 409 })
@@ -314,6 +293,7 @@ export async function POST(request: NextRequest) {
 
     // Also populate the new ListMember table for the unified member management
     const memberEntries = []
+    let memberEmailUsers: Array<{ id: string; email: string }> = []
     
     // Add the list creator as an admin member
     memberEntries.push({
@@ -348,67 +328,67 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Handle memberEmails from list creation
-    if (data.memberEmails && Array.isArray(data.memberEmails)) {
-      for (const email of data.memberEmails) {
-        const trimmedEmail = email.trim().toLowerCase()
-        if (!trimmedEmail) continue
-        
-        // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-          where: { email: trimmedEmail }
+    if (memberEmails.length > 0) {
+      memberEmailUsers = await prisma.user.findMany({
+        where: { email: { in: memberEmails } },
+        select: { id: true, email: true },
+      })
+
+      const existingEmails = new Set(memberEmailUsers.map(user => user.email))
+      const missingEmails = memberEmails.filter(email => !existingEmails.has(email))
+      if (missingEmails.length > 0) {
+        await prisma.user.createMany({
+          data: missingEmails.map(email => ({ email, name: null })),
+          skipDuplicates: true,
         })
-        
-        if (existingUser) {
-          // Skip the creator since we already added them as admin
-          if (existingUser.id !== session.user.id) {
-            memberEntries.push({
-              listId: listWithDefaultAssignee.id,
-              userId: existingUser.id,
-              role: 'member'
-            })
-          }
-        } else {
-          // Create placeholder user for email invitations
-          const placeholderUser = await prisma.user.create({
-            data: {
-              email: trimmedEmail,
-              name: null
-            }
-          })
-          
+        const createdOrRacedUsers = await prisma.user.findMany({
+          where: { email: { in: missingEmails } },
+          select: { id: true, email: true },
+        })
+        memberEmailUsers.push(...createdOrRacedUsers)
+      }
+
+      for (const user of memberEmailUsers) {
+        if (user.id !== session.user.id) {
           memberEntries.push({
             listId: listWithDefaultAssignee.id,
-            userId: placeholderUser.id,
+            userId: user.id,
             role: 'member'
           })
         }
       }
     }
-    
-    await prisma.listMember.createMany({
-      data: memberEntries,
-      skipDuplicates: true
-    })
+
+    try {
+      await prisma.listMember.createMany({
+        data: memberEntries,
+        skipDuplicates: true
+      })
+    } catch (error) {
+      log.error({ err: error }, 'Error adding members to new list:')
+      return NextResponse.json({
+        error: 'Failed to create list',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 400 })
+    }
 
     // Send invitations for member emails
-    if (data.memberEmails && Array.isArray(data.memberEmails)) {
+    if (memberEmails.length > 0) {
       const { sendListInvitationEmail } = await import("@/lib/email")
+      const crypto = await import("crypto")
       
-      for (const email of data.memberEmails) {
-        const trimmedEmail = email.trim().toLowerCase()
-        if (!trimmedEmail || trimmedEmail === session.user.email?.toLowerCase()) continue
+      for (const email of memberEmails) {
+        if (email === session.user.email?.toLowerCase()) continue
         
         try {
           // Generate invitation token
-          const crypto = await import("crypto")
           const token = crypto.randomBytes(32).toString('hex')
           
           // Create invitation record
           await prisma.listInvite.create({
             data: {
               listId: listWithDefaultAssignee.id,
-              email: trimmedEmail,
+              email,
               token,
               role: 'member',
               createdBy: session.user.id
@@ -417,14 +397,14 @@ export async function POST(request: NextRequest) {
 
           // Send invitation email
           await sendListInvitationEmail({
-            to: trimmedEmail,
+            to: email,
             inviterName: session.user.name || session.user.email || "Someone",
             listName: listWithDefaultAssignee.name,
             role: "member",
             invitationUrl: `${process.env.NEXTAUTH_URL}/invite/${token}`,
           })
         } catch (emailError) {
-          log.error({ err: emailError }, `Failed to send invitation to ${trimmedEmail}:`)
+          log.error({ err: emailError }, `Failed to send invitation to ${email}:`)
           // Continue with other invitations even if one fails
         }
       }
@@ -437,19 +417,9 @@ export async function POST(request: NextRequest) {
       ...(data.memberIds || []), // Members
     ]
     
-    // Also add users from email invitations
-    if (data.memberEmails && Array.isArray(data.memberEmails)) {
-      for (const email of data.memberEmails) {
-        const trimmedEmail = email.trim().toLowerCase()
-        if (!trimmedEmail) continue
-        
-        const existingUser = await prisma.user.findUnique({
-          where: { email: trimmedEmail }
-        })
-        
-        if (existingUser && !userIdsToInvalidate.includes(existingUser.id)) {
-          userIdsToInvalidate.push(existingUser.id)
-        }
+    for (const user of memberEmailUsers) {
+      if (!userIdsToInvalidate.includes(user.id)) {
+        userIdsToInvalidate.push(user.id)
       }
     }
 
