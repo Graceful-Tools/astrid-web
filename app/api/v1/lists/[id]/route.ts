@@ -19,7 +19,7 @@ import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { canUserManageList } from "@/lib/list-permissions"
 import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
-import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
+import { normalizeAgentEnabledConfig, serializeListAgentFields } from "@/lib/resolve-default-agent"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 import {
   deleteListWithImageRelease,
@@ -127,7 +127,7 @@ export const GET = withAuth<RouteContext>(
           // projection dropped fields the web reads, and a missing field here
           // is a feature silently switched off rather than an error.
           defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
-          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          ...serializeListAgentFields(list.aiAgentsEnabled),
           publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
@@ -150,6 +150,16 @@ export const GET = withAuth<RouteContext>(
     )
   }
 )
+
+/**
+ * What the `aiAgentsEnabled` column holds after any v1 write: the object form
+ * with BOTH keys present, so the reader (lib/resolve-default-agent.ts) and the
+ * serializer (serializeListAgentFields) see one shape, never `undefined`.
+ */
+function storedAgentConfig(value: unknown): { enabledTypes: string[]; defaultAgentId: string | null } {
+  const config = normalizeAgentEnabledConfig(value)
+  return { enabledTypes: config.enabledTypes, defaultAgentId: config.defaultAgentId ?? null }
+}
 
 /**
  * PUT /api/v1/lists/:id
@@ -216,8 +226,23 @@ export const PUT = withAuth<RouteContext>(
       // and sprang back on reload. Normalized because clients still send the
       // legacy string[] shape, and stored in the object form so the one real
       // reader (lib/resolve-default-agent.ts) sees a stable shape.
-      if (body.aiAgentsEnabled !== undefined) {
-        updateData.aiAgentsEnabled = normalizeAgentEnabledConfig(body.aiAgentsEnabled)
+      //
+      // On the wire `aiAgentsEnabled` is a plain string[] (see
+      // serializeListAgentFields) and the default agent rides in
+      // `aiAgentConfig`. A client that sends `aiAgentConfig` is speaking the
+      // full shape, so it wins. A client that sends only the array — every
+      // iOS/Mac build in the field round-trips whole lists that way — has no
+      // field for the default agent, so its write must not wipe the one chosen
+      // on the web. Only an explicit object/null clears it.
+      if (body.aiAgentConfig !== undefined) {
+        updateData.aiAgentsEnabled = storedAgentConfig(body.aiAgentConfig)
+      } else if (Array.isArray(body.aiAgentsEnabled)) {
+        updateData.aiAgentsEnabled = {
+          enabledTypes: storedAgentConfig(body.aiAgentsEnabled).enabledTypes,
+          defaultAgentId: storedAgentConfig(existingList.aiAgentsEnabled).defaultAgentId,
+        }
+      } else if (body.aiAgentsEnabled !== undefined) {
+        updateData.aiAgentsEnabled = storedAgentConfig(body.aiAgentsEnabled)
       }
       // Attach / detach the list to a project status board. iOS's
       // "Create Board" flow POSTs a project then PUTs the list here
@@ -365,7 +390,7 @@ export const PUT = withAuth<RouteContext>(
           // projection dropped fields the web reads, and a missing field here
           // is a feature silently switched off rather than an error.
           defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
-          aiAgentsEnabled: list.aiAgentsEnabled ?? null,
+          ...serializeListAgentFields(list.aiAgentsEnabled),
           publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,

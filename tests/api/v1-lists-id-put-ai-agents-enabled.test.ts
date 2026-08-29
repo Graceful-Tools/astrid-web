@@ -102,9 +102,11 @@ describe('PUT /api/v1/lists/[id] aiAgentsEnabled', () => {
   })
 
   it('normalizes the legacy string[] shape instead of storing it raw', async () => {
+    // The array is what every client on the wire sends. It cannot carry a
+    // default agent, so the stored one is kept (none here → null).
     const data = await put({ aiAgentsEnabled: ['claude', 'coding'] })
 
-    expect(data?.aiAgentsEnabled).toEqual({ enabledTypes: ['claude', 'coding'] })
+    expect(data?.aiAgentsEnabled).toEqual({ enabledTypes: ['claude', 'coding'], defaultAgentId: null })
   })
 
   it('normalizes garbage to the empty config rather than dropping the write', async () => {
@@ -112,7 +114,7 @@ describe('PUT /api/v1/lists/[id] aiAgentsEnabled', () => {
     // default agent is the bug this test exists to prevent.
     const data = await put({ aiAgentsEnabled: 'not json at all' })
 
-    expect(data?.aiAgentsEnabled).toEqual({ enabledTypes: [] })
+    expect(data?.aiAgentsEnabled).toEqual({ enabledTypes: [], defaultAgentId: null })
   })
 
   it('leaves the field untouched when the payload does not mention it', async () => {

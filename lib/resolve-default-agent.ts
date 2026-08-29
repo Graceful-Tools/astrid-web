@@ -65,6 +65,33 @@ export function getEnabledAgentTypes(aiAgentsEnabled: unknown): string[] {
   return normalizeAgentEnabledConfig(aiAgentsEnabled).enabledTypes
 }
 
+/** The agent config as every v1 list response carries it. */
+export interface ListAgentWireFields {
+  /** Enabled agent types. ALWAYS an array on the wire — see serializeListAgentFields. */
+  aiAgentsEnabled: string[]
+  /** The full config, for clients that know about the per-list default agent. */
+  aiAgentConfig: { enabledTypes: string[]; defaultAgentId: string | null }
+}
+
+/**
+ * Project the stored `aiAgentsEnabled` column onto the wire.
+ *
+ * The column holds the object form (normalizeAgentEnabledConfig stores it that
+ * way), but the v1 contract for `aiAgentsEnabled` is `string[]`
+ * (lib/api/api-contract.ts) and iOS/Mac decode it as `[String]?` with a
+ * synthesized Codable — a dictionary there fails the decode of the WHOLE
+ * /api/v1/lists response and the app falls back to zero lists. So the array
+ * keeps its name and its shape, and the part only the web reads
+ * (`defaultAgentId`) rides in a sibling old clients never look at.
+ */
+export function serializeListAgentFields(stored: unknown): ListAgentWireFields {
+  const config = normalizeAgentEnabledConfig(stored)
+  return {
+    aiAgentsEnabled: config.enabledTypes,
+    aiAgentConfig: { enabledTypes: config.enabledTypes, defaultAgentId: config.defaultAgentId ?? null },
+  }
+}
+
 // ─── Agent resolution ─────────────────────────────────────────────
 
 /**
