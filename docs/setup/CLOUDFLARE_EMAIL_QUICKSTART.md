@@ -198,9 +198,8 @@ dig TXT astrid.cc | grep spf1
 
 ## 📚 Full Documentation
 
-- **Complete Setup Guide**: [docs/setup/CLOUDFLARE_EMAIL_SETUP.md](docs/setup/CLOUDFLARE_EMAIL_SETUP.md)
-- **Email Overview**: [docs/setup/EMAIL_SETUP.md](docs/setup/EMAIL_SETUP.md)
-- **Resend Inbound**: [docs/setup/RESEND_INBOUND_EMAIL_SETUP.md](docs/setup/RESEND_INBOUND_EMAIL_SETUP.md)
+- **Complete Setup Guide**: [CLOUDFLARE_EMAIL_SETUP.md](./CLOUDFLARE_EMAIL_SETUP.md)
+- **Email Overview**: [EMAIL_SETUP.md](./EMAIL_SETUP.md)
 
 ---
 

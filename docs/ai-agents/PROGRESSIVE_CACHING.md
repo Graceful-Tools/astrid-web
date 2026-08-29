@@ -101,8 +101,8 @@ Rate limit risk: None (cache reads don't count)
 ### Real-time Monitoring
 
 ```bash
-# Watch cache activity in real-time
-./scripts/monitor-cache-usage.sh
+# Exercise and inspect progressive caching
+npx tsx scripts/test-progressive-caching.ts
 ```
 
 ### Test Progressive Caching
@@ -240,7 +240,6 @@ Automatically adjust cache frequency based on:
 - [Anthropic Prompt Caching Guide](https://docs.anthropic.com/claude/docs/prompt-caching)
 - [lib/ai-orchestrator.ts](../../lib/ai-orchestrator.ts) - Implementation
 - [scripts/test-progressive-caching.ts](../../scripts/test-progressive-caching.ts) - Test script
-- [scripts/monitor-cache-usage.sh](../../scripts/monitor-cache-usage.sh) - Monitoring tool
 
 ---
 

@@ -29,6 +29,7 @@
     "test:rate-limit": "vitest tests/auth/rate-limit-simple.test.ts",
     "predeploy:check": "tsx scripts/predeploy-check.ts",
     "check:model-sync": "tsx scripts/check-model-sync.ts",
+    "check:docs": "tsx scripts/check-doc-links.ts",
     "check:reuse": "tsx scripts/check-reuse.ts --strict",
     "check:brands": "vitest run tests/brands",
     "check:api-breaking": "tsx scripts/check-api-breaking-changes.ts",

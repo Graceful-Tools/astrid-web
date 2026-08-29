@@ -161,7 +161,6 @@ v=DMARC1; p=none;
 - **Setup Guide**: [CLOUDFLARE_EMAIL_SETUP.md](./CLOUDFLARE_EMAIL_SETUP.md)
 - **Quick Reference**: [CLOUDFLARE_EMAIL_QUICKSTART.md](./CLOUDFLARE_EMAIL_QUICKSTART.md)
 - **Email Overview**: [EMAIL_SETUP.md](./EMAIL_SETUP.md)
-- **Resend Setup**: [RESEND_INBOUND_EMAIL_SETUP.md](./RESEND_INBOUND_EMAIL_SETUP.md)
 
 ---
 

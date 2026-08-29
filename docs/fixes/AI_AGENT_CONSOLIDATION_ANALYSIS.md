@@ -390,8 +390,8 @@ This will:
 
 ## 📚 **Related Documentation**
 
-- [Phase 1-3 Improvements](./FINAL_SUMMARY.md) - All improvements to AIOrchestrator
-- [Cloud Workflow Fixes](./CLOUD_WORKFLOW_FIXES.md) - Technical details of improvements
+- [Implementation summary](../archive/implementations/IMPLEMENTATION_SUMMARY.md) - Historical implementation notes
+- [Cloud Workflow Fixes](../archive/analysis/CLOUD_WORKFLOW_FIXES.md) - Archived technical analysis
 - [Local Testing Guide](./LOCAL_TESTING_GUIDE.md) - How to test consolidated system
 
 ---

@@ -378,7 +378,7 @@ describe('Button', () => {
 
 - **[ASTRID.md Template](../templates/ASTRID.md)** - Comprehensive template to start from
 - **[AI Agents Overview](./README.md)** - Complete AI agent setup guide
-- **[Cloud Workflow Setup](../../app/settings/coding-integration/page.tsx)** - Cloud integration instructions
+- **[Cloud Workflow Setup](../../app/[locale]/settings/coding-integration/page.tsx)** - Cloud integration instructions
 - **[MCP Testing Guide](../testing/MCP_TESTING_GUIDE.md)** - Local MCP setup and testing
 
 ## ❓ FAQ
