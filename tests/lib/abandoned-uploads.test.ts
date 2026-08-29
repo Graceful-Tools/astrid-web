@@ -20,11 +20,13 @@ import {
 describe('abandonedUploadWhere (Task 276b3086)', () => {
   const now = new Date('2026-08-04T12:00:00Z')
 
-  it('only ever matches uploads declared as being for a message', () => {
+  it('only ever matches reclaimable upload purposes', () => {
     // A task-form upload has the same null commentId. Without the
     // discriminator these are indistinguishable, which is the whole reason
     // ded31696 added it.
-    expect(abandonedUploadWhere(now).attachTarget).toBe('message')
+    expect(abandonedUploadWhere(now).attachTarget).toEqual({
+      in: ['message', 'list-image'],
+    })
   })
 
   it('only matches files that never reached a comment or a chat message', () => {
@@ -52,6 +54,9 @@ describe('sweepAbandonedUploads (Task 276b3086)', () => {
       secureFile: {
         findMany: vi.fn().mockResolvedValue([]),
         delete: vi.fn().mockResolvedValue({}),
+      },
+      taskList: {
+        findMany: vi.fn().mockResolvedValue([]),
       },
     }
     deleteFile = vi.fn().mockResolvedValue(undefined)
@@ -111,6 +116,23 @@ describe('sweepAbandonedUploads (Task 276b3086)', () => {
     const args = prisma.secureFile.findMany.mock.calls[0][0]
     expect(args.take).toBeGreaterThan(0)
   })
+
+  it('keeps list images that are still referenced and reclaims replaced ones', async () => {
+    prisma.secureFile.findMany.mockResolvedValue([
+      { id: 'active', blobUrl: 'https://blob/active', attachTarget: 'list-image' },
+      { id: 'replaced', blobUrl: 'https://blob/replaced', attachTarget: 'list-image' },
+    ])
+    prisma.taskList.findMany.mockResolvedValue([
+      { imageUrl: 'https://blob/active' },
+    ])
+
+    const result = await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
+
+    expect(prisma.secureFile.delete).toHaveBeenCalledTimes(1)
+    expect(prisma.secureFile.delete).toHaveBeenCalledWith({ where: { id: 'replaced' } })
+    expect(deleteFile).toHaveBeenCalledWith('https://blob/replaced')
+    expect(result).toMatchObject({ rowsDeleted: 1, blobsDeleted: 1 })
+  })
 })
 
 
@@ -127,7 +149,7 @@ describe('ambiguousLegacyWhere (Task 276b3086)', () => {
     // The whole point: these are counted, never swept. A row cannot be both
     // attachTarget 'message' and attachTarget null.
     const sweepable = abandonedUploadWhere(new Date())
-    expect(sweepable.attachTarget).toBe('message')
+    expect(sweepable.attachTarget.in).not.toContain(null)
     expect(ambiguousLegacyWhere().attachTarget).toBeNull()
   })
 

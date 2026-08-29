@@ -48,6 +48,10 @@ import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 import { getAgentConfig, type AIService } from '@/lib/ai/agent-config'
+import {
+  buildAgentContextInstructions,
+  serializeUntrustedAgentData,
+} from '@/lib/ai/prompt-trust'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
 
@@ -291,20 +295,23 @@ function getServiceFromEmail(email: string): AIService | null {
   return getAgentConfig(email)?.service ?? null
 }
 
-function buildPrompt(task: any, isCommentResponse?: boolean, userComment?: string): string {
-  // List description serves as agent instructions (like claude.md for a project)
+export function buildPrompt(task: any, isCommentResponse?: boolean, userComment?: string): string {
   const listDescription = task.lists?.[0]?.description?.trim()
   const listName = task.lists?.[0]?.name || 'My Tasks'
 
-  const defaultInstructions = `You are an AI assistant working on tasks in ${BRAND.appName}. Read the task details and help complete it. Post progress updates as comments.`
-
-  const instructions = listDescription || defaultInstructions
-
-  const taskContext = `**${task.title}**
-${task.description ? `\n${task.description}` : ''}
-Priority: ${['None', 'Low', 'Medium', 'High'][task.priority] || 'None'}
-${task.dueDateTime ? `Due: ${new Date(task.dueDateTime).toLocaleDateString()}` : ''}
-List: ${listName}`
+  const instructions = buildAgentContextInstructions(
+    listDescription,
+    `Complete tasks in ${listName} using the available tools.`,
+  )
+  const taskContext = serializeUntrustedAgentData({
+    title: task.title,
+    description: task.description || null,
+    priority: ['None', 'Low', 'Medium', 'High'][task.priority] || 'None',
+    dueDate: task.dueDateTime
+      ? new Date(task.dueDateTime).toLocaleDateString()
+      : null,
+    list: listName,
+  })
 
   // Include recent conversation history
   const conversationHistory = task.comments
@@ -312,18 +319,30 @@ List: ${listName}`
     .reverse()
     .map((c: any) => {
       const authorName = c.author?.isAIAgent ? 'AI Assistant' : (c.author?.name || 'User')
-      return `${authorName}: ${c.content}`
+      return { author: authorName, content: c.content }
     })
-    .join('\n\n')
 
-  let prompt = `## Instructions\n${instructions}\n\n## Task\n${taskContext}`
+  let prompt = `${instructions}
 
-  if (conversationHistory) {
-    prompt += `\n\n## Conversation\n${conversationHistory}`
+## Task data
+<untrusted_task_data format="json">
+${taskContext}
+</untrusted_task_data>`
+
+  if (conversationHistory?.length) {
+    prompt += `\n\n## Conversation data
+<untrusted_comment_data format="json">
+${serializeUntrustedAgentData(conversationHistory)}
+</untrusted_comment_data>`
   }
 
   if (isCommentResponse && userComment) {
-    prompt += `\n\n## New Comment\nThe user just commented: "${userComment}"\n\nRespond to their comment. Be concise but thorough.`
+    prompt += `\n\n## New comment data
+<untrusted_new_comment format="json">
+${serializeUntrustedAgentData(userComment)}
+</untrusted_new_comment>
+
+Respond to the new comment. Be concise but thorough.`
   }
 
   prompt += `\n\n## File Attachments\nTo deliver a file, use: <<<FILE:filename.ext>>>content<<<END_FILE>>>`

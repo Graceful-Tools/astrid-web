@@ -11,10 +11,10 @@
  * The risk runs entirely one way: this deletes files, and a file someone can
  * still see must never be touched. Two guards do that work.
  *
- * **The discriminator.** Only `attachTarget = 'message'` is eligible. A
- * task-form upload has the same null `commentId`, and rows written before
- * ded31696 have `attachTarget` null and are indistinguishable from real task
- * attachments — sweeping either would delete files users currently see.
+ * **The discriminator.** Only `attachTarget = 'message'` and unreferenced
+ * `attachTarget = 'list-image'` rows are eligible. A task-form upload has the
+ * same null `commentId`, and rows written before ded31696 have `attachTarget`
+ * null and are indistinguishable from real task attachments.
  *
  * **The grace period.** A composer upload sits in exactly this state for as
  * long as the user is still typing. Sweeping without a generous window would
@@ -42,7 +42,7 @@ export const ABANDONED_UPLOAD_GRACE_MS = 24 * 60 * 60 * 1000
 export const ABANDONED_UPLOAD_BATCH = 500
 
 export interface AbandonedUploadWhere {
-  attachTarget: string
+  attachTarget: { in: string[] }
   commentId: null
   chatMessageId: null
   createdAt: { lt: Date }
@@ -51,7 +51,7 @@ export interface AbandonedUploadWhere {
 /** Exactly the rows that are safe to reclaim — see the guards above. */
 export function abandonedUploadWhere(now: Date): AbandonedUploadWhere {
   return {
-    attachTarget: "message",
+    attachTarget: { in: ["message", "list-image"] },
     commentId: null,
     chatMessageId: null,
     createdAt: { lt: new Date(now.getTime() - ABANDONED_UPLOAD_GRACE_MS) },
@@ -75,6 +75,9 @@ export interface SweepPrisma {
     delete: (...args: any[]) => Promise<any>
     count: (...args: any[]) => Promise<number>
   }
+  taskList?: {
+    findMany: (...args: any[]) => Promise<any>
+  }
 }
 
 export interface SweepDeps {
@@ -95,15 +98,32 @@ export interface SweepDeps {
 export async function sweepAbandonedUploads(deps: SweepDeps): Promise<SweepResult> {
   const { prisma, deleteFile, now } = deps
 
-  const abandoned: Array<{ id: string; blobUrl: string }> = await prisma.secureFile.findMany({
+  const abandoned: Array<{ id: string; blobUrl: string; attachTarget?: string }> = await prisma.secureFile.findMany({
     where: abandonedUploadWhere(now),
-    select: { id: true, blobUrl: true },
+    select: { id: true, blobUrl: true, attachTarget: true },
     take: ABANDONED_UPLOAD_BATCH,
   })
+
+  const listImageUrls = abandoned
+    .filter(file => file.attachTarget === "list-image")
+    .map(file => file.blobUrl)
+  const referencedListImages = new Set<string>()
+  if (listImageUrls.length > 0 && prisma.taskList) {
+    const lists: Array<{ imageUrl: string | null }> = await prisma.taskList.findMany({
+      where: { imageUrl: { in: listImageUrls } },
+      select: { imageUrl: true },
+    })
+    for (const list of lists) {
+      if (list.imageUrl) referencedListImages.add(list.imageUrl)
+    }
+  }
 
   const result: SweepResult = { rowsDeleted: 0, blobsDeleted: 0, blobFailures: 0 }
 
   for (const file of abandoned) {
+    if (file.attachTarget === "list-image" && referencedListImages.has(file.blobUrl)) {
+      continue
+    }
     try {
       await prisma.secureFile.delete({ where: { id: file.id } })
       result.rowsDeleted += 1

@@ -32,6 +32,7 @@ import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
+import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 
@@ -200,10 +201,11 @@ export async function notifyTaskAssignment(
           'add_comment',
           'get_task_comments',
         ],
-        contextInstructions:
-          task.lists[0]?.description ||
+        contextInstructions: buildAgentContextInstructions(
+          task.lists[0]?.description,
           aiAgentConfig.contextInstructions ||
-          `You have been assigned a task in ${BRAND.appName}. Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+            `Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? ` This list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+        ),
       },
       creator: {
         id: task.creator?.id || task.creatorId,

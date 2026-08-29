@@ -6,9 +6,16 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('invitations.[token]')
 
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split('@')
+  if (!domain) return '***'
+  if (localPart.length <= 2) return `${localPart[0] || '*'}***@${domain}`
+  return `${localPart[0]}***${localPart.at(-1)}@${domain}`
+}
 
 export async function GET(request: NextRequest, context: RouteContextParams<{ token: string }>) {
   try {
+    const session = await getUnifiedSession(request)
     const { token } = await context.params
 
     const invitation = await prisma.invitation.findUnique({
@@ -36,12 +43,22 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ to
       return NextResponse.json({ error: "Invitation expired" }, { status: 410 })
     }
 
+    const canViewPrivateDetails =
+      session?.user?.id === invitation.senderId ||
+      session?.user?.email?.toLowerCase() === invitation.email.toLowerCase()
+
     return NextResponse.json({ invitation: {
       id: invitation.id,
-      email: invitation.email,
+      ...(canViewPrivateDetails
+        ? {
+            email: invitation.email,
+            message: invitation.message,
+          }
+        : { emailHint: maskEmail(invitation.email) }),
       type: invitation.type,
-      sender: invitation.sender,
-      message: invitation.message,
+      sender: canViewPrivateDetails
+        ? invitation.sender
+        : { name: invitation.sender?.name || null },
       expiresAt: invitation.expiresAt
     }})
   } catch (error) {
@@ -52,7 +69,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ to
 
 export async function POST(request: NextRequest, context: RouteContextParams<{ token: string }>) {
   try {
-    const session = await getUnifiedSession()
+    const session = await getUnifiedSession(request)
     const { token } = await context.params
 
     if (!session?.user?.id) {
@@ -180,7 +197,12 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
 
 export async function DELETE(request: NextRequest, context: RouteContextParams<{ token: string }>) {
   try {
+    const session = await getUnifiedSession(request)
     const { token } = await context.params
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Must be logged in to decline invitation" }, { status: 401 })
+    }
 
     const invitation = await prisma.invitation.findUnique({
       where: { token }
@@ -192,6 +214,13 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     if (invitation.status !== "PENDING") {
       return NextResponse.json({ error: "Invitation already processed" }, { status: 410 })
+    }
+
+    const canDecline =
+      session.user.id === invitation.senderId ||
+      session.user.email?.toLowerCase() === invitation.email.toLowerCase()
+    if (!canDecline) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     await prisma.invitation.update({

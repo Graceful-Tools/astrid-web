@@ -25,6 +25,7 @@ import {
   isOpenClawAgentEmail,
 } from '@/lib/brand/agent-emails'
 import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
+import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
 
@@ -162,10 +163,11 @@ export async function notifyCommentOnAssignedTask(
           'add_comment',
           'get_task_comments',
         ],
-        contextInstructions:
-          task.lists[0]?.description ||
+        contextInstructions: buildAgentContextInstructions(
+          task.lists[0]?.description,
           aiAgentConfig.contextInstructions ||
-          `Someone has commented on your assigned task. Read the comment and respond if needed using the MCP API.${task.lists[0]?.githubRepositoryId ? `\n\nThis list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+            `Read the new comment and respond if needed using the MCP API.${task.lists[0]?.githubRepositoryId ? ` This list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+        ),
       },
       creator: {
         id: task.creator?.id || task.creatorId,
