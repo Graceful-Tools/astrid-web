@@ -32,6 +32,13 @@ X-API-Version: 1
 - Adding new endpoints
 - Deprecating (but not removing) fields
 
+**Scope corrections (2026-08-29, task 36d0f047):** `PUT /api/v1/notifications` and
+`POST /api/v1/feature-requests` now require `user:write` (they previously accepted
+`user:read`). This is a deliberate break for tokens minted from the `readonly`
+scope preset, which were never meant to mutate: a read-only token could mark the
+whole inbox read or file feature requests. Full-access and first-party tokens
+already carry `user:write` and are unaffected.
+
 ### Route Structure
 
 The API has two route layers:

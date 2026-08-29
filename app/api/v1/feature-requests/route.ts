@@ -40,7 +40,7 @@ export const GET = withAuth(
 )
 
 export const POST = withAuth(
-  { scopes: ['user:read'], tag: 'v1.feature-requests' },
+  { scopes: ['user:write'], tag: 'v1.feature-requests' },
   async (req, auth) => {
     const body = await req.json().catch(() => ({}))
     const parsed = parseFeatureRequest(body)
