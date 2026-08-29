@@ -275,6 +275,7 @@ describe('Tasks API', () => {
         isVirtual: false,
         privacy: 'PRIVATE',
         ownerId: 'test-user-id',
+        defaultAssigneeId: undefined,
         listMembers: [{
           userId: 'test-user-id',
           role: 'admin',
@@ -300,6 +301,7 @@ describe('Tasks API', () => {
 
       expect(response.status).toBe(200)
       expect(data).toEqual(createdTask)
+      expect(mockPrisma.taskList.findUnique).not.toHaveBeenCalled()
       expect(mockPrisma.task.create).toHaveBeenCalledWith({
         data: {
           title: newTaskData.title.trim(),

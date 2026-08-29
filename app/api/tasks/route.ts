@@ -237,8 +237,14 @@ export async function POST(request: NextRequest) {
     // Validate listIds exist if provided and filter out virtual lists
     let nonVirtualListIds: string[] = []
     let hasPublicList = false
+    let existingLists: Prisma.TaskListGetPayload<{
+      include: {
+        owner: true
+        listMembers: { include: { user: true } }
+      }
+    }>[] = []
     if (data.listIds && data.listIds.length > 0) {
-      const existingLists = await prisma.taskList.findMany({
+      existingLists = await prisma.taskList.findMany({
         where: { id: { in: data.listIds } },
         include: {
           owner: true,
@@ -337,10 +343,7 @@ export async function POST(request: NextRequest) {
     }
     // Fallback: apply first list's default assignee (for MCP/API clients)
     else if (nonVirtualListIds.length > 0) {
-      const firstList = await prisma.taskList.findUnique({
-        where: { id: nonVirtualListIds[0] },
-        select: { defaultAssigneeId: true }
-      })
+      const firstList = existingLists.find(list => list.id === nonVirtualListIds[0])
 
       // Apply list's default assignee logic:
       // - undefined (not set) = leave unassigned
