@@ -39,6 +39,8 @@ interface CreateTaskData {
   listIds?: string[]
   repeating?: string
   customRepeatingData?: CustomRepeatingPattern | null
+  /** Board column at creation — a role, resolved by the board (task f58ece7c). */
+  statusRole?: ApiCreateTaskData['statusRole']
 }
 
 interface UpdateTaskData extends Partial<CreateTaskData> {
@@ -85,7 +87,10 @@ export const useTaskOperations = ({
         assigneeId: taskData.assigneeId || undefined,
         listIds: taskData.listIds || [],
         repeating: taskData.repeating as any || 'never',
-        customRepeatingData: taskData.customRepeatingData
+        customRepeatingData: taskData.customRepeatingData,
+        // Dropping this here is how "add to Ready" landed tasks in Inbox —
+        // the board sends it and POST /api/v1/tasks persists it (task f58ece7c).
+        statusRole: taskData.statusRole
       }
 
       // Check if offline
