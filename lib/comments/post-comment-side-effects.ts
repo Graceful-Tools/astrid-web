@@ -167,14 +167,38 @@ async function notifyMentionsAndTriggerAgents(
     mentionedUserIds: Set<string>
   ): Promise<void> {
     try {
+      // One query serves the two audiences fanOutComment supports but this
+      // caller historically never supplied (task 9535a5a9): everyone who has
+      // commented on the task, and — when this comment is a threaded reply —
+      // the author of the comment being replied to, who gets the more
+      // specific 'replied' kind.
+      const taskComments = await prisma.comment.findMany({
+        where: { taskId: task.id },
+        select: { id: true, authorId: true, parentCommentId: true },
+      })
+      const byId = new Map(taskComments.map(c => [c.id, c]))
+      const parentCommentId = byId.get(comment.id)?.parentCommentId ?? null
+      const parentAuthorId = parentCommentId
+        ? (byId.get(parentCommentId)?.authorId ?? null)
+        : null
+      const commenterIds = Array.from(
+        new Set(
+          taskComments
+            .map(c => c.authorId)
+            .filter((id): id is string => Boolean(id))
+        )
+      )
+
       await persistNotifications({
         targets: fanOutComment({
           actorId: commenter.id,
           audience: {
             assigneeId: task.assigneeId,
             creatorId: task.creatorId,
+            commenterIds,
             mentionedUserIds: Array.from(mentionedUserIds),
           },
+          parentAuthorId,
         }),
         context: {
           taskId: task.id,
