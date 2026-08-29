@@ -11,8 +11,7 @@ import { canUserEditTask } from "@/lib/list-permissions"
 import { parseClosedReason } from "@/lib/closed-reason"
 import { diffTaskEvents, recordTaskEvents } from "@/lib/task-events"
 import { invalidateUserStats } from "@/lib/user-stats"
-import { fanOutEvent } from "@/lib/notifications"
-import { persistNotifications } from "@/lib/notification-store"
+import { notifyTaskUpdate } from "@/lib/notification-store"
 import {
   TASK_FULL_INCLUDE,
   TASK_PERMISSION_INCLUDE,
@@ -435,51 +434,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     // Structured activity history (task 51a4b8ff), alongside the prose comment
     // below. Both derive from the same before/after pair; the comment is what a
     // human reads, the events are what can be queried and fanned out.
-    // Best-effort by contract — recordTaskEvents never throws.
-    await recordTaskEvents({
-      taskId,
-      actorId: session.user.id,
-      // Always a human here: this route is session-authenticated web UI. Agents
-      // reach tasks through /api/v1, which passes auth.isAIAgent.
-      actorType: 'user',
-      events: diffTaskEvents(
-        {
-          title: existingTask.title,
-          completed: existingTask.completed,
-          closedReason: existingTask.closedReason,
-          priority: existingTask.priority,
-          assigneeId: existingTask.assigneeId,
-          dueDateTime: existingTask.dueDateTime,
-          listIds: existingTask.lists.map((list) => list.id),
-        },
-        {
-          title: updatedTask.title,
-          completed: updatedTask.completed,
-          closedReason: updatedTask.closedReason,
-          priority: updatedTask.priority,
-          assigneeId: updatedTask.assigneeId,
-          dueDateTime: updatedTask.dueDateTime,
-          listIds: updatedTask.lists.map((list) => list.id),
-        }
-      ),
-    })
-
-    const commenterIds = Array.from(
-      new Set(
-        (updatedTask.comments ?? [])
-          .filter((comment: { authorId?: string | null } | null | undefined): comment is { authorId: string } =>
-            Boolean(comment && comment.authorId)
-          )
-          .map((comment) => comment.authorId)
-          .filter((id): id is string => typeof id === 'string' && id.length > 0)
-      )
-    )
-    const taskAudience = {
-      assigneeId: updatedTask.assigneeId,
-      creatorId: updatedTask.creatorId,
-      commenterIds,
-    }
-    for (const event of diffTaskEvents(
+    const taskUpdateEvents = diffTaskEvents(
       {
         title: existingTask.title,
         completed: existingTask.completed,
@@ -498,19 +453,41 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         dueDateTime: updatedTask.dueDateTime,
         listIds: updatedTask.lists.map((list) => list.id),
       }
-    )) {
-      await persistNotifications({
-        targets: fanOutEvent({
-          kind: event.kind,
-          actorId: session.user.id,
-          audience: taskAudience,
-        }),
-        context: {
-          taskId,
-          actorId: session.user.id,
-        },
-      })
+    )
+
+    // Best-effort by contract — recordTaskEvents never throws.
+    await recordTaskEvents({
+      taskId,
+      actorId: session.user.id,
+      // Always a human here: this route is session-authenticated web UI. Agents
+      // reach tasks through /api/v1, which passes auth.isAIAgent.
+      actorType: 'user',
+      events: taskUpdateEvents,
+    })
+
+    const commenterIds = Array.from(
+      new Set(
+        (updatedTask.comments ?? [])
+          .filter((comment: { authorId?: string | null } | null | undefined): comment is { authorId: string } =>
+            Boolean(comment && comment.authorId)
+          )
+          .map((comment) => comment.authorId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      )
+    )
+    const taskAudience = {
+      assigneeId: updatedTask.assigneeId,
+      creatorId: updatedTask.creatorId,
+      commenterIds,
     }
+    // One persist for the whole update — per-event persists defeat the
+    // row-level dedupe and wrote duplicate rows (task ceaff1c5).
+    await notifyTaskUpdate({
+      taskId,
+      actorId: session.user.id,
+      events: taskUpdateEvents,
+      audience: taskAudience,
+    })
 
     // Track state changes and create system comment.
     const stateChangeComment = await recordStateChangeComment({

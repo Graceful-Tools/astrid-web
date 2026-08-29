@@ -25,8 +25,7 @@ import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { recordStateChangeComment } from '@/lib/task-update-handler'
-import { fanOutEvent } from '@/lib/notifications'
-import { persistNotifications } from '@/lib/notification-store'
+import { notifyTaskUpdate } from '@/lib/notification-store'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 
@@ -620,33 +619,7 @@ export const PUT = withAuth<RouteContext>(
         ),
       }
 
-      await recordTaskEvents({
-        taskId,
-        actorId: auth.userId,
-        actorType: auth.isAIAgent ? 'agent' : 'user',
-        events: diffTaskEvents(
-          {
-            title: existingTask.title,
-            completed: existingTask.completed,
-            closedReason: existingTask.closedReason,
-            priority: existingTask.priority,
-            assigneeId: existingTask.assigneeId,
-            dueDateTime: existingTask.dueDateTime,
-            listIds: existingTask.lists.map(list => list.id),
-          },
-          {
-            title: task.title,
-            completed: task.completed,
-            closedReason: task.closedReason,
-            priority: task.priority,
-            assigneeId: task.assigneeId,
-            dueDateTime: task.dueDateTime,
-            listIds: task.lists.map(list => list.id),
-          }
-        ),
-      })
-
-      for (const event of diffTaskEvents(
+      const events = diffTaskEvents(
         {
           title: existingTask.title,
           completed: existingTask.completed,
@@ -665,19 +638,23 @@ export const PUT = withAuth<RouteContext>(
           dueDateTime: task.dueDateTime,
           listIds: task.lists.map(list => list.id),
         }
-      )) {
-        await persistNotifications({
-          targets: fanOutEvent({
-            kind: event.kind,
-            actorId: auth.userId,
-            audience: taskAudience,
-          }),
-          context: {
-            taskId,
-            actorId: auth.userId,
-          },
-        })
-      }
+      )
+
+      await recordTaskEvents({
+        taskId,
+        actorId: auth.userId,
+        actorType: auth.isAIAgent ? 'agent' : 'user',
+        events,
+      })
+
+      // One persist for the whole update — per-event persists defeat the
+      // row-level dedupe and wrote duplicate rows (task ceaff1c5).
+      await notifyTaskUpdate({
+        taskId,
+        actorId: auth.userId,
+        events,
+        audience: taskAudience,
+      })
     }
 
     // System comment for state changes (assignee/priority/etc.).
