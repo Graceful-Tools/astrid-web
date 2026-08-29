@@ -291,12 +291,18 @@ html, body {
 
 /* Chat-style Comments */
 .chat-bubble {
-  @apply rounded-lg max-w-[85%];
+  /* min-w-0: flex child of .chat-bubble-row — without it a wide code block's
+     intrinsic width overrides max-w and pushes the bubble past the panel
+     instead of letting `.prose pre` scroll (task 61a21152). */
+  @apply rounded-lg max-w-[85%] min-w-0;
   padding: 12px;
 }
 
 .chat-bubble-row {
-  @apply flex items-end gap-2;
+  /* max-w-full: the row sits in an items-start column flex, so it is sized to
+     its content — without a cap, .chat-bubble's 85% resolves against the
+     overflowing content width instead of the panel (task 61a21152). */
+  @apply flex max-w-full items-end gap-2;
 }
 
 .chat-bubble-row-mine {
