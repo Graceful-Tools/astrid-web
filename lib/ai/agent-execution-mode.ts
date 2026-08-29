@@ -207,6 +207,24 @@ export async function isPollingOnlyAgent(
   return mode === 'polling' || mode === 'off'
 }
 
+/**
+ * Should this agent appear in pickers and the available-agents lists?
+ *
+ * Offered = what can WORK for this user, not what the server can bill:
+ *  - `polling` and `webhook` need no provider key — the user's own harness or
+ *    server is the runtime, so they are offered as configured.
+ *  - `api` is offered only with a valid key; keyless api-mode would list an
+ *    agent whose every dispatch 400s.
+ *  - `off` means exactly that — hidden even when a key is still saved, because
+ *    the key surviving is what makes turning it back on one click.
+ * (Task 9dbe0b17.)
+ */
+export function isAgentOffered(mode: AgentExecutionMode, hasKey: boolean): boolean {
+  if (mode === 'off') return false
+  if (mode === 'polling' || mode === 'webhook') return true
+  return hasKey
+}
+
 /** Every pollable agent's mode for one user, for the settings screen. */
 export async function getAgentExecutionModes(
   userId: string

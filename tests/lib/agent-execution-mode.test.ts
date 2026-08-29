@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 import {
   isAgentExecutionMode,
+  isAgentOffered,
   isPollingOnlyAgent,
   isModeLockedToPolling,
   pollableMailboxes,
@@ -196,5 +197,23 @@ describe("off mode — Don't use", () => {
       mcpSettings: JSON.stringify({ agentModes: { claude: 'off' } }),
     })
     expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
+  })
+})
+
+
+describe('isAgentOffered (task 9dbe0b17)', () => {
+  it('offers self-run modes with or without a key', () => {
+    expect(isAgentOffered('polling', false)).toBe(true)
+    expect(isAgentOffered('webhook', false)).toBe(true)
+  })
+
+  it('gates api mode on the key', () => {
+    expect(isAgentOffered('api', true)).toBe(true)
+    expect(isAgentOffered('api', false)).toBe(false)
+  })
+
+  it('never offers an off agent, key or not', () => {
+    expect(isAgentOffered('off', true)).toBe(false)
+    expect(isAgentOffered('off', false)).toBe(false)
   })
 })

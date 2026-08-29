@@ -163,6 +163,20 @@ function normalizeFieldName(name: string): string {
   return name;
 }
 
+// --strict: every "UNVERIFIED — skipping" path becomes a FAILURE. CI uses
+// this so the gate regresses loudly the moment its token goes missing again —
+// it ran as a silent no-op rendered as a pass for weeks (task 1985804a).
+// Default (no flag) keeps skip-as-success so tokenless local runs stay cheap.
+const STRICT = process.argv.includes('--strict');
+
+function exitUnverified(): never {
+  if (STRICT) {
+    console.log('\n❌ --strict: an unverified check is a FAILED check.');
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
 async function main() {
   const projectRoot = path.resolve(__dirname, '..');
   const prismaPath = path.join(projectRoot, 'prisma/schema.prisma');
@@ -175,20 +189,20 @@ async function main() {
     console.log(`   ${IOS_REPO} could not be fetched. This check is SKIPPED — not passed.`);
     console.log('   Set ASTRID_IOS_GITHUB_TOKEN (or GITHUB_TOKEN) to enable the real');
     console.log('   cross-repo check — e.g. in the weekly codebase-health-audit routine.');
-    process.exit(0);
+    exitUnverified();
   }
 
   const swiftContent = await fetchIosTaskSwift(token);
   if (!swiftContent) {
     console.log('\n⏭️  UNVERIFIED: could not retrieve iOS Task.swift — skipping (not a failure).');
-    process.exit(0);
+    exitUnverified();
   }
 
   const prismaFields = parsePrismaSchema(prismaPath);
   const swiftFields = parseSwiftTaskFromContent(swiftContent);
   if (swiftFields.size === 0) {
     console.log('\n⏭️  UNVERIFIED: could not parse the Task struct from iOS Task.swift — skipping.');
-    process.exit(0);
+    exitUnverified();
   }
 
   console.log(`\n📊 Prisma Task: ${prismaFields.size} fields | iOS Task.swift: ${swiftFields.size} fields\n`);
@@ -240,5 +254,5 @@ async function main() {
 main().catch((err) => {
   // An infra hiccup (network / auth) must never block the build — report + skip.
   console.log(`⏭️  UNVERIFIED: model sync check errored (${err instanceof Error ? err.message : String(err)}) — skipping.`);
-  process.exit(0);
+  exitUnverified();
 });
