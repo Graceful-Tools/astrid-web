@@ -127,12 +127,15 @@ describe('GET /api/v1/lists field parity (task dc143ab2)', () => {
     expect(list.defaultAssignee).toBeNull()
   })
 
-  it('carries aiAgentsEnabled', async () => {
+  it('carries aiAgentsEnabled as the array iOS decodes, and the full config beside it', async () => {
     // undefined is falsy, so a missing field does not error — the AI agent
-    // affordances just quietly stop rendering.
+    // affordances just quietly stop rendering. And the stored object form must
+    // NOT pass through: iOS/Mac decode `aiAgentsEnabled` as [String], so a
+    // dictionary here drops every list (tests/api/v1-lists-ai-agents-enabled-wire-shape.test.ts).
     const list = await firstList()
 
-    expect(list.aiAgentsEnabled).toEqual({ enabledTypes: ['claude'], defaultAgentId: 'agent-1' })
+    expect(list.aiAgentsEnabled).toEqual(['claude'])
+    expect(list.aiAgentConfig).toEqual({ enabledTypes: ['claude'], defaultAgentId: 'agent-1' })
   })
 
   it('carries publicListType', async () => {

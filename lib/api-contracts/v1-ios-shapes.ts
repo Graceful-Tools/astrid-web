@@ -85,8 +85,14 @@ export interface V1List {
    * every assignee name and avatar renders blank. (Task dc143ab2)
    */
   defaultAssignee: V1UserSummary | null
-  /** Agent config: legacy array, or { enabledTypes, defaultAgentId }. */
-  aiAgentsEnabled: unknown
+  /**
+   * Enabled agent types. ALWAYS `string[]` — iOS/Mac decode it as `[String]?`
+   * and a dictionary here made every shipped client drop every list. The
+   * per-list default agent lives in `aiAgentConfig`, which old clients ignore.
+   * Both are built by lib/resolve-default-agent.ts → serializeListAgentFields.
+   */
+  aiAgentsEnabled: string[]
+  aiAgentConfig: { enabledTypes: string[]; defaultAgentId: string | null }
   publicListType: string | null
   defaultIsPrivate: boolean | null
   defaultDueDate: string | null

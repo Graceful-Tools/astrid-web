@@ -30,15 +30,11 @@ interface ListAiAgentSectionProps {
  * be chosen — polling-mode agents need no provider here at all.
  */
 export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAgentSectionProps) {
-  // --- assistant model (aiAgentsEnabled.defaultAgentId) ---
+  // --- assistant model (aiAgentConfig.defaultAgentId) ---
   const [availableAgents, setAvailableAgents] = useState<Array<{ id: string; name: string | null; email: string; image: string | null; service: string }>>([])
-  const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(() => {
-    const config = list.aiAgentsEnabled
-    if (config && typeof config === 'object' && !Array.isArray(config)) {
-      return (config as Record<string, unknown>).defaultAgentId as string || null
-    }
-    return null
-  })
+  const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(
+    () => list.aiAgentConfig?.defaultAgentId ?? null
+  )
 
   // --- coding-agent repository (githubRepositoryId) ---
   const [tempGithubRepositoryId, setTempGithubRepositoryId] = useState<string | null>(list.githubRepositoryId || null)
@@ -99,14 +95,14 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             onValueChange={(value) => {
               const newAgentId = value === '_account_default' ? null : value
               setListDefaultAgentId(newAgentId)
-              const currentTypes = Array.isArray(list.aiAgentsEnabled)
-                ? list.aiAgentsEnabled
-                : (list.aiAgentsEnabled as Record<string, unknown>)?.enabledTypes || []
-              const updatedConfig = {
-                enabledTypes: currentTypes,
-                defaultAgentId: newAgentId,
-              }
-              onUpdate({ ...list, aiAgentsEnabled: updatedConfig as unknown as string[] })
+              // `aiAgentsEnabled` stays the plain array iOS/Mac decode; the
+              // default agent travels in `aiAgentConfig`, which PUT prefers.
+              const currentTypes = list.aiAgentConfig?.enabledTypes ?? list.aiAgentsEnabled ?? []
+              onUpdate({
+                ...list,
+                aiAgentsEnabled: currentTypes,
+                aiAgentConfig: { enabledTypes: currentTypes, defaultAgentId: newAgentId },
+              })
             }}
           >
             <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary">
