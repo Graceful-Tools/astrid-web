@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
-import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import type { CreateCommentData } from "@/types/api"
 import { hasListAccess } from "@/lib/list-member-utils"
@@ -11,10 +10,9 @@ import { dispatchPostCommentSideEffects } from "@/lib/comments/post-comment-side
 import { agentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
 import {
-  parseClientRequestId,
-  findCommentByClientRequestId,
-  isDuplicateClientRequestId,
-} from '@/lib/comment-idempotency'
+  associateFileWithComment,
+  createCommentIdempotently,
+} from '@/lib/comments/create-comment'
 
 const log = createLogger('tasks.[id].comments')
 
@@ -161,95 +159,42 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
         include: { author: true, secureFiles: true },
         orderBy: { createdAt: "asc" as const },
       },
-    }
+    } as const
 
-    const parsed = parseClientRequestId((data as any).clientRequestId)
-    if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    const creation = await createCommentIdempotently({
+      taskId,
+      authorId: session.user.id,
+      clientRequestId: data.clientRequestId,
+      data: {
+        content: data.content.trim() || '',
+        type: data.type || "TEXT",
+        parentCommentId: data.parentCommentId,
+      },
+      include: commentInclude,
+    })
+    if (creation.kind === 'invalid') {
+      return NextResponse.json({ error: creation.error }, { status: 400 })
     }
-    const rawClientRequestId = parsed.clientRequestId
-
-    if (rawClientRequestId) {
-      const existing = await findCommentByClientRequestId({
-        clientRequestId: rawClientRequestId,
-        taskId,
-        authorId: session.user.id,
-        include: commentInclude,
-      })
-      if (existing) {
-        log.info({ commentId: existing.id }, 'Idempotency hit (clientRequestId): returning existing comment')
-        return NextResponse.json(existing, { status: 200 })
-      }
+    if (creation.kind === 'conflict') {
+      return NextResponse.json({ error: creation.error }, { status: 409 })
     }
-
-    let comment
-    try {
-      // Create the comment
-      comment = await prisma.comment.create({
-        data: {
-          content: data.content.trim() || '',
-          type: data.type || "TEXT",
-          parentCommentId: data.parentCommentId,
-          authorId: session.user.id,
-          taskId,
-          clientRequestId: rawClientRequestId,
-        },
-        include: commentInclude,
-      })
-    } catch (err) {
-      if (rawClientRequestId && isDuplicateClientRequestId(err)) {
-        const raceExisting = await findCommentByClientRequestId({
-          clientRequestId: rawClientRequestId,
-          taskId,
-          authorId: session.user.id,
-          include: commentInclude,
-        })
-        if (raceExisting) {
-          log.info({ commentId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing comment')
-          return NextResponse.json(raceExisting, { status: 200 })
-        }
-        return NextResponse.json(
-          { error: 'clientRequestId already used by another request' },
-          { status: 409 }
-        )
-      }
-      throw err
+    if (creation.kind === 'existing') {
+      log.info({ commentId: creation.comment.id }, 'Idempotency hit: returning existing comment')
+      return NextResponse.json(creation.comment, { status: 200 })
     }
+    let comment = creation.comment
 
     // Associate secure file if provided
     if (data.fileId) {
       try {
-        await prisma.secureFile.update({
-          where: {
-            id: data.fileId,
-            uploadedBy: session.user.id // Security: only allow linking files uploaded by the user
-          },
-          data: {
-            commentId: comment.id
-          }
+        const updatedComment = await associateFileWithComment({
+          fileId: data.fileId,
+          commentId: comment.id,
+          include: commentInclude,
+          canLink: file => file.uploadedBy === session.user.id,
         })
-
-        // Refetch the comment to include the associated file
-        const updatedComment = await prisma.comment.findUnique({
-          where: { id: comment.id },
-          include: {
-            author: true,
-            secureFiles: true,
-            replies: {
-              include: {
-                author: true,
-                secureFiles: true,
-              },
-              orderBy: {
-                createdAt: "asc",
-              },
-            },
-          },
-        })
-
-        // Update the comment variable to include the secure file
         if (updatedComment) {
-          Object.assign(comment, updatedComment)
+          comment = updatedComment
         }
       } catch (error) {
         log.error({ err: error }, 'Failed to associate file with comment:')

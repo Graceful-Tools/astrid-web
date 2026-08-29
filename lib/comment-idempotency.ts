@@ -54,12 +54,12 @@ export function parseClientRequestId(raw: unknown): ClientRequestIdResult {
  * someone else's id would be handed that person's comment. A mismatch returns
  * null rather than the row.
  */
-export async function findCommentByClientRequestId<T>(args: {
+export async function findCommentByClientRequestId<T extends Prisma.CommentInclude>(args: {
   clientRequestId: string
   taskId: string
   authorId: string
   include: T
-}): Promise<Record<string, unknown> | null> {
+}): Promise<Prisma.CommentGetPayload<{ include: T }> | null> {
   const { clientRequestId, taskId, authorId, include } = args
 
   const existing = await prisma.comment.findUnique({
@@ -71,7 +71,7 @@ export async function findCommentByClientRequestId<T>(args: {
   if (existing.taskId !== taskId) return null
   if (existing.authorId !== authorId) return null
 
-  return existing as unknown as Record<string, unknown>
+  return existing as unknown as Prisma.CommentGetPayload<{ include: T }>
 }
 
 /**

@@ -11,7 +11,6 @@ import {
   V1_COMMENT_TYPE_VALUES,
   type V1CommentCreateRequest,
 } from '@/lib/api-contracts/v1-request-shapes'
-import { Prisma } from '@prisma/client'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -22,10 +21,9 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { agentEmail, isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
 import {
-  parseClientRequestId,
-  findCommentByClientRequestId,
-  isDuplicateClientRequestId,
-} from '@/lib/comment-idempotency'
+  associateFileWithComment,
+  createCommentIdempotently,
+} from '@/lib/comments/create-comment'
 import { userCanAccessTask } from "@/services/task.service"
 
 const log = createLogger('v1.tasks.comments')
@@ -285,122 +283,57 @@ export const POST = withAuth<RouteContext>(
       },
     } as const
 
-    const parsed = parseClientRequestId(body.clientRequestId)
-    if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    const creation = await createCommentIdempotently({
+      taskId,
+      authorId,
+      clientRequestId: body.clientRequestId,
+      data: {
+        content: body.content?.trim() || '',
+        type: body.type || 'TEXT',
+        parentCommentId: body.parentCommentId || null,
+        ...(createdAt && !isNaN(createdAt.getTime()) && { createdAt }),
+      },
+      include: commentInclude,
+    })
+    if (creation.kind === 'invalid') {
+      return NextResponse.json({ error: creation.error }, { status: 400 })
     }
-    const rawClientRequestId = parsed.clientRequestId
-
-    if (rawClientRequestId) {
-      const existing = await findCommentByClientRequestId({
-        clientRequestId: rawClientRequestId,
-        taskId,
-        authorId,
-        include: commentInclude,
-      })
-      if (existing) {
-        log.info({ commentId: existing.id }, 'Idempotency hit (clientRequestId): returning existing comment')
-        const headers: Record<string, string> = {}
-        const deprecationWarning = getDeprecationWarning(auth)
-        if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
-        return NextResponse.json(
-          { comment: existing, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
-          { status: 200, headers }
-        )
-      }
+    if (creation.kind === 'conflict') {
+      return NextResponse.json({ error: creation.error }, { status: 409 })
     }
-
-    let comment
-    try {
-      comment = await prisma.comment.create({
-        data: {
-          content: body.content?.trim() || '',
-          type: body.type || 'TEXT',
-          authorId,
-          taskId,
-          parentCommentId: body.parentCommentId || null,
-          clientRequestId: rawClientRequestId,
-          ...(createdAt && !isNaN(createdAt.getTime()) && { createdAt })
+    if (creation.kind === 'existing') {
+      log.info({ commentId: creation.comment.id }, 'Idempotency hit: returning existing comment')
+      const headers: Record<string, string> = {}
+      const deprecationWarning = getDeprecationWarning(auth)
+      if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+      return NextResponse.json(
+        {
+          comment: creation.comment,
+          meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true },
         },
-        include: commentInclude,
-      })
-    } catch (err) {
-      // P2002 = unique constraint hit — concurrent retry won the race
-      if (rawClientRequestId && isDuplicateClientRequestId(err)) {
-        const raceExisting = await findCommentByClientRequestId({
-          clientRequestId: rawClientRequestId,
-          taskId,
-          authorId,
-          include: commentInclude,
-        })
-        if (raceExisting) {
-          log.info({ commentId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing comment')
-          const headers: Record<string, string> = {}
-          const deprecationWarning = getDeprecationWarning(auth)
-          if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
-          return NextResponse.json(
-            { comment: raceExisting, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
-            { status: 200, headers }
-          )
-        }
-        return NextResponse.json(
-          { error: 'clientRequestId already used by another request' },
-          { status: 409 }
-        )
-      }
-      throw err
+        { status: 200, headers },
+      )
     }
+    let comment = creation.comment
 
     if (body.fileId) {
       try {
-        // Allow linking a file the user uploaded OR one in a chat channel they can read
-        const secureFile = await prisma.secureFile.findUnique({
-          where: { id: body.fileId },
-          select: {
-            id: true,
-            uploadedBy: true,
-            chatMessageId: true,
-            chatMessage: { select: { channelId: true } },
-          },
-        })
-
-        let canLink = false
-        if (secureFile) {
-          if (secureFile.uploadedBy === auth.userId) {
-            canLink = true
-          } else if (secureFile.chatMessage?.channelId) {
-            const { canAccessChatChannel } = await import('@/lib/chat-access')
-            canLink = await canAccessChatChannel(secureFile.chatMessage.channelId, auth.userId)
-          }
-        }
-
-        if (canLink) {
-          await prisma.secureFile.update({
-            where: { id: body.fileId },
-            data: { commentId: comment.id },
-          })
-        }
-
-        const updatedComment = await prisma.comment.findUnique({
-          where: { id: comment.id },
-          include: {
-            author: {
-              select: { id: true, name: true, email: true, image: true }
-            },
-            secureFiles: {
-              select: {
-                id: true,
-                originalName: true,
-                mimeType: true,
-                fileSize: true,
-                createdAt: true
-              }
+        const updatedComment = await associateFileWithComment({
+          fileId: body.fileId,
+          commentId: comment.id,
+          include: commentInclude,
+          canLink: async file => {
+            if (file.uploadedBy === auth.userId) return true
+            if (file.chatMessage?.channelId) {
+              const { canAccessChatChannel } = await import('@/lib/chat-access')
+              return canAccessChatChannel(file.chatMessage.channelId, auth.userId)
             }
+            return false
           },
         })
 
         if (updatedComment) {
-          Object.assign(comment, updatedComment)
+          comment = updatedComment
         }
       } catch (error) {
         log.error({ err: error }, 'Failed to associate file with comment')
