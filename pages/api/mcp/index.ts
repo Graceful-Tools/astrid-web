@@ -61,6 +61,17 @@ class SingleRequestTransport {
   }
 }
 
+/**
+ * A JSON-RPC message expects a response only when it carries an id AND a
+ * method. No id → notification; id without method → the client answering one
+ * of the server's requests. Neither produces a reply to wait for.
+ */
+function isRequest(message: unknown): message is { id: string | number; method: string } {
+  if (!message || typeof message !== "object") return false
+  const { id, method } = message as { id?: unknown; method?: unknown }
+  return id !== undefined && id !== null && typeof method === "string"
+}
+
 /** bodyParser is disabled for SSE, so read the POST body ourselves. */
 async function readJsonBody(req: NextApiRequest): Promise<unknown> {
   const chunks: Buffer[] = []
@@ -123,6 +134,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await serverInstance.startWithTransport(transport, "streamable-http")
 
       transport.onmessage?.(message)
+
+      // A notification (no id — `notifications/initialized` is the one every
+      // client sends right after initialize) gets no JSON-RPC reply, so waiting
+      // for one held the POST open until the client gave up: Claude Code timed
+      // out connecting after 30s while initialize and tools/list answered in
+      // milliseconds. Streamable HTTP says to acknowledge it with 202 and no body.
+      if (!isRequest(message)) {
+        await transport.close()
+        res.status(202).end()
+        return
+      }
+
       const reply = await transport.response
       await transport.close()
 

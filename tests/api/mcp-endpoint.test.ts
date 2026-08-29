@@ -41,17 +41,23 @@ async function rpc(body: unknown, { auth = 'Bearer test-token' }: { auth?: strin
 
   let statusCode = 200
   let payload: any = null
+  let ended = false
   const headers: Record<string, string> = {}
   const res = {
     status(code: number) { statusCode = code; return this },
-    json(data: unknown) { payload = data; return this },
-    end() { return this },
+    json(data: unknown) { payload = data; ended = true; return this },
+    end() { ended = true; return this },
     setHeader(k: string, v: string) { headers[k] = v },
     get headersSent() { return false },
   }
 
-  await handler(req as never, res as never)
-  return { statusCode, payload, headers }
+  // A handler that never answers is the bug being pinned below, so a hang has
+  // to fail the test rather than stall the whole run.
+  const hung = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('handler never responded (request hung)')), 3000)
+  )
+  await Promise.race([handler(req as never, res as never), hung])
+  return { statusCode, payload, headers, ended }
 }
 
 describe('/mcp Streamable HTTP endpoint (task a0e0808c)', () => {
@@ -69,6 +75,19 @@ describe('/mcp Streamable HTTP endpoint (task a0e0808c)', () => {
     // Every MCP client does this first; without it nothing else runs.
     expect(payload.result?.serverInfo?.name).toBeTruthy()
     expect(payload.result?.protocolVersion).toBeTruthy()
+  })
+
+  it('acknowledges a notification with 202 instead of hanging (Claude Code connect timeout)', async () => {
+    // Streamable HTTP clients send `notifications/initialized` right after the
+    // initialize reply. A notification has no id and gets no JSON-RPC response,
+    // so the transport waiting for one never settled: the POST stayed open until
+    // the client gave up — Claude Code reported CONNECT_TIMEOUT after 30s, with
+    // initialize and tools/list both answering in under 200ms.
+    const { statusCode, ended, payload } = await rpc({ jsonrpc: '2.0', method: 'notifications/initialized' })
+
+    expect(statusCode).toBe(202)
+    expect(ended).toBe(true)
+    expect(payload).toBeNull()
   })
 
   it('lists tools so a client can discover what Astrid exposes', async () => {
