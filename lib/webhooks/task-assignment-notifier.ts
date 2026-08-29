@@ -399,7 +399,7 @@ async function sendPushNotification(
 
 /** SSE fanout to task creator + all members of the lists the task belongs to,
  *  excluding the AI agent itself. Errors are logged, not thrown. */
-async function sendSSENotification(
+export async function sendSSENotification(
   task: any,
   payload: TaskAssignmentWebhookPayload,
   prisma: PrismaClient,
@@ -411,23 +411,23 @@ async function sendSSENotification(
       notifyUserIds.add(task.creator?.id || task.creatorId)
     }
 
-    for (const list of task.lists) {
-      const listWithMembers = await prisma.taskList.findUnique({
-        where: { id: list.id },
-        include: {
-          owner: true,
-          listMembers: { include: { user: true } },
-        },
-      })
-
-      if (listWithMembers) {
-        if (listWithMembers.ownerId) {
-          notifyUserIds.add(listWithMembers.ownerId)
-        }
-        listWithMembers.listMembers.forEach(listMember => {
-          notifyUserIds.add(listMember.user.id)
+    const listIds = task.lists.map((list: { id: string }) => list.id)
+    const listsWithMembers = listIds.length > 0
+      ? await prisma.taskList.findMany({
+          where: { id: { in: listIds } },
+          select: {
+            id: true,
+            ownerId: true,
+            listMembers: { select: { userId: true } },
+          },
         })
+      : []
+
+    for (const list of listsWithMembers) {
+      if (list.ownerId) {
+        notifyUserIds.add(list.ownerId)
       }
+      list.listMembers.forEach(listMember => notifyUserIds.add(listMember.userId))
     }
 
     notifyUserIds.delete(task.assigneeId!)
