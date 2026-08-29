@@ -57,7 +57,7 @@ export const GET = withAuth(
 )
 
 export const PUT = withAuth(
-  { scopes: ['user:read'], tag: 'v1.notifications' },
+  { scopes: ['user:write'], tag: 'v1.notifications' },
   async (req, auth) => {
     const body = await req.json().catch(() => ({}))
     const markAll = body.all === true
