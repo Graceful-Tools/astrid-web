@@ -21,6 +21,11 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
+import {
+  deleteListWithImageRelease,
+  ListImageClaimError,
+  updateListWithImageOwnership,
+} from "@/lib/images/update-list-image"
 
 const log = createLogger('api.v1.lists.id')
 
@@ -260,24 +265,38 @@ export const PUT = withAuth<RouteContext>(
     if (body.filterAssignedBy !== undefined) updateData.filterAssignedBy = body.filterAssignedBy
     if (body.filterInLists !== undefined) updateData.filterInLists = body.filterInLists
 
-    const list = await prisma.taskList.update({
-      where: { id },
-      data: updateData,
-      include: {
-        owner: {
-          select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true }
-        },
-        listMembers: {
+    let list
+    try {
+      list = await updateListWithImageOwnership({
+        listId: id,
+        previousImageUrl: existingList.imageUrl,
+        nextImageUrl: body.imageUrl,
+        userId: auth.userId,
+        update: client => client.taskList.update({
+          where: { id },
+          data: updateData,
           include: {
-            user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
+            owner: {
+              select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true }
+            },
+            listMembers: {
+              include: {
+                user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
+              }
+            },
+            listInvites: {
+              select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
+            },
+            _count: { select: { tasks: true } }
           }
-        },
-        listInvites: {
-          select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
-        },
-        _count: { select: { tasks: true } }
-      },
-    })
+        }),
+      })
+    } catch (error) {
+      if (error instanceof ListImageClaimError) {
+        return NextResponse.json({ error: error.message }, { status: 409 })
+      }
+      throw error
+    }
 
     await hydrateSingleListFavorite(list, auth.userId)
 
@@ -404,7 +423,10 @@ export const DELETE = withAuth<RouteContext>(
       if (listForAudience) listAudience = audienceForList(listForAudience)
     } catch { /* best effort */ }
 
-    await prisma.taskList.delete({ where: { id } })
+    await deleteListWithImageRelease(
+      id,
+      client => client.taskList.delete({ where: { id } }),
+    )
     await recordDeletion('list', id, listAudience)
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_DELETED, { listId: id })

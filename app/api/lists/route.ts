@@ -12,6 +12,10 @@ import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-event
 import { hydrateListFavorites } from "@/lib/favorites"
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
+import {
+  createListWithImageOwnership,
+  ListImageClaimError,
+} from '@/lib/images/update-list-image'
 
 const log = createLogger('api.lists')
 
@@ -221,17 +225,21 @@ export async function POST(request: NextRequest) {
     let list: any
     try {
       // Create the list first
-      list = await prisma.taskList.create({
-        data: listData,
-        include: {
-          owner: { select: safeUserSelect },
-          _count: {
-            select: {
-              tasks: true,
+      list = await createListWithImageOwnership(
+        data.imageUrl,
+        session.user.id,
+        client => client.taskList.create({
+          data: listData,
+          include: {
+            owner: { select: safeUserSelect },
+            _count: {
+              select: {
+                tasks: true,
+              },
             },
           },
-        },
-      })
+        }),
+      )
 
       // Then add admins and members to ListMember table
       if (data.adminIds && data.adminIds.length > 0) {
@@ -262,6 +270,9 @@ export async function POST(request: NextRequest) {
         )
       }
     } catch (error) {
+      if (error instanceof ListImageClaimError) {
+        return NextResponse.json({ error: error.message }, { status: 409 })
+      }
       log.error({ err: error }, 'Error creating list:')
       return NextResponse.json({
         error: 'Failed to create list',

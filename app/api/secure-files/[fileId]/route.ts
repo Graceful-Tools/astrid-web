@@ -255,6 +255,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ fi
       return NextResponse.json({ error: "Only the file uploader can update this file" }, { status: 403 })
     }
 
+    if (existingFile.attachTarget === 'list-image') {
+      return NextResponse.json({
+        error: "List images must be replaced through list settings."
+      }, { status: 409 })
+    }
+
     // Parse the multipart form data
     const formData = await request.formData()
     const file = formData.get("file") as File | null
@@ -363,9 +369,22 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       }, { status: 409 })
     }
 
+    if (existingFile.attachTarget === 'list-image') {
+      return NextResponse.json({
+        error: "List images must be removed or replaced through list settings."
+      }, { status: 409 })
+    }
+
     // Drop the row first: an orphaned blob is a storage cost, whereas a row
     // pointing at a deleted blob is a broken attachment the user can see.
-    await prisma.secureFile.delete({ where: { id: fileId } })
+    const deleted = await prisma.secureFile.deleteMany({
+      where: { id: fileId, listId: null, commentId: null },
+    })
+    if (deleted.count === 0) {
+      return NextResponse.json({
+        error: "This file became attached and can no longer be deleted."
+      }, { status: 409 })
+    }
 
     try {
       await deleteFile(existingFile.blobUrl)

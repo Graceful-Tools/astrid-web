@@ -35,6 +35,7 @@ vi.mock('@/lib/prisma', () => ({
     user: {
       findUnique: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -68,6 +69,7 @@ describe('PUT /api/lists/[id] — showSubtasks', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(getServerSession).mockResolvedValue({ user: mockUser } as any)
+    ;(prisma.$transaction as any).mockImplementation((operation: any) => operation(prisma))
     vi.mocked(prisma.taskList.findUnique).mockResolvedValue(existingList as any)
     vi.mocked(prisma.taskList.update).mockResolvedValue({
       ...existingList,

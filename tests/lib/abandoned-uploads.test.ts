@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   ABANDONED_UPLOAD_GRACE_MS,
+  ABANDONED_UPLOAD_SCAN_PAGES,
   abandonedUploadWhere,
   ambiguousLegacyWhere,
   countAmbiguousLegacyUploads,
@@ -24,9 +25,10 @@ describe('abandonedUploadWhere (Task 276b3086)', () => {
     // A task-form upload has the same null commentId. Without the
     // discriminator these are indistinguishable, which is the whole reason
     // ded31696 added it.
-    expect(abandonedUploadWhere(now).attachTarget).toEqual({
-      in: ['message', 'list-image'],
-    })
+    expect(abandonedUploadWhere(now).OR).toEqual([
+      { attachTarget: 'message' },
+      { attachTarget: 'list-image', listId: null },
+    ])
   })
 
   it('only matches files that never reached a comment or a chat message', () => {
@@ -39,7 +41,7 @@ describe('abandonedUploadWhere (Task 276b3086)', () => {
   it('leaves a grace period long enough to survive someone still typing', () => {
     const where = abandonedUploadWhere(now)
 
-    expect(where.createdAt.lt.getTime()).toBe(now.getTime() - ABANDONED_UPLOAD_GRACE_MS)
+    expect(where.updatedAt.lt.getTime()).toBe(now.getTime() - ABANDONED_UPLOAD_GRACE_MS)
     // Hours, not minutes: a draft can legitimately sit open all day.
     expect(ABANDONED_UPLOAD_GRACE_MS).toBeGreaterThanOrEqual(12 * 60 * 60 * 1000)
   })
@@ -54,6 +56,8 @@ describe('sweepAbandonedUploads (Task 276b3086)', () => {
       secureFile: {
         findMany: vi.fn().mockResolvedValue([]),
         delete: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       taskList: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -117,21 +121,111 @@ describe('sweepAbandonedUploads (Task 276b3086)', () => {
     expect(args.take).toBeGreaterThan(0)
   })
 
-  it('keeps list images that are still referenced and reclaims replaced ones', async () => {
+  it('reclaims unlinked list images', async () => {
     prisma.secureFile.findMany.mockResolvedValue([
-      { id: 'active', blobUrl: 'https://blob/active', attachTarget: 'list-image' },
       { id: 'replaced', blobUrl: 'https://blob/replaced', attachTarget: 'list-image' },
-    ])
-    prisma.taskList.findMany.mockResolvedValue([
-      { imageUrl: 'https://blob/active' },
     ])
 
     const result = await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
 
-    expect(prisma.secureFile.delete).toHaveBeenCalledTimes(1)
-    expect(prisma.secureFile.delete).toHaveBeenCalledWith({ where: { id: 'replaced' } })
+    expect(prisma.secureFile.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'replaced', listId: null },
+    })
     expect(deleteFile).toHaveBeenCalledWith('https://blob/replaced')
     expect(result).toMatchObject({ rowsDeleted: 1, blobsDeleted: 1 })
+  })
+
+  it('protects and postpones a legacy image that a list still references', async () => {
+    prisma.secureFile.findMany.mockResolvedValueOnce([
+      { id: 'legacy', blobUrl: 'https://blob/legacy', attachTarget: 'list-image' },
+    ])
+    prisma.taskList.findMany.mockResolvedValueOnce([
+      { id: 'list-1', imageUrl: 'https://blob/legacy' },
+    ])
+
+    const result = await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
+
+    expect(prisma.secureFile.updateMany).toHaveBeenCalledWith({
+      where: { id: 'legacy', listId: null },
+      data: { updatedAt: expect.any(Date) },
+    })
+    expect(deleteFile).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ rowsDeleted: 0, blobsDeleted: 0 })
+  })
+
+  it('paginates past a full page of referenced legacy images', async () => {
+    const referenced = Array.from({ length: 500 }, (_, index) => ({
+      id: `active-${index.toString().padStart(3, '0')}`,
+      blobUrl: `https://blob/active-${index}`,
+      attachTarget: 'list-image',
+    }))
+    prisma.secureFile.findMany
+      .mockResolvedValueOnce(referenced)
+      .mockResolvedValueOnce([
+        { id: 'abandoned', blobUrl: 'https://blob/abandoned', attachTarget: 'list-image' },
+      ])
+    prisma.taskList.findMany
+      .mockResolvedValueOnce(referenced.map((file, index) => ({
+        id: `list-${index}`,
+        imageUrl: file.blobUrl,
+      })))
+      .mockResolvedValueOnce([])
+
+    const result = await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
+
+    expect(prisma.secureFile.findMany).toHaveBeenCalledTimes(2)
+    expect(deleteFile).toHaveBeenCalledWith('https://blob/abandoned')
+    expect(result).toMatchObject({ rowsDeleted: 1, blobsDeleted: 1 })
+  })
+
+  it('caps legacy backfill scanning per run', async () => {
+    const referenced = Array.from({ length: 500 }, (_, index) => ({
+      id: `active-${index.toString().padStart(3, '0')}`,
+      blobUrl: `https://blob/active-${index}`,
+      attachTarget: 'list-image',
+    }))
+    prisma.secureFile.findMany.mockResolvedValue(referenced)
+    prisma.taskList.findMany.mockResolvedValue(
+      referenced.map((file, index) => ({
+        id: `list-${index}`,
+        imageUrl: file.blobUrl,
+      })),
+    )
+
+    await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
+
+    expect(prisma.secureFile.findMany).toHaveBeenCalledTimes(ABANDONED_UPLOAD_SCAN_PAGES)
+    expect(deleteFile).not.toHaveBeenCalled()
+  })
+
+  it('excludes linked list images before applying the batch limit', async () => {
+    await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
+
+    expect(prisma.secureFile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { attachTarget: 'message' },
+            { attachTarget: 'list-image', listId: null },
+          ],
+        }),
+      }),
+    )
+  })
+
+  it('does not delete a blob when a concurrent list update claims its row', async () => {
+    prisma.secureFile.findMany.mockResolvedValue([
+      { id: 'claimed', blobUrl: 'https://blob/claimed', attachTarget: 'list-image' },
+    ])
+    prisma.secureFile.deleteMany.mockResolvedValue({ count: 0 })
+
+    const result = await sweepAbandonedUploads({ prisma, deleteFile, now: new Date() })
+
+    expect(prisma.secureFile.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'claimed', listId: null },
+    })
+    expect(deleteFile).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ rowsDeleted: 0, blobsDeleted: 0 })
   })
 })
 
@@ -149,13 +243,15 @@ describe('ambiguousLegacyWhere (Task 276b3086)', () => {
     // The whole point: these are counted, never swept. A row cannot be both
     // attachTarget 'message' and attachTarget null.
     const sweepable = abandonedUploadWhere(new Date())
-    expect(sweepable.attachTarget.in).not.toContain(null)
+    expect(sweepable.OR).not.toContainEqual(expect.objectContaining({ attachTarget: null }))
     expect(ambiguousLegacyWhere().attachTarget).toBeNull()
   })
 
   it('counts them without touching anything', async () => {
     const count = vi.fn().mockResolvedValue(41)
-    const prisma = { secureFile: { count, findMany: vi.fn(), delete: vi.fn() } } as never
+    const prisma = {
+      secureFile: { count, findMany: vi.fn(), delete: vi.fn(), deleteMany: vi.fn() },
+    } as never
 
     expect(await countAmbiguousLegacyUploads(prisma)).toBe(41)
     expect(count).toHaveBeenCalledWith({ where: ambiguousLegacyWhere() })

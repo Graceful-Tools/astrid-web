@@ -15,6 +15,7 @@ import {
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 import { getUserRoleInList, canUserManageList } from "@/lib/list-permissions"
+import { deleteListWithImageRelease } from "@/lib/images/update-list-image"
 
 const log = createLogger('api.lists.members')
 
@@ -555,9 +556,10 @@ export async function PATCH(
         // Check if there are any admins to transfer ownership to
         if (adminMembers.length === 0 && regularMembers.length === 0) {
           // No one else in the list - delete the list entirely
-          await prisma.taskList.delete({
-            where: { id: listId }
-          })
+          await deleteListWithImageRelease(
+            listId,
+            client => client.taskList.delete({ where: { id: listId } }),
+          )
 
           await invalidateMemberCache(session.user.id)
           return NextResponse.json({ message: "Successfully left the list", deleted: true })
