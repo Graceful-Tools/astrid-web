@@ -5,6 +5,7 @@ import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 import { validateUploadFile, IMAGE_FILE_TYPES } from '@/lib/upload-validation'
 import { canUserManageList } from "@/lib/list-permissions"
+import { updateListWithImageOwnership } from "@/lib/images/update-list-image"
 
 const log = createLogger('lists.[id].upload-image')
 
@@ -65,17 +66,21 @@ export async function POST(
     }
 
     // Update the list with the new image URL
-    const updatedList = await prisma.taskList.update({
-      where: { id: listId },
-      data: {
-        imageUrl: imageUrl,
-      },
-      include: {
-        owner: true,
-        _count: {
-          select: { tasks: true }
+    const updatedList = await updateListWithImageOwnership({
+      listId,
+      previousImageUrl: list.imageUrl,
+      nextImageUrl: imageUrl,
+      userId: session.user.id,
+      update: client => client.taskList.update({
+        where: { id: listId },
+        data: { imageUrl },
+        include: {
+          owner: true,
+          _count: {
+            select: { tasks: true }
+          }
         }
-      }
+      }),
     })
 
     // Manually fetch defaultAssignee if it's a valid user ID (not "unassigned")

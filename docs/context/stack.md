@@ -2,46 +2,46 @@
 
 ## Runtime & Framework
 - **Runtime**: Node.js (LTS)
-- **Framework**: Next.js 15.5.0 (App Router)
-- **Language**: TypeScript 5
+- **Framework**: Next.js 16.2.9 (App Router)
+- **Language**: TypeScript 6
 - **Package Manager**: npm
-- **React**: 19.0.0
+- **React**: React 19.2.8
 
 ## Database & Storage
 - **Database**: PostgreSQL (Neon serverless)
-- **ORM**: Prisma 6.14.0
-- **Client**: @prisma/client 6.14.0
+- **ORM**: Prisma 6.19.2
+- **Client**: @prisma/client 6.19.2
 - **Caching**: Redis (Upstash) - serverless REST API
 - **File Storage**: Vercel Blob
-- **Offline Storage**: IndexedDB via Dexie 4.0.1
+- **Offline Storage**: IndexedDB via Dexie 4.4.5
 
 ## Authentication & Security
-- **Provider**: NextAuth.js (latest)
+- **Provider**: NextAuth.js
 - **Strategies**: Google OAuth + WebAuthn passkeys; Apple Sign-In on iOS
 - **Adapter**: @next-auth/prisma-adapter
 - **Encryption**: Node.js crypto (AES-256-GCM for AI credentials; legacy AES-256-CBC rows still readable)
 - **Rate Limiting**: Custom implementation with IP/user tracking
 
 ## Testing Stack
-- **Unit Tests**: Vitest 3.2.4
-- **E2E Tests**: Playwright 1.56.0
-- **Test Environment**: jsdom 26.1.0
-- **Test Utilities**: React Testing Library 16.3.0
+- **Unit Tests**: Vitest 4.1.10
+- **E2E Tests**: Playwright 1.62.1
+- **Test Environment**: jsdom 29.1.1
+- **Test Utilities**: React Testing Library 16.3.2
 
 ## UI & Styling
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
 - **Icons**: Lucide React 0.454.0
-- **Forms**: React Hook Form 7.54.1 + Zod 3.24.1
+- **Forms**: React Hook Form 7.85.0 + Zod 3.25.76
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)
-- **ESLint**: eslint 8.57.1
+- **ESLint**: ESLint 9.39.5
 - **TypeScript**: Strict mode
-- **PostCSS**: autoprefixer 10.4.20
+- **PostCSS**: autoprefixer 10.5.4
 
 ## AI & Automation
-- **OpenAI**: 5.15.0 (GPT-4, GPT-3.5)
+- **OpenAI SDK**: OpenAI 5.15.0
 - **Anthropic**: Claude API (Sonnet, Opus)
 - **Google**: Gemini API
 - **GitHub Copilot**: Official `@github/copilot-sdk` with per-user GitHub OAuth
@@ -49,7 +49,7 @@
 - **GitHub Integration**: Octokit for repository access
 
 ## Email & Notifications
-- **Outbound Email**: Resend 4.0.1
+- **Outbound Email**: Resend 6.20.0
 - **Inbound Email**: Cloudflare Email Workers / Mailgun / Resend webhooks
 - **Email Parsing**: TurndownService (HTML to Markdown)
 - **Push Notifications**: web-push 3.6.7 (VAPID-based)

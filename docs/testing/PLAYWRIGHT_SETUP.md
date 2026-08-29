@@ -8,7 +8,7 @@ Playwright has been successfully integrated into your Astrid Task Manager with c
 
 - ✅ Playwright v1.56.0 installed
 - ✅ Browser binaries ready (Chromium, Firefox, WebKit)
-- ✅ Configuration file created ([playwright.config.ts](./playwright.config.ts))
+- ✅ Configuration file created ([playwright.config.ts](../../playwright.config.ts))
 - ✅ GitHub Actions workflow configured
 
 ## 🧪 Test Suites Created
@@ -194,7 +194,7 @@ Tests run automatically in GitHub Actions on:
 
 ## 📖 Documentation
 
-**Main README**: [`e2e/README.md`](./e2e/README.md)
+**Main README**: [`e2e/README.md`](../../e2e/README.md)
 
 Includes:
 - Detailed test structure

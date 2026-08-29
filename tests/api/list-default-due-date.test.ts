@@ -21,6 +21,7 @@ vi.mock('@/lib/prisma', () => ({
     listMember: {
       createMany: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -38,6 +39,7 @@ describe('List Default Due Date API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(getServerSession).mockResolvedValue(mockSession)
+    ;(prisma.$transaction as any).mockImplementation((operation: any) => operation(prisma))
     vi.mocked(prisma.listMember.createMany).mockResolvedValue({ count: 1 })
   })
 

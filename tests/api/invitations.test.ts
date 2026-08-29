@@ -331,11 +331,30 @@ describe('/api/invitations/[token]', () => {
       expect(response.status).toBe(200)
       expect(data.invitation).toEqual({
         id: mockInvitation.id,
-        email: mockInvitation.email,
+        emailHint: 'i***e@example.com',
         type: mockInvitation.type,
+        sender: { name: mockInvitation.sender.name },
+        expiresAt: mockInvitation.expiresAt.toISOString(),
+      })
+    })
+
+    it('returns full invitation details only to the invitee', async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'invitee-id', email: mockInvitation.email, name: 'Invitee' },
+      } as any)
+      vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
+
+      const response = await GetInvitation(
+        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef'),
+        { params: { token: 'inv_1234567890_abcdef' } }
+      )
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.invitation).toMatchObject({
+        email: mockInvitation.email,
         sender: mockInvitation.sender,
         message: mockInvitation.message,
-        expiresAt: mockInvitation.expiresAt.toISOString(),
       })
     })
 
@@ -469,6 +488,9 @@ describe('/api/invitations/[token]', () => {
 
   describe('DELETE - Decline invitation', () => {
     it('should decline valid invitation', async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'invitee-id', email: mockInvitation.email, name: 'Invitee' },
+      } as any)
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
       vi.mocked(prisma.invitation.update).mockResolvedValue({
         ...mockInvitation,
@@ -488,6 +510,51 @@ describe('/api/invitations/[token]', () => {
         where: { id: mockInvitation.id },
         data: { status: 'DECLINED' },
       })
+    })
+
+    it('should require authentication', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(null)
+
+      const response = await DeclineInvitation(
+        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: { token: 'inv_1234567890_abcdef' } }
+      )
+
+      expect(response.status).toBe(401)
+      expect(prisma.invitation.findUnique).not.toHaveBeenCalled()
+    })
+
+    it('allows the sender to decline an invitation', async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: mockInvitation.senderId, email: 'sender@example.com', name: 'Sender' },
+      } as any)
+      vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
+      vi.mocked(prisma.invitation.update).mockResolvedValue({
+        ...mockInvitation,
+        status: 'DECLINED',
+      } as any)
+
+      const response = await DeclineInvitation(
+        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: { token: 'inv_1234567890_abcdef' } }
+      )
+
+      expect(response.status).toBe(200)
+    })
+
+    it('denies unrelated users', async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'unrelated-id', email: 'unrelated@example.com', name: 'Unrelated' },
+      } as any)
+      vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
+
+      const response = await DeclineInvitation(
+        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: { token: 'inv_1234567890_abcdef' } }
+      )
+
+      expect(response.status).toBe(403)
+      expect(prisma.invitation.update).not.toHaveBeenCalled()
     })
 
     it('should return 404 for non-existent invitation', async () => {

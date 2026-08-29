@@ -5,12 +5,19 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+    },
+    secureFile: {
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
     },
     listMember: {
       findFirst: vi.fn(),
     },
+    $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   },
 }))
 
@@ -115,6 +122,8 @@ describe('GET /api/v1/lists/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(ownerAuth as any)
+    ;(mockPrisma.secureFile.updateMany as any).mockResolvedValue({ count: 1 })
+    ;(mockPrisma.$transaction as any).mockImplementation((operation: any) => operation(mockPrisma))
   })
 
   it('returns 404 when caller has no access', async () => {
@@ -138,6 +147,9 @@ describe('PUT /api/v1/lists/:id', () => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(ownerAuth as any)
     ;(mockPrisma.taskList.update as any).mockResolvedValue(baseList)
+    ;(mockPrisma.secureFile.findUnique as any).mockResolvedValue(null)
+    ;(mockPrisma.secureFile.updateMany as any).mockResolvedValue({ count: 1 })
+    ;(mockPrisma.$transaction as any).mockImplementation((operation: any) => operation(mockPrisma))
     ;(mockPrisma.listMember.findFirst as any).mockResolvedValue(null)
   })
 
@@ -153,6 +165,27 @@ describe('PUT /api/v1/lists/:id', () => {
     expect(res.status).toBe(200)
     const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
     expect(updateCall.data).toMatchObject({ name: 'Renamed', description: 'New' })
+  })
+
+  it('claims a generated image while updating the list', async () => {
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+    ;(mockPrisma.secureFile.findUnique as any).mockResolvedValue({
+      id: 'file-1',
+      uploadedBy: 'owner-1',
+      attachTarget: 'list-image',
+      listId: null,
+    })
+
+    const res = await PUT(
+      makeReq('PUT', { imageUrl: 'https://blob/generated' }),
+      { params } as any,
+    )
+
+    expect(res.status).toBe(200)
+    expect(mockPrisma.secureFile.updateMany).toHaveBeenCalledWith({
+      where: { id: 'file-1', OR: [{ listId: null }, { listId: 'list-1' }] },
+      data: { listId: 'list-1' },
+    })
   })
 
   // 2026-05-16: "Create Board" from iOS list settings did nothing.
@@ -294,6 +327,8 @@ describe('DELETE /api/v1/lists/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(ownerAuth as any)
+    ;(mockPrisma.secureFile.updateMany as any).mockResolvedValue({ count: 1 })
+    ;(mockPrisma.$transaction as any).mockImplementation((operation: any) => operation(mockPrisma))
   })
 
   it('returns 404 when caller is not the owner', async () => {

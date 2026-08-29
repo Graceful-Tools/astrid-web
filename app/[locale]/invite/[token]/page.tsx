@@ -14,13 +14,14 @@ import { CheckCircle, XCircle, Clock, UserPlus, List, Briefcase } from "lucide-r
 
 interface InvitationData {
   id: string
-  email: string
+  email?: string
+  emailHint?: string
   type: string
   sender: {
     name: string | null
-    email: string
+    email?: string
   } | null
-  message: string | null
+  message?: string | null
   expiresAt: string
 }
 
@@ -72,8 +73,10 @@ export default function InvitePage() {
 
   const handleAccept = async () => {
     if (!session) {
-      // Redirect to sign in with the invitation email pre-filled
-      const signInUrl = `/auth/signin?email=${encodeURIComponent(invitation?.email || '')}&callbackUrl=${encodeURIComponent(window.location.href)}`
+      const emailParam = invitation?.email
+        ? `email=${encodeURIComponent(invitation.email)}&`
+        : ''
+      const signInUrl = `/auth/signin?${emailParam}callbackUrl=${encodeURIComponent(window.location.href)}`
       router.push(signInUrl)
       return
     }
@@ -225,7 +228,9 @@ export default function InvitePage() {
             </Avatar>
             <div>
               <div className="text-white font-medium">{senderName}</div>
-              <div className="text-gray-400 text-sm">{invitation.sender?.email}</div>
+              {invitation.sender?.email && (
+                <div className="text-gray-400 text-sm">{invitation.sender.email}</div>
+              )}
             </div>
           </div>
 
@@ -246,7 +251,7 @@ export default function InvitePage() {
           </div>
 
           {/* Email mismatch warning */}
-          {session && session.user?.email !== invitation.email && (
+          {session && invitation.email && session.user?.email !== invitation.email && (
             <div className="p-3 bg-yellow-900/50 border border-yellow-600 rounded-lg">
               <div className="text-yellow-400 text-sm">
                 ⚠️ This invitation was sent to {invitation.email}, but you&apos;re signed in as {session.user?.email}.
@@ -269,7 +274,7 @@ export default function InvitePage() {
                     Sign In to Accept
                   </Button>
                   <p className="text-gray-400 text-xs text-center">
-                    You&apos;ll be redirected to sign in with {invitation.email}
+                    You&apos;ll be redirected to sign in with {invitation.email || invitation.emailHint}
                   </p>
                 </div>
               ) : session.user?.email === invitation.email ? (
@@ -292,13 +297,15 @@ export default function InvitePage() {
                 </Button>
               )}
               
-              <Button 
-                onClick={handleDecline} 
-                variant="outline" 
-                className="w-full border-gray-600 text-gray-300"
-              >
-                Decline
-              </Button>
+              {session && invitation.email && (
+                <Button
+                  onClick={handleDecline}
+                  variant="outline"
+                  className="w-full border-gray-600 text-gray-300"
+                >
+                  Decline
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

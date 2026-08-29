@@ -12,7 +12,7 @@ Your cloud AI workflow has two main issues:
 
 ## 📚 Documentation
 
-### [CLOUD_WORKFLOW_FIXES.md](./CLOUD_WORKFLOW_FIXES.md) ⭐ **Start Here**
+### [CLOUD_WORKFLOW_FIXES.md](../archive/analysis/CLOUD_WORKFLOW_FIXES.md) ⭐ **Start Here**
 **Comprehensive technical analysis of the problems and solutions.**
 
 **What you'll find:**
@@ -26,7 +26,7 @@ Your cloud AI workflow has two main issues:
 
 ---
 
-### [CLOUD_VS_CLI_COMPARISON.md](./CLOUD_VS_CLI_COMPARISON.md)
+### [CLOUD_VS_CLI_COMPARISON.md](../archive/analysis/CLOUD_VS_CLI_COMPARISON.md)
 **Visual architecture comparison between CLI and cloud workflows.**
 
 **What you'll find:**
@@ -40,7 +40,7 @@ Your cloud AI workflow has two main issues:
 
 ---
 
-### [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) ⭐ **Implementation Guide**
+### [AI_AGENT_CONSOLIDATION_ANALYSIS.md](./AI_AGENT_CONSOLIDATION_ANALYSIS.md) ⭐ **Implementation Guide**
 **Step-by-step guide to implement all fixes.**
 
 **What you'll find:**
@@ -117,8 +117,8 @@ export async function GET(request, { params }) {
 ### For Immediate Relief (1-2 hours)
 **Goal:** Stop context errors and improve debugging
 
-1. Read [CLOUD_WORKFLOW_FIXES.md](./CLOUD_WORKFLOW_FIXES.md) - "Quick Wins" section
-2. Follow [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) - Phase 1 only
+1. Read [CLOUD_WORKFLOW_FIXES.md](../archive/analysis/CLOUD_WORKFLOW_FIXES.md) - "Quick Wins" section
+2. Follow [AI_AGENT_CONSOLIDATION_ANALYSIS.md](./AI_AGENT_CONSOLIDATION_ANALYSIS.md)
 3. Test with a task that previously failed
 4. Monitor for 1 week
 
@@ -338,6 +338,6 @@ If you encounter issues during implementation:
 - 85% → 90% success rate (after Phase 2)
 - 90% → 95% success rate (after Phase 3)
 
-**Start here:** [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) Phase 1
+**Start here:** [AI_AGENT_CONSOLIDATION_ANALYSIS.md](./AI_AGENT_CONSOLIDATION_ANALYSIS.md)
 
 Good luck! 🚀

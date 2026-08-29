@@ -12,6 +12,11 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { canConvertListFlavor } from "@/lib/list-flavors"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { recordDeletion } from "@/lib/deletion-log"
+import {
+  deleteListWithImageRelease,
+  ListImageClaimError,
+  updateListWithImageOwnership,
+} from "@/lib/images/update-list-image"
 
 const log = createLogger('api.lists.id')
 
@@ -231,93 +236,68 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       updateData.manualSortOrder = manualSortOrderUpdate as Prisma.JsonArray
     }
 
-    // Handle admin/member updates using ListMember table
-    if (data.adminIds !== undefined) {
-      // Remove all existing admin members
-      await prisma.listMember.deleteMany({
-        where: {
-          listId: listId,
-          role: 'admin'
-        }
-      })
-
-      // Add new admins
-      if (data.adminIds.length > 0) {
-        await Promise.all(
-          data.adminIds.map((userId: string) =>
-            prisma.listMember.create({
-              data: {
-                listId: listId,
-                userId: userId,
-                role: 'admin'
-              }
-            })
-          )
-        )
-      }
-    }
-
-    if (data.memberIds !== undefined) {
-      // Remove all existing regular members
-      await prisma.listMember.deleteMany({
-        where: {
-          listId: listId,
-          role: 'member'
-        }
-      })
-
-      // Add new members
-      if (data.memberIds.length > 0) {
-        await Promise.all(
-          data.memberIds.map((userId: string) =>
-            prisma.listMember.create({
-              data: {
-                listId: listId,
-                userId: userId,
-                role: 'member'
-              }
-            })
-          )
-        )
-      }
-    }
-
-    // If changing privacy to PUBLIC, unassign all tasks
-    if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
-      log.info(`🔓 List ${listId} becoming public - unassigning all tasks`)
-
-      // Unassign all tasks in this list
-      await prisma.task.updateMany({
-        where: {
-          lists: {
-            some: {
-              id: listId
-            }
+    const updatedList = await updateListWithImageOwnership({
+      listId,
+      previousImageUrl: existingList.imageUrl,
+      nextImageUrl: data.imageUrl,
+      userId: session.user.id,
+      update: async client => {
+        if (data.adminIds !== undefined) {
+          await client.listMember.deleteMany({
+            where: { listId, role: 'admin' },
+          })
+          if (data.adminIds.length > 0) {
+            await Promise.all(
+              data.adminIds.map((userId: string) =>
+                client.listMember.create({
+                  data: { listId, userId, role: 'admin' },
+                }),
+              ),
+            )
           }
-        },
-        data: {
-          assigneeId: null
         }
-      })
 
-      log.info(`✅ Unassigned all tasks in list ${listId}`)
-    }
+        if (data.memberIds !== undefined) {
+          await client.listMember.deleteMany({
+            where: { listId, role: 'member' },
+          })
+          if (data.memberIds.length > 0) {
+            await Promise.all(
+              data.memberIds.map((userId: string) =>
+                client.listMember.create({
+                  data: { listId, userId, role: 'member' },
+                }),
+              ),
+            )
+          }
+        }
 
-    const updatedList = await prisma.taskList.update({
-      where: { id: listId },
-      data: updateData,
-      include: {
-        owner: true,
-        listMembers: {
+        if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
+          log.info(`🔓 List ${listId} becoming public - unassigning all tasks`)
+          await client.task.updateMany({
+            where: { lists: { some: { id: listId } } },
+            data: { assigneeId: null },
+          })
+          log.info(`✅ Unassigned all tasks in list ${listId}`)
+        }
+
+        return client.taskList.update({
+          where: { id: listId },
+          data: updateData,
           include: {
-            user: true
+            owner: true,
+            listMembers: {
+              include: {
+                user: true
+              }
+            },
+            _count: {
+              select: {
+                tasks: true,
+              },
+            },
           }
-        },
-        _count: {
-          select: {
-            tasks: true,
-          },
-        },
+        })
       },
     })
 
@@ -399,6 +379,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     return NextResponse.json(updatedListWithDefaultAssignee)
   } catch (error) {
+    if (error instanceof ListImageClaimError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     log.error({ err: error }, "Error updating list:")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
@@ -444,9 +427,10 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     // Best-effort sync bookkeeping — must never block the delete itself.
     try { await recordGoogleOptOutsForDeletedList(listId) } catch { /* tombstoning is belt-and-braces */ }
-    await prisma.taskList.delete({
-      where: { id: listId },
-    })
+    await deleteListWithImageRelease(
+      listId,
+      client => client.taskList.delete({ where: { id: listId } }),
+    )
     // Reuse the audience already gathered above for cache invalidation — the
     // same people are exactly who needs to hear the list is gone.
     await recordDeletion('list', listId, userIdsToInvalidate.filter(Boolean) as string[])

@@ -13,7 +13,7 @@ A modern, production-ready task management application built with Next.js, NextA
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15.5, React 19, TypeScript 5
+- **Frontend**: Next.js, React, and TypeScript (see the [verified stack reference](docs/context/stack.md))
 - **Authentication**: NextAuth.js with Google OAuth + Credentials
 - **Database**: Prisma with PostgreSQL (Neon serverless)
 - **Styling**: Tailwind CSS + Shadcn/ui components (Radix UI)

@@ -1,10 +1,13 @@
 # Testing Strategy
 
 ## Test Stack & Configuration
-- **Test Runner**: Vitest 3.2.4 (`package.json:118`)
-- **Test Environment**: jsdom 26.1.0 (`package.json:111`)
-- **Test Utilities**: React Testing Library 16.3.0 (`package.json:108`)
+- **Test Runner**: Vitest
+- **Test Environment**: jsdom
+- **Test Utilities**: React Testing Library
 - **Test Setup**: `tests/setup.ts` with comprehensive mocks
+
+Exact dependency versions are maintained in [the canonical stack reference](./stack.md)
+and verified against [`package.json`](../../package.json) by `npm run check:docs`.
 
 ## Test Location & Organization
 ```

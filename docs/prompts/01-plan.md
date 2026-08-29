@@ -1,7 +1,7 @@
 # Planning Template
 
 ## Project Context
-- **Stack**: Next.js 14.2.16, React 18, TypeScript 5, Prisma 6.1.0, PostgreSQL, NextAuth.js, Vitest 3.2.4
+- **Stack**: Use the current versions in [`docs/context/stack.md`](../context/stack.md)
 - **Architecture**: App Router API routes, Prisma ORM, database-stored sessions
 - **Testing**: Vitest with jsdom, React Testing Library, comprehensive mocks
 

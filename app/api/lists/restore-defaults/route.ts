@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
 import { toggleFavorite } from "@/lib/favorites"
 import { createLogger } from '@/lib/logger'
+import { deleteListsWithImageRelease } from '@/lib/images/update-list-image'
 
 const log = createLogger('lists.restore-defaults')
 
@@ -24,15 +25,13 @@ export async function POST(request: NextRequest) {
     // First, remove existing default saved filters for this user
     // Delete by virtualListType AND by name to prevent duplicates
     const defaultNames = ["Today", "Not in a List", "I've Assigned"]
-    await prisma.taskList.deleteMany({
-      where: {
-        ownerId: userId,
-        isVirtual: true,
-        OR: [
-          { virtualListType: { in: ["today", "not-in-list", "assigned"] } },
-          { name: { in: defaultNames } }
-        ]
-      }
+    await deleteListsWithImageRelease({
+      ownerId: userId,
+      isVirtual: true,
+      OR: [
+        { virtualListType: { in: ["today", "not-in-list", "assigned"] } },
+        { name: { in: defaultNames } }
+      ]
     })
 
     // Create the default saved filter lists based on README specs

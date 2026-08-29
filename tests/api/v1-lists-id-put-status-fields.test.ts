@@ -30,6 +30,7 @@ vi.mock('@/lib/prisma', () => ({
     listActivity: { create: vi.fn() },
     activityLog: { create: vi.fn() },
     task: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []) },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -96,6 +97,7 @@ beforeEach(() => {
   mockPrisma.taskList.findFirst.mockResolvedValue(listRow as never)
   mockPrisma.taskList.findUnique.mockResolvedValue(listRow as never)
   mockPrisma.taskList.update.mockResolvedValue(listRow as never)
+  ;(mockPrisma.$transaction as any).mockImplementation((operation: any) => operation(mockPrisma))
   mockPrisma.user.findMany.mockResolvedValue([] as never)
 })
 

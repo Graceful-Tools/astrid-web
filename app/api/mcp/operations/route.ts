@@ -11,6 +11,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { authenticateAPI, getDeprecationWarning, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { createLogger } from '@/lib/logger'
+import { ListImageClaimError } from '@/lib/images/update-list-image'
 
 const log = createLogger('mcp.operations')
 
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
     log.error({ err: error }, "Error executing MCP operation:")
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Internal server error"
-    }, { status: 500 })
+    }, { status: error instanceof ListImageClaimError ? 409 : 500 })
   }
 }
 

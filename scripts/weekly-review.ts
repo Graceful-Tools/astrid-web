@@ -78,24 +78,22 @@ async function gatherServerHealth(): Promise<string> {
   lines.push(`| Total Comments | ${fmt(commentCount)} |`)
   lines.push(`| Pending Invitations | ${fmt(invitationCount)} |`)
 
-  // Maintenance cleanup
-  const expiredInvitations = await prisma.invitation.updateMany({
+  // Read-only maintenance backlog. Cleanup is an explicit, separately named command.
+  const expiredInvitations = await prisma.invitation.count({
     where: { expiresAt: { lt: new Date() }, status: 'PENDING' },
-    data: { status: 'EXPIRED' },
   })
-  const expiredTokens = await prisma.user.updateMany({
+  const expiredTokens = await prisma.user.count({
     where: {
       emailTokenExpiresAt: { lt: new Date() },
       emailVerificationToken: { not: null },
     },
-    data: { emailVerificationToken: null, emailTokenExpiresAt: null },
   })
   const archivableTasks = await prisma.task.count({
     where: { completed: true, updatedAt: { lt: new Date(Date.now() - 365 * 86400000) } },
   })
 
-  lines.push(`| Expired invitations cleaned | ${expiredInvitations.count} |`)
-  lines.push(`| Expired tokens cleaned | ${expiredTokens.count} |`)
+  lines.push(`| Expired invitations pending cleanup | ${expiredInvitations} |`)
+  lines.push(`| Expired tokens pending cleanup | ${expiredTokens} |`)
   lines.push(`| Archivable tasks (365+ days) | ${archivableTasks} |`)
   lines.push('')
 

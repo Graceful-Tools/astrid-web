@@ -72,6 +72,7 @@ export interface CreateCommentData {
   type?: "TEXT" | "MARKDOWN" | "ATTACHMENT"
   fileId?: string
   parentCommentId?: string
+  clientRequestId?: string
 }
 
 export interface CopyTaskData {
