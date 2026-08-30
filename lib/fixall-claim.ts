@@ -1,6 +1,7 @@
+import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from "@/lib/task-status"
 
-export const FIXALL_CLAIM_AGENT_EMAIL = "copilot@astrid.cc"
+export const FIXALL_CLAIM_AGENT_EMAIL = agentEmail(AGENT_MAILBOXES.copilot)
 export const FIXALL_CLAIM_BOARD_ID = "a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
 export const FIXALL_CLAIM_ACTIONS = ["ready", "recheck", "review"] as const
 
