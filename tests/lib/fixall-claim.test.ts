@@ -33,8 +33,21 @@ describe("buildAtomicFixallClaimWhere", () => {
       now,
     })).toEqual(expect.objectContaining({
       statusRole: "waiting",
-      dueDateTime: { lte: now },
+      AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
       comments: { none: { updatedAt: { gt: new Date(watermark) } } },
+    }))
+  })
+
+  it("keeps null-dated external rechecks eligible like the queue classifier", () => {
+    const where = buildAtomicFixallClaimWhere({
+      taskId: "task-1",
+      agentId: "copilot-1",
+      claim: { action: "recheck", commentWatermark: null },
+      now,
+    })
+
+    expect(where).toEqual(expect.objectContaining({
+      AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
     }))
   })
 })

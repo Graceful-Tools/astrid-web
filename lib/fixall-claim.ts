@@ -53,9 +53,6 @@ export function buildAtomicFixallClaimWhere(input: {
     lists: { some: { id: FIXALL_CLAIM_BOARD_ID } },
     OR: [{ assigneeId: null }, { assigneeId: agentId }],
     statusRole: claim.action === "ready" ? READY_STATUS_ROLE : WAITING_STATUS_ROLE,
-    dueDateTime: claim.action === "review"
-      ? null
-      : { lte: now },
     ...(claim.action === "ready"
       ? {}
       : {
@@ -65,13 +62,13 @@ export function buildAtomicFixallClaimWhere(input: {
         }),
   }
 
-  if (claim.action === "ready") {
-    delete (where as { dueDateTime?: unknown }).dueDateTime
+  if (claim.action !== "review") {
     return {
       ...where,
+      // isDueToStart treats a missing date as due now for Ready and RECHECK.
       AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
     }
   }
 
-  return where
+  return { ...where, dueDateTime: null }
 }
