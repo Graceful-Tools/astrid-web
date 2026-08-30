@@ -6,18 +6,18 @@ on:
       mode:
         description: 'Check mode'
         required: false
-        default: 'standard'
+        default: 'full'
         type: choice
         options:
+          - full
           - standard
           - quick
-          - full
           - simple
 
 jobs:
   predeploy:
     name: 'Run Predeploy Checks'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, astrid-web]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
