@@ -7,6 +7,7 @@ import {
   end,
   isActive,
   type EditingSessionState,
+  type EditingTransition,
   type EditorId,
 } from '@/lib/editing-session'
 
@@ -43,32 +44,38 @@ export interface EditingSession {
 export function useEditingSession(): EditingSession {
   const [state, setState] = useState<EditingSessionState>(IDLE)
   const commits = useRef(new Map<EditorId, () => void>())
-  // Mirror of `state` readable outside the setState updater. The unmount path
-  // needs it: React drops a setState updater once the component is gone, so
-  // "navigating away saves" would silently not save.
-  const activeRef = useRef<EditorId | null>(null)
-  activeRef.current = state.activeEditor
+  // The session's source of truth. Every transition below moves it first and
+  // renders `state` from it — never the other way round — so it is correct
+  // synchronously, inside a commit that re-enters, and on the unmount path,
+  // where React drops a setState updater once the component is gone.
+  const activeRef = useRef<EditorId | null>(IDLE.activeEditor)
 
-  // The machine reports which editor to commit; performing it is ours.
-  const beginEditing = useCallback((id: EditorId) => {
-    setState(current => {
-      const next = begin(current, id)
-      if (next.commit) commits.current.get(next.commit)?.()
-      return next.state
-    })
+  /**
+   * Apply one transition and perform the commit it reports — AFTER the session
+   * has moved on, and outside setState.
+   *
+   * The commit used to run inside the setState updater. Every task-detail save
+   * handler is registered as its editor's commit AND closes its editor itself
+   * (`onUpdate(...); setEditingTitle(false)`), so a commit re-enters
+   * `endEditing`. React evaluates that nested updater eagerly against the
+   * last-rendered state — the outer update is not enqueued yet — so the
+   * editor still looked open, the commit ran again, and it recursed until the
+   * call stack overflowed: ~1,000 PUTs per save on web-desktop (987 on task
+   * 2f1ec1af; 14,613 in 22 minutes on 2026-08-16).
+   *
+   * Moving the ref first means the re-entrant `endEditing` is a stale call and
+   * is ignored, which is what the machine already says about stale ends.
+   */
+  const run = useCallback((step: (current: EditingSessionState) => EditingTransition) => {
+    const next = step({ activeEditor: activeRef.current })
+    activeRef.current = next.state.activeEditor
+    setState(current => (current.activeEditor === next.state.activeEditor ? current : next.state))
+    if (next.commit) commits.current.get(next.commit)?.()
   }, [])
 
-  const endEditing = useCallback((id: EditorId) => {
-    setState(current => {
-      const next = end(current, id)
-      if (next.commit) commits.current.get(next.commit)?.()
-      return next.state
-    })
-  }, [])
-
-  const cancelEditing = useCallback((id: EditorId) => {
-    setState(current => cancelEditor(current, id).state)
-  }, [])
+  const beginEditing = useCallback((id: EditorId) => run(current => begin(current, id)), [run])
+  const endEditing = useCallback((id: EditorId) => run(current => end(current, id)), [run])
+  const cancelEditing = useCallback((id: EditorId) => run(current => cancelEditor(current, id)), [run])
 
   const registerCommit = useCallback((id: EditorId, commit: () => void) => {
     commits.current.set(id, commit)
@@ -77,12 +84,7 @@ export function useEditingSession(): EditingSession {
   // Navigating away and backgrounding SAVE — the universal policy applied to
   // the events that are nobody's editor in particular.
   useEffect(() => {
-    const commitOnLeave = () => {
-      const next = commitAll({ activeEditor: activeRef.current })
-      activeRef.current = null
-      if (next.commit) commits.current.get(next.commit)?.()
-      setState(next.state)
-    }
+    const commitOnLeave = () => run(commitAll)
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') commitOnLeave()
     }
@@ -94,7 +96,7 @@ export function useEditingSession(): EditingSession {
       // Unmounting is navigating away: save, don't discard.
       commitOnLeave()
     }
-  }, [])
+  }, [run])
 
   const isEditingId = useCallback(
     (id: EditorId) => isActive(state, id),
