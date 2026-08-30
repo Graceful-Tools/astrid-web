@@ -85,7 +85,7 @@ jobs:
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
             -X POST "$ASTRID_WEBHOOK_URL/api/coding-agent/github-trigger" \
             -H "Content-Type: application/json" \
-            -H "X-OAuth-Token: $ASTRID_MCP_TOKEN" \
+            -H "Authorization: Bearer $ASTRID_MCP_TOKEN" \
             -d "{
               \"taskId\": \"$TASK_ID\",
               \"workflow\": \"fixstuff\",
@@ -108,7 +108,8 @@ jobs:
           if [ "${HTTP_STATUS}" -eq 200 ] || [ "${HTTP_STATUS}" -eq 201 ]; then
             echo "✅ Coding agent triggered"
           else
-            echo "⚠️  Agent trigger returned ${HTTP_STATUS} — check Astrid directly"
+            echo "❌ Agent trigger returned ${HTTP_STATUS} — check Astrid directly"
+            exit 1
           fi
 
       - name: Run reuse check
