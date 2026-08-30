@@ -1,0 +1,55 @@
+name: 'Predeploy Checks'
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Check mode'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - quick
+          - full
+          - simple
+
+jobs:
+  predeploy:
+    name: 'Run Predeploy Checks'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run predeploy (standard)
+        if: ${{ inputs.mode == 'standard' }}
+        run: npm run predeploy
+
+      - name: Run predeploy (quick — TS + lint only)
+        if: ${{ inputs.mode == 'quick' }}
+        run: npm run predeploy:quick
+
+      - name: Run predeploy (full — includes Playwright E2E)
+        if: ${{ inputs.mode == 'full' }}
+        run: npm run predeploy:full
+
+      - name: Run predeploy (simple — no auto-fix)
+        if: ${{ inputs.mode == 'simple' }}
+        run: npm run predeploy:simple
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Predeploy Results"
+          echo "Mode: ${{ inputs.mode }}"
+          echo "Status: ${{ job.status }}"

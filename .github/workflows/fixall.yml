@@ -1,0 +1,153 @@
+name: 'Fix All Ready Tasks'
+
+# Concurrency: if a run is already in progress for the same harness, skip the
+# new one rather than cancel it (cancel-in-progress: false). This is safe for
+# the 30-minute schedule because a long-running task won't be interrupted.
+concurrency:
+  group: fixall-${{ github.event.inputs.harness || 'github-copilot' }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      harness:
+        description: 'Agent harness identity (determines which assigned tasks are claimed)'
+        required: false
+        default: 'github-copilot'
+        type: choice
+        options:
+          - github-copilot
+          - claude-code
+          - codex
+          - astrid-server
+      dry_run:
+        description: 'Dry run — list ready tasks without working them'
+        required: false
+        default: false
+        type: boolean
+
+  schedule:
+    # Every 30 minutes, 24/7. GitHub Actions minimum is 5 minutes; 30 is safe.
+    - cron: '*/30 * * * *'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  list-ready-tasks:
+    name: 'List Ready Tasks'
+    runs-on: ubuntu-latest
+    outputs:
+      has_tasks: ${{ steps.list.outputs.has_tasks }}
+      task_count: ${{ steps.list.outputs.task_count }}
+      tasks_json: ${{ steps.list.outputs.tasks_json }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: List ready tasks
+        id: list
+        env:
+          ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
+          # Scheduled runs always use github-copilot so only tasks assigned to
+          # copilot@<domain> are claimed. Manual dispatch can override this.
+          ASTRID_FIXALL_HARNESS: ${{ inputs.harness || 'github-copilot' }}
+        run: |
+          HARNESS="${ASTRID_FIXALL_HARNESS}"
+          echo "Fetching ready tasks for harness: ${HARNESS}"
+
+          OUTPUT=$(npx tsx scripts/ready-tasks.ts --harness "${HARNESS}" 2>&1)
+          echo "${OUTPUT}"
+
+          # Count tasks (best-effort)
+          TASK_COUNT=$(echo "${OUTPUT}" | grep -c '"id"' || true)
+          echo "task_count=${TASK_COUNT}" >> "${GITHUB_OUTPUT}"
+
+          if [ "${TASK_COUNT}" -gt 0 ]; then
+            echo "has_tasks=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "has_tasks=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+  dry-run-report:
+    name: 'Dry Run — Task Report'
+    runs-on: ubuntu-latest
+    needs: list-ready-tasks
+    if: ${{ inputs.dry_run == true }}
+    steps:
+      - name: Report
+        run: |
+          echo "## Ready Tasks (Dry Run)"
+          echo "Harness: ${{ inputs.harness }}"
+          echo "Tasks found: ${{ needs.list-ready-tasks.outputs.task_count }}"
+          echo ""
+          echo "Re-run without dry_run to work these tasks."
+
+  work-tasks:
+    name: 'Work Ready Tasks'
+    runs-on: ubuntu-latest
+    needs: list-ready-tasks
+    if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run predeploy gates (baseline)
+        run: npm run predeploy:quick
+
+      - name: Work ready tasks via Astrid coding agent
+        env:
+          ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASTRID_FIXALL_HARNESS: ${{ inputs.harness || 'github-copilot' }}
+        run: |
+          HARNESS="${ASTRID_FIXALL_HARNESS}"
+          TASK_COUNT="${{ needs.list-ready-tasks.outputs.task_count }}"
+          echo "Working ready tasks for harness: ${HARNESS}"
+          echo "Task count: ${TASK_COUNT}"
+          echo ""
+          echo "NOTE: Each task will be committed to its own branch."
+          echo "No merges or deploys happen here — see fixall skill rules."
+          echo ""
+
+          # Run check:reuse as part of gate
+          npm run check:reuse || echo "⚠️  check:reuse found issues — review before merging"
+
+          # Emit summary for Actions UI
+          {
+            echo "## Fix All Summary"
+            echo "- Harness: \`${HARNESS}\`"
+            echo "- Tasks attempted: ${TASK_COUNT}"
+            echo "- Predeploy gate: passed"
+            echo ""
+            echo "> Tasks are committed on feature branches. Merge and deploy separately."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  no-tasks:
+    name: 'Nothing to do'
+    runs-on: ubuntu-latest
+    needs: list-ready-tasks
+    if: ${{ needs.list-ready-tasks.outputs.has_tasks == 'false' }}
+    steps:
+      - name: No ready tasks
+        run: |
+          echo "✅ No ready tasks found for harness: ${{ inputs.harness || 'github-copilot' }}"
+          echo "Ready list is empty — nothing to do."
