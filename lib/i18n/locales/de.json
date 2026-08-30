@@ -429,7 +429,20 @@
     },
     "aiAgents": {
       "title": "KI und Agenten",
-      "description": "KI-Assistenten und Code-Agenten mit Ihren API-Schlüsseln konfigurieren"
+      "description": "KI-Assistenten und Code-Agenten mit Ihren API-Schlüsseln konfigurieren",
+      "githubMcp": {
+        "title": "{appName} in GitHub Copilot verwenden",
+        "description": "Verbinden Sie {appName} mit GitHubs Cloud-Coding-Agent und Code Review.",
+        "oauthWarning": "GitHub Cloud kann die Browser-Anmeldung von {appName} nicht öffnen. Erstellen Sie stattdessen hier ein eigenes Token; Copilot CLI und VS Code können die Browser-Anmeldung weiter nutzen.",
+        "create": "GitHub-Einrichtung erstellen",
+        "creating": "Einrichtung wird erstellt...",
+        "createError": "GitHub-Einrichtung konnte nicht erstellt werden",
+        "secretStep": "Öffnen Sie im Repository Settings > Secrets and variables > Agents und fügen Sie ein Secret namens {secretName} hinzu.",
+        "tokenLabel": "Secret-Wert",
+        "configStep": "Öffnen Sie Settings > Copilot > MCP servers und fügen Sie diese Konfiguration ein.",
+        "configLabel": "MCP-Konfiguration",
+        "openGitHub": "GitHub-Anleitung öffnen"
+      }
     },
     "apiAccess": {
       "title": "API-Zugang",

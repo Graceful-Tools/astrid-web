@@ -429,7 +429,20 @@
     },
     "aiAgents": {
       "title": "AIとエージェント",
-      "description": "APIキーでAIアシスタントとコーディングエージェントを設定"
+      "description": "APIキーでAIアシスタントとコーディングエージェントを設定",
+      "githubMcp": {
+        "title": "GitHub Copilotで{appName}を使う",
+        "description": "{appName}をGitHubのクラウドコーディングエージェントとコードレビューに接続します。",
+        "oauthWarning": "GitHub Cloudは{appName}のブラウザサインインを開けません。ここで専用トークンを作成してください。Copilot CLIとVS Codeは引き続きブラウザサインインを使用できます。",
+        "create": "GitHub設定を作成",
+        "creating": "設定を作成中...",
+        "createError": "GitHub設定を作成できませんでした",
+        "secretStep": "リポジトリで Settings > Secrets and variables > Agents を開き、{secretName} というsecretを追加します。",
+        "tokenLabel": "Secretの値",
+        "configStep": "Settings > Copilot > MCP servers を開き、この設定を貼り付けます。",
+        "configLabel": "MCP設定",
+        "openGitHub": "GitHubの手順を開く"
+      }
     },
     "apiAccess": {
       "title": "APIアクセス",

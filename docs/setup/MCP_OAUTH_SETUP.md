@@ -237,7 +237,9 @@ Notes:
   unbound: exact matching prevents authorization-code theft.
 - GitHub's hosted coding agent does not support interactive OAuth for remote MCP
   servers. This limitation does not apply to the local Copilot CLI or VS Code
-  Copilot Chat.
+  Copilot Chat. For the hosted agent, open **Settings → AI Agents → Use Astrid in
+  GitHub Copilot**. The guided setup creates a dedicated token and the exact
+  repository MCP configuration to paste into GitHub.
 - OAuth clients that support RFC 7591 use
   `/api/v1/oauth/register`, then complete authorization-code OAuth with S256 PKCE.
   Confidential server integrations can continue using a manually created client

@@ -429,7 +429,20 @@
     },
     "aiAgents": {
       "title": "AI與助手",
-      "description": "使用你的API金鑰設定AI助手和程式助手"
+      "description": "使用你的API金鑰設定AI助手和程式助手",
+      "githubMcp": {
+        "title": "在 GitHub Copilot 中使用 {appName}",
+        "description": "將 {appName} 連接到 GitHub 雲端程式代理和程式碼審查。",
+        "oauthWarning": "GitHub Cloud 無法開啟 {appName} 的瀏覽器登入。請在此建立專用權杖；Copilot CLI 和 VS Code 仍可使用瀏覽器登入。",
+        "create": "建立 GitHub 設定",
+        "creating": "正在建立設定...",
+        "createError": "無法建立 GitHub 設定",
+        "secretStep": "在儲存庫中開啟 Settings > Secrets and variables > Agents，並新增名為 {secretName} 的 secret。",
+        "tokenLabel": "Secret 值",
+        "configStep": "開啟 Settings > Copilot > MCP servers 並貼上此設定。",
+        "configLabel": "MCP 設定",
+        "openGitHub": "開啟 GitHub 說明"
+      }
     },
     "apiAccess": {
       "title": "API存取",

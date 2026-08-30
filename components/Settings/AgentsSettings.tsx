@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AgentHub } from "@/components/agent-hub"
 import { GitHubIntegrationSettings } from "@/components/github-integration-settings"
 import { GitHubSharedSetup } from "@/components/github-shared-setup"
+import { GitHubCopilotMcpSetup } from "@/components/github-copilot-mcp-setup"
+import { CAPABILITIES } from "@/lib/brand/capabilities"
 import {
   Brain,
   FileText,
@@ -209,6 +211,8 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
 
         {/* Account-level GitHub App — shared by every server-run coding agent */}
         <GithubConnectionCard />
+
+        {CAPABILITIES.integrationMcp && <GitHubCopilotMcpSetup />}
 
         {/* List Instructions Tip */}
         <Card className="theme-bg-secondary theme-border border-dashed">
