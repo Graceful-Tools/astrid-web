@@ -40,7 +40,7 @@ jobs:
 
   fix-task:
     name: 'Fix Task'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, astrid-web]
     needs: validate
     steps:
       - name: Checkout
