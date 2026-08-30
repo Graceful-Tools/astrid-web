@@ -1,11 +1,19 @@
 name: 'Fix All Ready Tasks'
 
+# Concurrency: if a run is already in progress for the same harness, skip the
+# new one rather than cancel it (cancel-in-progress: false). This is safe for
+# the 30-minute schedule because a long-running task won't be interrupted.
+concurrency:
+  group: fixall-${{ github.event.inputs.harness || 'github-copilot' }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
       harness:
         description: 'Agent harness identity (determines which assigned tasks are claimed)'
-        required: true
+        required: false
+        default: 'github-copilot'
         type: choice
         options:
           - github-copilot
@@ -19,8 +27,8 @@ on:
         type: boolean
 
   schedule:
-    # Runs every weekday at 9 AM UTC (2 AM PT / 5 AM ET)
-    - cron: '0 9 * * 1-5'
+    # Every 30 minutes, 24/7. GitHub Actions minimum is 5 minutes; 30 is safe.
+    - cron: '*/30 * * * *'
 
 env:
   NODE_VERSION: '20'
