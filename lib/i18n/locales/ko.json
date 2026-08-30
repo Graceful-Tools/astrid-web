@@ -429,7 +429,20 @@
     },
     "aiAgents": {
       "title": "AI 및 에이전트",
-      "description": "API 키로 AI 어시스턴트 및 코딩 에이전트 구성"
+      "description": "API 키로 AI 어시스턴트 및 코딩 에이전트 구성",
+      "githubMcp": {
+        "title": "GitHub Copilot에서 {appName} 사용",
+        "description": "{appName}를 GitHub 클라우드 코딩 에이전트 및 코드 리뷰에 연결합니다.",
+        "oauthWarning": "GitHub Cloud는 {appName}의 브라우저 로그인을 열 수 없습니다. 여기서 전용 토큰을 만드세요. Copilot CLI와 VS Code는 계속 브라우저 로그인을 사용할 수 있습니다.",
+        "create": "GitHub 설정 만들기",
+        "creating": "설정 만드는 중...",
+        "createError": "GitHub 설정을 만들 수 없습니다",
+        "secretStep": "저장소에서 Settings > Secrets and variables > Agents를 열고 {secretName}이라는 secret을 추가하세요.",
+        "tokenLabel": "Secret 값",
+        "configStep": "Settings > Copilot > MCP servers를 열고 이 설정을 붙여넣으세요.",
+        "configLabel": "MCP 설정",
+        "openGitHub": "GitHub 안내 열기"
+      }
     },
     "apiAccess": {
       "title": "API 액세스",
