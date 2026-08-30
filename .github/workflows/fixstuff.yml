@@ -35,8 +35,8 @@ jobs:
             echo "❌ task_id is required"
             exit 1
           fi
-          echo "task_id=$TASK_ID" >> $GITHUB_OUTPUT
-          echo "✅ Task: $TASK_ID — ${{ inputs.task_title }}"
+          echo "task_id=${TASK_ID}" >> "${GITHUB_OUTPUT}"
+          echo "✅ Task: ${TASK_ID} — ${{ inputs.task_title }}"
 
   fix-task:
     name: 'Fix Task'
@@ -96,16 +96,16 @@ jobs:
               }
             }")
 
-          HTTP_STATUS=$(echo "$RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
-          BODY=$(echo "$RESPONSE" | sed -e 's/HTTPSTATUS\:.*//g')
+          HTTP_STATUS=$(echo "${RESPONSE}" | tr -d '\n' | sed 's/.*HTTPSTATUS://')
+          BODY="${RESPONSE/HTTPSTATUS:${HTTP_STATUS}/}"
 
-          echo "Status: $HTTP_STATUS"
-          echo "Response: $BODY"
+          echo "Status: ${HTTP_STATUS}"
+          echo "Response: ${BODY}"
 
-          if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 201 ]; then
+          if [ "${HTTP_STATUS}" -eq 200 ] || [ "${HTTP_STATUS}" -eq 201 ]; then
             echo "✅ Coding agent triggered"
           else
-            echo "⚠️  Agent trigger returned $HTTP_STATUS — check Astrid directly"
+            echo "⚠️  Agent trigger returned ${HTTP_STATUS} — check Astrid directly"
           fi
 
       - name: Run reuse check
@@ -114,13 +114,15 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## Fix Task Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Task ID:** \`${{ needs.validate.outputs.task_id }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Title:** ${{ inputs.task_title }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> Changes will be on a feature branch. No merge or deploy happens here." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Fix Task Summary"
+            echo "- **Task ID:** \`${{ needs.validate.outputs.task_id }}\`"
+            echo "- **Title:** ${{ inputs.task_title }}"
+            echo "- **Status:** ${{ job.status }}"
+            echo "- **Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "> Changes will be on a feature branch. No merge or deploy happens here."
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   deploy-preview:
     name: 'Deploy Preview'

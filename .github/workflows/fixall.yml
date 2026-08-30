@@ -58,22 +58,24 @@ jobs:
         id: list
         env:
           ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
+          # Scheduled runs always use github-copilot so only tasks assigned to
+          # copilot@<domain> are claimed. Manual dispatch can override this.
+          ASTRID_FIXALL_HARNESS: ${{ inputs.harness || 'github-copilot' }}
         run: |
-          HARNESS="${{ inputs.harness || 'github-copilot' }}"
-          echo "Fetching ready tasks for harness: $HARNESS"
+          HARNESS="${ASTRID_FIXALL_HARNESS}"
+          echo "Fetching ready tasks for harness: ${HARNESS}"
 
-          OUTPUT=$(npx tsx scripts/ready-tasks.ts --harness "$HARNESS" --json 2>&1 || \
-                   npx tsx scripts/get-astrid-tasks.ts 2>&1)
-          echo "$OUTPUT"
+          OUTPUT=$(npx tsx scripts/ready-tasks.ts --harness "${HARNESS}" 2>&1)
+          echo "${OUTPUT}"
 
-          # Count tasks (best-effort; graceful if script format differs)
-          TASK_COUNT=$(echo "$OUTPUT" | grep -c '"id"' || echo "0")
-          echo "task_count=$TASK_COUNT" >> $GITHUB_OUTPUT
+          # Count tasks (best-effort)
+          TASK_COUNT=$(echo "${OUTPUT}" | grep -c '"id"' || true)
+          echo "task_count=${TASK_COUNT}" >> "${GITHUB_OUTPUT}"
 
-          if [ "$TASK_COUNT" -gt 0 ]; then
-            echo "has_tasks=true" >> $GITHUB_OUTPUT
+          if [ "${TASK_COUNT}" -gt 0 ]; then
+            echo "has_tasks=true" >> "${GITHUB_OUTPUT}"
           else
-            echo "has_tasks=false" >> $GITHUB_OUTPUT
+            echo "has_tasks=false" >> "${GITHUB_OUTPUT}"
           fi
 
   dry-run-report:
@@ -115,10 +117,12 @@ jobs:
         env:
           ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASTRID_FIXALL_HARNESS: ${{ inputs.harness || 'github-copilot' }}
         run: |
-          HARNESS="${{ inputs.harness || 'github-copilot' }}"
-          echo "Working ready tasks for harness: $HARNESS"
-          echo "Task count: ${{ needs.list-ready-tasks.outputs.task_count }}"
+          HARNESS="${ASTRID_FIXALL_HARNESS}"
+          TASK_COUNT="${{ needs.list-ready-tasks.outputs.task_count }}"
+          echo "Working ready tasks for harness: ${HARNESS}"
+          echo "Task count: ${TASK_COUNT}"
           echo ""
           echo "NOTE: Each task will be committed to its own branch."
           echo "No merges or deploys happen here — see fixall skill rules."
@@ -128,12 +132,14 @@ jobs:
           npm run check:reuse || echo "⚠️  check:reuse found issues — review before merging"
 
           # Emit summary for Actions UI
-          echo "## Fix All Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Harness: \`$HARNESS\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Tasks attempted: ${{ needs.list-ready-tasks.outputs.task_count }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Predeploy gate: passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> Tasks are committed on feature branches. Merge and deploy separately." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Fix All Summary"
+            echo "- Harness: \`${HARNESS}\`"
+            echo "- Tasks attempted: ${TASK_COUNT}"
+            echo "- Predeploy gate: passed"
+            echo ""
+            echo "> Tasks are committed on feature branches. Merge and deploy separately."
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   no-tasks:
     name: 'Nothing to do'
