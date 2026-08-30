@@ -434,37 +434,21 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         setShowListSuggestions(false)
         setSelectedSuggestionIndex(-1)
         
-        // If we're editing lists and clicked outside, auto-save and close editing
+        // Clicking outside closes the editor; closing commits it (saveLists),
+        // and an unchanged buffer commits nothing.
         if (editingLists) {
-          // Don't auto-save if the lists haven't actually changed
-          const currentListIds = task.lists.map(l => l.id).sort()
-          const tempListIds = tempLists.map(l => l.id).sort()
-          const listsChanged = JSON.stringify(currentListIds) !== JSON.stringify(tempListIds)
-          
-          if (listsChanged) {
-            onUpdate({ 
-              ...task, 
-              lists: tempLists
-            })
-          }
           setEditingLists(false)
           setListSearchTerm("")
         }
       }
       
-      // Handle assignee editing
+      // Handle assignee editing — closing commits (saveAssignee)
       if (assigneeEditRef.current && !assigneeEditRef.current.contains(target) && editingAssignee) {
-        if (tempAssignee) {
-          onUpdate({ ...task, assignee: tempAssignee })
-        }
         setEditingAssignee(false)
       }
       
-      // Handle description editing
+      // Handle description editing — closing commits (saveDescription)
       if (descriptionEditRef.current && !descriptionEditRef.current.contains(target) && editingDescription) {
-        if (tempDescription !== task.description) {
-          onUpdate({ ...task, description: tempDescription })
-        }
         setEditingDescription(false)
       }
       
@@ -488,13 +472,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     }
   }, [
     editingLists,
-    tempLists,
     editingAssignee,
-    tempAssignee,
     editingDescription,
-    tempDescription,
-    task,
-    onUpdate,
     showingActionsFor,
     listSearchRef,
     assigneeEditRef,
@@ -814,29 +793,42 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     console.log('🔔 [DEBUG] Test reminder triggered for:', task.title)
   }
 
-  // Inline editing handlers
-  const handleSaveTitle = () => {
-    if (tempTitle.trim() && tempTitle !== task.title) {
-      onUpdate({ ...task, title: tempTitle.trim() })
+  // Inline editing handlers.
+  //
+  // Each buffered editor has a pure `saveX` — the WRITE, registered below as
+  // the session's commit — and a `handleSaveX` that only CLOSES the editor.
+  // Closing commits through the session, so one save is one write whether it
+  // came from Enter, blur, tapping outside, opening another editor or
+  // navigating away. Before this split every handler both wrote and closed,
+  // and closing re-ran the handler as the commit: two writes per save at
+  // best, and a ~1,000-deep recursion at worst (987 PUTs on task 2f1ec1af —
+  // see `run` in hooks/use-editing-session.ts). Cancel goes through
+  // `cancelEditing`, the one transition that discards instead of committing.
+  const saveTitle = () => {
+    const title = tempTitle.trim()
+    if (title && title !== task.title) {
+      onUpdate({ ...task, title })
     }
-    setEditingTitle(false)
   }
+
+  const handleSaveTitle = () => setEditingTitle(false)
 
   const handleCancelTitle = () => {
     setTempTitle(task.title)
-    setEditingTitle(false)
+    cancelEditing('title')
   }
 
-  const handleSaveDescription = () => {
+  const saveDescription = () => {
     if (tempDescription !== task.description) {
       onUpdate({ ...task, description: tempDescription })
     }
-    setEditingDescription(false)
   }
+
+  const handleSaveDescription = () => setEditingDescription(false)
 
   const handleCancelDescription = () => {
     setTempDescription(task.description || "")
-    setEditingDescription(false)
+    cancelEditing('description')
   }
 
   const handleSaveWhen = (date: Date | undefined) => {
@@ -917,24 +909,27 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     setEditingRepeating(false)
   }
 
-  const handleSaveLists = () => {
-    onUpdate({ 
-      ...task, 
-      lists: tempLists
-    })
-    setEditingLists(false)
+  const saveLists = () => {
+    const currentListIds = (task.lists || []).map(l => l.id).sort()
+    const tempListIds = tempLists.map(l => l.id).sort()
+    if (JSON.stringify(currentListIds) !== JSON.stringify(tempListIds)) {
+      onUpdate({ ...task, lists: tempLists })
+    }
   }
 
-  const handleSaveAssignee = () => {
-    if (tempAssignee) {
+  const handleSaveLists = () => setEditingLists(false)
+
+  const saveAssignee = () => {
+    if (tempAssignee && tempAssignee.id !== task.assignee?.id) {
       onUpdate({ ...task, assignee: tempAssignee })
     }
-    setEditingAssignee(false)
   }
+
+  const handleSaveAssignee = () => setEditingAssignee(false)
 
   const handleCancelAssignee = () => {
     setTempAssignee(task.assignee || null)
-    setEditingAssignee(false)
+    cancelEditing('assignee')
   }
 
   /**
@@ -949,10 +944,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
    * temp values; the registry is a ref, so this is a map write, not a re-render.
    */
   useEffect(() => {
-    registerCommit('title', handleSaveTitle)
-    registerCommit('description', handleSaveDescription)
-    registerCommit('lists', handleSaveLists)
-    registerCommit('assignee', handleSaveAssignee)
+    registerCommit('title', saveTitle)
+    registerCommit('description', saveDescription)
+    registerCommit('lists', saveLists)
+    registerCommit('assignee', saveAssignee)
   })
 
   const handleInviteUser = async (email: string, message?: string) => {
@@ -974,9 +969,12 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
       if (response.ok) {
         if (result.userExists && result.assignedUser) {
-          // User exists and was assigned directly
+          // User exists and was assigned directly. Write that once, then
+          // CANCEL the editor: ending it would commit the buffer this closure
+          // still holds (the previous temp assignee), not the one just set.
           setTempAssignee(result.assignedUser)
-          handleSaveAssignee()
+          onUpdate({ ...task, assignee: result.assignedUser })
+          cancelEditing('assignee')
         } else {
           // Invitation sent
           if (process.env.NODE_ENV === "development") {
@@ -1135,7 +1133,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     setListSearchTerm("")
     setShowListSuggestions(false)
     setSelectedSuggestionIndex(-1)
-    setEditingLists(false)
+    cancelEditing('lists')
   }
 
   const handleAddList = (list: TaskList) => {
