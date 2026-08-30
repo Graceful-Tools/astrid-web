@@ -21,6 +21,13 @@ interface AgentIconConfig {
   brandColor: string
   /** Local fallback filename in /public/images/ai-agents/ */
   localFallback: string
+  /**
+   * Empty space to add on each side, as a fraction of the mark's box. Brand
+   * SVGs fill their viewBox edge to edge, which looks cramped inside a round
+   * avatar; padding the viewBox keeps the path untouched and applies to both
+   * sources, so production gets it whichever one answers.
+   */
+  padding?: number
 }
 
 const AGENT_ICONS: Record<string, AgentIconConfig> = {
@@ -43,7 +50,21 @@ const AGENT_ICONS: Record<string, AgentIconConfig> = {
     simpleIconSlug: 'githubcopilot',
     brandColor: '000000',  // GitHub Copilot black
     localFallback: 'copilot.svg',
+    padding: 0.125,
   },
+}
+
+/** Expand the root viewBox by `padding` of its size on every side. */
+function padViewBox(svg: string, padding: number): string {
+  return svg.replace(
+    /viewBox="([-\d.]+)[ ,]+([-\d.]+)[ ,]+([-\d.]+)[ ,]+([-\d.]+)"/,
+    (_match, x, y, w, h) => {
+      const px = Number(w) * padding
+      const py = Number(h) * padding
+      const n = (v: number) => Number(v.toFixed(3)).toString()
+      return `viewBox="${n(Number(x) - px)} ${n(Number(y) - py)} ${n(Number(w) + 2 * px)} ${n(Number(h) + 2 * py)}"`
+    },
+  )
 }
 
 // In-memory cache: slug -> { svg, fetchedAt }
@@ -89,19 +110,23 @@ async function getIcon(slug: string): Promise<string | null> {
     return cached.svg
   }
 
+  const shape = (svg: string) => (config.padding ? padViewBox(svg, config.padding) : svg)
+
   // Try upstream
   const upstream = await fetchUpstreamIcon(config)
   if (upstream) {
-    cache.set(slug, { svg: upstream, fetchedAt: Date.now() })
-    return upstream
+    const svg = shape(upstream)
+    cache.set(slug, { svg, fetchedAt: Date.now() })
+    return svg
   }
 
   // Fall back to local (and cache it so we don't hit disk repeatedly)
   const local = await getLocalFallback(config.localFallback)
   if (local) {
+    const svg = shape(local)
     // Cache local for shorter period so we retry upstream sooner
-    cache.set(slug, { svg: local, fetchedAt: Date.now() - CACHE_TTL_MS + 60 * 60 * 1000 })
-    return local
+    cache.set(slug, { svg, fetchedAt: Date.now() - CACHE_TTL_MS + 60 * 60 * 1000 })
+    return svg
   }
 
   return null

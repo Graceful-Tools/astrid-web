@@ -42,4 +42,25 @@ describe('GET /api/v1/agent-icon/[slug]', () => {
     expect(svg).toContain('<svg')
     expect(svg).toContain(CURRENT_COPILOT_MARK)
   })
+
+  /**
+   * The mark fills its 24×24 box edge to edge, so in a round avatar it looked
+   * cramped. The route pads the viewBox by 12.5% a side for copilot — on both
+   * sources, since production serves whichever one answers.
+   */
+  const PADDED_VIEWBOX = 'viewBox="-3 -3 30 30"'
+
+  it('pads the Copilot mark with margin when serving the local fallback', async () => {
+    const svg = await (await getIcon('copilot')).text()
+    expect(svg).toContain(PADDED_VIEWBOX)
+  })
+
+  it('pads the Copilot mark with margin when serving the upstream icon', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>',
+    }))
+    const svg = await (await getIcon('copilot')).text()
+    expect(svg).toContain(PADDED_VIEWBOX)
+  })
 })
