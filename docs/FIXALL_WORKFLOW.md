@@ -42,33 +42,77 @@ A task is yours only when **all four** hold:
    work around the filter.
 4. **Due now.** See below.
 
-### A task with a date waits for its date
+The queue reports what it held and why (`held.notDueCount`, `held.scheduled`), so a queue
+held up by the clock never looks like an idle one.
+
+### The lanes must be REAL (Jon, 2026-08-29)
+
+**Ready means "actionable now". Doing means "being worked right now". Waiting means "paused
+on a NAMED condition".** A dated task sitting in Ready is Ready lying to whoever looks at the
+board, so the queue script — not the agent, and not this document — keeps the lanes honest
+with a mechanical sweep on every run:
+
+- A **Ready task with a future date** (claimable by this loop) is **moved to `Waiting`**, with
+  a comment saying when it returns. Ready never holds scheduled work.
+- A **Waiting task whose condition is met** comes back: date arrived → back to `Ready`
+  automatically; blockers completed → back to `Ready` automatically; external condition due
+  for a recheck → surfaced to the agent (below).
+- The sweep only ever touches tasks that are **unassigned or assigned to this harness**. A
+  person's tasks are theirs to move, and `Doing` is never touched — a peer session or a human
+  may be mid-task. Doing tasks are listed with their assignee so a human can spot a stale claim.
+
+The sweep is a feature of `scripts/ready-tasks.ts` (OAuth API, never the DB), not of the MCP
+queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness claude-code` runs it, and
+`--dry-run` prints every move it would make without writing anything. Run it at the top of a
+loop when the board looks stale; the MCP `get_agent_queue` call is still how the work is read.
+
+### A task with a date waits for its date — in Waiting
 
 Jon, 2026-08-19: *"If a task has a date don't start until the date or time of the task.
 Therefore we can have fixall respond to recurring tasks and track them in Astrid."*
 
-Anything whose `dueDateTime` is still in the future is held and listed with when it comes due,
-so a queue waiting on the clock is visibly different from an idle one:
-
-```
-(1 Ready task(s) scheduled for later — not yet due:)
-  — Weekly dependency audit  [due 2026-08-23 09:00 UTC]
-```
-
 **This is how recurring work runs.** Completing a repeating task rolls it forward to its next
-occurrence — `RepeatingTaskCalculator` already does that — and the date gate holds it until
-that moment arrives. So a recurring chore leaves the queue when it is finished and comes back
-by itself when it is due. The schedule lives in Astrid, where Jon can see and change it from
-his phone, rather than in a cron file or in this document. To make something recurring, give
-the task a date and a repeat in Astrid; nothing in the loop needs to change.
+occurrence — `RepeatingTaskCalculator` already does that — the sweep parks it in Waiting, and
+promotes it back to Ready the run after its date arrives. So a recurring chore leaves the
+queue when it is finished and comes back by itself when it is due. The schedule lives in
+Astrid, where Jon can see and change it from his phone, rather than in a cron file or in this
+document. To make something recurring, give the task a date and a repeat in Astrid.
 
 - **No date** → workable now. That is every task the loop took before this existed.
 - **All-day** → workable from the start of its day, since an all-day task carries midnight.
 - **Unreadable date** → treated as *no date*, never as "never". Stranding a task on a value
   nobody can see would look exactly like an empty queue, every run, with nothing saying why.
 
-If the queue is empty but something is scheduled, say when the next one comes due rather than
-just "empty" — a quiet run and a finished one are different things.
+If the queue is empty but something is parked, the script says when the next one comes due —
+a quiet run and a finished one are different things.
+
+### Waiting carries its condition, machine-readably
+
+Every Waiting task this loop owns must say WHAT it is waiting for, in a form the queue script
+can re-check on every run. Three kinds of condition, three mechanisms:
+
+| Waiting on… | How it is recorded | Who re-checks it |
+|---|---|---|
+| **a date** | the task's own due date | the script — promotes to Ready when due |
+| **another task** | a comment line `BLOCKED-BY: <task-id>` (repeatable) | the script — promotes when every blocker is complete |
+| **an external event** (a dependency release, a vendor fix, a client rollout) | a comment line `BLOCKED-ON: <one-line condition>` **plus a recheck due date** | the agent — the script surfaces it under `RECHECK` when the date arrives |
+
+The **latest marker-bearing comment wins wholesale** — to change the conditions, post a new
+comment with the new markers (or none of the blocking kind). Do not edit old comments.
+
+External conditions never auto-promote: the script cannot know whether npm shipped a package,
+so when the recheck date arrives the task appears under `RECHECK (n)` with its condition, and
+the agent re-verifies it that run — condition met → move it to `Ready` (or just work it);
+still blocked → post what was checked and **bump the due date** to the next sensible recheck,
+and it goes quiet again. That date is the efficiency lever: zero attention spent between
+rechecks, guaranteed attention when one is due.
+
+A Waiting task with **no date, no `BLOCKED-BY`, and no `BLOCKED-ON`** will never wake up on
+its own. The script lists these under `REVIEW (n)` and the agent triages each one, every run,
+until the section is empty: give it the condition it is actually waiting on, or hand it back
+to Jon (assign + a question) if only he knows. `RECHECK` and `REVIEW` are WORK the run must
+do, not information — `READY_EMPTY` with a non-empty `RECHECK`/`REVIEW` section is not a
+finished run.
 
 ---
 
@@ -87,19 +131,28 @@ is wrong is as small as possible:
 cd ../astrid-web && npx tsx scripts/set-task-status.ts <taskId> Doing
 ```
 
-**Blocked on Jon → hand it back: assign to him AND move it to `Waiting`.** Both, not one.
-Assigning alone leaves it in Doing, which reads as in-progress; moving alone leaves it assigned
-to the agent, which reads as still yours:
+**Blocked → move it to `Waiting`, and record the RIGHT condition** (see *Waiting carries its
+condition* above). Who keeps the task depends on who can lift the block:
 
-```bash
-npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
-npx tsx scripts/set-task-status.ts <taskId> Waiting
-```
+- **Only Jon can lift it** (a product decision, an account credential): assign to him AND move
+  to `Waiting` — both, not one. Assigning alone leaves it in Doing, which reads as
+  in-progress; moving alone leaves it assigned to the agent, which reads as still yours. Then
+  say on the task what decision you need.
 
-Then say on the task what decision you need. A task in `Waiting` with no question on it is just
-a task nobody is working. The point of `Waiting` is that a re-run stops re-reading it — a
-blocked task left in Ready is re-examined every fifteen minutes forever and reported as blocked
-every time, which is the no-op loop this workflow exists to avoid.
+  ```bash
+  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
+  npx tsx scripts/set-task-status.ts <taskId> Waiting
+  ```
+
+- **Time, another task, or an external event can lift it**: KEEP the assignment, move to
+  `Waiting`, and post the machine-readable condition — `BLOCKED-BY: <task-id>`, or
+  `BLOCKED-ON: <condition>` with a recheck due date, or just the date. The loop now owns the
+  recheck; Jon owns nothing he didn't ask for.
+
+A task in `Waiting` with no condition and no question on it is just a task nobody is working.
+The point of `Waiting` is that a re-run stops re-reading it — a blocked task left in Ready is
+re-examined every fifteen minutes forever and reported as blocked every time, which is the
+no-op loop this workflow exists to avoid.
 
 **Use `set-task-status.ts`, never `move-task-to-list.ts`.** Status is a SECOND membership
 alongside the board, and `PUT` replaces the whole `listIds` set — so `move-task-to-list.ts`,

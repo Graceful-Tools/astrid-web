@@ -41,6 +41,8 @@ type ReadyQueueEnvironment = Record<string, string | undefined>
 export interface ReadyQueueOptions {
   board: ReadyQueueBoard
   harness: FixallHarness
+  /** Print the sweep's would-be moves without writing anything. */
+  dryRun: boolean
 }
 
 function parseHarness(value: string | undefined): FixallHarness {
@@ -73,9 +75,14 @@ export function resolveReadyQueueOptions(
   let board: ReadyQueueBoard = 'web'
   let boardSeen = false
   let cliHarness: string | undefined
+  let dryRun = false
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
+    if (arg === '--dry-run') {
+      dryRun = true
+      continue
+    }
     if (arg === '--harness') {
       const value = argv[index + 1]
       if (!value || value.startsWith('--')) {
@@ -107,6 +114,7 @@ export function resolveReadyQueueOptions(
   return {
     board,
     harness: parseHarness(cliHarness ?? env.ASTRID_FIXALL_HARNESS),
+    dryRun,
   }
 }
 
@@ -232,4 +240,106 @@ export function isClaimableByAgent(
 export function describeAssignee(task: AssignableTask): string {
   if (!task.assigneeId) return 'unassigned'
   return task.assignee?.name || task.assignee?.email || task.assigneeId || 'unknown'
+}
+
+/**
+ * ── Waiting-lane conditions (Jon, 2026-08-29) ────────────────────────────────
+ *
+ * Ready means "actionable now", so anything paused on a specific condition
+ * lives in Waiting — and each such task carries the condition in a form the
+ * queue script can re-check on every run:
+ *
+ *   - a DATE: `dueDateTime` itself. Parked until due, then back to Ready.
+ *   - ANOTHER TASK: a comment line `BLOCKED-BY: <task-id>` (repeatable). The
+ *     script checks the blockers' completion each run and promotes when every
+ *     one is done.
+ *   - an EXTERNAL EVENT: a comment line `BLOCKED-ON: <one-line condition>`,
+ *     ideally with a recheck date. External facts (an upstream release, a
+ *     third-party fix) cannot be machine-verified, so when the date arrives
+ *     the task SURFACES for the agent to re-verify rather than auto-promoting.
+ *
+ * The latest marker-bearing comment wins wholesale: updating conditions is
+ * "post a new comment", and a comment with no markers changes nothing.
+ */
+
+export interface BlockedConditions {
+  /** Task ids this task waits on; empty when none. */
+  blockedBy: string[]
+  /** External condition to re-verify, or null. */
+  blockedOn: string | null
+}
+
+const BLOCKED_BY_LINE = /^\s*blocked-by:\s*(\S+)\s*$/i
+const BLOCKED_ON_LINE = /^\s*blocked-on:\s*(.+?)\s*$/i
+
+/** Parse the CURRENT conditions from a task's comments (latest marker comment wins). */
+export function parseBlockedConditions(
+  comments: Array<{ content?: string | null; createdAt?: string | null }>,
+): BlockedConditions {
+  const empty: BlockedConditions = { blockedBy: [], blockedOn: null }
+
+  const dated = [...comments].sort(
+    (a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime(),
+  )
+
+  for (let index = dated.length - 1; index >= 0; index -= 1) {
+    const lines = (dated[index].content ?? '').split('\n')
+    const blockedBy: string[] = []
+    let blockedOn: string | null = null
+    for (const line of lines) {
+      const by = BLOCKED_BY_LINE.exec(line)
+      if (by) blockedBy.push(by[1])
+      const on = BLOCKED_ON_LINE.exec(line)
+      if (on) blockedOn = on[1]
+    }
+    if (blockedBy.length > 0 || blockedOn !== null) {
+      return { blockedBy, blockedOn }
+    }
+  }
+
+  return empty
+}
+
+export type WaitingDisposition =
+  /** Has BLOCKED-BY blockers — check their completion before anything else. */
+  | 'check-blockers'
+  /** Future date — parked quietly until it arrives. */
+  | 'hold'
+  /** External condition due for re-verification by the agent. Never auto-promotes. */
+  | 'recheck'
+  /** Date arrived (or blockers cleared) and nothing else holds it — back to Ready. */
+  | 'promote'
+  /** No date, no blockers, no condition: nothing will ever wake it. Triage it. */
+  | 'review'
+
+/**
+ * What should the loop do with one claimable Waiting task this run?
+ *
+ * Order matters: blockers are checked before the date because a blocked task's
+ * date (if any) is a recheck cadence, not a start time — and a future date
+ * outranks an external condition because the date IS that condition's recheck
+ * schedule.
+ */
+export function classifyWaitingTask(input: {
+  dueDateTime: string | null | undefined
+  now: Date
+  blockedBy: string[]
+  blockedOn: string | null
+}): WaitingDisposition {
+  if (input.blockedBy.length > 0) return 'check-blockers'
+  const dueToStart = isDueToStart({ dueDateTime: input.dueDateTime }, input.now)
+  if (!dueToStart) return 'hold'
+  if (input.blockedOn) return 'recheck'
+  if (input.dueDateTime) return 'promote'
+  return 'review'
+}
+
+/**
+ * Should the sweep park this Ready task in Waiting? True exactly when it
+ * carries a future date — Ready must mean "actionable now", and the date gate
+ * that used to hide these inside Ready left the column lying to anyone who
+ * looked at the board (Jon, 2026-08-29).
+ */
+export function shouldParkScheduledReadyTask(task: SchedulableTask, now: Date): boolean {
+  return !isDueToStart(task, now)
 }

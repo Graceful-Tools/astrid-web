@@ -114,7 +114,8 @@ describe('API v1 task comments public access', () => {
           },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
+      take: 2500,
     })
   })
 

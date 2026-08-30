@@ -21,6 +21,20 @@ import { PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 export const TASK_COMMENTS_RESPONSE_LIMIT = 500
 
 /**
+ * Upper bound on comments returned by GET /api/v1/tasks/[id]/comments.
+ *
+ * The cap above protected task responses; the list endpoint stayed unbounded
+ * and on 2026-08-29 the Mac app hit it for the same runaway task (136k
+ * comments, 64 MB of content) and got Vercel's HTML 500 — the response was
+ * over the platform's 4.5 MB function-response cap, past any error handling
+ * of ours. Sized from what was observed that day: 2,013 comments serialized
+ * to 1.9 MB (~950 B each with author + secureFiles), so 2,500 stays under
+ * ~2.4 MB with room for wordier threads. Newest kept, ascending order
+ * preserved; `meta.truncated` says when the page is a slice.
+ */
+export const TASK_COMMENTS_LIST_LIMIT = 2500
+
+/**
  * Standard task include for full task data with relations.
  * Used across GET, PUT, DELETE operations.
  */

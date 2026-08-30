@@ -25,6 +25,7 @@ import {
   createCommentIdempotently,
 } from '@/lib/comments/create-comment'
 import { userCanAccessTask } from "@/services/task.service"
+import { TASK_COMMENTS_LIST_LIMIT } from "@/lib/task-query-utils"
 
 const log = createLogger('v1.tasks.comments')
 
@@ -116,7 +117,11 @@ export const GET = withAuth<RouteContext>(
       )
     }
 
-    const comments = await prisma.comment.findMany({
+    // Bounded: newest TASK_COMMENTS_LIST_LIMIT, fetched newest-first and
+    // flipped back to the ascending order every client expects. An unbounded
+    // listing of a runaway task (136k comments) exceeded Vercel's response cap
+    // and answered an HTML 500 that no handler of ours ever saw.
+    const newestFirst = await prisma.comment.findMany({
       where: { taskId },
       include: {
         author: {
@@ -132,8 +137,17 @@ export const GET = withAuth<RouteContext>(
           }
         }
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'desc' },
+      take: TASK_COMMENTS_LIST_LIMIT,
     })
+    const comments = [...newestFirst].reverse()
+
+    // A short page IS the whole collection; only a full page is worth the
+    // count query that tells the client how much it did not get.
+    const total = newestFirst.length < TASK_COMMENTS_LIST_LIMIT
+      ? newestFirst.length
+      : await prisma.comment.count({ where: { taskId } })
+    const truncated = total > comments.length
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -145,7 +159,8 @@ export const GET = withAuth<RouteContext>(
       {
         comments,
         meta: {
-          total: comments.length,
+          total,
+          truncated,
           taskId,
           apiVersion: 'v1',
           authSource: auth.source,
