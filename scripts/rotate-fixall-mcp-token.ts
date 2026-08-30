@@ -7,7 +7,7 @@ import {
   FIXALL_AGENT_EMAIL,
   FIXALL_REPOSITORIES,
   parseFixallMcpRotationOptions,
-  propagateFixallMcpToken,
+  runSerializedFixallMcpRotation,
   validateFixallAgent,
 } from "./lib/fixall-mcp-rotation"
 
@@ -84,31 +84,57 @@ async function main() {
       select: { id: true },
     })
 
-    let deactivatedCount: number
-    try {
-      deactivatedCount = await propagateFixallMcpToken(
-        plaintext,
-        async (repository, token) => {
-          await runGh(["secret", "set", "ASTRID_MCP_TOKEN", "--repo", repository], token)
-          console.log(`Updated ASTRID_MCP_TOKEN for ${repository}`)
-        },
-        async () => {
-          const deactivated = await prisma.mCPToken.updateMany({
-            where: {
-              userId: agent.id,
-              isActive: true,
-              id: { not: stagedToken.id },
-            },
-            data: { isActive: false },
-          })
-          return deactivated.count
-        },
-      )
-    } catch (error) {
+    let propagationError: unknown
+    const deactivatedCount = await prisma.$transaction(async tx => {
+      let count = 0
+      try {
+        count = await runSerializedFixallMcpRotation(
+          plaintext,
+          async operation => {
+            // Transaction-scoped lock serializes every rotation through both
+            // GitHub writes and retirement, not merely the database updates.
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(730251, 1)`
+            return operation()
+          },
+          async () => {
+            await tx.mCPToken.update({
+              where: { id: stagedToken.id },
+              data: { isActive: true },
+            })
+          },
+          async (repository, token) => {
+            await runGh(["secret", "set", "ASTRID_MCP_TOKEN", "--repo", repository], token)
+            console.log(`Updated ASTRID_MCP_TOKEN for ${repository}`)
+          },
+          async () => {
+            const deactivated = await tx.mCPToken.updateMany({
+              where: {
+                userId: agent.id,
+                isActive: true,
+                id: { not: stagedToken.id },
+              },
+              data: { isActive: false },
+            })
+            return deactivated.count
+          },
+        )
+      } catch (error) {
+        // Commit the staged token as active on partial GitHub propagation.
+        // A rerun can then converge both repositories without invalidating one
+        // that already received this value.
+        propagationError = error
+      }
+      return count
+    }, {
+      maxWait: 300_000,
+      timeout: 300_000,
+    })
+
+    if (propagationError) {
       console.error(
         "GitHub propagation was incomplete. The staged token remains active so any successful repository update stays valid; rerun the command to converge both repositories.",
       )
-      throw error
+      throw propagationError
     }
 
     console.log(`Rotation complete; deactivated ${deactivatedCount} superseded agent token(s).`)

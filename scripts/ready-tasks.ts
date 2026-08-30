@@ -29,6 +29,7 @@
  * can stop without parsing anything.
  *
  *   npx tsx scripts/ready-tasks.ts --harness github-copilot
+ *   npx tsx scripts/ready-tasks.ts --json --harness github-copilot
  */
 
 // `export {}` makes this a module. Without it the file shares the global
@@ -57,6 +58,7 @@ import {
   type StatusRoleTask,
 } from "@/lib/ready-queue-scope"
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
+import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 
 const BOARD_LIST_NAMES = {
   web: "Astrid Web To-do",
@@ -87,6 +89,7 @@ function loadOptions() {
 }
 const options = loadOptions()
 const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
+const report = options.format === 'json' ? console.error : console.log
 
 type QueueTask = AssignableTask & StatusRoleTask & SchedulableTask & {
   id: string
@@ -157,7 +160,7 @@ async function main() {
   // loop would report a clean run. Say it rather than quietly working a subset.
   const total = tasksBody?.meta?.total
   if (typeof total === "number" && total > all.length) {
-    console.log(`(⚠️  board has ${total} open tasks; only the first ${all.length} were read)`)
+    report(`(⚠️  board has ${total} open tasks; only the first ${all.length} were read)`)
   }
 
   const now = new Date()
@@ -179,7 +182,7 @@ async function main() {
   // until its date; a Waiting task whose condition is met comes back. Both
   // moves are logged here and commented on the task, and both touch ONLY
   // tasks this harness may claim — a person's tasks are theirs to move.
-  const api = new SweepApi(auth, options.dryRun)
+  const api = new SweepApi(auth, options.dryRun, report)
 
   const mine: QueueTask[] = []
   for (const task of claimable) {
@@ -189,7 +192,7 @@ async function main() {
         task,
         `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. The loop returns it to Ready when the date arrives.`,
       )
-      console.log(`→ parked "${task.title}" in Waiting [due ${describeSchedule(task, now)}]`)
+      report(`→ parked "${task.title}" in Waiting [due ${describeSchedule(task, now)}]`)
     } else {
       mine.push(task)
     }
@@ -233,11 +236,26 @@ async function main() {
     } else if (disposition === 'promote') {
       await api.setStatus(task, READY_STATUS_ROLE)
       await api.comment(task, '⏰ Condition met (date arrived / blockers completed) — back to Ready.')
-      console.log(`→ promoted "${task.title}" to Ready`)
+      report(`→ promoted "${task.title}" to Ready`)
       mine.push(task)
     } else {
       review.push(task)
     }
+  }
+
+  // Priority high → low, then oldest first — the order /fixall works them in.
+  const queue = [...mine].sort((a, b) => {
+    if ((b.priority ?? 0) !== (a.priority ?? 0)) return (b.priority ?? 0) - (a.priority ?? 0)
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+
+  if (options.format === 'json') {
+    console.log(serializeReadyTaskQueue({
+      ready: queue,
+      recheck: recheck.map(item => item.task),
+      review,
+    }))
+    return
   }
 
   // A queue held up by work the loop may not take must not look like an idle one.
@@ -298,12 +316,6 @@ async function main() {
     return
   }
 
-  // Priority high → low, then oldest first — the order /fixall works them in.
-  const queue = [...mine].sort((a, b) => {
-    if ((b.priority ?? 0) !== (a.priority ?? 0)) return (b.priority ?? 0) - (a.priority ?? 0)
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  })
-
   console.log(`READY (${queue.length}):`)
   for (const task of queue) {
     const stars = "★".repeat(task.priority ?? 0) || "—"
@@ -321,6 +333,7 @@ class SweepApi {
   constructor(
     private readonly auth: Record<string, string>,
     private readonly dryRun: boolean,
+    private readonly report: (...args: unknown[]) => void,
   ) {}
 
   async setStatus(task: { id: string }, statusRole: string): Promise<void> {
@@ -331,7 +344,7 @@ class SweepApi {
       body: JSON.stringify({ statusRole }),
     })
     if (!response.ok) {
-      console.log(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
+      this.report(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
     }
   }
 
@@ -343,7 +356,7 @@ class SweepApi {
       body: JSON.stringify({ content }),
     })
     if (!response.ok) {
-      console.log(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)
+      this.report(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)
     }
   }
 

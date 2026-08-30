@@ -72,14 +72,12 @@ jobs:
             DRY_RUN_ARG="--dry-run"
           fi
 
-          if ! OUTPUT=$(npx tsx scripts/ready-tasks.ts --harness "${HARNESS}" ${DRY_RUN_ARG} 2>&1); then
-            printf '%s\n' "${OUTPUT}"
+          if ! OUTPUT=$(npx tsx scripts/ready-tasks.ts --json --harness "${HARNESS}" ${DRY_RUN_ARG}); then
             exit 1
           fi
-          echo "${OUTPUT}"
 
-          # Parse every actionable section strictly. RECHECK and REVIEW are work,
-          # even when the Ready queue itself is empty.
+          # Consume only the authoritative JSON envelope. Task titles and other
+          # presentation text never become executable task IDs.
           if ! TASK_IDS=$(printf '%s\n' "${OUTPUT}" | npx tsx scripts/parse-ready-tasks-output.ts); then
             exit 1
           fi

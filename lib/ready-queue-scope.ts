@@ -43,6 +43,8 @@ export interface ReadyQueueOptions {
   harness: FixallHarness
   /** Print the sweep's would-be moves without writing anything. */
   dryRun: boolean
+  /** Emit a stable machine-readable queue instead of presentation text. */
+  format: 'human' | 'json'
 }
 
 function parseHarness(value: string | undefined): FixallHarness {
@@ -76,11 +78,16 @@ export function resolveReadyQueueOptions(
   let boardSeen = false
   let cliHarness: string | undefined
   let dryRun = false
+  let format: ReadyQueueOptions['format'] = 'human'
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--dry-run') {
       dryRun = true
+      continue
+    }
+    if (arg === '--json') {
+      format = 'json'
       continue
     }
     if (arg === '--harness') {
@@ -115,6 +122,7 @@ export function resolveReadyQueueOptions(
     board,
     harness: parseHarness(cliHarness ?? env.ASTRID_FIXALL_HARNESS),
     dryRun,
+    format,
   }
 }
 

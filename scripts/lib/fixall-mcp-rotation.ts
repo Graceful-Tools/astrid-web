@@ -68,3 +68,22 @@ export async function propagateFixallMcpToken(
   }
   return deactivateSupersededTokens()
 }
+
+export async function runSerializedFixallMcpRotation(
+  plaintext: string,
+  withRotationLock: <T>(operation: () => Promise<T>) => Promise<T>,
+  activateStagedToken: () => Promise<void>,
+  setRepositorySecret: (repository: string, plaintext: string) => Promise<void>,
+  deactivateSupersededTokens: () => Promise<number>,
+): Promise<number> {
+  return withRotationLock(async () => {
+    // A concurrent rotation that staged first may have retired this row before
+    // this caller acquired the lock. Reactivate it before publishing its value.
+    await activateStagedToken()
+    return propagateFixallMcpToken(
+      plaintext,
+      setRepositorySecret,
+      deactivateSupersededTokens,
+    )
+  })
+}

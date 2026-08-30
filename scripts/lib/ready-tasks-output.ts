@@ -1,39 +1,55 @@
-const TASK_ID_PATTERN =
-  "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-const SECTION_PATTERN = /^(READY|RECHECK|REVIEW) \((\d+)\)(?::| —)/
-const TASK_PATTERN = new RegExp(`^  (${TASK_ID_PATTERN})  `, "i")
+const TASK_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const ACTIONS = ["ready", "recheck", "review"] as const
+
+type ReadyTaskAction = typeof ACTIONS[number]
+
+export interface ReadyTaskReference {
+  id: string
+}
+
+export function serializeReadyTaskQueue(input: {
+  ready: ReadyTaskReference[]
+  recheck: ReadyTaskReference[]
+  review: ReadyTaskReference[]
+}): string {
+  return JSON.stringify({
+    version: 1,
+    tasks: [
+      ...input.recheck.map(task => ({ id: task.id, action: "recheck" as const })),
+      ...input.review.map(task => ({ id: task.id, action: "review" as const })),
+      ...input.ready.map(task => ({ id: task.id, action: "ready" as const })),
+    ],
+  })
+}
 
 export function parseReadyTaskIds(output: string): string[] {
-  const ids: string[] = []
-  let expectedCount = 0
-  let currentSection: string | null = null
-  let sawReadyResult = false
+  let body: unknown
+  try {
+    body = JSON.parse(output)
+  } catch {
+    throw new Error("Queue output is not valid JSON")
+  }
 
-  for (const line of output.split(/\r?\n/)) {
-    const section = line.match(SECTION_PATTERN)
-    if (section) {
-      currentSection = section[1]
-      expectedCount += Number(section[2])
-      if (currentSection === "READY") sawReadyResult = true
-      continue
+  if (!body || typeof body !== "object" || !("version" in body) || body.version !== 1) {
+    throw new Error("Queue output has an unsupported schema version")
+  }
+  if (!("tasks" in body) || !Array.isArray(body.tasks)) {
+    throw new Error("Queue output is missing its tasks array")
+  }
+
+  const ids = body.tasks.map((task, index) => {
+    if (!task || typeof task !== "object") throw new Error(`Queue task ${index} is not an object`)
+    const id = "id" in task ? task.id : undefined
+    const action = "action" in task ? task.action : undefined
+    if (typeof id !== "string" || !TASK_ID_PATTERN.test(id)) {
+      throw new Error(`Queue task ${index} has an invalid task ID`)
     }
-
-    if (line.startsWith("READY_EMPTY")) {
-      currentSection = null
-      sawReadyResult = true
-      continue
+    if (typeof action !== "string" || !ACTIONS.includes(action as ReadyTaskAction)) {
+      throw new Error(`Queue task ${index} has an invalid action`)
     }
+    return id
+  })
 
-    const task = line.match(TASK_PATTERN)
-    if (task && currentSection) ids.push(task[1])
-  }
-
-  if (!sawReadyResult) {
-    throw new Error("Queue output did not contain READY (...) or READY_EMPTY")
-  }
-  if (ids.length !== expectedCount) {
-    throw new Error(`Queue output declared ${expectedCount} actionable task(s), but parsed ${ids.length}`)
-  }
   if (new Set(ids).size !== ids.length) {
     throw new Error("Queue output contained duplicate actionable task IDs")
   }

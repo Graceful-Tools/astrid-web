@@ -3,6 +3,7 @@ import {
   FIXALL_AGENT_EMAIL,
   parseFixallMcpRotationOptions,
   propagateFixallMcpToken,
+  runSerializedFixallMcpRotation,
   validateFixallAgent,
 } from "@/scripts/lib/fixall-mcp-rotation"
 
@@ -93,5 +94,54 @@ describe("propagateFixallMcpToken", () => {
     )).rejects.toThrow(/GitHub rejected update/)
 
     expect(deactivated).toBe(false)
+  })
+})
+
+describe("runSerializedFixallMcpRotation", () => {
+  it("serializes concurrent publication so the deployed token remains active", async () => {
+    let lockTail = Promise.resolve()
+    const active = new Set(["token-a", "token-b"])
+    const deployed = new Map<string, string>()
+
+    const withLock = async <T>(operation: () => Promise<T>): Promise<T> => {
+      const previous = lockTail
+      let release = () => {}
+      lockTail = new Promise<void>(resolve => {
+        release = resolve
+      })
+      await previous
+      try {
+        return await operation()
+      } finally {
+        release()
+      }
+    }
+
+    const rotate = (token: string) => runSerializedFixallMcpRotation(
+      token,
+      withLock,
+      async () => {
+        active.add(token)
+      },
+      async repository => {
+        deployed.set(repository, token)
+        await Promise.resolve()
+      },
+      async () => {
+        let count = 0
+        for (const candidate of [...active]) {
+          if (candidate !== token) {
+            active.delete(candidate)
+            count += 1
+          }
+        }
+        return count
+      },
+    )
+
+    await Promise.all([rotate("token-a"), rotate("token-b")])
+
+    expect([...deployed.values()]).toEqual(["token-b", "token-b"])
+    expect([...active]).toEqual(["token-b"])
   })
 })

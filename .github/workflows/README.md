@@ -23,6 +23,23 @@ acceptable to the authenticated trigger endpoint. Assignment resolves the agent
 through the Astrid Web To-do board ID already used by the shared `/fixall`
 documentation; it does not require another secret.
 
+Automation reads the queue through the script's JSON mode, never its
+human-readable titles:
+
+```bash
+npx tsx scripts/ready-tasks.ts web --json --harness github-copilot [--dry-run]
+```
+
+Standard output is one versioned envelope; diagnostics stay on standard error:
+
+```json
+{"version":1,"tasks":[{"id":"<uuid>","action":"ready|recheck|review"}]}
+```
+
+Only IDs classified in memory by `ready-tasks.ts` are serialized. Titles and
+other presentation fields are deliberately absent, so multiline task content
+cannot add executable queue entries.
+
 ### Credential rotation
 
 Create or rotate the OAuth application through **Settings → API Access** while
@@ -52,6 +69,8 @@ stores the new token hashed plus AES-256-GCM encrypted, streams it directly to
 both repositories, and deactivates the agent's old tokens only after both writes
 succeed. This is a full identity-token rotation: any other external consumer of
 an old `copilot@astrid.cc` token must move to the new managed secret.
+Concurrent rotations are serialized by a PostgreSQL advisory lock held across
+both GitHub writes and retirement.
 
 ```bash
 npm run credentials:rotate-fixall-mcp -- \
