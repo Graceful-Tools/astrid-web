@@ -194,6 +194,9 @@ cloud `openai@` agent.
 | `npm run deploy:canary` | Post-deploy production health check |
 | `npm run dev` | Dev server |
 
+The manually dispatched `predeploy.yml` workflow defaults to `predeploy:full` and runs
+on the web-only `[self-hosted, astrid-web]` runner label.
+
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
 
