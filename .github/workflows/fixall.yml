@@ -4,22 +4,12 @@ name: 'Fix All Ready Tasks'
 # new one rather than cancel it (cancel-in-progress: false). This is safe for
 # the 30-minute schedule because a long-running task won't be interrupted.
 concurrency:
-  group: fixall-${{ github.event.inputs.harness || 'github-copilot' }}
+  group: fixall-github-copilot
   cancel-in-progress: false
 
 on:
   workflow_dispatch:
     inputs:
-      harness:
-        description: 'Agent harness identity (determines which assigned tasks are claimed)'
-        required: false
-        default: 'github-copilot'
-        type: choice
-        options:
-          - github-copilot
-          - claude-code
-          - codex
-          - astrid-server
       dry_run:
         description: 'Dry run — list ready tasks without working them'
         required: false
@@ -69,9 +59,9 @@ jobs:
         env:
           ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
           ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
-          # Scheduled runs always use github-copilot so only tasks assigned to
-          # copilot@<domain> are claimed. Manual dispatch can override this.
-          ASTRID_FIXALL_HARNESS: ${{ inputs.harness || 'github-copilot' }}
+          # This workflow has one MCP credential, owned by copilot@astrid.cc,
+          # so both scheduled and manual runs must use that same harness.
+          ASTRID_FIXALL_HARNESS: 'github-copilot'
           ASTRID_FIXALL_DRY_RUN: ${{ inputs.dry_run || false }}
         run: |
           HARNESS="${ASTRID_FIXALL_HARNESS}"
@@ -117,7 +107,7 @@ jobs:
       - name: Report
         run: |
           echo "## Ready Tasks (Dry Run)"
-          echo "Harness: ${{ inputs.harness || 'github-copilot' }}"
+          echo "Harness: github-copilot"
           echo "Tasks found: ${{ needs.list-ready-tasks.outputs.task_count }}"
           echo ""
           echo "Re-run without dry_run to work these tasks."
@@ -128,16 +118,28 @@ jobs:
     needs: list-ready-tasks
     if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-      - name: Trigger Astrid coding agent for each task
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Assign and trigger Astrid coding agent for each task
         id: trigger
         env:
           ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
-          ASTRID_FIXALL_HARNESS: ${{ inputs.harness || 'github-copilot' }}
+          ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
+          ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
+          # Public board ID used by assign-task.ts to resolve the agent member.
+          ASTRID_OAUTH_LIST_ID: 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba'
+          ASTRID_FIXALL_HARNESS: 'github-copilot'
+          ASTRID_FIXALL_AGENT_EMAIL: 'copilot@astrid.cc'
           ASTRID_TASK_IDS: ${{ needs.list-ready-tasks.outputs.task_ids }}
           ASTRID_TRIGGER_URL: 'https://astrid.cc/api/coding-agent/github-trigger'
         run: |
@@ -157,6 +159,12 @@ jobs:
             [ -n "${TASK_ID}" ] || continue
             echo "Triggering coding workflow for task ${TASK_ID}"
 
+            if ! npx tsx scripts/assign-task.ts "${TASK_ID}" "${ASTRID_FIXALL_AGENT_EMAIL}"; then
+              FAILED=$((FAILED + 1))
+              echo "::error::Could not assign task ${TASK_ID} to ${ASTRID_FIXALL_AGENT_EMAIL}"
+              continue
+            fi
+
             PAYLOAD_FILE=$(mktemp)
             RESPONSE_FILE=$(mktemp)
             TASK_ID="${TASK_ID}" node -e '
@@ -175,11 +183,11 @@ jobs:
               process.stdout.write(JSON.stringify(payload))
             ' > "${PAYLOAD_FILE}"
 
-            HTTP_STATUS=$(curl --silent --show-error --retry 2 --retry-all-errors \
+            HTTP_STATUS=$(curl --silent --show-error \
               --output "${RESPONSE_FILE}" --write-out '%{http_code}' \
               --request POST "${ASTRID_TRIGGER_URL}" \
               --header 'Content-Type: application/json' \
-              --header "Authorization: Bearer ${ASTRID_MCP_TOKEN}" \
+              --oauth2-bearer "${ASTRID_MCP_TOKEN}" \
               --data-binary "@${PAYLOAD_FILE}") || HTTP_STATUS="000"
 
             rm -f "${PAYLOAD_FILE}"
@@ -208,7 +216,7 @@ jobs:
         run: |
           {
             echo "## Fix All Trigger Summary"
-            echo "- Harness: \`${{ inputs.harness || 'github-copilot' }}\`"
+            echo "- Harness: \`github-copilot\`"
             echo "- Actionable tasks: ${{ needs.list-ready-tasks.outputs.task_count }}"
             echo "- Agent workflows triggered: ${{ steps.trigger.outputs.triggered_count || '0' }}"
             echo "- Trigger failures: ${{ steps.trigger.outputs.failed_count || '0' }}"
@@ -224,5 +232,5 @@ jobs:
     steps:
       - name: No ready tasks
         run: |
-          echo "✅ No ready tasks found for harness: ${{ inputs.harness || 'github-copilot' }}"
+          echo "✅ No ready tasks found for harness: github-copilot"
           echo "Ready list is empty — nothing to do."
