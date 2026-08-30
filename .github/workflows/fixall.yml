@@ -40,7 +40,7 @@ jobs:
     outputs:
       has_tasks: ${{ steps.list.outputs.has_tasks }}
       task_count: ${{ steps.list.outputs.task_count }}
-      task_ids: ${{ steps.list.outputs.task_ids }}
+      task_claims: ${{ steps.list.outputs.task_claims }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,16 +78,16 @@ jobs:
 
           # Consume only the authoritative JSON envelope. Task titles and other
           # presentation text never become executable task IDs.
-          if ! TASK_IDS=$(printf '%s\n' "${OUTPUT}" | npx tsx scripts/parse-ready-tasks-output.ts); then
+          if ! TASK_CLAIMS=$(printf '%s\n' "${OUTPUT}" | npx tsx scripts/parse-ready-tasks-output.ts --claims); then
             exit 1
           fi
-          TASK_COUNT=$(printf '%s\n' "${TASK_IDS}" | sed '/^$/d' | wc -l | tr -d ' ')
+          TASK_COUNT=$(printf '%s\n' "${TASK_CLAIMS}" | sed '/^$/d' | wc -l | tr -d ' ')
 
           echo "task_count=${TASK_COUNT}" >> "${GITHUB_OUTPUT}"
           {
-            echo "task_ids<<ASTRID_TASK_IDS"
-            printf '%s\n' "${TASK_IDS}"
-            echo "ASTRID_TASK_IDS"
+            echo "task_claims<<ASTRID_TASK_CLAIMS"
+            printf '%s\n' "${TASK_CLAIMS}"
+            echo "ASTRID_TASK_CLAIMS"
           } >> "${GITHUB_OUTPUT}"
 
           if [ "${TASK_COUNT}" -gt 0 ]; then
@@ -134,11 +134,8 @@ jobs:
           ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
           ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
           ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
-          # Public board ID used by assign-task.ts to resolve the agent member.
-          ASTRID_OAUTH_LIST_ID: 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba'
           ASTRID_FIXALL_HARNESS: 'github-copilot'
-          ASTRID_FIXALL_AGENT_EMAIL: 'copilot@astrid.cc'
-          ASTRID_TASK_IDS: ${{ needs.list-ready-tasks.outputs.task_ids }}
+          ASTRID_TASK_CLAIMS: ${{ needs.list-ready-tasks.outputs.task_claims }}
           ASTRID_TRIGGER_URL: 'https://astrid.cc/api/coding-agent/github-trigger'
         run: |
           HARNESS="${ASTRID_FIXALL_HARNESS}"
@@ -153,13 +150,21 @@ jobs:
 
           TRIGGERED=0
           FAILED=0
-          while IFS= read -r TASK_ID; do
+          SKIPPED=0
+          while IFS=$'\t' read -r TASK_ID TASK_ACTION COMMENT_WATERMARK; do
             [ -n "${TASK_ID}" ] || continue
             echo "Triggering coding workflow for task ${TASK_ID}"
 
-            if ! npx tsx scripts/assign-task.ts "${TASK_ID}" "${ASTRID_FIXALL_AGENT_EMAIL}"; then
+            if npx tsx scripts/claim-fixall-task.ts \
+              "${TASK_ID}" "${TASK_ACTION}" "${COMMENT_WATERMARK}"; then
+              :
+            elif [ "$?" -eq 2 ]; then
+              SKIPPED=$((SKIPPED + 1))
+              echo "::warning::Task ${TASK_ID} changed after queue selection; skipped without overwriting it"
+              continue
+            else
               FAILED=$((FAILED + 1))
-              echo "::error::Could not assign task ${TASK_ID} to ${ASTRID_FIXALL_AGENT_EMAIL}"
+              echo "::error::Atomic claim failed for task ${TASK_ID}"
               continue
             fi
 
@@ -198,11 +203,12 @@ jobs:
               cat "${RESPONSE_FILE}"
             fi
             rm -f "${RESPONSE_FILE}"
-          done <<< "${ASTRID_TASK_IDS}"
+          done <<< "${ASTRID_TASK_CLAIMS}"
 
           {
             echo "triggered_count=${TRIGGERED}"
             echo "failed_count=${FAILED}"
+            echo "skipped_count=${SKIPPED}"
           } >> "${GITHUB_OUTPUT}"
 
           if [ "${FAILED}" -gt 0 ]; then
@@ -218,6 +224,7 @@ jobs:
             echo "- Actionable tasks: ${{ needs.list-ready-tasks.outputs.task_count }}"
             echo "- Agent workflows triggered: ${{ steps.trigger.outputs.triggered_count || '0' }}"
             echo "- Trigger failures: ${{ steps.trigger.outputs.failed_count || '0' }}"
+            echo "- Changed/conflicting tasks skipped: ${{ steps.trigger.outputs.skipped_count || '0' }}"
             echo ""
             echo "> Agent workflows run asynchronously. This Action does not claim they completed, merged, or deployed."
           } >> "${GITHUB_STEP_SUMMARY}"

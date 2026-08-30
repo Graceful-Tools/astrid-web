@@ -5,6 +5,7 @@ type ReadyTaskAction = typeof ACTIONS[number]
 
 export interface ReadyTaskReference {
   id: string
+  commentWatermark?: string | null
 }
 
 export function serializeReadyTaskQueue(input: {
@@ -15,8 +16,16 @@ export function serializeReadyTaskQueue(input: {
   return JSON.stringify({
     version: 1,
     tasks: [
-      ...input.recheck.map(task => ({ id: task.id, action: "recheck" as const })),
-      ...input.review.map(task => ({ id: task.id, action: "review" as const })),
+      ...input.recheck.map(task => ({
+        id: task.id,
+        action: "recheck" as const,
+        commentWatermark: task.commentWatermark ?? null,
+      })),
+      ...input.review.map(task => ({
+        id: task.id,
+        action: "review" as const,
+        commentWatermark: task.commentWatermark ?? null,
+      })),
       ...input.ready.map(task => ({ id: task.id, action: "ready" as const })),
     ],
   })
@@ -37,7 +46,7 @@ export function parseReadyTaskIds(output: string): string[] {
     throw new Error("Queue output is missing its tasks array")
   }
 
-  const ids = body.tasks.map((task, index) => {
+  const claims = body.tasks.map((task, index) => {
     if (!task || typeof task !== "object") throw new Error(`Queue task ${index} is not an object`)
     const id = "id" in task ? task.id : undefined
     const action = "action" in task ? task.action : undefined
@@ -47,12 +56,42 @@ export function parseReadyTaskIds(output: string): string[] {
     if (typeof action !== "string" || !ACTIONS.includes(action as ReadyTaskAction)) {
       throw new Error(`Queue task ${index} has an invalid action`)
     }
-    return id
+    const commentWatermark = "commentWatermark" in task ? task.commentWatermark : undefined
+    if (
+      action !== "ready" &&
+      commentWatermark !== null &&
+      (typeof commentWatermark !== "string" || Number.isNaN(Date.parse(commentWatermark)))
+    ) {
+      throw new Error(`Queue task ${index} has an invalid comment watermark`)
+    }
+    return {
+      id,
+      action: action as ReadyTaskAction,
+      commentWatermark: action === "ready" ? null : (commentWatermark as string | null),
+    }
   })
 
+  const ids = claims.map(claim => claim.id)
   if (new Set(ids).size !== ids.length) {
     throw new Error("Queue output contained duplicate actionable task IDs")
   }
 
   return ids
+}
+
+export function parseReadyTaskClaims(output: string): Array<{
+  id: string
+  action: ReadyTaskAction
+  commentWatermark: string | null
+}> {
+  const body = JSON.parse(output) as { tasks?: unknown[] }
+  parseReadyTaskIds(output)
+  return (body.tasks ?? []).map(task => {
+    const claim = task as { id: string; action: ReadyTaskAction; commentWatermark?: string | null }
+    return {
+      id: claim.id,
+      action: claim.action,
+      commentWatermark: claim.commentWatermark ?? null,
+    }
+  })
 }

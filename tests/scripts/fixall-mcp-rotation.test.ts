@@ -3,6 +3,7 @@ import {
   FIXALL_AGENT_EMAIL,
   parseFixallMcpRotationOptions,
   propagateFixallMcpToken,
+  recoverActiveStagedToken,
   runSerializedFixallMcpRotation,
   validateFixallAgent,
 } from "@/scripts/lib/fixall-mcp-rotation"
@@ -143,5 +144,28 @@ describe("runSerializedFixallMcpRotation", () => {
 
     expect([...deployed.values()]).toEqual(["token-b", "token-b"])
     expect([...active]).toEqual(["token-b"])
+  })
+})
+
+describe("recoverActiveStagedToken", () => {
+  it("uses a separate recovery operation after retirement or commit failure", async () => {
+    const events: string[] = []
+
+    await expect(recoverActiveStagedToken(
+      async () => {
+        events.push("publish")
+        events.push("retirement-failed")
+        throw new Error("commit failed")
+      },
+      async () => {
+        events.push("fresh-transaction-activate")
+      },
+    )).rejects.toThrow(/commit failed/)
+
+    expect(events).toEqual([
+      "publish",
+      "retirement-failed",
+      "fresh-transaction-activate",
+    ])
   })
 })

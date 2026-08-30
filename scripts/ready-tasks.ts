@@ -200,12 +200,14 @@ async function main() {
 
   // Waiting tasks the loop owns: re-check each one's condition this run.
   const held: Array<{ task: QueueTask; when: string }> = []
-  const recheck: Array<{ task: QueueTask; condition: string }> = []
-  const review: QueueTask[] = []
+  const recheck: Array<{ task: QueueTask; condition: string; commentWatermark: string | null }> = []
+  const review: Array<{ task: QueueTask; commentWatermark: string | null }> = []
   const blocked: Array<{ task: QueueTask; on: string[] }> = []
 
   for (const task of waiting.filter(t => isClaimableByAgent(t, options.harness))) {
-    const conditions = parseBlockedConditions(await api.comments(task))
+    const comments = await api.comments(task)
+    const conditions = parseBlockedConditions(comments)
+    const commentWatermark = latestCommentWatermark(comments)
     let disposition = classifyWaitingTask({
       dueDateTime: task.dueDateTime,
       now,
@@ -232,14 +234,14 @@ async function main() {
     if (disposition === 'hold') {
       held.push({ task, when: describeSchedule(task, now) })
     } else if (disposition === 'recheck') {
-      recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)' })
+      recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)', commentWatermark })
     } else if (disposition === 'promote') {
       await api.setStatus(task, READY_STATUS_ROLE)
       await api.comment(task, '⏰ Condition met (date arrived / blockers completed) — back to Ready.')
       report(`→ promoted "${task.title}" to Ready`)
       mine.push(task)
     } else {
-      review.push(task)
+      review.push({ task, commentWatermark })
     }
   }
 
@@ -252,8 +254,8 @@ async function main() {
   if (options.format === 'json') {
     console.log(serializeReadyTaskQueue({
       ready: queue,
-      recheck: recheck.map(item => item.task),
-      review,
+      recheck: recheck.map(item => ({ id: item.task.id, commentWatermark: item.commentWatermark })),
+      review: review.map(item => ({ id: item.task.id, commentWatermark: item.commentWatermark })),
     }))
     return
   }
@@ -302,7 +304,7 @@ async function main() {
 
   if (review.length > 0) {
     console.log(`REVIEW (${review.length}) — Waiting with NO recorded condition; give each a date, a BLOCKED-BY/BLOCKED-ON, or hand it back:`)
-    for (const task of review) {
+    for (const { task } of review) {
       console.log(`  ${task.id}  ${task.title}`)
     }
   }
@@ -360,7 +362,11 @@ class SweepApi {
     }
   }
 
-  async comments(task: { id: string }): Promise<Array<{ content?: string | null; createdAt?: string | null }>> {
+  async comments(task: { id: string }): Promise<Array<{
+    content?: string | null
+    createdAt?: string | null
+    updatedAt?: string | null
+  }>> {
     const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}/comments`, { headers: this.auth })
     if (!response.ok) return []
     const body = await response.json()
@@ -381,6 +387,16 @@ class SweepApi {
     }
     return open
   }
+}
+
+function latestCommentWatermark(
+  comments: Array<{ createdAt?: string | null; updatedAt?: string | null }>,
+): string | null {
+  const timestamps = comments
+    .flatMap(comment => [comment.createdAt, comment.updatedAt])
+    .filter((value): value is string => !!value && !Number.isNaN(Date.parse(value)))
+    .sort()
+  return timestamps.at(-1) ?? null
 }
 
 /** Soonest first, so the next thing to come due is the first thing listed. */

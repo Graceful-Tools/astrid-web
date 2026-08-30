@@ -33,12 +33,18 @@ npx tsx scripts/ready-tasks.ts web --json --harness github-copilot [--dry-run]
 Standard output is one versioned envelope; diagnostics stay on standard error:
 
 ```json
-{"version":1,"tasks":[{"id":"<uuid>","action":"ready|recheck|review"}]}
+{"version":1,"tasks":[{"id":"<uuid>","action":"ready"},{"id":"<uuid>","action":"recheck|review","commentWatermark":"<ISO timestamp|null>"}]}
 ```
 
 Only IDs classified in memory by `ready-tasks.ts` are serialized. Titles and
 other presentation fields are deliberately absent, so multiline task content
-cannot add executable queue entries.
+cannot add executable queue entries. Before execution, `claim-fixall-task.ts`
+posts each structured claim to the authenticated atomic claim endpoint. One
+conditional update verifies the task is still incomplete, on the web board, in
+the expected status/due state, unchanged since the waiting-task comment
+watermark, and either unassigned or already assigned to Copilot. A conflict
+prints `CLAIM_CONFLICT` and exits 2 without changing the task; success prints
+`CLAIMED` and exits 0.
 
 ### Credential rotation
 
@@ -69,8 +75,10 @@ stores the new token hashed plus AES-256-GCM encrypted, streams it directly to
 both repositories, and deactivates the agent's old tokens only after both writes
 succeed. This is a full identity-token rotation: any other external consumer of
 an old `copilot@astrid.cc` token must move to the new managed secret.
-Concurrent rotations are serialized by a PostgreSQL advisory lock held across
-both GitHub writes and retirement.
+Concurrent rotations are serialized by a PostgreSQL session advisory lock held
+across durable activation, both GitHub writes, and retirement. If propagation,
+retirement, or the lock-holding transaction fails, a fresh transaction ensures
+the staged token remains active before the command exits.
 
 ```bash
 npm run credentials:rotate-fixall-mcp -- \

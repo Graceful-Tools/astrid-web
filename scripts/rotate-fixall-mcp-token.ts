@@ -7,6 +7,7 @@ import {
   FIXALL_AGENT_EMAIL,
   FIXALL_REPOSITORIES,
   parseFixallMcpRotationOptions,
+  recoverActiveStagedToken,
   runSerializedFixallMcpRotation,
   validateFixallAgent,
 } from "./lib/fixall-mcp-rotation"
@@ -84,58 +85,63 @@ async function main() {
       select: { id: true },
     })
 
-    let propagationError: unknown
-    const deactivatedCount = await prisma.$transaction(async tx => {
-      let count = 0
-      try {
-        count = await runSerializedFixallMcpRotation(
+    const ensureStagedTokenActive = async () => {
+      await prisma.$transaction(async recovery => {
+        await recovery.mCPToken.update({
+          where: { id: stagedToken.id },
+          data: { isActive: true },
+        })
+      })
+    }
+
+    let githubPropagationStarted = false
+    const deactivatedCount = await recoverActiveStagedToken(
+      () => prisma.$transaction(async lockConnection => {
+        return runSerializedFixallMcpRotation(
           plaintext,
           async operation => {
-            // Transaction-scoped lock serializes every rotation through both
-            // GitHub writes and retirement, not merely the database updates.
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(730251, 1)`
-            return operation()
+            // A session lock, held by this pinned transaction connection,
+            // serializes durable activation, both GitHub writes, and retirement.
+            await lockConnection.$queryRaw`SELECT pg_advisory_lock(730251, 1)`
+            try {
+              return await operation()
+            } finally {
+              await lockConnection.$queryRaw`SELECT pg_advisory_unlock(730251, 1)`
+            }
           },
-          async () => {
-            await tx.mCPToken.update({
-              where: { id: stagedToken.id },
-              data: { isActive: true },
-            })
-          },
+          ensureStagedTokenActive,
           async (repository, token) => {
+            githubPropagationStarted = true
             await runGh(["secret", "set", "ASTRID_MCP_TOKEN", "--repo", repository], token)
             console.log(`Updated ASTRID_MCP_TOKEN for ${repository}`)
           },
           async () => {
-            const deactivated = await tx.mCPToken.updateMany({
-              where: {
-                userId: agent.id,
-                isActive: true,
-                id: { not: stagedToken.id },
-              },
-              data: { isActive: false },
+            const deactivated = await prisma.$transaction(async retirement => {
+              return retirement.mCPToken.updateMany({
+                where: {
+                  userId: agent.id,
+                  isActive: true,
+                  id: { not: stagedToken.id },
+                },
+                data: { isActive: false },
+              })
             })
             return deactivated.count
           },
         )
-      } catch (error) {
-        // Commit the staged token as active on partial GitHub propagation.
-        // A rerun can then converge both repositories without invalidating one
-        // that already received this value.
-        propagationError = error
+      }, {
+        maxWait: 300_000,
+        timeout: 300_000,
+      }),
+      ensureStagedTokenActive,
+    ).catch(error => {
+      if (githubPropagationStarted) {
+        console.error(
+          "GitHub propagation or retirement was incomplete. A fresh recovery transaction kept the published staged token active; rerun the command to converge both repositories.",
+        )
       }
-      return count
-    }, {
-      maxWait: 300_000,
-      timeout: 300_000,
+      throw error
     })
-
-    if (propagationError) {
-      console.error(
-        "GitHub propagation was incomplete. The staged token remains active so any successful repository update stays valid; rerun the command to converge both repositories.",
-      )
-      throw propagationError
-    }
 
     console.log(`Rotation complete; deactivated ${deactivatedCount} superseded agent token(s).`)
   } finally {

@@ -87,3 +87,17 @@ export async function runSerializedFixallMcpRotation(
     )
   })
 }
+
+export async function recoverActiveStagedToken<T>(
+  operation: () => Promise<T>,
+  ensureStagedTokenActive: () => Promise<void>,
+): Promise<T> {
+  try {
+    return await operation()
+  } catch (error) {
+    // Recovery is deliberately a separate transaction supplied by the caller,
+    // so a failed retirement/commit cannot roll this activation back.
+    await ensureStagedTokenActive()
+    throw error
+  }
+}
