@@ -77,10 +77,11 @@ test, but it must ship with focused regression coverage and edge-case tests.
 
 ### 4. Verify and report
 
-Run the repository's required quality gates after implementation. Do not skip,
-mute, or rewrite a failing test to make it pass; identify and fix the cause.
-For user-visible flows, add or run an integration/E2E or UI test when a focused
-unit test cannot prove the behavior.
+Use the smallest targeted test while iterating, then run the repository's
+required final quality gate after implementation. Do not skip, mute, or rewrite
+a failing test to make it pass; identify and fix the cause. For user-visible
+flows, add or run an integration/E2E or UI test when a focused unit test cannot
+prove the behavior. Do not present a targeted pass as the final quality gate.
 
 Post a completion comment to the Astrid task with the behavior changed, tests
 run, and any follow-up risk. Mark it complete only after the quality gates pass
