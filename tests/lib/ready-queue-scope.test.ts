@@ -138,19 +138,26 @@ describe('resolveReadyQueueOptions', () => {
     expect(resolveReadyQueueOptions(
       ['--harness', 'github-copilot'],
       { ASTRID_FIXALL_HARNESS: 'claude-code' },
-    )).toEqual({ board: 'web', harness: 'github-copilot', dryRun: false })
+    )).toEqual({ board: 'web', harness: 'github-copilot', dryRun: false, format: 'human' })
 
     expect(resolveReadyQueueOptions(
       ['ios', '--harness=codex'],
       {},
-    )).toEqual({ board: 'ios', harness: 'codex', dryRun: false })
+    )).toEqual({ board: 'ios', harness: 'codex', dryRun: false, format: 'human' })
   })
 
   it('uses ASTRID_FIXALL_HARNESS when the CLI selector is absent', () => {
     expect(resolveReadyQueueOptions(
       ['ios'],
       { ASTRID_FIXALL_HARNESS: 'astrid-server' },
-    )).toEqual({ board: 'ios', harness: 'astrid-server', dryRun: false })
+    )).toEqual({ board: 'ios', harness: 'astrid-server', dryRun: false, format: 'human' })
+  })
+
+  it('enables authoritative JSON output explicitly', () => {
+    expect(resolveReadyQueueOptions(
+      ['--json', '--harness', 'github-copilot'],
+      {},
+    ).format).toBe('json')
   })
 
   it('rejects unknown boards and extra positional arguments rather than widening scope', () => {

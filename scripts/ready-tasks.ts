@@ -29,6 +29,7 @@
  * can stop without parsing anything.
  *
  *   npx tsx scripts/ready-tasks.ts --harness github-copilot
+ *   npx tsx scripts/ready-tasks.ts --json --harness github-copilot
  */
 
 // `export {}` makes this a module. Without it the file shares the global
@@ -57,6 +58,7 @@ import {
   type StatusRoleTask,
 } from "@/lib/ready-queue-scope"
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
+import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 
 const BOARD_LIST_NAMES = {
   web: "Astrid Web To-do",
@@ -87,6 +89,7 @@ function loadOptions() {
 }
 const options = loadOptions()
 const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
+const report = options.format === 'json' ? console.error : console.log
 
 type QueueTask = AssignableTask & StatusRoleTask & SchedulableTask & {
   id: string
@@ -157,7 +160,7 @@ async function main() {
   // loop would report a clean run. Say it rather than quietly working a subset.
   const total = tasksBody?.meta?.total
   if (typeof total === "number" && total > all.length) {
-    console.log(`(⚠️  board has ${total} open tasks; only the first ${all.length} were read)`)
+    report(`(⚠️  board has ${total} open tasks; only the first ${all.length} were read)`)
   }
 
   const now = new Date()
@@ -179,7 +182,7 @@ async function main() {
   // until its date; a Waiting task whose condition is met comes back. Both
   // moves are logged here and commented on the task, and both touch ONLY
   // tasks this harness may claim — a person's tasks are theirs to move.
-  const api = new SweepApi(auth, options.dryRun)
+  const api = new SweepApi(auth, options.dryRun, report)
 
   const mine: QueueTask[] = []
   for (const task of claimable) {
@@ -189,7 +192,7 @@ async function main() {
         task,
         `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. The loop returns it to Ready when the date arrives.`,
       )
-      console.log(`→ parked "${task.title}" in Waiting [due ${describeSchedule(task, now)}]`)
+      report(`→ parked "${task.title}" in Waiting [due ${describeSchedule(task, now)}]`)
     } else {
       mine.push(task)
     }
@@ -197,12 +200,14 @@ async function main() {
 
   // Waiting tasks the loop owns: re-check each one's condition this run.
   const held: Array<{ task: QueueTask; when: string }> = []
-  const recheck: Array<{ task: QueueTask; condition: string }> = []
-  const review: QueueTask[] = []
+  const recheck: Array<{ task: QueueTask; condition: string; commentWatermark: string | null }> = []
+  const review: Array<{ task: QueueTask; commentWatermark: string | null }> = []
   const blocked: Array<{ task: QueueTask; on: string[] }> = []
 
   for (const task of waiting.filter(t => isClaimableByAgent(t, options.harness))) {
-    const conditions = parseBlockedConditions(await api.comments(task))
+    const comments = await api.comments(task)
+    const conditions = parseBlockedConditions(comments)
+    const commentWatermark = latestCommentWatermark(comments)
     let disposition = classifyWaitingTask({
       dueDateTime: task.dueDateTime,
       now,
@@ -229,15 +234,30 @@ async function main() {
     if (disposition === 'hold') {
       held.push({ task, when: describeSchedule(task, now) })
     } else if (disposition === 'recheck') {
-      recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)' })
+      recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)', commentWatermark })
     } else if (disposition === 'promote') {
       await api.setStatus(task, READY_STATUS_ROLE)
       await api.comment(task, '⏰ Condition met (date arrived / blockers completed) — back to Ready.')
-      console.log(`→ promoted "${task.title}" to Ready`)
+      report(`→ promoted "${task.title}" to Ready`)
       mine.push(task)
     } else {
-      review.push(task)
+      review.push({ task, commentWatermark })
     }
+  }
+
+  // Priority high → low, then oldest first — the order /fixall works them in.
+  const queue = [...mine].sort((a, b) => {
+    if ((b.priority ?? 0) !== (a.priority ?? 0)) return (b.priority ?? 0) - (a.priority ?? 0)
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+
+  if (options.format === 'json') {
+    console.log(serializeReadyTaskQueue({
+      ready: queue,
+      recheck: recheck.map(item => ({ id: item.task.id, commentWatermark: item.commentWatermark })),
+      review: review.map(item => ({ id: item.task.id, commentWatermark: item.commentWatermark })),
+    }))
+    return
   }
 
   // A queue held up by work the loop may not take must not look like an idle one.
@@ -284,7 +304,7 @@ async function main() {
 
   if (review.length > 0) {
     console.log(`REVIEW (${review.length}) — Waiting with NO recorded condition; give each a date, a BLOCKED-BY/BLOCKED-ON, or hand it back:`)
-    for (const task of review) {
+    for (const { task } of review) {
       console.log(`  ${task.id}  ${task.title}`)
     }
   }
@@ -297,12 +317,6 @@ async function main() {
     }
     return
   }
-
-  // Priority high → low, then oldest first — the order /fixall works them in.
-  const queue = [...mine].sort((a, b) => {
-    if ((b.priority ?? 0) !== (a.priority ?? 0)) return (b.priority ?? 0) - (a.priority ?? 0)
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  })
 
   console.log(`READY (${queue.length}):`)
   for (const task of queue) {
@@ -321,6 +335,7 @@ class SweepApi {
   constructor(
     private readonly auth: Record<string, string>,
     private readonly dryRun: boolean,
+    private readonly report: (...args: unknown[]) => void,
   ) {}
 
   async setStatus(task: { id: string }, statusRole: string): Promise<void> {
@@ -331,7 +346,7 @@ class SweepApi {
       body: JSON.stringify({ statusRole }),
     })
     if (!response.ok) {
-      console.log(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
+      this.report(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
     }
   }
 
@@ -343,11 +358,15 @@ class SweepApi {
       body: JSON.stringify({ content }),
     })
     if (!response.ok) {
-      console.log(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)
+      this.report(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)
     }
   }
 
-  async comments(task: { id: string }): Promise<Array<{ content?: string | null; createdAt?: string | null }>> {
+  async comments(task: { id: string }): Promise<Array<{
+    content?: string | null
+    createdAt?: string | null
+    updatedAt?: string | null
+  }>> {
     const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}/comments`, { headers: this.auth })
     if (!response.ok) return []
     const body = await response.json()
@@ -368,6 +387,16 @@ class SweepApi {
     }
     return open
   }
+}
+
+function latestCommentWatermark(
+  comments: Array<{ createdAt?: string | null; updatedAt?: string | null }>,
+): string | null {
+  const timestamps = comments
+    .flatMap(comment => [comment.createdAt, comment.updatedAt])
+    .filter((value): value is string => !!value && !Number.isNaN(Date.parse(value)))
+    .sort()
+  return timestamps.at(-1) ?? null
 }
 
 /** Soonest first, so the next thing to come due is the first thing listed. */

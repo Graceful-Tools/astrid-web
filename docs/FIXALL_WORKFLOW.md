@@ -65,6 +65,13 @@ The sweep is a feature of `scripts/ready-tasks.ts` (OAuth API, never the DB), no
 queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness claude-code` runs it, and
 `--dry-run` prints every move it would make without writing anything. Run it at the top of a
 loop when the board looks stale; the MCP `get_agent_queue` call is still how the work is read.
+GitHub Actions consumes the authoritative machine form,
+`scripts/ready-tasks.ts <web|ios> --json --harness <selector> [--dry-run]`, whose stdout is
+`{"version":1,"tasks":[{"id":"<uuid>","action":"ready"},{"id":"<uuid>",
+"action":"recheck|review","commentWatermark":"<ISO timestamp|null>"}]}`. Task titles are
+excluded so presentation text can never become an executable task ID. A worker must atomically
+revalidate the action, board, status, due state, completion, assignee, and waiting-comment
+watermark before claiming; a stale queue entry is skipped, never reassigned.
 
 ### A task with a date waits for its date — in Waiting
 

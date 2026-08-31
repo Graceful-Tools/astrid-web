@@ -110,6 +110,7 @@
     "setup:ios-oauth": "tsx --env-file=.env.local scripts/setup-ios-oauth.ts",
     "setup:astrid-config": "tsx scripts/setup-astrid-config.ts",
     "setup:astrid-config:force": "tsx scripts/setup-astrid-config.ts --force",
+    "credentials:rotate-fixall-mcp": "tsx scripts/rotate-fixall-mcp-token.ts",
     "predeploy:dry": "tsx scripts/predeploy-self-healing.ts --dry",
     "predeploy:ci": "tsx scripts/predeploy-self-healing.ts --ci",
     "deploy:canary": "tsx scripts/deploy-canary.ts",
