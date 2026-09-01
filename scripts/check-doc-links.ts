@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, extname, join, resolve } from 'node:path'
+import { dirname, extname, join, relative, resolve } from 'node:path'
 
 const root = process.cwd()
 const docsRoot = join(root, 'docs')
@@ -26,12 +26,11 @@ const files = [
     .map(name => join(root, name)),
   ...markdownFiles(docsRoot),
 ]
+const activeFiles = files.filter(file => !file.startsWith(join(docsRoot, 'templates')))
 
 const problems: string[] = []
 
-for (const file of files) {
-  if (file.startsWith(join(docsRoot, 'templates'))) continue
-
+for (const file of activeFiles) {
   const source = readFileSync(file, 'utf8')
   const destinations = [
     ...source.matchAll(/!?\[[^\]]*]\((<[^>]+>|[^)\s]+)(?:\s+["'][^"']*["'])?\)/g),
@@ -54,6 +53,70 @@ for (const file of files) {
     if (!existsSync(target)) {
       problems.push(
         `${file.slice(root.length + 1)} -> ${destination}`,
+      )
+    }
+  }
+
+  const documentationOwners = [
+    {
+      domain: 'Architecture',
+      path: join(docsRoot, 'ARCHITECTURE.md'),
+      heading: '# Astrid Architecture',
+      indexLink: '(./ARCHITECTURE.md)',
+    },
+    {
+      domain: 'Local operations',
+      path: join(docsRoot, 'CLI_OPERATIONS.md'),
+      heading: '# Local CLI Operations — Astrid Web',
+      indexLink: '(./CLI_OPERATIONS.md)',
+    },
+    {
+      domain: 'API contracts',
+      path: join(docsRoot, 'API_CONTRACT.md'),
+      heading: '# Astrid API Contract',
+      indexLink: '(./API_CONTRACT.md)',
+    },
+    {
+      domain: 'Testing',
+      path: join(docsRoot, 'context/testing.md'),
+      heading: '# Testing Strategy',
+      indexLink: '(./context/testing.md)',
+    },
+    {
+      domain: 'Security',
+      path: join(root, 'SECURITY.md'),
+      heading: '# Security Policy',
+      indexLink: '(../SECURITY.md)',
+    },
+    {
+      domain: 'Product behavior',
+      path: join(docsRoot, 'PRODUCT_CONTRACT.md'),
+      heading: '# Product Contract — shared behavior & copy across Web and iOS/Mac',
+      indexLink: '(./PRODUCT_CONTRACT.md)',
+    },
+  ] as const
+
+  const docsIndex = readFileSync(join(docsRoot, 'README.md'), 'utf8')
+  for (const owner of documentationOwners) {
+    const source = readFileSync(owner.path, 'utf8')
+    if (!source.startsWith(`${owner.heading}\n`)) {
+      problems.push(
+        `${relative(root, owner.path)} -> ${owner.domain} owner must start with "${owner.heading}"`,
+      )
+    }
+
+    const headingOwners = activeFiles.filter(file =>
+      readFileSync(file, 'utf8').split(/\r?\n/).includes(owner.heading),
+    )
+    if (headingOwners.length !== 1 || headingOwners[0] !== owner.path) {
+      problems.push(
+        `${owner.domain} authoritative heading must occur only in ${relative(root, owner.path)}`,
+      )
+    }
+
+    if (!docsIndex.includes(owner.indexLink)) {
+      problems.push(
+        `docs/README.md -> missing ${owner.domain} owner link ${owner.indexLink}`,
       )
     }
   }
@@ -97,5 +160,5 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`- ${problem}`)
   process.exitCode = 1
 } else {
-  console.log(`Documentation links and stack versions valid across ${files.length} active Markdown files.`)
+  console.log(`Documentation links, owners, headings, and stack versions valid across ${activeFiles.length} active Markdown files.`)
 }

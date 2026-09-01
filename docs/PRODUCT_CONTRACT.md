@@ -4,9 +4,9 @@
 web app (this repo) and the Apple app ([astrid-ios](https://github.com/Graceful-Tools/astrid-ios))
 must honor, so the two platforms don't drift.*
 
-Status: **v1** (2026-07-25). Companion to
-[docs/CODE_REUSE_AND_CONSISTENCY.md](./CODE_REUSE_AND_CONSISTENCY.md) (§5 Phase 3).
-API shapes live in [docs/context/api_contracts.md](./context/api_contracts.md);
+Status: **active**. Companion to
+[docs/CODE_REUSE_AND_CONSISTENCY.md](./CODE_REUSE_AND_CONSISTENCY.md).
+API shapes live in [docs/API_CONTRACT.md](./API_CONTRACT.md);
 this file governs *behavioral rules* and *copy*, not wire formats.
 
 > Rule of thumb: if a change alters **who can do what** or **what words the user
@@ -92,13 +92,10 @@ Registry of shared strings that already exist on both (extend as consolidated):
 | Delete task | `tasks.deleteTask` | `tasks.delete_task` | |
 | Task name | `tasks.taskName` | `tasks.task_name` | |
 | Description | `tasks.taskDescription` | `tasks.description` | **name mismatch** — reconcile |
-| Add-task input placeholder | *(missing — hardcoded)* | `tasks.add_task_placeholder` | **Web gap** — Reuse Phase 2 adds `tasks.addTaskPlaceholder` mirroring this |
+| Add-task input placeholder | `tasks.addTaskPlaceholder` | `tasks.add_task_placeholder` | |
 | My Tasks (nav) | `listHeaders.myTasks` | `navigation.my_tasks` | **group mismatch** — reconcile |
 
-Known reconciliation items (surfaced by building this registry):
-- **Web has no add-task placeholder key** — 6+ hardcoded English strings across 3
-  components. Reuse Phase 2 introduces `tasks.addTaskPlaceholder` mirroring iOS's
-  `tasks.add_task_placeholder`.
+Known reconciliation items:
 - **`description` / `taskDescription`** and **`myTasks` group** differ beyond
   casing — pick one canonical wording per row when the string is next touched.
 
@@ -297,5 +294,5 @@ not a tidy-up.
 
 ---
 
-*Governs shared behavior, layout + copy. Wire formats: docs/context/api_contracts.md.
-Reuse mechanics & rollout: docs/CODE_REUSE_AND_CONSISTENCY.md.*
+*Governs shared behavior, layout + copy. Wire formats: docs/API_CONTRACT.md.
+Reuse mechanics: docs/CODE_REUSE_AND_CONSISTENCY.md.*

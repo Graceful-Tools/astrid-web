@@ -1,6 +1,25 @@
 # Astrid Documentation
 
-This directory contains all technical documentation for the Astrid task management system.
+This directory contains the active technical documentation for Astrid. Historical
+snapshots live under `archive/` and are not current operating instructions.
+
+## Authoritative documentation owners
+
+Each mutable domain has one owner. Other active documents should link to that owner
+instead of restating values, commands, or policy.
+
+| Domain | Authoritative owner | Scope |
+|---|---|---|
+| Architecture | [Architecture](./ARCHITECTURE.md) | Current system boundaries and runtime design |
+| Local operations | [CLI operations](./CLI_OPERATIONS.md) | Deploy, quality-gate, OAuth, and task-management commands |
+| API contracts | [API contract](./API_CONTRACT.md) | Stable external and mobile wire contract |
+| Testing | [Testing strategy](./context/testing.md) | Test policy, locations, and selection |
+| Security | [Security policy](../SECURITY.md) | Reporting policy and repository-wide security requirements |
+| Product behavior | [Product contract](./PRODUCT_CONTRACT.md) | Cross-platform permissions, behavior, and shared copy |
+
+`package.json`, workflow files, Prisma schema, and code remain the executable sources
+of truth. Documentation checks validate links, canonical headings, index ownership,
+and stack versions with `npm run check:docs`.
 
 ## 📚 Documentation Index
 
@@ -47,7 +66,7 @@ This directory contains all technical documentation for the Astrid task manageme
 
 ### 🏛️ System Context
 - **[Stack Overview](./context/stack.md)** - Technology stack and dependencies
-- **[API Contracts](./context/api_contracts.md)** - API documentation and contracts
+- **[Active Script Inventory](./SCRIPT_INVENTORY.md)** - Reproducible ownership/caller classification for top-level scripts
 - **[Conventions](./context/conventions.md)** - Code and naming conventions
 - **[Quick Reference](./context/quick-reference.md)** - Common commands and patterns
 - **[Testing Strategy](./context/testing.md)** - Testing approach and tools
@@ -58,7 +77,7 @@ This directory contains all technical documentation for the Astrid task manageme
 
 ### 💬 Chat & Messaging
 - **[iOS Chat API Spec](./ios/IOS_CHAT_API_SPEC.md)** - Full chat API integration spec for iOS (channels, messages, attachments, typing indicators)
-- **[API Contract](./API_CONTRACT.md)** - Mobile API contract including chat endpoints and SSE events
+- **[API Contract](./API_CONTRACT.md)** - Authoritative mobile/external API contract, including chat endpoints and SSE events
 
 ### 📱 Related: iOS App
 The native iOS app is maintained in a separate repository:
@@ -66,6 +85,8 @@ The native iOS app is maintained in a separate repository:
 - **iOS Documentation:** See the iOS repository for development guides and architecture
 
 ### 🔒 Security & Files
+- **[Security Policy](../SECURITY.md)** - Vulnerability reporting and engineering requirements
+- **[Authentication System](./AUTHENTICATION.md)** - Authentication-specific implementation details
 
 ### 🤖 AI Prompts
 - **[Planning Mode](./prompts/01-plan.md)** - AI planning prompts
@@ -118,30 +139,5 @@ The `archive/` directory contains historical documentation preserved for referen
 ### For Testing MCP Integration
 1. Review [MCP Testing Guide](./testing/MCP_TESTING_GUIDE.md)
 2. Test with the interactive web UI at `/settings/mcp-testing`
-
-## 📋 System Status
-
-**Current System Features:**
-- ✅ **Chat Messaging** - Per-list and My Tasks channels with real-time SSE, file attachments, @mentions
-- ✅ **Astrid AI Assistant** - Built-in agent with chat history, task context, file reading, and API tool access
-- ✅ **Agent Typing Indicators** - Real-time "thinking..." indicators via SSE for both web and iOS
-- ✅ **Simplified AI Agent System** - Single coding agent (removed the Astrid Alpha / Gemini *agent* personas; the Gemini API key option remains — see Multi-AI Support below)
-- ✅ **Token-Level MCP Permissions** - Simplified access control at token provisioning level
-- ✅ **GitHub Integration** - Full coding agent with PR workflows
-- ✅ **Multi-AI Support** - Claude, OpenAI, Gemini, and GitHub Copilot APIs
-- ✅ **Production Ready** - All migrations deployed and tested
-
-**Documentation Status:** ✅ **Up to Date** (Last reviewed: 2026-04-11)
-**Documentation Organization:** ✅ **Cleaned and Organized** - Root directory reserved for AI agent contexts only
-**Root Directory:** CLAUDE.md, CODEX.md, GEMINI.md, ASTRID.md, README.md (AI agent operational contexts)
-
-**Recent Updates (2026-04-11 - Documentation Audit & Cleanup):**
-- Archived `MVC_ARCHITECTURE.md` (described unimplemented pattern) and `LOCAL_FIRST_PATTERN.md` (iOS-only, belongs in astrid-ios repo)
-- Archived 4 OpenClaw spec docs (superseded by Agent Architecture Simplification)
-- Fixed stale GPT-5-CODEX.md reference (now CODEX.md)
-- Removed `claude-agent-worker.ts` references from CLAUDE.md (replaced by Astrid SDK)
-- Verified: ARCHITECTURE.md, AUTHENTICATION.md, LAYOUT_SYSTEM.md, OFFLINE_MODE.md, DATE_HANDLING_SPECIFICATION.md all match implementation
-
----
 
 *For questions or documentation updates, please create an issue or reach out to the development team.*
