@@ -15,6 +15,9 @@ import type { User, Comment } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { commentDrafts, type CommentDraft } from "@/lib/comment-attachments"
 import { unwrapComment } from "@/lib/v1-response"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("comment-posting")
 
 export interface PendingComment {
   tempId: string
@@ -148,7 +151,7 @@ export async function postPendingComments(
       handlers.replace(tempId, serverComment)
     }
   } catch (error) {
-    console.error("Error adding comment:", error)
+    log.error({ err: error }, "Error adding comment")
     handlers.remove(pending.slice(sent).map(p => p.tempId))
     // The caption rides only the first comment, so it is lost only if that one failed.
     handlers.restore(sent === 0 ? originalText : null, files.slice(sent))

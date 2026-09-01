@@ -264,7 +264,7 @@ class DataSyncManagerClass {
         {
           const tasks: Task[] = paged.items
           if (paged.truncated) {
-            console.warn('[DataSync] task page cap hit — cache may be incomplete')
+            log.warn({ taskCount: tasks.length }, 'Task page cap hit; cache may be incomplete')
           }
 
           await CacheManager.setTasks(tasks, true)
