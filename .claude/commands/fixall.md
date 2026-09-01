@@ -21,15 +21,25 @@ TDD → gates → report), filing the other repo's half, and re-checking after e
 That file is shared with astrid-ios because it is one workflow. This file holds only what is
 different **here**.
 
-Pull the queue with:
+Pull the queue with the identity of the harness that is actually running this
+command:
 
 ```bash
-get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }   # astrid MCP tool, not a script
-# (scripts/ready-tasks.ts web --harness claude-code is for debugging the predicates only; never the DB)
+# GitHub Copilot CLI / Copilot app
+get_agent_queue { agent: "copilot", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }
+
+# Claude Code
+get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }
+
+# Queue debugging only (never use the DB):
+# Copilot:    scripts/ready-tasks.ts web --harness github-copilot
+# Claude Code: scripts/ready-tasks.ts web --harness claude-code
 ```
 
-(`agent` never defaults — guessing would claim another harness's work. Only tasks ASSIGNED to
-claude are returned; unassigned Ready tasks are someone's untriaged note.)
+`agent` never defaults: identify the current runtime, then pass its matching mailbox.
+Copilot must not poll Claude's assignments, and Claude Code must not poll Copilot's.
+Only tasks assigned to that selected identity are returned; unassigned Ready tasks are
+someone's untriaged note.
 
 ## What is different here
 
