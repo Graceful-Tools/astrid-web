@@ -7,8 +7,7 @@ import { useTaskManagerController } from "@/hooks/useTaskManagerController"
 import { useTaskManagerLayout } from "@/hooks/useTaskManagerLayout"
 import { useTaskManagerModals } from "@/hooks/useTaskManagerModals"
 import { ReminderProvider } from "@/components/reminder-provider"
-import { ImagePicker } from "@/components/image-picker"
-import { OwnerLeaveDialog } from "@/components/owner-leave-dialog"
+import { LazyImagePicker, LazyOwnerLeaveDialog } from "@/components/TaskManager/lazy-panels"
 import { TaskManagerView } from "./TaskManagerView"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -450,14 +449,7 @@ export function TaskManager({
       handleQuickTaskKeyDown={handleQuickTaskKeyDown}
       handleAddTaskButtonClick={handleAddTaskButtonClick}
 
-      // Image picker props
-      showImagePicker={controller.showImagePicker}
-      selectedListForImagePicker={controller.selectedListForImagePicker}
-
-      // Image picker handlers
       handleListImageClick={controller.handleListImageClick}
-      handleImagePickerSelect={controller.handleImagePickerSelect}
-      handleImagePickerCancel={controller.handleImagePickerCancel}
 
       // Keyboard shortcut handlers
       handleSelectNextTask={controller.handleSelectNextTask}
@@ -520,7 +512,7 @@ export function TaskManager({
       {/* Image Picker Modal */}
       {controller.showImagePicker && controller.selectedListForImagePicker && typeof window !== 'undefined' && createPortal((
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <ImagePicker
+          <LazyImagePicker
             currentImageUrl={controller.selectedListForImagePicker.imageUrl || undefined}
             onSelectImage={controller.handleImagePickerSelect}
             onCancel={controller.handleImagePickerCancel}
@@ -532,7 +524,7 @@ export function TaskManager({
 
       {/* Owner Leave Dialog - for transferring ownership */}
       {showOwnerLeaveDialog && listToLeave && controller.effectiveSession?.user && (
-        <OwnerLeaveDialog
+        <LazyOwnerLeaveDialog
           list={listToLeave}
           members={dialogMembers}
           currentUser={controller.effectiveSession.user}

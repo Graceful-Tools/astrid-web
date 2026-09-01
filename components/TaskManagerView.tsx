@@ -5,24 +5,24 @@ import React, { memo } from "react"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
-import { OwnerLeaveDialog } from "./owner-leave-dialog"
-import { AddListModal } from "./add-list-modal"
-import { PublicListsBrowser } from "./public-lists-browser"
 import { LoadingScreen } from "./loading-screen"
-import { ImagePicker } from "./image-picker"
-import { TaskDetail } from "./task-detail"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Copy } from "lucide-react"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 import { AddTaskInput } from "./add-task-input"
-import { KeyboardShortcutsMenu } from "./keyboard-shortcuts-menu"
-import { CommandPaletteDialog } from "./command-palette-dialog"
-import { ChatPanel } from "./chat/ChatPanel"
 import { ChatToggle } from "./chat/ChatToggle"
-import SettingsPanel from "./Settings/SettingsPanel"
-import SettingsDetailPanel from "./Settings/SettingsDetailPanel"
+import {
+  LazyAddListModal,
+  LazyChatPanel,
+  LazyCommandPaletteDialog,
+  LazyKeyboardShortcutsMenu,
+  LazyPublicListsBrowser,
+  LazySettingsDetailPanel,
+  LazySettingsPanel,
+  LazyTaskDetail,
+} from "./TaskManager/lazy-panels"
 import { getProjectIdForBoard } from "@/lib/project-status"
 import { didEnterBoardMode } from "@/lib/board-mode-transition"
 import type { Task, TaskList, User } from "@/types/task"
@@ -33,8 +33,11 @@ import { canUserEditTask, canUserManageList } from "@/lib/list-permissions"
 import { isCollaborativePublicTask } from "@/lib/public-list-utils"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
+import type { useFilterState } from "@/hooks/useFilterState"
+import type { TaskDisplayMode } from "@/lib/task-display-mode"
+import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
-interface TaskManagerViewProps {
+export interface TaskManagerViewModel {
   // Data from controller
   tasks: Task[]
   lists: TaskList[]
@@ -49,8 +52,8 @@ interface TaskManagerViewProps {
   finalFilteredTasks: Task[]
   availableUsers: User[]
   isSessionReady: boolean
-  effectiveSession: any
-  newFilterState: any
+  effectiveSession: TaskManagerControllerReturn['effectiveSession']
+  newFilterState: ReturnType<typeof useFilterState>
   isViewingFromFeatured: boolean
 
   // Unified navigation
@@ -169,7 +172,7 @@ interface TaskManagerViewProps {
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => void
   handleUpdateTask: (task: Task) => void
   /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
-  taskDisplayMode: string
+  taskDisplayMode: TaskDisplayMode
   handleLocalUpdateTask: (task: Task) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
@@ -209,12 +212,8 @@ interface TaskManagerViewProps {
   handleQuickTaskKeyDown: (e: React.KeyboardEvent) => void
   handleAddTaskButtonClick: () => void
 
-  // Image picker handlers
+  // List image handler
   handleListImageClick: (listId: string) => void
-  handleImagePickerSelect: (imageUrl: string, type: 'placeholder' | 'custom' | 'generated') => void
-  handleImagePickerCancel: () => void
-  showImagePicker: boolean
-  selectedListForImagePicker: TaskList | null
 
   // Keyboard shortcut handlers
   handleSelectNextTask: () => void
@@ -397,10 +396,6 @@ const TaskManagerView = memo(function TaskManagerView({
   handleQuickTaskKeyDown,
   handleAddTaskButtonClick,
   handleListImageClick,
-  handleImagePickerSelect,
-  handleImagePickerCancel,
-  showImagePicker,
-  selectedListForImagePicker,
   handleSelectNextTask,
   handleSelectPreviousTask,
   handleToggleTaskPanel,
@@ -436,7 +431,7 @@ const TaskManagerView = memo(function TaskManagerView({
   chatListMembers,
   chatListId,
   setLayoutBoardMode,
-}: TaskManagerViewProps) {
+}: TaskManagerViewModel) {
   const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
   const hasProjectBoard = React.useMemo(
     () => Boolean(getProjectIdForBoard(lists, selectedListId)),
@@ -848,7 +843,7 @@ const TaskManagerView = memo(function TaskManagerView({
         {layout.mainSurface === 'settings' ? (
           <div className="flex-1 min-h-0 overflow-hidden flex">
             <div className="flex-1 min-w-0 overflow-y-auto scrollbar-hide" ref={taskManagerRef}>
-              <SettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
+              <LazySettingsPanel onNavigate={navigateSettingsWithAnimation} onExit={onExitSettings} />
             </div>
 
             {layout.showSettingsSecondPane && (
@@ -878,7 +873,7 @@ const TaskManagerView = memo(function TaskManagerView({
         ) : layout.mainSurface === 'mobileChat' ? (
           // In mobile and board mode, messages replace the task surface.
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
-            <ChatPanel
+            <LazyChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession?.user}
               listMembers={chatListMembers}
@@ -985,7 +980,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 onClick={dismissActiveOverlay}
               />
             )}
-            <ChatPanel
+            <LazyChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}
               listMembers={chatListMembers}
@@ -1016,7 +1011,7 @@ const TaskManagerView = memo(function TaskManagerView({
           style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
         >
           {settingsSubPage && (
-            <SettingsDetailPanel
+            <LazySettingsDetailPanel
               page={settingsSubPage}
               onNavigate={onNavigateSettings}
               onClose={closeSettingsSubPageAnimated}
@@ -1044,7 +1039,7 @@ const TaskManagerView = memo(function TaskManagerView({
                 canComment stays separate because a member who cannot EDIT a
                 task on a collaborative list can still comment on it — the rule
                 viewonly encoded and the reason it rendered a CommentSection. */}
-            <TaskDetail
+            <LazyTaskDetail
               displayMode={taskDisplayMode}
               task={selectedTask}
               currentUser={effectiveSession.user}
@@ -1067,7 +1062,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* Mobile Settings Detail Pane - full screen */}
       {layout.showMobileSettingsDetailPane && settingsSubPage && (
         <div className="task-panel-mobile task-panel-mobile-open">
-          <SettingsDetailPanel
+          <LazySettingsDetailPanel
             page={settingsSubPage}
             onNavigate={onNavigateSettings}
             onClose={onCloseSettingsSubPage}
@@ -1097,7 +1092,7 @@ const TaskManagerView = memo(function TaskManagerView({
               transition: 'none',
             } : undefined}
           >
-            <TaskDetail
+            <LazyTaskDetail
               displayMode={taskDisplayMode}
               task={selectedTask}
               currentUser={effectiveSession.user}
@@ -1177,7 +1172,7 @@ const TaskManagerView = memo(function TaskManagerView({
 
       {/* Modals */}
       {showAddListModal && (
-        <AddListModal
+        <LazyAddListModal
           onClose={() => setShowAddListModal(false)}
           onCreateList={handleCreateList}
           currentUser={effectiveSession?.user}
@@ -1185,7 +1180,7 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {showPublicBrowser && (
-        <PublicListsBrowser
+        <LazyPublicListsBrowser
           isOpen={showPublicBrowser}
           onClose={() => setShowPublicBrowser(false)}
           onListCopied={handleListCopied}
@@ -1193,19 +1188,23 @@ const TaskManagerView = memo(function TaskManagerView({
       )}
 
       {/* Keyboard Shortcuts Menu */}
-      <KeyboardShortcutsMenu
-        isOpen={showHotkeyMenu}
-        onClose={() => setShowHotkeyMenu(false)}
-      />
+      {showHotkeyMenu && (
+        <LazyKeyboardShortcutsMenu
+          isOpen
+          onClose={() => setShowHotkeyMenu(false)}
+        />
+      )}
 
       {/* Command Palette Dialog */}
-      <CommandPaletteDialog
-        isOpen={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-        onExecuteCommand={handleExecuteCommand}
-        selectedTask={selectedTask}
-        handlers={keyboardShortcutHandlers}
-      />
+      {showCommandPalette && (
+        <LazyCommandPaletteDialog
+          isOpen
+          onClose={() => setShowCommandPalette(false)}
+          onExecuteCommand={handleExecuteCommand}
+          selectedTask={selectedTask}
+          handlers={keyboardShortcutHandlers}
+        />
+      )}
     </div>
   )
 })
