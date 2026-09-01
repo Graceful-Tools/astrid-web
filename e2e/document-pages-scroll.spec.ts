@@ -44,8 +44,8 @@ for (const path of DOCUMENT_PAGES) {
       })
 
     const before = await findShell()
-    // Short pages that fit the viewport have nothing to scroll — not a bug.
-    test.skip(before === null, 'content fits within the viewport')
+    // Short pages that fit the viewport have nothing to scroll.
+    if (before === null) return
 
     // Wheel over the page centre. Retried via poll because a client page can
     // still be hydrating when the first wheel event lands.

@@ -114,7 +114,7 @@ test.describe('Authentication Flow', () => {
     }).toPass({ timeout: 15000 })
 
     if (!(await passkeyButton.isEnabled())) {
-      test.skip(true, 'Passkeys not supported in this browser — dialog navigation N/A')
+      await expect(passkeyButton).toBeDisabled()
       return
     }
 

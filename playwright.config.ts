@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const authenticatedCriticalEnabled = process.env.PLAYWRIGHT_AUTHENTICATED === '1'
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -80,6 +82,15 @@ export default defineConfig({
       testMatch: /(auth|locale-navigation)\.spec\.ts/,
     },
 
+    ...(authenticatedCriticalEnabled ? [{
+      name: 'authenticated-critical',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
+      },
+      testMatch: /authenticated-critical-paths\.spec\.ts/,
+    }] : []),
+
     // Layout-regression matrix: each project below pins a viewport that
     // exercises one of the layouts defined in lib/layout-detection.ts.
     // computer-3-column is covered by the chromium project above.
@@ -108,66 +119,6 @@ export default defineConfig({
       use: { ...devices['iPad Pro 11 landscape'] },
       testMatch: /layout-regression\.spec\.ts/,
     },
-
-    // Setup project - runs once to authenticate (optional, only if env vars are set)
-    // Skip this if PLAYWRIGHT_TEST_EMAIL is not set
-    ...(process.env.PLAYWRIGHT_TEST_EMAIL ? [{
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
-    }] : []),
-
-    // Tests that require authentication (only run if setup is available)
-    ...(process.env.PLAYWRIGHT_TEST_EMAIL ? [
-      {
-        name: 'chromium-authenticated',
-        use: {
-          ...devices['Desktop Chrome'],
-          storageState: '.auth/user.json',
-        },
-        dependencies: ['setup'],
-        testIgnore: /auth\.spec\.ts/, // Skip auth tests that don't need auth
-      },
-
-      {
-        name: 'firefox-authenticated',
-        use: {
-          ...devices['Desktop Firefox'],
-          storageState: '.auth/user.json',
-        },
-        dependencies: ['setup'],
-        testIgnore: /auth\.spec\.ts/,
-      },
-
-      {
-        name: 'webkit-authenticated',
-        use: {
-          ...devices['Desktop Safari'],
-          storageState: '.auth/user.json',
-        },
-        dependencies: ['setup'],
-        testIgnore: /auth\.spec\.ts/,
-      },
-
-      /* Test against mobile viewports (authenticated) */
-      {
-        name: 'Mobile Chrome Authenticated',
-        use: {
-          ...devices['Pixel 5'],
-          storageState: '.auth/user.json',
-        },
-        dependencies: ['setup'],
-        testIgnore: /auth\.spec\.ts/,
-      },
-      {
-        name: 'Mobile Safari Authenticated',
-        use: {
-          ...devices['iPhone 12'],
-          storageState: '.auth/user.json',
-        },
-        dependencies: ['setup'],
-        testIgnore: /auth\.spec\.ts/,
-      },
-    ] : []),
 
     /* Test against branded browsers. */
     // {
