@@ -269,22 +269,33 @@ describe('TaskManagerView', () => {
   })
 
   describe('Keyboard Shortcuts Integration', () => {
-    it('should render keyboard shortcuts menu when showHotkeyMenu is true', () => {
+    it('loads the keyboard shortcuts menu on demand (task e70c3862)', async () => {
       render(<TaskManagerView {...mockProps} showHotkeyMenu={true} />)
 
-      expect(screen.getByTestId('keyboard-shortcuts-menu')).toBeInTheDocument()
+      expect(await screen.findByTestId('keyboard-shortcuts-menu')).toBeInTheDocument()
     })
 
-    it('should not render keyboard shortcuts menu when showHotkeyMenu is false', () => {
-      render(<TaskManagerView {...mockProps} showHotkeyMenu={false} />)
+    it('keeps deferred panels out of the initial task-list paint (task e70c3862)', () => {
+      render(
+        <TaskManagerView
+          {...mockProps}
+          columnCount={1}
+          is1Column
+          is2Column={false}
+          is3Column={false}
+          layoutType="one-column"
+          showHotkeyMenu={false}
+        />,
+      )
 
       expect(screen.queryByTestId('keyboard-shortcuts-menu')).not.toBeInTheDocument()
+      expect(document.querySelector('[data-lazy-panel-loading]')).not.toBeInTheDocument()
     })
 
-    it('should call setShowHotkeyMenu when closing keyboard shortcuts menu', () => {
+    it('should call setShowHotkeyMenu when closing keyboard shortcuts menu', async () => {
       render(<TaskManagerView {...mockProps} showHotkeyMenu={true} />)
 
-      const closeButton = screen.getByText('Close Menu')
+      const closeButton = await screen.findByText('Close Menu')
       fireEvent.click(closeButton)
 
       expect(mockProps.setShowHotkeyMenu).toHaveBeenCalledWith(false)

@@ -107,6 +107,32 @@ beforeEach(() => {
 })
 
 describe('POST /api/v1/tasks — copy-only public lists stay unassigned (task e0613ae5)', () => {
+  it('stays within the list-validation payload budget (task 96127607)', async () => {
+    mockPrisma.taskList.findMany.mockResolvedValue([list({})] as never)
+
+    await POST(req({ title: 'T', listIds: ['list-1'], assigneeId: ASSIGNEE }) as never)
+
+    expect(mockPrisma.taskList.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['list-1'] } },
+      select: {
+        id: true,
+        name: true,
+        ownerId: true,
+        privacy: true,
+        publicListType: true,
+        isVirtual: true,
+        projectId: true,
+        listType: true,
+        listMembers: {
+          select: {
+            userId: true,
+            role: true,
+          },
+        },
+      },
+    })
+  })
+
   it('forces the task unassigned on a copy-only PUBLIC list', async () => {
     mockPrisma.taskList.findMany.mockResolvedValue([
       list({ privacy: 'PUBLIC', publicListType: 'copy' }),
