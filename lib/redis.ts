@@ -207,7 +207,10 @@ export class RedisCache {
     errors: 0,
     sets: 0,
     deletes: 0,
-    patternDeletes: 0
+    patternDeletes: 0,
+    loads: 0,
+    coalesced: 0,
+    loadErrors: 0,
   }
 
   // Get cache metrics
@@ -228,7 +231,10 @@ export class RedisCache {
       errors: 0,
       sets: 0,
       deletes: 0,
-      patternDeletes: 0
+      patternDeletes: 0,
+      loads: 0,
+      coalesced: 0,
+      loadErrors: 0,
     }
   }
 
@@ -365,42 +371,43 @@ export class RedisCache {
     fetchFn: () => Promise<T>, 
     ttl: number = this.defaultTTL
   ): Promise<T> {
-    try {
-      // get() fails silently (returns null) when Redis is down or the circuit
-      // breaker is open, so a separate isRedisAvailable() precheck is redundant
-      // — a miss simply falls through to fetchFn. Dropping it saves a round-trip
-      // on every cached read.
-      const cached = await this.get<T>(key)
-      if (cached !== null) {
-        log.info(`✅ Cache hit: ${key}`)
-        return cached
-      }
+    // get() and set() already isolate Redis failures, so the loader is the only
+    // operation here that can reject. Propagate that rejection once to every
+    // coalesced caller; retrying per caller would recreate the stampede.
+    const cached = await this.get<T>(key)
+    if (cached !== null) {
+      log.debug({ cacheKey: key, outcome: 'hit' }, 'Cache lookup')
+      return cached
+    }
 
-      log.info(`❌ Cache miss: ${key}`)
+    log.debug({ cacheKey: key, outcome: 'miss' }, 'Cache lookup')
 
-      // Coalesce concurrent misses for the same key: the first caller fetches
-      // and caches; the rest await the same in-flight promise instead of each
-      // hitting the database.
-      const existing = this.inFlight.get(key) as Promise<T> | undefined
-      if (existing) {
-        return await existing
-      }
+    // Coalesce concurrent misses for the same key: the first caller fetches
+    // and caches; the rest await the same in-flight promise instead of each
+    // hitting the database.
+    const existing = this.inFlight.get(key) as Promise<T> | undefined
+    if (existing) {
+      this.metrics.coalesced++
+      log.debug({ cacheKey: key, outcome: 'coalesced' }, 'Cache load')
+      return await existing
+    }
 
-      const promise = (async () => {
+    const promise = (async () => {
+      this.metrics.loads++
+      try {
         const data = await fetchFn()
         await this.set(key, data, ttl)
         return data
-      })()
-      this.inFlight.set(key, promise)
-      try {
-        return await promise
-      } finally {
-        this.inFlight.delete(key)
+      } catch (error) {
+        this.metrics.loadErrors++
+        throw error
       }
-    } catch (error) {
-      log.error({ err: error }, 'Redis getOrSet error:')
-      // Fallback to direct fetch if Redis fails
-      return await fetchFn()
+    })()
+    this.inFlight.set(key, promise)
+    try {
+      return await promise
+    } finally {
+      this.inFlight.delete(key)
     }
   }
 

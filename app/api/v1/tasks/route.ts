@@ -353,14 +353,22 @@ export const POST = withAuth(
     if (body.listIds?.length) {
       const lists = await prisma.taskList.findMany({
         where: { id: { in: body.listIds } },
-        include: {
-          owner: { select: { id: true, name: true, email: true, image: true } },
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          privacy: true,
+          publicListType: true,
+          isVirtual: true,
+          projectId: true,
+          listType: true,
           listMembers: {
-            include: {
-              user: { select: { id: true, name: true, email: true, image: true } }
-            }
-          }
-        }
+            select: {
+              userId: true,
+              role: true,
+            },
+          },
+        },
       })
 
       const foundListIds = new Set(lists.map(l => l.id))
