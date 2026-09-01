@@ -49,7 +49,10 @@ const ROOT = process.cwd()
  * issued into one call in the hook. Neither branch could see that on its own —
  * the slack check found it in the merge, which is the case it exists for.
  */
-const CEILING = 122 // 120 → 122: ManageStatusesPanel reorder (PUT) and delete (DELETE)
+const CEILING = 119 // 122 → 119: comment edit/delete now use the canonical client
+                     // so credentials, errors, and offline replay stay centralized
+                     // (task d59a8024)
+// 120 → 122: ManageStatusesPanel reorder (PUT) and delete (DELETE)
                     // added to /api/statuses. This panel uses raw fetch throughout
                     // because it lives behind a settings modal and does not need
                     // offline-queue semantics (task dff92fa5)

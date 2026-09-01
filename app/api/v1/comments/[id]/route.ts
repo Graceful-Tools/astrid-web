@@ -6,12 +6,17 @@
  * DELETE /api/v1/comments/:id - Delete a comment
  */
 
+import type { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
-import type { V1CommentUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
+import {
+  routeIdParamsSchema,
+  v1CommentUpdateRequestSchema,
+} from '@/lib/api-contracts/shared-schemas'
+import { parseJsonBody, parseRouteParams } from '@/lib/api-validation'
+import type { V1ResponseMeta } from '@/lib/api-contracts/v1-ios-shapes'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
-import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
@@ -22,6 +27,30 @@ const log = createLogger('v1.comments.id')
 
 type RouteContext = { params: Promise<{ id: string }> }
 
+const COMMENT_UPDATE_INCLUDE = {
+  author: {
+    select: { id: true, name: true, email: true, image: true },
+  },
+  secureFiles: {
+    select: {
+      id: true,
+      originalName: true,
+      mimeType: true,
+      fileSize: true,
+      createdAt: true,
+    },
+  },
+} satisfies Prisma.CommentInclude
+
+type CommentMutationDto = Prisma.CommentGetPayload<{
+  include: typeof COMMENT_UPDATE_INCLUDE
+}>
+
+interface V1CommentMutationResponse {
+  comment: CommentMutationDto
+  meta: V1ResponseMeta
+}
+
 /**
  * GET /api/v1/comments/:id
  * Get a single comment by ID
@@ -29,7 +58,9 @@ type RouteContext = { params: Promise<{ id: string }> }
 export const GET = withAuth<RouteContext>(
   { scopes: ['comments:read'], tag: 'v1.comments.id' },
   async (_req, auth, { params }) => {
-    const { id } = await params
+    const parsedParams = await parseRouteParams(params, routeIdParamsSchema)
+    if (!parsedParams.ok) return parsedParams.response
+    const { id } = parsedParams.data
 
     const comment = await prisma.comment.findUnique({
       where: { id },
@@ -108,19 +139,12 @@ export const GET = withAuth<RouteContext>(
 export const PUT = withAuth<RouteContext>(
   { scopes: ['comments:write'], tag: 'v1.comments.id' },
   async (req, auth, { params }) => {
-    const { id } = await params
-    const body: V1CommentUpdateRequest = await req.json()
-
-    // Whitespace-only content is rejected and stored content is trimmed, as the
-    // legacy route has always done. v1 checked only for a non-empty string, so
-    // a comment of "   " was accepted and saved. (Task 130508e3.)
-    if (!body.content || typeof body.content !== 'string' || body.content.trim() === '') {
-      return NextResponse.json(
-        { error: 'content is required and must be a string' },
-        { status: 400 }
-      )
-    }
-    const content = body.content.trim()
+    const parsedParams = await parseRouteParams(params, routeIdParamsSchema)
+    if (!parsedParams.ok) return parsedParams.response
+    const { id } = parsedParams.data
+    const parsedBody = await parseJsonBody(req, v1CommentUpdateRequestSchema)
+    if (!parsedBody.ok) return parsedBody.response
+    const { content } = parsedBody.data
 
     // The task and its lists come along because the broadcast below needs the
     // audience — everyone who can see this comment.
@@ -161,20 +185,7 @@ export const PUT = withAuth<RouteContext>(
     const comment = await prisma.comment.update({
       where: { id },
       data: { content, updatedAt: new Date() },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true, image: true }
-        },
-        secureFiles: {
-          select: {
-            id: true,
-            originalName: true,
-            mimeType: true,
-            fileSize: true,
-            createdAt: true
-          }
-        }
-      }
+      include: COMMENT_UPDATE_INCLUDE,
     })
 
     // Tell everyone looking at this task. Without it, an edit made from iOS left
@@ -221,8 +232,13 @@ export const PUT = withAuth<RouteContext>(
     const deprecationWarning = getDeprecationWarning(auth)
     if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
 
+    const responseBody = {
+      comment,
+      meta: { apiVersion: 'v1', authSource: auth.source },
+    } satisfies V1CommentMutationResponse
+
     return NextResponse.json(
-      { comment, meta: { apiVersion: 'v1', authSource: auth.source } },
+      responseBody,
       { headers }
     )
   }
@@ -235,7 +251,9 @@ export const PUT = withAuth<RouteContext>(
 export const DELETE = withAuth<RouteContext>(
   { scopes: ['comments:delete'], tag: 'v1.comments.id' },
   async (req, auth, { params }) => {
-    const { id } = await params
+    const parsedParams = await parseRouteParams(params, routeIdParamsSchema)
+    if (!parsedParams.ok) return parsedParams.response
+    const { id } = parsedParams.data
 
     const existingComment = await prisma.comment.findUnique({
       where: { id },
@@ -299,15 +317,7 @@ export const DELETE = withAuth<RouteContext>(
 
     // Broadcast SSE event for real-time updates
     try {
-      const userIds = new Set<string>()
-
-      for (const list of task.lists) {
-        const listMemberIds = getListMemberIds(list as any)
-        listMemberIds.forEach(userId => userIds.add(userId))
-      }
-
-      if (task.assigneeId) userIds.add(task.assigneeId)
-      if (task.creatorId) userIds.add(task.creatorId)
+      const userIds = commentAudience(task)
       userIds.delete(auth.userId)
 
       if (userIds.size > 0) {
