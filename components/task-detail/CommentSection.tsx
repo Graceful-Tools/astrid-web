@@ -19,6 +19,8 @@ import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { hasExplicitListRole } from "@/lib/list-permissions"
+import { apiDelete, apiPut } from '@/lib/api'
+import type { V1CommentUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 
 // Helper function to display author name/email with fallback for system/deleted users
 function getAuthorDisplay(author: User | null | undefined, isSystemComment: boolean = false): string {
@@ -257,14 +259,7 @@ export function CommentSection({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const response = await fetch(`/api/v1/comments/${commentId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete comment')
-      }
+      await apiDelete(`/api/v1/comments/${commentId}`)
 
       // Optimistically remove the comment from the UI
       // Use onLocalUpdate to avoid triggering full task PUT request
@@ -292,16 +287,10 @@ export function CommentSection({
     const trimmed = content.trim()
     if (!trimmed) return
     try {
-      const response = await fetch(`/api/v1/comments/${commentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: trimmed }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update comment')
-      }
+      await apiPut<V1CommentUpdateRequest>(
+        `/api/v1/comments/${commentId}`,
+        { content: trimmed },
+      )
 
       // Optimistically update the comment (top-level or nested reply)
       // Use onLocalUpdate to avoid triggering full task PUT request
@@ -353,14 +342,7 @@ export function CommentSection({
 
   const handleDeleteReply = async (replyId: string, parentCommentId: string) => {
     try {
-      const response = await fetch(`/api/v1/comments/${replyId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete reply')
-      }
+      await apiDelete(`/api/v1/comments/${replyId}`)
 
       // Optimistically remove the reply from the UI
       // Use onLocalUpdate to avoid triggering full task PUT request
@@ -521,7 +503,6 @@ export function CommentSection({
         </div>
       )
     }
-
     return (
       <MessageBubble
         key={comment.id}
@@ -773,4 +754,3 @@ export function CommentSection({
     </div>
   )
 }
-

@@ -1,3 +1,5 @@
+export type { V1CommentUpdateRequest } from '@/lib/api-contracts/shared-schemas'
+
 /**
  * Canonical iOS-facing REQUEST shapes for /api/v1/* write endpoints.
  *
@@ -218,11 +220,6 @@ export interface V1CommentCreateRequest {
   clientRequestId?: string
   /** Backdating, used when replaying queued offline writes. */
   createdAt?: string
-}
-
-/** PUT /api/v1/comments/:id — author only, and whitespace-only content is rejected. */
-export interface V1CommentUpdateRequest {
-  content: string
 }
 
 // ── Lists ─────────────────────────────────────────────────────────────
