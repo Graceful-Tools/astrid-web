@@ -8,6 +8,60 @@ on:
   workflow_dispatch:
 
 jobs:
+  authenticated-critical:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: astrid_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      CI: true
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+      DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+      NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_AUTH_PUBLIC_URL: http://localhost:3000
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      PLAYWRIGHT_AUTHENTICATED: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Apply migrations
+        run: npm run db:generate && npx prisma migrate deploy
+      - name: Run PostgreSQL integration tier
+        run: npm run test:integration:postgres
+      - name: Enforce staged risk coverage
+        run: npm run test:risk-coverage
+      - name: Build application
+        run: npx next build
+      - name: Provision authenticated state
+        run: npm run playwright:setup:ci-auth
+      - name: Run authenticated critical paths
+        run: npm run test:e2e:authenticated-critical
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report-authenticated-critical
+          path: playwright-report/
+          retention-days: 30
+
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest

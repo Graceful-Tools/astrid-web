@@ -10,11 +10,8 @@ test.describe('Task Completion with Deleted Lists', () => {
   })
 
   test('should handle completing a task after its list is deleted', async ({ page }) => {
-    // Skip if not authenticated
     const currentUrl = page.url()
-    if (currentUrl.includes('signin') || currentUrl.includes('login')) {
-      test.skip()
-    }
+    expect(currentUrl).not.toMatch(/signin|login/)
 
     // Step 1: Create a new list
     const testListName = `Test List ${Date.now()}`
@@ -99,11 +96,8 @@ test.describe('Task Completion with Deleted Lists', () => {
   })
 
   test('should gracefully handle tasks with multiple lists where some are deleted', async ({ page }) => {
-    // Skip if not authenticated
     const currentUrl = page.url()
-    if (currentUrl.includes('signin') || currentUrl.includes('login')) {
-      test.skip()
-    }
+    expect(currentUrl).not.toMatch(/signin|login/)
 
     // Create two lists
     const testList1 = `List One ${Date.now()}`
