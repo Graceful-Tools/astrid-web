@@ -38,10 +38,10 @@ jobs:
       quality-passed: ${{ steps.quality-check.outputs.passed }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -162,10 +162,10 @@ jobs:
       migration-success: ${{ steps.migration.outputs.success }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -297,10 +297,10 @@ jobs:
       deployment-success: ${{ steps.deploy.outputs.success }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -444,10 +444,10 @@ jobs:
               \"deploymentUrl\": \"$DEPLOYMENT_URL\",
               \"environment\": \"production\",
               \"githubContext\": {
-                \"repository\": \"${{ github.repository }}\",
-                \"ref\": \"${{ github.ref }}\",
-                \"sha\": \"${{ github.sha }}\",
-                \"runId\": \"${{ github.run_id }}\"
+                \"repository\": \"$GITHUB_REPOSITORY\",
+                \"ref\": \"$GITHUB_REF\",
+                \"sha\": \"$GITHUB_SHA\",
+                \"runId\": \"$GITHUB_RUN_ID\"
               }
             }" || echo "Warning: Could not notify AI agent of deployment"
 
@@ -466,13 +466,19 @@ jobs:
           MIGRATION_RESULT: ${{ needs.database-migration.result }}
           DEPLOYMENT_RESULT: ${{ needs.deploy-production.result }}
           HEALTH_RESULT: ${{ needs.health-check.result }}
+          DEPLOYMENT_SUCCESS: ${{ needs.deploy-production.outputs.deployment-success }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.deploy_environment || 'production' }}
         run: |
           echo "## 🚀 Production Deployment Summary"
           echo ""
-          echo "**Deployment Status:** ${{ needs.deploy-production.outputs.deployment-success == 'true' && '✅ SUCCESS' || '❌ FAILED' }}"
-          echo "**Environment:** ${{ inputs.deploy_environment || 'production' }}"
-          echo "**Branch:** ${{ github.ref_name }}"
-          echo "**Commit:** ${{ github.sha }}"
+          if [ "$DEPLOYMENT_SUCCESS" = "true" ]; then
+            echo "**Deployment Status:** ✅ SUCCESS"
+          else
+            echo "**Deployment Status:** ❌ FAILED"
+          fi
+          echo "**Environment:** $DEPLOY_ENVIRONMENT"
+          echo "**Branch:** $GITHUB_REF_NAME"
+          echo "**Commit:** $GITHUB_SHA"
           echo ""
           echo "### Job Results"
           echo "- **Quality Gates:** ${{ needs.quality-gates.result == 'success' && '✅ Passed' || needs.quality-gates.result == 'skipped' && 'ℹ️ Skipped' || '❌ Failed' }}"

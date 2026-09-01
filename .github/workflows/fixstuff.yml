@@ -29,14 +29,16 @@ jobs:
     steps:
       - name: Validate inputs
         id: validate
+        env:
+          TASK_ID: ${{ inputs.task_id }}
+          TASK_TITLE: ${{ inputs.task_title }}
         run: |
-          TASK_ID="${{ inputs.task_id }}"
-          if [ -z "$TASK_ID" ]; then
-            echo "❌ task_id is required"
+          if ! [[ "$TASK_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "❌ task_id must be a UUID"
             exit 1
           fi
           echo "task_id=${TASK_ID}" >> "${GITHUB_OUTPUT}"
-          echo "✅ Task: ${TASK_ID} — ${{ inputs.task_title }}"
+          echo "✅ Task: ${TASK_ID} — ${TASK_TITLE}"
 
   fix-task:
     name: 'Fix Task'
@@ -44,10 +46,10 @@ jobs:
     needs: validate
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -58,8 +60,8 @@ jobs:
       - name: Post session link to task
         env:
           ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
+          TASK_ID: ${{ needs.validate.outputs.task_id }}
         run: |
-          TASK_ID="${{ needs.validate.outputs.task_id }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           echo "Posting session link for task $TASK_ID → $RUN_URL"
           npx tsx scripts/post-session-link.ts "$TASK_ID" --url "$RUN_URL" 2>/dev/null || \
@@ -74,9 +76,10 @@ jobs:
           ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
           ASTRID_WEBHOOK_URL: ${{ secrets.ASTRID_WEBHOOK_URL || 'https://astrid.cc' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TASK_TITLE: ${{ inputs.task_title }}
         run: |
           echo "🤖 Working task: $TASK_ID"
-          echo "Title: ${{ inputs.task_title }}"
+          echo "Title: $TASK_TITLE"
           echo ""
 
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
@@ -87,12 +90,12 @@ jobs:
               \"taskId\": \"$TASK_ID\",
               \"workflow\": \"fixstuff\",
               \"githubContext\": {
-                \"repository\": \"${{ github.repository }}\",
-                \"ref\": \"${{ github.ref }}\",
-                \"sha\": \"${{ github.sha }}\",
-                \"actor\": \"${{ github.actor }}\",
-                \"runId\": \"${{ github.run_id }}\",
-                \"runUrl\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+                \"repository\": \"$GITHUB_REPOSITORY\",
+                \"ref\": \"$GITHUB_REF\",
+                \"sha\": \"$GITHUB_SHA\",
+                \"actor\": \"$GITHUB_ACTOR\",
+                \"runId\": \"$GITHUB_RUN_ID\",
+                \"runUrl\": \"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"
               }
             }")
 
@@ -113,13 +116,17 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          TASK_ID: ${{ needs.validate.outputs.task_id }}
+          TASK_TITLE: ${{ inputs.task_title }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           {
             echo "## Fix Task Summary"
-            echo "- **Task ID:** \`${{ needs.validate.outputs.task_id }}\`"
-            echo "- **Title:** ${{ inputs.task_title }}"
-            echo "- **Status:** ${{ job.status }}"
-            echo "- **Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- **Task ID:** \`${TASK_ID}\`"
+            echo "- **Title:** ${TASK_TITLE}"
+            echo "- **Status:** ${JOB_STATUS}"
+            echo "- **Run:** ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo ""
             echo "> Changes will be on a feature branch. No merge or deploy happens here."
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -131,10 +138,10 @@ jobs:
     if: ${{ inputs.deploy_preview == true && needs.fix-task.result == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
