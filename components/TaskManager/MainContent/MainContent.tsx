@@ -4,7 +4,10 @@ import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ListSettingsHost } from "./ListSettingsHost"
+import {
+  LazyListSettingsHost,
+  LazyProjectStatusBoard,
+} from "@/components/TaskManager/lazy-panels"
 import { useLayoutType } from "../../enhanced-task-creation"
 import { AddTaskInput } from "../../add-task-input"
 import { getDeviceType, isMobilePhoneDevice, isTouchDevice } from "@/lib/layout-detection"
@@ -16,7 +19,6 @@ import { TaskViewToggle } from "../Header/TaskViewToggle"
 import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
-import { ProjectStatusBoard } from "@/components/project-status-board"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
 import { getBoardRowContext, getProjectIdForBoard } from "@/lib/project-status"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
@@ -801,7 +803,7 @@ export function MainContent({
           </div>
 
           {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
-          <ListSettingsHost
+          {showSettingsPopover === selectedListId && <LazyListSettingsHost
               variant="desktop"
               selectedListId={selectedListId}
               lists={lists}
@@ -823,7 +825,7 @@ export function MainContent({
               onProjectBoardRemoved={onProjectBoardRemoved}
               onStatusesChanged={onStatusesChanged}
               onListDelete={onListDelete}
-            />
+            />}
           </>
           )}
 
@@ -883,7 +885,7 @@ export function MainContent({
           </div>
         ) : hasProjectBoard && taskViewMode === 'board' ? (
           <div id="task_list_area" className="flex-1 min-h-0">
-            <ProjectStatusBoard
+            <LazyProjectStatusBoard
               allTasks={allTasks}
               lists={lists}
               selectedListId={selectedListId}
@@ -1073,7 +1075,7 @@ export function MainContent({
       </div>
 
       {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
-      <ListSettingsHost
+      {showSettingsPopover === selectedListId && <LazyListSettingsHost
               variant="mobile"
               selectedListId={selectedListId}
               lists={lists}
@@ -1095,7 +1097,7 @@ export function MainContent({
               onProjectBoardRemoved={onProjectBoardRemoved}
               onStatusesChanged={onStatusesChanged}
               onListDelete={onListDelete}
-            />
+            />}
     </div>
 
     {/* Description Viewer/Editor Dialog */}
