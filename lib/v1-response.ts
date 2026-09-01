@@ -1,3 +1,6 @@
+import type { z } from 'zod'
+import type { V1ResponseMeta } from '@/lib/api-contracts/v1-ios-shapes'
+
 /**
  * Reading a resource out of a legacy or v1 response. (Task 641a7615, step 3)
  *
@@ -27,6 +30,18 @@
 
 /** A response body that is either the resource itself or the v1 envelope around it. */
 export type EnvelopedBody<T, K extends string> = T | Record<K, T> | null | undefined
+
+export interface DecodedV1Resource<T> {
+  resource: T
+  meta: V1ResponseMeta | null
+}
+
+export class V1ResponseValidationError extends Error {
+  constructor(readonly key: string) {
+    super(`Invalid API response: expected a legacy resource or v1 ${key} envelope`)
+    this.name = 'V1ResponseValidationError'
+  }
+}
 
 /**
  * @param key the v1 envelope key — `'task'` for tasks, `'list'` for lists.
@@ -70,4 +85,30 @@ export function unwrapComment<T extends { id?: unknown }>(
   body: EnvelopedBody<T, 'comment'>
 ): T | null {
   return unwrapEnvelope(body, 'comment')
+}
+
+export function decodeV1Resource<T, K extends string>(
+  body: unknown,
+  key: K,
+  resourceSchema: z.ZodType<T>,
+): DecodedV1Resource<T> {
+  if (body && typeof body === 'object' && key in body) {
+    const envelope = body as Record<string, unknown>
+    const resource = resourceSchema.safeParse(envelope[key])
+    const meta = envelope.meta
+    if (
+      resource.success &&
+      meta &&
+      typeof meta === 'object' &&
+      (meta as Record<string, unknown>).apiVersion === 'v1' &&
+      typeof (meta as Record<string, unknown>).authSource === 'string'
+    ) {
+      return { resource: resource.data, meta: meta as V1ResponseMeta }
+    }
+    throw new V1ResponseValidationError(key)
+  }
+
+  const legacy = resourceSchema.safeParse(body)
+  if (legacy.success) return { resource: legacy.data, meta: null }
+  throw new V1ResponseValidationError(key)
 }

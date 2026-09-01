@@ -129,6 +129,29 @@ describe('PUT /api/v1/comments/:id', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 for malformed JSON at the shared edge (task d59a8024)', async () => {
+    const req = new NextRequest('http://localhost/api/v1/comments/comment-1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{not-json',
+    })
+
+    const res = await PUT(req, { params } as any)
+
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({ error: 'Invalid JSON body' })
+  })
+
+  it('returns 400 before Prisma when the route id is empty (task d59a8024)', async () => {
+    const res = await PUT(
+      makeReq('PUT', { content: 'updated' }),
+      { params: Promise.resolve({ id: '' }) } as any,
+    )
+
+    expect(res.status).toBe(400)
+    expect(mockPrisma.comment.findUnique).not.toHaveBeenCalled()
+  })
+
   it('returns 404 when comment is not found', async () => {
     mockPrisma.comment.findUnique.mockResolvedValue(null as any)
     const res = await PUT(makeReq('PUT', { content: 'updated' }), { params } as any)

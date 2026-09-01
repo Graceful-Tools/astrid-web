@@ -18,8 +18,12 @@ twice is a rule that disagrees with itself.
 scripts and never the database (Jon, 2026-08-29: the DB is for deep repair only).
 
 ```
-get_agent_queue { agent: "claude", listId: "<board id>" }
+get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>" }
 ```
+
+The current runtime determines the mailbox: GitHub Copilot CLI / the Copilot app
+passes `copilot`; Claude Code passes `claude`; local Codex passes `codex`. Never
+copy another harness's selector from an example.
 
 Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
 `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
@@ -62,7 +66,8 @@ with a mechanical sweep on every run:
   may be mid-task. Doing tasks are listed with their assignee so a human can spot a stale claim.
 
 The sweep is a feature of `scripts/ready-tasks.ts` (OAuth API, never the DB), not of the MCP
-queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness claude-code` runs it, and
+queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness <current-harness>` runs it
+(`github-copilot` for Copilot, `claude-code` for Claude Code), and
 `--dry-run` prints every move it would make without writing anything. Run it at the top of a
 loop when the board looks stale; the MCP `get_agent_queue` call is still how the work is read.
 GitHub Actions consumes the authoritative machine form,
@@ -241,7 +246,7 @@ does not auto-deploy, so `main` having the fix changes nothing until someone dep
 ## After every task, re-check the list
 
 ```
-get_agent_queue { agent: "claude", listId: "<board id>" }
+get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>" }
 ```
 
 **Never work from the opening snapshot.** New tasks arrive while work is in progress, and a

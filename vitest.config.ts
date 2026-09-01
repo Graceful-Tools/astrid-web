@@ -18,6 +18,7 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       'packages/openclaw-astrid-channel/tests/**',
+      'tests/integration/postgres-risk.test.ts',
     ],
     coverage: {
       reporter: ['text', 'json', 'html'],

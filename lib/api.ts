@@ -1,6 +1,8 @@
 import { isOfflineMode, OfflineSyncManager } from './offline-sync'
 import { OfflineTaskOperations } from './offline-db'
 import { createLogger } from '@/lib/logger'
+import { z } from 'zod'
+import { decodeV1Resource, type DecodedV1Resource } from '@/lib/v1-response'
 
 const log = createLogger('api')
 
@@ -35,7 +37,25 @@ const triggerCacheInvalidation = (endpoint: string, error: Error) => {
   })
 }
 
-export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+export class ApiError<TError = unknown> extends Error {
+  readonly name = 'ApiError'
+
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly endpoint: string,
+    readonly detail: unknown,
+    readonly validatedDetail: TError | null,
+  ) {
+    super(message)
+  }
+}
+
+export const apiCall = async <TError = unknown>(
+  endpoint: string,
+  options: RequestInit = {},
+  errorSchema?: z.ZodType<TError>,
+) => {
   const url = API_BASE_URL ? `${API_BASE_URL}${endpoint}` : endpoint
 
   const defaultOptions: RequestInit = {
@@ -53,7 +73,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     })
 
     if (!response.ok) {
-      let errorDetail: any = null
+      let errorDetail: unknown = null
       try {
         const contentType = response.headers.get('content-type')
         if (contentType && contentType.includes('application/json')) {
@@ -65,17 +85,27 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
         // Swallow parse errors; errorDetail remains null
       }
 
+      const detailRecord =
+        errorDetail && typeof errorDetail === 'object'
+          ? errorDetail as Record<string, unknown>
+          : null
+      const detailValue =
+        detailRecord?.error ?? detailRecord?.message ?? detailRecord?.details
       const detailMessage = errorDetail
         ? typeof errorDetail === 'string'
           ? errorDetail
-          : errorDetail.error || errorDetail.message || errorDetail.details || JSON.stringify(errorDetail)
+          : typeof detailValue === 'string'
+            ? detailValue
+            : JSON.stringify(errorDetail)
         : ''
-      const error = new Error(
-        `API call failed: ${response.status} ${response.statusText}${detailMessage ? ` - ${detailMessage}` : ''}`
-      ) as Error & { status?: number; detail?: any; endpoint?: string }
-      error.status = response.status
-      error.detail = errorDetail
-      error.endpoint = endpoint
+      const parsedDetail = errorSchema?.safeParse(errorDetail)
+      const error = new ApiError<TError>(
+        `API call failed: ${response.status} ${response.statusText}${detailMessage ? ` - ${detailMessage}` : ''}`,
+        response.status,
+        endpoint,
+        errorDetail,
+        parsedDetail?.success ? parsedDetail.data : null,
+      )
       // Invalidate cache on API errors
       triggerCacheInvalidation(endpoint, error)
       throw error
@@ -84,7 +114,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     return response
   } catch (error) {
     // Only invalidate cache on network errors (not API errors which were already handled above)
-    if (error instanceof Error && !error.message.startsWith('API call failed:')) {
+    if (error instanceof Error && !(error instanceof ApiError)) {
       triggerCacheInvalidation(endpoint, error)
     }
     throw error
@@ -93,7 +123,33 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 export const apiGet = (endpoint: string, options: RequestInit = {}) => apiCall(endpoint, options)
 
-export const apiPost = async (endpoint: string, data: any) => {
+export async function apiJson<TSuccess, TError = unknown>(
+  endpoint: string,
+  successSchema: z.ZodType<TSuccess>,
+  options: RequestInit = {},
+  errorSchema?: z.ZodType<TError>,
+): Promise<TSuccess> {
+  const response = await apiCall(endpoint, options, errorSchema)
+  const body: unknown = await response.json()
+  return successSchema.parse(body)
+}
+
+export async function apiV1Resource<TSuccess, K extends string, TError = unknown>(
+  endpoint: string,
+  key: K,
+  resourceSchema: z.ZodType<TSuccess>,
+  options: RequestInit = {},
+  errorSchema?: z.ZodType<TError>,
+): Promise<DecodedV1Resource<TSuccess>> {
+  const body = await apiJson(endpoint, z.unknown(), options, errorSchema)
+  return decodeV1Resource(body, key, resourceSchema)
+}
+
+export const apiPost = async <TBody extends object>(
+  endpoint: string,
+  data: TBody,
+  options: RequestInit = {},
+) => {
   // Check if offline
   if (isOfflineMode()) {
     // Handle different endpoint patterns
@@ -104,9 +160,12 @@ export const apiPost = async (endpoint: string, data: any) => {
     const commentMatch = endpoint.match(/\/api\/(?:v1\/)?tasks\/([^\/]+)\/comments/)
     if (commentMatch) {
       entity = 'comment'
+      const userId = 'userId' in data ? data.userId : undefined
+      const user = 'user' in data ? data.user : undefined
+      const content = 'content' in data ? data.content : undefined
 
       // Validate that we have user data (must be authenticated)
-      if (!data.userId && !data.user) {
+      if (!userId && !user) {
         // Not authenticated - return auth error instead of trying to queue
         return new Response(JSON.stringify({
           error: 'Unauthorized',
@@ -130,12 +189,12 @@ export const apiPost = async (endpoint: string, data: any) => {
       // Return a fake comment response
       return new Response(JSON.stringify({
         id: tempId,
-        content: data.content,
+        content,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         taskId: commentMatch[1],
-        userId: data.userId || '',
-        user: data.user || { id: '', name: 'You', email: '' },
+        userId: userId || '',
+        user: user || { id: '', name: 'You', email: '' },
         ...data
       }), {
         status: 201,
@@ -166,10 +225,14 @@ export const apiPost = async (endpoint: string, data: any) => {
     }
   }
 
-  return apiCall(endpoint, { method: "POST", body: JSON.stringify(data) })
+  return apiCall(endpoint, { ...options, method: "POST", body: JSON.stringify(data) })
 }
 
-export const apiPut = async (endpoint: string, data: any) => {
+export const apiPut = async <TBody extends object>(
+  endpoint: string,
+  data: TBody,
+  options: RequestInit = {},
+) => {
   // The `(?:v1\/)?` in every matcher below is load-bearing (task f2178a55).
   //
   // These patterns were written when the only routes were /api/tasks and
@@ -221,7 +284,7 @@ export const apiPut = async (endpoint: string, data: any) => {
         entity,
         entityId,
         endpoint,
-        'PATCH',
+        'PUT',
         data
       )
 
@@ -249,7 +312,7 @@ export const apiPut = async (endpoint: string, data: any) => {
     }
   }
 
-  const response = await apiCall(endpoint, { method: "PUT", body: JSON.stringify(data) })
+  const response = await apiCall(endpoint, { ...options, method: "PUT", body: JSON.stringify(data) })
   await persistTaskResponseToCache(endpoint, response)
   return response
 }
@@ -294,7 +357,7 @@ async function persistTaskResponseToCache(endpoint: string, response: Response):
   }
 }
 
-export const apiDelete = async (endpoint: string) => {
+export const apiDelete = async (endpoint: string, options: RequestInit = {}) => {
   // Check if offline
   if (isOfflineMode()) {
     const match = endpoint.match(/\/api\/(?:v1\/)?(tasks|lists|comments)\/([^\/]+)/)
@@ -321,5 +384,5 @@ export const apiDelete = async (endpoint: string) => {
     }
   }
 
-  return apiCall(endpoint, { method: "DELETE" })
+  return apiCall(endpoint, { ...options, method: "DELETE" })
 }

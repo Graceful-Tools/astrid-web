@@ -22,14 +22,15 @@ import {
   authenticateAPI,
   requireScopes,
 } from '@/lib/api-auth-middleware'
+import { buildAuthContext } from '@/tests/fixtures/auth'
 
-const FAKE_AUTH: AuthContext = {
+const FAKE_AUTH: AuthContext = buildAuthContext({
   userId: 'u1',
   source: 'oauth',
   scopes: ['tasks:read'],
   isAIAgent: false,
   user: { id: 'u1', email: 'u@example.com', name: 'U', isAIAgent: false },
-}
+})
 
 function fakeReq() {
   // Minimal NextRequest-like shape for the wrapper's purposes.

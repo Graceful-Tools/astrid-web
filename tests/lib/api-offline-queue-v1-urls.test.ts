@@ -63,12 +63,21 @@ describe('updates queue for v1 URLs, not just legacy (task f2178a55)', () => {
       queueMutation,
       'a task edit made offline was dropped instead of queued',
     ).toHaveBeenCalled()
-    const [type, entity, entityId] = queueMutation.mock.calls[0]
-    expect({ type, entity, entityId }).toEqual({
+    const [type, entity, entityId, , method] = queueMutation.mock.calls[0]
+    expect({ type, entity, entityId, method }).toEqual({
       type: 'update',
       entity: 'task',
       entityId: 'task-1',
+      method: 'PUT',
     })
+  })
+
+  it('replays comment edits with the PUT verb the route implements (task d59a8024)', async () => {
+    const { apiPut } = await import('@/lib/api')
+    await apiPut('/api/v1/comments/comment-1', { content: 'Edited offline' })
+
+    expect(queueMutation).toHaveBeenCalled()
+    expect(queueMutation.mock.calls[0][4]).toBe('PUT')
   })
 
   it('queues PUT /api/v1/lists/:id', async () => {
