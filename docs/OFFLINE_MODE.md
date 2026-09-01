@@ -664,7 +664,7 @@ NODE_ENV=development
 - [Architecture Overview](./ARCHITECTURE.md)
 - [Service worker implementation](../public/sw.js)
 - [Testing Strategy](./context/testing.md)
-- [API Contracts](./context/api_contracts.md)
+- [API Contract](./API_CONTRACT.md)
 
 ---
 

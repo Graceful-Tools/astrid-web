@@ -48,7 +48,7 @@ astrid-web/  (this repository)
 | Language | TypeScript |
 | Database | PostgreSQL (Neon serverless) |
 | ORM | Prisma |
-| Auth | NextAuth.js (Google OAuth + Credentials) |
+| Auth | NextAuth.js (Google OAuth + passkeys; see `docs/AUTHENTICATION.md`) |
 | Styling | Tailwind CSS + Shadcn/ui (Radix) |
 | Testing | Vitest + Playwright |
 | Deployment | Vercel |
@@ -437,8 +437,8 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
 
 ### Code Reuse & Consistency (reuse before you write)
 - **Search for an existing helper/key/component before writing new logic.** Good
-  abstractions already exist and get bypassed, which is how Web drifted (54 inline
-  owner/admin checks; 6+ hardcoded "add task" strings). See
+  abstractions already exist and get bypassed; current policy and reproducible
+  measurements live in
   [docs/CODE_REUSE_AND_CONSISTENCY.md](./docs/CODE_REUSE_AND_CONSISTENCY.md).
 - **Permission logic** lives in `lib/list-permissions.ts` /
   `lib/list-member-utils.ts`. **Never inline** `list.ownerId === user.id` or
@@ -857,7 +857,7 @@ Each package has its own README with setup and usage instructions.
 ## See Also
 
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Detailed system architecture
-- **[docs/context/api_contracts.md](./docs/context/api_contracts.md)** - API documentation
+- **[docs/API_CONTRACT.md](./docs/API_CONTRACT.md)** - Stable external/mobile API contract
 - **[docs/context/conventions.md](./docs/context/conventions.md)** - Code conventions
 - **[docs/guides/development-guidelines.md](./docs/guides/development-guidelines.md)** - Development standards
 - **[iOS Repository](https://github.com/Graceful-Tools/astrid-ios)** - Native iOS app (separate repo)

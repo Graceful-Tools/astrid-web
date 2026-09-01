@@ -1,5 +1,10 @@
 # AI Edits Policy
 
+The authoritative coding workflow is [ASTRID.md](../../ASTRID.md). Local command,
+quality-gate, deployment, and OAuth behavior belongs in
+[CLI operations](../CLI_OPERATIONS.md). This document adds no competing command
+or policy definitions.
+
 ## Code Quality Standards
 
 ### Smallest Safe Diff Policy
@@ -17,10 +22,9 @@
 ## Security & Best Practices
 
 ### Never Expose Secrets
-- **Environment Variables**: Use `.env` files for local development (`DEPLOYMENT.md:253`)
-- **API Keys**: Never commit API keys or credentials to version control (`EMAIL_SETUP.md:167`)
-- **Database Credentials**: Use environment variables for database connections (`DATABASE_SETUP.md:158`)
-- **OAuth Secrets**: Keep authentication secrets in environment variables (`AUTH_SETUP.md:119`)
+- Follow the repository-wide [security policy](../../SECURITY.md).
+- Never commit API keys, credentials, database URLs, OAuth secrets, or local
+  environment files.
 
 ### Code Review Standards
 - **Self-Review**: Review your own changes before requesting review
@@ -31,7 +35,8 @@
 ### Documentation Maintenance
 - **Architecture Changes**: Update `docs/ARCHITECTURE.md` when adding new components or changing system design
 - **Layout/UI Changes**: Update `docs/LAYOUT_SYSTEM.md` when modifying responsive behavior or component patterns
-- **API Changes**: Update `docs/context/api_contracts.md` when adding/modifying endpoints
+- **API Changes**: Update the authoritative [`docs/API_CONTRACT.md`](../API_CONTRACT.md)
+  when a stable external/mobile contract changes
 - **New Patterns**: Add discovered patterns to `docs/context/conventions.md`
 - **Review Helper**: Use `npm run docs:review` to identify which docs may need updates after changes
 
@@ -44,16 +49,17 @@
 - **Reference Issues**: Link commits to relevant issues or documentation
 
 ### Pre-commit Checks
-- **TypeScript Compilation**: Ensure `npm run predeploy:quick` passes (`package.json:25`)
-- **Linting**: Run `npm run lint` to check code quality (`package.json:30`)
-- **Tests**: Verify `npm run test:run` passes before committing (`package.json:33`)
-- **Build Test**: Ensure `npm run predeploy:build` succeeds (`package.json:26`)
+
+Use the gate selected by
+[`docs/CLI_OPERATIONS.md` §4](../CLI_OPERATIONS.md#4-quality-gates); do not copy
+its mutable command composition here.
 
 ## Repository-Specific Rules
 
 ### Database Changes
-- **Schema Updates**: Test migrations locally before committing (`DEPLOYMENT.md:189`)
-- **Production Safety**: Never auto-deploy database migrations (`PRODUCTION_DEPLOYMENT.md:53`)
+- **Schema Updates**: Test migrations locally before committing.
+- **Production Safety**: Follow the deployment and migration rules in
+  [CLI operations](../CLI_OPERATIONS.md#0-deployment-the-one-rule-that-matters).
 - **Rollback Plan**: Always have a rollback strategy for schema changes
 
 ### API Changes

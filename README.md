@@ -217,9 +217,9 @@ The application uses **GitHub Actions** to deploy to Vercel, not Vercel's automa
 
 ### Quick Start
 
-**Production deploys are MANUAL.** `production-deployment.yml` is
-`workflow_dispatch` only, so pushing to `main` ships nothing — and because that
-build runs `prisma migrate deploy`, a merge does not apply migrations either.
+Deployment and migration behavior changes with workflow configuration. Follow
+the authoritative [local CLI operations guide](./docs/CLI_OPERATIONS.md#0-deployment-the-one-rule-that-matters)
+instead of relying on a copied summary here.
 
 - Production → Actions tab → *Production Deployment* → Run workflow
   (or `./scripts/deploy-preview.sh --production`)
@@ -373,7 +373,7 @@ See **[docs/WHITELABELING.md](./docs/WHITELABELING.md)** for the full reference,
 
 ### Key Features Documentation
 - **[Quick Reference](./docs/context/quick-reference.md)** - Essential commands and patterns
-- **[API Contracts](./docs/context/api_contracts.md)** - Endpoint specifications
+- **[API Contract](./docs/API_CONTRACT.md)** - Stable external/mobile wire contract
 - **[Testing Strategy](./docs/context/testing.md)** - Testing setup and patterns
 
 ## Contributing

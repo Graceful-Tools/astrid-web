@@ -30,20 +30,31 @@ jobs:
     steps:
       - name: Get Task ID
         id: get-task
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TASK_ID: ${{ github.event.inputs.task_id }}
+          PAYLOAD_TASK_ID: ${{ github.event.client_payload.task_id }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "task_id=${{ github.event.inputs.task_id }}" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TASK_ID="$DISPATCH_TASK_ID"
           else
-            echo "task_id=${{ github.event.client_payload.task_id }}" >> $GITHUB_OUTPUT
+            TASK_ID="$PAYLOAD_TASK_ID"
           fi
+
+          if ! [[ "$TASK_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "❌ Task ID must be a UUID"
+            exit 1
+          fi
+
+          echo "task_id=$TASK_ID" >> "$GITHUB_OUTPUT"
 
       - name: Validate Task Assignment
         id: validate
+        env:
+          TASK_ID: ${{ steps.get-task.outputs.task_id }}
         run: |
-          TASK_ID="${{ steps.get-task.outputs.task_id }}"
-
-          if [ -z "$TASK_ID" ]; then
-            echo "❌ No task ID provided"
+          if ! [[ "$TASK_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "❌ Task ID must be a UUID"
             echo "should_proceed=false" >> $GITHUB_OUTPUT
             exit 1
           fi
@@ -59,10 +70,10 @@ jobs:
     if: needs.setup.outputs.should_proceed == 'true'
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -87,13 +98,13 @@ jobs:
             -d "{
               \"taskId\": \"$TASK_ID\",
               \"githubContext\": {
-                \"repository\": \"${{ github.repository }}\",
-                \"ref\": \"${{ github.ref }}\",
-                \"sha\": \"${{ github.sha }}\",
-                \"actor\": \"${{ github.actor }}\",
-                \"workflow\": \"${{ github.workflow }}\",
-                \"runId\": \"${{ github.run_id }}\",
-                \"runNumber\": \"${{ github.run_number }}\"
+                \"repository\": \"$GITHUB_REPOSITORY\",
+                \"ref\": \"$GITHUB_REF\",
+                \"sha\": \"$GITHUB_SHA\",
+                \"actor\": \"$GITHUB_ACTOR\",
+                \"workflow\": \"$GITHUB_WORKFLOW\",
+                \"runId\": \"$GITHUB_RUN_ID\",
+                \"runNumber\": \"$GITHUB_RUN_NUMBER\"
               }
             }")
 
@@ -127,10 +138,10 @@ jobs:
     if: needs.setup.outputs.should_proceed == 'true'
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -155,7 +166,7 @@ jobs:
           NODE_ENV: production
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: build-artifacts
           path: |
@@ -286,7 +297,7 @@ jobs:
 
       - name: Update GitHub Status
         if: always()
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const workflowStatus = '${{ steps.monitor.outputs.workflow_status }}';

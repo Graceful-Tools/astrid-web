@@ -19,4 +19,16 @@ describe('script archive hygiene', () => {
 
     expect(duplicates).toEqual([])
   })
+
+  it('0acc4d83 keeps only the manually reviewed divergent active/archive pairs', () => {
+    const pairs = readdirSync(archiveDir)
+      .filter(name => statSync(join(archiveDir, name)).isFile())
+      .filter(name => existsSync(join(root, 'scripts', basename(name))))
+      .sort()
+
+    expect(pairs).toEqual([
+      'create-specific-ai-agents.ts',
+      'validate-secrets.ts',
+    ])
+  })
 })
