@@ -336,11 +336,8 @@ Write code following established patterns (see Architecture Patterns section).
 
 ### Step 4: Post-Implementation Verification
 
-**After completing implementation, run predeploy:**
-
-```bash
-npm run predeploy
-```
+Use the smallest targeted test while iterating. After implementation, run the
+focused tests that prove the changed behavior before moving to the final gate.
 
 **If any tests fail:**
 
@@ -397,12 +394,16 @@ npm run test:run
 
 ### Step 6: Final Quality Gate
 
-Before marking task complete:
+Before marking a task complete, run the standard web gate:
 
 ```bash
-# Must pass ALL of these
-npm run predeploy:full
+npm run predeploy
 ```
+
+Run `npm run predeploy:full` instead when the change affects a browser flow that
+requires Playwright/E2E coverage, or when the task or workflow explicitly
+requires the full suite. Do not stack every gate by default, and do not present
+a targeted pass as the final quality gate.
 
 ### Step 7: Post Fix Summary Comment
 
@@ -454,6 +455,18 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
 ### Testing / Workflow
 - **Always use TDD:** write a RED test first, then implement to green. All tests must pass before considering a task complete. (See the detailed RED-GREEN flow in *Coding Workflow → Step 3*.)
 - **Auth is high-risk:** after modifying auth-related files, run the **full web test suite** (`npm run predeploy`) before committing. Behavior-changing "clean" refactors have silently broken auth tests. Prefer the minimal, behavior-preserving change over a broad rewrite.
+- **GitHub Actions changes are end-to-end changes.** When editing `fixall.yml`,
+  `fixstuff.yml`, or `predeploy.yml`, trace and test the complete path: runner
+  labels; the exact secrets and environment variables consumed by scripts;
+  versioned machine-readable JSON output; dry-run behavior that performs no
+  claim or trigger; atomic eligibility and assignment revalidation; the
+  authenticated trigger; and persisted job outputs. Never parse human-readable
+  task text or treat a job summary as task execution.
+- **Existing PR work is complete only when it is remote.** Commit and push the
+  intended fix, then verify
+  `gh pr view <number> --json headRefOid --jq .headRefOid` matches the intended
+  local commit before reporting completion. If it does not, report the exact
+  running or failed command; never describe local-only work as finished.
 
 ### Deployment
 - When diagnosing webhook / worker **401** errors, verify environment variables are set **at deploy time** (not just build time) before anything else — recurring 401s traced to deploy-time env-var gaps and were fixed by redeploying with the var present.

@@ -194,6 +194,12 @@ cloud `openai@` agent.
 | `npm run deploy:canary` | Post-deploy production health check |
 | `npm run dev` | Dev server |
 
+Use the smallest targeted test while iterating. Before completion, run
+`npm run predeploy`; use `npm run predeploy:full` when the change affects a
+browser flow that requires Playwright/E2E coverage or when the task or workflow
+explicitly requires it. Do not stack every gate by default, and do not report a
+targeted pass as the final gate.
+
 The manually dispatched `predeploy.yml` workflow defaults to `predeploy:full` and runs
 on the web-only `[self-hosted, astrid-web]` runner label.
 
