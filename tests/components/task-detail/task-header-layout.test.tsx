@@ -109,6 +109,22 @@ describe('TaskHeader layout (cc76307c)', () => {
     renderHeader({ onClose: vi.fn(), compact: true })
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
+
+  it('AWTD-756 reduces trailing checkbox space without shifting its icon column', () => {
+    renderHeader({
+      task: {
+        ...task,
+        assigneeId: user.id,
+        assignee: user,
+      },
+    })
+
+    const checkbox = screen.getByAltText('Unchecked priority 0 checkbox')
+    const leadingControlColumn = checkbox.parentElement?.parentElement
+
+    expect(checkbox.parentElement).toHaveClass('p-2', '-m-2')
+    expect(leadingControlColumn).toHaveClass('-mr-2')
+  })
 })
 
 /**

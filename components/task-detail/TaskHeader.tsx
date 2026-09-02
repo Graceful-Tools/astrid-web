@@ -117,19 +117,21 @@ export function TaskHeader({
                keeps the completion control they have today. */
             <PublicTaskCopyButton onCopy={onCopy} />
           ) : (
-          /* Three states, not two — an unassigned task must not look like one
-              you own (task 2bb1b196). Same rule as the row and quick add. */
-          <TaskLeadingControl
-            assigneeId={task.assigneeId}
-            currentUserId={currentUser?.id}
-            assignee={task.assignee}
-            completed={tempCompleted}
-            priority={task.priority}
-            repeating={task.repeating !== 'never'}
-            onToggleComplete={onToggleComplete}
-            displayMode={displayMode}
-            onOpenOptions={onOpenOptions}
-          />
+            <div className="-mr-2">
+              {/* Three states, not two — an unassigned task must not look like one
+                 you own (task 2bb1b196). Same rule as the row and quick add. */}
+              <TaskLeadingControl
+                assigneeId={task.assigneeId}
+                currentUserId={currentUser?.id}
+                assignee={task.assignee}
+                completed={tempCompleted}
+                priority={task.priority}
+                repeating={task.repeating !== 'never'}
+                onToggleComplete={onToggleComplete}
+                displayMode={displayMode}
+                onOpenOptions={onOpenOptions}
+              />
+            </div>
           )}
           {editingTitle ? (
             <textarea
