@@ -126,13 +126,23 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
   })
 
-  it('offers it on the compact/inline panel too (task 52bf1efb)', () => {
-    // This used to assert the opposite — the compact header omitted the control
-    // on the reasoning that an inline panel is a peek. Jon asked for it on the
-    // board card, where the expanded card IS the only way to read the task, so
-    // the compact header now carries the toggle above its collapse chevron.
-    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn() })
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+  it('puts board expansion at the top of the action menu without shifting the title (AWTD-754)', async () => {
+    const user = userEvent.setup()
+    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn(), fullScreen: false })
+
+    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+    expect(trigger).not.toBeNull()
+    await user.click(trigger!)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items[0]).toHaveTextContent('Full screen')
+  })
+
+  it('keeps the board shrink control visible after expansion (AWTD-754)', () => {
+    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn(), fullScreen: true })
+    expect(screen.getByLabelText('Exit full screen')).toBeInTheDocument()
   })
 
   it('still omits it on the compact panel when no handler is passed', () => {
