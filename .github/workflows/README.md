@@ -7,21 +7,23 @@ by `[self-hosted, astrid-web]`. Manual dispatches may explicitly choose the
 GitHub-hosted `cloud` backup; queued self-hosted jobs do not fail over
 automatically.
 
-The queue sweep requires repository secrets `ASTRID_OAUTH_CLIENT_ID` and
-`ASTRID_OAUTH_CLIENT_SECRET`. Triggering each returned task through Astrid's
-existing coding-agent endpoint additionally requires `ASTRID_MCP_TOKEN`. Secrets
-are passed only through step environments and request headers and are never
-printed.
+The queue sweep and trigger require repository secrets
+`ASTRID_OAUTH_CLIENT_ID` and `ASTRID_OAUTH_CLIENT_SECRET`. The workflow uses the
+same external OAuth client throughout; Astrid derives `copilot@astrid.cc`
+server-side after the atomic claim instead of requiring a legacy agent MCP
+token. Secrets are passed only through step environments and request headers
+and are never printed.
 
 Dry runs pass `--dry-run` to `scripts/ready-tasks.ts`, so they neither mutate
 queue lanes nor trigger coding-agent workflows. Scheduled runs always use the
 default local runner and `github-copilot` harness. The workflow intentionally
-does not offer other harnesses: its single MCP secret belongs to
-`copilot@astrid.cc`. Before triggering each task, it uses the OAuth API to assign
-the task to that agent, which also makes previously unassigned Ready tasks
-acceptable to the authenticated trigger endpoint. Assignment resolves the agent
-through the Astrid Web To-do board ID already used by the shared `/fixall`
-documentation; it does not require another secret.
+does not offer other harnesses. Before triggering each task, it uses the OAuth
+API to assign the task to `copilot@astrid.cc`, which also makes previously
+unassigned Ready tasks acceptable to the authenticated trigger endpoint. The
+endpoint only derives that fixed identity from an active AI-agent assignment;
+the OAuth caller cannot choose an arbitrary comment author. Assignment resolves
+the agent through the Astrid Web To-do board ID already used by the shared
+`/fixall` documentation.
 
 Automation reads the queue through the script's JSON mode, never its
 human-readable titles:
@@ -33,7 +35,17 @@ npx tsx scripts/ready-tasks.ts web --json --harness github-copilot [--dry-run]
 Standard output is one versioned envelope; diagnostics stay on standard error:
 
 ```json
-{"version":1,"tasks":[{"id":"<uuid>","action":"ready"},{"id":"<uuid>","action":"recheck|review","commentWatermark":"<ISO timestamp|null>"}]}
+{
+  "version": 1,
+  "tasks": [
+    { "id": "<uuid>", "action": "ready" },
+    {
+      "id": "<uuid>",
+      "action": "recheck|review",
+      "commentWatermark": "<ISO timestamp|null>"
+    }
+  ]
+}
 ```
 
 Only IDs classified in memory by `ready-tasks.ts` are serialized. Titles and
