@@ -85,7 +85,8 @@ model User {
   sentInvitations              Invitation[]           @relation("InvitationSender")
   createdInvites               ListInvite[]           @relation("ListInviteCreator")
   listMemberships              ListMember[]           @relation("ListMembership")
-  mcpTokens                    MCPToken[]
+  mcpTokens                    MCPToken[]             @relation("MCPTokenOwner")
+  agentMcpTokens               MCPToken[]             @relation("MCPTokenAgentUser")
   oauthClients                 OAuthClient[]          @relation("OAuthClients")
   oauthTokens                  OAuthToken[]           @relation("OAuthTokens")
   ownedProjects                Project[]              @relation("ProjectOwner")
@@ -758,6 +759,8 @@ model MCPToken {
   tokenEncrypted String? // AES-256-GCM of the plaintext, for the return/reuse path
   listId         String?
   userId         String
+  agentUserId    String?
+  agentMailbox   String?
   permissions    String[]
   description    String?
   expiresAt      DateTime?
@@ -765,10 +768,12 @@ model MCPToken {
   updatedAt      DateTime  @updatedAt
   isActive       Boolean   @default(true)
   list           TaskList? @relation(fields: [listId], references: [id], onDelete: Cascade)
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation("MCPTokenOwner", fields: [userId], references: [id], onDelete: Cascade)
+  agentUser      User?     @relation("MCPTokenAgentUser", fields: [agentUserId], references: [id], onDelete: SetNull)
 
   @@index([listId])
   @@index([userId])
+  @@index([agentUserId])
   @@index([token])
   @@index([expiresAt])
   @@index([isActive])

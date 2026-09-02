@@ -16,6 +16,8 @@ import { prisma } from '@/lib/prisma'
 import { validateAccessToken } from './oauth/oauth-token-manager'
 import { hasRequiredScopes } from './oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
+import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
+import { agentEmail } from '@/lib/brand/agent-emails'
 
 const log = createLogger('api-auth-middleware')
 
@@ -34,6 +36,12 @@ export interface AuthContext {
     name: string | null
     isAIAgent: boolean
   }
+  agentUser?: {
+    id: string
+    email: string
+    name: string | null
+    isAIAgent: boolean
+  } | null
 }
 
 export class UnauthorizedError extends Error {
@@ -111,6 +119,12 @@ async function validateMCPToken(token: string): Promise<{
     name: string | null
     isAIAgent: boolean
   }
+  agentUser: {
+    id: string
+    email: string
+    name: string | null
+    isAIAgent: boolean
+  } | null
 } | null> {
   const mcpToken = await prisma.mCPToken.findFirst({
     where: {
@@ -130,6 +144,14 @@ async function validateMCPToken(token: string): Promise<{
           isAIAgent: true,
         },
       },
+      agentUser: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          isAIAgent: true,
+        },
+      },
     },
   })
 
@@ -137,9 +159,27 @@ async function validateMCPToken(token: string): Promise<{
     return null
   }
 
+  let agentUser = mcpToken.agentUser
+  if (!agentUser && mcpToken.agentMailbox === 'copilot') {
+    const ensured = await ensureAgentUser(agentEmail('copilot'))
+    if (ensured?.email) {
+      agentUser = {
+        id: ensured.id,
+        email: ensured.email,
+        name: ensured.name,
+        isAIAgent: true,
+      }
+      await prisma.mCPToken.update({
+        where: { id: mcpToken.id },
+        data: { agentUserId: ensured.id },
+      })
+    }
+  }
+
   return {
     userId: mcpToken.userId,
     user: mcpToken.user,
+    agentUser,
   }
 }
 
@@ -234,6 +274,7 @@ export async function authenticateAPI(
         scopes: ['*'], // Legacy tokens have full access
         isAIAgent: validated.user.isAIAgent,
         user: validated.user,
+        agentUser: validated.agentUser,
       }
     }
   }

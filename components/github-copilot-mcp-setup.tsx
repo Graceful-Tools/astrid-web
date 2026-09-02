@@ -92,6 +92,7 @@ export function GitHubCopilotMcpSetup({ origin }: { origin?: string }) {
         permissions: ["read", "write"],
         expiresInDays: 365,
         description: "GitHub Copilot cloud agent",
+        agent: "copilot",
       })
 
       if (!response.ok) {

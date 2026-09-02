@@ -125,7 +125,7 @@ export const GET = withAuth<RouteContext>(
       where: { taskId },
       include: {
         author: {
-          select: { id: true, name: true, email: true, image: true }
+          select: { id: true, name: true, email: true, image: true, isAIAgent: true }
         },
         secureFiles: {
           select: {
@@ -209,6 +209,13 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
+    if (body.aiAgentId !== undefined && auth.source === 'legacy_mcp') {
+      return NextResponse.json(
+        { error: 'aiAgentId cannot be selected by the caller; use an agent-bound credential' },
+        { status: 400 }
+      )
+    }
+
     // `type` lands in a Postgres enum column. Unvalidated, an unknown label
     // reached the Prisma driver and surfaced as a 500 — the caller deserves a
     // 400 that names the accepted values, and the enum is case-sensitive, so
@@ -256,8 +263,10 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    let authorId = auth.userId
-    if (body.aiAgentId) {
+    let authorId = auth.agentUser?.id || auth.userId
+    if (auth.agentUser) {
+      log.info({ agentEmail: auth.agentUser.email }, 'Posting comment as authenticated AI agent')
+    } else if (body.aiAgentId) {
       const aiAgent = await prisma.user.findUnique({
         where: { id: body.aiAgentId },
         select: { id: true, isAIAgent: true, email: true }
@@ -270,9 +279,7 @@ export const POST = withAuth<RouteContext>(
         )
       }
 
-      // Allow either explicitly-flagged AI agents or system @astrid.cc agents
-      const isSystemAgent = isBrandAgentEmail(aiAgent.email)
-      if (!aiAgent.isAIAgent && !isSystemAgent) {
+      if (!aiAgent.isAIAgent && !isBrandAgentEmail(aiAgent.email)) {
         return NextResponse.json(
           { error: 'Invalid aiAgentId - specified user is not an AI agent' },
           { status: 400 }
@@ -292,7 +299,7 @@ export const POST = withAuth<RouteContext>(
     // queued comment creates after a network reconnect; without this, every
     // retry produces a fresh row.
     const commentInclude = {
-      author: { select: { id: true, name: true, email: true, image: true } },
+      author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true } },
       secureFiles: {
         select: { id: true, originalName: true, mimeType: true, fileSize: true, createdAt: true },
       },
@@ -432,7 +439,7 @@ export const POST = withAuth<RouteContext>(
     // detection, AI assignee wake-up, and stats invalidation.
     try {
       const commenterUser = await prisma.user.findUnique({
-        where: { id: auth.userId },
+        where: { id: authorId },
         select: { id: true, name: true, email: true, isAIAgent: true },
       })
       if (commenterUser) {

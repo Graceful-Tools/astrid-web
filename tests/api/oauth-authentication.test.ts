@@ -249,12 +249,21 @@ describe('OAuth Authentication', () => {
         updatedAt: new Date(),
         lastUsedAt: null,
         expiresAt: null,
+        agentUserId: null,
+        agentMailbox: 'copilot',
         user: {
           id: testUserId,
           email: 'test@example.com',
           name: 'Test User',
           isAIAgent: false,
         },
+        agentUser: null,
+      })
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'copilot-agent-id',
+        email: 'copilot@astrid.cc',
+        name: 'GitHub Copilot Agent',
+        image: null,
       })
 
       // Create mock request with MCP token and cookies object
@@ -272,6 +281,16 @@ describe('OAuth Authentication', () => {
       expect(auth.userId).toBe(testUserId)
       expect(auth.source).toBe('legacy_mcp')
       expect(auth.scopes).toContain('*') // Legacy tokens have full access
+      expect(auth.agentUser).toEqual({
+        id: 'copilot-agent-id',
+        email: 'copilot@astrid.cc',
+        name: 'GitHub Copilot Agent',
+        isAIAgent: true,
+      })
+      expect(mockPrisma.mCPToken.update).toHaveBeenCalledWith({
+        where: { id: 'mcp-token-id' },
+        data: { agentUserId: 'copilot-agent-id' },
+      })
     })
 
     it('should reject invalid tokens', async () => {
