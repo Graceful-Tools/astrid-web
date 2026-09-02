@@ -166,12 +166,6 @@ describe('POST /api/v1/tasks/:id/comments — access', () => {
       secureFiles: [],
     })
     ;(mockPrisma.user.findUnique as any).mockResolvedValue({
-      id: 'copilot-agent',
-      email: 'copilot@astrid.cc',
-      name: 'GitHub Copilot Agent',
-      isAIAgent: true,
-    })
-    ;(mockPrisma.user.findUnique as any).mockResolvedValue({
       id: 'user-1', name: 'Jon', email: 'jon@example.com', isAIAgent: false,
     })
 
@@ -215,6 +209,59 @@ describe('POST /api/v1/tasks/:id/comments — agent-bound authentication', () =>
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'copilot-agent' },
       select: { id: true, name: true, email: true, isAIAgent: true },
+    })
+  })
+
+  describe('POST /api/v1/tasks/:id/comments — OAuth aiAgentId compatibility', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      mockAuth.mockResolvedValue(authedUser as any)
+      ;(mockPrisma.task.findUnique as any).mockResolvedValue(ownTask)
+    })
+
+    it('returns 400 when aiAgentId user does not exist', async () => {
+      ;(mockPrisma.user.findUnique as any).mockResolvedValue(null)
+      const res = await POST(
+        makeReq('POST', { content: 'as agent', aiAgentId: 'agent-x' }),
+        { params } as any
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 when aiAgentId user is not an AI agent and not @astrid.cc', async () => {
+      ;(mockPrisma.user.findUnique as any).mockResolvedValue({
+        id: 'human-1', isAIAgent: false, email: 'someone@gmail.com',
+      })
+      const res = await POST(
+        makeReq('POST', { content: 'as agent', aiAgentId: 'human-1' }),
+        { params } as any
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('accepts a system @astrid.cc agent even if isAIAgent is false', async () => {
+      ;(mockPrisma.user.findUnique as any).mockImplementation((args: any) => {
+        if (args.where.id === 'system-agent') {
+          return Promise.resolve({ id: 'system-agent', isAIAgent: false, email: 'claude@astrid.cc' })
+        }
+        return Promise.resolve({ id: 'user-1', name: 'Jon', email: 'jon@example.com', isAIAgent: false })
+      })
+      ;(mockPrisma.comment.create as any).mockResolvedValue({
+        id: 'c-1',
+        content: 'as agent',
+        authorId: 'system-agent',
+        createdAt: new Date(),
+        author: { id: 'system-agent', isAIAgent: false },
+        secureFiles: [],
+      })
+
+      const res = await POST(
+        makeReq('POST', { content: 'as agent', aiAgentId: 'system-agent' }),
+        { params } as any
+      )
+      expect(res.status).toBe(201)
+      const createCall = (mockPrisma.comment.create as any).mock.calls[0][0]
+      expect(createCall.data.authorId).toBe('system-agent')
     })
   })
 
