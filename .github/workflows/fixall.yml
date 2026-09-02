@@ -59,8 +59,8 @@ jobs:
         env:
           ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
           ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
-          # This workflow has one MCP credential, owned by copilot@astrid.cc,
-          # so both scheduled and manual runs must use that same harness.
+          # The fixed harness maps server-side to copilot@astrid.cc. OAuth
+          # authenticates the external workflow without carrying an agent token.
           ASTRID_FIXALL_HARNESS: 'github-copilot'
           ASTRID_FIXALL_DRY_RUN: ${{ inputs.dry_run || false }}
         run: |
@@ -131,7 +131,6 @@ jobs:
       - name: Assign and trigger Astrid coding agent for each task
         id: trigger
         env:
-          ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
           ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
           ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
           ASTRID_FIXALL_HARNESS: 'github-copilot'
@@ -143,10 +142,30 @@ jobs:
           echo "Triggering ready tasks for harness: ${HARNESS}"
           echo "Task count: ${TASK_COUNT}"
 
-          if [ -z "${ASTRID_MCP_TOKEN}" ]; then
-            echo "::error::ASTRID_MCP_TOKEN is not configured"
+          TOKEN_RESPONSE_FILE=$(mktemp)
+          TOKEN_STATUS=$(curl --silent --show-error \
+            --output "${TOKEN_RESPONSE_FILE}" --write-out '%{http_code}' \
+            --request POST 'https://astrid.cc/api/v1/oauth/token' \
+            --header 'Content-Type: application/json' \
+            --data "$(node -e '
+              process.stdout.write(JSON.stringify({
+                grant_type: "client_credentials",
+                client_id: process.env.ASTRID_OAUTH_CLIENT_ID,
+                client_secret: process.env.ASTRID_OAUTH_CLIENT_SECRET,
+              }))
+            ')") || TOKEN_STATUS="000"
+          if [[ ! "${TOKEN_STATUS}" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::OAuth token request failed (HTTP ${TOKEN_STATUS})"
+            rm -f "${TOKEN_RESPONSE_FILE}"
             exit 1
           fi
+          ACCESS_TOKEN=$(TOKEN_RESPONSE_FILE="${TOKEN_RESPONSE_FILE}" node -e '
+            const fs = require("fs")
+            const response = JSON.parse(fs.readFileSync(process.env.TOKEN_RESPONSE_FILE, "utf8"))
+            if (!response.access_token) process.exit(1)
+            process.stdout.write(response.access_token)
+          ')
+          rm -f "${TOKEN_RESPONSE_FILE}"
 
           TRIGGERED=0
           FAILED=0
@@ -190,7 +209,7 @@ jobs:
               --output "${RESPONSE_FILE}" --write-out '%{http_code}' \
               --request POST "${ASTRID_TRIGGER_URL}" \
               --header 'Content-Type: application/json' \
-              --oauth2-bearer "${ASTRID_MCP_TOKEN}" \
+              --header "X-OAuth-Token: ${ACCESS_TOKEN}" \
               --data-binary "@${PAYLOAD_FILE}") || HTTP_STATUS="000"
 
             rm -f "${PAYLOAD_FILE}"
