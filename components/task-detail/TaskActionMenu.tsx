@@ -60,7 +60,7 @@ export function TaskActionMenu({
           <MoreVertical className="w-5 h-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="z-[70] w-44">
         <DropdownMenuItem onClick={onCopy}>
           <Copy className="w-4 h-4 mr-2" />
           Copy

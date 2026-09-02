@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { Task, User } from '@/types/task'
 
 vi.mock('@/contexts/feature-flag-context', () => ({
@@ -150,5 +151,16 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     renderHeader({ onClose: vi.fn(), onToggleFullScreen: onToggle, fullScreen: false })
     screen.getByLabelText('Full screen').click()
     expect(onToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the action menu above the full-screen panel (AWTD-753)', async () => {
+    const user = userEvent.setup()
+    renderHeader({ onClose: vi.fn(), onToggleFullScreen: vi.fn(), fullScreen: true })
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+    expect(trigger).not.toBeNull()
+    await user.click(trigger!)
+
+    expect(screen.getByRole('menu').className).toMatch(/(?:^|\s)z-\[(?:6[1-9]|[7-9]\d|\d{3,})\](?:\s|$)/)
   })
 })
