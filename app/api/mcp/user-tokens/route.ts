@@ -3,8 +3,11 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
-import { randomBytes } from "crypto"
 import { createLogger } from '@/lib/logger'
+import { agentEmail } from '@/lib/brand/agent-emails'
+import { mcpTokenLookup, mcpTokenStorageFields, resolveMCPPlaintext } from '@/lib/mcp-token'
+import { generateMCPToken } from '@/lib/mcp-token-utils'
+import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 
 const log = createLogger('mcp.user-tokens')
 
@@ -14,6 +17,7 @@ const CreateUserMCPTokenSchema = z.object({
   permissions: z.array(z.enum(["read", "write"])).min(1, "At least one permission required"),
   expiresInDays: z.number().min(1).max(365).optional(),
   description: z.string().optional(),
+  agent: z.enum(["copilot"]).optional(),
 })
 
 export async function GET() {
@@ -38,7 +42,7 @@ export async function GET() {
     })
 
     const formattedTokens = userTokens.map(token => ({
-      token: token.token,
+      token: resolveMCPPlaintext(token),
       permissions: token.permissions,
       expiresAt: token.expiresAt,
       description: token.description,
@@ -80,8 +84,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate secure token
-    const token = `astrid_mcp_${randomBytes(32).toString('hex')}`
+    let agentUserId: string | null = null
+    if (validatedData.agent) {
+      const agentUser = await ensureAgentUser(agentEmail(validatedData.agent))
+      if (!agentUser) {
+        return NextResponse.json(
+          { error: "The requested AI agent identity is not configured" },
+          { status: 409 }
+        )
+      }
+      agentUserId = agentUser.id
+    }
+
+    const token = generateMCPToken()
 
     // Calculate expiration date
     const expiresAt = validatedData.expiresInDays
@@ -91,9 +106,11 @@ export async function POST(request: NextRequest) {
     // Store token in database (user-level token has no listId)
     const mcpToken = await prisma.mCPToken.create({
       data: {
-        token,
+        ...mcpTokenStorageFields(token),
         listId: null, // User-level tokens have no specific list
         userId: session.user.id,
+        agentUserId,
+        agentMailbox: validatedData.agent ?? null,
         permissions: validatedData.permissions,
         expiresAt,
         description: validatedData.description,
@@ -103,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      token: mcpToken.token,
+      token,
       permissions: mcpToken.permissions,
       expiresAt: mcpToken.expiresAt,
       description: mcpToken.description,
@@ -143,7 +160,7 @@ export async function DELETE(request: NextRequest) {
     // Find and verify the token belongs to the user
     const mcpToken = await prisma.mCPToken.findFirst({
       where: {
-        token,
+        token: { in: mcpTokenLookup(token) },
         userId: session.user.id,
         listId: null // User-level tokens
       }

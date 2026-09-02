@@ -56,12 +56,16 @@ Refer to tasks by **title** in every report; Jon does not read task ids.
 4. **Present the tasks** to the user and ask which one(s) to work on.
 
 5. **For each task**, follow the coding workflow in ASTRID.md:
-   - **Post session link** so user can follow along on mobile:
+   - **Post session link** so user can follow along on mobile. Claude Code uses:
      ```bash
      npx tsx scripts/post-session-link.ts <taskId>
      ```
+     GitHub Copilot uses the Astrid MCP `add_comment` tool instead, so the
+     agent-bound MCP credential—not Jon's OAuth identity—authors the link.
    - Analyze the issue
-   - Post strategy comment to the task
+   - Post strategy and completion comments to the task. GitHub Copilot must use
+     the Astrid MCP `add_comment` tool for both; it must not use the
+     Claude-specific OAuth comment scripts.
    - Create a feature branch (`fix/<short-description>`)
    - **RED-GREEN TDD (mandatory for bug fixes):**
      1. Write a failing test that reproduces the bug. Cite the task id in

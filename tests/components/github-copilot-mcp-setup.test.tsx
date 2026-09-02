@@ -70,6 +70,7 @@ describe('GitHub Copilot cloud MCP setup (github-cloud-mcp)', () => {
       permissions: ['read', 'write'],
       expiresInDays: 365,
       description: 'GitHub Copilot cloud agent',
+      agent: 'copilot',
     })
 
     const config = screen.getByTestId('github-copilot-mcp-config').textContent

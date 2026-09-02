@@ -102,7 +102,7 @@ describe('API v1 task comments public access', () => {
       where: { taskId: 'task-public' },
       include: {
         author: {
-          select: { id: true, name: true, email: true, image: true },
+          select: { id: true, name: true, email: true, image: true, isAIAgent: true },
         },
         secureFiles: {
           select: {
@@ -176,7 +176,7 @@ describe('API v1 task comments public access', () => {
       },
       include: {
         author: {
-          select: { id: true, name: true, email: true, image: true },
+          select: { id: true, name: true, email: true, image: true, isAIAgent: true },
         },
         secureFiles: {
           select: {

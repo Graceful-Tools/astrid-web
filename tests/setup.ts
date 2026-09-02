@@ -75,6 +75,7 @@ if (typeof window !== 'undefined') {
 export const mockPrisma = {
   user: {
     findUnique: vi.fn().mockResolvedValue(null),
+    findFirst: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),

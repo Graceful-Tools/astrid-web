@@ -175,7 +175,7 @@ class OAuthAPIClient {
       ...options,
       headers: {
         ...options.headers,
-        "X-OAuth-Token": token, // Use X-OAuth-Token header (works in production)
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -642,7 +642,7 @@ export default class AstridMCPServerOAuth {
     const data = await this.oauthClient.makeRequest<{ task: Task }>(
       `/api/v1/tasks/${taskId}`,
       {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify(updates),
       }
     )
