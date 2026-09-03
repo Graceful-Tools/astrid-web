@@ -12,6 +12,8 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { type OAuthScope, validateScopes, hasRequiredScopes } from './oauth-scopes'
 import { createLogger } from '@/lib/logger'
+import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
+import { agentEmail } from '@/lib/brand/agent-emails'
 
 const log = createLogger('oauth.oauth-token-manager')
 
@@ -122,7 +124,8 @@ export async function generateAccessToken(
 export async function generateAccessAndRefreshToken(
   clientId: string,
   userId: string,
-  scopes: string[]
+  scopes: string[],
+  agentMailbox?: 'copilot',
 ): Promise<{
   accessToken: string
   refreshToken: string
@@ -144,6 +147,7 @@ export async function generateAccessAndRefreshToken(
       clientId,
       userId,
       scopes: validScopes,
+      agentMailbox: agentMailbox ?? null,
       expiresAt: accessExpiresAt,
       refreshExpiresAt,
     },
@@ -197,7 +201,8 @@ export async function refreshAccessToken(
   return await generateAccessAndRefreshToken(
     clientId,
     existingToken.userId,
-    existingToken.scopes
+    existingToken.scopes,
+    existingToken.agentMailbox === 'copilot' ? 'copilot' : undefined,
   )
 }
 
@@ -216,6 +221,12 @@ export async function validateAccessToken(
     isAIAgent: boolean
     name: string | null
   }
+  agentUser: {
+    id: string
+    email: string
+    isAIAgent: boolean
+    name: string | null
+  } | null
 } | null> {
   log.info({
     tokenFp: hashToken(token).slice(0, 12), // fingerprint, not the token itself
@@ -258,6 +269,21 @@ export async function validateAccessToken(
 
   log.info({ userId: oauthToken.userId }, '[OAuth] Token validated successfully for user')
 
+  let agentUser = null
+  if (oauthToken.agentMailbox === 'copilot') {
+    const ensured = await ensureAgentUser(agentEmail('copilot'))
+    if (!ensured?.email) {
+      log.error({ tokenId: oauthToken.id }, 'OAuth token agent identity is unavailable')
+      return null
+    }
+    agentUser = {
+      id: ensured.id,
+      email: ensured.email,
+      name: ensured.name,
+      isAIAgent: true,
+    }
+  }
+
   // Update last used timestamp for the client
   await prisma.oAuthClient.update({
     where: { id: oauthToken.clientId },
@@ -271,6 +297,7 @@ export async function validateAccessToken(
     clientId: oauthToken.clientId,
     scopes: oauthToken.scopes,
     user: oauthToken.user,
+    agentUser,
   }
 }
 
@@ -318,6 +345,7 @@ export async function generateAuthorizationCode(
   scopes: string[],
   codeChallenge?: string,
   codeChallengeMethod?: string,
+  agentMailbox?: 'copilot',
 ): Promise<string> {
   const code = `astrid_code_${generateSecureToken(TOKEN_LENGTHS.AUTHORIZATION_CODE)}`
   const expiresAt = new Date(Date.now() + TOKEN_LIFETIMES.AUTHORIZATION_CODE * 1000)
@@ -330,6 +358,7 @@ export async function generateAuthorizationCode(
       userId,
       redirectUri,
       scopes: validScopes,
+      agentMailbox: agentMailbox ?? null,
       codeChallenge,
       codeChallengeMethod,
       expiresAt,
@@ -393,7 +422,8 @@ export async function exchangeAuthorizationCode(
   return await generateAccessAndRefreshToken(
     clientId,
     authCode.userId,
-    authCode.scopes
+    authCode.scopes,
+    authCode.agentMailbox === 'copilot' ? 'copilot' : undefined,
   )
 }
 

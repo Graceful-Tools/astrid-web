@@ -236,6 +236,76 @@ describe('OAuth Authentication', () => {
       expect(auth.isAIAgent).toBe(false)
     })
 
+    it('AWTD-755 keeps the human OAuth principal while exposing explicit Copilot authorship', async () => {
+      mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+        id: 'token-id',
+        accessToken: mockAccessToken,
+        tokenType: 'Bearer',
+        clientId: mockOAuthClient.id,
+        userId: testUserId,
+        scopes: ['tasks:read', 'tasks:write'],
+        agentMailbox: 'copilot',
+        expiresAt: new Date(Date.now() + 3600000),
+        createdAt: new Date(),
+        refreshToken: null,
+        revokedAt: null,
+        user: {
+          id: testUserId,
+          email: 'test@example.com',
+          isAIAgent: false,
+          name: 'Test User',
+        },
+      })
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'copilot-agent-id',
+        email: 'copilot@astrid.cc',
+        name: 'GitHub Copilot Agent',
+        image: null,
+      })
+
+      const headers = new Headers()
+      headers.set('authorization', ['Bearer', mockAccessToken].join(' '))
+      const request = new Request('http://localhost:3000/api/v1/tasks', { headers }) as any
+      const auth = await authenticateAPI(request)
+
+      expect(auth.userId).toBe(testUserId)
+      expect(auth.user.email).toBe('test@example.com')
+      expect(auth.agentUser).toEqual({
+        id: 'copilot-agent-id',
+        email: 'copilot@astrid.cc',
+        name: 'GitHub Copilot Agent',
+        isAIAgent: true,
+      })
+    })
+
+    it('AWTD-755 fails closed when a consent-bound Copilot identity cannot resolve', async () => {
+      mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+        id: 'token-id',
+        accessToken: mockAccessToken,
+        clientId: mockOAuthClient.id,
+        userId: testUserId,
+        scopes: ['tasks:write'],
+        agentMailbox: 'copilot',
+        expiresAt: new Date(Date.now() + 3600000),
+        revokedAt: null,
+        user: {
+          id: testUserId,
+          email: 'test@example.com',
+          isAIAgent: false,
+          name: 'Test User',
+        },
+      })
+      mockPrisma.user.findFirst.mockResolvedValue(null)
+      mockPrisma.user.create.mockRejectedValue(new Error('agent unavailable'))
+
+      const headers = new Headers()
+      headers.set('authorization', ['Bearer', mockAccessToken].join(' '))
+      const request = new Request('http://localhost:3000/api/v1/tasks', { headers }) as any
+      request.cookies = { get: vi.fn().mockReturnValue(undefined) }
+
+      await expect(authenticateAPI(request)).rejects.toThrow('No valid authentication found')
+    })
+
     it('should authenticate with legacy MCP token', async () => {
       const mcpToken = 'astrid_mcp_test123'
 
