@@ -11,6 +11,8 @@ import {
   validateAuthorizationRequest,
 } from "@/lib/oauth/oauth-authorization"
 import { formatScopeString, getScopeDescription } from "@/lib/oauth/oauth-scopes"
+import { agentEmail } from "@/lib/brand/agent-emails"
+import { getAgentConfig } from "@/lib/ai/agent-config"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -133,20 +135,22 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
       codeChallengeMethod,
     })
 
-    if (decision === "deny") {
+    if (decision !== "approve" && decision !== "approve_copilot") {
       const denialUrl = buildErrorRedirect(requestContext, "access_denied", "User denied the request")
       redirect(denialUrl)
     }
 
     const { redirectUrl } = await createAuthorizationRedirect(
       currentSession.user.id,
-      requestContext
+      requestContext,
+      decision === "approve_copilot" ? "copilot" : undefined,
     )
 
     redirect(redirectUrl)
   }
 
   const scopeSummary = formatScopeString(context.scopes)
+  const copilotAgentEnabled = Boolean(getAgentConfig(agentEmail("copilot")))
 
   return (
     <div className="min-h-screen theme-bg-primary">
@@ -251,6 +255,16 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                   >
                     Approve Access
                   </Button>
+                  {copilotAgentEnabled && !context.client.owner && context.client.tokenEndpointAuthMethod === "none" && (
+                    <Button
+                      type="submit"
+                      name="decision"
+                      value="approve_copilot"
+                      className="flex-1"
+                    >
+                      Approve Access as {agentEmail("copilot")}
+                    </Button>
+                  )}
                 </div>
               </form>
               <p className="text-xs theme-text-muted">

@@ -206,6 +206,7 @@ export async function authenticateAPI(
         clientId: validated.clientId,
         isAIAgent: validated.user.isAIAgent,
         user: validated.user,
+        agentUser: validated.agentUser,
       }
     }
   }

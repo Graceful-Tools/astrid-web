@@ -11,7 +11,10 @@ import {
   createAuthorizationRedirect,
   validateAuthorizationRequest,
 } from '@/lib/oauth/oauth-authorization'
-import { exchangeAuthorizationCode } from '@/lib/oauth/oauth-token-manager'
+import {
+  exchangeAuthorizationCode,
+  refreshAccessToken,
+} from '@/lib/oauth/oauth-token-manager'
 
 describe('MCP OAuth public clients (task a0e0808c)', () => {
   it('registers a public authorization-code client without issuing a secret', async () => {
@@ -200,5 +203,113 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       'wrong-verifier-that-is-long-enough-to-be-a-valid-pkce-value',
     )).resolves.toBeNull()
     expect(mockPrisma.oAuthAuthorizationCode.update).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-755 preserves explicit Copilot authorship consent through code exchange and refresh', async () => {
+    mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue({ id: 'code-row' })
+    const context = {
+      client: {
+        id: 'db-client',
+        clientId: 'astrid_client_dynamic',
+        name: 'MCP Client',
+        description: null,
+        redirectUris: ['https://vscode.dev/redirect'],
+        grantTypes: ['authorization_code', 'refresh_token'],
+        scopes: ['tasks:read'] as const,
+        tokenEndpointAuthMethod: 'none',
+        owner: null,
+      },
+      redirectUri: 'https://vscode.dev/redirect',
+      scopes: ['tasks:read'] as const,
+      codeChallenge: 'ImpiCd8pp4MveCNnbIS7-GXEtB0xF5HMIDoWqvGA5ig',
+      codeChallengeMethod: 'S256' as const,
+    }
+
+    await createAuthorizationRedirect('user-1', context, 'copilot')
+    expect(mockPrisma.oAuthAuthorizationCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ agentMailbox: 'copilot' }),
+    })
+
+    mockPrisma.oAuthAuthorizationCode.findFirst.mockResolvedValue({
+      id: 'code-row',
+      code: 'astrid_code_x',
+      clientId: 'db-client',
+      userId: 'user-1',
+      redirectUri: context.redirectUri,
+      scopes: ['tasks:read'],
+      agentMailbox: 'copilot',
+      codeChallenge: context.codeChallenge,
+      codeChallengeMethod: 'S256',
+      expiresAt: new Date(Date.now() + 60_000),
+      usedAt: null,
+      createdAt: new Date(),
+    })
+    mockPrisma.oAuthToken.create.mockResolvedValue({ id: 'token-row' })
+
+    await exchangeAuthorizationCode(
+      'astrid_code_x',
+      'db-client',
+      context.redirectUri,
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~',
+    )
+    expect(mockPrisma.oAuthToken.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ agentMailbox: 'copilot' }),
+    })
+
+    mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+      id: 'token-row',
+      clientId: 'db-client',
+      userId: 'user-1',
+      scopes: ['tasks:read'],
+      agentMailbox: 'copilot',
+    })
+    await refreshAccessToken('astrid_refresh_x', 'db-client')
+    expect(mockPrisma.oAuthToken.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ agentMailbox: 'copilot' }),
+    })
+  })
+
+  it('AWTD-755 rejects agent consent for a confidential OAuth client', async () => {
+    const context = {
+      client: {
+        id: 'db-client',
+        clientId: 'astrid_client_confidential',
+        name: 'Other integration',
+        description: null,
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        scopes: ['tasks:read'] as const,
+        tokenEndpointAuthMethod: 'client_secret_post',
+        owner: { id: 'owner-1', name: 'Owner', email: 'owner@example.com' },
+      },
+      redirectUri: 'https://example.com/callback',
+      scopes: ['tasks:read'] as const,
+    }
+
+    await expect(
+      createAuthorizationRedirect('user-1', context, 'copilot'),
+    ).rejects.toThrow(/public MCP client/i)
+  })
+
+  it('AWTD-755 rejects agent consent for an owned public OAuth client', async () => {
+    const context = {
+      client: {
+        id: 'db-client',
+        clientId: 'astrid_client_owned',
+        name: 'Owned integration',
+        description: null,
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        scopes: ['tasks:read'] as const,
+        tokenEndpointAuthMethod: 'none',
+        owner: { id: 'owner-1', name: 'Owner', email: 'owner@example.com' },
+      },
+      redirectUri: 'https://example.com/callback',
+      scopes: ['tasks:read'] as const,
+    }
+
+    await expect(
+      createAuthorizationRedirect('user-1', context, 'copilot'),
+    ).rejects.toThrow(/public MCP client/i)
   })
 })

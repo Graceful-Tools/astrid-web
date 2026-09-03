@@ -7,6 +7,8 @@ import {
   type OAuthScope,
 } from './oauth-scopes'
 import { generateAuthorizationCode } from './oauth-token-manager'
+import { getAgentConfig } from '@/lib/ai/agent-config'
+import { agentEmail } from '@/lib/brand/agent-emails'
 
 export class OAuthAuthorizationError extends Error {
   public readonly code: string
@@ -209,8 +211,25 @@ export async function validateAuthorizationRequest(
 
 export async function createAuthorizationRedirect(
   userId: string,
-  context: AuthorizationContext
+  context: AuthorizationContext,
+  agentMailbox?: 'copilot',
 ): Promise<{ redirectUrl: string; code: string }> {
+  if (
+    agentMailbox &&
+    (context.client.tokenEndpointAuthMethod !== 'none' || context.client.owner)
+  ) {
+    throw new OAuthAuthorizationError(
+      'invalid_request',
+      'Agent authorship consent is available only to a public MCP client',
+    )
+  }
+  if (agentMailbox === 'copilot' && !getAgentConfig(agentEmail('copilot'))) {
+    throw new OAuthAuthorizationError(
+      'invalid_request',
+      'The Copilot agent identity is not configured',
+    )
+  }
+
   const code = await generateAuthorizationCode(
     context.client.id,
     userId,
@@ -218,6 +237,7 @@ export async function createAuthorizationRedirect(
     context.scopes,
     context.codeChallenge,
     context.codeChallengeMethod,
+    agentMailbox,
   )
 
   const redirectUrl = new URL(context.redirectUri)

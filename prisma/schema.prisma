@@ -811,6 +811,7 @@ model OAuthToken {
   clientId         String
   userId           String
   scopes           String[]
+  agentMailbox     String?
   expiresAt        DateTime
   refreshExpiresAt DateTime?
   createdAt        DateTime    @default(now())
@@ -832,6 +833,7 @@ model OAuthAuthorizationCode {
   userId      String
   redirectUri String
   scopes      String[]
+  agentMailbox String?
   codeChallenge String?
   codeChallengeMethod String?
   expiresAt   DateTime
