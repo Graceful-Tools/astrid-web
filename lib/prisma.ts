@@ -62,36 +62,52 @@ async function handleTaskAssigneeChange(
         return
       }
 
-      // Check if we already posted a "starting" comment recently (within last 5 minutes)
-      // This prevents duplicate comments when the middleware is triggered multiple times
-      const recentStartingComment = await queryClient.comment.findFirst({
-        where: {
-          taskId: task.id,
-          authorId: assignee.id,
-          content: { contains: 'starting' },
-          createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }
-        },
-        orderBy: { createdAt: 'desc' }
-      })
+      const firstList = task.lists?.[0]
+      const {
+        getAgentExecutionMode,
+        resolveAgentRunOwnerId,
+        shouldPostServerWorkflowComments,
+      } = await import('@/lib/ai/agent-execution-mode')
+      const executionMode = await getAgentExecutionMode(
+        resolveAgentRunOwnerId({
+          aiAgentConfiguredBy: firstList?.aiAgentConfiguredBy,
+          creatorId: task.creatorId,
+          listOwnerId: firstList?.ownerId,
+        }),
+        assignee.email,
+      )
 
-      if (recentStartingComment) {
-        log.info(`📋 [PRISMA-MIDDLEWARE] Starting comment already posted recently, skipping duplicate`)
-      } else {
-        // Post acknowledgment comment
-        await queryClient.comment.create({
-          data: {
+      if (shouldPostServerWorkflowComments(executionMode)) {
+        // Avoid duplicates when the middleware is triggered multiple times.
+        const recentStartingComment = await queryClient.comment.findFirst({
+          where: {
             taskId: task.id,
             authorId: assignee.id,
-            content: `🤖 **${assignee.name} starting**\n\nAnalyzing → Implementing → Deploying\n\nWill post updates at key milestones.`,
-            type: 'MARKDOWN'
-          }
+            content: { contains: 'starting' },
+            createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }
+          },
+          orderBy: { createdAt: 'desc' }
         })
-        log.info(`✅ [PRISMA-MIDDLEWARE] Posted acknowledgment comment`)
+
+        if (recentStartingComment) {
+          log.info(`📋 [PRISMA-MIDDLEWARE] Starting comment already posted recently, skipping duplicate`)
+        } else {
+          await queryClient.comment.create({
+            data: {
+              taskId: task.id,
+              authorId: assignee.id,
+              content: `🤖 **${assignee.name} starting**\n\nAnalyzing → Implementing → Deploying\n\nWill post updates at key milestones.`,
+              type: 'MARKDOWN'
+            }
+          })
+          log.info(`✅ [PRISMA-MIDDLEWARE] Posted acknowledgment comment`)
+        }
+      } else {
+        log.info(`📋 [PRISMA-MIDDLEWARE] ${executionMode} mode owns its own task comments`)
       }
 
       // Send webhook to user's Claude Code Remote server
       const baseUrl = getBaseUrl()
-      const firstList = task.lists?.[0]
 
       const webhookPayload = {
         event: 'task.assigned' as const,
