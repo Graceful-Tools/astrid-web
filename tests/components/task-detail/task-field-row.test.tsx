@@ -57,7 +57,7 @@ describe('TaskFieldRow (task detail field layout)', () => {
 
   it('aligns the icon column to the header checkbox width', () => {
     // The invariant: icon column w-8 matches the leading control's w-8, and the
-    // row gap matches the header's space-x-2. Change one without the other and
+    // row gap is shared with the header. Change one without the other and
     // the content stops lining up with the title.
     expect(FIELD_ICON_COLUMN_CLASS).toContain('w-8')
     expect(FIELD_ROW_GAP_CLASS).toContain('gap-2')
