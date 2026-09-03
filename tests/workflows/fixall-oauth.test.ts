@@ -12,4 +12,12 @@ describe('fixall workflow OAuth authentication', () => {
     expect(workflow).not.toContain('ASTRID_MCP_TOKEN')
     expect(workflow).toContain('X-OAuth-Token')
   })
+
+  it('keeps GitHub Actions manual-only with local and cloud runner choices', () => {
+    expect(workflow).not.toMatch(/^\s+schedule:/m)
+    expect(workflow).toMatch(/^\s+workflow_dispatch:/m)
+    expect(workflow).toMatch(
+      /runner:[\s\S]*?type: choice[\s\S]*?options:\s*\n\s+- local\s*\n\s+- cloud/,
+    )
+  })
 })
