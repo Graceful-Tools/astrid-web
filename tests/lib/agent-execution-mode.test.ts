@@ -18,6 +18,7 @@ import {
   pollableMailboxes,
   resolveAgentExecutionMode,
   resolveAgentRunOwnerId,
+  shouldPostServerWorkflowComments,
 } from '@/lib/ai/agent-execution-mode'
 
 describe('resolveAgentExecutionMode', () => {
@@ -176,6 +177,15 @@ describe('webhook mode', () => {
       mcpSettings: JSON.stringify({ agentModes: { claude: 'webhook' } }),
     })
     expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(false)
+  })
+})
+
+describe('server workflow comments (task ae70990c)', () => {
+  it('posts canned workflow narration only when Astrid runs the agent via API', () => {
+    expect(shouldPostServerWorkflowComments('api')).toBe(true)
+    expect(shouldPostServerWorkflowComments('polling')).toBe(false)
+    expect(shouldPostServerWorkflowComments('webhook')).toBe(false)
+    expect(shouldPostServerWorkflowComments('off')).toBe(false)
   })
 })
 

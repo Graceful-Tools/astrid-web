@@ -55,6 +55,11 @@ export function isAgentExecutionMode(value: unknown): value is AgentExecutionMod
   return typeof value === 'string' && (AGENT_EXECUTION_MODES as readonly string[]).includes(value)
 }
 
+/** Only API mode uses Astrid's built-in workflow and its canned status comments. */
+export function shouldPostServerWorkflowComments(mode: AgentExecutionMode): boolean {
+  return mode === 'api'
+}
+
 /**
  * Agents with no server-side executor at all. Mode is not a choice for these —
  * `codex@` exists precisely because the Codex CLI runs on the user's machine, and

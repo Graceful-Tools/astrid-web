@@ -5,7 +5,11 @@
 
 import { PrismaClient } from '@prisma/client'
 import { createAIAgentComment } from './ai-agent-comment-service'
-import { isPollingOnlyAgent, resolveAgentRunOwnerId } from '@/lib/ai/agent-execution-mode'
+import {
+  getAgentExecutionMode,
+  resolveAgentRunOwnerId,
+  shouldPostServerWorkflowComments,
+} from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('comment-approval-detector')
@@ -20,14 +24,14 @@ export type CommentAction =
   | { type: 'none'; confidence: 0 }
 
 /**
- * Is this task's agent worked by the user's own harness rather than by us?
+ * Does this task use Astrid's built-in server workflow?
  *
  * Reads the assignee and the owner in one query so the four trigger paths share
- * one answer. A task whose assignee cannot be read is NOT treated as polling —
+ * one answer. A task whose assignee cannot be read is treated as server-managed —
  * that would silently disable server-side workflows on a bad query, which is the
  * failure mode this whole detector exists to avoid.
  */
-async function isPollingOnlyRun(taskId: string): Promise<boolean> {
+async function usesServerWorkflow(taskId: string): Promise<boolean> {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: {
@@ -40,16 +44,17 @@ async function isPollingOnlyRun(taskId: string): Promise<boolean> {
     },
   })
 
-  if (!task?.assignee?.email) return false
+  if (!task?.assignee?.email) return true
 
-  return isPollingOnlyAgent(
-    task.assignee.email,
+  const mode = await getAgentExecutionMode(
     resolveAgentRunOwnerId({
       aiAgentConfiguredBy: task.lists[0]?.aiAgentConfiguredBy,
       creatorId: task.creatorId,
       listOwnerId: task.lists[0]?.ownerId,
-    })
+    }),
+    task.assignee.email,
   )
+  return shouldPostServerWorkflowComments(mode)
 }
 
 /**
@@ -128,11 +133,10 @@ export async function processCommentForWorkflowAction(
   authorId: string
 ): Promise<void> {
   try {
-    // Nothing here runs for an agent the user works in their own harness. Every
-    // branch below ends in an AIOrchestrator call on the owner's provider key, so
-    // the check belongs at the door rather than at each of the four triggers.
-    if (await isPollingOnlyRun(taskId)) {
-      log.info(`💻 [CommentAction] ${taskId} belongs to a polling-mode agent — leaving it queued`)
+    // Every branch below belongs to Astrid's built-in API workflow. Polling,
+    // webhook, and disabled agents own their responses elsewhere.
+    if (!(await usesServerWorkflow(taskId))) {
+      log.info(`💻 [CommentAction] ${taskId} is not server-managed — leaving responses to its runtime`)
       return
     }
 
