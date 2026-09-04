@@ -16,6 +16,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AgentHub } from '@/components/agent-hub'
 
+const capabilities = vi.hoisted(() => ({ integrationMcp: true }))
+vi.mock('@/lib/brand/capabilities', () => ({ CAPABILITIES: capabilities }))
+
 vi.mock('@/components/webhook-settings-manager', () => ({
   WebhookSettingsManager: () => <div data-testid="webhook-manager" />,
 }))
@@ -51,6 +54,7 @@ const ALL_POLLING = { claude: 'polling', openai: 'polling', copilot: 'polling', 
 describe('AgentHub', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    capabilities.integrationMcp = true
     putMock.mockResolvedValue({ json: async () => ({ modes: {} }) })
     mockFetches(ALL_POLLING)
   })
@@ -99,6 +103,14 @@ describe('AgentHub', () => {
 
     const guideLink = await screen.findByRole('link', { name: /Connect my coding agent guide/i })
     expect(guideLink).toHaveAttribute('href', '/docs/loops')
+  })
+
+  it('hides the coding-agent queue guide when MCP is disabled (AWTD-757)', async () => {
+    capabilities.integrationMcp = false
+    render(<AgentHub />)
+
+    expect(await screen.findByText('claude@astrid.cc')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Connect my coding agent guide/i })).not.toBeInTheDocument()
   })
 
   it('reveals the webhook manager in webhook mode', async () => {
