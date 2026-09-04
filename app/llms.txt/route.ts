@@ -16,6 +16,10 @@ export async function GET() {
   // told agents to "POST to /api/mcp/operations", an endpoint that answers 404 there.
   // Caught on the Acme preview deploy. Task 97208a72.
   const keyConcepts = [
+    {
+      text: '- **Coding-agent queue**: Assign work to the agent, mark it Ready, then have the harness call `get_agent_queue` and work what comes back',
+      capability: 'integrationMcp' as const,
+    },
     { text: `- **Lists as agent instructions**: Each list's description becomes the agent's system prompt` },
     { text: `- **Agent identities**: AI agents get \`name@${BRAND.agentEmailDomain}\` email addresses and appear as list members` },
     { text: `- **OAuth2 everywhere**: All integrations use the same OAuth2 client_credentials flow` },

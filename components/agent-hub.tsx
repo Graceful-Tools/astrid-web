@@ -349,6 +349,12 @@ export function AgentHub() {
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <Link href="/docs/loops" className="text-xs text-blue-500 hover:underline">
+          Connect my coding agent guide
+        </Link>
+      </div>
+
       {ROWS.map(row => {
         const mode = (modes[row.modeMailbox] as Mode) || 'polling'
         const isExpanded = expanded === row.key

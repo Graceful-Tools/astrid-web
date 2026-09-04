@@ -94,6 +94,13 @@ describe('AgentHub', () => {
     expect(screen.queryByPlaceholderText('sk-ant-...')).not.toBeInTheDocument()
   })
 
+  it('links to the public coding-agent queue guide (AWTD-757)', async () => {
+    render(<AgentHub />)
+
+    const guideLink = await screen.findByRole('link', { name: /Connect my coding agent guide/i })
+    expect(guideLink).toHaveAttribute('href', '/docs/loops')
+  })
+
   it('reveals the webhook manager in webhook mode', async () => {
     mockFetches({ ...ALL_POLLING, gemini: 'webhook' })
     render(<AgentHub />)
