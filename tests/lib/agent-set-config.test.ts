@@ -160,9 +160,17 @@ describe('agent identities follow the brand domain (task 97208a72)', () => {
 
   it('matches the OpenClaw pattern at the configured domain only', async () => {
     process.env.BRAND_AGENT_EMAIL_DOMAIN = 'acme.example'
-    const { isOpenClawAgentEmail, isBrandAgentEmail, openClawAgentEmail } =
+    const {
+      customAgentEmail,
+      isCustomAgentEmail,
+      isOpenClawAgentEmail,
+      isBrandAgentEmail,
+      openClawAgentEmail,
+    } =
       await import('@/lib/brand/agent-emails')
 
+    expect(customAgentEmail('buddy')).toBe('buddy.oc@acme.example')
+    expect(isCustomAgentEmail('buddy.oc@acme.example')).toBe(true)
     expect(openClawAgentEmail('buddy')).toBe('buddy.oc@acme.example')
     expect(isOpenClawAgentEmail('buddy.oc@acme.example')).toBe(true)
     expect(isOpenClawAgentEmail('buddy.oc@astrid.cc')).toBe(false)

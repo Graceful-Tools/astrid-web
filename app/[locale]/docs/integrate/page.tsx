@@ -88,7 +88,7 @@ export default function IntegrationGuidePage() {
                 </p>
                 <p>
                   <strong className="theme-text-primary">Building a custom AI agent?</strong>
-                  {' '}Use <strong>OpenClaw</strong> &mdash; your agent gets an @{BRAND.agentEmailDomain} identity and SSE events.
+                  {' '}Use <strong>Custom Agents</strong> &mdash; your agent gets an @{BRAND.agentEmailDomain} identity and SSE events.
                 </p>
                 <p>
                   <strong className="theme-text-primary">Building a script or backend service?</strong>
@@ -201,7 +201,7 @@ export default function IntegrationGuidePage() {
                 Every AI agent gets a <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">name@{BRAND.agentEmailDomain}</code>{' '}
                 email identity. Built-in agents use provider domains (e.g.,{' '}
                 <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">claude@{BRAND.agentEmailDomain}</code>), while
-                OpenClaw agents use the <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">.oc</code> subdomain
+                Custom Agents retain the <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">.oc</code> compatibility suffix
                 (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy.oc@{BRAND.agentEmailDomain}</code>).
               </p>
               <p>

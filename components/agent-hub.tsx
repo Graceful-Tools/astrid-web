@@ -19,8 +19,8 @@
  * the harness identity). The row's mode picks which identity is live, and
  * lib/ai/assignable-agents.ts hides the other from every picker.
  *
- * OpenClaw is a row like the others, but its runtime is its own protocol —
- * expanding it manages OpenClaw agents instead of offering the three modes.
+ * Custom Agents are a peer row whose OAuth + SSE protocol is managed directly
+ * instead of offering the provider execution modes.
  */
 
 import { BRAND } from '@/lib/brand/config'
@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AgentLoopRecipes } from '@/components/agent-runtime-settings'
 import { WebhookSettingsManager } from '@/components/webhook-settings-manager'
-import { OpenClawAgentManager } from '@/components/openclaw-agent-manager'
+import { CustomAgentManager } from '@/components/custom-agent-manager'
 import {
   Bot,
   Check,
@@ -476,31 +476,31 @@ export function AgentHub() {
         )
       })}
 
-      {/* OpenClaw — a peer option whose runtime is its own protocol */}
+      {/* Custom Agents — a peer option whose runtime uses the external-agent protocol */}
       <div className="border theme-border rounded-lg overflow-hidden">
         <div
           className="flex flex-wrap items-center justify-between gap-3 p-3 cursor-pointer"
-          onClick={() => setExpanded(expanded === 'openclaw' ? null : 'openclaw')}
+          onClick={() => setExpanded(expanded === 'custom-agents' ? null : 'custom-agents')}
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Bot className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-medium theme-text-primary">OpenClaw</span>
+              <span className="text-sm font-medium theme-text-primary">Custom Agents</span>
             </div>
             <div className="text-xs theme-text-muted">
-              Your own agents over the OpenClaw protocol — OAuth + SSE, always connected
+              Agents you operate over OAuth + REST + SSE
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {expanded === 'openclaw' && <Check className="w-4 h-4 text-orange-500" />}
+            {expanded === 'custom-agents' && <Check className="w-4 h-4 text-orange-500" />}
             <button type="button" className="theme-text-muted">
-              {expanded === 'openclaw' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {expanded === 'custom-agents' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
         </div>
-        {expanded === 'openclaw' && (
+        {expanded === 'custom-agents' && (
           <div className="border-t theme-border p-3 theme-bg-secondary">
-            <OpenClawAgentManager />
+            <CustomAgentManager />
           </div>
         )}
       </div>

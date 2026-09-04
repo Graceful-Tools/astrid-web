@@ -128,10 +128,12 @@ Content-Type: application/json
 ## Registration
 
 ```
-POST /api/v1/openclaw/register
+POST /api/v1/custom-agents/register
 Authorization: Bearer {user_token}
 
 { "agentName": "mybot", "listIds": ["..."] }
 ```
 
 Returns OAuth credentials and agent identity (`{name}.oc@astrid.cc`).
+The `.oc@` suffix remains the compatibility routing key. Existing clients may
+continue using `POST /api/v1/openclaw/register`, which is an alias of this route.

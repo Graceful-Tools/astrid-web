@@ -9,6 +9,7 @@ import { GitHubIntegrationSettings } from "@/components/github-integration-setti
 import { GitHubSharedSetup } from "@/components/github-shared-setup"
 import { GitHubCopilotMcpSetup } from "@/components/github-copilot-mcp-setup"
 import { CAPABILITIES } from "@/lib/brand/capabilities"
+import { agentServiceLabel } from "@/lib/ai/agent-config"
 import {
   Brain,
   FileText,
@@ -65,7 +66,7 @@ function AstridAgentSelector() {
   if (agents.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register an OpenClaw agent below to power {BRAND.appName}.
+        Add an API key or register a Custom Agent below to power {BRAND.appName}.
       </p>
     )
   }
@@ -76,7 +77,7 @@ function AstridAgentSelector() {
   if (modelOptions.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register an OpenClaw agent below to power {BRAND.appName}.
+        Add an API key or register a Custom Agent below to power {BRAND.appName}.
       </p>
     )
   }
@@ -102,7 +103,9 @@ function AstridAgentSelector() {
           )}
           <div className="flex-1 text-left">
             <div className="text-sm font-medium theme-text-primary">{agent.name}</div>
-            <div className="text-xs theme-text-muted">Powered by {agent.service}</div>
+            <div className="text-xs theme-text-muted">
+              Powered by {agentServiceLabel(agent.service)}
+            </div>
           </div>
           {currentAgentId === agent.id && (
             <Check className="w-5 h-5 text-blue-500 flex-shrink-0" />

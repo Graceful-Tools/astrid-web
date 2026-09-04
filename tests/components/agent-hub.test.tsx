@@ -19,8 +19,8 @@ import { AgentHub } from '@/components/agent-hub'
 vi.mock('@/components/webhook-settings-manager', () => ({
   WebhookSettingsManager: () => <div data-testid="webhook-manager" />,
 }))
-vi.mock('@/components/openclaw-agent-manager', () => ({
-  OpenClawAgentManager: () => <div data-testid="openclaw-manager" />,
+vi.mock('@/components/custom-agent-manager', () => ({
+  CustomAgentManager: () => <div data-testid="custom-agent-manager" />,
 }))
 
 const putMock = vi.fn()
@@ -55,10 +55,10 @@ describe('AgentHub', () => {
     mockFetches(ALL_POLLING)
   })
 
-  it('lists every agent option including OpenClaw as a peer', async () => {
+  it('lists every agent option including Custom Agents as a peer', async () => {
     render(<AgentHub />)
 
-    for (const label of ['Claude', 'Codex', 'GitHub Copilot', 'Gemini', 'OpenClaw']) {
+    for (const label of ['Claude', 'Codex', 'GitHub Copilot', 'Gemini', 'Custom Agents']) {
       expect(await screen.findByText(label)).toBeInTheDocument()
     }
   })
@@ -127,11 +127,11 @@ describe('AgentHub', () => {
     expect(screen.queryByPlaceholderText(/sk-/)).not.toBeInTheDocument()
   })
 
-  it('manages OpenClaw agents on expand instead of offering modes', async () => {
+  it('manages Custom Agents on expand instead of offering modes', async () => {
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('OpenClaw'))
+    fireEvent.click(await screen.findByText('Custom Agents'))
 
-    expect(await screen.findByTestId('openclaw-manager')).toBeInTheDocument()
+    expect(await screen.findByTestId('custom-agent-manager')).toBeInTheDocument()
   })
 })
 
@@ -146,7 +146,7 @@ describe("AgentHub — Don't use", () => {
     render(<AgentHub />)
     await screen.findByText('claude@astrid.cc')
 
-    // One "Don't use" per non-OpenClaw row.
+    // One "Don't use" per provider-backed row.
     expect(screen.getAllByRole('button', { name: /Don't use/ })).toHaveLength(4)
   })
 

@@ -52,15 +52,15 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
     docsPath: '/docs/mcp',
   },
   {
-    id: 'openclaw',
-    capability: 'integrationOpenClaw',
-    name: 'OpenClaw',
+    id: 'custom-agents',
+    capability: 'integrationCustomAgents',
+    name: 'Custom Agents',
     tagline: 'Build custom AI agents with SSE events',
     description:
       `Open protocol for connecting autonomous AI agents. Your agent gets an @${BRAND.agentEmailDomain} identity, OAuth credentials, and real-time SSE event stream.`,
     audience: 'AI agent developers, custom integrations',
     icon: 'Bot',
-    docsPath: '/docs/openclaw',
+    docsPath: '/docs/custom-agents',
   },
   {
     id: 'chatgpt',
