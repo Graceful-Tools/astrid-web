@@ -48,4 +48,23 @@ describe('GET /api/health', () => {
     body = await (await GET(new Request('http://localhost/api/health') as any)).json()
     expect(body.legacyCensusConfigured).toBe(false)
   })
+
+  // Every cron route fails closed when CRON_SECRET is unset (lib/cron-auth.ts),
+  // and Vercel only sends the Bearer header when the variable exists. With it
+  // missing, all five scheduled jobs 401 forever and the only external symptom
+  // is silence — no reminders, no digests, no analytics. That is exactly how
+  // production ran unnoticed from 2026-08-19 until this review found it in the
+  // logs. Health is the one place the answer is observable (task a5eb65a4).
+  it('reports whether the cron secret is configured', async () => {
+    safeHealthCheck.mockResolvedValue({ healthy: true, responseTime: 12, error: null })
+    ensureMigrations.mockResolvedValue(undefined)
+
+    process.env.CRON_SECRET = 'shh'
+    let body = await (await GET(new Request('http://localhost/api/health') as any)).json()
+    expect(body.cronSecretConfigured).toBe(true)
+
+    delete process.env.CRON_SECRET
+    body = await (await GET(new Request('http://localhost/api/health') as any)).json()
+    expect(body.cronSecretConfigured).toBe(false)
+  })
 })

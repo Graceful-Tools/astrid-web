@@ -29,6 +29,7 @@ interface HealthResponse {
   }
   environment: string
   version: string
+  cronSecretConfigured?: boolean
 }
 
 interface CanaryResult {
@@ -100,6 +101,18 @@ class DeploymentCanary {
       }
 
       const data: HealthResponse = await response.json()
+
+      // A deployment whose CRON_SECRET is unset serves perfectly healthy pages
+      // while every scheduled job 401s: no reminders, no digests, no analytics,
+      // no GitHub sync, and no error anywhere. Production ran that way for
+      // weeks (task a5eb65a4). It is not a database fault, so it warns here
+      // rather than failing the canary into a rollback.
+      if (data.cronSecretConfigured === false) {
+        console.warn(
+          '   ⚠️  CRON_SECRET is not set on this deployment — every scheduled job will 401. ' +
+            'Set it in the Vercel project env and redeploy.',
+        )
+      }
 
       return {
         timestamp,

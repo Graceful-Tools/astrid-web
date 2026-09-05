@@ -165,6 +165,24 @@ checkVariable('NEXT_PUBLIC_BRAND_ACCENT_COLOR', false, validateHexColor)
 checkVariable('NEXT_PUBLIC_BRAND_AGENT_NAME', false)
 checkVariable('BRAND_AGENT_EMAIL_DOMAIN', false, validateBrandDomain)
 
+// Scheduled jobs. CRON_SECRET is REQUIRED: lib/cron-auth.ts fails closed, and
+// Vercel only sends the Bearer header when the variable exists, so a missing
+// secret silently 401s all five cron routes — no reminders, digests, analytics,
+// GitHub sync or upload cleanup, with no error anyone sees. Production ran that
+// way from 2026-08-19 until a log review caught it (task a5eb65a4). This
+// validator existed the whole time and never looked.
+console.log('\n⏰ Scheduled Jobs:')
+checkVariable('CRON_SECRET', true)
+
+// Secrets whose absence breaks a feature silently rather than loudly.
+console.log('\n🔑 Encryption, cache, push and storage:')
+checkVariable('ENCRYPTION_KEY', true)
+checkVariable('UPSTASH_REDIS_REST_URL', false, validateUrl)
+checkVariable('UPSTASH_REDIS_REST_TOKEN', false)
+checkVariable('VAPID_PUBLIC_KEY', false)
+checkVariable('VAPID_PRIVATE_KEY', false)
+checkVariable('BLOB_READ_WRITE_TOKEN', false)
+
 // GitHub Integration
 console.log('\n🐙 GitHub Integration (optional):')
 checkVariable('GITHUB_APP_ID', false)

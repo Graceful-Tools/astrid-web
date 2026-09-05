@@ -13,10 +13,16 @@ import type { NextRequest } from 'next/server'
  * route into a public, unauthenticated GET.
  *
  * That is not a theoretical precondition here. ASTRID.md's working agreements
- * already record recurring 401s traced to env vars missing AT DEPLOY TIME, and
- * CRON_SECRET is absent from .env.example, so a fresh environment starts
- * without it. The old pattern converted an ordinary configuration slip into an
- * open door.
+ * already record recurring 401s traced to env vars missing AT DEPLOY TIME. The
+ * old pattern converted an ordinary configuration slip into an open door.
+ *
+ * The cost of the safe direction is silence, and it was paid in full: with no
+ * CRON_SECRET on the Vercel project, every scheduled route 401'd from
+ * 2026-08-19 until a log review found it weeks later (task a5eb65a4). Failing
+ * closed is still right — the alternative was an open door — but "an operator
+ * notices and fixes it" is not automatic. `/api/health` now reports
+ * `cronSecretConfigured` and `npm run deploy:canary` warns on it, which is the
+ * part that was missing.
  *
  * `GET /api/cron/github-sync` shows the stakes: it runs every 15 minutes and
  * calls syncAllGithubLinks(), which walks EVERY user's ExternalListLink,

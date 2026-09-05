@@ -39,6 +39,13 @@ export async function GET(request: NextRequest) {
       // unset, with no log and no external symptom (the beacon 401s the same
       // way for a wrong secret). This is the one observable answer.
       legacyCensusConfigured: !!process.env.INTERNAL_API_SECRET,
+      // Same class of silence: every cron route fails closed without
+      // CRON_SECRET (lib/cron-auth.ts), and Vercel only sends the Bearer
+      // header when the variable exists — so a missing secret 401s all five
+      // scheduled jobs forever with no reminders, digests or analytics and no
+      // error anyone sees. Production ran that way from 2026-08-19 until a log
+      // review found it. This flag is what makes it observable (task a5eb65a4).
+      cronSecretConfigured: !!process.env.CRON_SECRET,
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
       webhookSecretConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
       webhookUrl: process.env.CLAUDE_REMOTE_WEBHOOK_URL ? `${process.env.CLAUDE_REMOTE_WEBHOOK_URL.slice(0, 30)}...` : null
