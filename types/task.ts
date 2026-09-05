@@ -61,6 +61,7 @@ export interface TaskList {
   defaultDueTime?: string | null // HH:MM format, or null for "all day"
   mcpEnabled?: boolean // Whether MCP access is enabled for this list
   mcpAccessLevel?: "READ" | "WRITE" | "BOTH" // MCP access level
+  agentLifecycleEnabled?: boolean // Whether Ready/Waiting lifecycle automation may manage this board
 
   // AI Coding Agent Configuration
   preferredAiProvider?: string | null // 'claude', 'openai'

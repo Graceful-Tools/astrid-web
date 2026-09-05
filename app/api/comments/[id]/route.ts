@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
+import { reconcileTaskLifecycleAfterMutation } from "@/lib/agent-lifecycle-mutations"
 
 const log = createLogger('comments.[id]')
 
@@ -68,6 +69,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         },
       },
     })
+    await reconcileTaskLifecycleAfterMutation(updatedComment.taskId)
 
     // Send SSE notification to all users with access to the task
     try {
@@ -155,6 +157,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
     await prisma.comment.delete({
       where: { id: commentId }
     })
+    await reconcileTaskLifecycleAfterMutation(task.id)
 
     // Send SSE notification to all users with access to the task
     try {

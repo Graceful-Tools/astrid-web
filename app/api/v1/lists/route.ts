@@ -145,6 +145,7 @@ export const GET = withAuth(
           // here is not an error, it is a feature silently switched off.
           defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, assigneeMap) as V1UserSummary | null,
           ...serializeListAgentFields(list.aiAgentsEnabled),
+          agentLifecycleEnabled: list.agentLifecycleEnabled ?? false,
           publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
@@ -233,6 +234,7 @@ export const POST = withAuth(
             defaultDueDate: body.defaultDueDate,
             githubRepositoryId: body.githubRepositoryId,
             preferredAiProvider: body.preferredAiProvider,
+            agentLifecycleEnabled: body.agentLifecycleEnabled ?? false,
             listMembers: body.memberIds?.length
               ? {
                   create: body.memberIds.map((userId: string) => ({

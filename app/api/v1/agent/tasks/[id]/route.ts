@@ -13,6 +13,7 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('v1.agent.tasks.id')
 
@@ -72,6 +73,7 @@ export const PATCH = withAgentAuth<RouteContext>(
       data,
       include: agentTaskInclude,
     })
+    await reconcileTaskLifecycleAfterMutation(id, { completed: task.completed })
 
     try {
       const eventType = body.completed ? 'task_completed' : 'task_updated'

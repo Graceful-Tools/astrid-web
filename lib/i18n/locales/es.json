@@ -139,7 +139,9 @@
       "description": "Agrega una descripción..."
     },
     "showSubtasksLabel": "Mostrar subtareas",
-    "showSubtasksDescription": "Muestra las subtareas con sangría bajo su tarea principal en esta lista. Desactívalo para mostrar solo las tareas principales: las subtareas seguirán visibles en la vista de detalle."
+    "showSubtasksDescription": "Muestra las subtareas con sangría bajo su tarea principal en esta lista. Desactívalo para mostrar solo las tareas principales: las subtareas seguirán visibles en la vista de detalle.",
+    "agentLifecycleLabel": "Mantener Ready y Waiting automáticamente",
+    "agentLifecycleDescription": "Mueve las tareas Ready con fecha futura a Waiting y devuelve las tareas Waiting elegibles cuando llega la fecha o se resuelven los bloqueos."
   },
   "priority": {
     "none": "Ninguna",

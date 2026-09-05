@@ -26,6 +26,7 @@ import {
 } from '@/lib/comments/create-comment'
 import { userCanAccessTask } from "@/services/task.service"
 import { TASK_COMMENTS_LIST_LIMIT } from "@/lib/task-query-utils"
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('v1.tasks.comments')
 
@@ -325,6 +326,7 @@ export const POST = withAuth<RouteContext>(
     }
     if (creation.kind === 'existing') {
       log.info({ commentId: creation.comment.id }, 'Idempotency hit: returning existing comment')
+      await reconcileTaskLifecycleAfterMutation(taskId)
       const headers: Record<string, string> = {}
       const deprecationWarning = getDeprecationWarning(auth)
       if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
@@ -337,6 +339,7 @@ export const POST = withAuth<RouteContext>(
       )
     }
     let comment = creation.comment
+    await reconcileTaskLifecycleAfterMutation(taskId)
 
     if (body.fileId) {
       try {

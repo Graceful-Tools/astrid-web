@@ -5,10 +5,12 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bot, ChevronDown, ChevronUp, Github, RefreshCw, Repeat } from "lucide-react"
 import { AgentLoopRecipes } from "@/components/agent-runtime-settings"
 import type { TaskList } from "@/types/task"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface ListAiAgentSectionProps {
   list: TaskList
@@ -30,6 +32,7 @@ interface ListAiAgentSectionProps {
  * be chosen — polling-mode agents need no provider here at all.
  */
 export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAgentSectionProps) {
+  const { t } = useTranslations()
   // --- assistant model (aiAgentConfig.defaultAgentId) ---
   const [availableAgents, setAvailableAgents] = useState<Array<{ id: string; name: string | null; email: string; image: string | null; service: string }>>([])
   const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(
@@ -189,6 +192,28 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           </span>
         </p>
       ) : null}
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <Label
+            htmlFor={`agent-lifecycle-${list.id}`}
+            className="text-sm theme-text-secondary"
+          >
+            {t('lists.agentLifecycleLabel')}
+          </Label>
+          <p className="text-xs theme-text-muted">
+            {t('lists.agentLifecycleDescription')}
+          </p>
+        </div>
+        <Switch
+          id={`agent-lifecycle-${list.id}`}
+          aria-label={t('lists.agentLifecycleLabel')}
+          checked={list.agentLifecycleEnabled ?? false}
+          onCheckedChange={agentLifecycleEnabled => {
+            onUpdate({ ...list, agentLifecycleEnabled })
+          }}
+        />
+      </div>
 
       {/* Loop this board — the queue endpoint scopes by listId, so the pasted
           command works exactly this list and nothing else. */}

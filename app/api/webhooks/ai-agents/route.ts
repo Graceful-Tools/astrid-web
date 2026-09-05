@@ -6,6 +6,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('api.webhooks.ai-agents')
 
@@ -257,6 +258,9 @@ export async function POST(request: NextRequest) {
         }
         break
     }
+    await reconcileTaskLifecycleAfterMutation(task.id, {
+      completed: payload.event === 'task.completed' && payload.task.completed === true,
+    })
 
     // Send SSE notification to relevant users about AI agent activity
     await sendAIAgentActivitySSE(task, payload, mcpToken.user)

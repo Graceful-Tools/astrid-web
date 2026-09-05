@@ -139,7 +139,9 @@
       "description": "新增描述..."
     },
     "showSubtasksLabel": "顯示子任務",
-    "showSubtasksDescription": "在此清單中將子任務縮排顯示在父任務下方。關閉後僅顯示上層任務，子任務仍可在父任務詳細資料中查看。"
+    "showSubtasksDescription": "在此清單中將子任務縮排顯示在父任務下方。關閉後僅顯示上層任務，子任務仍可在父任務詳細資料中查看。",
+    "agentLifecycleLabel": "自動維護 Ready 和 Waiting",
+    "agentLifecycleDescription": "將未來日期的 Ready 任務移至 Waiting，並在日期到達或阻塞解除後將符合條件的 Waiting 任務移回。"
   },
   "priority": {
     "none": "無",

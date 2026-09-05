@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhooks, createNodeMiddleware } from '@octokit/webhooks'
 import { prisma } from '@/lib/prisma'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
 
@@ -225,6 +226,7 @@ webhooks?.on('pull_request', async ({ payload }) => {
         where: { id: workflow.taskId },
         data: { completed: true }
       })
+      await reconcileTaskLifecycleAfterMutation(workflow.taskId, { completed: true })
 
       // Notify the task creator
       if (workflow.task.creatorId) {

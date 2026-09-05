@@ -139,7 +139,9 @@
       "description": "説明を追加..."
     },
     "showSubtasksLabel": "サブタスクを表示",
-    "showSubtasksDescription": "このリストで、サブタスクを親タスクの下にインデント表示します。オフにすると最上位のタスクのみが表示されます（サブタスクは親タスクの詳細画面で引き続き確認できます）。"
+    "showSubtasksDescription": "このリストで、サブタスクを親タスクの下にインデント表示します。オフにすると最上位のタスクのみが表示されます（サブタスクは親タスクの詳細画面で引き続き確認できます）。",
+    "agentLifecycleLabel": "Ready と Waiting を自動管理",
+    "agentLifecycleDescription": "将来の日付が設定された Ready タスクを Waiting に移し、日付到来またはブロック解除時に対象の Waiting タスクを戻します。"
   },
   "priority": {
     "none": "なし",

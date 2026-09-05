@@ -21,6 +21,7 @@ import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { getUnifiedSession } from "@/lib/session-utils"
 import { recordTaskCreationComment } from "@/lib/task-update-handler"
 import { getDeletionsSince } from '@/lib/deletion-log'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('api.tasks')
 
@@ -488,6 +489,7 @@ export async function POST(request: NextRequest) {
       })
       if (existing) {
         log.info(`[tasks API] Idempotency (clientRequestId): returning existing task ${existing.id}`)
+        await reconcileTaskLifecycleAfterMutation(existing.id)
         return NextResponse.json(existing)
       }
     }
@@ -508,6 +510,7 @@ export async function POST(request: NextRequest) {
 
       if (recentDuplicate) {
         log.info(`[tasks API] Idempotency (time-based): returning existing task ${recentDuplicate.id} (created ${Date.now() - recentDuplicate.createdAt.getTime()}ms ago)`)
+        await reconcileTaskLifecycleAfterMutation(recentDuplicate.id)
         return NextResponse.json(recentDuplicate)
       }
     }
@@ -569,12 +572,15 @@ export async function POST(request: NextRequest) {
         })
         if (raceExisting && raceExisting.creatorId === session.user.id) {
           log.info(`[tasks API] Idempotency (P2002 fallback): returning existing task ${raceExisting.id}`)
+          await reconcileTaskLifecycleAfterMutation(raceExisting.id)
           return NextResponse.json(raceExisting)
         }
         return NextResponse.json({ error: 'clientRequestId already used by another request' }, { status: 409 })
       }
       throw err
     }
+
+    await reconcileTaskLifecycleAfterMutation(task.id)
 
     // System comment recording the creation (authorId: null), rendered behind
     // the task-detail "Show system" toggle. Placed after the successful create

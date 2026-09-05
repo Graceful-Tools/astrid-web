@@ -93,6 +93,7 @@ export interface V1List {
    */
   aiAgentsEnabled: string[]
   aiAgentConfig: { enabledTypes: string[]; defaultAgentId: string | null }
+  agentLifecycleEnabled: boolean
   publicListType: string | null
   defaultIsPrivate: boolean | null
   defaultDueDate: string | null

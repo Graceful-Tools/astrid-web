@@ -139,7 +139,9 @@
       "description": "Adicionar descrição..."
     },
     "showSubtasksLabel": "Mostrar subtarefas",
-    "showSubtasksDescription": "Mostra as subtarefas recuadas sob a tarefa principal nesta lista. Desative para mostrar apenas as tarefas principais — as subtarefas continuam visíveis nos detalhes da tarefa principal."
+    "showSubtasksDescription": "Mostra as subtarefas recuadas sob a tarefa principal nesta lista. Desative para mostrar apenas as tarefas principais — as subtarefas continuam visíveis nos detalhes da tarefa principal.",
+    "agentLifecycleLabel": "Manter Ready e Waiting automaticamente",
+    "agentLifecycleDescription": "Move tarefas Ready com data futura para Waiting e devolve tarefas Waiting elegíveis quando a data chega ou os bloqueios são resolvidos."
   },
   "priority": {
     "none": "Nenhuma",

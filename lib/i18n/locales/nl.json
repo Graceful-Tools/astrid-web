@@ -139,7 +139,9 @@
       "description": "Beschrijving toevoegen..."
     },
     "showSubtasksLabel": "Subtaken tonen",
-    "showSubtasksDescription": "Toon subtaken ingesprongen onder hun hoofdtaak in deze lijst. Zet dit uit om alleen hoofdtaken te tonen — subtaken blijven zichtbaar in het detailscherm van de hoofdtaak."
+    "showSubtasksDescription": "Toon subtaken ingesprongen onder hun hoofdtaak in deze lijst. Zet dit uit om alleen hoofdtaken te tonen — subtaken blijven zichtbaar in het detailscherm van de hoofdtaak.",
+    "agentLifecycleLabel": "Ready en Waiting automatisch beheren",
+    "agentLifecycleDescription": "Verplaatst toekomstige Ready-taken naar Waiting en zet geschikte Waiting-taken terug zodra de datum is bereikt of blokkades zijn opgelost."
   },
   "priority": {
     "none": "Geen",

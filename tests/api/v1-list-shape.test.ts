@@ -121,6 +121,7 @@ const statusList = {
   statusDescription: 'Time to get to work!',
   statusCompleted: false,
   recentlyCompletedWindow: { kind: 'duration', amount: 7, unit: 'day' },
+  agentLifecycleEnabled: true,
   createdAt: new Date('2026-05-11T00:00:00Z'),
   updatedAt: new Date('2026-05-11T00:00:00Z'),
   _count: { tasks: 0 },
@@ -134,6 +135,7 @@ const BOARD_FIELDS = [
   'statusDescription',
   'statusCompleted',
   'recentlyCompletedWindow',
+  'agentLifecycleEnabled',
 ] as const
 
 describe('GET /api/v1/lists — board fields', () => {
@@ -162,6 +164,7 @@ describe('GET /api/v1/lists — board fields', () => {
     expect(list.statusDescription).toBe('Time to get to work!')
     expect(list.statusCompleted).toBe(false)
     expect(list.recentlyCompletedWindow).toEqual({ kind: 'duration', amount: 7, unit: 'day' })
+    expect(list.agentLifecycleEnabled).toBe(true)
   })
 
   it('emits null/defaults for legacy lists with no project attached', async () => {
@@ -175,6 +178,7 @@ describe('GET /api/v1/lists — board fields', () => {
       statusDescription: null,
       statusCompleted: false,
       recentlyCompletedWindow: null,
+      agentLifecycleEnabled: false,
     }
     ;(mockPrisma.taskList.findMany as any).mockResolvedValue([legacyList])
 
@@ -191,6 +195,7 @@ describe('GET /api/v1/lists — board fields', () => {
     expect(list.statusDescription).toBeNull()
     expect(list.statusCompleted).toBe(false)
     expect(list.recentlyCompletedWindow).toBeNull()
+    expect(list.agentLifecycleEnabled).toBe(false)
   })
 })
 

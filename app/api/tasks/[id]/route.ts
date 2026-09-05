@@ -31,6 +31,7 @@ import { validateParentTask, readParentTaskIdFromBody } from "@/lib/subtasks"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('api.tasks.id')
 
@@ -353,6 +354,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       closedReason: parsedClosedReason.value,
     })
     if (completionOutcome.rolledForward) {
+      await reconcileTaskLifecycleAfterMutation(taskId)
       return NextResponse.json(completionOutcome.updatedTask)
     }
 
@@ -430,6 +432,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       },
       include: TASK_FULL_INCLUDE,
     })
+    await reconcileTaskLifecycleAfterMutation(taskId, { completed: updatedTask.completed })
 
     // Structured activity history (task 51a4b8ff), alongside the prose comment
     // below. Both derive from the same before/after pair; the comment is what a

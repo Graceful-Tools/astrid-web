@@ -30,6 +30,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 import type { PulledIssue } from '@/lib/sync/github/pull-issues'
 
 const log = createLogger('sync.github.apply')
@@ -108,6 +109,9 @@ export async function applyPulledIssues(args: {
           completedAt: item.completedAt ? new Date(item.completedAt) : null,
           closedReason: item.closedReason ?? null,
         },
+      })
+      await reconcileTaskLifecycleAfterMutation(existing.astridTaskId, {
+        completed: item.completed,
       })
       await prisma.externalTaskLink.update({
         where: { id: existing.id },

@@ -7,6 +7,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { validateMCPToken, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('mcp.comment-operations')
 
@@ -82,6 +83,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
       secureFiles: true
     }
   })
+  await reconcileTaskLifecycleAfterMutation(taskId)
 
   // Associate secure file if provided
   if (commentData.fileId) {
@@ -292,6 +294,7 @@ export async function deleteComment(accessToken: string, commentId: string, user
   await prisma.comment.delete({
     where: { id: commentId }
   })
+  await reconcileTaskLifecycleAfterMutation(task.id)
 
   // Send SSE notification to all users with access to the task
   try {

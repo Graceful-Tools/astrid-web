@@ -139,7 +139,9 @@
       "description": "Beschreibung hinzufügen..."
     },
     "showSubtasksLabel": "Unteraufgaben anzeigen",
-    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar."
+    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar.",
+    "agentLifecycleLabel": "Ready und Waiting automatisch verwalten",
+    "agentLifecycleDescription": "Verschiebt zukünftige Ready-Aufgaben nach Waiting und berechtigte Waiting-Aufgaben zurück, sobald das Datum erreicht oder die Blockierung aufgehoben ist."
   },
   "priority": {
     "none": "Keine",

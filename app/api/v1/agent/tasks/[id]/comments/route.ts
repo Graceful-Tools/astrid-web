@@ -12,6 +12,7 @@ import { getListMemberIds } from '@/lib/list-member-utils'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('v1.agent.tasks.comments')
 
@@ -128,6 +129,7 @@ export const POST = withAgentAuth<RouteContext>(
         },
       },
     })
+    await reconcileTaskLifecycleAfterMutation(id)
 
     try {
       const userIds = new Set<string>()

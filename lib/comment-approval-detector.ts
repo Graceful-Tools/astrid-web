@@ -11,6 +11,7 @@ import {
   shouldPostServerWorkflowComments,
 } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('comment-approval-detector')
 
@@ -438,6 +439,7 @@ async function triggerMergeRequest(workflowId: string, commentId: string, taskId
       where: { id: taskId },
       data: { completed: true }
     })
+    await reconcileTaskLifecycleAfterMutation(taskId, { completed: true })
 
     log.info('🔀 [CommentApproval] Merge request triggered successfully')
 

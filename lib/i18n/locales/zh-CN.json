@@ -139,7 +139,9 @@
       "description": "添加描述..."
     },
     "showSubtasksLabel": "显示子任务",
-    "showSubtasksDescription": "在此列表中将子任务缩进显示在父任务下方。关闭后仅显示顶层任务，子任务仍可在父任务详情中查看。"
+    "showSubtasksDescription": "在此列表中将子任务缩进显示在父任务下方。关闭后仅显示顶层任务，子任务仍可在父任务详情中查看。",
+    "agentLifecycleLabel": "自动维护 Ready 和 Waiting",
+    "agentLifecycleDescription": "将未来日期的 Ready 任务移至 Waiting，并在日期到达或阻塞解除后将符合条件的 Waiting 任务移回。"
   },
   "priority": {
     "none": "无",

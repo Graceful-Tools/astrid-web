@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const prisma = new PrismaClient()
 
@@ -48,6 +49,7 @@ export async function assignTask(taskId: string, target: AssignmentTarget): Prom
   } else {
     throw new Error(`Invalid assignment target type: ${target.type}`)
   }
+  await reconcileTaskLifecycleAfterMutation(taskId)
 }
 
 /**
@@ -61,6 +63,7 @@ export async function unassignTask(taskId: string): Promise<void> {
       aiAgentId: null
     }
   })
+  await reconcileTaskLifecycleAfterMutation(taskId)
 }
 
 /**
@@ -251,4 +254,5 @@ export async function batchAssignTasks(taskIds: string[], target: AssignmentTarg
       }
     })
   }
+  await Promise.all(taskIds.map(taskId => reconcileTaskLifecycleAfterMutation(taskId)))
 }

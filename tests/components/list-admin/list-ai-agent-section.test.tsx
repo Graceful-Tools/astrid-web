@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ListAiAgentSection } from '@/components/list-admin/ListAiAgentSection'
 import type { TaskList } from '@/types/task'
 
@@ -111,6 +111,26 @@ describe('ListAiAgentSection', () => {
     render(<ListAiAgentSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
 
     expect(await screen.findByText('Run a loop for this list')).toBeInTheDocument()
+  })
+
+  it('offers an explicit Ready/Waiting lifecycle opt-in (AWTD-760)', async () => {
+    const onUpdate = vi.fn()
+    render(
+      <ListAiAgentSection
+        list={makeList({ agentLifecycleEnabled: false })}
+        canEditSettings={true}
+        onUpdate={onUpdate}
+      />,
+    )
+
+    const toggle = await screen.findByRole('switch', {
+      name: 'Maintain Ready and Waiting automatically',
+    })
+    fireEvent.click(toggle)
+
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      agentLifecycleEnabled: true,
+    }))
   })
 
   it('shows the empty-state hint when GitHub is connected but has no repositories', async () => {

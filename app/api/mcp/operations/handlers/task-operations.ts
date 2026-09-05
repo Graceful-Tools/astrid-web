@@ -11,6 +11,7 @@ import {
   redactArgsForLogging,
   maskToken
 } from "./shared"
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('mcp.task-operations')
 
@@ -238,6 +239,7 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
       }
     }
   })
+  await reconcileTaskLifecycleAfterMutation(task.id)
 
   // Broadcast SSE event for real-time updates
   try {
@@ -400,6 +402,7 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
       }
     }
   })
+  await reconcileTaskLifecycleAfterMutation(taskId, { completed: updatedTask.completed })
 
   // Broadcast SSE event for real-time updates
   try {

@@ -251,6 +251,7 @@ export interface V1ListUpdateRequest {
   sortBy?: string | null
   manualSortOrder?: string[] | null
   showSubtasks?: boolean
+  agentLifecycleEnabled?: boolean
   /**
    * Three-way, not a plain user id: `null` means "whoever creates the task"
    * and the literal `'unassigned'` means nobody. See lib/task-batch-copy.ts,
@@ -289,6 +290,7 @@ export interface V1ListCreateRequest {
 
   githubRepositoryId?: string | null
   preferredAiProvider?: string | null
+  agentLifecycleEnabled?: boolean
 
   /** Members to seed the list with, added alongside the owner at creation. */
   memberIds?: string[]

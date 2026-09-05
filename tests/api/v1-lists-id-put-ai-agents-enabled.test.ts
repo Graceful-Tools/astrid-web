@@ -47,6 +47,15 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
+const reconcileAgentLifecycleBoard = vi.fn().mockResolvedValue({
+  scanned: 0,
+  transitioned: 0,
+  unchanged: 0,
+})
+vi.mock('@/lib/agent-lifecycle-mutations', () => ({
+  reconcileBoardLifecycleAfterMutation: (...args: unknown[]) => reconcileAgentLifecycleBoard(...args),
+}))
+
 import { PUT } from '@/app/api/v1/lists/[id]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
@@ -63,6 +72,7 @@ const listRow = {
   listMembers: [],
   listInvites: [],
   defaultAssigneeId: null,
+  agentLifecycleEnabled: false,
   createdAt: new Date(0),
   updatedAt: new Date(0),
 }
@@ -99,6 +109,21 @@ describe('PUT /api/v1/lists/[id] aiAgentsEnabled', () => {
     const data = await put({ aiAgentsEnabled: { defaultAgentId: 'agent-1' } })
 
     expect(data?.aiAgentsEnabled).toEqual({ enabledTypes: [], defaultAgentId: 'agent-1' })
+  })
+
+  describe('PUT /api/v1/lists/[id] agentLifecycleEnabled (AWTD-760)', () => {
+    it('persists an explicit boolean opt-in', async () => {
+      const data = await put({ agentLifecycleEnabled: true })
+
+      expect(data?.agentLifecycleEnabled).toBe(true)
+      expect(reconcileAgentLifecycleBoard).toHaveBeenCalledWith('l1')
+    })
+
+    it('does not change opt-in when omitted', async () => {
+      const data = await put({ name: 'Renamed' })
+
+      expect(data && 'agentLifecycleEnabled' in data).toBe(false)
+    })
   })
 
   it('normalizes the legacy string[] shape instead of storing it raw', async () => {

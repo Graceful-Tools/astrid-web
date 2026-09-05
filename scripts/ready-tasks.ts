@@ -57,7 +57,7 @@ import {
   type SchedulableTask,
   type StatusRoleTask,
 } from "@/lib/ready-queue-scope"
-import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
+import { WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
 import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 
 const BOARD_LIST_NAMES = {
@@ -176,23 +176,14 @@ async function main() {
   const claimable = ready.filter(task => isClaimableByAgent(task, options.harness))
   const claimed = ready.filter(task => !isClaimableByAgent(task, options.harness))
 
-  // ── Sweep: keep Ready and Waiting honest (Jon, 2026-08-29) ────────────────
-  //
-  // Ready must mean "actionable now". A dated Ready task parks in Waiting
-  // until its date; a Waiting task whose condition is met comes back. Both
-  // moves are logged here and commented on the task, and both touch ONLY
-  // tasks this harness may claim — a person's tasks are theirs to move.
-  const api = new SweepApi(auth, options.dryRun, report)
+  // The server owns Ready/Waiting transitions. This script is deliberately a
+  // read-only queue/debug view so polling never mutates work as a side effect.
+  const api = new QueueApi(auth)
 
   const mine: QueueTask[] = []
   for (const task of claimable) {
     if (shouldParkScheduledReadyTask(task, now)) {
-      await api.setStatus(task, WAITING_STATUS_ROLE)
-      await api.comment(
-        task,
-        `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. The loop returns it to Ready when the date arrives.`,
-      )
-      report(`→ parked "${task.title}" in Waiting [due ${describeSchedule(task, now)}]`)
+      report(`→ "${task.title}" is scheduled for ${describeSchedule(task, now)}; server reconciliation will park it`)
     } else {
       mine.push(task)
     }
@@ -236,10 +227,7 @@ async function main() {
     } else if (disposition === 'recheck') {
       recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)', commentWatermark })
     } else if (disposition === 'promote') {
-      await api.setStatus(task, READY_STATUS_ROLE)
-      await api.comment(task, '⏰ Condition met (date arrived / blockers completed) — back to Ready.')
-      report(`→ promoted "${task.title}" to Ready`)
-      mine.push(task)
+      report(`→ "${task.title}" is eligible for Ready; server reconciliation owns the transition`)
     } else {
       review.push({ task, commentWatermark })
     }
@@ -325,42 +313,8 @@ async function main() {
   }
 }
 
-/**
- * The sweep's writes, kept small and loud. Every mutation is a single-field
- * statusRole PUT (never listIds — a full-membership PUT is the strand-a-task
- * bug set-task-status.ts exists to prevent) plus one explanatory comment.
- * --dry-run prints what would move and writes nothing.
- */
-class SweepApi {
-  constructor(
-    private readonly auth: Record<string, string>,
-    private readonly dryRun: boolean,
-    private readonly report: (...args: unknown[]) => void,
-  ) {}
-
-  async setStatus(task: { id: string }, statusRole: string): Promise<void> {
-    if (this.dryRun) return
-    const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({ statusRole }),
-    })
-    if (!response.ok) {
-      this.report(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
-    }
-  }
-
-  async comment(task: { id: string }, content: string): Promise<void> {
-    if (this.dryRun) return
-    const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}/comments`, {
-      method: "POST",
-      headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    })
-    if (!response.ok) {
-      this.report(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)
-    }
-  }
+class QueueApi {
+  constructor(private readonly auth: Record<string, string>) {}
 
   async comments(task: { id: string }): Promise<Array<{
     content?: string | null

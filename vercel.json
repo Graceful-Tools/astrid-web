@@ -12,6 +12,9 @@
     },
     "app/api/cron/github-sync/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/agent-lifecycle/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -34,6 +37,10 @@
     {
       "path": "/api/cron/github-sync",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/agent-lifecycle",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

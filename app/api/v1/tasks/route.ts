@@ -22,6 +22,7 @@ import { createLogger } from '@/lib/logger'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import { allocateTaskIdentifier } from '@/lib/task-identifier'
 import { recordTaskCreationComment } from '@/lib/task-update-handler'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('v1.tasks')
@@ -521,6 +522,7 @@ export const POST = withAuth(
       })
       if (existing) {
         log.info({ taskId: existing.id }, 'Idempotency hit (clientRequestId): returning existing task')
+        await reconcileTaskLifecycleAfterMutation(existing.id)
         const headers: Record<string, string> = {}
         const deprecationWarning = getDeprecationWarning(auth)
         if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
@@ -564,6 +566,7 @@ export const POST = withAuth(
           })
           if (raceExisting && raceExisting.creatorId === auth.userId) {
             log.info({ taskId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing task')
+            await reconcileTaskLifecycleAfterMutation(raceExisting.id)
             const headers: Record<string, string> = {}
             const deprecationWarning = getDeprecationWarning(auth)
             if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
@@ -596,6 +599,7 @@ export const POST = withAuth(
 
     if (recentDuplicate) {
       log.info({ taskId: recentDuplicate.id, ageMs: Date.now() - recentDuplicate.createdAt.getTime() }, 'Idempotency hit (time-based): returning existing task')
+      await reconcileTaskLifecycleAfterMutation(recentDuplicate.id)
       const headers: Record<string, string> = {}
       const deprecationWarning = getDeprecationWarning(auth)
       if (deprecationWarning) {
@@ -652,6 +656,8 @@ export const POST = withAuth(
  * cache invalidation, analytics, response.
  */
 async function handleTaskCreated(req: NextRequest, task: any, auth: AuthContext) {
+  await reconcileTaskLifecycleAfterMutation(task.id)
+
   // System comment recording the creation (authorId: null), rendered behind the
   // task-detail "Show system" toggle. Only genuine creations reach here — the
   // idempotent duplicate-return branches short-circuit before calling this.

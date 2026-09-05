@@ -28,6 +28,7 @@ vi.mock('@/lib/api-auth-wrapper', () => ({
 
 const taskUpdate = vi.hoisted(() => vi.fn())
 const taskFindUnique = vi.hoisted(() => vi.fn())
+const reconcileTaskLifecycleAfterMutation = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     task: { findUnique: taskFindUnique, update: taskUpdate, findFirst: vi.fn() },
@@ -37,6 +38,9 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
+vi.mock('@/lib/agent-lifecycle-mutations', () => ({
+  reconcileTaskLifecycleAfterMutation,
+}))
 vi.mock('@/lib/api-auth-middleware', () => ({
   getDeprecationWarning: () => null,
   // Throws on denial; resolving means access granted. These cases are about
@@ -76,6 +80,11 @@ beforeEach(() => {
   vi.clearAllMocks()
   taskFindUnique.mockResolvedValue(TASK)
   taskUpdate.mockResolvedValue({ ...TASK, lists: TASK.lists, comments: [] })
+  reconcileTaskLifecycleAfterMutation.mockResolvedValue({
+    scanned: 1,
+    transitioned: 0,
+    unchanged: 1,
+  })
 })
 
 /**
@@ -136,5 +145,14 @@ describe('PUT /api/v1/tasks/:id accepts empty string as a clear (task 1e53501f)'
     expect(data).not.toHaveProperty('dueDateTime')
     expect(data).not.toHaveProperty('assigneeId')
     expect(data).not.toHaveProperty('parentTaskId')
+  })
+
+  it('reconciles after a lifecycle-relevant task mutation (AWTD-760)', async () => {
+    await updateDataFor({ dueDateTime: '2026-09-05T12:00:00.000Z' })
+
+    expect(reconcileTaskLifecycleAfterMutation).toHaveBeenCalledWith(
+      'task-1',
+      { completed: undefined },
+    )
   })
 })

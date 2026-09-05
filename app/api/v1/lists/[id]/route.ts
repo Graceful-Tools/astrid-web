@@ -21,6 +21,7 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { normalizeAgentEnabledConfig, serializeListAgentFields } from "@/lib/resolve-default-agent"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
+import { reconcileBoardLifecycleAfterMutation } from "@/lib/agent-lifecycle-mutations"
 import {
   deleteListWithImageRelease,
   ListImageClaimError,
@@ -128,6 +129,7 @@ export const GET = withAuth<RouteContext>(
           // is a feature silently switched off rather than an error.
           defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
           ...serializeListAgentFields(list.aiAgentsEnabled),
+          agentLifecycleEnabled: list.agentLifecycleEnabled ?? false,
           publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,
@@ -221,6 +223,9 @@ export const PUT = withAuth<RouteContext>(
       if (body.virtualListType !== undefined) updateData.virtualListType = body.virtualListType
       if (body.githubRepositoryId !== undefined) updateData.githubRepositoryId = body.githubRepositoryId
       if (body.preferredAiProvider !== undefined) updateData.preferredAiProvider = body.preferredAiProvider
+      if (typeof body.agentLifecycleEnabled === 'boolean') {
+        updateData.agentLifecycleEnabled = body.agentLifecycleEnabled
+      }
       // Per-list default agent. This field was silently DROPPED here for months
       // while two settings pickers wrote it — the select saved, answered 200,
       // and sprang back on reload. Normalized because clients still send the
@@ -325,6 +330,13 @@ export const PUT = withAuth<RouteContext>(
 
     await hydrateSingleListFavorite(list, auth.userId)
 
+    if (
+      updateData.agentLifecycleEnabled === true &&
+      existingList.agentLifecycleEnabled !== true
+    ) {
+      await reconcileBoardLifecycleAfterMutation(id)
+    }
+
     // If this PUT attached/detached the list to a project (board sub-task #3),
     // project members gain or lose access to it — evict their cached list sets
     // (both the previous and new project) so the change is visible immediately.
@@ -391,6 +403,7 @@ export const PUT = withAuth<RouteContext>(
           // is a feature silently switched off rather than an error.
           defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
           ...serializeListAgentFields(list.aiAgentsEnabled),
+          agentLifecycleEnabled: list.agentLifecycleEnabled ?? false,
           publicListType: list.publicListType ?? null,
           defaultIsPrivate: list.defaultIsPrivate,
           defaultDueDate: list.defaultDueDate,

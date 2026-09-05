@@ -5,6 +5,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { sendInvitationEmail } from "@/lib/email"
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('invitations')
 
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
           where: { id: data.taskId },
           data: { assigneeId: existingUser.id }
         })
+        await reconcileTaskLifecycleAfterMutation(data.taskId)
 
         return NextResponse.json({
           success: true,

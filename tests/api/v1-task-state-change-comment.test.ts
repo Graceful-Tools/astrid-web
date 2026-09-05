@@ -31,6 +31,14 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/agent-lifecycle-mutations', () => ({
+  reconcileTaskLifecycleAfterMutation: vi.fn().mockResolvedValue({
+    scanned: 1,
+    transitioned: 0,
+    unchanged: 1,
+  }),
+}))
+
 vi.mock('@/lib/api-auth-middleware', () => {
   class UnauthorizedError extends Error {
     constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }

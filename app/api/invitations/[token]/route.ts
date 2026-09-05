@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('invitations.[token]')
 
@@ -182,6 +183,9 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
 
       return actionResult
     })
+    if (invitation.type === "TASK_ASSIGNMENT" && invitation.taskId) {
+      await reconcileTaskLifecycleAfterMutation(invitation.taskId)
+    }
 
     return NextResponse.json({
       success: true,

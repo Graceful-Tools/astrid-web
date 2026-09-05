@@ -139,7 +139,9 @@
       "description": "Add a description..."
     },
     "showSubtasksLabel": "Show subtasks",
-    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view."
+    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view.",
+    "agentLifecycleLabel": "Maintain Ready and Waiting automatically",
+    "agentLifecycleDescription": "Move future Ready tasks to Waiting and return eligible Waiting tasks when their date or blockers clear."
   },
   "priority": {
     "none": "None",

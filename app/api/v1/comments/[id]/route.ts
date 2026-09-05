@@ -22,6 +22,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { userCanAccessTask } from "@/services/task.service"
 import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('v1.comments.id')
 
@@ -187,6 +188,7 @@ export const PUT = withAuth<RouteContext>(
       data: { content, updatedAt: new Date() },
       include: COMMENT_UPDATE_INCLUDE,
     })
+    await reconcileTaskLifecycleAfterMutation(comment.taskId)
 
     // Tell everyone looking at this task. Without it, an edit made from iOS left
     // every open web client showing the old text until it refetched — the
@@ -309,6 +311,7 @@ export const DELETE = withAuth<RouteContext>(
     }
 
     await prisma.comment.delete({ where: { id } })
+    await reconcileTaskLifecycleAfterMutation(task.id)
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.COMMENT_DELETED, {
       taskId: task.id,

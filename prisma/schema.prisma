@@ -204,6 +204,8 @@ model TaskList {
   virtualListType         String?
   mcpAccessLevel          MCPAccessLevel     @default(WRITE)
   mcpEnabled              Boolean            @default(false)
+  agentLifecycleEnabled   Boolean            @default(false)
+  agentLifecycleCursor    String?
   aiAgentsEnabled         Json?              @default("[]")
   fallbackAiProvider      String?
   githubRepositoryId      String?

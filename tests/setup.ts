@@ -370,6 +370,21 @@ vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma,
 }))
 
+// Mutation routes await lifecycle reconciliation. Route tests mock that
+// cross-cutting boundary by default; dedicated lifecycle tests exercise it.
+vi.mock('@/lib/agent-lifecycle-mutations', () => ({
+  reconcileTaskLifecycleAfterMutation: vi.fn().mockResolvedValue({
+    scanned: 1,
+    transitioned: 0,
+    unchanged: 1,
+  }),
+  reconcileBoardLifecycleAfterMutation: vi.fn().mockResolvedValue({
+    scanned: 0,
+    transitioned: 0,
+    unchanged: 0,
+  }),
+}))
+
 // Mock i18n translations
 vi.mock('@/lib/i18n/client', () => ({
   useTranslations: vi.fn(() => ({

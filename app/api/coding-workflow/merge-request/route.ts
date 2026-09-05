@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { GitHubClient } from '@/lib/github-client'
 import { createLogger } from '@/lib/logger'
 import { getBaseUrl } from '@/lib/base-url'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('coding-workflow.merge-request')
 
@@ -121,6 +122,7 @@ Please check the GitHub repository and try again, or merge manually.`,
       where: { id: taskId },
       data: { completed: true }
     })
+    await reconcileTaskLifecycleAfterMutation(taskId, { completed: true })
 
     // Post completion comment
     await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {

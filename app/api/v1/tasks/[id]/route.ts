@@ -29,6 +29,7 @@ import { notifyTaskUpdate } from '@/lib/notification-store'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('v1.tasks.id')
 
@@ -450,6 +451,9 @@ export const PUT = withAuth<RouteContext>(
       task.comments?.reverse()
 
       log.info({ taskId, rolledForward: repeatingTaskResult.shouldRollForward }, 'Repeating task processed')
+      await reconcileTaskLifecycleAfterMutation(taskId, {
+        completed: repeatingTaskResult.shouldTerminate,
+      })
 
       // Repeating-task roll-forward counts as both completion and edit
       trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
@@ -608,6 +612,7 @@ export const PUT = withAuth<RouteContext>(
         secureFiles: true,
       },
     })
+    await reconcileTaskLifecycleAfterMutation(taskId, { completed: task.completed })
 
     // Wire order stays ascending under the newest-first cap (task a86b5bed).
     task.comments?.reverse()

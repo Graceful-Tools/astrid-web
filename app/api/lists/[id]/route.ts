@@ -17,6 +17,7 @@ import {
   ListImageClaimError,
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
+import { reconcileBoardLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('api.lists.id')
 
@@ -217,6 +218,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       aiAstridEnabled: data.aiAstridEnabled,
       mcpEnabled: data.mcpEnabled,
       mcpAccessLevel: data.mcpAccessLevel,
+      agentLifecycleEnabled: data.agentLifecycleEnabled,
       // AI Coding Agent Configuration
       preferredAiProvider: data.preferredAiProvider,
       fallbackAiProvider: data.fallbackAiProvider,
@@ -300,6 +302,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
       },
     })
+    if (updatedList.agentLifecycleEnabled) {
+      await reconcileBoardLifecycleAfterMutation(listId)
+    }
 
     // Manually fetch defaultAssignee if it's a valid user ID (not "unassigned")
     let defaultAssignee = null

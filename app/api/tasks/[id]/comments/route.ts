@@ -13,6 +13,7 @@ import {
   associateFileWithComment,
   createCommentIdempotently,
 } from '@/lib/comments/create-comment'
+import { reconcileTaskLifecycleAfterMutation } from '@/lib/agent-lifecycle-mutations'
 
 const log = createLogger('tasks.[id].comments')
 
@@ -180,9 +181,11 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     }
     if (creation.kind === 'existing') {
       log.info({ commentId: creation.comment.id }, 'Idempotency hit: returning existing comment')
+      await reconcileTaskLifecycleAfterMutation(taskId)
       return NextResponse.json(creation.comment, { status: 200 })
     }
     let comment = creation.comment
+    await reconcileTaskLifecycleAfterMutation(taskId)
 
     // Associate secure file if provided
     if (data.fileId) {
