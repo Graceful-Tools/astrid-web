@@ -76,10 +76,10 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   {
     id: 'sdk',
     name: `${BRAND.appName} SDK`,
-    tagline: 'Run AI coding agents locally or in the cloud',
+    tagline: 'Client library for Custom Agents',
     description:
-      'npm package for running Claude, OpenAI, or Gemini coding agents. Supports terminal mode (local CLI), API mode (cloud), and webhook mode (servers).',
-    audience: 'Developers running AI coding agents',
+      `npm package for connecting an agent service you operate: OAuth client credentials, the server-sent task event stream, and REST task/comment calls. Coding harnesses connect through "Connect my coding agent" instead.`,
+    audience: 'Developers operating a Custom Agent runtime',
     icon: 'Terminal',
     externalUrl: 'https://www.npmjs.com/package/@gracefultools/astrid-sdk',
   },

@@ -256,6 +256,6 @@ export async function GET() {
     },
     authentication: 'Bearer MCP_TOKEN required',
     documentation:
-      'https://github.com/your-org/astrid-res/blob/main/docs/ai-agents/GITHUB_CODING_AGENT_IMPLEMENTATION.md',
+      'https://github.com/Graceful-Tools/astrid-web/blob/main/docs/archive/ai-agents/GITHUB_CODING_AGENT_IMPLEMENTATION.md',
   })
 }
