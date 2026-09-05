@@ -222,9 +222,15 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
   const cloudSecretName =
     `COPILOT_MCP_${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_TOKEN`
   const tokenSetupUrl = `${origin}/settings/agents`
-  const actionsSecretReference = '${{ secrets.ASTRID_TOKEN }}'
-  const actionsAuthorizationHeader =
-    ['Authorization:', 'Bearer', actionsSecretReference].join(' ')
+  // The Actions gate never stores a long-lived credential: client credentials
+  // from API Access exchange for a one-hour token, scoped to exactly what a
+  // queue read plus task/comment writes need — never the wildcard an MCP setup
+  // token maps to.
+  const actionsScopes =
+    'tasks:read tasks:write lists:read comments:read comments:write user:read'
+  const actionsClientIdReference = '${{ secrets.ASTRID_CLIENT_ID }}'
+  const actionsClientSecretReference = '${{ secrets.ASTRID_CLIENT_SECRET }}'
+  const actionsTokenReference = '${{ steps.token.outputs.access-token }}'
 
   const visibleTabs = (mailbox && MAILBOX_TABS[mailbox]) || ALL_TABS
   const preferredTab = (mailbox && DEFAULT_HARNESS[mailbox]) || 'claude-code'
@@ -378,48 +384,74 @@ ${queueLine('codex')}`}
       <TabsContent value="github" className="space-y-3 pt-3">
         <RecipeStep number={1} title="Connect">
           <p className="text-xs theme-text-muted">
-            Create a dedicated GitHub setup token in {BRAND.appName}, then save the generated token as a
-            repository Actions secret named <code className="font-mono">ASTRID_TOKEN</code>.
+            Create OAuth client credentials in {BRAND.appName} and save them as repository
+            Actions secrets named <code className="font-mono">ASTRID_CLIENT_ID</code> and{' '}
+            <code className="font-mono">ASTRID_CLIENT_SECRET</code>. Each run exchanges the
+            client credentials for a one hour access token with only the scopes a queue
+            worker needs — no long-lived token ever reaches the repository.
           </p>
           <Button variant="outline" size="sm" asChild>
-            <a href={tokenSetupUrl}>
-              {t('settingsPages.aiAgents.githubMcp.create')}
+            <a href={`${origin}/settings/api-access`}>
+              {t('settingsPages.apiAccess.title')}
               <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </a>
           </Button>
         </RecipeStep>
         <RecipeStep number={2} title="Install">
+          <p className="text-xs theme-text-muted">
+            This workflow is a queue gate: it answers &quot;is there work?&quot; and it does
+            not run an agent itself. Point the second job at your existing supported agent
+            job (a Copilot CLI, Claude Code, or Codex step from the other tabs).
+          </p>
           <CopyBlock
-            label="Add the queue workflow"
+            label="Add the queue gate workflow"
+            testId="actions-queue-gate"
             code={`# .github/workflows/${serverName}-queue.yml
-name: ${BRAND.appName} queue
+name: ${BRAND.appName} queue gate
 on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:
-  work-the-queue:
+  queue-gate:
     runs-on: ubuntu-latest
+    outputs:
+      has-work: \${{ steps.queue.outputs.has-work }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Exchange client credentials for a one-hour token
+        id: token
+        run: |
+          ACCESS_TOKEN=$(curl -fsS -X POST "${origin}/api/v1/oauth/token" \\
+            -d grant_type=client_credentials \\
+            -d client_id="${actionsClientIdReference}" \\
+            -d client_secret="${actionsClientSecretReference}" \\
+            -d "scope=${actionsScopes}" | jq -r .access_token)
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "access-token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
       - name: Read the queue
         id: queue
         run: |
           curl -fsS "${origin}/api/v1/agent-queue?agent=${agentFor('github')}${listId ? `&listId=${listId}` : ''}" \\
-            -H "${actionsAuthorizationHeader}" > queue.json
-          echo "empty=$(jq -r .empty queue.json)" >> "$GITHUB_OUTPUT"
-      # Every later step is skipped on a quiet run, so an empty queue costs
-      # one API call rather than a whole agent boot.
-      - name: Work it
-        if: steps.queue.outputs.empty == 'false'
-        run: echo "Hand queue.json to your agent step here"`}
+            -H "X-OAuth-Token: ${actionsTokenReference}" > queue.json
+          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
+
+  run-your-agent:
+    needs: queue-gate
+    if: needs.queue-gate.outputs.has-work == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Replace this step with your existing supported agent job — the gate
+      # only decides whether that job starts.
+      - run: echo "Queue has assigned Ready tasks - start your agent job"`}
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
           <p className="text-xs theme-text-muted">
             Commit the workflow for its 30-minute schedule, or use Run workflow in GitHub Actions
-            to test it immediately. A quiet run stops after the scoped queue request.
+            to test it immediately. A quiet run stops after the scoped queue request, so an
+            empty queue costs one API call rather than a whole agent boot.
           </p>
         </RecipeStep>
         {connectionTest(
