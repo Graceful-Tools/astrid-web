@@ -203,20 +203,23 @@ export async function aggregateDailyStats(date: Date): Promise<void> {
   const uniqueUserIds = new Set(events.map((e) => e.userId))
   const dau = uniqueUserIds.size
 
-  // Calculate platform breakdown for DAU
-  const usersByPlatform: Record<string, Set<string>> = {
-    'web-desktop': new Set(),
-    'web-iPhone': new Set(),
-    'web-android': new Set(),
-    'iOS-app': new Set(),
-    'API-other': new Set(),
-    unknown: new Set(),
-  }
+  // Platform breakdown for DAU, with one bucket per declared platform.
+  //
+  // This used to be a hand-written subset that omitted 'mac-app', while the
+  // write below reads usersByPlatform['mac-app'].size — so aggregateDailyStats
+  // threw a TypeError on every call and no AnalyticsDailyStats row was ever
+  // written after the Mac platform was added. Building the buckets from
+  // AnalyticsPlatform means adding a platform cannot desynchronise them again
+  // (task 8f719931).
+  const usersByPlatform: Record<string, Set<string>> = Object.fromEntries(
+    Object.values(AnalyticsPlatform).map(platform => [platform, new Set<string>()]),
+  )
 
   for (const event of events) {
-    if (usersByPlatform[event.platform]) {
-      usersByPlatform[event.platform].add(event.userId)
-    }
+    // An event whose platform predates this list still counts towards DAU; it
+    // just lands in `unknown` rather than being dropped on the floor.
+    const bucket = usersByPlatform[event.platform] ?? usersByPlatform[AnalyticsPlatform.UNKNOWN]
+    bucket.add(event.userId)
   }
 
   // Calculate event counts
