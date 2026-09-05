@@ -2,6 +2,7 @@ import { BRAND } from '@/lib/brand/config'
 import { UNKNOWN_CREATOR_EMAIL } from '@/lib/brand/agent-emails'
 import { Prisma, PrismaClient } from "@prisma/client"
 import { createLogger } from '@/lib/logger'
+import { runAfterResponse } from '@/lib/background'
 
 const log = createLogger('prisma')
 
@@ -30,8 +31,14 @@ async function handleTaskAssigneeChange(
     const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
     const { getBaseUrl, getTaskUrl } = await import('@/lib/base-url')
 
-    // Create a fresh prisma client for this query to avoid middleware recursion
-    const queryClient = new PrismaClient()
+    // Reuse the shared client. This used to construct a NEW PrismaClient per
+    // reassignment and disconnect it afterwards, so bulk-assigning tasks to an
+    // agent opened a burst of Neon connections — which is where the
+    // "Timed out fetching a new connection from the connection pool" errors in
+    // the production logs come from. The stated reason was avoiding middleware
+    // recursion, but the extension only hooks `task.update` and nothing here
+    // updates a task, so there is no recursion to avoid (task 9b794349).
+    const queryClient = prisma
 
     try {
       // Check if new assignee is a coding agent
@@ -205,7 +212,7 @@ async function handleTaskAssigneeChange(
         }
       }
     } finally {
-      await queryClient.$disconnect()
+      // Nothing to disconnect: queryClient is the shared singleton.
     }
   } catch (error) {
     log.error({ err: error }, `❌ [PRISMA-MIDDLEWARE] Error handling assignee change:`)
@@ -243,16 +250,23 @@ const createPrismaClient = () => {
               return query(args)
             }
 
-            // Get the current assignee BEFORE the update
+            // Read the previous assignee only when the write could plausibly
+            // change it. The web client PUTs the whole task on any edit, so
+            // `assigneeId` is present — and this findUnique therefore ran — on
+            // every title edit, priority change and drag-reorder. Only a string
+            // assignee can trigger the webhook below, so anything else needs no
+            // pre-read at all (task 9b794349).
             let previousAssigneeId: string | null = null
-            try {
-              const existingTask = await client.task.findUnique({
-                where: { id: taskId },
-                select: { assigneeId: true }
-              })
-              previousAssigneeId = existingTask?.assigneeId ?? null
-            } catch {
-              // Ignore errors getting previous state
+            if (typeof newAssigneeId === 'string') {
+              try {
+                const existingTask = await client.task.findUnique({
+                  where: { id: taskId },
+                  select: { assigneeId: true }
+                })
+                previousAssigneeId = existingTask?.assigneeId ?? null
+              } catch {
+                // Ignore errors getting previous state
+              }
             }
 
             // Execute the actual update
@@ -261,10 +275,13 @@ const createPrismaClient = () => {
             // After update, check if we need to trigger webhook (async, don't await)
             // Only trigger if assigneeId is a string (not null/undefined) and changed
             if (typeof newAssigneeId === 'string' && newAssigneeId !== previousAssigneeId) {
-              // Fire and forget - don't block the response
-              handleTaskAssigneeChange(taskId, previousAssigneeId, newAssigneeId).catch(err => {
-                log.error({ err: err }, `❌ [PRISMA-MIDDLEWARE] Webhook handler error:`)
-              })
+              // Deferred, not abandoned. This reaches runAssistantWorkflow — a
+              // full model call — and a bare floating promise is frozen the
+              // moment the response flushes, which is how agent runs ended up
+              // stuck mid-flight (task 9b794349).
+              runAfterResponse('task-assignee-change', () =>
+                handleTaskAssigneeChange(taskId, previousAssigneeId, newAssigneeId),
+              )
             }
 
             return result
