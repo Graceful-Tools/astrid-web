@@ -11,6 +11,8 @@
  */
 
 import { NextResponse } from 'next/server'
+import { publicUserSelect } from '@/lib/user-select'
+import { parseLimit, parseOffset } from '@/lib/pagination'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
@@ -24,8 +26,10 @@ export const GET = withAuth(
   async (req, auth) => {
     try {
       const { searchParams } = new URL(req.url)
-      const take = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200)
-      const skip = parseInt(searchParams.get('offset') || '0', 10)
+      // Math.min(NaN, 200) is NaN, which reached Prisma's take and 500'd.
+      // parseLimit already handles that everywhere else (task 49dcf609).
+      const take = parseLimit(searchParams.get('limit'), { fallback: 100, max: 200 })
+      const skip = parseOffset(searchParams.get('offset'))
 
       const tasks = await prisma.task.findMany({
         where: {
@@ -33,11 +37,11 @@ export const GET = withAuth(
           lists: { some: { privacy: 'PUBLIC' } },
         },
         include: {
-          assignee: true,
-          creator: true,
+          assignee: { select: publicUserSelect },
+          creator: { select: publicUserSelect },
           lists: {
             where: { privacy: 'PUBLIC' },
-            include: { owner: true },
+            include: { owner: { select: publicUserSelect } },
           },
         },
         orderBy: { createdAt: 'desc' },
