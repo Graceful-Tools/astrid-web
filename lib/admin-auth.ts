@@ -4,8 +4,24 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('admin-auth')
 
 
-// Initial admin email - this user gets admin access automatically
-const INITIAL_ADMIN_EMAIL = 'jon@gracefultools.com'
+/**
+ * Address that receives admin on bootstrap, from the environment.
+ *
+ * This was a hardcoded personal address, which was wrong twice over
+ * (task 7610dd07). A whitelabel partner could not change it, so their
+ * deployment bootstrapped an admin belonging to somebody else's company; and
+ * because passkey registration creates a User for any address with no proof of
+ * ownership, on any deployment where that row did not exist yet an attacker
+ * could register a passkey for it and be granted admin by the daily cron.
+ *
+ * Unset means nobody is bootstrapped. That is the safe default: an operator who
+ * wants an initial admin says so, and an operator who says nothing does not
+ * silently acquire one.
+ */
+function initialAdminEmail(): string | null {
+  const configured = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase()
+  return configured ? configured : null
+}
 
 export class AdminAuthError extends Error {
   constructor(message: string) {
@@ -133,13 +149,31 @@ export async function listAdmins(): Promise<
  * Ensure initial admin exists (call this on app startup or migration)
  */
 export async function ensureInitialAdmin(): Promise<void> {
+  const adminEmail = initialAdminEmail()
+  if (!adminEmail) {
+    return
+  }
+
   // Find user by email
   const user = await prisma.user.findUnique({
-    where: { email: INITIAL_ADMIN_EMAIL },
+    where: { email: adminEmail },
   })
 
   if (!user) {
-    log.info(`Initial admin user ${INITIAL_ADMIN_EMAIL} not found in database`)
+    log.info(`Initial admin user ${adminEmail} not found in database`)
+    return
+  }
+
+  // Owning the address is the whole claim being made here, and holding the row
+  // is not owning the address: a passkey signup creates a User for any address
+  // with emailVerified left null on purpose. Without this check, registering a
+  // passkey for the bootstrap address was enough to be granted admin by the
+  // next run of the analytics cron.
+  if (!user.emailVerified) {
+    log.warn(
+      { userId: user.id },
+      'Initial admin account has an unverified email — refusing to grant admin',
+    )
     return
   }
 
@@ -155,7 +189,7 @@ export async function ensureInitialAdmin(): Promise<void> {
         grantedBy: null, // Initial admin has no grantor
       },
     })
-    log.info(`Created initial admin for ${INITIAL_ADMIN_EMAIL}`)
+    log.info(`Created initial admin for ${adminEmail}`)
   }
 }
 

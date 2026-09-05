@@ -142,6 +142,10 @@ checkVariable('NEXTAUTH_SECRET', true)
 checkVariable('GOOGLE_CLIENT_ID', false)
 checkVariable('GOOGLE_CLIENT_SECRET', false)
 
+// Optional, and unset is a valid answer: no bootstrap admin at all. The account
+// must also have a verified email before ensureInitialAdmin grants anything.
+checkVariable('INITIAL_ADMIN_EMAIL', false, validateEmail)
+
 // Email
 console.log('\n📧 Email Service:')
 checkVariable('RESEND_API_KEY', false)
