@@ -2,21 +2,32 @@ import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { mcpTokenLookup } from "@/lib/mcp-token"
 
 export async function GET(request: NextRequest) {
   const blocked = capabilityGate('integrationMcp')
   if (blocked) return blocked
 
   const { searchParams } = new URL(request.url)
-  const token = searchParams.get('token')
   const agentType = searchParams.get('agentType')
+
+  // Prefer the Authorization header. A bearer credential in a URL lands in
+  // access logs, browser history and Referer headers; the query parameter is
+  // kept only because it is the sole way existing callers authenticate here,
+  // and it is deprecated (task 06e176be).
+  const authHeader = request.headers.get('authorization')
+  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const token = headerToken || searchParams.get('token')
 
   // Validate token if provided
   let mcpToken = null
   if (token) {
     mcpToken = await prisma.mCPToken.findFirst({
       where: {
-        token,
+        // Hash-or-plaintext, like every other validation site. This one matched
+        // the raw column only, so after the hashing migration a real token
+        // matched nothing here (task 06e176be).
+        token: { in: mcpTokenLookup(token) },
         isActive: true,
         OR: [
           { expiresAt: null },

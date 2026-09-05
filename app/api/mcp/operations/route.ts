@@ -183,8 +183,24 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const operation = url.searchParams.get("operation")
-    const accessToken = url.searchParams.get("accessToken")
     const argsParam = url.searchParams.get("args")
+
+    // A bearer credential in a URL lands in access logs, browser history and
+    // Referer headers. Nothing in this repo ever sent one this way
+    // (task 06e176be).
+    if (url.searchParams.has("accessToken")) {
+      return NextResponse.json(
+        { error: "accessToken must be sent in the Authorization header or the request body, not the query string" },
+        { status: 400 },
+      )
+    }
+
+    if (operation && !READ_ONLY_OPERATIONS.has(operation)) {
+      return NextResponse.json(
+        { error: `Operation "${operation}" changes state and must be sent as POST.` },
+        { status: 405, headers: { Allow: "POST" } },
+      )
+    }
     let args: Record<string, any> | undefined
 
     if (argsParam) {
@@ -196,10 +212,6 @@ export async function GET(request: NextRequest) {
     }
 
     args = args && typeof args === "object" ? { ...args } : {}
-
-    if (accessToken && !args.accessToken) {
-      args.accessToken = accessToken
-    }
 
     for (const [key, value] of url.searchParams.entries()) {
       if (["operation", "args", "accessToken"].includes(key)) {
@@ -218,6 +230,38 @@ export async function GET(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+/**
+ * Operations that only read. Everything else changes state.
+ *
+ * The GET handler dispatches the same switch as POST, and authenticateAPI
+ * accepts the session cookie — which SameSite=Lax still sends on a top-level
+ * navigation. So `window.location = '/api/mcp/operations?operation=delete_list
+ * &listId=…'` from any site was a working CSRF against a signed-in user, for
+ * delete_list, delete_task, remove_list_member, commit_changes,
+ * merge_pull_request and update_user_settings among others (task 06e176be).
+ *
+ * Listed as an allow-list rather than a deny-list: a new mutating operation
+ * that nobody remembers to classify must be refused over GET, not permitted.
+ */
+const READ_ONLY_OPERATIONS = new Set([
+  'get_shared_lists',
+  'get_public_lists',
+  'get_list_tasks',
+  'get_user_tasks',
+  'get_task_details',
+  'get_list_members',
+  'get_task_comments',
+  'get_repository_file',
+  'list_repository_files',
+  'get_pull_request_comments',
+  'get_repository_info',
+  'get_deployment_status',
+  'get_deployment_logs',
+  'get_deployment_errors',
+  'list_deployments',
+  'get_user_settings',
+])
 
 /**
  * Execute an MCP operation by routing to the appropriate handler
