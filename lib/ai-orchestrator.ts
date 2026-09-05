@@ -1,3 +1,4 @@
+import { TRUSTED_AGENT_POLICY, serializeUntrustedAgentData } from '@/lib/ai/prompt-trust'
 /**
  * AI Agent Orchestrator
  * Handles the complete AI-driven coding workflow
@@ -1194,16 +1195,27 @@ Respond with ONLY the JSON object as specified above.`
       ? ((workflow.metadata as { plan: unknown }).plan as ImplementationPlan)
       : null
 
-    const revisionPrompt = `I need to revise my implementation based on user feedback.
+    // Task text and user feedback are user-authored data, not instructions
+    // (task 0672b69b). Same envelope the assistant workflow already uses.
+    const revisionPrompt = `${TRUSTED_AGENT_POLICY}
 
-ORIGINAL TASK: ${workflow.task.title}
-${workflow.task.description ? `DESCRIPTION: ${workflow.task.description}` : ''}
+I need to revise my implementation based on user feedback.
+
+ORIGINAL TASK:
+<untrusted_task_data format="json">
+${serializeUntrustedAgentData({
+  title: workflow.task.title,
+  description: workflow.task.description || null,
+})}
+</untrusted_task_data>
 
 CURRENT IMPLEMENTATION PLAN:
 ${currentPlan ? JSON.stringify(currentPlan, null, 2) : 'No plan available'}
 
 USER FEEDBACK:
-${feedback}
+<untrusted_user_feedback format="json">
+${serializeUntrustedAgentData(feedback)}
+</untrusted_user_feedback>
 
 Please create a revised implementation plan that addresses the user's feedback. Focus on:
 1. Understanding what the user wants changed
@@ -1369,6 +1381,9 @@ Ready for review.`,
       data: { status: 'PLANNING' },
     })
 
+    // This string becomes taskDescription on the retry, and
+    // buildMinimalPlanningPrompt wraps that in an untrusted envelope, so the
+    // clarification is enveloped with it rather than separately.
     const enhancedDescription = `${workflow.task.description || ''}
 
 ## User Clarification (after previous attempt failed)
