@@ -13,6 +13,11 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import {
+  queueContractLine,
+  queueSkillAdapter,
+  type QueueSkillHarness,
+} from '@/lib/agent-skill/astrid-queue-skill'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -189,8 +194,16 @@ export function AgentLoopRecipes({
   const serverName = BRAND.wordmark.toLowerCase()
   const listClause = listId ? ` and listId "${listId}"` : ''
   const agentFor = (tab: string) => mailbox ?? TAB_MAILBOX[tab] ?? 'claude'
-  const queueLine = (tab: string) =>
-    `Call get_agent_queue with agent "${agentFor(tab)}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
+  const queueLine = (tab: string) => queueContractLine({ mailbox: agentFor(tab), listId })
+  // Install steps serve the canonical queue skill's generated adapter, so a
+  // recipe and the skill it installs cannot drift (lib/agent-skill).
+  const adapterFor = (harness: QueueSkillHarness, tab: string) =>
+    queueSkillAdapter(harness, { mailbox: agentFor(tab), listId })
+  const installBlock = (harness: QueueSkillHarness, tab: string) => {
+    const adapter = adapterFor(harness, tab)
+    return `# ${adapter.installPath}
+${adapter.content}`
+  }
   const connectionCheck = (tab: string, scheduling: string) => {
     const boardSelection = listId
       ? `Use listId "${listId}" and confirm that exact board is visible.`
@@ -275,9 +288,8 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
         </RecipeStep>
         <RecipeStep number={2} title="Install">
           <CopyBlock
-            label="Save the queue behavior as a project command"
-            code={`# .claude/commands/${serverName}-queue.md
-${queueLine('claude-code')}`}
+            label="Save the queue skill as a project command"
+            code={installBlock('claude-code', 'claude-code')}
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
@@ -327,12 +339,7 @@ ${queueLine('claude-code')}`}
           </p>
           <CopyBlock
             label="Repository custom agent"
-            code={`# .github/agents/${serverName}-queue.agent.md
----
-name: ${BRAND.appName} Queue
-description: Work the correctly scoped ${BRAND.appName} agent queue.
----
-${queueLine('copilot')}`}
+            code={installBlock('copilot', 'copilot')}
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
@@ -366,10 +373,8 @@ url = "${mcpUrl}"`}
         </RecipeStep>
         <RecipeStep number={2} title="Install">
           <CopyBlock
-            label="Add the queue behavior to AGENTS.md"
-            code={`# ${BRAND.appName} queue
-When asked to work the ${BRAND.appName} queue:
-${queueLine('codex')}`}
+            label="Add the queue skill to AGENTS.md"
+            code={installBlock('codex', 'codex')}
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
