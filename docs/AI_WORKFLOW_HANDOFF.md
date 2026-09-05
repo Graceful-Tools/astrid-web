@@ -12,7 +12,9 @@ implementation state, review findings, pushed branches, and dependency order.
 
 - Read `ASTRID.md`, `docs/CLI_OPERATIONS.md`, and `docs/FIXALL_WORKFLOW.md`.
 - Work the Astrid Web To-do through `get_agent_queue` with the mailbox of the harness
-  actually doing the work. The continuation queue is assigned to `codex@astrid.cc`.
+  actually doing the work. Reassign the incomplete tasks to that mailbox before polling.
+  Production did not offer a `codex@astrid.cc` assignee when this handoff was prepared, so
+  the tasks were deliberately not reassigned to a guessed or newly seeded identity.
 - Never push, merge, or deploy without the user's explicit approval. The branches below
   were pushed because the user explicitly requested a durable handoff.
 - Do not treat a green branch as accepted until the review status below says accepted.
@@ -23,7 +25,7 @@ implementation state, review findings, pushed branches, and dependency order.
 | Phase | Astrid task | State | Branch / commit | What the next harness must do |
 |---|---|---|---|---|
 | P1 — Discoverability | `c1c77de4-9dd0-4651-9847-5ef96dd14a34` | **Accepted and complete** | [`jonparis-ai-workflows-p1-discoverability`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-ai-workflows-p1-discoverability), tip `4d1a5f74fdb801e04a2bd6804cf620b981c86a9e` | Use as the P3 base. Includes follow-up capability gate; do not use `88b17d8` alone. |
-| P2 — Guided connection | `dec2fb0f-b420-43d3-bc5d-64f6dbaa6268` | **Review rejected; reopened** | [`jonparis-ai-workflows-p2-connection`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-ai-workflows-p2-connection), tip `1f78b326299c526aaa7402fac33724a0846a2f05` | Fix the two review findings below in a follow-up commit, rerun gates, and obtain review acceptance. |
+| P2 — Guided connection | `dec2fb0f-b420-43d3-bc5d-64f6dbaa6268` | **Review rejected; reopened** | [`jonparis-ai-workflows-p2-connection`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-ai-workflows-p2-connection), pushed RED-test tip `bf74b73` on implementation commit `1f78b326299c526aaa7402fac33724a0846a2f05` | Run the preserved RED tests, fix the two findings below, rerun gates, and obtain review acceptance. |
 | P3 — Cross-harness queue skill | `5f402837-da48-43f8-9e5d-b8cac847f8dd` | **Not started; blocked by P2** | none | Branch from accepted P1, incorporate accepted P2 exactly, then implement the canonical skill and generated adapters. |
 | P4 — Ready/Waiting lifecycle | `a1f6e610-5fd4-42cc-8f41-4c382810d341` | **WIP; not accepted** | [`jonparis-productize-ready-waiting-lifecycle`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-productize-ready-waiting-lifecycle), pushed handoff tip `53b491563dfa20c667fadf385fce5a31621a6ef9`; implementation checkpoint parent `24d7805cbd1baf9ece377f7596fa370cbf14a8fe` | Finish validation and security/idempotency review; details below. |
 | P5 — Custom Agents | `53540b6d-0a0d-4a8b-8a2a-4b49beb73726` | **Implemented; pending final review/closure** | [`jonparis-custom-agents-rebrand`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-custom-agents-rebrand), tip `dedd30a603d7256e207c06a2b345acf94a9a776f` | Review compatibility and reconcile shared files with P1 before acceptance. |
@@ -49,7 +51,10 @@ a small follow-up rather than reconstructing the UI work.
 
 Before rejection, the branch passed 9 focused tests, desktop/mobile Playwright overflow
 checks, all predeploy gates (5,045 tests), and `check:reuse`. Those results do not waive the
-two functional/security findings.
+two functional/security findings. Commit `bf74b73` preserves the unimplemented RED
+regressions in `tests/components/agent-loop-recipes-tabs.test.tsx` and
+`tests/api/oauth-authentication.test.ts`; start by confirming they fail for the intended
+reasons.
 
 ## P4 WIP status and risks
 
@@ -128,11 +133,15 @@ dependent task and completion report.
 
 ## Lower-cost harness kickoff
 
-Use this prompt from the repository root:
+First assign the actionable tasks to the real mailbox of the cheaper harness. If using
+Claude Code, use `claude`; if Codex is provisioned later, use `codex`. Never poll another
+harness's assignments.
+
+Then use this prompt from the repository root, replacing `<mailbox>`:
 
 > Read `ASTRID.md`, `docs/CLI_OPERATIONS.md`, `docs/FIXALL_WORKFLOW.md`,
 > `docs/AI_WORKFLOW_REVIEW.md`, and `docs/AI_WORKFLOW_HANDOFF.md`. Run `/fixall` as the
-> Codex mailbox (`agent: "codex"`) on Astrid Web To-do
+> selected harness mailbox (`agent: "<mailbox>"`) on Astrid Web To-do
 > `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`. Continue only the phases listed as incomplete.
 > Reuse the published branches and exact commits; do not redo accepted work. Never push,
 > merge, or deploy without explicit approval.
