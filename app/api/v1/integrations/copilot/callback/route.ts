@@ -1,4 +1,5 @@
 import { BRAND } from '@/lib/brand/config'
+import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import {
@@ -26,6 +27,15 @@ export async function GET(request: NextRequest) {
   const userId = state ? verifyCopilotOAuthState(state) : null
   if (!code || !userId) {
     return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
+  }
+
+  // Same login-CSRF shape as the GitHub and Google callbacks: the state names
+  // the initiator, the signed-in browser names who is actually here
+  // (task 842601f2).
+  if (await callbackSessionConflicts(request, userId, 'copilot')) {
+    return errorPage(
+      `This connect link was started from a different ${BRAND.appName} account. Open ${BRAND.appName} and tap Connect again.`,
+    )
   }
 
   const token = await exchangeCopilotCode(code)
