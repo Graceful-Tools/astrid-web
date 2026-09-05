@@ -23,10 +23,10 @@ async function testAIOrchestration() {
       headers: {
         'Content-Type': 'application/json'
       },
+      // No userId: the route derives the actor from the session (task 2b4330e0).
       body: JSON.stringify({
         workflowId,
-        taskId,
-        userId
+        taskId
       })
     })
 
