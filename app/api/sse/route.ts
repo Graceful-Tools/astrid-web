@@ -11,6 +11,26 @@ const log = createLogger('SSE')
 // Explicitly use Node.js runtime for SSE compatibility in production
 export const runtime = 'nodejs'
 
+/**
+ * Route segment config, NOT vercel.json.
+ *
+ * vercel.json asked for 300s on this path, but production logs showed
+ * "Task timed out after 30 seconds" on both /api/sse and /api/v1/sse — the
+ * broad `app/api/**` 30s entry was what actually applied. Every client was
+ * being cut off and reconnecting about twice a minute, each reconnect paying a
+ * full authentication and a Redis read. Declaring it here is the form Next
+ * passes to the platform, and it is the one that takes effect (task 0f544a13).
+ *
+ * SSE_REFRESH_MS below must stay under this ceiling.
+ */
+export const maxDuration = 300
+
+/**
+ * Refresh the stream 15s before maxDuration so the client gets a `reconnect`
+ * event and can re-establish cleanly, rather than having the socket cut.
+ */
+const SSE_REFRESH_MS = (300 - 15) * 1000
+
 type SSESession = { user: { id: string; email?: string | null; name?: string | null; image?: string | null }; expires?: string } | null
 
 export async function GET(request: NextRequest) {
@@ -190,9 +210,12 @@ export async function GET(request: NextRequest) {
         }
       }, 15000)
 
-      // Graceful connection refresh to maintain SSE reliability.
-      // Vercel streaming responses support much longer connections than serverless function timeouts;
-      // we refresh every ~25 minutes to keep connections healthy without aggressive reconnect loops.
+      // Graceful connection refresh, timed to happen JUST BEFORE the platform
+      // kills the invocation. This used to be 25 minutes on the belief that
+      // streaming responses outlive the function timeout. They do not: the
+      // function was being killed at its ceiling, so this timer never once
+      // fired and every client saw a hard stream close instead of the orderly
+      // reconnect it was written to give them (task 0f544a13).
       const connectionTimeout = setTimeout(() => {
         if (cleanedUp) return
         log.debug({ userId }, 'Proactively closing connection for periodic refresh')
@@ -215,7 +238,7 @@ export async function GET(request: NextRequest) {
         } catch {
           // Controller might already be closed.
         }
-      }, 1500000) // 25 minutes
+      }, SSE_REFRESH_MS)
 
       request.signal.addEventListener('abort', cleanup)
     }

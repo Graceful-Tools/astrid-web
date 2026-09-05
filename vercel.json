@@ -7,6 +7,7 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     },
+    "_comment_sse": "The SSE routes declare `export const maxDuration = 300` in the route files. This entry alone did NOT take effect — production logs showed 30s timeouts on /api/sse anyway, because the broad app/api glob above won. Kept for documentation; the route segment config is what the platform reads. Task 0f544a13.",
     "app/api/sse/route.ts": {
       "maxDuration": 300
     },
