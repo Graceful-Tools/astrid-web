@@ -48,6 +48,7 @@ import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 import { getAgentConfig, type AIService } from '@/lib/ai/agent-config'
+import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from '@/lib/ai/clients/fetch-with-timeout'
 import {
   buildAgentContextInstructions,
   serializeUntrustedAgentData,
@@ -364,7 +365,7 @@ async function callAIService(
 ): Promise<string> {
   switch (service) {
     case 'claude': {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -376,7 +377,7 @@ async function callAIService(
           max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }]
         })
-      })
+      }, AI_REQUEST_TIMEOUT_MS, 'Claude')
 
       if (!response.ok) {
         const error = await response.text()
@@ -389,7 +390,7 @@ async function callAIService(
     }
 
     case 'openai': {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -400,7 +401,7 @@ async function callAIService(
           max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }]
         })
-      })
+      }, AI_REQUEST_TIMEOUT_MS, 'OpenAI')
 
       if (!response.ok) {
         const error = await response.text()
@@ -420,14 +421,19 @@ async function callAIService(
       // Use v1beta for preview models, v1 for stable models
       const apiVersion = model.includes('preview') ? 'v1beta' : 'v1'
       const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${apiKey}`
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 1024 }
-        })
-      })
+      const response = await fetchWithTimeout(
+        url,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 1024 }
+          })
+        },
+        AI_REQUEST_TIMEOUT_MS,
+        'Gemini',
+      )
 
       if (!response.ok) {
         const error = await response.text()

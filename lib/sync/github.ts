@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { fetchWithTimeout } from '@/lib/ai/clients/fetch-with-timeout'
 import { prisma } from '@/lib/prisma'
 import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
 
@@ -91,19 +92,34 @@ export async function githubRequest(
   path: string,
   body?: unknown
 ): Promise<{ status: number; json: any }> {
-  const res = await fetch(`${GITHUB_API}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
+  // Timed. This runs inside the 15-minute github-sync cron, which walks every
+  // user's links in one 60s invocation, so a single hung GitHub call starved
+  // every remaining link in that pass (task 1a77bcb1).
+  const res = await fetchWithTimeout(
+    `${GITHUB_API}${path}`,
+    {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
     },
-    body: body ? JSON.stringify(body) : undefined,
-  })
+    GITHUB_REQUEST_TIMEOUT_MS,
+    'GitHub',
+  )
   const json = await res.json().catch(() => null)
   return { status: res.status, json }
 }
+
+/**
+ * Shorter than the AI budget: this runs inside a 60s cron that must get
+ * through many links, so a slow call should fail fast and let the pass
+ * continue rather than consume the whole invocation.
+ */
+const GITHUB_REQUEST_TIMEOUT_MS = 15_000
 
 export function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
   const secret = process.env.GITHUB_SYNC_WEBHOOK_SECRET
