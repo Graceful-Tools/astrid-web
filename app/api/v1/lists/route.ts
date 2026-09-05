@@ -270,7 +270,13 @@ export const POST = withAuth(
     try {
       const memberIds: string[] = body.memberIds || []
       const userIdsToInvalidate = Array.from(new Set([auth.userId, ...memberIds]))
-      await Promise.all(userIdsToInvalidate.map(uid => RedisCache.invalidate.userLists(uid)))
+      // Pass the list id: userLists used to wipe `members:list:*` for every
+      // list on the platform, and now clears only the lists it is told about
+      // (task 21dc1119). This is a brand-new list, so there is nothing cached
+      // for it yet, but naming it keeps the call correct if that changes.
+      await Promise.all(
+        userIdsToInvalidate.map(uid => RedisCache.invalidate.userLists(uid, [list.id])),
+      )
     } catch (invalidateError) {
       log.error({ err: invalidateError }, 'Failed to invalidate user-lists cache after POST')
     }
