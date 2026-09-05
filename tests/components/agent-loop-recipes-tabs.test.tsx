@@ -27,6 +27,7 @@ vi.mock('@/lib/i18n/client', () => ({
       'common.copied': 'Copied',
       'common.unableToCopy': 'Unable to copy',
       'settingsPages.aiAgents.githubMcp.create': 'Create GitHub setup',
+      'settingsPages.apiAccess.title': 'API Access',
     })[key] ?? key,
   }),
 }))
@@ -105,20 +106,44 @@ describe('AgentLoopRecipes guided connection flow (AWTD-758)', () => {
     expect(screen.queryByText(/mcp-remote/)).not.toBeInTheDocument()
   })
 
-  it('links Actions token creation and uses the token through the supported bearer header', async () => {
+  it('uses short-lived, least-privilege OAuth credentials for the Actions queue gate', async () => {
     const user = userEvent.setup()
     render(<AgentLoopRecipes mailbox="copilot" origin="https://example.test" listId="board-123" />)
     await user.click(screen.getByRole('tab', { name: 'GitHub Actions' }))
 
-    expect(screen.getByRole('link', { name: 'Create GitHub setup' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'API Access' })).toHaveAttribute(
       'href',
-      'https://example.test/settings/agents',
+      'https://example.test/settings/api-access',
     )
-    expect(screen.getByRole('tabpanel')).toHaveTextContent(
-      /save the generated token as a repository Actions secret named ASTRID_TOKEN/i,
+    const panel = screen.getByRole('tabpanel')
+    expect(panel).toHaveTextContent(/client credentials/i)
+    expect(panel).toHaveTextContent(/one hour/i)
+
+    const gate = screen.getByTestId('actions-queue-gate').textContent ?? ''
+    expect(gate).toContain('ASTRID_CLIENT_ID')
+    expect(gate).toContain('ASTRID_CLIENT_SECRET')
+    expect(gate).toContain('/api/v1/oauth/token')
+    expect(gate).toContain(
+      'tasks:read tasks:write lists:read comments:read comments:write user:read',
     )
-    expect(screen.getByText(/Authorization:/)).toHaveTextContent('secrets.ASTRID_TOKEN')
-    expect(screen.getByText(/agent=copilot&listId=board-123/)).toBeInTheDocument()
+    expect(gate).toContain('X-OAuth-Token:')
+    expect(gate).toContain('agent=copilot&listId=board-123')
+    expect(gate).not.toContain('ASTRID_TOKEN')
+    expect(gate).not.toContain('astrid_mcp_')
+  })
+
+  it('describes Actions honestly as a gate for an existing supported worker', async () => {
+    const user = userEvent.setup()
+    render(<AgentLoopRecipes mailbox="copilot" origin="https://example.test" />)
+    await user.click(screen.getByRole('tab', { name: 'GitHub Actions' }))
+
+    const panel = screen.getByRole('tabpanel')
+    expect(panel).toHaveTextContent(/queue gate/i)
+    expect(panel).toHaveTextContent(/does not run an agent/i)
+    expect(panel).toHaveTextContent(/existing supported agent job/i)
+    expect(panel).not.toHaveTextContent(/autonomous loop/i)
+    expect(panel).not.toHaveTextContent(/Hand queue\.json to your agent step here/i)
+    expect(panel).not.toHaveTextContent(/Work it/i)
   })
 
   it('describes a non-mutating connection check with all six required report dimensions', () => {

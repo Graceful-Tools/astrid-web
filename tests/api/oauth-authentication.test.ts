@@ -15,7 +15,11 @@ import {
   validateAccessToken,
   hashClientSecret,
 } from '@/lib/oauth/oauth-token-manager'
-import { authenticateAPI } from '@/lib/api-auth-middleware'
+import {
+  authenticateAPI,
+  ForbiddenError,
+  requireScopes,
+} from '@/lib/api-auth-middleware'
 
 describe('OAuth Authentication', () => {
   let testUserId: string
@@ -234,6 +238,46 @@ describe('OAuth Authentication', () => {
       expect(auth.source).toBe('oauth')
       expect(auth.scopes).toContain('tasks:read')
       expect(auth.isAIAgent).toBe(false)
+    })
+
+    it('AWTD-758 keeps the Actions client-credentials path explicitly scoped', async () => {
+      const actionsScopes = [
+        'tasks:read',
+        'tasks:write',
+        'lists:read',
+        'comments:read',
+        'comments:write',
+        'user:read',
+      ]
+      mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+        id: 'actions-token-id',
+        accessToken: mockAccessToken,
+        tokenType: 'Bearer',
+        clientId: mockOAuthClient.id,
+        userId: testUserId,
+        scopes: actionsScopes,
+        expiresAt: new Date(Date.now() + 3600000),
+        createdAt: new Date(),
+        refreshToken: null,
+        revokedAt: null,
+        user: {
+          id: testUserId,
+          email: 'test@example.com',
+          isAIAgent: false,
+          name: 'Test User',
+        },
+      })
+
+      const request = new Request('http://localhost:3000/api/v1/agent-queue', {
+        headers: { 'X-OAuth-Token': mockAccessToken },
+      }) as any
+      const auth = await authenticateAPI(request)
+
+      expect(auth.source).toBe('oauth')
+      expect(auth.scopes).toEqual(actionsScopes)
+      expect(auth.scopes).not.toContain('*')
+      expect(() => requireScopes(auth, ['comments:write'])).not.toThrow()
+      expect(() => requireScopes(auth, ['tasks:delete'])).toThrow(ForbiddenError)
     })
 
     it('AWTD-755 keeps the human OAuth principal while exposing explicit Copilot authorship', async () => {
