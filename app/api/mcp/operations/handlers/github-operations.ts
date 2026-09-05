@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { listVisibilityWhere } from "@/lib/list-permissions"
 import { getErrorMessage, getErrorStack } from "@/lib/error-utils"
 import { validateMCPToken } from "./shared"
 import { createLogger } from '@/lib/logger'
@@ -40,11 +41,18 @@ export async function getGitHubUserForRepository(
     return authenticatedUserId
   }
 
-  // For AI agents: Find the human user who configured the AI agent for lists using this repository
+  // For AI agents: find the human who configured the agent for a list using
+  // this repository — but only among lists this agent can actually see.
+  //
+  // Without that constraint the lookup matched ANY list wired to the named
+  // repository, so an agent could name someone else's repo and be handed that
+  // person's GitHub token. Agent credentials are obtainable (openclaw/register
+  // issues them), which made this reachable by anyone (task 7b2e96ff).
   const listWithRepo = await prisma.taskList.findFirst({
     where: {
       githubRepositoryId: repository,
-      aiAgentConfiguredBy: { not: null }
+      aiAgentConfiguredBy: { not: null },
+      ...listVisibilityWhere(authenticatedUserId, { includePublic: false }),
     },
     select: {
       aiAgentConfiguredBy: true,
@@ -69,25 +77,15 @@ export async function getGitHubUserForRepository(
     return listWithRepo.owner.id
   }
 
-  // Last fallback: try to find any user with GitHub integration for this repository
-  // Note: repositories is stored as JSON array, need to search within it
-  const allIntegrations = await prisma.gitHubIntegration.findMany({
-    select: { userId: true, repositories: true }
-  })
+  // There used to be a further fallback here that scanned EVERY
+  // GitHubIntegration row and returned whichever user happened to have the
+  // repository. That is a cross-tenant credential handout: it resolved to a
+  // stranger who shared no list with the caller, and every subsequent GitHub
+  // call ran on that stranger's token. Deleted, not narrowed — there is no
+  // version of "any user who has this repo" that is safe (task 7b2e96ff).
 
-  log.info(`[MCP] Checking ${allIntegrations.length} GitHub integrations for repository access`)
-
-  const integration = allIntegrations.find(int => {
-    const repos = int.repositories as any[]
-    return repos?.some(repo => repo.fullName === repository)
-  })
-
-  if (integration) {
-    log.info(`[MCP] Using GitHub integration from user with repository access: ${integration.userId}`)
-    return integration.userId
-  }
-
-  // If all else fails, return the authenticated user ID (will likely fail with helpful error)
+  // Nothing matched: fall back to the caller's own integration, which fails
+  // with a useful error if they have none.
   log.warn(`[MCP] Could not find appropriate GitHub user for repository ${repository}, using authenticated user: ${authenticatedUserId}`)
   log.warn(`[MCP] This will likely fail when trying to access GitHub. Check:`)
   log.warn(`[MCP] 1. List has githubRepositoryId set to: ${repository}`)
