@@ -18,6 +18,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockTokenFindFirst = vi.hoisted(() => vi.fn())
 const mockUserFindUnique = vi.hoisted(() => vi.fn())
 
+vi.mock('@/lib/mcp-token', () => ({
+  mcpTokenLookup: (token: string) => [`hash:${token}`, token],
+}))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     mCPToken: { findFirst: mockTokenFindFirst },
@@ -62,6 +65,18 @@ describe('validateMCPToken', () => {
   it('refuses a blank token', async () => {
     await expect(validateMCPToken('   ')).rejects.toThrow(/MCP_TOKEN_INVALID/)
     expect(mockTokenFindFirst).not.toHaveBeenCalled()
+  })
+})
+
+describe('validateMCPToken lookup', () => {
+  // Hashed at rest by scripts/migrate-hash-mcp-tokens.ts, but this call site
+  // matched the raw `token` column only, so a real token matched nothing here
+  // while working everywhere else (task 13f43055).
+  it('matches a hashed row as well as a legacy plaintext row', async () => {
+    await validateMCPToken('astrid_mcp_real')
+
+    const where = mockTokenFindFirst.mock.calls[0][0].where
+    expect(where.token).toEqual({ in: ['hash:astrid_mcp_real', 'astrid_mcp_real'] })
   })
 })
 

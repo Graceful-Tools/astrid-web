@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { mcpTokenLookup } from "@/lib/mcp-token"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { getUserRoleInList } from "@/lib/list-permissions"
 
@@ -83,7 +84,12 @@ export async function validateMCPToken(token: string, listId?: string) {
 
   const mcpToken = await prisma.mCPToken.findFirst({
     where: {
-      token,
+      // Hash-or-plaintext, like every other validation site
+      // (lib/api-auth-middleware.ts, app/api/mcp/user-tokens, coding-agent).
+      // This one matched the raw column only, so once
+      // scripts/migrate-hash-mcp-tokens.ts had hashed the rows, a real token
+      // presented here matched nothing.
+      token: { in: mcpTokenLookup(token) },
       isActive: true,
       OR: [
         { listId: listId },
