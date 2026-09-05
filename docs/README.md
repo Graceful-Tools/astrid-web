@@ -49,12 +49,8 @@ and stack versions with `npm run check:docs`.
 - **[CLAUDE.md](../CLAUDE.md)** - ⭐ **Essential**: Claude Code operational context (root)
 - **[CODEX.md](../CODEX.md)** - OpenAI Codex operational context (root)
 - **[ASTRID.md Template](./templates/ASTRID.md)** - ⭐ **Essential**: Configure AI agent behavior for your project
-- **[AI Agents Overview](./ai-agents/README.md)** - Getting started with AI coding agents
-- **[Quick Start Guide](./ai-agents/quick-start.md)** - Fast setup for AI agents
-- **[Setup Checklist](./ai-agents/setup-checklist.md)** - Complete setup verification
-- **[GitHub Integration](./ai-agents/GITHUB_CODING_AGENT_IMPLEMENTATION.md)** - Detailed implementation guide
-- **[Example Tasks](./ai-agents/example-tasks.md)** - Sample tasks for AI agents
-- **[Troubleshooting](./ai-agents/troubleshooting.md)** - Common issues and solutions
+- **[Fixall Queue Workflow](./FIXALL_WORKFLOW.md)** - the canonical autonomous agent queue loop; the user-facing connect flow is `/docs/loops` in the app
+- **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
 - **[Weekly Hygiene Review](./WEEKLY_HYGIENE_REVIEW.md)** - Scheduled review that files hygiene/security/perf tasks to the Astrid board
 
 ### 🧪 Testing & Quality
@@ -133,9 +129,8 @@ The `archive/` directory contains historical documentation preserved for referen
 3. Review [Development Guidelines](./guides/development-guidelines.md)
 
 ### For AI Agent Setup
-1. Read [AI Agents Overview](./ai-agents/README.md)
-2. Follow [Quick Start Guide](./ai-agents/quick-start.md)
-3. Complete [Setup Checklist](./ai-agents/setup-checklist.md)
+1. Open `/docs/loops` in the app (or Settings -> Agent Hub) and follow the connect -> install -> schedule -> test recipe for your harness
+2. Read [Fixall Queue Workflow](./FIXALL_WORKFLOW.md) for the full queue contract
 
 ### For Testing MCP Integration
 1. Review [MCP Testing Guide](./testing/MCP_TESTING_GUIDE.md)

@@ -282,10 +282,11 @@ Full reference: **[docs/WHITELABELING.md](./docs/WHITELABELING.md)**.
 
 **CRITICAL**: This workflow is MANDATORY for all AI agents when implementing code changes.
 
-> This section is the astrid-web expansion of the portable workflow in
-> [ASTRID_WORKFLOW.md](./ASTRID_WORKFLOW.md) — same process, with this repo's
-> commands filled in. The two must not diverge: if you change the process here,
-> change it there (and in `public/ASTRID_WORKFLOW.md`, which users download).
+> This section is the astrid-web expansion of the portable queue workflow. The
+> user-facing copy is GENERATED from the canonical skill in
+> `lib/agent-skill/astrid-queue-skill.ts` (served by the connection recipes and
+> the `/api/downloads/ASTRID_WORKFLOW.md` route), so change behavior there —
+> there is no hand-mirrored workflow file to keep in sync any more.
 
 ### Step 1: Analysis & Planning
 
@@ -790,7 +791,6 @@ Core markdown files in root:
 Additional root files:
 - `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` - Community files
 - `CHANGELOG.md` - Version history
-- `ASTRID_WORKFLOW.md` - "Let's fix stuff" workflow for any AI coding assistant
 
 ### Packages Directory
 

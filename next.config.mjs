@@ -46,7 +46,6 @@ const nextConfig = {
   // the route 404s in production while working fine locally.
   outputFileTracingIncludes: {
     '/api/downloads/[filename]': [
-      'public/ASTRID_WORKFLOW.md',
       'public/get-project-tasks-oauth.ts',
     ],
   },

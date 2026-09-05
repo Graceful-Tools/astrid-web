@@ -140,3 +140,30 @@ export function queueSkillAdapters(options: QueueSkillOptions): QueueSkillAdapte
     queueSkillAdapter(harness, options),
   )
 }
+
+/**
+ * The downloadable ASTRID_WORKFLOW.md, generated from the canonical skill.
+ *
+ * This replaced a hand-mirrored pair of files (ASTRID_WORKFLOW.md and
+ * public/ASTRID_WORKFLOW.md) that taught a retired script-based OAuth flow and
+ * drifted from the product. The download keeps its historical filename and URL;
+ * its content is now derived, so it cannot drift from what the recipes install.
+ */
+export function queueWorkflowDownload(origin: string): string {
+  const mailboxPlaceholder = '<mailbox>'
+  const generic = queueSkillAdapter('generic', { mailbox: mailboxPlaceholder })
+
+  return `# ${BRAND.appName} agent queue workflow
+
+Generated from the canonical ${BRAND.appName} queue skill v${QUEUE_SKILL_VERSION}.
+The guided per-harness version of this flow lives at ${origin}/docs/loops.
+
+1. Connect your coding agent to the MCP server: ${origin}/mcp (see ${origin}/docs/loops
+   for the exact command in Claude Code, Copilot, Codex, Gemini, or Cursor).
+2. In ${BRAND.appName}, assign a task to your agent's mailbox (claude, codex, copilot,
+   or gemini) and mark it Ready.
+3. Install the queue skill below, replacing "${mailboxPlaceholder}" with that mailbox.
+
+${generic.content}
+`
+}

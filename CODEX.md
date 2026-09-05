@@ -104,7 +104,7 @@ All other docs go in `/docs/` subdirectories.
 
 - **[ASTRID.md](./ASTRID.md)** - Project context (REQUIRED reading)
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture
-- **[docs/ai-agents/README.md](./docs/ai-agents/README.md)** - AI agent documentation
+- **[docs/FIXALL_WORKFLOW.md](./docs/FIXALL_WORKFLOW.md)** - the agent queue workflow
 - **[docs/API_CONTRACT.md](./docs/API_CONTRACT.md)** - Stable external/mobile API contract
 
 ---

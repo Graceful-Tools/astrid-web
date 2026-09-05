@@ -352,7 +352,7 @@ ORDER BY r."scheduledFor";
 - **[Documentation Index](./docs/README.md)** - Complete guide to all documentation
 - **[Architecture Overview](./docs/ARCHITECTURE.md)** - System design and architecture
 - **[Setup Guides](./docs/setup/)** - Database, auth, email, and deployment setup
-- **[AI Agents](./docs/ai-agents/README.md)** - AI coding agent setup and usage
+- **[Connect a coding agent](./docs/FIXALL_WORKFLOW.md)** - the agent queue workflow (user-facing guide: `/docs/loops` in the app)
 - **[MCP Testing](./docs/testing/MCP_TESTING_GUIDE.md)** - Model Context Protocol testing
 - **[Development Guidelines](./docs/guides/development-guidelines.md)** - Code quality standards
 
