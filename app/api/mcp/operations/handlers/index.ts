@@ -11,6 +11,7 @@ export {
   getListMemberIdsByListId,
   getTokenAccessLevel,
   validateMCPToken,
+  resolveMCPActor,
   determinePermissions,
   type ListForPermissions
 } from './shared'

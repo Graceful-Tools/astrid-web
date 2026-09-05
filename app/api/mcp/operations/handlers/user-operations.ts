@@ -3,10 +3,10 @@
  */
 
 import { prisma } from "@/lib/prisma"
-import { validateMCPToken } from "./shared"
+import { resolveMCPActor } from "./shared"
 
 export async function getUserSettings(accessToken: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Get or create reminder settings for user
   let reminderSettings = await prisma.reminderSettings.findUnique({
@@ -50,7 +50,7 @@ export async function getUserSettings(accessToken: string, userId: string) {
 }
 
 export async function updateUserSettings(accessToken: string, settings: any, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   const updates: any = {}
 

@@ -3,7 +3,7 @@
  */
 
 import { getErrorMessage } from "@/lib/error-utils"
-import { validateMCPToken } from "./shared"
+import { resolveMCPActor } from "./shared"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('mcp.deployment-operations')
@@ -16,7 +16,7 @@ export async function deployToStaging(
   commitSha: string | undefined,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import VercelClient
   const { VercelClient } = await import('@/lib/vercel-client')
@@ -53,7 +53,7 @@ export async function getDeploymentStatus(
   deploymentId: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   const { VercelClient } = await import('@/lib/vercel-client')
 
@@ -86,7 +86,7 @@ export async function getDeploymentLogs(
   deploymentId: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   const { VercelClient } = await import('@/lib/vercel-client')
 
@@ -110,7 +110,7 @@ export async function getDeploymentErrors(
   deploymentId: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   const { VercelClient } = await import('@/lib/vercel-client')
 
@@ -138,7 +138,7 @@ export async function listDeployments(
   limit: number = 10,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Check if Vercel API token is configured (support both env var names)
   if (!process.env.VERCEL_TOKEN && !process.env.VERCEL_API_TOKEN) {

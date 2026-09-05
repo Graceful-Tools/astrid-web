@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getErrorMessage, getErrorStack } from "@/lib/error-utils"
-import { validateMCPToken } from "./shared"
+import { resolveMCPActor } from "./shared"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('mcp.github-operations')
@@ -103,7 +103,7 @@ export async function getRepositoryFile(
   ref: string | undefined,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -145,7 +145,7 @@ export async function listRepositoryFiles(
   ref: string | undefined,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -183,7 +183,7 @@ export async function createBranch(
   newBranch: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -222,7 +222,7 @@ export async function commitChanges(
   commitMessage: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -263,7 +263,7 @@ export async function createPullRequest(
   body: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -323,7 +323,7 @@ export async function mergePullRequest(
   mergeMethod: 'merge' | 'squash' | 'rebase' = 'squash',
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -361,7 +361,7 @@ export async function addPullRequestComment(
   comment: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -397,7 +397,7 @@ export async function getPullRequestComments(
   prNumber: number,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')
@@ -443,7 +443,7 @@ export async function getRepositoryInfo(
   repository: string,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import GitHubClient
   const { GitHubClient } = await import('@/lib/github-client')

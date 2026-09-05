@@ -12,7 +12,7 @@ import {
   deleteListWithImageRelease,
 } from "@/lib/images/update-list-image"
 import {
-  validateMCPToken,
+  resolveMCPActor,
   getListMemberIdsByListId,
   getTokenAccessLevel,
   determinePermissions,
@@ -23,7 +23,7 @@ const log = createLogger('mcp.list-operations')
 
 export async function getSharedLists(accessToken: string, userId: string) {
   log.info({ token: maskToken(accessToken) }, 'MCP [getSharedLists] called')
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
   log.info({ userId: mcpToken.userId }, 'MCP [getSharedLists] MCP token validated')
 
   // Get all lists accessible to the token owner (token-level permissions control access)
@@ -119,7 +119,7 @@ export async function getPublicLists(
   sortBy: string = 'popular',
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import the public list utilities
   const { getPopularPublicLists, getRecentPublicLists } = await import('@/lib/copy-utils')
@@ -151,7 +151,7 @@ export async function copyPublicList(
   includeTasks: boolean = true,
   userId: string
 ) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Import the copy utility
   const { copyListWithTasks } = await import('@/lib/copy-utils')
@@ -182,7 +182,7 @@ export async function copyPublicList(
 }
 
 export async function createList(accessToken: string, listData: any, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Verify user has MCP enabled
   const user = await prisma.user.findFirst({
@@ -259,7 +259,7 @@ export async function createList(accessToken: string, listData: any, userId: str
 }
 
 export async function updateList(accessToken: string, listId: string, updates: any, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   // Find list and verify ownership or admin access
   const list = await prisma.taskList.findFirst({
@@ -385,7 +385,7 @@ export async function updateList(accessToken: string, listId: string, updates: a
 }
 
 export async function deleteList(accessToken: string, listId: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   // Find list and verify ownership (only owner can delete)
   const list = await prisma.taskList.findFirst({
