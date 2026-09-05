@@ -125,8 +125,8 @@ describe('AgentHub', () => {
     render(<AgentHub />)
     await screen.findByText('codex@astrid.cc')
 
-    // The Codex row's "Astrid runs it" button — second row, first mode button.
-    const runsIt = screen.getAllByRole('button', { name: /runs it/ })[1]
+    // The Codex row's "Astrid runs it" button — second row, first ownership button.
+    const runsIt = screen.getAllByRole('button', { name: 'Astrid runs it' })[1]
     fireEvent.click(runsIt)
 
     await waitFor(() =>
@@ -154,19 +154,93 @@ describe('AgentHub', () => {
   })
 })
 
-describe("AgentHub — Don't use", () => {
+describe('AgentHub — ownership before transport (AWTD-762)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    capabilities.integrationMcp = true
     putMock.mockResolvedValue({ json: async () => ({ modes: {} }) })
+    mockFetches(ALL_POLLING)
   })
 
-  it('offers the fourth mode on every row', async () => {
-    mockFetches(ALL_POLLING)
+  it('presents exactly three primary choices per row: Astrid runs it, I run it, Off', async () => {
     render(<AgentHub />)
     await screen.findByText('claude@astrid.cc')
 
-    // One "Don't use" per provider-backed row.
-    expect(screen.getAllByRole('button', { name: /Don't use/ })).toHaveLength(4)
+    expect(screen.getAllByRole('button', { name: 'Astrid runs it' })).toHaveLength(4)
+    expect(screen.getAllByRole('button', { name: 'I run it' })).toHaveLength(4)
+    expect(screen.getAllByRole('button', { name: 'Off' })).toHaveLength(4)
+    // Transport names are not primary choices any more.
+    expect(screen.queryByRole('button', { name: /My harness polls/ })).not.toBeInTheDocument()
+  })
+
+  it('shows the transport choice only inside "I run it"', async () => {
+    render(<AgentHub />)
+    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+
+    expect(await screen.findByRole('button', { name: /Native coding harness/ })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Webhook server/ })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Custom Agent \(SSE\)/ })).toBeInTheDocument()
+  })
+
+  it('hides the transport choice when Astrid runs the agent', async () => {
+    mockFetches({ ...ALL_POLLING, claude: 'api' })
+    render(<AgentHub />)
+    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+
+    expect(await screen.findByPlaceholderText('sk-ant-...')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Native coding harness/ })).not.toBeInTheDocument()
+  })
+
+  it('choosing "I run it" from a server-run row stores the polling default', async () => {
+    mockFetches({ ...ALL_POLLING, claude: 'api' })
+    render(<AgentHub />)
+    await screen.findByText('claude@astrid.cc')
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'I run it' })[0])
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith('/api/v1/users/me/agent-modes', {
+        agent: 'claude',
+        mode: 'polling',
+      })
+    )
+  })
+
+  it('keeps webhook as an explicit stored transport under "I run it"', async () => {
+    mockFetches({ ...ALL_POLLING, gemini: 'webhook' })
+    render(<AgentHub />)
+    await screen.findByText('gemini@astrid.cc')
+
+    // The webhook row reads as user-run in the header…
+    const geminiOwnership = screen.getAllByRole('button', { name: 'I run it' })[3]
+    expect(geminiOwnership).toHaveAttribute('aria-pressed', 'true')
+
+    // …and switching transport writes the explicit mode, not an ownership blob.
+    fireEvent.click(await screen.findByText('gemini@astrid.cc'))
+    fireEvent.click(await screen.findByRole('button', { name: /Native coding harness/ }))
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith('/api/v1/users/me/agent-modes', {
+        agent: 'gemini',
+        mode: 'polling',
+      })
+    )
+  })
+
+  it('routes the Custom Agent (SSE) transport to the Custom Agents section without a mode write', async () => {
+    render(<AgentHub />)
+    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+
+    fireEvent.click(await screen.findByRole('button', { name: /Custom Agent \(SSE\)/ }))
+
+    expect(await screen.findByTestId('custom-agent-manager')).toBeInTheDocument()
+    expect(putMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('AgentHub — Off', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    putMock.mockResolvedValue({ json: async () => ({ modes: {} }) })
   })
 
   it('explains the off state instead of showing any setup', async () => {
