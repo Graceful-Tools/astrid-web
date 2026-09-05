@@ -2,6 +2,7 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { prisma } from "@/lib/prisma"
+import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { verifyGoogleIdentity } from "@/lib/auth/google-identity"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { withRateLimitHandler, authRateLimiter } from "@/lib/rate-limiter"
@@ -95,6 +96,12 @@ async function googleSignInHandler(request: NextRequest) {
     })
 
     if (existingUser) {
+      // A row found by email is not proof that its holder owns the address.
+      // Passkey signup creates exactly such a row, unverified, for anyone who
+      // asks. Google has just affirmed ownership, so adopt the account and drop
+      // the credentials that proved nothing (task 1a52195f).
+      await adoptUnverifiedAccount(prisma, existingUser, 'google')
+
       // Check if Google account is already linked
       const googleAccount = existingUser.accounts.find(acc => acc.provider === "google")
 

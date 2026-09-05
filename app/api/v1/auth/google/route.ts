@@ -12,6 +12,7 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { verifyGoogleIdentity } from "@/lib/auth/google-identity"
 import { createDefaultListsForUser } from '@/lib/default-lists'
 import { withRateLimitHandler, authRateLimiter } from '@/lib/rate-limiter'
@@ -101,6 +102,11 @@ async function googleSignInHandler(request: NextRequest) {
     })
 
     if (existingUser) {
+      // See app/api/auth/google/route.ts — a row found by email is not proof of
+      // ownership, and passkey signup creates unverified rows for any address
+      // (task 1a52195f).
+      await adoptUnverifiedAccount(prisma, existingUser, 'google')
+
       const googleAccount = existingUser.accounts.find(acc => acc.provider === 'google')
       if (!googleAccount) {
         await prisma.account.create({
