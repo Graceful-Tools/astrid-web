@@ -7,8 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AgentHub } from "@/components/agent-hub"
 import { GitHubIntegrationSettings } from "@/components/github-integration-settings"
 import { GitHubSharedSetup } from "@/components/github-shared-setup"
-import { GitHubCopilotMcpSetup } from "@/components/github-copilot-mcp-setup"
-import { CAPABILITIES } from "@/lib/brand/capabilities"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
 import {
   Brain,
@@ -41,7 +39,9 @@ function AstridAgentSelector() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/v1/users/me/available-agents').then(r => r.json()),
+      // Astrid executes server-side, so only API-connected models (or Custom
+      // Agents with their own runtime) can power it — not polling harnesses.
+      fetch('/api/v1/users/me/available-agents?serverRun=true').then(r => r.json()),
       fetch('/api/v1/users/me/ai-preferences').then(r => r.json()),
     ]).then(([agentsData, settingsData]) => {
       setAgents(agentsData.agents || [])
@@ -141,8 +141,10 @@ function GithubConnectionCard() {
               GitHub connection
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Lets server-run agents create branches and pull requests. Pick the repository per
-              list in List Settings → Admin.
+              Only needed when <strong>{BRAND.appName} runs it</strong>: server-run agents create
+              branches and pull requests through this connection. A harness or webhook server you
+              run yourself uses its own GitHub access. Pick the repository per list in List
+              Settings → Admin.
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm">
@@ -185,9 +187,8 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
             </CardTitle>
             <CardDescription className="theme-text-muted">
               Pick who runs each agent. <strong>{BRAND.appName} runs it</strong> needs that
-              provider&apos;s API key. <strong>My harness polls</strong> uses the coding tool you
-              already pay for — connect it once and put it on a loop. <strong>Webhook server</strong>{' '}
-              pushes work to a machine you host.
+              provider&apos;s API key. <strong>I run it</strong> uses the coding tool you already
+              pay for — native harness polling, a Custom Agent, or a webhook server you host.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -212,10 +213,8 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
           </CardContent>
         </Card>
 
-        {/* Account-level GitHub App — shared by every server-run coding agent */}
+        {/* Account-level GitHub App — only server-run coding agents use it */}
         <GithubConnectionCard />
-
-        {CAPABILITIES.integrationMcp && <GitHubCopilotMcpSetup />}
 
         {/* List Instructions Tip */}
         <Card className="theme-bg-secondary theme-border border-dashed">

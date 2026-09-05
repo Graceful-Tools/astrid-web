@@ -24,8 +24,8 @@ const translations: Record<string, string> = {
   'settingsPages.aiAgents.githubMcp.configStep': 'Paste this into the repository MCP configuration.',
   'settingsPages.aiAgents.githubMcp.configLabel': 'MCP configuration',
   'settingsPages.aiAgents.githubMcp.openGitHub': 'Open GitHub instructions',
-  'common.copy': 'Copy',
-  'common.copied': 'Copied',
+  'actions.copy': 'Copy',
+  'messages.copied': 'Copied',
   'common.unableToCopy': 'Unable to copy',
 }
 

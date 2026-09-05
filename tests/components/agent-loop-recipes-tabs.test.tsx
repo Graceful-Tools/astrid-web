@@ -23,8 +23,8 @@ import { AgentLoopRecipes } from '@/components/agent-runtime-settings'
 vi.mock('@/lib/i18n/client', () => ({
   useTranslations: () => ({
     t: (key: string) => ({
-      'common.copy': 'Copy',
-      'common.copied': 'Copied',
+      'actions.copy': 'Copy',
+      'messages.copied': 'Copied',
       'common.unableToCopy': 'Unable to copy',
       'settingsPages.aiAgents.githubMcp.create': 'Create GitHub setup',
       'settingsPages.apiAccess.title': 'API Access',

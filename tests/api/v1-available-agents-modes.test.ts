@@ -45,9 +45,9 @@ vi.mock('@/lib/prisma', () => ({
 
 import { GET } from '@/app/api/v1/users/me/available-agents/route'
 
-const emailsOf = async () => {
+const emailsOf = async (query = '') => {
   const response = await GET(
-    new NextRequest('http://localhost/api/v1/users/me/available-agents'),
+    new NextRequest(`http://localhost/api/v1/users/me/available-agents${query}`),
     undefined as never
   )
   const body = await response.json()
@@ -97,5 +97,43 @@ describe('available-agents by execution mode (task 9dbe0b17)', () => {
     const emails = await emailsOf()
     expect(emails[0]).toBe('astrid@astrid.cc')
     expect(emails).toContain('claude@astrid.cc')
+  })
+})
+
+describe('serverRun filter — models that can power Astrid (Jon, 2026-09-05)', () => {
+  // Astrid executes server-side, so "the model that powers Astrid" must be
+  // connected with an API. A polling or webhook agent is a fine ASSIGNEE (the
+  // user's own runtime does the work) but Astrid cannot call it as a model.
+
+  it('excludes a keyless polling agent even though it is assignable', async () => {
+    getAgentExecutionModes.mockResolvedValue({ claude: 'polling' })
+
+    expect(await emailsOf()).toContain('claude@astrid.cc')
+    expect(await emailsOf('?serverRun=true')).not.toContain('claude@astrid.cc')
+  })
+
+  it('excludes a webhook agent — the runtime is user-operated, not a model API', async () => {
+    getAgentExecutionModes.mockResolvedValue({ gemini: 'webhook' })
+
+    expect(await emailsOf('?serverRun=true')).not.toContain('gemini@astrid.cc')
+  })
+
+  it('includes an api-mode agent with a valid key', async () => {
+    hasValidApiKey.mockImplementation(async (_userId: string, service: string) => service === 'claude')
+    getAgentExecutionModes.mockResolvedValue({ claude: 'api' })
+
+    const emails = await emailsOf('?serverRun=true')
+    expect(emails).toContain('claude@astrid.cc')
+    expect(emails[0]).toBe('astrid@astrid.cc')
+  })
+
+  it('keeps registered Custom Agents — they bring their own runtime', async () => {
+    hasValidApiKey.mockImplementation(async (_userId: string, service: string) => service === 'openclaw')
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      { id: 'uid-worker', name: 'Buddy', email: 'buddy.oc@astrid.cc', image: null },
+    ] as never)
+
+    expect(await emailsOf('?serverRun=true')).toContain('buddy.oc@astrid.cc')
   })
 })
