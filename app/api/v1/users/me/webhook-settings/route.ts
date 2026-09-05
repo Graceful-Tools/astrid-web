@@ -21,6 +21,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { assertOutboundUrlShape, assertPublicOutboundUrl, OutboundUrlError } from '@/lib/security/outbound-url'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { withAuth } from '@/lib/api-auth-wrapper'
@@ -37,7 +38,22 @@ const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot'] as const
 const DEFAULT_EVENTS = ['task.assigned', 'comment.created']
 
 const WebhookSettingsSchema = z.object({
-  webhookUrl: z.string().url('Must be a valid URL'),
+  // Not just "is a URL". This value is fetched by the server on save and on
+  // every delivery, so an unchecked one is an internal port scanner and a
+  // cloud-metadata probe (task 3794f4ce).
+  webhookUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .superRefine((value, ctx) => {
+      try {
+        assertOutboundUrlShape(value)
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: error instanceof OutboundUrlError ? error.message : 'Invalid URL',
+        })
+      }
+    }),
   enabled: z.boolean().optional(),
   events: z.array(z.enum(AVAILABLE_EVENTS)).optional(),
   agents: z.array(z.enum(AVAILABLE_AGENTS)).optional(),
@@ -208,6 +224,21 @@ export const POST = withAuth(
 
     if (!webhookUrl || !webhookSecret) {
       return NextResponse.json({ error: 'Invalid webhook configuration' }, { status: 500 })
+    }
+
+    // Re-check the stored URL before the test ping: save-time validation cannot
+    // cover a name whose DNS changed since, and this handler returns the status
+    // code and response time to the caller (task 3794f4ce).
+    try {
+      await assertPublicOutboundUrl(webhookUrl)
+    } catch (error) {
+      return NextResponse.json({
+        success: false,
+        message:
+          error instanceof OutboundUrlError
+            ? error.message
+            : 'Webhook URL is no longer reachable safely',
+      })
     }
 
     const { generateWebhookHeaders } = await import('@/lib/webhook-signature')
