@@ -39,7 +39,7 @@ function CopyBlock({
             ? <Check className="w-3.5 h-3.5 text-green-500" />
             : <Copy className="w-3.5 h-3.5" />}
           <span className="ml-1 text-xs">
-            {t(copiedField === field ? "common.copied" : "common.copy")}
+            {t(copiedField === field ? "messages.copied" : "actions.copy")}
           </span>
         </Button>
       </div>

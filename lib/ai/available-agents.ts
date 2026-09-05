@@ -32,7 +32,21 @@ export interface AvailableAgent {
   service: string
 }
 
-export async function listAvailableAgents(userId: string): Promise<AvailableAgent[]> {
+export interface ListAvailableAgentsOptions {
+  /**
+   * Only agents the server can execute as a MODEL: api-mode built-ins with a
+   * valid provider credential, plus registered Custom Agents (they bring their
+   * own runtime). Polling/webhook built-ins are fine assignees — the user's
+   * harness does the work — but they cannot power server-side features like
+   * @astrid (Jon, 2026-09-05).
+   */
+  serverRunOnly?: boolean
+}
+
+export async function listAvailableAgents(
+  userId: string,
+  options: ListAvailableAgentsOptions = {},
+): Promise<AvailableAgent[]> {
   const available: AvailableAgent[] = []
   const modes = await getAgentExecutionModes(userId)
 
@@ -42,6 +56,7 @@ export async function listAvailableAgents(userId: string): Promise<AvailableAgen
     // A built-in outside the mode map behaves as it always did: key = offered.
     const mode: AgentExecutionMode = (mailbox && modes[mailbox]) || (hasKey ? 'api' : 'off')
     if (!isAgentOffered(mode, hasKey)) continue
+    if (options.serverRunOnly && mode !== 'api') continue
 
     // Creates the row if the environment was never seeded. Skip the agent
     // rather than returning its email as the id — Task.assigneeId is FK'd

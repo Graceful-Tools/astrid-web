@@ -25,6 +25,9 @@ vi.mock('@/components/webhook-settings-manager', () => ({
 vi.mock('@/components/custom-agent-manager', () => ({
   CustomAgentManager: () => <div data-testid="custom-agent-manager" />,
 }))
+vi.mock('@/components/github-copilot-mcp-setup', () => ({
+  GitHubCopilotMcpSetup: () => <div data-testid="github-copilot-mcp-setup" />,
+}))
 
 const putMock = vi.fn()
 vi.mock('@/lib/api', () => ({
@@ -151,6 +154,24 @@ describe('AgentHub', () => {
     fireEvent.click(await screen.findByText('Custom Agents'))
 
     expect(await screen.findByTestId('custom-agent-manager')).toBeInTheDocument()
+  })
+
+  it("keeps the GitHub cloud-agent setup inside the Copilot row's own harness setup", async () => {
+    render(<AgentHub />)
+
+    // Not floating on the page — only inside the expanded Copilot row.
+    expect(screen.queryByTestId('github-copilot-mcp-setup')).not.toBeInTheDocument()
+
+    fireEvent.click(await screen.findByText('copilot@astrid.cc'))
+    expect(await screen.findByTestId('github-copilot-mcp-setup')).toBeInTheDocument()
+  })
+
+  it('does not offer the cloud-agent setup on non-Copilot rows', async () => {
+    render(<AgentHub />)
+    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+
+    expect(await screen.findByText(/claude mcp add/)).toBeInTheDocument()
+    expect(screen.queryByTestId('github-copilot-mcp-setup')).not.toBeInTheDocument()
   })
 })
 

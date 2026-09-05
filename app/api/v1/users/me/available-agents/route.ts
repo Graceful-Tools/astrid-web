@@ -21,9 +21,13 @@ const log = createLogger('v1.users.me.available-agents')
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.available-agents' },
-  async (_req, auth) => {
+  async (req, auth) => {
     try {
-      const available = await listAvailableAgents(auth.userId)
+      // ?serverRun=true narrows to models the server can execute (api-mode
+      // built-ins with a credential, plus Custom Agents) — what powers @astrid.
+      const serverRunOnly =
+        new URL(req.url).searchParams.get('serverRun') === 'true'
+      const available = await listAvailableAgents(auth.userId, { serverRunOnly })
       return NextResponse.json({
         agents: available,
         meta: { apiVersion: 'v1' as const, authSource: auth.source },

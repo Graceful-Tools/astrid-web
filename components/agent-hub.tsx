@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input'
 import { AgentLoopRecipes } from '@/components/agent-runtime-settings'
 import { WebhookSettingsManager } from '@/components/webhook-settings-manager'
 import { CustomAgentManager } from '@/components/custom-agent-manager'
+import { GitHubCopilotMcpSetup } from '@/components/github-copilot-mcp-setup'
 import {
   Bot,
   Check,
@@ -513,6 +514,12 @@ export function AgentHub() {
                       agent a task and mark the task <strong>Ready</strong> — the loop picks it up.
                     </p>
                     <AgentLoopRecipes mailbox={row.pollMailbox} origin={origin} />
+                    {/* The Copilot app / GitHub.com cloud agent is one of Copilot's
+                        harnesses, so its token + repository MCP setup lives here
+                        rather than as a page-level card. */}
+                    {row.key === 'copilot' && CAPABILITIES.integrationMcp && (
+                      <GitHubCopilotMcpSetup origin={origin} />
+                    )}
                   </>
                 )}
 

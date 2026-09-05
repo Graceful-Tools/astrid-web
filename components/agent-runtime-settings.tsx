@@ -123,7 +123,7 @@ function CopyBlock({
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
           {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
           <span className="ml-1 text-xs">
-            {t(copied ? 'common.copied' : 'common.copy')}
+            {t(copied ? 'messages.copied' : 'actions.copy')}
           </span>
         </Button>
       </div>
