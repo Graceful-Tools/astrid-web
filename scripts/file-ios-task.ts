@@ -27,6 +27,10 @@
 
 export {}
 
+import { loadScriptEnv } from './lib/load-env'
+
+loadScriptEnv()
+
 const ASTRID_API_BASE = process.env.ASTRID_API_BASE || 'https://astrid.cc'
 const IOS_LIST_NAME = process.env.ASTRID_IOS_LIST_NAME || 'Astrid iOS To-do'
 

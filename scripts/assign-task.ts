@@ -17,6 +17,10 @@
 
 export {}
 
+import { loadScriptEnv } from './lib/load-env'
+
+loadScriptEnv()
+
 const API = 'https://astrid.cc'
 
 interface Person { id?: string; email?: string | null; name?: string | null }

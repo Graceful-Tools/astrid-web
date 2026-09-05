@@ -1,5 +1,9 @@
 #!/usr/bin/env tsx
 
+import { loadScriptEnv } from './lib/load-env'
+
+loadScriptEnv()
+
 const [taskId, action, commentWatermark = ""] = process.argv.slice(2)
 if (!taskId || !action) {
   console.error("Usage: claim-fixall-task.ts <task-id> <ready|recheck|review> [comment-watermark]")

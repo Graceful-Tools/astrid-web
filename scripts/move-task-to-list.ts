@@ -21,6 +21,10 @@
 
 export {}
 
+import { loadScriptEnv } from './lib/load-env'
+
+loadScriptEnv()
+
 async function main() {
   const [taskId, targetListName] = process.argv.slice(2)
 

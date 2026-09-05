@@ -28,6 +28,10 @@
 
 export {}
 
+import { loadScriptEnv } from './lib/load-env'
+
+loadScriptEnv()
+
 import { DEFAULT_STATES } from '@/lib/task-status'
 
 const API = 'https://astrid.cc'
