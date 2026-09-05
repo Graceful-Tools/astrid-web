@@ -10,8 +10,17 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from "next/server"
 import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
 import { authenticateAPI, getDeprecationWarning, UnauthorizedError } from "@/lib/api-auth-middleware"
+import { isAdmin } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
 import { ListImageClaimError } from '@/lib/images/update-list-image'
+
+/** Raised when an operation is real but this caller may not run it. */
+class ForbiddenOperationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ForbiddenOperationError'
+  }
+}
 
 const log = createLogger('mcp.operations')
 
@@ -112,6 +121,9 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
 
     return NextResponse.json(result, { headers })
   } catch (error) {
+    if (error instanceof ForbiddenOperationError) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
     if (error instanceof UnauthorizedError) {
       return NextResponse.json(
         { error: error.message },
@@ -220,9 +232,35 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Operations that run on the OPERATOR's credentials rather than the caller's.
+ *
+ * These construct a VercelClient, which uses the deployment-wide VERCEL_TOKEN.
+ * The repository, branch and deployment id all come from the request, so before
+ * this gate any user of the product could deploy the operator's Vercel projects
+ * and read their build logs — which routinely name environment variables and
+ * carry secrets (task a6760e6a).
+ *
+ * Nothing in the repo calls them and they are not advertised in the MCP tool
+ * definitions; they are reachable only through this endpoint.
+ */
+const OPERATOR_CREDENTIAL_OPERATIONS = new Set([
+  'deploy_to_staging',
+  'get_deployment_status',
+  'get_deployment_logs',
+  'get_deployment_errors',
+  'list_deployments',
+])
+
+/**
  * Execute an MCP operation by routing to the appropriate handler
  */
 async function executeMCPOperation(operation: string, args: any, userId: string) {
+  if (OPERATOR_CREDENTIAL_OPERATIONS.has(operation) && !(await isAdmin(userId))) {
+    throw new ForbiddenOperationError(
+      `Operation "${operation}" runs on this deployment's own credentials and is restricted to platform admins.`,
+    )
+  }
+
   switch (operation) {
     // List operations
     case 'get_shared_lists':
