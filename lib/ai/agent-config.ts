@@ -12,7 +12,12 @@
  * lib/brand/agent-emails.ts; the enabled set comes from BRAND_ENABLED_AGENTS.
  */
 
-import { agentEmail, customAgentEmailPattern } from '@/lib/brand/agent-emails'
+import {
+  AGENT_MAILBOXES,
+  agentEmail,
+  agentMailboxFromEmail,
+  customAgentEmailPattern,
+} from '@/lib/brand/agent-emails'
 import { BRAND } from '@/lib/brand/config'
 
 export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
@@ -324,4 +329,27 @@ export function getBuiltInAgents(): BuiltInAgent[] {
       service: AGENT_DEFINITIONS[mailbox].service as Exclude<AIService, 'openclaw'>,
       image: `/api/v1/agent-icon/${mailbox}`,
     }))
+}
+
+/**
+ * Display name and agent type for an identity that owns a User row.
+ *
+ * Superset of `getAgentConfig`: it also answers for the local-harness identities
+ * (`codex@`), which are deliberately absent from AGENT_DEFINITIONS so that provider
+ * routing can never pick them up — the Codex CLI polls the queue instead. They still
+ * need a User row, because they author tasks and comments like any other agent, and
+ * OAuth consent can now mint one for them.
+ */
+const LOCAL_HARNESS_PROFILES: Record<string, { displayName: string; agentType: string }> = {
+  [AGENT_MAILBOXES.codex]: { displayName: 'Codex Agent', agentType: 'local_harness_agent' },
+}
+
+export function getAgentIdentity(email: string): { displayName: string; agentType: string } | null {
+  const config = getAgentConfig(email)
+  if (config) {
+    return { displayName: config.displayName, agentType: config.agentType }
+  }
+
+  const mailbox = agentMailboxFromEmail(email)
+  return (mailbox && LOCAL_HARNESS_PROFILES[mailbox]) || null
 }

@@ -7,8 +7,7 @@ import {
   type OAuthScope,
 } from './oauth-scopes'
 import { generateAuthorizationCode } from './oauth-token-manager'
-import { getAgentConfig } from '@/lib/ai/agent-config'
-import { agentEmail } from '@/lib/brand/agent-emails'
+import { resolveConsentAgentMailbox, type ConsentAgentMailbox } from './agent-consent'
 
 export class OAuthAuthorizationError extends Error {
   public readonly code: string
@@ -209,10 +208,16 @@ export async function validateAuthorizationRequest(
   }
 }
 
+/**
+ * `agentMailbox` is re-derived from the client here rather than taken on trust: the
+ * caller passes the identity it displayed, and a mismatch is a hard error. That keeps
+ * the granted identity pinned to the connecting harness — Claude Code cannot end up
+ * authoring as `copilot@` (which is exactly what the hardcoded version did).
+ */
 export async function createAuthorizationRedirect(
   userId: string,
   context: AuthorizationContext,
-  agentMailbox?: 'copilot',
+  agentMailbox?: ConsentAgentMailbox,
 ): Promise<{ redirectUrl: string; code: string }> {
   if (
     agentMailbox &&
@@ -223,10 +228,10 @@ export async function createAuthorizationRedirect(
       'Agent authorship consent is available only to a public MCP client',
     )
   }
-  if (agentMailbox === 'copilot' && !getAgentConfig(agentEmail('copilot'))) {
+  if (agentMailbox && resolveConsentAgentMailbox(context.client) !== agentMailbox) {
     throw new OAuthAuthorizationError(
       'invalid_request',
-      'The Copilot agent identity is not configured',
+      `The ${agentMailbox} agent identity is not available to this client`,
     )
   }
 

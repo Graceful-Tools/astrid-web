@@ -63,6 +63,21 @@ describe('ensureAgentUser', () => {
     expect(agent?.id).not.toContain('@')
   })
 
+  it('creates the local-harness codex row, which is outside AI_AGENT_CONFIG', async () => {
+    // codex@ is deliberately absent from the routing registry (a cloud OpenAI run
+    // must never claim a task queued for the local Codex CLI), but OAuth consent
+    // can now mint it as an author, so getAgentIdentity has to answer for it.
+    findFirst.mockResolvedValue(null)
+    create.mockImplementation(({ data }: { data: Record<string, unknown> }) => ({ id: 'new-id', ...data }))
+
+    const agent = await ensureAgentUser('codex@astrid.cc')
+
+    const { data } = create.mock.calls[0][0]
+    expect(data.email).toBe('codex@astrid.cc')
+    expect(data.aiAgentType).toBe('local_harness_agent')
+    expect(agent?.id).toBe('new-id')
+  })
+
   it('returns null for an email that is not a registered agent', async () => {
     findFirst.mockResolvedValue(null)
 

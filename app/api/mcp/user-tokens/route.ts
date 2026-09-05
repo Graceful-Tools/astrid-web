@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { CONSENT_AGENT_MAILBOXES } from '@/lib/oauth/agent-consent'
 import { mcpTokenLookup, mcpTokenStorageFields, resolveMCPPlaintext } from '@/lib/mcp-token'
 import { generateMCPToken } from '@/lib/mcp-token-utils'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
@@ -17,7 +18,9 @@ const CreateUserMCPTokenSchema = z.object({
   permissions: z.array(z.enum(["read", "write"])).min(1, "At least one permission required"),
   expiresInDays: z.number().min(1).max(365).optional(),
   description: z.string().optional(),
-  agent: z.enum(["copilot"]).optional(),
+  // Same roster the OAuth consent screen offers, so a token minted here and one
+  // minted through the consent flow can carry the same identities.
+  agent: z.enum(CONSENT_AGENT_MAILBOXES).optional(),
 })
 
 export async function GET() {

@@ -205,13 +205,14 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     expect(mockPrisma.oAuthAuthorizationCode.update).not.toHaveBeenCalled()
   })
 
-  it('AWTD-755 preserves explicit Copilot authorship consent through code exchange and refresh', async () => {
+  it('AWTD-755 preserves explicit agent authorship consent through code exchange and refresh', async () => {
     mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue({ id: 'code-row' })
     const context = {
       client: {
         id: 'db-client',
         clientId: 'astrid_client_dynamic',
-        name: 'MCP Client',
+        // The name is what pins the identity — see lib/oauth/agent-consent.ts.
+        name: 'GitHub Copilot',
         description: null,
         redirectUris: ['https://vscode.dev/redirect'],
         grantTypes: ['authorization_code', 'refresh_token'],

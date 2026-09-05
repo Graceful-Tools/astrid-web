@@ -18,6 +18,7 @@ import { hasRequiredScopes } from './oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { normalizeStoredAgentMailbox } from './oauth/agent-consent'
 
 const log = createLogger('api-auth-middleware')
 
@@ -159,9 +160,11 @@ async function validateMCPToken(token: string): Promise<{
     return null
   }
 
+  // Tokens issued before agentUserId was backfilled carry only the mailbox.
   let agentUser = mcpToken.agentUser
-  if (!agentUser && mcpToken.agentMailbox === 'copilot') {
-    const ensured = await ensureAgentUser(agentEmail('copilot'))
+  const boundMailbox = agentUser ? undefined : normalizeStoredAgentMailbox(mcpToken.agentMailbox)
+  if (boundMailbox) {
+    const ensured = await ensureAgentUser(agentEmail(boundMailbox))
     if (ensured?.email) {
       agentUser = {
         id: ensured.id,

@@ -14,6 +14,7 @@ import { type OAuthScope, validateScopes, hasRequiredScopes } from './oauth-scop
 import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { normalizeStoredAgentMailbox, type ConsentAgentMailbox } from './agent-consent'
 
 const log = createLogger('oauth.oauth-token-manager')
 
@@ -125,7 +126,7 @@ export async function generateAccessAndRefreshToken(
   clientId: string,
   userId: string,
   scopes: string[],
-  agentMailbox?: 'copilot',
+  agentMailbox?: ConsentAgentMailbox,
 ): Promise<{
   accessToken: string
   refreshToken: string
@@ -191,6 +192,17 @@ export async function refreshAccessToken(
     return null
   }
 
+  // Fail closed rather than refreshing an agent-consented token into a plain
+  // user token — the client would keep working while quietly losing its authorship.
+  const refreshMailbox = normalizeStoredAgentMailbox(existingToken.agentMailbox)
+  if (existingToken.agentMailbox && !refreshMailbox) {
+    log.error(
+      { tokenId: existingToken.id, agentMailbox: existingToken.agentMailbox },
+      'Refresh token carries an agent identity this deployment cannot resolve',
+    )
+    return null
+  }
+
   // Revoke old token
   await prisma.oAuthToken.update({
     where: { id: existingToken.id },
@@ -202,7 +214,7 @@ export async function refreshAccessToken(
     clientId,
     existingToken.userId,
     existingToken.scopes,
-    existingToken.agentMailbox === 'copilot' ? 'copilot' : undefined,
+    refreshMailbox,
   )
 }
 
@@ -269,9 +281,12 @@ export async function validateAccessToken(
 
   log.info({ userId: oauthToken.userId }, '[OAuth] Token validated successfully for user')
 
+  // Fail closed: a token minted with agent consent that can no longer resolve its
+  // identity must not silently fall back to authoring as the human who granted it.
   let agentUser = null
-  if (oauthToken.agentMailbox === 'copilot') {
-    const ensured = await ensureAgentUser(agentEmail('copilot'))
+  if (oauthToken.agentMailbox) {
+    const mailbox = normalizeStoredAgentMailbox(oauthToken.agentMailbox)
+    const ensured = mailbox ? await ensureAgentUser(agentEmail(mailbox)) : null
     if (!ensured?.email) {
       log.error({ tokenId: oauthToken.id }, 'OAuth token agent identity is unavailable')
       return null
@@ -345,7 +360,7 @@ export async function generateAuthorizationCode(
   scopes: string[],
   codeChallenge?: string,
   codeChallengeMethod?: string,
-  agentMailbox?: 'copilot',
+  agentMailbox?: ConsentAgentMailbox,
 ): Promise<string> {
   const code = `astrid_code_${generateSecureToken(TOKEN_LENGTHS.AUTHORIZATION_CODE)}`
   const expiresAt = new Date(Date.now() + TOKEN_LIFETIMES.AUTHORIZATION_CODE * 1000)
@@ -412,6 +427,15 @@ export async function exchangeAuthorizationCode(
     return null
   }
 
+  const codeMailbox = normalizeStoredAgentMailbox(authCode.agentMailbox)
+  if (authCode.agentMailbox && !codeMailbox) {
+    log.error(
+      { codeId: authCode.id, agentMailbox: authCode.agentMailbox },
+      'Authorization code carries an agent identity this deployment cannot resolve',
+    )
+    return null
+  }
+
   // Mark code as used
   await prisma.oAuthAuthorizationCode.update({
     where: { id: authCode.id },
@@ -423,7 +447,7 @@ export async function exchangeAuthorizationCode(
     clientId,
     authCode.userId,
     authCode.scopes,
-    authCode.agentMailbox === 'copilot' ? 'copilot' : undefined,
+    codeMailbox,
   )
 }
 
