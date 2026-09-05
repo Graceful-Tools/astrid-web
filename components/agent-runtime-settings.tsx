@@ -13,10 +13,16 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import {
+  queueContractLine,
+  queueSkillAdapter,
+  type QueueSkillHarness,
+} from '@/lib/agent-skill/astrid-queue-skill'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, ExternalLink } from 'lucide-react'
+import { useTranslations } from '@/lib/i18n/client'
 import { toast } from 'sonner'
 
 type AgentExecutionMode = 'api' | 'polling'
@@ -88,7 +94,16 @@ const MAILBOX_TABS: Record<string, readonly string[]> = {
   gemini: ['gemini'],
 }
 
-function CopyBlock({ code, label }: { code: string; label: string }) {
+function CopyBlock({
+  code,
+  label,
+  testId,
+}: {
+  code: string
+  label: string
+  testId?: string
+}) {
+  const { t } = useTranslations()
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
@@ -97,7 +112,7 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Could not copy — select the text instead')
+      toast.error(t('common.unableToCopy'))
     }
   }
 
@@ -107,21 +122,48 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
         <span className="text-xs font-medium theme-text-muted">{label}</span>
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
           {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-          <span className="ml-1 text-xs">{copied ? 'Copied' : 'Copy'}</span>
+          <span className="ml-1 text-xs">
+            {t(copied ? 'common.copied' : 'common.copy')}
+          </span>
         </Button>
       </div>
       <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto">
-        <code className="text-xs font-mono theme-text-primary whitespace-pre">{code}</code>
+        <code
+          className="text-xs font-mono theme-text-primary whitespace-pre-wrap break-words"
+          data-testid={testId}
+        >
+          {code}
+        </code>
       </pre>
     </div>
+  )
+}
+
+function RecipeStep({
+  number,
+  title,
+  children,
+}: {
+  number: number
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="space-y-2 rounded-lg border theme-border p-3">
+      <h4 className="text-sm font-semibold theme-text-primary">
+        {number}. {title}
+      </h4>
+      {children}
+    </section>
   )
 }
 
 /**
  * The loop recipes.
  *
- * Every one of them is the same three moves — connect MCP, ask for the queue,
- * repeat on a schedule — so the tabs differ only in that harness's syntax.
+ * Every primary harness follows the same four moves — connect MCP, install the
+ * queue behavior, choose how it runs, and verify the complete connection — so
+ * the tabs differ only in that harness's syntax.
  *
  * Exported because /docs/loops teaches the identical thing to a logged-out
  * reader. One copy: a settings panel and a docs page that drift apart is how
@@ -145,14 +187,63 @@ export function AgentLoopRecipes({
    */
   listId?: string | null
 }) {
+  const { t } = useTranslations()
   const mcpUrl = `${origin}/mcp`
   // Same name /docs/mcp tells people to register, so one harness ends up with one
   // server entry rather than two half-configured ones.
   const serverName = BRAND.wordmark.toLowerCase()
   const listClause = listId ? ` and listId "${listId}"` : ''
   const agentFor = (tab: string) => mailbox ?? TAB_MAILBOX[tab] ?? 'claude'
-  const queueLine = (tab: string) =>
-    `Call get_agent_queue with agent "${agentFor(tab)}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
+  const queueLine = (tab: string) => queueContractLine({ mailbox: agentFor(tab), listId })
+  // Install steps serve the canonical queue skill's generated adapter, so a
+  // recipe and the skill it installs cannot drift (lib/agent-skill).
+  const adapterFor = (harness: QueueSkillHarness, tab: string) =>
+    queueSkillAdapter(harness, { mailbox: agentFor(tab), listId })
+  const installBlock = (harness: QueueSkillHarness, tab: string) => {
+    const adapter = adapterFor(harness, tab)
+    return `# ${adapter.installPath}
+${adapter.content}`
+  }
+  const connectionCheck = (tab: string, scheduling: string) => {
+    const boardSelection = listId
+      ? `Use listId "${listId}" and confirm that exact board is visible.`
+      : 'Choose one board from get_lists, report its name and ID, and use that listId for the queue call.'
+
+    return `Connection check only. Do not create, comment on, update, or complete a task.
+1. Confirm the ${BRAND.appName} account shown during authorization.
+2. Call get_lists. ${boardSelection}
+3. Confirm get_agent_queue, add_comment, and update_task are available.
+4. Call get_agent_queue with agent "${agentFor(tab)}"${listClause}.
+5. Report exactly:
+- account: the authorized ${BRAND.appName} account
+- board: selected board name and ID
+- mailbox: the response agent mailbox and email
+- queue visibility: empty:true, or the visible queue count
+- comment/update permissions: whether both tools are available and the selected board grants write access
+- scheduling: ${scheduling}
+Treat empty:true as a successful connection. If a field cannot be verified, say so instead of guessing.`
+  }
+  const connectionTest = (tab: string, scheduling: string) => (
+    <RecipeStep number={4} title="Test">
+      <CopyBlock
+        label="Run a non-mutating connection check"
+        code={connectionCheck(tab, scheduling)}
+        testId="agent-connection-check"
+      />
+    </RecipeStep>
+  )
+  const cloudSecretName =
+    `COPILOT_MCP_${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_TOKEN`
+  const tokenSetupUrl = `${origin}/settings/agents`
+  // The Actions gate never stores a long-lived credential: client credentials
+  // from API Access exchange for a one-hour token, scoped to exactly what a
+  // queue read plus task/comment writes need — never the wildcard an MCP setup
+  // token maps to.
+  const actionsScopes =
+    'tasks:read tasks:write lists:read comments:read comments:write user:read'
+  const actionsClientIdReference = '${{ secrets.ASTRID_CLIENT_ID }}'
+  const actionsClientSecretReference = '${{ secrets.ASTRID_CLIENT_SECRET }}'
+  const actionsTokenReference = '${{ steps.token.outputs.access-token }}'
 
   const visibleTabs = (mailbox && MAILBOX_TABS[mailbox]) || ALL_TABS
   const preferredTab = (mailbox && DEFAULT_HARNESS[mailbox]) || 'claude-code'
@@ -173,30 +264,53 @@ export function AgentLoopRecipes({
       )}
 
       <TabsContent value="claude-code" className="space-y-3 pt-3">
-        <CopyBlock label="1. Connect this workspace to your queue" code={`claude mcp add --transport http ${serverName} ${mcpUrl}`} />
-        <CopyBlock
-          label="2. Save the loop as a command you can re-run"
-          code={`# .claude/commands/${serverName}-queue.md
-${queueLine('claude-code')}`}
-        />
-        <CopyBlock label="3. Run it every 30 minutes in a session" code={`/loop 30m /${serverName}-queue`} />
-        <p className="text-xs theme-text-muted">
-          Prefer it running without a session open? Put the headless form on cron:
-        </p>
-        <CopyBlock
-          label="Unattended alternative"
-          code={`*/30 * * * * cd ~/code/your-project && claude -p "/${serverName}-queue" >> ~/${serverName}-loop.log 2>&1`}
-        />
+        <RecipeStep number={1} title="Connect">
+          <CopyBlock
+            label="Add the remote MCP server"
+            code={`claude mcp add --transport http ${serverName} ${mcpUrl}`}
+          />
+          <p className="text-xs theme-text-muted">
+            Open <code className="font-mono">/mcp</code> in Claude Code and choose Authenticate.
+            If the command is unavailable, add the same HTTP server to a project
+            <code className="font-mono"> .mcp.json</code> file instead.
+          </p>
+          <CopyBlock
+            label="Manual MCP fallback"
+            code={`{
+  "mcpServers": {
+    "${serverName}": {
+      "type": "http",
+      "url": "${mcpUrl}"
+    }
+  }
+}`}
+          />
+        </RecipeStep>
+        <RecipeStep number={2} title="Install">
+          <CopyBlock
+            label="Save the queue skill as a project command"
+            code={installBlock('claude-code', 'claude-code')}
+          />
+        </RecipeStep>
+        <RecipeStep number={3} title="Schedule or run">
+          <CopyBlock label="Run every 30 minutes in this session" code={`/loop 30m /${serverName}-queue`} />
+          <CopyBlock
+            label="Unattended cron fallback"
+            code={`*/30 * * * * cd ~/code/your-project && claude -p "/${serverName}-queue" >> ~/${serverName}-loop.log 2>&1`}
+          />
+        </RecipeStep>
+        {connectionTest('claude-code', 'Claude Code /loop every 30 minutes, or the cron fallback')}
       </TabsContent>
 
       <TabsContent value="copilot" className="space-y-3 pt-3">
-        <CopyBlock
-          label="1. Connect the Copilot CLI to your queue"
-          code={`copilot mcp add --transport http ${serverName} ${mcpUrl}`}
-        />
-        <CopyBlock
-          label="Or add it to VS Code (.vscode/mcp.json)"
-          code={`{
+        <RecipeStep number={1} title="Connect">
+          <CopyBlock
+            label="Copilot CLI: add the remote MCP server"
+            code={`copilot mcp add --transport http ${serverName} ${mcpUrl}`}
+          />
+          <CopyBlock
+            label="VS Code fallback: .vscode/mcp.json"
+            code={`{
   "servers": {
     "${serverName}": {
       "type": "http",
@@ -204,57 +318,151 @@ ${queueLine('claude-code')}`}
     }
   }
 }`}
-        />
-        <CopyBlock
-          label="2. Run the loop on a schedule"
-          code={`*/30 * * * * cd ~/code/your-project && copilot -p "${queueLine('copilot')}" --allow-all-tools >> ~/${serverName}-loop.log 2>&1`}
-        />
-        <p className="text-xs theme-text-muted">
-          On first run the CLI opens a browser to authorize — approve once and the schedule takes
-          over. Working in a GitHub repo instead? The GitHub Actions tab runs the same loop in CI.
-        </p>
+          />
+          <p className="text-xs theme-text-muted">
+            The CLI and VS Code open {BRAND.appName}&apos;s browser authorization. The Copilot app and
+            GitHub.com cannot open remote MCP OAuth; create a dedicated token, save it as the
+            Agents secret <code className="font-mono">{cloudSecretName}</code>, and paste the
+            generated repository MCP configuration in Settings &gt; Copilot &gt; MCP servers.
+          </p>
+          <Button variant="outline" size="sm" asChild>
+            <a href={tokenSetupUrl}>
+              {t('settingsPages.aiAgents.githubMcp.create')}
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </a>
+          </Button>
+        </RecipeStep>
+        <RecipeStep number={2} title="Install">
+          <p className="text-xs theme-text-muted">
+            Commit this repository custom agent once. Copilot CLI, the Copilot app,
+            GitHub.com, and VS Code can then select the same queue behavior.
+          </p>
+          <CopyBlock
+            label="Repository custom agent"
+            code={installBlock('copilot', 'copilot')}
+          />
+        </RecipeStep>
+        <RecipeStep number={3} title="Schedule or run">
+          <CopyBlock
+            label="Run Copilot CLI every 30 minutes"
+            code={`*/30 * * * * cd ~/code/your-project && copilot -p "${queueLine('copilot')}" --allow-all-tools >> ~/${serverName}-loop.log 2>&1`}
+          />
+          <p className="text-xs theme-text-muted">
+            For an interactive run, select the {BRAND.appName} Queue custom agent in the
+            Copilot app, GitHub.com, or VS Code. For hosted scheduling, use the GitHub Actions tab.
+          </p>
+        </RecipeStep>
+        {connectionTest(
+          'copilot',
+          'Copilot CLI cron every 30 minutes, an interactive custom-agent run, or GitHub Actions',
+        )}
       </TabsContent>
 
       <TabsContent value="codex" className="space-y-3 pt-3">
-        <CopyBlock
-          label="1. Add the queue to ~/.codex/config.toml"
-          code={`[mcp_servers.${serverName}]
-command = "npx"
-args = ["-y", "mcp-remote", "${mcpUrl}"]`}
-        />
-        <CopyBlock
-          label="2. Run the loop on a schedule"
-          code={`*/30 * * * * cd ~/code/your-project && codex exec "${queueLine('codex')}" >> ~/${serverName}-loop.log 2>&1`}
-        />
+        <RecipeStep number={1} title="Connect">
+          <CopyBlock
+            label="Add the remote server and authorize it"
+            code={`codex mcp add ${serverName} --url ${mcpUrl}
+codex mcp login ${serverName}`}
+          />
+          <CopyBlock
+            label="Manual MCP fallback: ~/.codex/config.toml"
+            code={`[mcp_servers.${serverName}]
+url = "${mcpUrl}"`}
+          />
+        </RecipeStep>
+        <RecipeStep number={2} title="Install">
+          <CopyBlock
+            label="Add the queue skill to AGENTS.md"
+            code={installBlock('codex', 'codex')}
+          />
+        </RecipeStep>
+        <RecipeStep number={3} title="Schedule or run">
+          <CopyBlock
+            label="Run Codex every 30 minutes"
+            code={`*/30 * * * * cd ~/code/your-project && codex exec --sandbox workspace-write "${queueLine('codex')}" >> ~/${serverName}-loop.log 2>&1`}
+          />
+        </RecipeStep>
+        {connectionTest('codex', 'Codex cron every 30 minutes, or a manual codex exec run')}
       </TabsContent>
 
       <TabsContent value="github" className="space-y-3 pt-3">
-        <CopyBlock
-          label="Schedule a job that only spends minutes when work is queued"
-          code={`# .github/workflows/${serverName}-queue.yml
-name: ${BRAND.appName} queue
+        <RecipeStep number={1} title="Connect">
+          <p className="text-xs theme-text-muted">
+            Create OAuth client credentials in {BRAND.appName} and save them as repository
+            Actions secrets named <code className="font-mono">ASTRID_CLIENT_ID</code> and{' '}
+            <code className="font-mono">ASTRID_CLIENT_SECRET</code>. Each run exchanges the
+            client credentials for a one hour access token with only the scopes a queue
+            worker needs — no long-lived token ever reaches the repository.
+          </p>
+          <Button variant="outline" size="sm" asChild>
+            <a href={`${origin}/settings/api-access`}>
+              {t('settingsPages.apiAccess.title')}
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </a>
+          </Button>
+        </RecipeStep>
+        <RecipeStep number={2} title="Install">
+          <p className="text-xs theme-text-muted">
+            This workflow is a queue gate: it answers &quot;is there work?&quot; and it does
+            not run an agent itself. Point the second job at your existing supported agent
+            job (a Copilot CLI, Claude Code, or Codex step from the other tabs).
+          </p>
+          <CopyBlock
+            label="Add the queue gate workflow"
+            testId="actions-queue-gate"
+            code={`# .github/workflows/${serverName}-queue.yml
+name: ${BRAND.appName} queue gate
 on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:
-  work-the-queue:
+  queue-gate:
     runs-on: ubuntu-latest
+    outputs:
+      has-work: \${{ steps.queue.outputs.has-work }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Exchange client credentials for a one-hour token
+        id: token
+        run: |
+          ACCESS_TOKEN=$(curl -fsS -X POST "${origin}/api/v1/oauth/token" \\
+            -d grant_type=client_credentials \\
+            -d client_id="${actionsClientIdReference}" \\
+            -d client_secret="${actionsClientSecretReference}" \\
+            -d "scope=${actionsScopes}" | jq -r .access_token)
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "access-token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
       - name: Read the queue
         id: queue
         run: |
-          curl -sS "${origin}/api/v1/agent-queue?agent=${agentFor('github')}${listId ? `&listId=${listId}` : ''}" \\
-            -H "X-OAuth-Token: \${{ secrets.ASTRID_TOKEN }}" > queue.json
-          echo "empty=$(jq -r .empty queue.json)" >> "$GITHUB_OUTPUT"
-      # Every later step is skipped on a quiet run, so an empty queue costs
-      # one API call rather than a whole agent boot.
-      - name: Work it
-        if: steps.queue.outputs.empty == 'false'
-        run: echo "Hand queue.json to your agent step here"`}
-        />
+          curl -fsS "${origin}/api/v1/agent-queue?agent=${agentFor('github')}${listId ? `&listId=${listId}` : ''}" \\
+            -H "X-OAuth-Token: ${actionsTokenReference}" > queue.json
+          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
+
+  run-your-agent:
+    needs: queue-gate
+    if: needs.queue-gate.outputs.has-work == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Replace this step with your existing supported agent job — the gate
+      # only decides whether that job starts.
+      - run: echo "Queue has assigned Ready tasks - start your agent job"`}
+          />
+        </RecipeStep>
+        <RecipeStep number={3} title="Schedule or run">
+          <p className="text-xs theme-text-muted">
+            Commit the workflow for its 30-minute schedule, or use Run workflow in GitHub Actions
+            to test it immediately. A quiet run stops after the scoped queue request, so an
+            empty queue costs one API call rather than a whole agent boot.
+          </p>
+        </RecipeStep>
+        {connectionTest(
+          'github',
+          'GitHub Actions every 30 minutes, with workflow_dispatch for an immediate test',
+        )}
       </TabsContent>
 
       <TabsContent value="gemini" className="space-y-3 pt-3">

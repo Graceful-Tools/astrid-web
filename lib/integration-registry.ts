@@ -31,6 +31,17 @@ export interface IntegrationMethod {
 
 export const INTEGRATION_METHODS: IntegrationMethod[] = [
   {
+    id: 'mcp',
+    capability: 'integrationMcp',
+    name: 'Connect my coding agent',
+    tagline: 'Work your assigned Ready tasks from a coding-agent queue',
+    description:
+      `Connect Claude Code, Codex, GitHub Copilot, or Gemini to ${BRAND.appName}. Assign tasks, mark them Ready, and let your existing coding harness work its queue.`,
+    audience: 'Developers using a local or hosted coding harness',
+    icon: 'Terminal',
+    docsPath: '/docs/loops',
+  },
+  {
     id: 'rest-api',
     name: 'REST API',
     tagline: 'CRUD for tasks, lists, and comments',
@@ -41,26 +52,15 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
     docsPath: '/docs/endpoints',
   },
   {
-    id: 'mcp',
-    capability: 'integrationMcp',
-    name: 'MCP (Model Context Protocol)',
-    tagline: 'For Claude Desktop, Cursor, Windsurf, and other MCP clients',
-    description:
-      `Connect any MCP-compatible AI tool to ${BRAND.appName}. Manage tasks, lists, and comments through the standardized Model Context Protocol.`,
-    audience: 'AI tool users (Claude Desktop, Cursor, Windsurf)',
-    icon: 'Cpu',
-    docsPath: '/docs/mcp',
-  },
-  {
-    id: 'openclaw',
-    capability: 'integrationOpenClaw',
-    name: 'OpenClaw',
+    id: 'custom-agents',
+    capability: 'integrationCustomAgents',
+    name: 'Custom Agents',
     tagline: 'Build custom AI agents with SSE events',
     description:
       `Open protocol for connecting autonomous AI agents. Your agent gets an @${BRAND.agentEmailDomain} identity, OAuth credentials, and real-time SSE event stream.`,
     audience: 'AI agent developers, custom integrations',
     icon: 'Bot',
-    docsPath: '/docs/openclaw',
+    docsPath: '/docs/custom-agents',
   },
   {
     id: 'chatgpt',

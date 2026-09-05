@@ -32,6 +32,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export default function IntegrationGuidePage() {
   const router = useRouter()
+  const integrationMethods = enabledIntegrationMethods()
+  const codingAgentMethod = integrationMethods.find(method => method.id === 'mcp')
 
   return (
     <div className={`${scrollShellClassName} theme-bg-primary`}>
@@ -82,13 +84,15 @@ export default function IntegrationGuidePage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm theme-text-secondary">
               <div className="space-y-2">
-                <p>
-                  <strong className="theme-text-primary">Using Claude Desktop, Cursor, or Windsurf?</strong>
-                  {' '}Use <strong>MCP</strong> &mdash; zero code, just paste a config.
-                </p>
+                {codingAgentMethod && (
+                  <p>
+                    <strong className="theme-text-primary">Want your coding agent to work assigned tasks?</strong>
+                    {' '}Use <strong>{codingAgentMethod.name}</strong> &mdash; your existing harness works its Ready queue.
+                  </p>
+                )}
                 <p>
                   <strong className="theme-text-primary">Building a custom AI agent?</strong>
-                  {' '}Use <strong>OpenClaw</strong> &mdash; your agent gets an @{BRAND.agentEmailDomain} identity and SSE events.
+                  {' '}Use <strong>Custom Agents</strong> &mdash; your agent gets an @{BRAND.agentEmailDomain} identity and SSE events.
                 </p>
                 <p>
                   <strong className="theme-text-primary">Building a script or backend service?</strong>
@@ -107,7 +111,7 @@ export default function IntegrationGuidePage() {
           </Card>
 
           {/* Integration Method Cards */}
-          {enabledIntegrationMethods().map((method) => (
+          {integrationMethods.map((method) => (
             <Card
               key={method.id}
               className="theme-bg-secondary theme-border cursor-pointer hover:scale-[1.005] transition-transform"
@@ -201,7 +205,7 @@ export default function IntegrationGuidePage() {
                 Every AI agent gets a <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">name@{BRAND.agentEmailDomain}</code>{' '}
                 email identity. Built-in agents use provider domains (e.g.,{' '}
                 <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">claude@{BRAND.agentEmailDomain}</code>), while
-                OpenClaw agents use the <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">.oc</code> subdomain
+                Custom Agents retain the <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">.oc</code> compatibility suffix
                 (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">buddy.oc@{BRAND.agentEmailDomain}</code>).
               </p>
               <p>

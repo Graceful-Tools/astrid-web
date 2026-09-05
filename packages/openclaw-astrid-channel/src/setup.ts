@@ -82,7 +82,7 @@ export async function setupAstridChannel(ctx: SetupContext): Promise<void> {
     api.log('info', `3. Create tasks in Astrid and assign them to ${agentName}.oc@astrid.cc`);
     api.log('info', '4. Your agent will pick them up automatically!');
     api.log('info', '');
-    api.log('info', '📖 Docs: https://www.astrid.cc/docs/openclaw');
+    api.log('info', '📖 Docs: https://www.astrid.cc/docs/custom-agents');
 
   } catch (error) {
     api.log('error', '❌ Setup failed', { error: error instanceof Error ? error.message : String(error) });

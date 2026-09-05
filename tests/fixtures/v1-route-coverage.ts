@@ -19,6 +19,10 @@ export const V1_ROUTE_FAMILY_COVERAGE = {
   chat: { mode: 'direct', tests: ['tests/api/v1-chat-message-attachments.test.ts'] },
   comments: { mode: 'direct', tests: ['tests/api/v1-comments-id.test.ts'] },
   contacts: { mode: 'direct', tests: ['tests/api/v1-contacts.test.ts'] },
+  'custom-agents': {
+    mode: 'parity',
+    tests: ['tests/api/custom-agent-compatibility.test.ts'],
+  },
   'feature-requests': {
     mode: 'shared-domain',
     tests: ['tests/lib/feature-access-requests.test.ts'],

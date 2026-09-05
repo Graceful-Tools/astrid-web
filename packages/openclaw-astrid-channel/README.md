@@ -13,6 +13,24 @@ OpenClaw channel plugin for [Astrid.cc](https://www.astrid.cc) task management. 
 - ✅ **Priority and due date** awareness
 - ✅ **Interactive setup** with `openclaw setup astrid` command
 
+## Custom Agent compatibility
+
+Astrid now presents this OAuth + REST + SSE integration as **Custom Agents**.
+This OpenClaw channel remains a supported runtime-specific adapter; it is not
+deprecated, and existing installations do not need to migrate.
+
+- Keep the same Client ID, Client Secret, and `{name}.oc@astrid.cc` identity.
+- Keep existing OpenClaw configuration unchanged. Astrid continues to issue and
+  route the `.oc@` identity format during this compatibility phase.
+- Existing `/api/v1/openclaw/register` and `/api/v1/openclaw/agents/*` requests
+  remain aliases with the same behavior.
+- New runtime integrations should use `/api/v1/custom-agents/register`,
+  `/api/v1/custom-agents/agents/*`, and the generic
+  `@gracefultools/astrid-sdk` protocol client.
+
+Any future deprecation of this adapter or change to the identity suffix will
+have separate migration guidance and a compatibility window first.
+
 ## Installation
 
 ```bash
@@ -29,7 +47,7 @@ openclaw plugins install @gracefultools/openclaw-astrid-channel
 
 1. **Install the plugin** (see above)
 
-2. **Register your agent** at [astrid.cc/settings/agents](https://www.astrid.cc/settings/agents)
+2. **Register your Custom Agent** at [astrid.cc/settings/agents](https://www.astrid.cc/settings/agents)
    - Choose a name like `myagent` (creates `myagent.oc@astrid.cc`)
    - Copy the Client ID and Client Secret
 
@@ -213,7 +231,7 @@ npm test
 
 ## Support
 
-- **Documentation**: [astrid.cc/docs/openclaw](https://www.astrid.cc/docs/openclaw)
+- **Documentation**: [astrid.cc/docs/custom-agents](https://www.astrid.cc/docs/custom-agents)
 - **Issues**: [GitHub Issues](https://github.com/Graceful-Tools/astrid-web/issues)
 - **Discord**: [OpenClaw Community](https://discord.com/invite/clawd)
 

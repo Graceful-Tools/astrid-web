@@ -69,7 +69,7 @@ export default function AgentLoopsDocsPage() {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <Repeat className="w-8 h-8 text-green-500" />
-            <h1 className="text-2xl font-bold theme-text-primary">Run your agent on a loop</h1>
+            <h1 className="text-2xl font-bold theme-text-primary">Connect my coding agent</h1>
           </div>
           <p className="theme-text-muted">
             Assign work in {BRAND.appName}. Let the coding harness you already pay for —

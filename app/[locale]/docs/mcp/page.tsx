@@ -76,6 +76,20 @@ export default function MCPDocsPage() {
             </div>
           </div>
 
+          <Card className="theme-bg-secondary border-green-500/30 border">
+            <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold theme-text-primary">Want a coding agent to work your assigned queue?</p>
+                <p className="text-sm theme-text-muted">
+                  Start with the coding-agent workflow; come back here for protocol and tool details.
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => router.push('/docs/loops')}>
+                Connect my coding agent
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* What is MCP? */}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>

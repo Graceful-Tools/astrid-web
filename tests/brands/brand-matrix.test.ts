@@ -252,8 +252,12 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     if (!profile.expect.capabilities.integrationMcp) {
       expect(rendered).not.toContain('/api/mcp/')
       expect(rendered).not.toMatch(/\bMCP\b/)
+      expect(rendered).not.toContain('/docs/loops')
+      expect(rendered).not.toContain('get_agent_queue')
     } else {
       expect(rendered).toContain('/api/mcp/operations')
+      expect(rendered).toContain('/docs/loops')
+      expect(rendered).toContain('get_agent_queue')
     }
   })
 
@@ -265,7 +269,8 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     const paths = WELL_KNOWN_ENDPOINTS.map((e) => e.path)
 
     expect(ids.includes('mcp')).toBe(profile.expect.capabilities.integrationMcp)
-    expect(ids.includes('openclaw')).toBe(profile.expect.capabilities.integrationOpenClaw)
+    expect(ids.includes('custom-agents')).toBe(profile.expect.capabilities.integrationOpenClaw)
+    expect(ids).not.toContain('openclaw')
     expect(ids.includes('chatgpt')).toBe(profile.expect.capabilities.integrationChatGptActions)
     expect(paths.includes('/api/mcp/context')).toBe(profile.expect.capabilities.integrationMcp)
     // The REST API and llms.txt are unconditional.

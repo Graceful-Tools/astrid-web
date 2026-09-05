@@ -61,6 +61,14 @@ describe('capability defaults (task 97208a72)', () => {
     }
   })
 
+  it('keeps Custom Agents and the legacy OpenClaw capability on one switch', async () => {
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW = 'false'
+    const { CAPABILITIES } = await import('@/lib/brand/capabilities')
+
+    expect(CAPABILITIES.integrationCustomAgents).toBe(false)
+    expect(CAPABILITIES.integrationOpenClaw).toBe(false)
+  })
+
   it('disables capabilities independently of one another', async () => {
     process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS = 'false'
     const { CAPABILITIES } = await import('@/lib/brand/capabilities')
@@ -202,6 +210,7 @@ describe('discovery documents follow the capabilities (task 97208a72)', () => {
       await import('@/lib/integration-registry')
 
     expect(enabledIntegrationMethods().map((m) => m.id)).toContain('mcp')
+    expect(enabledIntegrationMethods().map((m) => m.id)).toContain('custom-agents')
     expect(WELL_KNOWN_ENDPOINTS.map((e) => e.path)).toContain('/api/mcp/context')
   })
 
@@ -237,6 +246,8 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
 
     expect(body.auth).toEqual({ google: true, apple: true, passkey: true })
     expect(body.sync).toEqual({ googleTasks: true, githubIssues: true })
+    expect(body.integrations.customAgents).toBe(true)
+    expect(body.integrations.openclaw).toBe(true)
     expect(body.brand.appName).toBe('Astrid')
   })
 

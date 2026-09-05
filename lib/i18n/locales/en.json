@@ -733,162 +733,54 @@
         "proTip": "The email subject becomes your task title, and the body becomes the description. Perfect for quick task capture from your inbox!"
       }
     },
-    "openclaw": {
-      "title": "OpenClaw Integration",
-      "description": "Connect third-party OpenClaw workers to {appName} (advanced)",
-      "loading": "Loading OpenClaw settings...",
-      "breadcrumb": "OpenClaw Workers",
-      "overview": {
-        "title": "Third-party AI agent integration",
-        "description": "OpenClaw is a third-party open-source project that can run AI coding agents on your own infrastructure. It may use Claude Code CLI, or other AI backends. {appName} supports OpenClaw integration for tasks assigned to",
-        "agentEmail": "openclaw@{brandDomain}"
-      },
-      "security": {
-        "title": "Important: Understand the risks",
-        "description": "OpenClaw is not developed or maintained by {appName} or Anthropic. It is a community project that executes code on your machines with broad system access. Before using OpenClaw:",
-        "risks": {
-          "review": "Review the OpenClaw source code and understand what it does",
-          "isolate": "Run it in isolated environments (containers, VMs) when possible",
-          "noPublic": "Never expose OpenClaw to the public internet without authentication",
-          "mistakes": "Understand that AI agents can make mistakes and execute unintended actions"
-        },
-        "disclaimer": "{appName} provides this integration for advanced users. We do not endorse or guarantee the security of third-party tools."
-      },
-      "workers": {
-        "title": "Registered Workers",
-        "description": "Workers you've connected to {appName}",
-        "addWorker": "Add Worker",
-        "noWorkers": "No workers registered",
-        "noWorkersHint": "Add an OpenClaw worker to start delegating tasks",
-        "lastSeen": "Last seen",
-        "error": "Error"
-      },
+    "customAgents": {
+      "changePhoto": "Change profile photo",
       "status": {
-        "online": "Online",
-        "offline": "Offline",
-        "busy": "Busy",
-        "error": "Error",
-        "unknown": "Unknown"
+        "active": "Active",
+        "idle": "Idle"
       },
-      "addDialog": {
-        "title": "Add OpenClaw Worker",
-        "description": "Connect a self-hosted OpenClaw Gateway to {appName}",
-        "name": "Name",
-        "namePlaceholder": "My MacBook Worker",
-        "gatewayUrl": "Gateway URL",
-        "gatewayUrlPlaceholder": "ws://localhost:18789",
-        "gatewayUrlHint": "Use ws:// for local or wss:// for Tailscale Funnel",
-        "authMode": "Authentication Mode",
-        "authToken": "Auth Token",
-        "authTokenPlaceholder": "Gateway authentication token",
-        "adding": "Adding...",
-        "add": "Add Worker"
+      "registered": "Registered {date}",
+      "lastActive": "Last active {date}",
+      "empty": "No custom agents connected. Register one to get started.",
+      "connect": "Connect Agent",
+      "register": {
+        "title": "Register Custom Agent",
+        "description": "Create an AI agent identity with OAuth credentials for the Custom Agent protocol.",
+        "name": "Agent Name",
+        "placeholder": "buddy",
+        "invalid": "Invalid name. Use 2-32 lowercase alphanumeric characters, dots, hyphens, or underscores.",
+        "hint": "Choose a name for your agent (e.g., buddy, helper, dev-bot)",
+        "cancel": "Cancel",
+        "registering": "Registering...",
+        "create": "Create Agent"
       },
-      "authModes": {
-        "astridSigned": "{appName}-Signed (Recommended)",
-        "token": "Token",
-        "tailscale": "Tailscale",
-        "none": "None (local only)",
-        "astridSignedDesc": "{appName} cryptographically signs all requests. Your gateway verifies signatures using our public key.",
-        "tokenDesc": "Shared secret token. You set the same token in your gateway and here.",
-        "tailscaleDesc": "Uses Tailscale identity. Gateway must be on same Tailnet or exposed via Funnel.",
-        "noneDesc": "No authentication. Only use for local development on trusted networks."
+      "credentials": {
+        "title": "Agent Created",
+        "description": "Save these credentials now. The client secret will not be shown again.",
+        "warning": "Save these credentials now!",
+        "email": "Agent Email",
+        "clientId": "Client ID",
+        "clientSecret": "Client Secret",
+        "tokenEndpoint": "Token Endpoint",
+        "apiBase": "API Base",
+        "sseEndpoint": "SSE Endpoint",
+        "done": "Done"
       },
-      "astridSignedInfo": {
-        "title": "How it works:",
-        "description": "{appName} signs each connection request. Your gateway fetches our public key from",
-        "publicKeyPath": "/.well-known/openclaw-public-key",
-        "suffix": "and verifies the signature. This proves the request came from {brandDomain}."
+      "remove": {
+        "title": "Remove Agent",
+        "description": "This permanently deletes {email} and revokes its OAuth credentials. This cannot be undone.",
+        "cancel": "Cancel",
+        "removing": "Removing...",
+        "action": "Remove Agent"
       },
-      "setup": {
-        "title": "Setup Instructions",
-        "description": "Connect your OpenClaw instance to receive tasks from {appName}. OpenClaw can use various AI backends (Claude Code CLI, other agents) - see OpenClaw docs for configuration.",
-        "optionA": {
-          "title": "Register your OpenClaw worker (Push mode)",
-          "prerequisite": "Prerequisite: You already have OpenClaw installed and the gateway running.",
-          "seeDocsLink": "OpenClaw docs",
-          "step1": {
-            "title": "Find your Gateway URL",
-            "description": "Check your OpenClaw config or run:",
-            "command": "openclaw config get gateway.url",
-            "default": "Default:"
-          },
-          "step2": {
-            "title": "Configure authentication",
-            "recommended": "Recommended:",
-            "astridSignedMode": "astrid-signed",
-            "astridSignedHint": "mode. Your gateway will verify {appName}'s cryptographic signatures automatically.",
-            "configureGateway": "Configure your gateway to fetch {appName}'s public key:",
-            "alternative": "Alternative:",
-            "tokenHint": "Use token auth if your gateway doesn't support signature verification:",
-            "tokenCommand": "openclaw config get gateway.auth.token"
-          },
-          "step3": {
-            "title": "Add worker using the \"Add Worker\" button above",
-            "description": "Enter your Gateway URL and select your authentication mode"
-          },
-          "step4": {
-            "title": "Assign tasks",
-            "description": "Assign tasks to",
-            "suffix": "and {appName} will push them to your worker"
-          }
-        },
-        "optionB": {
-          "title": "Configure {appName} as an OpenClaw channel (Pull mode)",
-          "prerequisite": "Prerequisite: You already have OpenClaw installed.",
-          "step1": {
-            "title": "Create OAuth credentials in {appName}",
-            "description": "Go to",
-            "linkText": "Settings → API Access",
-            "suffix": "and create an OAuth client. Copy the Client ID and Client Secret."
-          },
-          "step2": {
-            "title": "Add {appName} channel to your OpenClaw config",
-            "description": "Add this to"
-          },
-          "step3": {
-            "title": "Restart OpenClaw",
-            "description": "OpenClaw will poll {appName} every 30 seconds for tasks assigned to"
-          }
-        },
-        "whichToUse": {
-          "title": "Which should I use?",
-          "optionA": {
-            "title": "Option A (Push):",
-            "description": "{appName} connects to your OpenClaw gateway and pushes tasks.",
-            "bestFor": "Always-on servers, OpenClaw accessible via public URL or Tailscale."
-          },
-          "optionB": {
-            "title": "Option B (Pull):",
-            "description": "OpenClaw polls {appName}'s API for new tasks.",
-            "bestFor": "Laptops, machines behind NAT/firewall, intermittent connections."
-          },
-          "note": "OpenClaw handles code execution using its configured AI backend (Claude, GPT, etc.). See the",
-          "configDocsLink": "OpenClaw configuration docs",
-          "configDocsSuffix": "for agent and model options."
-        }
-      },
-      "connectionSecurity": {
-        "title": "Connection Security",
-        "astridSigned": {
-          "title": "Recommended: {appName}-Signed Authentication",
-          "description": "With astrid-signed mode, your gateway can cryptographically verify that connection requests really come from {brandDomain}. No shared secrets needed.",
-          "howItWorks": "How it works:",
-          "step1": "{appName} signs each connection request with its private key",
-          "step2": "Your gateway fetches {appName}'s public key from:",
-          "step3": "Gateway verifies the Ed25519 signature",
-          "step4": "If valid + timestamp fresh → request is authentic",
-          "devGuideLink": "Gateway Developer Guide"
-        },
-        "tips": {
-          "wss": "Use wss:// for remote workers (Tailscale Funnel recommended)",
-          "encrypted": "Auth tokens stored by {appName} are encrypted at rest (AES-256)",
-          "accountOnly": "Workers only receive tasks assigned to your account",
-          "replay": "Signatures include timestamp (5-minute expiry) to prevent replay attacks"
-        },
-        "disclaimer": "Note: OpenClaw is a separate project with its own security model. Refer to the",
-        "openclawDocsLink": "OpenClaw documentation",
-        "disclaimerSuffix": "for security best practices."
+      "toasts": {
+        "loadFailed": "Failed to load custom agents",
+        "registrationFailed": "Registration failed",
+        "created": "Agent {email} created",
+        "removeFailed": "Failed to remove agent",
+        "removed": "Agent removed",
+        "photoUpdated": "Profile photo updated",
+        "photoFailed": "Failed to update profile photo"
       }
     },
     "aiIntegrations": {

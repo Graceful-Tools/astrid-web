@@ -67,34 +67,43 @@ export function isBrandAgentEmail(email: string | null | undefined): email is st
 }
 
 /**
- * OpenClaw workers are named `<name>.oc@<domain>` — a per-user agent registered
- * through the OpenClaw channel rather than one of the built-ins.
+ * Custom Agents retain the original `<name>.oc@<domain>` identity format during
+ * the compatibility phase. The suffix is an internal routing key, not product copy.
  */
-export function isOpenClawAgentEmail(email: string | null | undefined): boolean {
+export function isCustomAgentEmail(email: string | null | undefined): boolean {
   if (!email) return false
-  return openClawEmailPattern().test(email)
+  return customAgentEmailPattern().test(email)
 }
 
 /** Fresh RegExp per call — a shared /g instance would carry lastIndex between callers. */
-export function openClawEmailPattern(): RegExp {
+export function customAgentEmailPattern(): RegExp {
   return new RegExp(`^[a-z0-9._-]+\\.oc@${escapeRegExp(BRAND.agentEmailDomain)}$`, 'i')
 }
 
-/** Build an OpenClaw worker identity, e.g. openClawAgentEmail('buddy') -> buddy.oc@astrid.cc */
-export function openClawAgentEmail(name: string): string {
+/** Build a Custom Agent identity while `.oc@` remains the issued compatibility suffix. */
+export function customAgentEmail(name: string): string {
   return `${name}.oc@${BRAND.agentEmailDomain}`
 }
 
 /**
- * Suffix for matching OpenClaw workers in a database query, e.g. `.oc@astrid.cc`.
+ * Suffix for matching Custom Agents in a database query, e.g. `.oc@astrid.cc`.
  *
  * Prisma's `endsWith` takes a plain string, so query sites cannot use the RegExp above.
  * Looser than `isOpenClawAgentEmail` — it does not constrain the local part — which is
  * fine for narrowing a query that is then filtered in application code.
  */
-export function openClawEmailSuffix(): string {
+export function customAgentEmailSuffix(): string {
   return `.oc@${BRAND.agentEmailDomain}`
 }
+
+/** @deprecated Compatibility name; use isCustomAgentEmail. */
+export const isOpenClawAgentEmail = isCustomAgentEmail
+/** @deprecated Compatibility name; use customAgentEmailPattern. */
+export const openClawEmailPattern = customAgentEmailPattern
+/** @deprecated Compatibility name; use customAgentEmail. */
+export const openClawAgentEmail = customAgentEmail
+/** @deprecated Compatibility name; use customAgentEmailSuffix. */
+export const openClawEmailSuffix = customAgentEmailSuffix
 
 /**
  * Placeholder used in webhook payloads when a task's creator has no email on record.
@@ -107,8 +116,8 @@ export const UNKNOWN_CREATOR_EMAIL = `unknown@${BRAND.agentEmailDomain}`
 /**
  * The mailbox part of an agent identity, or null when the address is not one.
  *
- * `claude@astrid.cc` -> `claude`. OpenClaw workers (`buddy.oc@astrid.cc`) answer
- * `openclaw`, because every one of them routes through the same channel plugin —
+ * `claude@astrid.cc` -> `claude`. Custom Agents (`buddy.oc@astrid.cc`) answer
+ * `openclaw`, because that remains their internal routing mailbox —
  * callers that need the worker's own name already have the address.
  *
  * Exists so the ~5 sites that need "which built-in agent is this?" stop slicing at
@@ -116,6 +125,6 @@ export const UNKNOWN_CREATOR_EMAIL = `unknown@${BRAND.agentEmailDomain}`
  */
 export function agentMailboxFromEmail(email: string | null | undefined): string | null {
   if (!isBrandAgentEmail(email)) return null
-  if (isOpenClawAgentEmail(email)) return AGENT_MAILBOXES.openclaw
+  if (isCustomAgentEmail(email)) return AGENT_MAILBOXES.openclaw
   return email.slice(0, email.lastIndexOf('@')).toLowerCase()
 }

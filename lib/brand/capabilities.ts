@@ -37,6 +37,8 @@ function enabled(value: string | undefined): boolean {
   return !['false', '0', 'off', 'no'].includes(normalized)
 }
 
+const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
+
 export const CAPABILITIES = {
   // --- Authentication -----------------------------------------------------
   /** Google OAuth sign-in. */
@@ -55,8 +57,10 @@ export const CAPABILITIES = {
   // --- Assistant integrations ---------------------------------------------
   /** Model Context Protocol server endpoint. */
   integrationMcp: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_MCP),
-  /** Third-party OpenClaw workers. */
-  integrationOpenClaw: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW),
+  /** User-operated agents connected through OAuth, REST, and SSE. */
+  integrationCustomAgents,
+  /** Legacy capability alias retained for existing web and mobile clients. */
+  integrationOpenClaw: integrationCustomAgents,
   /** OpenAPI + ai-plugin discovery documents for ChatGPT actions. */
   integrationChatGptActions: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS),
 

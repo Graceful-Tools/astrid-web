@@ -12,10 +12,15 @@
  * lib/brand/agent-emails.ts; the enabled set comes from BRAND_ENABLED_AGENTS.
  */
 
-import { agentEmail, openClawEmailPattern } from '@/lib/brand/agent-emails'
+import { agentEmail, customAgentEmailPattern } from '@/lib/brand/agent-emails'
 import { BRAND } from '@/lib/brand/config'
 
 export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+
+/** Product label for a service key; `openclaw` remains wire/storage compatibility. */
+export function agentServiceLabel(service: string): string {
+  return service === 'openclaw' ? 'Custom Agent' : service
+}
 
 /** On-device model sentinel IDs — handled client-side, never processed by the server */
 export const ON_DEVICE_MODEL_IDS = ['apple-foundation-model'] as const
@@ -146,12 +151,12 @@ const AGENT_DEFINITIONS: Record<string, AIAgentConfig> = {
     contextFile: 'ASTRID.md',
     capabilities: STANDARD_CAPABILITIES,
   },
-  // OpenClaw agents connect via the channel plugin (outbound SSE), not assistant-workflow.
-  // This config is kept for pattern matching and routing purposes.
+  // Custom Agents connect via outbound SSE. The openclaw key and worker type are
+  // retained as compatibility routing identifiers.
   openclaw: {
     service: 'openclaw',
     model: 'anthropic/claude-opus-4-5',
-    displayName: 'OpenClaw Worker (Channel Plugin)',
+    displayName: 'Custom Agent',
     agentType: 'openclaw_worker',
     contextFile: 'ASTRID.md',
     capabilities: [...STANDARD_CAPABILITIES, 'workflow_suggestions'],
@@ -211,7 +216,7 @@ export function getAgentConfig(email: string): AIAgentConfig | null {
   if (AI_AGENT_CONFIG[email]) return AI_AGENT_CONFIG[email]
 
   // Pattern match for {name}.oc@<agent domain> → use openclaw config
-  if (openClawEmailPattern().test(email)) {
+  if (customAgentEmailPattern().test(email)) {
     return AI_AGENT_CONFIG[agentEmail('openclaw')] || null
   }
 

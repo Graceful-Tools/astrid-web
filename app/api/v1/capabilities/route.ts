@@ -42,6 +42,7 @@ export async function GET() {
       },
       integrations: {
         mcp: CAPABILITIES.integrationMcp,
+        customAgents: CAPABILITIES.integrationCustomAgents,
         openclaw: CAPABILITIES.integrationOpenClaw,
         chatgptActions: CAPABILITIES.integrationChatGptActions,
       },

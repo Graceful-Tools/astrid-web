@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bot, ChevronDown, ChevronUp, Github, RefreshCw, Repeat } from "lucide-react"
 import { AgentLoopRecipes } from "@/components/agent-runtime-settings"
@@ -121,7 +122,9 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
                       <Bot className="w-4 h-4 text-purple-500" />
                     )}
                     <span>{agent.name || agent.email}</span>
-                    <span className="text-xs theme-text-muted">({agent.service})</span>
+                    <span className="text-xs theme-text-muted">
+                      ({agentServiceLabel(agent.service)})
+                    </span>
                   </div>
                 </SelectItem>
               ))}

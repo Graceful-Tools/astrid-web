@@ -2,11 +2,17 @@
 
 /**
  * The agents page's one list: every agent, and per agent the ONE question that
- * decides everything else — who runs it.
+ * decides everything else — who OWNS the runtime.
  *
- *   Astrid runs it   → the key for THAT provider, inline. Nothing else.
- *   My harness polls → that harness's connect + loop recipe, inline.
- *   Webhook server   → the webhook manager, inline.
+ *   Astrid runs it → the key for THAT provider, inline. Nothing else.
+ *   I run it       → the transport choice (native harness polling, Custom
+ *                    Agent SSE, webhook server), then that transport's setup.
+ *   Off            → out of every picker; settings kept.
+ *
+ * Ownership is presentation only: storage and dispatch keep the explicit
+ * four-state mode (`api | polling | webhook | off`, lib/ai/agent-execution-mode.ts)
+ * because pull and push fail differently. A webhook runtime is user-operated
+ * but Astrid-initiated — Astrid pushes the work to it.
  *
  * This replaces four separate cards (a generic connect card, a runtime toggle
  * card, an all-providers key manager, a collapsed Advanced wall) whose reader
@@ -19,18 +25,19 @@
  * the harness identity). The row's mode picks which identity is live, and
  * lib/ai/assignable-agents.ts hides the other from every picker.
  *
- * OpenClaw is a row like the others, but its runtime is its own protocol —
- * expanding it manages OpenClaw agents instead of offering the three modes.
+ * Custom Agents are a peer row whose OAuth + SSE protocol is managed directly
+ * instead of offering the provider execution modes.
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AgentLoopRecipes } from '@/components/agent-runtime-settings'
 import { WebhookSettingsManager } from '@/components/webhook-settings-manager'
-import { OpenClawAgentManager } from '@/components/openclaw-agent-manager'
+import { CustomAgentManager } from '@/components/custom-agent-manager'
 import {
   Bot,
   Check,
@@ -112,12 +119,31 @@ const ROWS: AgentRowConfig[] = [
   },
 ]
 
-const MODE_META: Record<Mode, { label: string; icon: typeof Cloud; tint: string }> = {
-  api: { label: `${BRAND.appName} runs it`, icon: Cloud, tint: 'text-blue-500 bg-blue-500/15' },
-  polling: { label: 'My harness polls', icon: Terminal, tint: 'text-green-500 bg-green-500/15' },
-  webhook: { label: 'Webhook server', icon: Webhook, tint: 'text-purple-500 bg-purple-500/15' },
-  off: { label: "Don't use", icon: CircleSlash, tint: 'text-gray-500 bg-gray-500/15' },
+/** Who operates the runtime — the primary choice. Derived from the stored mode, never stored itself. */
+type Ownership = 'astrid' | 'self' | 'off'
+
+const OWNERSHIP_META: Record<Ownership, { label: string; icon: typeof Cloud; tint: string }> = {
+  astrid: { label: `${BRAND.appName} runs it`, icon: Cloud, tint: 'text-blue-500 bg-blue-500/15' },
+  self: { label: 'I run it', icon: Terminal, tint: 'text-green-500 bg-green-500/15' },
+  off: { label: 'Off', icon: CircleSlash, tint: 'text-gray-500 bg-gray-500/15' },
 }
+
+function ownershipOf(mode: Mode): Ownership {
+  if (mode === 'api') return 'astrid'
+  if (mode === 'off') return 'off'
+  return 'self'
+}
+
+/**
+ * Transports under "I run it". `polling` and `webhook` are the stored modes;
+ * `sse` is not a per-provider mode at all — a Custom Agent is its own identity,
+ * so that option hands over to the Custom Agents section.
+ */
+const SELF_TRANSPORTS: { key: Mode | 'sse'; label: string; icon: typeof Cloud }[] = [
+  { key: 'polling', label: 'Native coding harness', icon: Terminal },
+  { key: 'webhook', label: 'Webhook server', icon: Webhook },
+  { key: 'sse', label: 'Custom Agent (SSE)', icon: Bot },
+]
 
 interface KeyStatus {
   hasKey: boolean
@@ -349,8 +375,17 @@ export function AgentHub() {
 
   return (
     <div className="space-y-3">
+      {CAPABILITIES.integrationMcp && (
+        <div className="flex justify-end">
+          <Link href="/docs/loops" className="text-xs text-blue-500 hover:underline">
+            Connect my coding agent guide
+          </Link>
+        </div>
+      )}
+
       {ROWS.map(row => {
         const mode = (modes[row.modeMailbox] as Mode) || 'polling'
+        const ownership = ownershipOf(mode)
         const isExpanded = expanded === row.key
         const identity = row.identityFor(mode)
         const keyStatus = keys[row.service]
@@ -384,20 +419,30 @@ export function AgentHub() {
               <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                 {savingMode === row.key && <Loader2 className="w-4 h-4 animate-spin theme-text-muted" />}
                 <div className="inline-flex rounded-lg border theme-border overflow-hidden">
-                  {(Object.keys(MODE_META) as Mode[]).map(candidate => {
-                    const meta = MODE_META[candidate]
-                    const ModeIcon = meta.icon
-                    const active = mode === candidate
+                  {(Object.keys(OWNERSHIP_META) as Ownership[]).map(candidate => {
+                    const meta = OWNERSHIP_META[candidate]
+                    const OwnershipIcon = meta.icon
+                    const active = ownership === candidate
                     return (
                       <button
                         key={candidate}
                         type="button"
-                        onClick={() => setMode(row, candidate)}
+                        aria-pressed={active}
+                        onClick={() => {
+                          if (candidate === 'astrid') setMode(row, 'api')
+                          else if (candidate === 'off') setMode(row, 'off')
+                          else if (ownership !== 'self') {
+                            // Entering "I run it" defaults to polling; the
+                            // transport choice below refines it.
+                            setMode(row, 'polling')
+                            setExpanded(row.key)
+                          }
+                        }}
                         className={`px-2.5 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${
                           active ? meta.tint : 'theme-text-muted hover:theme-text-primary'
                         }`}
                       >
-                        <ModeIcon className="w-3.5 h-3.5" />
+                        <OwnershipIcon className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{meta.label}</span>
                       </button>
                     )
@@ -415,6 +460,37 @@ export function AgentHub() {
 
             {isExpanded && (
               <div className="border-t theme-border p-3 theme-bg-secondary space-y-3">
+                {ownership === 'self' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs theme-text-muted">Transport:</span>
+                    <div className="inline-flex rounded-lg border theme-border overflow-hidden">
+                      {SELF_TRANSPORTS.map(transport => {
+                        const TransportIcon = transport.icon
+                        const active = mode === transport.key
+                        return (
+                          <button
+                            key={transport.key}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => {
+                              if (transport.key === 'sse') setExpanded('custom-agents')
+                              else if (mode !== transport.key) setMode(row, transport.key)
+                            }}
+                            className={`px-2.5 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${
+                              active
+                                ? 'text-green-500 bg-green-500/15'
+                                : 'theme-text-muted hover:theme-text-primary'
+                            }`}
+                          >
+                            <TransportIcon className="w-3.5 h-3.5" />
+                            {transport.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {mode === 'api' && (
                   <>
                     <p className="text-xs theme-text-muted">
@@ -476,31 +552,31 @@ export function AgentHub() {
         )
       })}
 
-      {/* OpenClaw — a peer option whose runtime is its own protocol */}
+      {/* Custom Agents — a peer option whose runtime uses the external-agent protocol */}
       <div className="border theme-border rounded-lg overflow-hidden">
         <div
           className="flex flex-wrap items-center justify-between gap-3 p-3 cursor-pointer"
-          onClick={() => setExpanded(expanded === 'openclaw' ? null : 'openclaw')}
+          onClick={() => setExpanded(expanded === 'custom-agents' ? null : 'custom-agents')}
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Bot className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-medium theme-text-primary">OpenClaw</span>
+              <span className="text-sm font-medium theme-text-primary">Custom Agents</span>
             </div>
             <div className="text-xs theme-text-muted">
-              Your own agents over the OpenClaw protocol — OAuth + SSE, always connected
+              Agents you operate over OAuth + REST + SSE
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {expanded === 'openclaw' && <Check className="w-4 h-4 text-orange-500" />}
+            {expanded === 'custom-agents' && <Check className="w-4 h-4 text-orange-500" />}
             <button type="button" className="theme-text-muted">
-              {expanded === 'openclaw' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {expanded === 'custom-agents' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
         </div>
-        {expanded === 'openclaw' && (
+        {expanded === 'custom-agents' && (
           <div className="border-t theme-border p-3 theme-bg-secondary">
-            <OpenClawAgentManager />
+            <CustomAgentManager />
           </div>
         )}
       </div>

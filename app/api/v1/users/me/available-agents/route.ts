@@ -5,7 +5,7 @@
  * - Built-in agents offered by EXECUTION MODE (task 9dbe0b17): polling and
  *   webhook agents run on the user's own harness/server and need no key,
  *   api-mode agents require a valid provider key, off agents are hidden.
- * - OpenClaw agents the user registered
+ * - Custom Agents the user registered (`openclaw_worker` remains the storage type)
  * - Astrid as the always-available default when any agent is usable
  *
  * Same logic as GET /api/user/available-agents — both call

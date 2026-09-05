@@ -370,9 +370,9 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between"
-                onClick={() => router.push('/docs/openclaw')}
+                onClick={() => router.push('/docs/custom-agents')}
               >
-                <span>OpenClaw Agent Protocol</span>
+                <span>Custom Agent Protocol</span>
                 <ExternalLink className="w-4 h-4" />
               </Button>
               <Button
