@@ -31,6 +31,17 @@ export interface IntegrationMethod {
 
 export const INTEGRATION_METHODS: IntegrationMethod[] = [
   {
+    id: 'mcp',
+    capability: 'integrationMcp',
+    name: 'Connect my coding agent',
+    tagline: 'Work your assigned Ready tasks from a coding-agent queue',
+    description:
+      `Connect Claude Code, Codex, GitHub Copilot, or Gemini to ${BRAND.appName}. Assign tasks, mark them Ready, and let your existing coding harness work its queue.`,
+    audience: 'Developers using a local or hosted coding harness',
+    icon: 'Terminal',
+    docsPath: '/docs/loops',
+  },
+  {
     id: 'rest-api',
     name: 'REST API',
     tagline: 'CRUD for tasks, lists, and comments',
@@ -39,17 +50,6 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
     audience: 'Backend developers, scripts, automation',
     icon: 'Code2',
     docsPath: '/docs/endpoints',
-  },
-  {
-    id: 'mcp',
-    capability: 'integrationMcp',
-    name: 'MCP (Model Context Protocol)',
-    tagline: 'For Claude Desktop, Cursor, Windsurf, and other MCP clients',
-    description:
-      `Connect any MCP-compatible AI tool to ${BRAND.appName}. Manage tasks, lists, and comments through the standardized Model Context Protocol.`,
-    audience: 'AI tool users (Claude Desktop, Cursor, Windsurf)',
-    icon: 'Cpu',
-    docsPath: '/docs/mcp',
   },
   {
     id: 'custom-agents',

@@ -32,6 +32,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export default function IntegrationGuidePage() {
   const router = useRouter()
+  const integrationMethods = enabledIntegrationMethods()
+  const codingAgentMethod = integrationMethods.find(method => method.id === 'mcp')
 
   return (
     <div className={`${scrollShellClassName} theme-bg-primary`}>
@@ -82,10 +84,12 @@ export default function IntegrationGuidePage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm theme-text-secondary">
               <div className="space-y-2">
-                <p>
-                  <strong className="theme-text-primary">Using Claude Desktop, Cursor, or Windsurf?</strong>
-                  {' '}Use <strong>MCP</strong> &mdash; zero code, just paste a config.
-                </p>
+                {codingAgentMethod && (
+                  <p>
+                    <strong className="theme-text-primary">Want your coding agent to work assigned tasks?</strong>
+                    {' '}Use <strong>{codingAgentMethod.name}</strong> &mdash; your existing harness works its Ready queue.
+                  </p>
+                )}
                 <p>
                   <strong className="theme-text-primary">Building a custom AI agent?</strong>
                   {' '}Use <strong>Custom Agents</strong> &mdash; your agent gets an @{BRAND.agentEmailDomain} identity and SSE events.
@@ -107,7 +111,7 @@ export default function IntegrationGuidePage() {
           </Card>
 
           {/* Integration Method Cards */}
-          {enabledIntegrationMethods().map((method) => (
+          {integrationMethods.map((method) => (
             <Card
               key={method.id}
               className="theme-bg-secondary theme-border cursor-pointer hover:scale-[1.005] transition-transform"

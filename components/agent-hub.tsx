@@ -24,6 +24,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -349,6 +350,14 @@ export function AgentHub() {
 
   return (
     <div className="space-y-3">
+      {CAPABILITIES.integrationMcp && (
+        <div className="flex justify-end">
+          <Link href="/docs/loops" className="text-xs text-blue-500 hover:underline">
+            Connect my coding agent guide
+          </Link>
+        </div>
+      )}
+
       {ROWS.map(row => {
         const mode = (modes[row.modeMailbox] as Mode) || 'polling'
         const isExpanded = expanded === row.key
