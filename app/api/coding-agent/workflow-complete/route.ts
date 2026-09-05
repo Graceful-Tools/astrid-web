@@ -86,6 +86,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
+    // Authentication here proves only "some valid token belonging to some
+    // coding agent". Without this check any holder of any coding-agent token
+    // could rewrite the workflow metadata and post agent comments on ANY task,
+    // since taskId comes from the body. A coding workflow starts by assigning
+    // the task to the agent, so the agent completing it is the assignee — and
+    // 404 rather than 403, so a probe cannot enumerate other people's tasks.
+    // (Task 866a4891.)
+    if (task.assigneeId !== mcpToken.userId) {
+      log.warn(
+        { taskId, agentUserId: mcpToken.userId, assigneeId: task.assigneeId },
+        '[Workflow Complete] Refused: agent is not the assignee of this task',
+      )
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
+
     const workflow = await prisma.codingTaskWorkflow.findUnique({
       where: { taskId }
     })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
+import { parseLimit } from '@/lib/pagination'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('reminders.status')
@@ -22,28 +23,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') // Filter by reminder type
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const userEmail = searchParams.get('userEmail') // For debugging specific users
+    const limit = parseLimit(searchParams.get('limit'), { fallback: 50, max: 200 })
 
-    // Determine which user to query for
-    let targetUserId = session.user.id
-    
-    // If userEmail is provided, look up that user (for debugging purposes)
-    if (userEmail) {
-      const targetUser = await prisma.user.findUnique({
-        where: { email: userEmail },
-        select: { id: true }
-      })
-      
-      if (targetUser) {
-        targetUserId = targetUser.id
-      } else {
-        return NextResponse.json(
-          { error: `User not found: ${userEmail}` },
-          { status: 404 }
-        )
-      }
-    }
+    // Always the caller. A `userEmail` query parameter used to override this
+    // "for debugging purposes", which let any authenticated user read any other
+    // user's pending reminder queue — their task ids, titles and schedules.
+    // Debugging someone else's reminders is what the scripts and an admin
+    // session are for, not an unauthenticated-by-anything query parameter.
+    // (Task 866a4891.)
+    const targetUserId = session.user.id
 
     // Build where clause
     const where: any = {

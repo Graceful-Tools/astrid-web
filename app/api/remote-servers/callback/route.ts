@@ -132,25 +132,15 @@ export async function POST(request: NextRequest) {
     const verification = verifyWebhookSignature(rawBody, signature, secret, timestamp)
 
     if (!verification.valid) {
-      // If user config failed, try env secret as fallback
-      if (secretSource === 'user_config' && process.env.CLAUDE_REMOTE_WEBHOOK_SECRET) {
-        const envVerification = verifyWebhookSignature(
-          rawBody,
-          signature,
-          process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
-          timestamp
-        )
-        if (envVerification.valid) {
-          log.info(`✅ Callback signature verified via env secret (user config secret didn't match)`)
-          // Continue with processing
-        } else {
-          log.error(`❌ Webhook signature verification failed with both user config and env secret: ${verification.error}`)
-          return NextResponse.json(
-            { error: verification.error || 'Invalid signature' },
-            { status: 401 }
-          )
-        }
-      } else {
+      // No cross-secret retry. This used to fall back to the deployment-wide
+      // CLAUDE_REMOTE_WEBHOOK_SECRET when a user's OWN secret failed to verify,
+      // which meant anyone holding that shared secret — every operator-run
+      // remote worker holds it — could post agent comments onto a task
+      // belonging to a user who had configured their own. If a user has their
+      // own secret, that secret is the authority for their tasks; the env
+      // secret already covers tasks whose creator has no config, a few lines
+      // above. (Task 866a4891.)
+      {
         log.error(`❌ Webhook signature verification failed (source: ${secretSource}): ${verification.error}`)
         return NextResponse.json(
           { error: verification.error || 'Invalid signature' },

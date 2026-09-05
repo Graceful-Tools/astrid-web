@@ -1,21 +1,16 @@
 "use server"
 
-import { headers } from "next/headers"
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextResponse } from "next/server"
-import { getBaseUrl } from "@/lib/base-url"
-
-async function resolveBaseUrl() {
-  const hdrs = await headers()
-  const host = hdrs.get("x-forwarded-host") || hdrs.get("host")
-  const protocol = hdrs.get("x-forwarded-proto") || "https"
-  if (host) {
-    return `${protocol}://${host}`
-  }
-  return getBaseUrl().replace(/\/$/, "")
-}
+import { resolveDiscoveryBaseUrl } from "@/lib/oauth/discovery-base-url"
 
 export async function GET() {
-  const baseUrl = await resolveBaseUrl()
+  // Gated like its sibling oauth-protected-resource/mcp: a deployment with MCP
+  // switched off should not advertise an authorization server for it.
+  const blocked = capabilityGate('integrationMcp')
+  if (blocked) return blocked
+
+  const baseUrl = await resolveDiscoveryBaseUrl()
 
   const metadata = {
     issuer: baseUrl,
