@@ -504,6 +504,20 @@ export const POST = withAuth(
       }
     }
 
+    // Human-readable identifier for tasks in a project (task 12f54df4).
+    // Best-effort — a failure here must not cost the user their task.
+    //
+    // Minted HERE, above the idempotency branch, because it used to be minted
+    // only in the non-idempotent path below. Any client sending a
+    // clientRequestId — which iOS does — created tasks with no AST-nnn
+    // identifier at all (task 5bcd426b).
+    let minted: { identifier: string; sequence: number } | null = null
+    try {
+      minted = await allocateTaskIdentifier(validatedListIds)
+    } catch (err) {
+      log.error({ err }, 'Failed to allocate task identifier')
+    }
+
     // ── Idempotency: clientRequestId-based (preferred) ─────────────────
     const rawClientRequestId = typeof body.clientRequestId === 'string' ? body.clientRequestId.trim() : null
     if (rawClientRequestId !== null) {
@@ -539,6 +553,8 @@ export const POST = withAuth(
             priority: body.priority ?? 0,
             assigneeId: finalAssigneeId,
             creatorId: auth.userId,
+            identifier: minted?.identifier ?? null,
+            sequence: minted?.sequence ?? null,
             clientRequestId: rawClientRequestId,
             parentTaskId: rawParentTaskId,
             statusRole: rawStatusRole,
@@ -608,15 +624,6 @@ export const POST = withAuth(
         },
         { status: 200, headers }
       )
-    }
-
-    // Human-readable identifier for tasks in a project (task 12f54df4).
-    // Best-effort — a failure here must not cost the user their task.
-    let minted: { identifier: string; sequence: number } | null = null
-    try {
-      minted = await allocateTaskIdentifier(validatedListIds)
-    } catch (err) {
-      log.error({ err }, 'Failed to allocate task identifier')
     }
 
     const task = await prisma.task.create({
