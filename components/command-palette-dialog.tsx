@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useMemo } from "react"
+import { useTranslations } from "@/lib/i18n/client"
 import { X, Command } from "lucide-react"
 import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,7 @@ export function CommandPaletteDialog({
   selectedTask,
   handlers,
 }: CommandPaletteDialogProps) {
+  const { t } = useTranslations()
   const [query, setQuery] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -123,7 +125,7 @@ export function CommandPaletteDialog({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Command Palette"
+        aria-label={t('commandPalette.label')}
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b theme-border-light">
@@ -131,7 +133,7 @@ export function CommandPaletteDialog({
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search commands..."
+            placeholder={t('commandPalette.searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -198,8 +200,8 @@ export function CommandPaletteDialog({
         <div className="px-4 py-2 border-t theme-border-light text-xs text-gray-500">
           <div className="flex items-center gap-4">
             <span>↑ ↓ to navigate</span>
-            <span>Enter to select</span>
-            <span>Esc to close</span>
+            <span>{t('commandPalette.enterToSelect')}</span>
+            <span>{t('commandPalette.escToClose')}</span>
           </div>
         </div>
       </div>

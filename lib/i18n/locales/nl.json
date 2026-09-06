@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "Eén commando — het opent je browser om toegang goed te keuren, geen sleutels om te kopiëren",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "Dezelfde verbinding met één commando voor de Copilot-CLI",
+        "guidedSetup": "Begeleide installatie met loop-recepten in de AI-agentinstellingen"
       },
       "step1": {
         "badge": "Stap 1",
@@ -816,6 +820,56 @@
         "postEndpoint": "POST Endpoint",
         "note": "MCP biedt een gestandaardiseerde manier om AI-modellen te verbinden met externe tools"
       }
+    },
+    "customAgents": {
+      "changePhoto": "Profielfoto wijzigen",
+      "status": {
+        "active": "Actief",
+        "idle": "Inactief"
+      },
+      "registered": "Geregistreerd op {date}",
+      "lastActive": "Laatst actief {date}",
+      "empty": "Geen aangepaste agents verbonden. Registreer er een om te beginnen.",
+      "connect": "Agent verbinden",
+      "register": {
+        "title": "Aangepaste agent registreren",
+        "description": "Maak een AI-agentidentiteit met OAuth-inloggegevens voor het Custom Agent-protocol.",
+        "name": "Agentnaam",
+        "placeholder": "buddy",
+        "invalid": "Ongeldige naam. Gebruik 2–32 alfanumerieke kleine letters, punten, koppeltekens of underscores.",
+        "hint": "Kies een naam voor je agent (bijv. buddy, helper, dev-bot)",
+        "cancel": "Annuleren",
+        "registering": "Bezig met registreren…",
+        "create": "Agent maken"
+      },
+      "credentials": {
+        "title": "Agent aangemaakt",
+        "description": "Sla deze gegevens nu op. Het clientgeheim wordt niet opnieuw getoond.",
+        "warning": "Sla deze gegevens nu op!",
+        "email": "E-mailadres van agent",
+        "clientId": "Client-ID",
+        "clientSecret": "Clientgeheim",
+        "tokenEndpoint": "Token-endpoint",
+        "apiBase": "API-basis",
+        "sseEndpoint": "SSE-endpoint",
+        "done": "Klaar"
+      },
+      "remove": {
+        "title": "Agent verwijderen",
+        "description": "Hiermee wordt {email} permanent verwijderd en worden de OAuth-inloggegevens ingetrokken. Dit kan niet ongedaan worden gemaakt.",
+        "cancel": "Annuleren",
+        "removing": "Bezig met verwijderen…",
+        "action": "Agent verwijderen"
+      },
+      "toasts": {
+        "loadFailed": "Aangepaste agents konden niet worden geladen",
+        "registrationFailed": "Registratie mislukt",
+        "created": "Agent {email} aangemaakt",
+        "removeFailed": "Agent kon niet worden verwijderd",
+        "removed": "Agent verwijderd",
+        "photoUpdated": "Profielfoto bijgewerkt",
+        "photoFailed": "Profielfoto kon niet worden bijgewerkt"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "Beheerdersinstellingen",
+    "sortBy": "Sorteren op",
+    "showTasks": "Taken tonen",
+    "priorityFilter": "Prioriteitsfilter",
+    "assigneeFilter": "Toegewezen-filter",
+    "dueDateFilter": "Vervaldatumfilter",
+    "sort": {
+      "recentlyCompleted": "Recent voltooid"
+    },
+    "show": {
+      "allTasks": "Alle taken",
+      "completedOnly": "Alleen voltooide",
+      "incompleteOnly": "Alleen onvoltooide"
+    },
+    "priority": {
+      "all": "Alle prioriteiten"
+    },
+    "due": {
+      "allDates": "Alle datums",
+      "thisCalendarWeek": "Deze kalenderweek",
+      "thisCalendarMonth": "Deze kalendermaand",
+      "noDate": "Geen datum"
+    }
+  },
+  "reminderSettings": {
+    "title": "Herinneringsinstellingen",
+    "pushNotifications": "Pushmeldingen",
+    "emailReminders": "E-mailherinneringen",
+    "defaultReminderTime": "Standaard herinneringstijd",
+    "dailyDigest": "Dagelijkse samenvatting",
+    "quietHours": "Stille uren"
+  },
+  "keyboardShortcuts": {
+    "title": "Sneltoetsen",
+    "close": "Sluiten",
+    "groups": {
+      "navigation": "Navigatie",
+      "taskActions": "Taakacties",
+      "taskEditing": "Taken bewerken",
+      "priority": "Prioriteit",
+      "interface": "Interface"
+    }
+  },
+  "commandPalette": {
+    "label": "Opdrachtenpalet",
+    "searchPlaceholder": "Opdrachten zoeken…",
+    "enterToSelect": "Enter om te selecteren",
+    "escToClose": "Esc om te sluiten"
+  },
+  "userPicker": {
+    "optionalMessage": "Optioneel bericht…"
   }
 }

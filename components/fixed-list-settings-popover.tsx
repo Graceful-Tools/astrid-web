@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useTranslations } from "@/lib/i18n/client"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -56,6 +57,7 @@ export function FixedListSettingsPopover({
   hasActiveFilters = false,
   clearAllFilters = () => {}
 }: FixedListSettingsPopoverProps) {
+  const { t } = useTranslations()
   const [mounted, setMounted] = useState(false)
 
   // Wait for component to mount before rendering portal
@@ -166,7 +168,7 @@ export function FixedListSettingsPopover({
 
           {/* Sort By */}
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm theme-text-secondary">Sort by</Label>
+            <Label className="text-sm theme-text-secondary">{t('listSettings.sortBy')}</Label>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-32 theme-input">
                 <SelectValue />
@@ -178,7 +180,7 @@ export function FixedListSettingsPopover({
                 <SelectItem value="assignee">Who</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="incomplete">Incomplete</SelectItem>
-                <SelectItem value="completedAt">Recently completed</SelectItem>
+                <SelectItem value="completedAt">{t('listSettings.sort.recentlyCompleted')}</SelectItem>
                 <SelectItem value="manual">Manual</SelectItem>
               </SelectContent>
             </Select>
@@ -186,23 +188,23 @@ export function FixedListSettingsPopover({
 
           {/* Filter by Status */}
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm theme-text-secondary">Show tasks</Label>
+            <Label className="text-sm theme-text-secondary">{t('listSettings.showTasks')}</Label>
             <Select value={filterCompletion} onValueChange={setFilterCompletion}>
               <SelectTrigger className="w-32 theme-input">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
                 <SelectItem value="default">Incomplete + Recently completed</SelectItem>
-                <SelectItem value="all">All tasks</SelectItem>
-                <SelectItem value="completed">Completed only</SelectItem>
-                <SelectItem value="incomplete">Incomplete only</SelectItem>
+                <SelectItem value="all">{t('listSettings.show.allTasks')}</SelectItem>
+                <SelectItem value="completed">{t('listSettings.show.completedOnly')}</SelectItem>
+                <SelectItem value="incomplete">{t('listSettings.show.incompleteOnly')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Filter by Priority */}
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm theme-text-secondary">Priority filter</Label>
+            <Label className="text-sm theme-text-secondary">{t('listSettings.priorityFilter')}</Label>
             <Select 
               value={filterPriority.length === 0 ? "all" : filterPriority[0]?.toString() || "all"} 
               onValueChange={(value) => {
@@ -217,7 +219,7 @@ export function FixedListSettingsPopover({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
-                <SelectItem value="all"><span className="text-blue-400">All priorities</span></SelectItem>
+                <SelectItem value="all"><span className="text-blue-400">{t('listSettings.priority.all')}</span></SelectItem>
                 <SelectItem value="3"><span className="text-red-500">!!! Highest</span></SelectItem>
                 <SelectItem value="2"><span className="text-orange-500">!! High</span></SelectItem>
                 <SelectItem value="1"><span className="text-blue-500">! Medium</span></SelectItem>
@@ -229,7 +231,7 @@ export function FixedListSettingsPopover({
           {/* Filter by Assignee (hide for my-tasks) */}
           {listId !== "my-tasks" && (
             <div className="flex items-start justify-between mb-3">
-              <Label className="text-sm theme-text-secondary mt-2">Assignee filter</Label>
+              <Label className="text-sm theme-text-secondary mt-2">{t('listSettings.assigneeFilter')}</Label>
               <div className="space-y-1 max-h-24 overflow-y-auto">
                 {availableUsers.map((user) => (
                   <div key={user.id} className="flex items-center space-x-2">
@@ -262,21 +264,21 @@ export function FixedListSettingsPopover({
           {/* Due Date Filter (only show if not Today view) */}
           {!defaults.fixedDueDate && (
             <div className="flex items-center justify-between mb-3">
-              <Label className="text-sm theme-text-secondary">Due date filter</Label>
+              <Label className="text-sm theme-text-secondary">{t('listSettings.dueDateFilter')}</Label>
               <Select value={filterDueDate} onValueChange={setFilterDueDate}>
                 <SelectTrigger className="w-32 theme-input">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[10100]">
-                  <SelectItem value="all">All dates</SelectItem>
+                  <SelectItem value="all">{t('listSettings.due.allDates')}</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                   <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="tomorrow">Tomorrow</SelectItem>
                   <SelectItem value="this_week">Next 7 days</SelectItem>
                   <SelectItem value="this_month">Next 30 days</SelectItem>
-                  <SelectItem value="this_calendar_week">This calendar week</SelectItem>
-                  <SelectItem value="this_calendar_month">This calendar month</SelectItem>
-                  <SelectItem value="no_date">No date</SelectItem>
+                  <SelectItem value="this_calendar_week">{t('listSettings.due.thisCalendarWeek')}</SelectItem>
+                  <SelectItem value="this_calendar_month">{t('listSettings.due.thisCalendarMonth')}</SelectItem>
+                  <SelectItem value="no_date">{t('listSettings.due.noDate')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

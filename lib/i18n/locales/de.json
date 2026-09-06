@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "Ein einziger Befehl – er öffnet den Browser zur Freigabe, keine Schlüssel zum Kopieren",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "Dieselbe Verbindung mit einem Befehl für die Copilot-CLI",
+        "guidedSetup": "Geführte Einrichtung mit Loop-Rezepten in den KI-Agenten-Einstellungen"
       },
       "step1": {
         "badge": "Schritt 1",
@@ -816,6 +820,56 @@
         "postEndpoint": "POST-Endpunkt",
         "note": "MCP bietet eine standardisierte Möglichkeit, KI-Modelle mit externen Tools zu verbinden"
       }
+    },
+    "customAgents": {
+      "changePhoto": "Profilbild ändern",
+      "status": {
+        "active": "Aktiv",
+        "idle": "Inaktiv"
+      },
+      "registered": "Registriert am {date}",
+      "lastActive": "Zuletzt aktiv {date}",
+      "empty": "Keine benutzerdefinierten Agenten verbunden. Registriere einen, um zu beginnen.",
+      "connect": "Agent verbinden",
+      "register": {
+        "title": "Benutzerdefinierten Agenten registrieren",
+        "description": "Erstelle eine KI-Agenten-Identität mit OAuth-Zugangsdaten für das Custom-Agent-Protokoll.",
+        "name": "Agentenname",
+        "placeholder": "buddy",
+        "invalid": "Ungültiger Name. Verwende 2–32 alphanumerische Kleinbuchstaben, Punkte, Bindestriche oder Unterstriche.",
+        "hint": "Wähle einen Namen für deinen Agenten (z. B. buddy, helper, dev-bot)",
+        "cancel": "Abbrechen",
+        "registering": "Wird registriert …",
+        "create": "Agent erstellen"
+      },
+      "credentials": {
+        "title": "Agent erstellt",
+        "description": "Speichere diese Zugangsdaten jetzt. Das Client-Secret wird nicht erneut angezeigt.",
+        "warning": "Speichere diese Zugangsdaten jetzt!",
+        "email": "Agenten-E-Mail",
+        "clientId": "Client-ID",
+        "clientSecret": "Client-Secret",
+        "tokenEndpoint": "Token-Endpunkt",
+        "apiBase": "API-Basis",
+        "sseEndpoint": "SSE-Endpunkt",
+        "done": "Fertig"
+      },
+      "remove": {
+        "title": "Agent entfernen",
+        "description": "Dadurch werden {email} dauerhaft gelöscht und die OAuth-Zugangsdaten widerrufen. Das lässt sich nicht rückgängig machen.",
+        "cancel": "Abbrechen",
+        "removing": "Wird entfernt …",
+        "action": "Agent entfernen"
+      },
+      "toasts": {
+        "loadFailed": "Benutzerdefinierte Agenten konnten nicht geladen werden",
+        "registrationFailed": "Registrierung fehlgeschlagen",
+        "created": "Agent {email} erstellt",
+        "removeFailed": "Agent konnte nicht entfernt werden",
+        "removed": "Agent entfernt",
+        "photoUpdated": "Profilbild aktualisiert",
+        "photoFailed": "Profilbild konnte nicht aktualisiert werden"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "Admin-Einstellungen",
+    "sortBy": "Sortieren nach",
+    "showTasks": "Aufgaben anzeigen",
+    "priorityFilter": "Prioritätsfilter",
+    "assigneeFilter": "Zuständigkeitsfilter",
+    "dueDateFilter": "Fälligkeitsfilter",
+    "sort": {
+      "recentlyCompleted": "Kürzlich erledigt"
+    },
+    "show": {
+      "allTasks": "Alle Aufgaben",
+      "completedOnly": "Nur erledigte",
+      "incompleteOnly": "Nur offene"
+    },
+    "priority": {
+      "all": "Alle Prioritäten"
+    },
+    "due": {
+      "allDates": "Alle Termine",
+      "thisCalendarWeek": "Diese Kalenderwoche",
+      "thisCalendarMonth": "Dieser Kalendermonat",
+      "noDate": "Kein Datum"
+    }
+  },
+  "reminderSettings": {
+    "title": "Erinnerungseinstellungen",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "emailReminders": "E-Mail-Erinnerungen",
+    "defaultReminderTime": "Standard-Erinnerungszeit",
+    "dailyDigest": "Tägliche Zusammenfassung",
+    "quietHours": "Ruhezeiten"
+  },
+  "keyboardShortcuts": {
+    "title": "Tastenkürzel",
+    "close": "Schließen",
+    "groups": {
+      "navigation": "Navigation",
+      "taskActions": "Aufgabenaktionen",
+      "taskEditing": "Aufgaben bearbeiten",
+      "priority": "Priorität",
+      "interface": "Oberfläche"
+    }
+  },
+  "commandPalette": {
+    "label": "Befehlspalette",
+    "searchPlaceholder": "Befehle suchen …",
+    "enterToSelect": "Enter zum Auswählen",
+    "escToClose": "Esc zum Schließen"
+  },
+  "userPicker": {
+    "optionalMessage": "Optionale Nachricht …"
   }
 }

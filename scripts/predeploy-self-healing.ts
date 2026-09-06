@@ -215,6 +215,13 @@ class SelfHealingPredeploy {
         autoFixable: false,
       },
       {
+        // A whole feature shipped untranslated once, in all eleven locales at
+        // the same time, because nothing was checking (task d818849d).
+        name: 'Locale Key Parity',
+        command: 'npm run check:i18n',
+        autoFixable: false,
+      },
+      {
         name: 'Prisma Client',
         command: 'node -e "require(\'@prisma/client\')"',
         autoFixable: true,

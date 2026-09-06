@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useTranslations } from "@/lib/i18n/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -65,6 +66,7 @@ const getTimezoneOptions = (): Array<{ value: string; label: string }> => {
 }
 
 export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettingsComponentProps) {
+  const { t } = useTranslations()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -310,7 +312,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         <CardHeader>
           <CardTitle className="theme-text-primary flex items-center space-x-2">
             <Bell className="w-5 h-5" />
-            <span>Reminder Settings</span>
+            <span>{t('reminderSettings.title')}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -340,7 +342,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
       <CardHeader>
         <CardTitle className="theme-text-primary flex items-center space-x-2">
           <Bell className="w-5 h-5" />
-          <span>Reminder Settings</span>
+          <span>{t('reminderSettings.title')}</span>
         </CardTitle>
         <CardDescription className="theme-text-muted">
           Configure when and how you receive task reminders
@@ -353,7 +355,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
             <div className="space-y-1">
               <Label className="theme-text-secondary flex items-center space-x-2">
                 <Smartphone className="w-4 h-4" />
-                <span>Push Notifications</span>
+                <span>{t('reminderSettings.pushNotifications')}</span>
               </Label>
               <p className="text-sm theme-text-muted">
                 Receive instant notifications in your browser
@@ -415,7 +417,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
           <div className="space-y-1">
             <Label className="theme-text-secondary flex items-center space-x-2">
               <Mail className="w-4 h-4" />
-              <span>Email Reminders</span>
+              <span>{t('reminderSettings.emailReminders')}</span>
             </Label>
             <p className="text-sm theme-text-muted">
               Receive reminder emails for due tasks
@@ -432,7 +434,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         <div className="space-y-2">
           <Label className="theme-text-secondary flex items-center space-x-2">
             <Clock className="w-4 h-4" />
-            <span>Default Reminder Time</span>
+            <span>{t('reminderSettings.defaultReminderTime')}</span>
           </Label>
           <p className="text-sm theme-text-muted">
             When to remind you before tasks are due
@@ -459,7 +461,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         <div className="space-y-3 pt-4 border-t">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label className="theme-text-secondary">Daily Digest</Label>
+              <Label className="theme-text-secondary">{t('reminderSettings.dailyDigest')}</Label>
               <p className="text-sm theme-text-muted">
                 Get a daily summary of your tasks
               </p>
@@ -522,7 +524,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         {/* Quiet Hours */}
         <div className="space-y-3 pt-4 border-t">
           <div className="space-y-1">
-            <Label className="theme-text-secondary">Quiet Hours</Label>
+            <Label className="theme-text-secondary">{t('reminderSettings.quietHours')}</Label>
             <p className="text-sm theme-text-muted">
               Disable notifications during these hours (optional)
             </p>

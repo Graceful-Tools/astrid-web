@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useTranslations } from "@/lib/i18n/client"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -56,6 +57,7 @@ export function ListSettingsPopover({
   children,
   // No longer need local filter props
 }: ListSettingsPopoverProps) {
+  const { t } = useTranslations()
   const [activeTab, setActiveTab] = useState("sort-filters")
   const [mounted, setMounted] = useState(false)
 
@@ -142,7 +144,7 @@ export function ListSettingsPopover({
                 {canEditSettings && (
                   <TabsTrigger value="admin" className="flex items-center space-x-1 text-xs">
                     <Settings className="w-3 h-3" />
-                    <span>Admin Settings</span>
+                    <span>{t('listSettings.adminSettings')}</span>
                   </TabsTrigger>
                 )}
               </TabsList>

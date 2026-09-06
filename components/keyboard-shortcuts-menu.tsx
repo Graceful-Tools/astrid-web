@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { useTranslations } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Keyboard, X } from "lucide-react"
@@ -12,6 +13,7 @@ interface KeyboardShortcutsMenuProps {
 }
 
 export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenuProps) {
+  const { t } = useTranslations()
   const groupedShortcuts = React.useMemo(() => {
     const groups = {
       navigation: [] as (typeof KEYBOARD_SHORTCUTS)[number][],
@@ -98,22 +100,22 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-2">
               <Keyboard className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Keyboard Shortcuts</h2>
+              <h2 className="text-xl font-semibold">{t('keyboardShortcuts.title')}</h2>
             </div>
-            <Button variant="outline" onClick={onClose} size="sm" aria-label="Close">
+            <Button variant="outline" onClick={onClose} size="sm" aria-label={t('keyboardShortcuts.close')}>
               <X className="w-4 h-4" />
             </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ShortcutGroup title="Navigation" shortcuts={groupedShortcuts.navigation} />
-            <ShortcutGroup title="Task Actions" shortcuts={groupedShortcuts.taskActions} />
-            <ShortcutGroup title="Task Editing" shortcuts={groupedShortcuts.taskEditing} />
-            <ShortcutGroup title="Priority" shortcuts={groupedShortcuts.priorities} />
+            <ShortcutGroup title={t('keyboardShortcuts.groups.navigation')} shortcuts={groupedShortcuts.navigation} />
+            <ShortcutGroup title={t('keyboardShortcuts.groups.taskActions')} shortcuts={groupedShortcuts.taskActions} />
+            <ShortcutGroup title={t('keyboardShortcuts.groups.taskEditing')} shortcuts={groupedShortcuts.taskEditing} />
+            <ShortcutGroup title={t('keyboardShortcuts.groups.priority')} shortcuts={groupedShortcuts.priorities} />
           </div>
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ShortcutGroup title="Interface" shortcuts={groupedShortcuts.ui} />
+            <ShortcutGroup title={t('keyboardShortcuts.groups.interface')} shortcuts={groupedShortcuts.ui} />
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                 Chat & References

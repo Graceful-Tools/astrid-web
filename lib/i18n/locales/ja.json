@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "コマンド 1 つ。ブラウザーが開いてアクセスを承認するだけで、キーのコピーは不要です",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "Copilot CLI でも同じ 1 コマンドで接続できます",
+        "guidedSetup": "AI エージェント設定のループレシピでガイド付きセットアップ"
       },
       "step1": {
         "badge": "ステップ1",
@@ -816,6 +820,56 @@
         "postEndpoint": "POSTエンドポイント",
         "note": "MCPはAIモデルを外部ツールに接続する標準化された方法を提供"
       }
+    },
+    "customAgents": {
+      "changePhoto": "プロフィール写真を変更",
+      "status": {
+        "active": "稼働中",
+        "idle": "待機中"
+      },
+      "registered": "{date} に登録",
+      "lastActive": "最終アクティビティ {date}",
+      "empty": "カスタムエージェントは接続されていません。登録して始めましょう。",
+      "connect": "エージェントを接続",
+      "register": {
+        "title": "カスタムエージェントを登録",
+        "description": "カスタムエージェントプロトコル用に、OAuth 認証情報付きの AI エージェント ID を作成します。",
+        "name": "エージェント名",
+        "placeholder": "buddy",
+        "invalid": "名前が無効です。2〜32 文字の小文字英数字、ピリオド、ハイフン、アンダースコアを使用してください。",
+        "hint": "エージェントの名前を選んでください（例: buddy、helper、dev-bot）",
+        "cancel": "キャンセル",
+        "registering": "登録中…",
+        "create": "エージェントを作成"
+      },
+      "credentials": {
+        "title": "エージェントを作成しました",
+        "description": "この認証情報を今すぐ保存してください。クライアントシークレットは二度と表示されません。",
+        "warning": "この認証情報を今すぐ保存してください。",
+        "email": "エージェントのメールアドレス",
+        "clientId": "クライアント ID",
+        "clientSecret": "クライアントシークレット",
+        "tokenEndpoint": "トークンエンドポイント",
+        "apiBase": "API ベース",
+        "sseEndpoint": "SSE エンドポイント",
+        "done": "完了"
+      },
+      "remove": {
+        "title": "エージェントを削除",
+        "description": "{email} を完全に削除し、OAuth 認証情報を失効させます。元に戻せません。",
+        "cancel": "キャンセル",
+        "removing": "削除中…",
+        "action": "エージェントを削除"
+      },
+      "toasts": {
+        "loadFailed": "カスタムエージェントを読み込めませんでした",
+        "registrationFailed": "登録に失敗しました",
+        "created": "エージェント {email} を作成しました",
+        "removeFailed": "エージェントを削除できませんでした",
+        "removed": "エージェントを削除しました",
+        "photoUpdated": "プロフィール写真を更新しました",
+        "photoFailed": "プロフィール写真を更新できませんでした"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "管理者設定",
+    "sortBy": "並べ替え",
+    "showTasks": "タスクの表示",
+    "priorityFilter": "優先度フィルター",
+    "assigneeFilter": "担当者フィルター",
+    "dueDateFilter": "期限フィルター",
+    "sort": {
+      "recentlyCompleted": "最近完了"
+    },
+    "show": {
+      "allTasks": "すべてのタスク",
+      "completedOnly": "完了のみ",
+      "incompleteOnly": "未完了のみ"
+    },
+    "priority": {
+      "all": "すべての優先度"
+    },
+    "due": {
+      "allDates": "すべての日付",
+      "thisCalendarWeek": "今カレンダー週",
+      "thisCalendarMonth": "今カレンダー月",
+      "noDate": "日付なし"
+    }
+  },
+  "reminderSettings": {
+    "title": "リマインダー設定",
+    "pushNotifications": "プッシュ通知",
+    "emailReminders": "メールリマインダー",
+    "defaultReminderTime": "既定のリマインダー時刻",
+    "dailyDigest": "日次ダイジェスト",
+    "quietHours": "通知停止時間"
+  },
+  "keyboardShortcuts": {
+    "title": "キーボードショートカット",
+    "close": "閉じる",
+    "groups": {
+      "navigation": "ナビゲーション",
+      "taskActions": "タスク操作",
+      "taskEditing": "タスク編集",
+      "priority": "優先度",
+      "interface": "インターフェース"
+    }
+  },
+  "commandPalette": {
+    "label": "コマンドパレット",
+    "searchPlaceholder": "コマンドを検索…",
+    "enterToSelect": "Enter で選択",
+    "escToClose": "Esc で閉じる"
+  },
+  "userPicker": {
+    "optionalMessage": "メッセージ（任意）…"
   }
 }

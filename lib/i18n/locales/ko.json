@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "명령 하나면 됩니다. 브라우저가 열려 액세스를 승인하고, 복사할 키는 없습니다",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "Copilot CLI에서도 동일하게 명령 하나로 연결합니다",
+        "guidedSetup": "AI 에이전트 설정의 루프 레시피로 안내되는 설정"
       },
       "step1": {
         "badge": "단계 1",
@@ -816,6 +820,56 @@
         "postEndpoint": "POST 엔드포인트",
         "note": "MCP는 AI 모델을 외부 도구에 연결하는 표준화된 방법을 제공"
       }
+    },
+    "customAgents": {
+      "changePhoto": "프로필 사진 변경",
+      "status": {
+        "active": "활성",
+        "idle": "대기 중"
+      },
+      "registered": "{date}에 등록됨",
+      "lastActive": "마지막 활동 {date}",
+      "empty": "연결된 사용자 지정 에이전트가 없습니다. 하나를 등록해 시작하세요.",
+      "connect": "에이전트 연결",
+      "register": {
+        "title": "사용자 지정 에이전트 등록",
+        "description": "사용자 지정 에이전트 프로토콜용 OAuth 자격 증명이 포함된 AI 에이전트 ID를 만듭니다.",
+        "name": "에이전트 이름",
+        "placeholder": "buddy",
+        "invalid": "이름이 올바르지 않습니다. 소문자 영숫자, 마침표, 하이픈, 밑줄을 2~32자로 사용하세요.",
+        "hint": "에이전트 이름을 정하세요 (예: buddy, helper, dev-bot)",
+        "cancel": "취소",
+        "registering": "등록 중…",
+        "create": "에이전트 만들기"
+      },
+      "credentials": {
+        "title": "에이전트가 생성됨",
+        "description": "지금 이 자격 증명을 저장하세요. 클라이언트 시크릿은 다시 표시되지 않습니다.",
+        "warning": "지금 이 자격 증명을 저장하세요!",
+        "email": "에이전트 이메일",
+        "clientId": "클라이언트 ID",
+        "clientSecret": "클라이언트 시크릿",
+        "tokenEndpoint": "토큰 엔드포인트",
+        "apiBase": "API 베이스",
+        "sseEndpoint": "SSE 엔드포인트",
+        "done": "완료"
+      },
+      "remove": {
+        "title": "에이전트 제거",
+        "description": "{email}을(를) 영구적으로 삭제하고 OAuth 자격 증명을 취소합니다. 되돌릴 수 없습니다.",
+        "cancel": "취소",
+        "removing": "제거 중…",
+        "action": "에이전트 제거"
+      },
+      "toasts": {
+        "loadFailed": "사용자 지정 에이전트를 불러오지 못했습니다",
+        "registrationFailed": "등록에 실패했습니다",
+        "created": "에이전트 {email}이(가) 생성되었습니다",
+        "removeFailed": "에이전트를 제거하지 못했습니다",
+        "removed": "에이전트가 제거되었습니다",
+        "photoUpdated": "프로필 사진이 업데이트되었습니다",
+        "photoFailed": "프로필 사진을 업데이트하지 못했습니다"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "관리자 설정",
+    "sortBy": "정렬 기준",
+    "showTasks": "작업 표시",
+    "priorityFilter": "우선순위 필터",
+    "assigneeFilter": "담당자 필터",
+    "dueDateFilter": "마감일 필터",
+    "sort": {
+      "recentlyCompleted": "최근 완료됨"
+    },
+    "show": {
+      "allTasks": "모든 작업",
+      "completedOnly": "완료된 항목만",
+      "incompleteOnly": "미완료 항목만"
+    },
+    "priority": {
+      "all": "모든 우선순위"
+    },
+    "due": {
+      "allDates": "모든 날짜",
+      "thisCalendarWeek": "이번 달력 주",
+      "thisCalendarMonth": "이번 달력 월",
+      "noDate": "날짜 없음"
+    }
+  },
+  "reminderSettings": {
+    "title": "알림 설정",
+    "pushNotifications": "푸시 알림",
+    "emailReminders": "이메일 알림",
+    "defaultReminderTime": "기본 알림 시간",
+    "dailyDigest": "일간 요약",
+    "quietHours": "방해 금지 시간"
+  },
+  "keyboardShortcuts": {
+    "title": "키보드 단축키",
+    "close": "닫기",
+    "groups": {
+      "navigation": "탐색",
+      "taskActions": "작업 동작",
+      "taskEditing": "작업 편집",
+      "priority": "우선순위",
+      "interface": "인터페이스"
+    }
+  },
+  "commandPalette": {
+    "label": "명령 팔레트",
+    "searchPlaceholder": "명령 검색…",
+    "enterToSelect": "Enter로 선택",
+    "escToClose": "Esc로 닫기"
+  },
+  "userPicker": {
+    "optionalMessage": "선택 메시지…"
   }
 }

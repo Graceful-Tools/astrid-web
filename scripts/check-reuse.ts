@@ -29,6 +29,15 @@ interface Rule {
   exclude: string[]
   // optional ERE applied to whole grep output lines; matches are dropped
   reject?: string
+  /**
+   * Reported but never blocking, even under --strict.
+   *
+   * For a backlog too large to clear in one change: the rule goes in first so
+   * new violations are visible from the day it lands, and flips to blocking
+   * when the existing debt is gone. A rule that blocks on arrival just gets
+   * --no-verify'd around, and then nobody reads it.
+   */
+  warnOnly?: boolean
 }
 
 const RULES: Rule[] = [
@@ -95,6 +104,26 @@ const RULES: Rule[] = [
     // with no whitelabel benefit. Covers //, /* */, and JSX {/* */}.
     reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,
   },
+  {
+    id: "hardcoded-jsx-copy",
+    description: "User-visible string written inline in JSX instead of an i18n key",
+    fix: "Use an i18n key: const t = useTranslations('…') and t('someKey'), with the string added to lib/i18n/locales/*.json (all locales — npm run check:i18n enforces parity).",
+    // Two shapes, both of which reach the user's eyes:
+    //   1. a literal placeholder / title / aria-label prop
+    //   2. a JSX text node of two or more words starting with a capital
+    // Translated copy comes through {t('…')}, so it is a brace expression and
+    // matches neither.
+    pattern: String.raw`(placeholder|aria-label|title)="[A-Za-z][^"{}]{4,}"|>[[:space:]]*[A-Z][a-z]+[[:space:]]+[A-Za-z][[:space:]a-zA-Z]*[[:space:]]*<`,
+    globs: ["components", "app"],
+    exclude: [],
+    // Comments, and imports/paths that merely contain a quoted word.
+    reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)|import[[:space:]]`,
+    // WARN ONLY. ~200 literals predate this rule (task d818849d); converting
+    // them all is a mechanical sweep of its own, and each converted string
+    // needs eleven translations. Blocking today would only teach people to
+    // skip the gate.
+    warnOnly: true,
+  },
 ]
 
 const strict = process.argv.includes("--strict") || process.env.CHECK_REUSE_STRICT === "1"
@@ -104,8 +133,12 @@ function search(rule: Rule): string[] {
   const excludeArgs = rule.exclude.map((e) => `--exclude='${e}'`).join(" ")
   // POSIX grep (always on PATH, unlike rg). -r recursive, -E ERE, -n line #s.
   // Drop lines the rule considers out of scope (e.g. comments) before counting.
-  const rejectFilter = rule.reject ? ` | grep -Ev "${rule.reject}"` : ""
-  const cmd = `{ grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e "${rule.pattern}" ${dirs}${rejectFilter} ; } || true`
+  // Patterns are SINGLE-quoted for the shell: hardcoded-jsx-copy has to match a
+  // literal double quote (placeholder="…"), and inside double quotes that ended
+  // the argument early and silently matched nothing — a rule reporting a
+  // confident zero. No pattern here contains a single quote.
+  const rejectFilter = rule.reject ? ` | grep -Ev '${rule.reject}'` : ""
+  const cmd = `{ grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e '${rule.pattern}' ${dirs}${rejectFilter} ; } || true`
   try {
     const out = execSync(cmd, { encoding: "utf8", cwd: process.cwd() })
     return out.split("\n").filter(Boolean)
@@ -115,13 +148,16 @@ function search(rule: Rule): string[] {
 }
 
 let total = 0
+let advisory = 0
 console.log("\n🔁 check:reuse — reuse-first backlog (docs/CODE_REUSE_AND_CONSISTENCY.md)\n")
 
 for (const rule of RULES) {
   const hits = search(rule)
-  total += hits.length
-  const badge = hits.length === 0 ? "✅" : "⚠️ "
-  console.log(`${badge} [${rule.id}] ${rule.description}: ${hits.length}`)
+  if (rule.warnOnly) advisory += hits.length
+  else total += hits.length
+  const badge = hits.length === 0 ? "✅" : rule.warnOnly ? "📋" : "⚠️ "
+  const suffix = rule.warnOnly ? " (advisory — not blocking)" : ""
+  console.log(`${badge} [${rule.id}] ${rule.description}: ${hits.length}${suffix}`)
   if (hits.length > 0) {
     console.log(`     fix: ${rule.fix}`)
     for (const h of hits.slice(0, 8)) console.log(`       ${h}`)
@@ -131,8 +167,11 @@ for (const rule of RULES) {
 }
 
 console.log("──────────────────────────────────────────")
+if (advisory > 0) {
+  console.log(`📋 ${advisory} advisory finding(s) — reported, not blocking.`)
+}
 if (total === 0) {
-  console.log("✅ No reuse-first violations found.")
+  console.log("✅ No blocking reuse-first violations found.")
   process.exit(0)
 }
 console.log(`⚠️  ${total} reuse-first violation(s) — WARN mode (not blocking).`)

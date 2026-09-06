@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "Одна команда — откроется браузер для подтверждения доступа, ключи копировать не нужно",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "То же подключение одной командой для Copilot CLI",
+        "guidedSetup": "Пошаговая настройка с рецептами циклов в настройках ИИ-агентов"
       },
       "step1": {
         "badge": "Шаг 1",
@@ -816,6 +820,56 @@
         "postEndpoint": "POST endpoint",
         "note": "MCP предоставляет стандартизированный способ подключения ИИ-моделей к внешним инструментам"
       }
+    },
+    "customAgents": {
+      "changePhoto": "Изменить фото профиля",
+      "status": {
+        "active": "Активен",
+        "idle": "Простаивает"
+      },
+      "registered": "Зарегистрирован {date}",
+      "lastActive": "Последняя активность {date}",
+      "empty": "Пользовательские агенты не подключены. Зарегистрируйте одного, чтобы начать.",
+      "connect": "Подключить агента",
+      "register": {
+        "title": "Регистрация пользовательского агента",
+        "description": "Создайте идентификатор ИИ-агента с учётными данными OAuth для протокола пользовательских агентов.",
+        "name": "Имя агента",
+        "placeholder": "buddy",
+        "invalid": "Недопустимое имя. Используйте от 2 до 32 строчных букв и цифр, точки, дефисы или подчёркивания.",
+        "hint": "Выберите имя для агента (например, buddy, helper, dev-bot)",
+        "cancel": "Отмена",
+        "registering": "Регистрация…",
+        "create": "Создать агента"
+      },
+      "credentials": {
+        "title": "Агент создан",
+        "description": "Сохраните эти учётные данные сейчас. Секрет клиента больше не будет показан.",
+        "warning": "Сохраните эти учётные данные сейчас!",
+        "email": "Электронная почта агента",
+        "clientId": "Идентификатор клиента",
+        "clientSecret": "Секрет клиента",
+        "tokenEndpoint": "Конечная точка токена",
+        "apiBase": "База API",
+        "sseEndpoint": "Конечная точка SSE",
+        "done": "Готово"
+      },
+      "remove": {
+        "title": "Удалить агента",
+        "description": "Это навсегда удалит {email} и отзовёт его учётные данные OAuth. Отменить будет нельзя.",
+        "cancel": "Отмена",
+        "removing": "Удаление…",
+        "action": "Удалить агента"
+      },
+      "toasts": {
+        "loadFailed": "Не удалось загрузить пользовательских агентов",
+        "registrationFailed": "Не удалось зарегистрировать",
+        "created": "Агент {email} создан",
+        "removeFailed": "Не удалось удалить агента",
+        "removed": "Агент удалён",
+        "photoUpdated": "Фото профиля обновлено",
+        "photoFailed": "Не удалось обновить фото профиля"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "Настройки администратора",
+    "sortBy": "Сортировать по",
+    "showTasks": "Показывать задачи",
+    "priorityFilter": "Фильтр по приоритету",
+    "assigneeFilter": "Фильтр по исполнителю",
+    "dueDateFilter": "Фильтр по сроку",
+    "sort": {
+      "recentlyCompleted": "Недавно завершённые"
+    },
+    "show": {
+      "allTasks": "Все задачи",
+      "completedOnly": "Только завершённые",
+      "incompleteOnly": "Только незавершённые"
+    },
+    "priority": {
+      "all": "Все приоритеты"
+    },
+    "due": {
+      "allDates": "Все даты",
+      "thisCalendarWeek": "Эта календарная неделя",
+      "thisCalendarMonth": "Этот календарный месяц",
+      "noDate": "Без даты"
+    }
+  },
+  "reminderSettings": {
+    "title": "Настройки напоминаний",
+    "pushNotifications": "Push-уведомления",
+    "emailReminders": "Напоминания по эл. почте",
+    "defaultReminderTime": "Время напоминания по умолчанию",
+    "dailyDigest": "Ежедневная сводка",
+    "quietHours": "Тихие часы"
+  },
+  "keyboardShortcuts": {
+    "title": "Сочетания клавиш",
+    "close": "Закрыть",
+    "groups": {
+      "navigation": "Навигация",
+      "taskActions": "Действия с задачами",
+      "taskEditing": "Редактирование задач",
+      "priority": "Приоритет",
+      "interface": "Интерфейс"
+    }
+  },
+  "commandPalette": {
+    "label": "Палитра команд",
+    "searchPlaceholder": "Поиск команд…",
+    "enterToSelect": "Enter — выбрать",
+    "escToClose": "Esc — закрыть"
+  },
+  "userPicker": {
+    "optionalMessage": "Необязательное сообщение…"
   }
 }

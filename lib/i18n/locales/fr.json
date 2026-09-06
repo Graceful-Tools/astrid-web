@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "Une seule commande — elle ouvre votre navigateur pour approuver l’accès, aucune clé à copier",
+        "copilotTitle": "CLI GitHub Copilot",
+        "copilotNote": "La même connexion en une commande pour la CLI Copilot",
+        "guidedSetup": "Configuration guidée avec des recettes de boucle dans les paramètres des agents IA"
       },
       "step1": {
         "badge": "Étape 1",
@@ -816,6 +820,56 @@
         "postEndpoint": "Point de terminaison POST",
         "note": "MCP fournit un moyen standardisé de connecter les modèles d'IA aux outils externes"
       }
+    },
+    "customAgents": {
+      "changePhoto": "Changer la photo de profil",
+      "status": {
+        "active": "Actif",
+        "idle": "Inactif"
+      },
+      "registered": "Enregistré le {date}",
+      "lastActive": "Dernière activité {date}",
+      "empty": "Aucun agent personnalisé connecté. Enregistrez-en un pour commencer.",
+      "connect": "Connecter un agent",
+      "register": {
+        "title": "Enregistrer un agent personnalisé",
+        "description": "Créez une identité d’agent IA avec des identifiants OAuth pour le protocole d’agent personnalisé.",
+        "name": "Nom de l’agent",
+        "placeholder": "buddy",
+        "invalid": "Nom invalide. Utilisez 2 à 32 caractères alphanumériques minuscules, points, tirets ou tirets bas.",
+        "hint": "Choisissez un nom pour votre agent (par ex. buddy, helper, dev-bot)",
+        "cancel": "Annuler",
+        "registering": "Enregistrement…",
+        "create": "Créer l’agent"
+      },
+      "credentials": {
+        "title": "Agent créé",
+        "description": "Enregistrez ces identifiants maintenant. Le secret client ne sera plus affiché.",
+        "warning": "Enregistrez ces identifiants maintenant !",
+        "email": "E-mail de l’agent",
+        "clientId": "Identifiant client",
+        "clientSecret": "Secret client",
+        "tokenEndpoint": "Point de terminaison du jeton",
+        "apiBase": "Base de l’API",
+        "sseEndpoint": "Point de terminaison SSE",
+        "done": "Terminé"
+      },
+      "remove": {
+        "title": "Supprimer l’agent",
+        "description": "Cette action supprime définitivement {email} et révoque ses identifiants OAuth. Elle est irréversible.",
+        "cancel": "Annuler",
+        "removing": "Suppression…",
+        "action": "Supprimer l’agent"
+      },
+      "toasts": {
+        "loadFailed": "Impossible de charger les agents personnalisés",
+        "registrationFailed": "Échec de l’enregistrement",
+        "created": "Agent {email} créé",
+        "removeFailed": "Impossible de supprimer l’agent",
+        "removed": "Agent supprimé",
+        "photoUpdated": "Photo de profil mise à jour",
+        "photoFailed": "Impossible de mettre à jour la photo de profil"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "Paramètres d’administration",
+    "sortBy": "Trier par",
+    "showTasks": "Afficher les tâches",
+    "priorityFilter": "Filtre de priorité",
+    "assigneeFilter": "Filtre d’assigné",
+    "dueDateFilter": "Filtre d’échéance",
+    "sort": {
+      "recentlyCompleted": "Récemment terminées"
+    },
+    "show": {
+      "allTasks": "Toutes les tâches",
+      "completedOnly": "Terminées uniquement",
+      "incompleteOnly": "Non terminées uniquement"
+    },
+    "priority": {
+      "all": "Toutes les priorités"
+    },
+    "due": {
+      "allDates": "Toutes les dates",
+      "thisCalendarWeek": "Cette semaine civile",
+      "thisCalendarMonth": "Ce mois civil",
+      "noDate": "Sans date"
+    }
+  },
+  "reminderSettings": {
+    "title": "Paramètres de rappel",
+    "pushNotifications": "Notifications push",
+    "emailReminders": "Rappels par e-mail",
+    "defaultReminderTime": "Heure de rappel par défaut",
+    "dailyDigest": "Résumé quotidien",
+    "quietHours": "Heures calmes"
+  },
+  "keyboardShortcuts": {
+    "title": "Raccourcis clavier",
+    "close": "Fermer",
+    "groups": {
+      "navigation": "Navigation",
+      "taskActions": "Actions sur les tâches",
+      "taskEditing": "Édition des tâches",
+      "priority": "Priorité",
+      "interface": "Interface"
+    }
+  },
+  "commandPalette": {
+    "label": "Palette de commandes",
+    "searchPlaceholder": "Rechercher des commandes…",
+    "enterToSelect": "Entrée pour sélectionner",
+    "escToClose": "Échap pour fermer"
+  },
+  "userPicker": {
+    "optionalMessage": "Message facultatif…"
   }
 }

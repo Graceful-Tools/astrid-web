@@ -763,7 +763,11 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "claudeNote": "一条命令即可——它会打开浏览器以批准访问，无需复制任何密钥",
+        "copilotTitle": "GitHub Copilot CLI",
+        "copilotNote": "Copilot CLI 同样一条命令即可连接",
+        "guidedSetup": "在 AI 代理设置中通过循环配方进行引导式设置"
       },
       "step1": {
         "badge": "步骤1",
@@ -816,6 +820,56 @@
         "postEndpoint": "POST端点",
         "note": "MCP提供了一种标准化的方式将AI模型连接到外部工具"
       }
+    },
+    "customAgents": {
+      "changePhoto": "更换头像",
+      "status": {
+        "active": "活跃",
+        "idle": "空闲"
+      },
+      "registered": "注册于 {date}",
+      "lastActive": "最后活动 {date}",
+      "empty": "尚未连接自定义代理。注册一个即可开始。",
+      "connect": "连接代理",
+      "register": {
+        "title": "注册自定义代理",
+        "description": "为自定义代理协议创建带 OAuth 凭据的 AI 代理身份。",
+        "name": "代理名称",
+        "placeholder": "buddy",
+        "invalid": "名称无效。请使用 2 至 32 个小写字母数字、点、连字符或下划线。",
+        "hint": "为你的代理选择一个名称（例如 buddy、helper、dev-bot）",
+        "cancel": "取消",
+        "registering": "正在注册…",
+        "create": "创建代理"
+      },
+      "credentials": {
+        "title": "代理已创建",
+        "description": "请立即保存这些凭据。客户端密钥不会再次显示。",
+        "warning": "请立即保存这些凭据！",
+        "email": "代理邮箱",
+        "clientId": "客户端 ID",
+        "clientSecret": "客户端密钥",
+        "tokenEndpoint": "令牌端点",
+        "apiBase": "API 基址",
+        "sseEndpoint": "SSE 端点",
+        "done": "完成"
+      },
+      "remove": {
+        "title": "移除代理",
+        "description": "此操作将永久删除 {email} 并吊销其 OAuth 凭据，且无法撤销。",
+        "cancel": "取消",
+        "removing": "正在移除…",
+        "action": "移除代理"
+      },
+      "toasts": {
+        "loadFailed": "加载自定义代理失败",
+        "registrationFailed": "注册失败",
+        "created": "已创建代理 {email}",
+        "removeFailed": "移除代理失败",
+        "removed": "代理已移除",
+        "photoUpdated": "头像已更新",
+        "photoFailed": "更新头像失败"
+      }
     }
   },
   "projectMode": {
@@ -834,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "管理员设置",
+    "sortBy": "排序方式",
+    "showTasks": "显示任务",
+    "priorityFilter": "优先级筛选",
+    "assigneeFilter": "负责人筛选",
+    "dueDateFilter": "截止日期筛选",
+    "sort": {
+      "recentlyCompleted": "最近完成"
+    },
+    "show": {
+      "allTasks": "所有任务",
+      "completedOnly": "仅已完成",
+      "incompleteOnly": "仅未完成"
+    },
+    "priority": {
+      "all": "所有优先级"
+    },
+    "due": {
+      "allDates": "所有日期",
+      "thisCalendarWeek": "本日历周",
+      "thisCalendarMonth": "本日历月",
+      "noDate": "无日期"
+    }
+  },
+  "reminderSettings": {
+    "title": "提醒设置",
+    "pushNotifications": "推送通知",
+    "emailReminders": "邮件提醒",
+    "defaultReminderTime": "默认提醒时间",
+    "dailyDigest": "每日摘要",
+    "quietHours": "免打扰时段"
+  },
+  "keyboardShortcuts": {
+    "title": "键盘快捷键",
+    "close": "关闭",
+    "groups": {
+      "navigation": "导航",
+      "taskActions": "任务操作",
+      "taskEditing": "任务编辑",
+      "priority": "优先级",
+      "interface": "界面"
+    }
+  },
+  "commandPalette": {
+    "label": "命令面板",
+    "searchPlaceholder": "搜索命令…",
+    "enterToSelect": "按 Enter 选择",
+    "escToClose": "按 Esc 关闭"
+  },
+  "userPicker": {
+    "optionalMessage": "可选留言…"
   }
 }

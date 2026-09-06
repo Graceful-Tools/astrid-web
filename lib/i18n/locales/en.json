@@ -888,5 +888,58 @@
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
     "requestFailed": "Couldn't send your request. Please try again."
+  },
+  "listSettings": {
+    "adminSettings": "Admin Settings",
+    "sortBy": "Sort by",
+    "showTasks": "Show tasks",
+    "priorityFilter": "Priority filter",
+    "assigneeFilter": "Assignee filter",
+    "dueDateFilter": "Due date filter",
+    "sort": {
+      "recentlyCompleted": "Recently completed"
+    },
+    "show": {
+      "allTasks": "All tasks",
+      "completedOnly": "Completed only",
+      "incompleteOnly": "Incomplete only"
+    },
+    "priority": {
+      "all": "All priorities"
+    },
+    "due": {
+      "allDates": "All dates",
+      "thisCalendarWeek": "This calendar week",
+      "thisCalendarMonth": "This calendar month",
+      "noDate": "No date"
+    }
+  },
+  "reminderSettings": {
+    "title": "Reminder Settings",
+    "pushNotifications": "Push Notifications",
+    "emailReminders": "Email Reminders",
+    "defaultReminderTime": "Default Reminder Time",
+    "dailyDigest": "Daily Digest",
+    "quietHours": "Quiet Hours"
+  },
+  "keyboardShortcuts": {
+    "title": "Keyboard Shortcuts",
+    "close": "Close",
+    "groups": {
+      "navigation": "Navigation",
+      "taskActions": "Task Actions",
+      "taskEditing": "Task Editing",
+      "priority": "Priority",
+      "interface": "Interface"
+    }
+  },
+  "commandPalette": {
+    "label": "Command Palette",
+    "searchPlaceholder": "Search commands...",
+    "enterToSelect": "Enter to select",
+    "escToClose": "Esc to close"
+  },
+  "userPicker": {
+    "optionalMessage": "Optional message..."
   }
 }

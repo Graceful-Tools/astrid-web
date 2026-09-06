@@ -410,7 +410,7 @@ export function UserPicker({
             <Input
               value={inviteMessage}
               onChange={(e) => setInviteMessage(e.target.value)}
-              placeholder="Optional message..."
+              placeholder={t('userPicker.optionalMessage')}
               className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 mb-3"
             />
             <div className="flex space-x-2">
