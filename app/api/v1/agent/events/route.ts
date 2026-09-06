@@ -24,6 +24,15 @@ const log = createLogger('v1.agent.events')
 
 export const runtime = 'nodejs'
 
+/**
+ * The stream plans a 300s lifetime (the refresh timeout below), but vercel.json
+ * only lifted the ceiling for app/api/sse/route.ts, so this route ran under the
+ * broad 30s entry and was killed roughly ten times before its own refresh could
+ * fire. Declared here because route segment config is what the platform
+ * actually reads (task 0f544a13).
+ */
+export const maxDuration = 300
+
 export async function GET(request: NextRequest) {
   let auth
   try {
@@ -189,7 +198,8 @@ export async function GET(request: NextRequest) {
         }
       }, 5_000)
 
-      // Refresh connection every 5 minutes
+      // Refresh 15s before maxDuration, so the client is handed a `reconnect`
+      // event rather than having the socket cut from under it.
       const refreshTimeout = setTimeout(() => {
         try {
           controller.enqueue(
@@ -198,7 +208,7 @@ export async function GET(request: NextRequest) {
         } catch {}
         clearInterval(pollInterval)
         try { controller.close() } catch {}
-      }, 300_000)
+      }, (300 - 15) * 1000)
 
       const cleanup = () => {
         clearInterval(pollInterval)
