@@ -41,6 +41,12 @@ const BeaconSchema = z.object({
   xPlatform: z.string().max(64).nullish(),
   /** Computed edge-side by string prefix — the raw token never leaves the request. */
   oauthBearer: z.boolean().default(false),
+  /**
+   * How many hits this beacon represents. The middleware samples 1 in N, so a
+   * sampled beacon stands for N; the guaranteed first-hit-per-route stands for
+   * 1. Counting every beacon as one would under-report by the sample rate.
+   */
+  weight: z.number().int().min(1).max(1000).default(1),
 })
 
 export async function POST(request: NextRequest) {
@@ -68,6 +74,7 @@ export async function POST(request: NextRequest) {
       route: parsed.route,
       method: parsed.method,
       platform,
+      weight: parsed.weight,
     })
     return NextResponse.json({ ok: true })
   } catch (err) {

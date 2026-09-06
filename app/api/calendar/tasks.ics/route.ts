@@ -27,6 +27,21 @@ function generateUID(taskId: string): string {
   return `task-${taskId}@astrid-tasks.com`
 }
 
+/**
+ * This feed is authenticated and per-user, and its URL carries no user
+ * identity. `public` would authorise any shared cache keyed on that URL — a
+ * CDN, a corporate proxy, an ISP cache — to store one person's tasks and serve
+ * them to the next person who asks. Both exits must say the same thing, or the
+ * empty-calendar response gets cached and served to a user whose sync is on
+ * (task f9ba26b3).
+ */
+const PRIVATE_FEED_CACHE_CONTROL = 'private, no-store'
+
+/** Only tasks in this window are published; an account's whole history is not a calendar. */
+const CALENDAR_WINDOW_DAYS_PAST = 30
+const CALENDAR_WINDOW_DAYS_FUTURE = 365
+const MAX_CALENDAR_EVENTS = 1000
+
 export async function GET(request: NextRequest) {
   const blocked = capabilityGate('calendarFeed')
   if (blocked) return blocked
@@ -59,7 +74,8 @@ export async function GET(request: NextRequest) {
       return new NextResponse(emptyCalendar, {
         headers: {
           'Content-Type': 'text/calendar; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="astrid-tasks.ics"'
+          'Content-Disposition': 'attachment; filename="astrid-tasks.ics"',
+          'Cache-Control': PRIVATE_FEED_CACHE_CONTROL
         }
       })
     }
@@ -84,8 +100,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Get tasks
+    // Bounded in both time and count. This used to be every task the user could
+    // see, ever, with no take — the response grew without limit and the query
+    // scanned the account's whole history on a route a calendar client polls.
+    const windowStart = new Date()
+    windowStart.setUTCDate(windowStart.getUTCDate() - CALENDAR_WINDOW_DAYS_PAST)
+    const windowEnd = new Date()
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + CALENDAR_WINDOW_DAYS_FUTURE)
+
+    // The ownership OR moves under AND so the window cannot be swallowed by it:
+    // `{ OR: ownership, OR: window }` is one key, and the second would win.
+    const { OR: ownership, ...otherFilters } = whereClause
+
     const tasks = await prisma.task.findMany({
-      where: whereClause,
+      where: {
+        ...otherFilters,
+        AND: [
+          { OR: ownership },
+          {
+            OR: [
+              { dueDateTime: { gte: windowStart, lte: windowEnd } },
+              { when: { gte: windowStart, lte: windowEnd } },
+              // Undated tasks have no place on the timeline to fall outside it.
+              { dueDateTime: null, when: null },
+            ],
+          },
+        ],
+      },
+      take: MAX_CALENDAR_EVENTS,
       include: {
         lists: {
           select: { name: true }
@@ -181,7 +223,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': 'attachment; filename="astrid-tasks.ics"',
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'Cache-Control': PRIVATE_FEED_CACHE_CONTROL,
         'X-Calendar-Type': reminderSettings.calendarSyncType
       }
     })

@@ -41,6 +41,64 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CUID = /^c[a-z0-9]{20,}$/i
 const NUMERIC = /^\d+$/
 
+/**
+ * One in N legacy hits is beaconed (task f9ba26b3).
+ *
+ * The beacon is a second HTTP request into the app that then upserts, so it was
+ * roughly doubling invocations while iOS is still on legacy routes.
+ */
+export const BEACON_SAMPLE_RATE = 10
+
+/**
+ * (route, method) keys this instance has already beaconed at least once.
+ *
+ * Module scope, so it lives as long as the edge instance does. It is a cache,
+ * not state: losing it on a cold start costs one extra beacon, never a wrong
+ * answer.
+ */
+const beaconedKeys = new Set<string>()
+
+/** Test seam — module scope would otherwise leak between cases. */
+export function resetBeaconMemoryForTests(): void {
+  beaconedKeys.clear()
+}
+
+export interface BeaconDecision {
+  send: boolean
+  /** How many hits this beacon stands for, so sampled counts stay unbiased. */
+  weight: number
+}
+
+/**
+ * Should this legacy hit be beaconed, and for how many?
+ *
+ * Naive 1-in-N sampling would be unsafe here. summarizeLegacyUsage marks a
+ * route `safeToDelete` only when it recorded ZERO hits in the window, so a
+ * low-traffic route whose only hits were sampled away looks dead and gets
+ * deleted. The FIRST hit for each (route, method) on each instance is therefore
+ * always sent — a route with any traffic at all can never report zero — and
+ * only the repeats are sampled, weighted by the rate so the totals remain
+ * estimates of the truth rather than a tenth of it.
+ */
+export function decideLegacyBeacon(
+  pathname: string,
+  method: string,
+  random: () => number = Math.random,
+): BeaconDecision {
+  // Normalised, or one task id would consume the route's guaranteed first hit
+  // and every other id would be sampled.
+  const key = `${method} ${normalizeLegacyRoute(pathname)}`
+
+  if (!beaconedKeys.has(key)) {
+    beaconedKeys.add(key)
+    return { send: true, weight: 1 }
+  }
+
+  return random() * BEACON_SAMPLE_RATE < 1
+    ? { send: true, weight: BEACON_SAMPLE_RATE }
+    : { send: false, weight: 0 }
+}
+
 export interface LegacyUsageBucket {
   day: Date
   route: string

@@ -8,7 +8,7 @@ import {
   buildDeprecationHeaders,
 } from '@/lib/api-deprecation'
 import { shouldBypassIntlRouting } from '@/lib/middleware-bypass'
-import { LEGACY_USAGE_BEACON_PATH } from '@/lib/legacy-api-usage'
+import { LEGACY_USAGE_BEACON_PATH, decideLegacyBeacon } from '@/lib/legacy-api-usage'
 import { BRAND } from '@/lib/brand/config'
 import { corsHeadersForOrigin } from '@/lib/cors'
 import { buildContentSecurityPolicy, generateNonce } from '@/lib/csp'
@@ -33,7 +33,7 @@ const intlMiddleware = createMiddleware(routing)
  * authorization header itself never leaves this function — only the boolean
  * prefix test detectPlatform needs.
  */
-function beaconLegacyHit(request: NextRequest, pathname: string): Promise<unknown> {
+function beaconLegacyHit(request: NextRequest, pathname: string, weight: number): Promise<unknown> {
   const secret = process.env.INTERNAL_API_SECRET
   if (!secret) return Promise.resolve()
 
@@ -43,6 +43,9 @@ function beaconLegacyHit(request: NextRequest, pathname: string): Promise<unknow
     body: JSON.stringify({
       route: pathname,
       method: request.method,
+      // How many hits this beacon stands for; the recorder increments by it, so
+      // sampling does not shrink the counts by a factor of ten.
+      weight,
       ua: request.headers.get('user-agent') || '',
       xPlatform: request.headers.get('x-platform'),
       oauthBearer: (request.headers.get('authorization') || '').startsWith('Bearer astrid_'),
@@ -150,7 +153,14 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
     // beacon is the durable half the >=4-week retirement window is actually
     // queryable from. Guarded: a missing NextFetchEvent (tests, or a runtime
     // that omits it) must not turn telemetry into a 500 on a real request.
-    event?.waitUntil?.(beaconLegacyHit(request, pathname))
+    // Sampled: this beacon is a second HTTP request into the app, which then
+    // upserts, so sending one per legacy request roughly doubled invocations.
+    // The first hit for each (route, method) on this instance is always sent —
+    // see decideLegacyBeacon for why zero-hit routes must stay impossible.
+    const beacon = decideLegacyBeacon(pathname, request.method)
+    if (beacon.send) {
+      event?.waitUntil?.(beaconLegacyHit(request, pathname, beacon.weight))
+    }
     const response = NextResponse.next()
     for (const [k, v] of Object.entries(buildDeprecationHeaders(pathname))) {
       response.headers.set(k, v)
