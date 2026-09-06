@@ -316,8 +316,17 @@ describe('Tasks API', () => {
           reminderTime: null,
           reminderType: null,
           completed: false,
-          // NO assigneeId - task should be unassigned when list has no default assignee
+          // Unassigned when the list has no default assignee. Written as an
+          // explicit null rather than an absent key since the create moved into
+          // services/task.service.ts (epic 9dedd8aa) — one data shape for all
+          // four surfaces, same row either way.
+          assigneeId: null,
           creatorId: 'test-user-id',
+          identifier: null,
+          sequence: null,
+          clientRequestId: null,
+          parentTaskId: null,
+          statusRole: null,
           lists: {
             connect: [{ id: 'list-1' }],
           },
@@ -384,8 +393,15 @@ describe('Tasks API', () => {
           reminderTime: null,
           reminderType: null,
           completed: false,
-          // NO assigneeId - task should be unassigned when no list or list defaults
+          // Unassigned with no list to take a default from. Explicit null, not
+          // an absent key — see the note on the create above (epic 9dedd8aa).
+          assigneeId: null,
           creatorId: 'test-user-id',
+          identifier: null,
+          sequence: null,
+          clientRequestId: null,
+          parentTaskId: null,
+          statusRole: null,
           lists: {
             connect: [],
           },

@@ -47,15 +47,16 @@ describe('MCP SSE Integration - Core Functionality', () => {
     expect(allContent).toContain('@/lib/sse-utils')
 
     // Verify SSE calls for each operation
-    expect(allContent).toContain('task_created')
     expect(allContent).toContain('task_updated')
     expect(allContent).toContain('comment_created')
-    // task_deleted is NOT asserted here any more. The delete verb moved into
-    // services/task.service.ts (epic 9dedd8aa) because two of the four delete
-    // surfaces were skipping the deletion tombstone; the broadcast went with
-    // it. Asserted below against the service, so the coverage is kept rather
-    // than dropped — this test was checking WHERE the string lives, and the
-    // string moved on purpose.
+    // Neither task_deleted nor task_created is asserted here any more. Both
+    // verbs moved into services/task.service.ts (epic 9dedd8aa) — delete
+    // because two of the four surfaces skipped the deletion tombstone, create
+    // because the MCP surfaces minted no identifier, posted no creation
+    // comment and never entered a manual sort order. The broadcasts went with
+    // them. Both are asserted below against the service, so the coverage is
+    // kept rather than dropped — this test checks WHERE the string lives, and
+    // the string moved on purpose.
 
     // Verify error handling for SSE failures
     expect(allContent).toContain('Failed to broadcast')
@@ -113,13 +114,11 @@ describe('MCP SSE Integration - Core Functionality', () => {
     const allContent = getMCPOperationsContent()
 
     // Count SSE broadcast calls for each operation (now in handler files)
-    const createTaskBroadcasts = (allContent.match(/Broadcasting task_created/g) || []).length
     const updateTaskBroadcasts = (allContent.match(/Broadcasting task_updated/g) || []).length
     const commentBroadcasts = (allContent.match(/Broadcasting comment_created/g) || []).length
-    // See above: the delete broadcast lives in the service now.
+    // See above: the create and delete broadcasts live in the service now.
 
     // Each operation should have exactly one SSE broadcast
-    expect(createTaskBroadcasts).toBe(1)
     expect(updateTaskBroadcasts).toBe(1)
     expect(commentBroadcasts).toBe(1)
   })
@@ -142,9 +141,24 @@ describe('MCP SSE Integration - Core Functionality', () => {
     expect(allContent).toContain("log.error({ err: error }, '[MCP SSE] Failed to broadcast")
     expect(allContent).toContain("// Don't fail the operation if SSE fails")
 
-    // Verify we have at least 4 SSE error handlers (create, update, comment, delete)
+    // Verify the SSE error handlers that remain in the MCP handlers (update
+    // and comment); create and delete are the service's now.
     const sseErrorHandlers = (allContent.match(/log\.error\(\{ err: error \}, '\[MCP SSE\] Failed to broadcast/g) || []).length
-    expect(sseErrorHandlers).toBeGreaterThanOrEqual(4)
+    expect(sseErrorHandlers).toBeGreaterThanOrEqual(2)
+  })
+
+  it('broadcasts task_created from the shared create service', async () => {
+    // The MCP handlers no longer broadcast this themselves — they call
+    // services/task.service.ts, which is also what finally gave them the
+    // AST-nnn identifier, the creation comment and the manual-sort entry they
+    // had always been missing (epic 9dedd8aa).
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const service = readFileSync(join(process.cwd(), 'services/task.service.ts'), 'utf8')
+
+    expect(service).toContain('task_created')
+    expect(service).toContain('broadcastToUsers')
+    expect(service).toContain('recordTaskCreationComment')
   })
 
   it('broadcasts task_deleted from the shared delete service', async () => {

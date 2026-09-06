@@ -52,7 +52,11 @@ vi.mock('@/lib/agent-rate-limiter', () => ({
   addRateLimitHeaders: vi.fn((res: any) => res),
 }))
 
-vi.mock('@/lib/analytics-events', () => ({
+vi.mock('@/lib/analytics-events', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // The create service records the analytics event itself now, so the
+  // write has to be stubbed even where the test does not assert on it.
+  trackAnalyticsEvent: vi.fn(),
   trackEventFromRequest: vi.fn(),
   AnalyticsEventType: {
     TASK_CREATED: 'task_created',

@@ -1,5 +1,5 @@
 import { canUserManageList } from "../../lib/list-permissions"
-import { deleteTaskWithSideEffects } from '../../services/task.service'
+import { createTaskWithSideEffects, deleteTaskWithSideEffects } from '../../services/task.service'
 /**
  * The SHARED client, not a new one.
  *
@@ -44,20 +44,22 @@ async function createTask(args: any) {
     throw new Error("User no longer has permission to create tasks in this list")
   }
 
-  const newTask = await prisma.task.create({
-    data: {
-      ...validatedTask,
-      creatorId: userId,
-      dueDateTime: validatedTask.dueDateTime ? new Date(validatedTask.dueDateTime) : null,
-      reminderTime: validatedTask.reminderTime ? new Date(validatedTask.reminderTime) : null,
-      lists: { connect: { id: listId } },
-    },
-    include: {
-      assignee: { select: { id: true, name: true, email: true } },
-      creator: { select: { id: true, name: true, email: true } },
-      lists: { select: { id: true, name: true } },
-    },
+  // Everything a create implies — identifier, idempotency, creation comment,
+  // reminders, manual sort, SSE, cache — lives in the service (epic 9dedd8aa).
+  // This handler did none of it, so a task created through the MCP server had
+  // no AST-nnn identifier and never entered a manually-sorted list's order.
+  const result = await createTaskWithSideEffects({
+    input: { ...validatedTask, listIds: [listId] },
+    actorId: userId,
+    actorName: user.name || user.email || "MCP Agent",
+    platform: "API-other",
   })
+
+  if (!result.ok) {
+    throw new Error(result.error)
+  }
+
+  const newTask = result.task as any
 
   return {
     content: [{
@@ -74,10 +76,11 @@ async function createTask(args: any) {
           reminderTime: newTask.reminderTime,
           reminderType: newTask.reminderType,
           isPrivate: newTask.isPrivate,
+          identifier: newTask.identifier,
           createdAt: newTask.createdAt,
           assignee: newTask.assignee,
           creator: newTask.creator,
-          lists: newTask.lists,
+          lists: (newTask.lists ?? []).map((l: any) => ({ id: l.id, name: l.name })),
         },
       }),
     }],

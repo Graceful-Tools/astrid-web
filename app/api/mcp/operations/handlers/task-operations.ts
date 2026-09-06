@@ -3,7 +3,8 @@
  */
 
 import { prisma } from "@/lib/prisma"
-import { deleteTaskWithSideEffects } from '@/services/task.service'
+import { createTaskWithSideEffects, deleteTaskWithSideEffects } from '@/services/task.service'
+import { AnalyticsPlatform } from '@/lib/analytics-events'
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { createLogger } from '@/lib/logger'
 import {
@@ -158,141 +159,35 @@ export async function getUserTasks(accessToken: string, userId: string, includeC
 
 export async function createTask(accessToken: string, listIds: string[], taskData: any, userId: string) {
   log.info({ args: redactArgsForLogging({ accessToken, listIds, taskData }) }, 'MCP [createTask] args')
-  log.info({ listIds }, 'MCP [createTask] Extracted listIds:')
 
-  // Validate MCP token
-  // If listIds provided, use first list for validation, otherwise use user-level token
+  // Validate MCP token. With lists, the first one scopes the token check;
+  // without, it is a user-level token.
   const mcpToken = listIds.length > 0
     ? await resolveMCPActor(accessToken, userId, listIds[0])
     : await resolveMCPActor(accessToken, userId)
 
-  // Verify write access to all specified lists (if any)
-  let validLists: any[] = []
-  if (listIds.length > 0) {
-    validLists = await prisma.taskList.findMany({
-      where: {
-        id: { in: listIds },
-        OR: [
-          { ownerId: mcpToken.userId },
-          { listMembers: { some: { userId: mcpToken.userId } } },
-          // Allow creating tasks in collaborative public lists (anyone can add)
-          {
-            privacy: 'PUBLIC',
-            publicListType: 'collaborative'
-          }
-        ]
-      }
-    })
-
-    if (validLists.length === 0) {
-      throw new Error('No accessible lists found or write access denied')
-    }
-
-    if (validLists.length !== listIds.length) {
-      const missingListIds = listIds.filter(id => !validLists.some(list => list.id === id))
-      throw new Error(`Access denied or lists not found: ${missingListIds.join(', ')}`)
-    }
-  }
-
-  // Determine assigneeId before creating task
-  const finalAssigneeId = 'assigneeId' in taskData ? taskData.assigneeId : mcpToken.userId
-
-  const task = await prisma.task.create({
-    data: {
-      title: taskData.title,
-      description: taskData.description || '',
-      // Use nullish coalescing to allow priority 0 (none)
-      // taskData.priority || 1 would fail because 0 is falsy in JavaScript
-      priority: taskData.priority ?? 0,
-      // Use explicit check to allow null (unassigned) while defaulting to current user if not provided
-      assigneeId: finalAssigneeId,
-      creatorId: mcpToken.userId,
-      // Handle 'dueDateTime' (modern date+time field)
-      dueDateTime: taskData.dueDateTime ? new Date(taskData.dueDateTime) : null,
-      isAllDay: taskData.isAllDay ?? false,
-      // `?? true`, not `|| false`: the schema default, the legacy create route
-      // and both v1 create paths all default this to true. MCP defaulting to
-      // false quietly shared tasks that would have been private anywhere else
-      // (task fb94f2ee).
-      isPrivate: taskData.isPrivate ?? true,
-      ...(listIds.length > 0 && {
-        lists: {
-          connect: listIds.map(id => ({ id }))
-        }
-      })
+  const result = await createTaskWithSideEffects({
+    input: {
+      ...taskData,
+      listIds,
+      // MCP's own default: a task an agent creates with no stated assignee
+      // belongs to the agent. Every other surface falls through to the list's
+      // default assignee instead. Kept as an INPUT here rather than a branch
+      // inside the service — it is a choice this caller makes, not a fifth
+      // rule about how tasks get assigned.
+      assigneeId: 'assigneeId' in taskData ? taskData.assigneeId : mcpToken.userId,
     },
-    include: {
-      assignee: {
-        select: { id: true, name: true, email: true }
-      },
-      creator: {
-        select: { id: true, name: true, email: true }
-      },
-      lists: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          privacy: true,
-          listMembers: {
-            include: {
-              user: { select: { id: true, name: true, email: true } }
-            }
-          }
-        }
-      }
-    }
+    actorId: mcpToken.userId,
+    actorName: mcpToken.user?.name || mcpToken.user?.email || 'MCP Agent',
+    platform: AnalyticsPlatform.API_OTHER,
   })
 
-  // Broadcast SSE event for real-time updates
-  try {
-    const userIds = new Set<string>()
-
-    // Get all members from all lists this task belongs to
-    for (const listId of listIds) {
-      const listMemberIds = await getListMemberIdsByListId(listId)
-      listMemberIds.forEach(id => userIds.add(id))
-    }
-
-    // Add assignee if different from creator
-    if (task.assigneeId && task.assigneeId !== mcpToken.userId) {
-      userIds.add(task.assigneeId)
-    }
-
-    // Remove the creator (MCP user) from notifications
-    userIds.delete(mcpToken.userId)
-
-    if (userIds.size > 0) {
-      log.info(`[MCP SSE] Broadcasting task_created to ${userIds.size} users`)
-      broadcastToUsers(Array.from(userIds), {
-        type: 'task_created',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          taskTitle: task.title,
-          taskPriority: task.priority,
-          creatorName: mcpToken.user.name || mcpToken.user.email || "MCP Agent",
-          userId: mcpToken.userId,
-          listNames: Array.isArray(task.lists) ? task.lists.map(list => list.name) : [],
-          task: {
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            priority: task.priority,
-            completed: task.completed,
-            dueDateTime: task.dueDateTime,
-            isAllDay: task.isAllDay,
-            assignee: task.assignee,
-            creator: task.creator,
-            createdAt: task.createdAt
-          }
-        }
-      })
-    }
-  } catch (error) {
-    log.error({ err: error }, '[MCP SSE] Failed to broadcast task_created:')
-    // Don't fail the operation if SSE fails
+  // MCP surfaces signal failure by throwing; there is no status code to carry.
+  if (!result.ok) {
+    throw new Error(result.error)
   }
+
+  const task = result.task as any
 
   return {
     success: true,
@@ -305,13 +200,14 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
       isPrivate: task.isPrivate,
       dueDateTime: task.dueDateTime,
       isAllDay: task.isAllDay,
+      identifier: task.identifier,  // AST-nnn for tasks in a project (epic 9dedd8aa)
       assigneeId: task.assigneeId,  // Add assigneeId for filtering
       assignee: task.assignee,
       creatorId: task.creatorId,    // Add creatorId for consistency
       creator: task.creator,
       createdAt: task.createdAt,
       lists: Array.isArray(task.lists) ? task.lists : [],  // Include list associations
-      listIds: Array.isArray(task.lists) ? task.lists.map(l => l.id) : []  // Include list IDs for convenience
+      listIds: Array.isArray(task.lists) ? task.lists.map((l: any) => l.id) : []  // Include list IDs for convenience
     }
   }
 }

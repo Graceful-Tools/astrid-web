@@ -8,20 +8,13 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import type { V1TaskCreateRequest } from '@/lib/api-contracts/v1-request-shapes'
-import { Prisma } from '@prisma/client'
-import { getDeprecationWarning, type AuthContext } from '@/lib/api-auth-middleware'
+import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
 import { validateParentTask } from '@/lib/subtasks'
-import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
-import { enrichTaskForAgent } from '@/lib/agent-protocol'
-import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { detectPlatform } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { createTaskWithSideEffects, type CreatedTask } from '@/services/task.service'
 import { createLogger } from '@/lib/logger'
-import { normalizeProjectStatusListIds } from '@/lib/project-status'
-import { allocateTaskIdentifier } from '@/lib/task-identifier'
-import { recordTaskCreationComment } from '@/lib/task-update-handler'
 import { getDeletionsSince } from '@/lib/deletion-log'
 
 const log = createLogger('v1.tasks')
@@ -315,180 +308,18 @@ export const POST = withAuth(
       )
     }
 
-    let dueDateTime: Date | undefined
-    let isAllDay = false
-
-    if (body.dueDateTime) {
-      dueDateTime = new Date(body.dueDateTime)
-      isAllDay = body.isAllDay ?? false
-
-      if (isAllDay) {
-        dueDateTime.setUTCHours(0, 0, 0, 0)
-      }
-    } else if (body.when) {
-      // Legacy clients still send `when`; normalize to all-day midnight UTC
-      dueDateTime = new Date(body.when)
-      dueDateTime.setUTCHours(0, 0, 0, 0)
-      isAllDay = true
-    }
-
-    // SECURITY: Validate user has access to all specified lists
-    let validatedListIds: string[] = []
-
-    /**
-     * Copy-only PUBLIC lists must hold unassigned tasks — legacy has enforced
-     * this since it was written and calls it a security requirement. Such a
-     * list is a template anyone can read and copy, so an assignee on one
-     * publishes a real person's identity on a public artifact and means
-     * nothing once copied elsewhere.
-     *
-     * COLLABORATIVE public lists keep their assignees: only members can add
-     * tasks there, which is the distinction legacy draws deliberately.
-     *
-     * v1 never carried this across. Its own assignee guard (the assignee must
-     * belong to one of the lists) does not cover it, because the people who
-     * can post to a copy-only public list ARE members. (Task e0613ae5.)
-     */
-    let finalAssigneeId: string | null | undefined = body.assigneeId
-    if (body.listIds?.length) {
-      const lists = await prisma.taskList.findMany({
-        where: { id: { in: body.listIds } },
-        select: {
-          id: true,
-          name: true,
-          ownerId: true,
-          privacy: true,
-          publicListType: true,
-          isVirtual: true,
-          projectId: true,
-          listType: true,
-          listMembers: {
-            select: {
-              userId: true,
-              role: true,
-            },
-          },
-        },
-      })
-
-      const foundListIds = new Set(lists.map(l => l.id))
-      const missingListIds = body.listIds.filter((id: string) => !foundListIds.has(id))
-      if (missingListIds.length > 0) {
-        return NextResponse.json(
-          { error: `Invalid list IDs: ${missingListIds.join(', ')}` },
-          { status: 400 }
-        )
-      }
-
-      for (const list of lists) {
-        const userHasAccess = hasListAccess(list as any, auth.userId)
-        const isCollaborativePublic = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-
-        if (!userHasAccess && !isCollaborativePublic) {
-          return NextResponse.json(
-            { error: `You don't have permission to create tasks in list: ${list.name}` },
-            { status: 403 }
-          )
-        }
-      }
-
-      // The assignee (if not the creator) must be a member/owner of one of the
-      // task's lists — otherwise arbitrary users could be assigned tasks.
-      //
-      // Hoisted to a const because the `&&` narrowing does not survive into the
-      // closure below: `body` is mutable, so TypeScript cannot know assigneeId
-      // is still a string by the time the callback runs. Correct at runtime
-      // either way; this makes it checkable. (Task 87e19910.)
-      const requestedAssigneeId = body.assigneeId
-      if (requestedAssigneeId && requestedAssigneeId !== auth.userId
-          && !lists.some(l => hasListAccess(l as any, requestedAssigneeId))) {
-        return NextResponse.json(
-          { error: 'Assignee must be a member of one of the task lists' },
-          { status: 400 }
-        )
-      }
-
-      // One copy-only public list in the set is enough: the task becomes
-      // publicly visible through it whatever the other lists are.
-      const hasCopyOnlyPublicList = lists.some(
-        list => list.privacy === 'PUBLIC' && list.publicListType !== 'collaborative'
-      )
-      if (hasCopyOnlyPublicList) {
-        finalAssigneeId = null
-      }
-
-      // Virtual lists are saved-filter views, not real containers
-      validatedListIds = lists
-        .filter(list => !list.isVirtual)
-        .map(list => list.id)
-
-      // Enforce the project-status board invariants: at most one status
-      // list per project, and never two completing statuses. Mirrors the
-      // call in /api/tasks (legacy). See docs/product/project-status-board.md.
-      const projectIds = lists
-        .map(list => list.projectId)
-        .filter((id): id is string => Boolean(id))
-
-      if (projectIds.length > 0) {
-        const projectStatusLists = await prisma.taskList.findMany({
-          where: {
-            projectId: { in: Array.from(new Set(projectIds)) },
-            listType: 'status',
-          },
-        })
-        const normalized = normalizeProjectStatusListIds(
-          validatedListIds,
-          [...lists, ...projectStatusLists] as any,
-          { completed: false },
-        )
-        validatedListIds = normalized.listIds
-      }
-    }
-
-    // Reused for idempotency hits and the actual create
-    const taskInclude = {
-      lists: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          ownerId: true,
-          description: true,
-          listMembers: {
-            select: {
-              id: true,
-              listId: true,
-              userId: true,
-              role: true,
-            }
-          }
-        },
-      },
-      assignee: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-          isAIAgent: true,
-          aiAgentType: true,
-        },
-      },
-      creator: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-          isAIAgent: true,
-        },
-      },
-      comments: true,
-      attachments: true,
-    } as const
-
     // ── Subtasks: validate parentTaskId if provided ────────────────────
-    const rawParentTaskId = typeof body.parentTaskId === 'string' && body.parentTaskId ? body.parentTaskId : null
+    // Stays here: subtasks are a v1 concept and no other create surface
+    // accepts a parent.
+    const rawParentTaskId =
+      typeof body.parentTaskId === 'string' && body.parentTaskId ? body.parentTaskId : null
+    if (rawParentTaskId) {
+      const parentError = await validateParentTask(rawParentTaskId)
+      if (parentError) {
+        return NextResponse.json({ error: parentError }, { status: 400 })
+      }
+    }
+
     // Board status at creation (task eb7fce2f). A ROLE, matching the update
     // route: the board's add-task form sends the target column here so a task
     // created on "Ready" lands on Ready — the column id must never travel
@@ -497,288 +328,105 @@ export const POST = withAuth(
       typeof body.statusRole === 'string' && body.statusRole.trim()
         ? body.statusRole.trim()
         : null
-    if (rawParentTaskId) {
-      const parentError = await validateParentTask(rawParentTaskId)
-      if (parentError) {
-        return NextResponse.json({ error: parentError }, { status: 400 })
-      }
-    }
 
-    // Human-readable identifier for tasks in a project (task 12f54df4).
-    // Best-effort — a failure here must not cost the user their task.
-    //
-    // Minted HERE, above the idempotency branch, because it used to be minted
-    // only in the non-idempotent path below. Any client sending a
-    // clientRequestId — which iOS does — created tasks with no AST-nnn
-    // identifier at all (task 5bcd426b).
-    let minted: { identifier: string; sequence: number } | null = null
-    try {
-      minted = await allocateTaskIdentifier(validatedListIds)
-    } catch (err) {
-      log.error({ err }, 'Failed to allocate task identifier')
-    }
-
-    // ── Idempotency: clientRequestId-based (preferred) ─────────────────
-    const rawClientRequestId = typeof body.clientRequestId === 'string' ? body.clientRequestId.trim() : null
-    if (rawClientRequestId !== null) {
-      if (rawClientRequestId.length < 8 || rawClientRequestId.length > 128) {
-        return NextResponse.json(
-          { error: 'clientRequestId must be between 8 and 128 characters' },
-          { status: 400 }
-        )
-      }
-
-      // Optimistic lookup — fast path when retried after a successful create
-      const existing = await prisma.task.findUnique({
-        where: { clientRequestId: rawClientRequestId },
-        include: taskInclude,
-      })
-      if (existing) {
-        log.info({ taskId: existing.id }, 'Idempotency hit (clientRequestId): returning existing task')
-        const headers: Record<string, string> = {}
-        const deprecationWarning = getDeprecationWarning(auth)
-        if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
-        return NextResponse.json(
-          { task: existing, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
-          { status: 200, headers }
-        )
-      }
-
-      // Unique constraint on clientRequestId catches concurrent retries
-      try {
-        const task = await prisma.task.create({
-          data: {
-            title: body.title,
-            description: body.description || '',
-            priority: body.priority ?? 0,
-            assigneeId: finalAssigneeId,
-            creatorId: auth.userId,
-            identifier: minted?.identifier ?? null,
-            sequence: minted?.sequence ?? null,
-            clientRequestId: rawClientRequestId,
-            parentTaskId: rawParentTaskId,
-            statusRole: rawStatusRole,
-            dueDateTime,
-            isAllDay,
-            isPrivate: body.isPrivate ?? true,
-            repeating: body.repeating || 'never',
-            completed: false,
-            lists: validatedListIds.length
-              ? { connect: validatedListIds.map((id: string) => ({ id })) }
-              : undefined,
-          },
-          include: taskInclude,
-        })
-
-        return await handleTaskCreated(req, task, auth)
-      } catch (err) {
-        // P2002 = unique constraint hit, meaning another request won the race
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-          const raceExisting = await prisma.task.findUnique({
-            where: { clientRequestId: rawClientRequestId },
-            include: taskInclude,
-          })
-          if (raceExisting && raceExisting.creatorId === auth.userId) {
-            log.info({ taskId: raceExisting.id }, 'Idempotency hit (P2002 fallback): returning existing task')
-            const headers: Record<string, string> = {}
-            const deprecationWarning = getDeprecationWarning(auth)
-            if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
-            return NextResponse.json(
-              { task: raceExisting, meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true } },
-              { status: 200, headers }
-            )
-          }
-          return NextResponse.json(
-            { error: 'clientRequestId already used by another request' },
-            { status: 409 }
-          )
-        }
-        throw err
-      }
-    }
-
-    // ── Idempotency: time-based dedup (fallback for clients without clientRequestId) ──
-    const recentDuplicate = await prisma.task.findFirst({
-      where: {
-        title: body.title.trim(),
-        creatorId: auth.userId,
-        createdAt: { gte: new Date(Date.now() - 60_000) },
-        ...(validatedListIds.length > 0
-          ? { lists: { some: { id: { in: validatedListIds } } } }
-          : {}),
-      },
-      include: taskInclude,
-    })
-
-    if (recentDuplicate) {
-      log.info({ taskId: recentDuplicate.id, ageMs: Date.now() - recentDuplicate.createdAt.getTime() }, 'Idempotency hit (time-based): returning existing task')
-      const headers: Record<string, string> = {}
-      const deprecationWarning = getDeprecationWarning(auth)
-      if (deprecationWarning) {
-        headers['X-Deprecation-Warning'] = deprecationWarning
-      }
-      return NextResponse.json(
-        {
-          task: recentDuplicate,
-          meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true },
-        },
-        { status: 200, headers }
-      )
-    }
-
-    const task = await prisma.task.create({
-      data: {
+    const result = await createTaskWithSideEffects({
+      input: {
         title: body.title,
-        description: body.description || '',
-        priority: body.priority ?? 0,
-        assigneeId: finalAssigneeId,
-        creatorId: auth.userId,
-        identifier: minted?.identifier ?? null,
-        sequence: minted?.sequence ?? null,
-        clientRequestId: rawClientRequestId,
+        description: body.description,
+        priority: body.priority,
+        listIds: body.listIds,
+        assigneeId: body.assigneeId,
+        dueDateTime: body.dueDateTime,
+        when: body.when,
+        isAllDay: body.isAllDay,
+        isPrivate: body.isPrivate,
+        repeating: body.repeating,
+        clientRequestId: body.clientRequestId,
         parentTaskId: rawParentTaskId,
         statusRole: rawStatusRole,
-        dueDateTime,
-        isAllDay,
-        isPrivate: body.isPrivate ?? true,
-        repeating: body.repeating || 'never',
-        completed: false,
-        lists: validatedListIds.length
-          ? { connect: validatedListIds.map((id: string) => ({ id })) }
-          : undefined,
       },
-      include: taskInclude,
+      actorId: auth.userId,
+      platform: detectPlatform(req),
+      // v1's own rule: an assignee must already hold a role on one of the
+      // task's lists, or arbitrary users could be assigned work. Legacy cannot
+      // adopt it — its assign-by-email path mints a placeholder user who has
+      // not accepted an invitation and is a member of nothing.
+      requireAssigneeListMembership: true,
     })
 
-    return await handleTaskCreated(req, task, auth)
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
+    }
+
+    const headers: Record<string, string> = {}
+    const deprecationWarning = getDeprecationWarning(auth)
+    if (deprecationWarning) {
+      headers['X-Deprecation-Warning'] = deprecationWarning
+    }
+
+    return NextResponse.json(
+      {
+        task: narrowCreatedTaskForV1(result.task),
+        meta: {
+          apiVersion: 'v1',
+          authSource: auth.source,
+          ...(result.idempotent ? { idempotent: true } : {}),
+        },
+      },
+      { status: result.idempotent ? 200 : 201, headers }
+    )
   }
 )
 
 /**
- * Shared handler for post-creation: SSE broadcasts, AI agent notification,
- * cache invalidation, analytics, response.
+ * The v1 wire shape for a created task.
+ *
+ * The service creates with one canonical include so that every surface writes
+ * identical DB state, and that include is legacy's — the richest of the four.
+ * It carries `list.owner` and `listMembers.user`, whole user records with
+ * email addresses on them. Returning it here verbatim would newly publish
+ * every list member's email to v1 API consumers, so this narrows back to the
+ * exact shape v1 has always returned. Same row, unchanged contract.
  */
-async function handleTaskCreated(req: NextRequest, task: any, auth: AuthContext) {
-  // System comment recording the creation (authorId: null), rendered behind the
-  // task-detail "Show system" toggle. Only genuine creations reach here — the
-  // idempotent duplicate-return branches short-circuit before calling this.
-  await recordTaskCreationComment({
-    taskId: task.id,
-    creatorName: task.creator?.name || task.creator?.email || "Someone",
-  })
+function narrowCreatedTaskForV1(task: CreatedTask) {
+  const { lists, assignee, creator, comments, ...scalars } = task as unknown as Record<string, any>
 
-  if (task.assigneeId && task.assigneeId !== auth.userId) {
-    try {
-      broadcastToUsers([task.assigneeId], {
-        type: 'task_assigned',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          task: enrichTaskForAgent(task),
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          dueDateTime: task.dueDateTime,
-          listId: task.lists?.[0]?.id,
-          listName: task.lists?.[0]?.name,
-          githubRepositoryId: (task.lists?.[0] as any)?.githubRepositoryId,
-          assignerName: task.creator?.name || task.creator?.email || "Someone",
-          assignerId: task.creator?.id,
-          userId: auth.userId,
-          listNames: task.lists?.map((list: any) => list.name) || [],
-          comments: task.comments?.map((c: any) => ({
-            id: c.id,
-            content: c.content,
-            authorName: c.author?.name,
-            createdAt: c.createdAt
-          })) || []
+  return {
+    ...scalars,
+    lists: (lists ?? []).map((list: any) => ({
+      id: list.id,
+      name: list.name,
+      color: list.color,
+      ownerId: list.ownerId,
+      description: list.description,
+      listMembers: (list.listMembers ?? []).map((member: any) => ({
+        id: member.id,
+        listId: member.listId,
+        userId: member.userId,
+        role: member.role,
+      })),
+    })),
+    assignee: assignee
+      ? {
+          id: assignee.id,
+          name: assignee.name,
+          email: assignee.email,
+          image: assignee.image,
+          isAIAgent: assignee.isAIAgent,
+          aiAgentType: assignee.aiAgentType,
         }
-      })
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to send task_assigned SSE notification')
-    }
+      : null,
+    creator: creator
+      ? {
+          id: creator.id,
+          name: creator.name,
+          email: creator.email,
+          image: creator.image,
+          isAIAgent: creator.isAIAgent,
+        }
+      : null,
+    // v1 has always returned bare comments; the canonical include hydrates
+    // their authors for the SSE payload, which is not part of this contract.
+    comments: (comments ?? []).map(({ author: _author, ...comment }: any) => comment),
   }
-
-  // Notify all list members other than the creator and assignee
-  const taskListIds = task.lists?.map((list: any) => list.id) || []
-  if (taskListIds.length > 0) {
-    try {
-      const userIds = new Set<string>()
-
-      for (const list of task.lists) {
-        const memberIds = getListMemberIds(list as any)
-        memberIds.forEach((id: string) => userIds.add(id))
-      }
-
-      userIds.delete(auth.userId)
-      if (task.assigneeId) {
-        userIds.delete(task.assigneeId)
-      }
-
-      if (userIds.size > 0) {
-        broadcastToUsers(Array.from(userIds), {
-          type: 'task_created',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            task: enrichTaskForAgent(task),
-            taskTitle: task.title,
-            taskPriority: task.priority,
-            taskDueDateTime: task.dueDateTime,
-            creatorName: task.creator?.name || task.creator?.email || "Someone",
-            userId: auth.userId,
-            listNames: task.lists?.map((list: any) => list.name) || [],
-          }
-        })
-      }
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to send task_created SSE notifications')
-    }
-  }
-
-  if (task.assigneeId && task.assignee?.isAIAgent) {
-    try {
-      const { aiAgentWebhookService } = await import('@/lib/ai-agent-webhook-service')
-      await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
-    } catch (aiNotificationError) {
-      log.error({ err: aiNotificationError }, 'Failed to notify AI agent about task assignment')
-    }
-  }
-
-  try {
-    const redisAvailable = await isRedisAvailable()
-    if (redisAvailable) {
-      const affectedUserIds = new Set<string>()
-      affectedUserIds.add(auth.userId)
-      if (task.assigneeId) affectedUserIds.add(task.assigneeId)
-      for (const list of (task.lists || [])) {
-        const memberIds = getListMemberIds(list as any)
-        memberIds.forEach((id: string) => affectedUserIds.add(id))
-      }
-      await Promise.all(
-        Array.from(affectedUserIds).map(userId =>
-          RedisCache.del(RedisCache.keys.userTasks(userId))
-        )
-      )
-      log.debug({ users: affectedUserIds.size }, 'Invalidated task cache after creation')
-    }
-  } catch (cacheError) {
-    log.error({ err: cacheError }, 'Failed to invalidate task cache (create)')
-  }
-
-  const headers: Record<string, string> = {}
-  const deprecationWarning = getDeprecationWarning(auth)
-  if (deprecationWarning) {
-    headers['X-Deprecation-Warning'] = deprecationWarning
-  }
-
-  trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_CREATED, { taskId: task.id })
-
-  return NextResponse.json(
-    {
-      task,
-      meta: { apiVersion: 'v1', authSource: auth.source },
-    },
-    { status: 201, headers }
-  )
 }
