@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * Build script that safely handles database migrations
- * This runs during Vercel build and applies migrations if DATABASE_URL is available
- * Automatically resolves failed migrations before applying new ones
+ * Build script that safely handles database migrations.
+ *
+ * This is the Vercel build command for EVERY environment, so what it may touch
+ * is decided by ./lib/build-migration-policy: Vercel production builds migrate,
+ * previews and local builds do not (task 2b3e7469). Failed migrations are
+ * auto-resolved before new ones are applied.
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { migrationPlan } = require('./lib/build-migration-policy');
 
 function runCommand(command, description, critical = true) {
   console.log(`🔄 ${description}...`);
@@ -127,9 +131,15 @@ async function main() {
   // 1. Generate Prisma client (critical)
   runCommand('npx prisma generate', 'Generating Prisma client', true);
 
-  // 2. Deploy database migrations (non-critical - might not be available during build)
-  if (process.env.DATABASE_URL) {
-    console.log('📊 DATABASE_URL found, applying migrations...');
+  // 2. Deploy database migrations — Vercel production builds ONLY.
+  //
+  // The condition used to be "DATABASE_URL is set", which is true on a preview
+  // deploy too, because DATABASE_URL is scoped to all three environments with
+  // the production value (task 2b3e7469).
+  const plan = migrationPlan(process.env);
+
+  if (plan.migrate) {
+    console.log(`📊 ${plan.reason} Applying migrations...`);
 
     // First, try to resolve any failed migrations
     try {
@@ -167,16 +177,16 @@ async function main() {
       console.log(`\n⚠️ Reached max retries (${maxRetries}) for resolving failed migrations`);
     }
 
-    if (migrationResult.success) {
-      // Apply schema changes (for new indexes)
-      runCommand('npx prisma db push --skip-generate --accept-data-loss', 'Applying schema optimizations', false);
-    } else {
-      console.log('⚠️  Database migrations skipped (DATABASE_URL may not be accessible during build)');
-      console.log('ℹ️  Migrations will be applied during first runtime if needed');
+    // There is deliberately no `prisma db push --accept-data-loss` here. It
+    // force-syncs the schema and can DROP columns, the deploy workflow already
+    // fails a build whose schema has drifted from its migrations, and no
+    // environment is worth a step that can silently delete production data.
+    if (!migrationResult.success) {
+      console.log('⚠️  Database migrations did not complete during build');
+      console.log('ℹ️  The production deploy workflow migrates separately and gates on it');
     }
   } else {
-    console.log('⚠️  DATABASE_URL not found during build, skipping migrations');
-    console.log('ℹ️  Make sure DATABASE_URL is set in Vercel environment variables');
+    console.log(`⏭️  Skipping migrations: ${plan.reason}`);
   }
 
   // 3. Build Next.js application (critical)
