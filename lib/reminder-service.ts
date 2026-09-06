@@ -44,10 +44,17 @@ export class ReminderService {
    */
   private static readonly STALE_CLAIM_MS = 10 * 60 * 1000
 
-  async processDueReminders(): Promise<void> {
+  /**
+   * @returns counts for the cron summary. These used to be `void`, so even a
+   * perfect log line could only say "done" — never whether it processed 500
+   * reminders or zero (task f74c9370).
+   */
+  async processDueReminders(): Promise<{ due: number; sent: number; failed: number; staleReleased: number }> {
     const now = new Date()
 
-    await this.releaseStaleClaims(now)
+    const staleReleased = await this.releaseStaleClaims(now)
+    let sent = 0
+    let failed = 0
 
     // Get pending reminders that are due, bounded and oldest-first.
     const dueReminders = await this.prisma.reminderQueue.findMany({
@@ -93,11 +100,15 @@ export class ReminderService {
 
       try {
         await this.processSingleReminder(reminder)
+        sent++
       } catch (error) {
+        failed++
         log.error({ err: error }, `Failed to process reminder ${reminder.id}:`)
         await this.handleReminderFailure(reminder, error)
       }
     }
+
+    return { due: dueReminders.length, sent, failed, staleReleased }
   }
 
   /**
@@ -108,7 +119,8 @@ export class ReminderService {
    * is clearly stale rather than immediately, so a slow-but-alive run is not
    * raced by the next minute's invocation.
    */
-  private async releaseStaleClaims(now: Date): Promise<void> {
+  /** @returns how many stuck claims were returned to the queue. */
+  private async releaseStaleClaims(now: Date): Promise<number> {
     const cutoff = new Date(now.getTime() - ReminderService.STALE_CLAIM_MS)
 
     const released = await this.prisma.reminderQueue.updateMany({
@@ -119,6 +131,8 @@ export class ReminderService {
     if (released.count > 0) {
       log.warn(`Released ${released.count} reminder(s) stuck mid-delivery back to pending`)
     }
+
+    return released.count
   }
 
   private async processSingleReminder(reminder: any): Promise<void> {
@@ -681,13 +695,17 @@ export class ReminderService {
     }
   }
 
-  async retryFailedReminders(): Promise<void> {
+  /** @returns how many failed reminders were rescheduled, and how many could not be. */
+  async retryFailedReminders(): Promise<{ eligible: number; rescheduled: number; failed: number }> {
     const failedReminders = await this.prisma.reminderQueue.findMany({
       where: {
         status: 'failed',
         retryCount: { lt: 3 }, // Max 3 retries
       },
     })
+
+    let rescheduled = 0
+    let failed = 0
 
     for (const reminder of failedReminders) {
       try {
@@ -703,11 +721,15 @@ export class ReminderService {
           },
         })
 
+        rescheduled++
         log.info(`Rescheduled failed reminder ${reminder.id} with ${backoffMinutes}min backoff`)
       } catch (error) {
+        failed++
         log.error({ err: error }, `Failed to reschedule reminder ${reminder.id}:`)
       }
     }
+
+    return { eligible: failedReminders.length, rescheduled, failed }
   }
 
   private async handleReminderFailure(reminder: any, error: any): Promise<void> {

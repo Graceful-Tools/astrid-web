@@ -8,6 +8,7 @@ import {
 } from "@/lib/abandoned-uploads"
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from "@/lib/cron-auth"
+import { runCronJob } from "@/lib/cron-observability"
 
 const log = createLogger('cron.abandoned-uploads')
 
@@ -23,15 +24,12 @@ const log = createLogger('cron.abandoned-uploads')
  * Daily is plenty: this is a storage leak, not a correctness bug.
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Verify the request is from Vercel cron. Fails CLOSED: no
-    // CRON_SECRET configured means nobody gets in.
-    const blocked = requireCronSecret(request)
-    if (blocked) return blocked
+  // Fails CLOSED: no CRON_SECRET configured means nobody gets in, and
+  // requireCronSecret now logs the rejection (task f74c9370).
+  const blocked = requireCronSecret(request)
+  if (blocked) return blocked
 
-    log.info("🔄 Sweeping abandoned composer uploads...")
-    const startTime = Date.now()
-
+  return runCronJob('abandoned-uploads', async () => {
     const result = await sweepAbandonedUploads({
       prisma,
       deleteFile,
@@ -43,27 +41,10 @@ export async function GET(request: NextRequest) {
     // someone can act on instead of an unmeasured caveat.
     const legacyAmbiguous = await countAmbiguousLegacyUploads(prisma)
 
-    const duration = Date.now() - startTime
-    log.info(
-      { ...result, legacyAmbiguous, graceHours: ABANDONED_UPLOAD_GRACE_MS / (60 * 60 * 1000) },
-      `✅ Abandoned upload sweep completed in ${duration}ms`,
-    )
-
-    return NextResponse.json({
-      success: true,
-      duration: `${duration}ms`,
-      timestamp: new Date().toISOString(),
+    return {
       ...result,
       legacyAmbiguous,
-    })
-  } catch (error) {
-    log.error({ err: error }, "❌ Error in abandoned upload sweep:")
-    return NextResponse.json(
-      {
-        error: "Abandoned upload sweep failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    )
-  }
+      graceHours: ABANDONED_UPLOAD_GRACE_MS / (60 * 60 * 1000),
+    }
+  })
 }

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('cron-auth')
 
 /**
  * Authorization for the scheduled cron routes. **Fails closed.**
@@ -51,14 +54,32 @@ export function requireCronSecret(request: NextRequest): NextResponse | null {
       process.env.NODE_ENV !== 'production' &&
       process.env.ALLOW_UNAUTHENTICATED_CRON === 'true'
     ) {
+      log.warn(
+        { path: request.nextUrl?.pathname },
+        'Cron route allowed WITHOUT authentication via ALLOW_UNAUTHENTICATED_CRON (never available in production)'
+      )
       return null
     }
+    // The silence here is what let every scheduled route 401 for weeks
+    // unnoticed (task a5eb65a4, diagnosed again in f74c9370). A cron being
+    // turned away is an outage in progress; it must say so.
+    log.warn(
+      { path: request.nextUrl?.pathname, reason: 'no-secret-configured' },
+      'Cron request REJECTED: no CRON_SECRET is configured, so the route fails closed'
+    )
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   // Header only. A secret in a query string lands in logs, browser history and
   // referrers, so it is not accepted as an alternative.
   if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+    log.warn(
+      {
+        path: request.nextUrl?.pathname,
+        reason: request.headers.get('authorization') ? 'wrong-secret' : 'no-authorization-header',
+      },
+      'Cron request REJECTED: Authorization header does not match CRON_SECRET'
+    )
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

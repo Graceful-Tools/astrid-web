@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { syncAllGithubLinks } from '@/lib/sync/github/sync-all-links'
 import { requireCronSecret } from '@/lib/cron-auth'
+import { runCronJob } from '@/lib/cron-observability'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
 export const maxDuration = 60
@@ -30,6 +31,8 @@ export async function GET(request: NextRequest) {
   const blocked = requireCronSecret(request)
   if (blocked) return blocked
 
-  const summary = await syncAllGithubLinks()
-  return NextResponse.json({ ok: true, ...summary })
+  return runCronJob('github-sync', async () => {
+    const summary = await syncAllGithubLinks()
+    return { ...summary }
+  })
 }

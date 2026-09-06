@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createVerifyEmailTasksForUnverifiedUsers } from "@/lib/system-tasks"
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from "@/lib/cron-auth"
+import { runCronJob } from "@/lib/cron-observability"
 
 const log = createLogger('cron.system-tasks')
 
@@ -14,36 +15,14 @@ const log = createLogger('cron.system-tasks')
  * - Other system task maintenance as needed
  */
 export async function GET(request: NextRequest) {
-  try {
-    log.info("🔄 Processing system tasks...")
+  // Authorised before any logging, so a rejected run and a successful one do
+  // not produce an identical first line and nothing else (task f74c9370).
+  // Fails CLOSED: no CRON_SECRET configured means nobody gets in.
+  const blocked = requireCronSecret(request)
+  if (blocked) return blocked
 
-    // Verify the request is from Vercel cron. Fails CLOSED: no
-    // CRON_SECRET configured means nobody gets in.
-    const blocked = requireCronSecret(request)
-    if (blocked) return blocked
-
-    const startTime = Date.now()
-
-    // Create verify email tasks for all unverified users
+  return runCronJob('system-tasks', async () => {
     const verifyEmailStats = await createVerifyEmailTasksForUnverifiedUsers()
-
-    const duration = Date.now() - startTime
-    log.info(`✅ System tasks processing completed in ${duration}ms`)
-
-    return NextResponse.json({
-      success: true,
-      duration: `${duration}ms`,
-      timestamp: new Date().toISOString(),
-      verifyEmailTasks: verifyEmailStats,
-    })
-  } catch (error) {
-    log.error({ err: error }, "❌ Error in system tasks cron job:")
-    return NextResponse.json(
-      {
-        error: "System tasks processing failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    )
-  }
+    return { ...verifyEmailStats }
+  })
 }

@@ -6,6 +6,7 @@ import { processAgentTasksDueSoon } from '@/lib/agent-task-scheduler'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
+import { runCronJob } from '@/lib/cron-observability'
 
 const log = createLogger('cron.reminders')
 
@@ -17,47 +18,49 @@ const reminderService = new ReminderService(prisma, emailService, pushService)
 
 // Vercel Cron job endpoint - runs every minute
 export async function GET(request: NextRequest) {
-  try {
-    log.info('🔄 Processing reminders...')
+  // Authorised FIRST, and before any logging. The old order logged
+  // "Processing reminders..." and only then checked the secret, so a rejected
+  // run and a successful one produced an identical first line and nothing
+  // else — which is exactly what made this job unobservable (task f74c9370).
+  // Fails CLOSED: no CRON_SECRET configured means nobody gets in, and
+  // requireCronSecret now says so at warn level.
+  const blocked = requireCronSecret(request)
+  if (blocked) return blocked
 
-    // Verify the request is from Vercel cron
-    // Fails CLOSED: no CRON_SECRET configured means nobody gets in.
-    const blocked = requireCronSecret(request)
-    if (blocked) return blocked
-
-    const startTime = Date.now()
-
-    // Process different types of reminders + agent task dispatch
-    await Promise.allSettled([
+  return runCronJob('reminders', async () => {
+    // allSettled by design: one failing sub-job must not stop the others. But
+    // it also swallows the rejection, so the outcomes are counted rather than
+    // discarded.
+    const [due, retry, agents] = await Promise.allSettled([
       reminderService.processDueReminders(),
       reminderService.retryFailedReminders(),
       processAgentTasksDueSoon(),
     ])
 
-    // Check if it's time for daily digests (runs every hour, but service filters by time)
+    // Digests run at the top of every hour; the services filter by user time.
     const now = new Date()
-    if (now.getMinutes() === 0) { // Top of every hour
+    let digestsAttempted = false
+    if (now.getMinutes() === 0) {
+      digestsAttempted = true
       await Promise.allSettled([
         reminderService.processDailyDigests(),
         reminderService.processWeeklyDigests(),
       ])
     }
 
-    const duration = Date.now() - startTime
-    log.info(`✅ Reminder processing completed in ${duration}ms`)
-
-    return NextResponse.json({
-      success: true,
-      duration: `${duration}ms`,
-      timestamp: new Date().toISOString(),
-    })
-  } catch (error) {
-    log.error({ err: error }, '❌ Error in reminder cron job:')
-    return NextResponse.json(
-      { error: 'Reminder processing failed', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    )
-  }
+    return {
+      remindersDue: due.status === 'fulfilled' ? due.value.due : -1,
+      remindersSent: due.status === 'fulfilled' ? due.value.sent : -1,
+      remindersFailed: due.status === 'fulfilled' ? due.value.failed : -1,
+      staleClaimsReleased: due.status === 'fulfilled' ? due.value.staleReleased : -1,
+      retriesRescheduled: retry.status === 'fulfilled' ? retry.value.rescheduled : -1,
+      agentTasksDispatched: agents.status === 'fulfilled' ? agents.value : -1,
+      // -1 means the sub-job threw. A count of 0 and "we never found out" are
+      // different answers and the summary has to be able to tell them apart.
+      subJobsFailed: [due, retry, agents].filter((r) => r.status === 'rejected').length,
+      digestsAttempted,
+    }
+  })
 }
 
 // Allow manual triggering via POST for development/testing
