@@ -74,10 +74,12 @@ async function triggerWorkflowManually() {
         headers: {
           'Content-Type': 'application/json'
         },
+        // No userId: the route derives the actor from the session and
+        // authorises the task against it (task 2b4330e0). Sending one here did
+        // nothing but suggest the route still trusted it.
         body: JSON.stringify({
           workflowId: workflow.id,
-          taskId: task.id,
-          userId: task.creator?.id
+          taskId: task.id
         })
       })
 
