@@ -42,3 +42,24 @@ export function parseLimit(raw: string | number | null | undefined, options: Lim
 
   return Math.min(Math.floor(parsed), max)
 }
+
+/**
+ * Parse an `offset` query parameter into a non-negative integer.
+ *
+ * Same failure modes as parseLimit, but zero is the correct default and a
+ * legitimate value, so it cannot share that function. The public task feeds
+ * used a bare `parseInt(x || '0')`, which passes NaN straight to Prisma's
+ * `skip` on `?offset=abc` (task 49dcf609).
+ */
+export function parseOffset(
+  raw: string | number | null | undefined,
+  options: { max?: number } = {},
+): number {
+  const { max = 1_000_000 } = options
+
+  const parsed = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10)
+
+  if (!Number.isFinite(parsed) || parsed < 0) return 0
+
+  return Math.min(Math.floor(parsed), max)
+}

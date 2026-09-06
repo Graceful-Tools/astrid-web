@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { parseLimit } from '@/lib/pagination'
+import { parseLimit, parseOffset } from '@/lib/pagination'
 
 const opts = { fallback: 10, max: 100 }
 
@@ -55,5 +55,25 @@ describe('parseLimit', () => {
 
   it('tolerates leading and trailing spaces from a hand-typed URL', () => {
     expect(parseLimit(' 25 ', opts)).toBe(25)
+  })
+})
+
+describe('parseOffset', () => {
+  // Zero is both the default and a legitimate value, so this cannot share
+  // parseLimit's "collapse to fallback" rule (task 49dcf609).
+  it.each([
+    ['absent', undefined, 0],
+    ['empty', '', 0],
+    ['non-numeric', 'abc', 0],
+    ['negative', '-5', 0],
+    ['zero', '0', 0],
+    ['a real offset', '40', 40],
+    ['fractional', '7.9', 7],
+  ])('maps %s to %i', (_label, raw, expected) => {
+    expect(parseOffset(raw as string | undefined)).toBe(expected)
+  })
+
+  it('caps an absurd offset', () => {
+    expect(parseOffset('999999999')).toBe(1_000_000)
   })
 })
