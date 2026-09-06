@@ -8,7 +8,7 @@
 import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from "next/server"
-import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
+import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { authenticateAPI, getDeprecationWarning, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { isAdmin } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
   if (blocked) return blocked
 
   // Apply rate limiting for MCP operations
-  const rateLimitCheck = withRateLimit(RATE_LIMITS.MCP_OPERATIONS)(request)
+  const rateLimitCheck = await withRateLimitAsync(RATE_LIMITS.MCP_OPERATIONS)(request)
 
   if (!rateLimitCheck.allowed) {
     log.info('[MCP] Operations rate limited')
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
   const blocked = capabilityGate('integrationMcp')
   if (blocked) return blocked
 
-  const rateLimitCheck = withRateLimit(RATE_LIMITS.MCP_OPERATIONS)(request)
+  const rateLimitCheck = await withRateLimitAsync(RATE_LIMITS.MCP_OPERATIONS)(request)
 
   if (!rateLimitCheck.allowed) {
     log.info('[MCP] Operations rate limited (GET)')

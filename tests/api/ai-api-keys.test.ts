@@ -8,7 +8,7 @@ vi.mock('@/lib/rate-limiter', () => ({
   RATE_LIMITS: {
     API_KEY_TEST: { windowMs: 60000, maxRequests: 5 }
   },
-  withRateLimit: () => () => ({ allowed: true, headers: {} })
+  withRateLimitAsync: () => async () => ({ allowed: true, headers: {} })
 }))
 
 // Mock crypto for encryption

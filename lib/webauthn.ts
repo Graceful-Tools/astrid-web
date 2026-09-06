@@ -262,16 +262,22 @@ export async function getRegistrationOptions(userId: string, email: string, requ
   return options
 }
 
-export async function verifyRegistration(
-  userId: string,
+/**
+ * Cryptographically verify a registration response WITHOUT persisting anything.
+ *
+ * Split out from verifyRegistration so callers can prove the ceremony is
+ * genuine before they touch the user table. /register/verify needs that order:
+ * it must not reveal whether an email already has an account until the caller
+ * has actually completed a WebAuthn ceremony (task c2fbe8e4).
+ */
+export async function verifyRegistrationCredential(
   response: RegistrationResponseJSON,
   expectedChallenge: string,
   requestOrigin?: string
-) {
+): Promise<{ verified: boolean; error?: string; registrationInfo?: NonNullable<Awaited<ReturnType<typeof verifyRegistrationResponse>>["registrationInfo"]> }> {
   try {
     const origins = getExpectedOrigins(requestOrigin)
     log.info({
-      userId,
       expectedChallenge: expectedChallenge.substring(0, 20) + "...",
       expectedOrigin: origins,
       expectedRPID: resolveRpID(requestOrigin),
@@ -289,25 +295,7 @@ export async function verifyRegistration(
     log.info({ verified: verification.verified }, "[WebAuthn] Verification result:")
 
     if (verification.verified && verification.registrationInfo) {
-      // v13 groups the credential fields under `credential` and hands back the id already
-      // base64url-encoded. The values written to the columns are byte-for-byte what v9
-      // wrote, so rows created before and after this upgrade are indistinguishable.
-      const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo
-
-      // Store the credential
-      await prisma.authenticator.create({
-        data: {
-          userId,
-          credentialID: credential.id,
-          credentialPublicKey: Buffer.from(credential.publicKey).toString("base64"),
-          counter: BigInt(credential.counter),
-          credentialDeviceType,
-          credentialBackedUp,
-          transports: response.response.transports?.join(","),
-        },
-      })
-
-      return { verified: true }
+      return { verified: true, registrationInfo: verification.registrationInfo }
     }
 
     return { verified: false, error: "Verification not confirmed" }
@@ -315,6 +303,46 @@ export async function verifyRegistration(
     log.error({ err: error }, "[WebAuthn] Registration verification error:")
     return { verified: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
+}
+
+/** Store a verified credential against a user. */
+export async function persistRegisteredCredential(
+  userId: string,
+  registrationInfo: NonNullable<Awaited<ReturnType<typeof verifyRegistrationResponse>>["registrationInfo"]>,
+  response: RegistrationResponseJSON
+) {
+  // v13 groups the credential fields under `credential` and hands back the id already
+  // base64url-encoded. The values written to the columns are byte-for-byte what v9
+  // wrote, so rows created before and after this upgrade are indistinguishable.
+  const { credential, credentialDeviceType, credentialBackedUp } = registrationInfo
+
+  await prisma.authenticator.create({
+    data: {
+      userId,
+      credentialID: credential.id,
+      credentialPublicKey: Buffer.from(credential.publicKey).toString("base64"),
+      counter: BigInt(credential.counter),
+      credentialDeviceType,
+      credentialBackedUp,
+      transports: response.response.transports?.join(","),
+    },
+  })
+}
+
+export async function verifyRegistration(
+  userId: string,
+  response: RegistrationResponseJSON,
+  expectedChallenge: string,
+  requestOrigin?: string
+) {
+  const result = await verifyRegistrationCredential(response, expectedChallenge, requestOrigin)
+
+  if (!result.verified || !result.registrationInfo) {
+    return { verified: false, error: result.error || "Verification not confirmed" }
+  }
+
+  await persistRegisteredCredential(userId, result.registrationInfo, response)
+  return { verified: true }
 }
 
 export async function getAuthenticationOptions(email?: string, requestOrigin?: string) {

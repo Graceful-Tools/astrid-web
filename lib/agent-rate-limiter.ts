@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { RateLimiter, createRateLimitHeaders } from './rate-limiter'
+import { getClientIp } from './client-ip'
 import type { AuthContext } from './api-auth-middleware'
 
 function agentKeyGenerator(endpointTag: string) {
@@ -15,9 +16,7 @@ function agentKeyGenerator(endpointTag: string) {
     if (clientId) {
       return `agent:${endpointTag}:${clientId}`
     }
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-               request.headers.get('x-real-ip') || 'unknown'
-    return `agent:${endpointTag}:ip:${ip}`
+    return `agent:${endpointTag}:ip:${getClientIp(request)}`
   }
 }
 
@@ -50,9 +49,7 @@ export const AGENT_RATE_LIMITS = {
     keyGenerator: (request: NextRequest) => {
       const userId = (request as any).__agentUserId
       if (userId) return `agent:register:${userId}`
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-                 request.headers.get('x-real-ip') || 'unknown'
-      return `agent:register:ip:${ip}`
+      return `agent:register:ip:${getClientIp(request)}`
     },
   }),
 }

@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
-import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
+import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { z } from "zod"
 import crypto from "crypto"
 import { createLogger } from '@/lib/logger'
@@ -96,7 +96,7 @@ async function testGeminiKey(apiKey: string): Promise<{ success: boolean; error?
 
 export async function POST(request: NextRequest) {
   // Apply strict rate limiting for API key testing
-  const rateLimitCheck = withRateLimit(RATE_LIMITS.API_KEY_TEST)(request)
+  const rateLimitCheck = await withRateLimitAsync(RATE_LIMITS.API_KEY_TEST)(request)
 
   if (!rateLimitCheck.allowed) {
     log.info('🚫 API key test rate limited')

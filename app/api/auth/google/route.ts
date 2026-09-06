@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { verifyGoogleIdentity } from "@/lib/auth/google-identity"
 import { createDefaultListsForUser } from "@/lib/default-lists"
-import { withRateLimitHandler, authRateLimiter } from "@/lib/rate-limiter"
+import { withRateLimitHandlerAsync, authRateLimiter } from "@/lib/rate-limiter"
 import { safeResponseJson } from "@/lib/safe-parse"
 import { createLogger } from '@/lib/logger'
 
@@ -208,4 +208,4 @@ async function googleSignInHandler(request: NextRequest) {
 }
 
 // Export with rate limiting (10 requests per minute per IP)
-export const POST = withRateLimitHandler(googleSignInHandler, authRateLimiter)
+export const POST = withRateLimitHandlerAsync(googleSignInHandler, authRateLimiter)

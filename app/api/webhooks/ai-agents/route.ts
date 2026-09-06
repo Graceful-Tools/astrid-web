@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
-import { RATE_LIMITS, withRateLimit } from "@/lib/rate-limiter"
+import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
 
@@ -154,7 +154,7 @@ async function sendAIAgentActivitySSE(task: any, payload: any, aiAgent: any) {
 
 export async function POST(request: NextRequest) {
   // Apply rate limiting
-  const rateLimitCheck = withRateLimit(RATE_LIMITS.WEBHOOK)(request)
+  const rateLimitCheck = await withRateLimitAsync(RATE_LIMITS.WEBHOOK)(request)
 
   if (!rateLimitCheck.allowed) {
     log.info(rateLimitCheck.error, '🚫 Webhook rate limited:')

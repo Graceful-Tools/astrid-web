@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server"
-import { RateLimitStore, getCachedRateLimitStore, getMemoryStore } from "./rate-limit-stores"
+import { RateLimitStore, getCachedRateLimitStore } from "./rate-limit-stores"
+import { clientIpKey, getClientIp } from "./client-ip"
 
 interface RateLimitConfig {
   windowMs: number // Time window in milliseconds
@@ -11,6 +12,13 @@ interface RateLimitConfig {
 export interface RateLimitEntry {
   count: number
   resetTime: number
+}
+
+export interface RateLimitResult {
+  allowed: boolean
+  remaining: number
+  resetTime: number
+  total: number
 }
 
 export class RateLimiter {
@@ -33,24 +41,19 @@ export class RateLimiter {
       return this.config.keyGenerator(request)
     }
 
-    // Default: use IP address
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded ? forwarded.split(',')[0].trim() :
-               request.headers.get('x-real-ip') ||
-               'unknown'
-    return `ip:${ip}`
+    // Default: the rightmost trusted X-Forwarded-For hop — see lib/client-ip.ts
+    return clientIpKey('ip', request)
   }
 
   /**
-   * Check rate limit (async version using store)
-   * This is the preferred method for new code
+   * Check rate limit against the shared (Redis-backed where available) store.
+   *
+   * This is the ONLY check. The old synchronous variant counted in a
+   * per-instance in-memory Map, so a documented "10 attempts per minute" was
+   * really 10 x the number of warm serverless instances and reset on every cold
+   * start (task c2fbe8e4).
    */
-  public async checkRateLimitAsync(request: NextRequest): Promise<{
-    allowed: boolean
-    remaining: number
-    resetTime: number
-    total: number
-  }> {
+  public async checkRateLimitAsync(request: NextRequest): Promise<RateLimitResult> {
     return this.checkRateLimitByKeyAsync(this.getClientKey(request))
   }
 
@@ -58,12 +61,7 @@ export class RateLimiter {
    * Redis-backed rate-limit check against an explicit key (e.g. a user id),
    * for handlers that key on identity rather than IP.
    */
-  public async checkRateLimitByKeyAsync(key: string): Promise<{
-    allowed: boolean
-    remaining: number
-    resetTime: number
-    total: number
-  }> {
+  public async checkRateLimitByKeyAsync(key: string): Promise<RateLimitResult> {
     const store = await this.getStore()
 
     // Get current entry
@@ -96,56 +94,6 @@ export class RateLimiter {
       total: this.config.maxRequests
     }
   }
-
-  /**
-   * Synchronous rate limit check (uses in-memory store only)
-   * Kept for backward compatibility with existing code
-   * @deprecated Use checkRateLimitAsync for distributed deployments
-   */
-  public checkRateLimit(request: NextRequest): {
-    allowed: boolean
-    remaining: number
-    resetTime: number
-    total: number
-  } {
-    const key = this.getClientKey(request)
-    const now = Date.now()
-    const resetTime = now + this.config.windowMs
-
-    // Use memory store directly for sync operation
-    const memoryStore = getMemoryStore()
-
-    // This is a simplified sync version - get and increment in memory
-    // For full distributed support, use checkRateLimitAsync
-    const entry = memoryStore['store'].get(key)
-
-    let currentCount = 0
-    let currentResetTime = resetTime
-
-    if (entry && now <= entry.resetTime) {
-      currentCount = entry.count
-      currentResetTime = entry.resetTime
-    }
-
-    // Check if limit exceeded
-    const allowed = currentCount < this.config.maxRequests
-
-    if (allowed) {
-      // Increment synchronously
-      memoryStore['store'].set(key, {
-        count: currentCount + 1,
-        resetTime: currentResetTime
-      })
-      currentCount++
-    }
-
-    return {
-      allowed,
-      remaining: Math.max(0, this.config.maxRequests - currentCount),
-      resetTime: currentResetTime,
-      total: this.config.maxRequests
-    }
-  }
 }
 
 // Auth-specific rate limiter (stricter limits for security-sensitive operations)
@@ -158,21 +106,13 @@ export const authRateLimiter = new RateLimiter({
 export const oauthTokenRateLimiter = new RateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   maxRequests: 20, // 20 token requests per minute per IP
-  keyGenerator: (request) => {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-               request.headers.get('x-real-ip') || 'unknown'
-    return `oauth:${ip}`
-  }
+  keyGenerator: (request) => clientIpKey('oauth', request),
 })
 
 export const oauthRegistrationRateLimiter = new RateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 20,
-  keyGenerator: (request) => {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-               request.headers.get('x-real-ip') || 'unknown'
-    return `oauth-register:${ip}`
-  }
+  keyGenerator: (request) => clientIpKey('oauth-register', request),
 })
 
 // Per-user invite rate limit (keyed by user id via checkRateLimitByKeyAsync):
@@ -183,6 +123,24 @@ export const inviteRateLimiter = new RateLimiter({
   maxRequests: 30,
 })
 
+// Passkey ceremonies. Unauthenticated, they touch the user table by email and
+// they mint challenges, so they get a tighter budget than general auth traffic
+// (task c2fbe8e4 — these routes previously had no limiter at all).
+export const passkeyRateLimiter = new RateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  maxRequests: 10,
+  keyGenerator: (request) => clientIpKey('passkey', request),
+})
+
+// Session read/teardown endpoints (mobile-session, v1 signout). Called
+// routinely by the iOS app, so the budget is generous — it exists to stop a
+// cookie-guessing loop, not to police normal use.
+export const sessionRateLimiter = new RateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  maxRequests: 60,
+  keyGenerator: (request) => clientIpKey('session', request),
+})
+
 // Preset configurations for different endpoints
 export const RATE_LIMITS = {
   // Webhook endpoints - higher limits for legitimate AI service integrations
@@ -191,10 +149,8 @@ export const RATE_LIMITS = {
     maxRequests: 100, // 100 requests per 15 minutes
     keyGenerator: (request) => {
       // Rate limit by IP and User-Agent combination for webhooks
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-                 request.headers.get('x-real-ip') || 'unknown'
       const userAgent = request.headers.get('user-agent') || 'unknown'
-      return `webhook:${ip}:${userAgent.substring(0, 50)}`
+      return `webhook:${getClientIp(request)}:${userAgent.substring(0, 50)}`
     }
   }),
 
@@ -202,23 +158,14 @@ export const RATE_LIMITS = {
   MCP_OPERATIONS: new RateLimiter({
     windowMs: 1 * 60 * 1000, // 1 minute
     maxRequests: 100, // 100 requests per minute (allows full sync + task operations)
-    keyGenerator: (request) => {
-      // Try to extract user ID from session or use IP
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-                 request.headers.get('x-real-ip') || 'unknown'
-      return `mcp:${ip}`
-    }
+    keyGenerator: (request) => clientIpKey('mcp', request),
   }),
 
   // API key testing - strict limits to prevent abuse
   API_KEY_TEST: new RateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 10, // 10 tests per hour
-    keyGenerator: (request) => {
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-                 request.headers.get('x-real-ip') || 'unknown'
-      return `apitest:${ip}`
-    }
+    keyGenerator: (request) => clientIpKey('apitest', request),
   }),
 
   // General API endpoints
@@ -231,16 +178,12 @@ export const RATE_LIMITS = {
   PUBLIC: new RateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
     maxRequests: 60, // 60 requests per 15 minutes (4 per minute)
-    keyGenerator: (request) => {
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-                 request.headers.get('x-real-ip') || 'unknown'
-      return `public:${ip}`
-    }
+    keyGenerator: (request) => clientIpKey('public', request),
   })
 }
 
 // Helper function to create rate limit response headers
-export function createRateLimitHeaders(result: ReturnType<RateLimiter['checkRateLimit']>): Record<string, string> {
+export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
   return {
     'X-RateLimit-Limit': result.total.toString(),
     'X-RateLimit-Remaining': result.remaining.toString(),
@@ -249,28 +192,8 @@ export function createRateLimitHeaders(result: ReturnType<RateLimiter['checkRate
   }
 }
 
-// Middleware helper for easy integration
-export function withRateLimit(rateLimiter: RateLimiter) {
-  return (request: NextRequest) => {
-    const result = rateLimiter.checkRateLimit(request)
-    const headers = createRateLimitHeaders(result)
-
-    return {
-      allowed: result.allowed,
-      headers,
-      status: result.allowed ? 200 : 429,
-      error: result.allowed ? null : {
-        error: 'Rate limit exceeded',
-        message: `Too many requests. Try again in ${Math.ceil((result.resetTime - Date.now()) / 1000)} seconds.`,
-        retryAfter: Math.ceil((result.resetTime - Date.now()) / 1000)
-      }
-    }
-  }
-}
-
 /**
- * Async middleware helper for rate limiting with Redis support
- * Preferred for production use in distributed deployments
+ * Middleware helper for rate limiting against the shared store.
  */
 export function withRateLimitAsync(rateLimiter: RateLimiter) {
   return async (request: NextRequest) => {
@@ -291,50 +214,7 @@ export function withRateLimitAsync(rateLimiter: RateLimiter) {
 }
 
 /**
- * Higher-order function to wrap an API handler with rate limiting
- * Compatible with the old rate-limit.ts API for auth routes
- */
-export function withRateLimitHandler(
-  handler: (req: NextRequest, ...args: unknown[]) => Promise<Response>,
-  rateLimiter: RateLimiter
-) {
-  return async (req: NextRequest, ...args: unknown[]) => {
-    const result = rateLimiter.checkRateLimit(req)
-
-    if (!result.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: 'Too many requests',
-          message: `Rate limit exceeded. Try again in ${Math.ceil((result.resetTime - Date.now()) / 1000)} seconds.`,
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            ...createRateLimitHeaders(result),
-            'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString()
-          }
-        }
-      )
-    }
-
-    const response = await handler(req, ...args)
-
-    // Add rate limit headers to successful responses
-    if (response instanceof Response) {
-      const headers = createRateLimitHeaders(result)
-      Object.entries(headers).forEach(([key, value]) => {
-        response.headers.set(key, value)
-      })
-    }
-
-    return response
-  }
-}
-
-/**
- * Async version of withRateLimitHandler with Redis support
- * Use this in production for distributed rate limiting
+ * Higher-order function to wrap an API handler with rate limiting.
  */
 export function withRateLimitHandlerAsync(
   handler: (req: NextRequest, ...args: unknown[]) => Promise<Response>,

@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   // Apply rate limiting to prevent scraping
-  const rateLimit = RATE_LIMITS.PUBLIC.checkRateLimit(request)
+  const rateLimit = await RATE_LIMITS.PUBLIC.checkRateLimitAsync(request)
 
   if (!rateLimit.allowed) {
     return NextResponse.json(

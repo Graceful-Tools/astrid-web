@@ -2,19 +2,27 @@ import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
-import { verifyRegistration, getChallenge, deleteChallenge, isProduction } from "@/lib/webauthn"
+import {
+  verifyRegistration,
+  verifyRegistrationCredential,
+  persistRegisteredCredential,
+  getChallenge,
+  deleteChallenge,
+  isProduction,
+} from "@/lib/webauthn"
 import { prisma } from "@/lib/prisma"
 import { createDefaultListsForUser } from "@/lib/default-lists"
 import { sendEmailVerification } from "@/lib/email-verification"
 import { createVerifyEmailTask } from "@/lib/system-tasks"
 import { encode } from "next-auth/jwt"
 import type { RegistrationResponseJSON } from "@simplewebauthn/types"
+import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.webauthn.register.verify')
 
 
-export async function POST(request: NextRequest) {
+async function registrationVerifyHandler(request: NextRequest) {
   const blocked = capabilityGate('authPasskey')
   if (blocked) return blocked
 
@@ -53,12 +61,68 @@ export async function POST(request: NextRequest) {
     log.info(session?.user?.id ? { userId: session.user.id } : null, "[WebAuthn] Verify: session =")
 
     let userId: string
+    const requestOrigin = request.headers.get("origin") || undefined
 
     if (session?.user?.id && storedData.userId === session.user.id) {
       // Adding passkey to existing account
       log.info("[WebAuthn] Verify: Adding passkey to existing account")
       userId = session.user.id
+
+      // Burn the challenge BEFORE verifying. It is single-use by definition, but
+      // it used to be deleted only on the success path, leaving it live for the
+      // rest of its five-minute TTL after a failure (task 1a52195f).
+      await deleteChallenge(sessionId)
+
+      const verification = await verifyRegistration(
+        userId,
+        response,
+        storedData.challenge,
+        requestOrigin
+      )
+
+      if (!verification.verified) {
+        return NextResponse.json(
+          { error: verification.error || "Registration verification failed" },
+          { status: 400 }
+        )
+      }
     } else if (storedData.email && !storedData.userId) {
+      // Signing up with an email. /register/options deliberately cannot say
+      // whether this email already has an account — that would be a free
+      // enumeration oracle (task c2fbe8e4) — so the answer is given HERE, and
+      // only after a genuine WebAuthn ceremony has been verified.
+      await deleteChallenge(sessionId)
+
+      const verification = await verifyRegistrationCredential(
+        response,
+        storedData.challenge,
+        requestOrigin
+      )
+
+      if (!verification.verified || !verification.registrationInfo) {
+        return NextResponse.json(
+          { error: verification.error || "Registration verification failed" },
+          { status: 400 }
+        )
+      }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { email: storedData.email },
+        select: { id: true },
+      })
+
+      if (existingUser) {
+        // The credential is genuine but the account already exists, so this is a
+        // returning user who reached for sign-up. Tell the client to switch to
+        // the sign-in ceremony; the credential just created is never registered.
+        log.info("[WebAuthn] Verify: email already registered, redirecting to sign-in")
+        return NextResponse.json({
+          verified: false,
+          existingUser: true,
+          email: storedData.email,
+        })
+      }
+
       // New account registration - create user (email NOT verified yet)
       log.info({ email: storedData.email }, "[WebAuthn] Verify: Creating new user")
       const user = await prisma.user.create({
@@ -68,6 +132,8 @@ export async function POST(request: NextRequest) {
         },
       })
       userId = user.id
+
+      await persistRegisteredCredential(userId, verification.registrationInfo, response)
 
       // Create default lists for new user
       await createDefaultListsForUser(userId)
@@ -80,29 +146,9 @@ export async function POST(request: NextRequest) {
       await createVerifyEmailTask(userId)
     } else {
       log.info({ sessionUserId: session?.user?.id, storedUserId: storedData.userId }, '[WebAuthn] Verify: Invalid session state')
+      await deleteChallenge(sessionId)
       return NextResponse.json(
         { error: "Invalid session state" },
-        { status: 400 }
-      )
-    }
-
-    // Burn the challenge BEFORE verifying. It is single-use by definition, but
-    // it used to be deleted only on the success path, leaving it live for the
-    // rest of its five-minute TTL after a failure (task 1a52195f).
-    await deleteChallenge(sessionId)
-
-    // Verify the registration (pass request origin for subdomain support)
-    const requestOrigin = request.headers.get("origin") || undefined
-    const verification = await verifyRegistration(
-      userId,
-      response,
-      storedData.challenge,
-      requestOrigin
-    )
-
-    if (!verification.verified) {
-      return NextResponse.json(
-        { error: verification.error || "Registration verification failed" },
         { status: 400 }
       )
     }
@@ -197,3 +243,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export const POST = withRateLimitHandlerAsync(registrationVerifyHandler, passkeyRateLimiter)

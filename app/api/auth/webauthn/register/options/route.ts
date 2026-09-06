@@ -4,12 +4,13 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { getRegistrationOptions, storeChallenge } from "@/lib/webauthn"
 import { prisma } from "@/lib/prisma"
 import { v4 as uuid } from "uuid"
+import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.webauthn.register.options')
 
 
-export async function POST(request: NextRequest) {
+async function registrationOptionsHandler(request: NextRequest) {
   const blocked = capabilityGate('authPasskey')
   if (blocked) return blocked
 
@@ -46,22 +47,13 @@ export async function POST(request: NextRequest) {
         )
       }
     } else if (email) {
-      // New account with passkey - check if user exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
-        include: { authenticators: true },
-      })
-
-      if (existingUser) {
-        // User exists - tell client to switch to login flow
-        return NextResponse.json({
-          existingUser: true,
-          email: email.toLowerCase(),
-          hasPasskey: existingUser.authenticators.length > 0,
-        })
-      }
-
-      // Generate a temporary user ID for new account
+      // Whether this email already has an account is NOT answerable here: this
+      // route is unauthenticated, so any difference in the response is a free
+      // account-enumeration oracle (task c2fbe8e4). Everyone gets the same
+      // challenge; /register/verify resolves the existing-account case, and it
+      // costs the caller a real WebAuthn ceremony to get that far.
+      // Registration options are generated against a throwaway user id so an
+      // existing account's credential list never leaks through excludeCredentials.
       userId = uuid()
       userEmail = email.toLowerCase()
     } else {
@@ -95,3 +87,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export const POST = withRateLimitHandlerAsync(registrationOptionsHandler, passkeyRateLimiter)
