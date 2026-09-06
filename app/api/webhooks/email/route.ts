@@ -11,6 +11,8 @@
  */
 
 import { capabilityGate } from '@/lib/brand/capabilities'
+import { verifyMailgunSignature, verifySvixSignature } from '@/lib/webhooks/inbound-email-signatures'
+import { senderAuthFromMailgun, senderAuthFromResend } from '@/lib/webhooks/sender-authentication'
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { emailToTaskService } from '@/lib/email-to-task-service'
@@ -100,7 +102,14 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
-      const isMailgunValid = verifyMailgunSignature(formData, mailgunSecret)
+      const isMailgunValid = verifyMailgunSignature(
+        {
+          timestamp: formData.get('timestamp') as string | null,
+          token: formData.get('token') as string | null,
+          signature: formData.get('signature') as string | null,
+        },
+        mailgunSecret
+      )
       if (!isMailgunValid) {
         log.error('❌ Invalid Mailgun webhook signature')
         return NextResponse.json(
@@ -111,9 +120,22 @@ export async function POST(request: NextRequest) {
       log.info('✅ Mailgun signature verified')
 
       parsedEmail = parseMailgunWebhook(formData)
+      parsedEmail.senderAuth = senderAuthFromMailgun(
+        (field) => formData.get(field) as string | null
+      )
     } else if (isCloudflare || contentType.includes('application/json')) {
-      // Try to parse as JSON (could be Cloudflare or Resend)
-      const payload = await request.json()
+      // Read the body EXACTLY ONCE, as text. It is a one-shot stream: the old
+      // code parsed it with request.json() here and then called request.text()
+      // inside the verifier, which threw and made every genuine Resend
+      // delivery 401 (task 0a5b6337). Signature verification needs the raw
+      // bytes, so the raw string is what gets kept and JSON is parsed from it.
+      const rawBody = await request.text()
+      let payload: Record<string, unknown>
+      try {
+        payload = JSON.parse(rawBody)
+      } catch {
+        return NextResponse.json({ error: 'Malformed JSON body' }, { status: 400 })
+      }
 
       // Check if it's a Resend webhook (has 'type' and 'data' fields)
       if ('type' in payload && 'data' in payload) {
@@ -134,7 +156,18 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           )
         }
-        const isResendValid = await verifyWebhookSignature(request, webhookSecret)
+        // Svix, not a bare hex header. Resend signs `id.timestamp.body` with
+        // the base64 secret behind the whsec_ prefix, and the timestamp is
+        // checked against now so a captured delivery cannot be replayed.
+        const isResendValid = verifySvixSignature(
+          rawBody,
+          {
+            'svix-id': request.headers.get('svix-id'),
+            'svix-timestamp': request.headers.get('svix-timestamp'),
+            'svix-signature': request.headers.get('svix-signature'),
+          },
+          webhookSecret
+        )
         if (!isResendValid) {
           log.error('❌ Invalid Resend webhook signature')
           return NextResponse.json(
@@ -144,7 +177,10 @@ export async function POST(request: NextRequest) {
         }
         log.info('✅ Resend signature verified')
 
-        parsedEmail = parseResendWebhook(payload as ResendInboundEmailWebhook)
+        parsedEmail = parseResendWebhook(payload as unknown as ResendInboundEmailWebhook)
+        parsedEmail.senderAuth = senderAuthFromResend(
+          (payload as { data?: unknown }).data
+        )
       } else {
         // Assume Cloudflare Email Worker format. The isCloudflare detection is
         // by user-agent/cf-ray (both attacker-settable), so require a shared
@@ -157,7 +193,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
         log.info('📧 Received Cloudflare Email Worker webhook')
-        parsedEmail = parseCloudflareWebhook(payload as CloudflareEmailWebhook)
+        parsedEmail = parseCloudflareWebhook(payload as unknown as CloudflareEmailWebhook)
+        // The Worker forwards the original authentication results when it can.
+        // Absent, the message counts as unauthenticated and processEmail
+        // refuses it — the shared secret proves the WORKER is ours, not that
+        // the sender is who the From header claims.
+        parsedEmail.senderAuth = senderAuthFromResend(payload)
       }
     } else {
       throw new Error('Unsupported webhook format')
@@ -377,91 +418,8 @@ function parseResendWebhook(payload: ResendInboundEmailWebhook): ParsedEmail {
   }
 }
 
-/**
- * Verify Resend webhook signature
- * https://resend.com/docs/dashboard/webhooks/securing-webhooks
- */
-async function verifyWebhookSignature(
-  request: NextRequest,
-  secret: string
-): Promise<boolean> {
-  try {
-    const signature = request.headers.get('resend-signature')
-    if (!signature) {
-      return false
-    }
 
-    // Resend uses HMAC SHA256 for webhook signatures
-    const body = await request.text()
-    const encoder = new TextEncoder()
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign', 'verify']
-    )
 
-    const signatureBytes = hexToBytes(signature)
-    const bodyBytes = encoder.encode(body)
-
-    const isValid = await crypto.subtle.verify(
-      'HMAC',
-      key,
-      signatureBytes as BufferSource,
-      bodyBytes
-    )
-
-    return isValid
-  } catch (error) {
-    log.error({ err: error }, 'Error verifying webhook signature:')
-    return false
-  }
-}
-
-/**
- * Verify Mailgun webhook signature
- * https://documentation.mailgun.com/en/latest/user_manual.html#webhooks-1
- */
-function verifyMailgunSignature(formData: FormData, signingKey: string): boolean {
-  try {
-    const timestamp = formData.get('timestamp') as string
-    const token = formData.get('token') as string
-    const signature = formData.get('signature') as string
-
-    if (!timestamp || !token || !signature) {
-      log.error('Missing Mailgun signature fields')
-      return false
-    }
-
-    // Mailgun signature is HMAC-SHA256(timestamp + token)
-    const crypto = require('crypto')
-    const encodedToken = crypto
-      .createHmac('sha256', signingKey)
-      .update(timestamp + token)
-      .digest('hex')
-
-    // Use timing-safe comparison to prevent timing attacks
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(encodedToken)
-    )
-  } catch (error) {
-    log.error({ err: error }, 'Error verifying Mailgun signature:')
-    return false
-  }
-}
-
-/**
- * Convert hex string to Uint8Array
- */
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-  }
-  return bytes
-}
 
 /**
  * GET endpoint for webhook verification

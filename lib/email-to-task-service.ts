@@ -10,6 +10,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { senderIsAuthenticated, type SenderAuthentication } from '@/lib/webhooks/sender-authentication'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { prisma } from '@/lib/prisma'
 import { placeholderUserService } from '@/lib/placeholder-user-service'
@@ -31,6 +32,17 @@ export interface ParsedEmail {
   body: string
   bodyHtml?: string
   attachments?: EmailAttachment[]
+  /**
+   * The provider's SPF/DKIM/DMARC verdict for this message.
+   *
+   * REQUIRED to act as the From address. From is unauthenticated, and this
+   * service resolves the acting user from it and can create a shared list that
+   * invites every recipient — so without a verdict a spoofed header is both an
+   * impersonation and a way to pull arbitrary addresses into a list
+   * (task 0a5b6337). Undefined means "the provider told us nothing", which is
+   * treated as a failure, not a pass.
+   */
+  senderAuth?: SenderAuthentication
 }
 
 export interface EmailAttachment {
@@ -62,6 +74,19 @@ export class EmailToTaskService {
    * Process an inbound email and create task(s)
    */
   async processEmail(email: ParsedEmail): Promise<EmailToTaskResult | null> {
+    // The From header is not evidence of anything on its own. Everything below
+    // acts AS this address — including creating a shared list that invites
+    // every recipient — so the provider's authentication verdict gates the
+    // whole flow (task 0a5b6337). No verdict is a failure, not a pass: a
+    // provider that stops sending one must not silently reopen this.
+    if (!senderIsAuthenticated(email.senderAuth)) {
+      log.warn(
+        { from: email.from, auth: email.senderAuth ?? null },
+        'Refusing email-to-task: sender domain did not authenticate (SPF/DKIM/DMARC)'
+      )
+      return null
+    }
+
     // Find the sender user
     const sender = await this.findOrCreateUserFromEmail(email.from)
     if (!sender) {

@@ -95,7 +95,7 @@ export const ENV_VARS: EnvVar[] = [
   // ── Email ─────────────────────────────────────────────────────────────────
   { name: 'RESEND_API_KEY', scope: 'optional', description: 'Outbound email. Without it nothing is sent and sends are logged instead.' },
   { name: 'FROM_EMAIL', scope: 'optional', description: 'From address for outbound mail. Defaults to noreply@<brand domain>.', validate: isEmail },
-  { name: 'RESEND_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound Resend email-to-task webhooks.' },
+  { name: 'RESEND_WEBHOOK_SECRET', scope: 'optional', description: 'Svix signing secret (whsec_…) verifying inbound Resend email-to-task webhooks. Without it the route rejects everything.' },
   { name: 'MAILGUN_WEBHOOK_SIGNING_KEY', scope: 'optional', description: 'Verifies inbound Mailgun email-to-task webhooks. Without it the route rejects everything.' },
   { name: 'CLOUDFLARE_EMAIL_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound Cloudflare Email Routing webhooks.' },
   { name: 'FEATURE_REQUEST_EMAIL', scope: 'optional', description: 'Recipient for feature-access requests.', validate: isEmail },

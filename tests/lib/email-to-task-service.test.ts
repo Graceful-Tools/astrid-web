@@ -41,6 +41,9 @@ describe('EmailToTaskService', () => {
   describe('processEmail - Self Task', () => {
     it('should create self-task when remindme@astrid.cc is in TO', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
         to: ['remindme@astrid.cc'],
         cc: [],
@@ -88,6 +91,9 @@ describe('EmailToTaskService', () => {
 
     it('should return null if user has email-to-task disabled', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
         to: ['remindme@astrid.cc'],
         cc: [],
@@ -109,6 +115,9 @@ describe('EmailToTaskService', () => {
 
     it('should clean subject line (remove RE: and FW:)', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
         to: ['remindme@astrid.cc'],
         cc: [],
@@ -139,6 +148,9 @@ describe('EmailToTaskService', () => {
   describe('processEmail - Assigned Task', () => {
     it('should create assigned task when remindme@astrid.cc is in CC with single recipient', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['assignee@example.com'],
         cc: ['remindme@astrid.cc'],
@@ -183,6 +195,9 @@ describe('EmailToTaskService', () => {
   describe('processEmail - Group Task', () => {
     it('should create shared list and group task when multiple recipients', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['user1@example.com', 'user2@example.com'],
         cc: ['remindme@astrid.cc', 'user3@example.com'],
@@ -254,6 +269,9 @@ describe('EmailToTaskService', () => {
 
     it('should exclude sender and remindme from recipient list', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['sender@example.com', 'user1@example.com'],
         cc: ['remindme@astrid.cc'],
@@ -291,6 +309,9 @@ describe('EmailToTaskService', () => {
 
     it('should assign to first person in TO line, not CC line', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['first-to@example.com', 'second-to@example.com'],
         cc: ['remindme@astrid.cc', 'first-cc@example.com'],
@@ -337,6 +358,9 @@ describe('EmailToTaskService', () => {
   describe('Due Date Calculation', () => {
     it('should calculate due date based on user offset', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
         to: ['remindme@astrid.cc'],
         cc: [],
@@ -375,6 +399,9 @@ describe('EmailToTaskService', () => {
 
     it('should handle "none" due date offset', async () => {
       const email: ParsedEmail = {
+        // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
+        // the From address without one (task 0a5b6337).
+        senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
         to: ['remindme@astrid.cc'],
         cc: [],
@@ -398,6 +425,43 @@ describe('EmailToTaskService', () => {
       })
 
       await emailToTaskService.processEmail(email)
+    })
+  })
+
+  describe('sender authentication (task 0a5b6337)', () => {
+    const spoofed = (senderAuth: unknown): ParsedEmail => ({
+      senderAuth: senderAuth as never,
+      from: 'victim@example.com',
+      to: ['remindme@astrid.cc'],
+      cc: [],
+      bcc: [],
+      subject: 'Buy milk',
+      body: 'please',
+    })
+
+    it('creates no task and no user when the message failed DKIM', async () => {
+      // From is unauthenticated. Acting on it lets anyone impersonate any user,
+      // and the group routing would then create a shared list inviting every
+      // recipient.
+      const result = await emailToTaskService.processEmail(
+        spoofed({ spf: 'pass', dkim: 'fail' })
+      )
+
+      expect(result).toBeNull()
+      expect(prisma.task.create).not.toHaveBeenCalled()
+      // Never mint a placeholder account for an address that has not proved it
+      // exists — that is what turns a spoofed From into a permanent user.
+      expect(placeholderUserService.findUserByEmail).not.toHaveBeenCalled()
+      expect(placeholderUserService.findOrCreatePlaceholderUser).not.toHaveBeenCalled()
+    })
+
+    it('creates nothing when the provider reported no verdict at all', async () => {
+      // The dangerous default: an absent header must not read as a pass.
+      const result = await emailToTaskService.processEmail(spoofed(undefined))
+
+      expect(result).toBeNull()
+      expect(prisma.task.create).not.toHaveBeenCalled()
+      expect(placeholderUserService.findUserByEmail).not.toHaveBeenCalled()
     })
   })
 })
