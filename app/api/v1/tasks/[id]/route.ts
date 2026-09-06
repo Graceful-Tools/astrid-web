@@ -25,6 +25,7 @@ import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { recordStateChangeComment, resolveRepeatingTaskCompletion } from '@/lib/task-update-handler'
+import { deleteTaskWithSideEffects } from '@/services/task.service'
 import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
@@ -873,61 +874,18 @@ export const DELETE = withAuth<RouteContext>(
 
     await requireTaskAccess(auth.userId, taskId)
 
-    // Pre-delete fetch so we can compute SSE recipients (the task is gone after delete)
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        lists: { select: { id: true, name: true, ownerId: true, listMembers: { select: { userId: true } } } },
-      },
-    })
-
-    const recipientIds = new Set<string>()
-    if (task) {
-      collectListRecipientUserIds(task.lists).forEach(id => recipientIds.add(id))
-      if (task.assigneeId) recipientIds.add(task.assigneeId)
-      if (task.creatorId) recipientIds.add(task.creatorId)
-      recipientIds.delete(auth.userId)
-    }
-
     // Best-effort sync bookkeeping — must never block the delete itself.
     try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }
-    // Audience captured from the pre-delete fetch above, and deliberately NOT
-    // recipientIds: that set excludes the deleter for SSE, but this user's OTHER
-    // devices still need to learn the task is gone (task: delta-sync deletions).
-    const deletionAudience = task ? audienceForTask(task) : []
-    await prisma.task.delete({ where: { id: taskId } })
-    await recordDeletion('task', taskId, deletionAudience)
 
-    try {
-      const redisAvailable = await isRedisAvailable()
-      if (redisAvailable) {
-        const cacheUserIds = new Set(recipientIds)
-        cacheUserIds.add(auth.userId)
-        if (task?.creatorId) cacheUserIds.add(task.creatorId)
-        if (task?.assigneeId) cacheUserIds.add(task.assigneeId)
-
-        await Promise.all(
-          Array.from(cacheUserIds).map(userId =>
-            RedisCache.del(RedisCache.keys.userTasks(userId))
-          )
-        )
-        log.debug({ users: cacheUserIds.size }, 'Invalidated task cache after deletion')
-      }
-    } catch (cacheError) {
-      log.error({ err: cacheError }, 'Failed to invalidate task cache (delete)')
-    }
-
-    if (recipientIds.size > 0) {
-      try {
-        broadcastToUsers(Array.from(recipientIds), {
-          type: 'task_deleted',
-          timestamp: new Date().toISOString(),
-          data: { taskId },
-        })
-      } catch (sseError) {
-        log.error({ err: sseError }, 'Failed to broadcast task_deleted SSE')
-      }
-    }
+    // One implementation of the delete verb (epic 9dedd8aa): audience captured
+    // before the relations go, tombstone, manual-sort sync, cache
+    // invalidation, SSE. Two of the four surfaces skipped the tombstone, so a
+    // task deleted over MCP stayed on delta-syncing clients forever.
+    await deleteTaskWithSideEffects({
+      taskId,
+      actorId: auth.userId,
+      actorName: auth.user?.name || auth.user?.email || undefined,
+    })
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_DELETED, { taskId })
 

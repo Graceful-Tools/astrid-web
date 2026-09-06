@@ -31,6 +31,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
+import { deleteTaskWithSideEffects } from '@/services/task.service'
 
 const log = createLogger('api.tasks.id')
 
@@ -772,126 +773,18 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Cancel any active coding workflow before deleting the task
-    await cancelActiveCodingWorkflow({ taskId, reason: 'Task deleted by user' })
-
-    // Best-effort sync bookkeeping — must never block the delete itself.
+    // Everything the delete implies — workflow cancel, tombstone, manual-sort
+    // sync, cache invalidation, SSE fan-out — lives in one place now. Two of
+    // the four delete surfaces used to skip the tombstone entirely, so a task
+    // deleted over MCP stayed visible to delta-syncing clients forever
+    // (epic 9dedd8aa).
     try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }
-    // Capture the audience before the relations go with the row. Wrapped
-    // because tombstoning must never be the reason a delete fails.
-    let taskAudience: string[] = []
-    try {
-      const taskForAudience = await prisma.task.findUnique({
-        where: { id: taskId },
-        select: {
-          creatorId: true,
-          assigneeId: true,
-          lists: { select: { ownerId: true, listMembers: { select: { userId: true } } } },
-        },
-      })
-      if (taskForAudience) taskAudience = audienceForTask(taskForAudience)
-    } catch { /* best effort */ }
 
-    await prisma.task.delete({
-      where: { id: taskId },
-    })
-    await recordDeletion('task', taskId, taskAudience)
-
-    await syncManualSortMemberships({
+    await deleteTaskWithSideEffects({
       taskId,
-      previousListIds: existingTask.lists.map(list => list.id),
-      requestedListIds: [],
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || undefined,
     })
-
-    // Invalidate cache for all affected users BEFORE broadcasting SSE
-    try {
-      const redisAvailable = await isRedisAvailable()
-      if (redisAvailable) {
-        const affectedUserIds = new Set<string>()
-
-        // Add task assignee
-        if (existingTask.assigneeId) {
-          affectedUserIds.add(existingTask.assigneeId)
-        }
-
-        // Add task creator
-        if (existingTask.creatorId) {
-          affectedUserIds.add(existingTask.creatorId)
-        }
-
-        // Add all list members from all associated lists
-        for (const list of existingTask.lists) {
-          // getListMemberIds imported at top level
-          const memberIds = getListMemberIds(list)
-          memberIds.forEach(id => affectedUserIds.add(id))
-        }
-
-        // Invalidate cache for all affected users
-        const invalidationPromises = Array.from(affectedUserIds).map(userId =>
-          RedisCache.del(RedisCache.keys.userTasks(userId))
-        )
-
-        log.info(`🗄️ Invalidating task cache for ${affectedUserIds.size} users after task deletion`)
-        await Promise.all(invalidationPromises)
-        log.info(`✅ Task cache invalidated for all affected users`)
-      }
-    } catch (cacheError) {
-      log.error({ err: cacheError }, "❌ Failed to invalidate task cache:")
-      // Continue - task was still deleted
-    }
-
-    // Broadcast real-time deletion updates to relevant users
-    try {
-      // Get all users who should receive updates
-      const userIds = new Set<string>()
-
-      // Add task assignee
-      if (existingTask.assigneeId) {
-        userIds.add(existingTask.assigneeId)
-      }
-
-      // Add task creator
-      if (existingTask.creatorId) {
-        userIds.add(existingTask.creatorId)
-      }
-
-      // Add all list members from all associated lists using comprehensive member utils
-      for (const list of existingTask.lists) {
-        // getListMemberIds imported at top level
-        const memberIds = getListMemberIds(list)
-        memberIds.forEach(id => userIds.add(id))
-      }
-
-      // Remove the user who made the deletion (they already see it)
-      userIds.delete(session.user.id)
-
-      log.info(`[SSE] Task deletion broadcast - userIds before removal: ${Array.from(userIds).length}`)
-      log.info(Array.from(userIds), `[SSE] User IDs to notify:`)
-
-      // Broadcast to all relevant users
-      if (userIds.size > 0) {
-        log.info(`[SSE] Broadcasting task deletion to ${userIds.size} users`)
-        // broadcastToUsers imported at top level
-        broadcastToUsers(Array.from(userIds), {
-          type: 'task_deleted',
-          timestamp: new Date().toISOString(),
-          data: {
-            id: taskId, // Use taskId for consistency with existing SSE handler
-            taskId: taskId,
-            taskTitle: existingTask.title,
-            deleterName: session.user.name || session.user.email || "Someone",
-            userId: session.user.id, // Add userId for client-side filtering
-            listNames: existingTask.lists.map((list) => list.name)
-          }
-        })
-      }
-    } catch (sseError) {
-      log.error({ err: sseError }, "Failed to send task deletion SSE notifications:")
-      // Continue - task was still deleted
-    }
-
-    // Track analytics event (fire-and-forget)
-    trackEventFromRequest(request, session.user.id, AnalyticsEventType.TASK_DELETED, { taskId })
 
     return NextResponse.json({ success: true })
   } catch (error) {

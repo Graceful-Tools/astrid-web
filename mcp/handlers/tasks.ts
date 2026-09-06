@@ -1,4 +1,5 @@
 import { canUserManageList } from "../../lib/list-permissions"
+import { deleteTaskWithSideEffects } from '../../services/task.service'
 /**
  * The SHARED client, not a new one.
  *
@@ -281,7 +282,13 @@ async function deleteTask(args: any) {
     throw new Error("User no longer has permission to delete this task")
   }
 
-  await prisma.task.delete({ where: { id: taskId } })
+  // This surface also skipped the tombstone, so a task deleted here stayed on
+  // delta-syncing clients forever (epic 9dedd8aa).
+  await deleteTaskWithSideEffects({
+    taskId,
+    actorId: user.id,
+    actorName: user.name || user.email || undefined,
+  })
 
   return {
     content: [{

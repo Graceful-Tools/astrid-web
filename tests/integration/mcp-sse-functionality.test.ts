@@ -50,7 +50,12 @@ describe('MCP SSE Integration - Core Functionality', () => {
     expect(allContent).toContain('task_created')
     expect(allContent).toContain('task_updated')
     expect(allContent).toContain('comment_created')
-    expect(allContent).toContain('task_deleted')
+    // task_deleted is NOT asserted here any more. The delete verb moved into
+    // services/task.service.ts (epic 9dedd8aa) because two of the four delete
+    // surfaces were skipping the deletion tombstone; the broadcast went with
+    // it. Asserted below against the service, so the coverage is kept rather
+    // than dropped — this test was checking WHERE the string lives, and the
+    // string moved on purpose.
 
     // Verify error handling for SSE failures
     expect(allContent).toContain('Failed to broadcast')
@@ -111,13 +116,12 @@ describe('MCP SSE Integration - Core Functionality', () => {
     const createTaskBroadcasts = (allContent.match(/Broadcasting task_created/g) || []).length
     const updateTaskBroadcasts = (allContent.match(/Broadcasting task_updated/g) || []).length
     const commentBroadcasts = (allContent.match(/Broadcasting comment_created/g) || []).length
-    const deleteTaskBroadcasts = (allContent.match(/Broadcasting task_deleted/g) || []).length
+    // See above: the delete broadcast lives in the service now.
 
     // Each operation should have exactly one SSE broadcast
     expect(createTaskBroadcasts).toBe(1)
     expect(updateTaskBroadcasts).toBe(1)
     expect(commentBroadcasts).toBe(1)
-    expect(deleteTaskBroadcasts).toBe(1)
   })
 
   it('should verify error handling prevents SSE failures from breaking MCP operations', async () => {
@@ -141,5 +145,18 @@ describe('MCP SSE Integration - Core Functionality', () => {
     // Verify we have at least 4 SSE error handlers (create, update, comment, delete)
     const sseErrorHandlers = (allContent.match(/log\.error\(\{ err: error \}, '\[MCP SSE\] Failed to broadcast/g) || []).length
     expect(sseErrorHandlers).toBeGreaterThanOrEqual(4)
+  })
+
+  it('broadcasts task_deleted from the shared delete service', async () => {
+    // The MCP handlers no longer broadcast this themselves — they call
+    // services/task.service.ts, which is also what finally gave them the
+    // deletion tombstone they had always been missing (epic 9dedd8aa).
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const service = readFileSync(join(process.cwd(), 'services/task.service.ts'), 'utf8')
+
+    expect(service).toContain('task_deleted')
+    expect(service).toContain('broadcastToUsers')
+    expect(service).toContain('recordDeletion')
   })
 })

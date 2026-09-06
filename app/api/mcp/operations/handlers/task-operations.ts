@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { deleteTaskWithSideEffects } from '@/services/task.service'
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { createLogger } from '@/lib/logger'
 import {
@@ -553,50 +554,16 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
 
   log.info(`[MCP deleteTask] Access granted. Deleting task ${taskId}`)
 
-  // Get relevant users before deletion for SSE broadcast
-  const userIds = new Set<string>()
-
-  try {
-    // Get all members from all lists this task belongs to
-    for (const list of task.lists) {
-      const listMemberIds = await getListMemberIdsByListId(list.id)
-      listMemberIds.forEach(id => userIds.add(id))
-    }
-
-    // Add task assignee and creator
-    if (task.assigneeId) userIds.add(task.assigneeId)
-    if (task.creatorId) userIds.add(task.creatorId)
-
-    // Remove the deleter (MCP user) from notifications
-    userIds.delete(mcpToken.userId)
-  } catch (error) {
-    log.error({ err: error }, '[MCP SSE] Failed to gather user IDs for task deletion broadcast:')
-  }
-
-  await prisma.task.delete({
-    where: { id: taskId }
+  // THIS SURFACE USED TO SKIP THE TOMBSTONE. It hard-deleted the row and
+  // broadcast SSE, so a task deleted over MCP was invisible to every
+  // delta-syncing client forever — iOS and Mac kept showing it until a full
+  // refetch, because `updatedSince` had nothing to report for a row that no
+  // longer existed (epic 9dedd8aa).
+  await deleteTaskWithSideEffects({
+    taskId,
+    actorId: mcpToken.userId,
+    actorName: mcpToken.user.name || mcpToken.user.email || 'MCP Agent',
   })
-
-  // Broadcast SSE event for real-time updates
-  try {
-    if (userIds.size > 0) {
-      log.info(`[MCP SSE] Broadcasting task_deleted to ${userIds.size} users`)
-      broadcastToUsers(Array.from(userIds), {
-        type: 'task_deleted',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          taskTitle: task.title,
-          deleterName: mcpToken.user.name || mcpToken.user.email || "MCP Agent",
-          userId: mcpToken.userId,
-          listNames: Array.isArray(task.lists) ? task.lists.map(list => list.name) : []
-        }
-      })
-    }
-  } catch (error) {
-    log.error({ err: error }, '[MCP SSE] Failed to broadcast task_deleted:')
-    // Don't fail the operation if SSE fails
-  }
 
   return {
     success: true,

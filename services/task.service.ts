@@ -33,6 +33,11 @@
 
 import { prisma } from '@/lib/prisma'
 import { hasExplicitListRole } from '@/lib/list-permissions'
+import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
+import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
+import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
+import { broadcastToUsers } from '@/lib/sse-utils'
+import { RedisCache, isRedisAvailable } from '@/lib/redis'
 
 /**
  * The relations the access rule reads. NOT exported: fetching with this shape
@@ -134,4 +139,130 @@ export function userCanAccessTask(task: TaskWithAccessRelations, userId: string)
     task.assigneeId === userId ||
     lists.some(list => hasExplicitListRole({ id: userId }, list as never))
   )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Slice 2: the DELETE verb (epic 9dedd8aa)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Delete a task, with every side effect the delete implies.
+ *
+ * Four surfaces deleted tasks and only two of them recorded a tombstone:
+ *
+ *   app/api/tasks/[id]                        ✅
+ *   app/api/v1/tasks/[id]                     ✅
+ *   app/api/mcp/operations/…/task-operations  ❌ hard-deleted, no tombstone
+ *   mcp/handlers/tasks.ts                     ❌ hard-deleted, no tombstone
+ *
+ * That is not a cosmetic divergence. lib/deletion-log.ts exists so that
+ * `updatedSince` is safe to act on; without a tombstone, a task deleted over
+ * MCP is invisible to every delta-syncing client FOREVER — iOS and Mac keep
+ * showing it until a full refetch. The sync guarantee was simply false for two
+ * of the four ways to delete something.
+ *
+ * The ORDER here is the part that is easy to get wrong and impossible to
+ * notice: the audience has to be read BEFORE the row goes, because the
+ * relations go with it. Reading afterwards yields nobody, and a tombstone with
+ * no audience reaches no one — which looks exactly like working code.
+ *
+ * Every side effect is best-effort. The user asked for the row to go and it
+ * has; a failed tombstone is a sync inconvenience, not a reason to report
+ * failure for something that already happened.
+ *
+ * Permission is NOT checked here. Each surface authenticates differently (web
+ * session, OAuth scope, MCP token) and has already decided; a second, weaker
+ * check here would either duplicate that or quietly disagree with it. Call this
+ * only after your surface has authorised the delete.
+ */
+export async function deleteTaskWithSideEffects(args: {
+  taskId: string
+  /** Who is deleting — excluded from the SSE fan-out, since they already know. */
+  actorId: string
+  /** Shown in the SSE payload; surfaces that have it can pass it. */
+  actorName?: string
+}): Promise<{ deleted: boolean; audience: string[] }> {
+  const { taskId, actorId, actorName } = args
+
+  // Read the audience while the relations still exist.
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: {
+      lists: {
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          listMembers: { select: { userId: true } },
+        },
+      },
+    },
+  })
+
+  if (!task) {
+    return { deleted: false, audience: [] }
+  }
+
+  const audience = audienceForTask(task as never)
+  const previousListIds = (task.lists ?? []).map(list => list.id)
+  const listNames = (task.lists ?? []).map(list => list.name)
+
+  // Stop the agent before removing the thing it is working on.
+  await cancelActiveCodingWorkflow({ taskId, reason: 'Task deleted' })
+
+  await prisma.task.delete({ where: { id: taskId } })
+
+  // Everything below is best-effort: the row is already gone. try/await rather
+  // than .catch() so a caller that stubs these with a plain function — as a
+  // test reasonably might — does not turn a swallowed failure into a thrown
+  // TypeError on `undefined.catch`.
+  try {
+    await recordDeletion('task', taskId, audience)
+  } catch {
+    // A missing tombstone costs a delta-syncing client a stale row until its
+    // next full refetch. It must not cost the user their delete.
+  }
+
+  try {
+    await syncManualSortMemberships({
+      taskId,
+      previousListIds,
+      requestedListIds: [],
+    })
+  } catch {
+    // A stale entry in a manual sort order is dropped on the next read.
+  }
+
+  // Cached task lists go stale the moment the row goes.
+  try {
+    if (await isRedisAvailable()) {
+      await Promise.all(
+        audience.map(userId => RedisCache.del(RedisCache.keys.userTasks(userId)))
+      )
+    }
+  } catch {
+    // A stale cache entry expires on its own; the delete is already done.
+  }
+
+  try {
+    const recipients = audience.filter(id => id !== actorId)
+    if (recipients.length > 0) {
+      broadcastToUsers(recipients, {
+        type: 'task_deleted',
+        timestamp: new Date().toISOString(),
+        data: {
+          taskId,
+          taskTitle: task.title,
+          deleterName: actorName ?? null,
+          userId: actorId,
+          listNames,
+        },
+      })
+    }
+  } catch {
+    // A missed SSE nudge costs a refresh, not correctness — the tombstone above
+    // is what makes the deletion durable for delta sync.
+  }
+
+  return { deleted: true, audience }
 }
