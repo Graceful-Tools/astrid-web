@@ -53,6 +53,8 @@ vi.mock('@/lib/task-update-handler', () => ({
   recordStateChangeComment: vi.fn(),
   recordTaskCreationComment: vi.fn(),
   applyRepeatingTaskCompletion: vi.fn(),
+  // v1 now shares legacy's closed-reason-aware repeating decision (task fb94f2ee).
+  resolveRepeatingTaskCompletion: vi.fn(async () => null),
 }))
 
 // Post-update fan-out — not what this test is about.

@@ -24,7 +24,10 @@ import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from
 import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
-import { recordStateChangeComment } from '@/lib/task-update-handler'
+import { recordStateChangeComment, resolveRepeatingTaskCompletion } from '@/lib/task-update-handler'
+import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
+import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
+import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { notifyTaskUpdate } from '@/lib/notification-store'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
@@ -368,23 +371,25 @@ export const PUT = withAuth<RouteContext>(
       }
     }
 
-    const { handleRepeatingTaskCompletion, applyRepeatingTaskRollForward } = await import('@/lib/repeating-task-handler')
-    let repeatingTaskResult = null
-
-    if (body.completed !== undefined && existingTask) {
-      // localCompletionDate (YYYY-MM-DD) is for all-day repeating tasks with COMPLETION_DATE mode
-      repeatingTaskResult = await handleRepeatingTaskCompletion(
-        taskId,
-        existingTask.completed,
-        body.completed,
-        // null and undefined mean the same thing to the helper (it guards with
-        // a truthiness check); the coercion is for the type, not the behaviour.
-        body.localCompletionDate ?? undefined
-      )
-    }
+    // Same decision the legacy route makes, from the same helper. Calling
+    // handleRepeatingTaskCompletion directly here skipped the closed-reason
+    // guard from task 11042ae3, so closing a repeating task as *canceled*
+    // through v1 rolled it forward to the next occurrence anyway (task fb94f2ee).
+    const { applyRepeatingTaskRollForward } = await import('@/lib/repeating-task-handler')
+    const repeatingTaskResult = existingTask
+      ? await resolveRepeatingTaskCompletion({
+          taskId,
+          existingCompleted: existingTask.completed,
+          dataCompleted: body.completed,
+          // null and undefined mean the same thing to the helper (it guards
+          // with a truthiness check); the coercion is for the type.
+          localCompletionDate: body.localCompletionDate ?? undefined,
+          closedReason: body.closedReason,
+        })
+      : null
 
     // Repeating-task roll-forward already updates the row in the DB; we just refetch + return.
-    if (repeatingTaskResult?.shouldRollForward || repeatingTaskResult?.shouldTerminate) {
+    if (repeatingTaskResult) {
       await applyRepeatingTaskRollForward(taskId, repeatingTaskResult)
 
       const task = await prisma.task.findUnique({
@@ -611,6 +616,40 @@ export const PUT = withAuth<RouteContext>(
 
     // Wire order stays ascending under the newest-first cap (task a86b5bed).
     task.comments?.reverse()
+
+    // The three side effects v1 never had. All of them existed only inline in
+    // the legacy route, so an iOS or agent client completing a task left the
+    // coding workflow running, kept firing reminders for a done task and left
+    // manual-sort positions stale (task fb94f2ee).
+    if (data.completed === true && existingTask && !existingTask.completed) {
+      await cancelActiveCodingWorkflow({
+        taskId,
+        reason: 'Task marked as completed by user',
+      })
+    }
+
+    const dueDateChanged =
+      existingTask?.dueDateTime?.getTime() !== task.dueDateTime?.getTime()
+    const completedChanged = existingTask?.completed !== task.completed
+    const assigneeChanged = existingTask?.assigneeId !== task.assigneeId
+
+    if (dueDateChanged || completedChanged || assigneeChanged) {
+      await rescheduleRemindersForUpdate({
+        taskId: task.id,
+        taskTitle: task.title,
+        userId: task.assigneeId || task.creatorId || auth.userId,
+        dueDateTime: task.dueDateTime ?? null,
+        completed: !!task.completed,
+      })
+    }
+
+    if (body.listIds !== undefined) {
+      await syncManualSortMemberships({
+        taskId,
+        previousListIds: existingTask?.lists.map(list => list.id) ?? [],
+        requestedListIds: task.lists?.map(list => list.id) ?? [],
+      })
+    }
 
     // Structured activity history (task 51a4b8ff). Same helper as the web
     // route, so the two surfaces cannot emit different events for the same

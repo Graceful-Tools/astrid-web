@@ -15,8 +15,7 @@ import {
   TASK_FULL_INCLUDE,
   TASK_PERMISSION_INCLUDE,
   type TaskWithFullRelations,
-  type ListWithMembers,
-  type WorkflowMetadata
+  type ListWithMembers
 } from "@/lib/task-query-utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
@@ -31,6 +30,7 @@ import { validateParentTask, readParentTaskIdFromBody } from "@/lib/subtasks"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
+import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 
 const log = createLogger('api.tasks.id')
 
@@ -690,32 +690,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     }
 
 
-    // ✅ Cancel any active coding workflows if task is being marked as completed
+    // Cancel any active coding workflow if the task is being marked complete
     if (data.completed && !existingTask.completed) {
-      try {
-        const activeWorkflow = await prisma.codingTaskWorkflow.findUnique({
-          where: { taskId }
-        })
-
-        if (activeWorkflow && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(activeWorkflow.status)) {
-          log.info(`🛑 [TASK-UPDATE] Cancelling active workflow due to task completion: ${taskId}`)
-          await prisma.codingTaskWorkflow.update({
-            where: { taskId },
-            data: {
-              status: 'CANCELLED',
-              metadata: {
-                ...((activeWorkflow.metadata as WorkflowMetadata) || {}),
-                cancelledAt: new Date().toISOString(),
-                cancelReason: 'Task marked as completed by user'
-              }
-            }
-          })
-          log.info(`✅ [TASK-UPDATE] Workflow cancelled successfully`)
-        }
-      } catch (workflowError) {
-        log.error({ err: workflowError }, '❌ [TASK-UPDATE] Failed to cancel workflow:')
-        // Continue with update even if workflow cancellation fails
-      }
+      await cancelActiveCodingWorkflow({
+        taskId,
+        reason: 'Task marked as completed by user',
+      })
     }
 
     // Update reminders if due date, completion status, or assignee changed
@@ -794,31 +774,8 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // ✅ Cancel any active coding workflows before deleting task
-    try {
-      const activeWorkflow = await prisma.codingTaskWorkflow.findUnique({
-        where: { taskId }
-      })
-
-      if (activeWorkflow && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(activeWorkflow.status)) {
-        log.info(`🛑 [TASK-DELETE] Cancelling active workflow for task ${taskId}`)
-        await prisma.codingTaskWorkflow.update({
-          where: { taskId },
-          data: {
-            status: 'CANCELLED',
-            metadata: {
-              ...((activeWorkflow.metadata as WorkflowMetadata) || {}),
-              cancelledAt: new Date().toISOString(),
-              cancelReason: 'Task deleted by user'
-            }
-          }
-        })
-        log.info(`✅ [TASK-DELETE] Workflow cancelled successfully`)
-      }
-    } catch (workflowError) {
-      log.error({ err: workflowError }, '❌ [TASK-DELETE] Failed to cancel workflow:')
-      // Continue with deletion even if workflow cancellation fails
-    }
+    // Cancel any active coding workflow before deleting the task
+    await cancelActiveCodingWorkflow({ taskId, reason: 'Task deleted by user' })
 
     // Best-effort sync bookkeeping — must never block the delete itself.
     try { await mirrorExternalDeletesForTask(taskId) } catch { /* tombstoning is belt-and-braces */ }

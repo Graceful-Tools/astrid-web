@@ -209,7 +209,11 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
       // Handle 'dueDateTime' (modern date+time field)
       dueDateTime: taskData.dueDateTime ? new Date(taskData.dueDateTime) : null,
       isAllDay: taskData.isAllDay ?? false,
-      isPrivate: taskData.isPrivate || false,
+      // `?? true`, not `|| false`: the schema default, the legacy create route
+      // and both v1 create paths all default this to true. MCP defaulting to
+      // false quietly shared tasks that would have been private anywhere else
+      // (task fb94f2ee).
+      isPrivate: taskData.isPrivate ?? true,
       ...(listIds.length > 0 && {
         lists: {
           connect: listIds.map(id => ({ id }))
@@ -373,8 +377,12 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
       ...(updates.priority !== undefined && { priority: updates.priority }),
       ...(updates.completed !== undefined && { completed: updates.completed }),
       ...(updates.dueDateTime !== undefined && {
+        // No `when` twin here: that column was dropped from the Task model, so
+        // writing it made Prisma reject the whole update with "Unknown argument
+        // `when`" — every MCP due-date change threw (task fb94f2ee). tsc could
+        // not see it because spreading a conditional object suppresses excess
+        // property checking.
         dueDateTime: updates.dueDateTime ? new Date(updates.dueDateTime) : null,
-        when: updates.dueDateTime ? new Date(updates.dueDateTime) : null // Legacy field - populate with same value for backward compatibility
       }),
       ...(updates.assigneeId !== undefined && { assigneeId: updates.assigneeId })
     },

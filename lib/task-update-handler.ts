@@ -23,6 +23,7 @@ import { createLogger } from "./logger"
 import {
   handleRepeatingTaskCompletion,
   applyRepeatingTaskRollForward,
+  type RepeatingTaskResult,
 } from "./repeating-task-handler"
 import {
   detectTaskStateChanges,
@@ -37,6 +38,52 @@ export type RepeatingCompletionOutcome =
   | { rolledForward: false }
   | { rolledForward: true; updatedTask: TaskWithFullRelations }
 
+export interface RepeatingCompletionArgs {
+  taskId: string
+  existingCompleted: boolean
+  dataCompleted: boolean | undefined
+  /** YYYY-MM-DD from client; only used for all-day repeating tasks in COMPLETION_DATE mode. */
+  localCompletionDate?: string
+  /**
+   * Set when the task is being closed as canceled / duplicate / not-planned
+   * rather than done (task 11042ae3).
+   */
+  closedReason?: string | null
+}
+
+/**
+ * Decide whether a completion should roll a repeating series forward, WITHOUT
+ * applying anything. This is where the closed-reason rule lives, so every write
+ * surface inherits it: v1 used to call handleRepeatingTaskCompletion directly
+ * and therefore rolled canceled occurrences forward anyway (task fb94f2ee).
+ *
+ * Returns null when there is nothing to do.
+ */
+export async function resolveRepeatingTaskCompletion(
+  args: RepeatingCompletionArgs,
+): Promise<RepeatingTaskResult | null> {
+  const { taskId, existingCompleted, dataCompleted, localCompletionDate, closedReason } = args
+
+  if (dataCompleted === undefined) return null
+
+  // Cancelling an occurrence must not spawn the next one (task 11042ae3).
+  // "We're not doing this one" and "this one is done, schedule the next" are
+  // opposite intents, and rolling forward on a cancel would resurrect the very
+  // task the user just decided to drop — every week, forever.
+  if (dataCompleted && isClosedReason(closedReason)) return null
+
+  const result = await handleRepeatingTaskCompletion(
+    taskId,
+    existingCompleted,
+    dataCompleted,
+    localCompletionDate,
+  )
+
+  if (!result?.shouldRollForward && !result?.shouldTerminate) return null
+
+  return result
+}
+
 /**
  * Handle the "task being marked complete might be part of a repeating series
  * that should roll forward (or terminate) instead of staying completed" branch.
@@ -49,40 +96,13 @@ export type RepeatingCompletionOutcome =
  * should return that task to the client. Returns rolledForward:false when the
  * caller should proceed with the normal update path.
  */
-export async function applyRepeatingTaskCompletion(args: {
-  taskId: string
-  existingCompleted: boolean
-  dataCompleted: boolean | undefined
-  /** YYYY-MM-DD from client; only used for all-day repeating tasks in COMPLETION_DATE mode. */
-  localCompletionDate?: string
-  /**
-   * Set when the task is being closed as canceled / duplicate / not-planned
-   * rather than done (task 11042ae3).
-   */
-  closedReason?: string | null
-}): Promise<RepeatingCompletionOutcome> {
-  const { taskId, existingCompleted, dataCompleted, localCompletionDate, closedReason } = args
+export async function applyRepeatingTaskCompletion(
+  args: RepeatingCompletionArgs,
+): Promise<RepeatingCompletionOutcome> {
+  const { taskId } = args
 
-  if (dataCompleted === undefined) return { rolledForward: false }
-
-  // Cancelling an occurrence must not spawn the next one (task 11042ae3).
-  // "We're not doing this one" and "this one is done, schedule the next" are
-  // opposite intents, and rolling forward on a cancel would resurrect the very
-  // task the user just decided to drop — every week, forever.
-  if (dataCompleted && isClosedReason(closedReason)) {
-    return { rolledForward: false }
-  }
-
-  const result = await handleRepeatingTaskCompletion(
-    taskId,
-    existingCompleted,
-    dataCompleted,
-    localCompletionDate,
-  )
-
-  if (!result?.shouldRollForward && !result?.shouldTerminate) {
-    return { rolledForward: false }
-  }
+  const result = await resolveRepeatingTaskCompletion(args)
+  if (!result) return { rolledForward: false }
 
   await applyRepeatingTaskRollForward(taskId, result)
 

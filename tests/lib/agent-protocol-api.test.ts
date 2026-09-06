@@ -7,6 +7,7 @@ vi.mock('@/lib/prisma', () => ({
     task: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
     comment: {
@@ -34,6 +35,24 @@ vi.mock('@/lib/sse-utils', () => ({
 
 vi.mock('@/lib/list-member-utils', () => ({
   getListMemberIds: vi.fn(() => []),
+}))
+
+// The completion side effects the agent PATCH gained in task fb94f2ee. Their
+// own behaviour is covered by tests/api/task-write-path-parity.test.ts; here
+// they only need to not reach for a real DB/Redis.
+vi.mock('@/lib/repeating-task-handler', () => ({
+  handleRepeatingTaskCompletion: vi.fn(async () => null),
+  applyRepeatingTaskRollForward: vi.fn(),
+}))
+vi.mock('@/lib/reminder-scheduling', () => ({ rescheduleRemindersForUpdate: vi.fn() }))
+vi.mock('@/lib/tasks/cancel-active-coding-workflow', () => ({
+  cancelActiveCodingWorkflow: vi.fn(async () => ({ cancelled: false })),
+}))
+vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents: vi.fn() }))
+vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate: vi.fn() }))
+vi.mock('@/lib/redis', () => ({
+  RedisCache: { del: vi.fn(), keys: { userTasks: (id: string) => id } },
+  isRedisAvailable: vi.fn(async () => false),
 }))
 
 import { prisma } from '@/lib/prisma'
