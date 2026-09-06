@@ -21,6 +21,7 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    task: { findMany: vi.fn() },
     listMember: { create: vi.fn(), createMany: vi.fn() },
     listInvite: { create: vi.fn() },
     user: {
@@ -137,6 +138,19 @@ describe('legacy POST /api/lists rejects an invalid privacy (task e0613ae5)', ()
 })
 
 describe('v1 POST /api/v1/lists trims the name (task e0613ae5)', () => {
+  it('does not request a redundant task count include (task 96127607)', async () => {
+    await v1POST(v1Req({ name: 'Work' }))
+
+    expect(mockPrisma.taskList.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.not.objectContaining({
+          _count: expect.anything(),
+        }),
+      })
+    )
+    expect(mockPrisma.task.findMany).not.toHaveBeenCalled()
+  })
+
   it('stores a trimmed name, as legacy always has', async () => {
     await v1POST(v1Req({ name: '  Work  ' }))
 

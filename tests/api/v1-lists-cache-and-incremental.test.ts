@@ -53,6 +53,20 @@ beforeEach(() => {
 })
 
 describe('GET /api/v1/lists — cache + incremental sync', () => {
+  it('does not request a redundant task count include (task 96127607)', async () => {
+    const req = new Request('https://x.example/api/v1/lists') as any
+
+    await GET(req)
+
+    expect(mockPrisma.taskList.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.not.objectContaining({
+          _count: expect.anything(),
+        }),
+      })
+    )
+  })
+
   it('uses the v1 cache key on a full sync (no updatedSince)', async () => {
     const req = new Request('https://x.example/api/v1/lists') as any
     const res = await GET(req)
