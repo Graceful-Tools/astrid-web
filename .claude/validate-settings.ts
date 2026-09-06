@@ -29,17 +29,70 @@ interface PermissionsConfig {
   }
 }
 
-function removeComments(jsonString: string): string {
-  // Remove single-line comments (// ...)
-  let cleaned = jsonString.replace(/\/\/.*$/gm, '')
+/**
+ * Strip JSON-with-comments down to JSON.
+ *
+ * This MUST know whether it is inside a string. The permission patterns in
+ * settings.json.example legitimately contain `//` — two `postgresql://` URLs, a
+ * `curl http://localhost` line and `Read(//dev/**)` — and the regex this used to
+ * use (`/\/\/.*$/gm`) cut every one of them off mid-string, leaving an
+ * unterminated string and a settings file that no longer parsed. The command
+ * that reported "auto-fixed" was the thing breaking it, and Claude Code then ran
+ * with no permissions loaded at all.
+ *
+ * The detection path below already blanks string contents before looking for
+ * comments, with a comment naming `//dev/**` as the hazard. This is the same
+ * knowledge applied to removal, so the two halves finally agree.
+ */
+export function removeComments(jsonString: string): string {
+  let out = ''
+  let inString = false
+  let index = 0
 
-  // Remove multi-line comments (/* ... */)
-  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '')
+  while (index < jsonString.length) {
+    const char = jsonString[index]
+    const next = jsonString[index + 1]
+
+    if (inString) {
+      // A backslash escapes the next character, so a \" does not end the string.
+      if (char === '\\') {
+        out += char + (next ?? '')
+        index += 2
+        continue
+      }
+      if (char === '"') inString = false
+      out += char
+      index += 1
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      out += char
+      index += 1
+      continue
+    }
+
+    if (char === '/' && next === '/') {
+      while (index < jsonString.length && jsonString[index] !== '\n') index += 1
+      continue
+    }
+
+    if (char === '/' && next === '*') {
+      index += 2
+      while (index < jsonString.length && !(jsonString[index] === '*' && jsonString[index + 1] === '/')) {
+        index += 1
+      }
+      index += 2
+      continue
+    }
+
+    out += char
+    index += 1
+  }
 
   // Remove trailing commas before ] or }
-  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1')
-
-  return cleaned
+  return out.replace(/,(\s*[}\]])/g, '$1')
 }
 
 function validateStructure(config: any): string[] {
@@ -168,10 +221,14 @@ function validateJSON(content: string): void {
   console.log('\n✨ All validation checks passed!')
 }
 
-// Main execution
-const shouldFix = process.argv.includes('--fix')
+// Main execution — skipped when this module is imported (e.g. by its tests).
+const invokedDirectly = process.argv[1]?.includes('validate-settings')
 
-validateSettings(shouldFix).catch(error => {
-  console.error('💥 Unexpected error:', error)
-  process.exit(1)
-})
+if (invokedDirectly) {
+  const shouldFix = process.argv.includes('--fix')
+
+  validateSettings(shouldFix).catch(error => {
+    console.error('💥 Unexpected error:', error)
+    process.exit(1)
+  })
+}
