@@ -12,6 +12,11 @@ export default defineConfig({
       'tests/lib/task-read-access.test.ts',
       'tests/lib/api-offline-queue-v1-urls.test.ts',
       'tests/lib/offline-sync.test.ts',
+      // The replay backoff is part of the offline risk surface: without this the
+      // new paths in lib/offline-sync.ts counted against the coverage threshold
+      // while the tests that exercise them sat outside this hand-maintained
+      // list (task b8b21855; the list itself is task f5022e72).
+      'tests/lib/offline-retry-backoff.test.ts',
       'tests/lib/sse-manager.test.ts',
       'tests/lib/upload-validation.test.ts',
       'tests/lib/list-invite.test.ts',
@@ -29,6 +34,7 @@ export default defineConfig({
         'lib/list-permissions.ts',
         'lib/task-read-access.ts',
         'lib/offline-sync.ts',
+      'lib/offline-retry-schedule.ts',
         'lib/sse-manager.ts',
         'lib/upload-validation.ts',
         'lib/list-invite.ts',
