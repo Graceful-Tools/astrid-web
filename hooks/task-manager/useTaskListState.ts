@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
+import { SSEManager } from "@/lib/sse-manager"
 import { apiGet } from "@/lib/api"
 import { seedFromCache } from "./load-from-cache"
 import { fetchSyncPayload } from "./sync-fetch"
@@ -18,6 +19,19 @@ const LIST_EVENT_TYPES = [
   'list_admin_role_granted',
   'list_member_role_changed'
 ] as const
+
+/**
+ * Who a membership event is actually about.
+ *
+ * The two routes that broadcast these send different shapes for the same event
+ * type: legacy `/api/lists/[id]/members` sends `newMemberId` (and `memberId` for
+ * a role change), while `/api/v1/lists/[id]/members` sends `member: { id }`.
+ * Reading only one of them is how a v1-originated add reached the client with
+ * nothing it could recognise (task ed1d85ba).
+ */
+function affectedMemberId(data: any): string | null {
+  return data?.newMemberId ?? data?.memberId ?? data?.member?.id ?? null
+}
 
 export interface UseTaskListStateProps {
   effectiveSession: any
@@ -225,16 +239,21 @@ export function useTaskListState({
     toastRef.current = toast
   }, [selectedListId, setSelectedListId, toast])
 
-  // Load data when session is ready
+  // Load data when session is ready.
+  //
+  // Keyed on currentUserId, NOT on effectiveSession?.user: next-auth hands back
+  // a fresh object on every session refresh, so an unchanged identity produced a
+  // new reference, re-ran this effect and cost a full reload — four network
+  // round trips (task ed1d85ba).
   useEffect(() => {
-    if (effectiveSession?.user) {
+    if (currentUserId) {
       loadData()
     }
-  }, [effectiveSession?.user, loadData])
+  }, [currentUserId, loadData])
 
   // Browser lifecycle cache invalidation - refresh data on tab focus/visibility
   useEffect(() => {
-    if (!effectiveSession?.user) return
+    if (!currentUserId) return
 
     let lastFetchTime = Date.now()
     const REFETCH_THRESHOLD = 60000 // 1 minute
@@ -270,13 +289,11 @@ export function useTaskListState({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [effectiveSession?.user, loadData])
+  }, [currentUserId, loadData])
 
   // SSE reconnection data sync
   useEffect(() => {
-    if (!effectiveSession?.user) return
-
-    const { SSEManager } = require('@/lib/sse-manager')
+    if (!currentUserId) return
 
     let debounceTimeout: NodeJS.Timeout | null = null
     const DEBOUNCE_DELAY = 2000
@@ -301,7 +318,7 @@ export function useTaskListState({
       }
       unsubscribe()
     }
-  }, [effectiveSession?.user, loadData])
+  }, [currentUserId, loadData])
 
   // Memoized SSE event handlers
   const handleTaskCreated = useCallback((event: any) => {
@@ -439,11 +456,14 @@ export function useTaskListState({
           console.log('[useTaskListState] SSE: Member role changed', event)
         }
 
-        if (loadDataRef.current) {
+        // Broadcast to EVERY member, but only the affected member's own
+        // permissions changed — for anyone else this is a full four-request
+        // re-sync that alters nothing they can see.
+        if (affectedMemberId(event.data) === currentUserId && loadDataRef.current) {
           loadDataRef.current()
         }
 
-        if (toastRef.current && event.data.memberId === effectiveSession?.user?.id) {
+        if (toastRef.current && affectedMemberId(event.data) === currentUserId) {
           const isPromotion = event.data.newRole === 'admin'
           toastRef.current({
             title: isPromotion ? "Admin Access Granted" : "Role Changed",
@@ -459,15 +479,22 @@ export function useTaskListState({
           console.log('[useTaskListState] SSE: Member added to list', event.data)
         }
 
-        if (loadDataRef.current) {
-          loadDataRef.current()
-        }
+        // Also broadcast to every member, so adding five people used to cost
+        // five full reloads for everyone already in the list. Only the person
+        // added gains a list they could not see before.
+        if (affectedMemberId(event.data) === currentUserId) {
+          if (loadDataRef.current) {
+            loadDataRef.current()
+          }
 
-        if (toastRef.current) {
-          toastRef.current({
-            title: "Added to List",
-            description: `${event.data.inviterName} added you to "${event.data.listName}"`
-          })
+          // Gated for the same reason the reload is: unconditional, this told
+          // every existing member that THEY had just been added.
+          if (toastRef.current && event.data.listName) {
+            toastRef.current({
+              title: "Added to List",
+              description: `${event.data.inviterName} added you to "${event.data.listName}"`
+            })
+          }
         }
         break
 
@@ -490,7 +517,7 @@ export function useTaskListState({
         }
         break
     }
-  }, [effectiveSession?.user?.id])
+  }, [currentUserId])
 
   // Additional SSE subscriptions for list events
   useSSESubscription(LIST_EVENT_TYPES, handleListEvents, {
