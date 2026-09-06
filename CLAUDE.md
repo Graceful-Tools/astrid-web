@@ -44,8 +44,10 @@ lives in exactly one place:
    > this rule from memory. (docs/CLI_OPERATIONS.md §0)
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
-3. **Always ask "Ready to ship it?" before pushing, merging, or deploying.** Local commits
-   are autonomous. (docs/CLI_OPERATIONS.md §1)
+3. **Push finished work without asking; ask before DEPLOYING.** Pushing `main` ships
+   nothing (rule 1), so it is how work becomes reviewable — one push at the end of a run.
+   "Ready to ship it?" belongs to the production deploy, which reaches real users.
+   (Jon, 2026-09-06; docs/CLI_OPERATIONS.md §1)
 4. **Bug fixes are TDD:** RED regression test (name the task id) → green → `npm run predeploy`.
    Auth changes → run the full suite before committing. (ASTRID.md → Coding Workflow)
 5. **Tasks use the `listIds` array field** (not `listId`); the API uses the `X-OAuth-Token`

@@ -112,16 +112,29 @@ Production: `astrid.cc` / `www.astrid.cc`. Token lives in `.env.local` as `VERCE
 
 ## 1. Approvals
 
-**Always ASK before deploying** ("Ready to ship it?") and WAIT for explicit approval
-("ship it" / "yes" / "deploy"). Never combine commit + push + deploy without it.
+**Push when the work is done — ASK before DEPLOYING.** Those are two different acts here,
+and the line between them is whether anyone outside sees it. Pushing `main` ships nothing
+(§0: production deploys are `workflow_dispatch` only), so it is how finished work becomes
+reviewable. A production deploy reaches real users, so it waits for explicit approval
+("ship it" / "yes" / "deploy").
+
+Jon, 2026-09-06: *"I want to look at work when you are done. I don't want to tell you to
+push it so I can look at it and then wait."* Asking to push made him wait twice — once for
+the ask to be answered, once for the pipeline. So finishing ends with the push, and the
+report says what landed rather than offering to land it.
 
 | Action | Approval |
 |--------|----------|
 | Code analysis, local edits, local commits, posting task comments, docs | Autonomous |
-| `git push` to main | Ask first (part of "ship it") |
-| `git merge` (merging a PR) | Ask first (part of "ship it") |
-| `vercel --prod` / `deploy-preview.sh --production` | Ask first |
-| DB destructive ops, file deletions outside the project | Ask first |
+| `git push` to main (ships nothing — see §0) | Autonomous, when the work is done |
+| `git merge` (merging a PR) | Autonomous, when the gates are green |
+| `vercel --prod` / `deploy-preview.sh --production` | **Ask first** — this reaches users |
+| Prisma migrations (they apply during the deploy) | **Ask first** — part of the deploy |
+| DB destructive ops, file deletions outside the project | **Ask first** |
+
+**Push once, when the run is done — not per task.** A batched push keeps CI and preview
+builds proportionate to the work, and it is the rule the iOS repo learned the hard way
+(a push per fix exhausted its Xcode Cloud allotment on 2026-08-18).
 
 **Default branch policy:** commit directly to `main` for fixes/tests; create a branch
 only when the user asks.
@@ -130,7 +143,8 @@ only when the user asks.
 
 ## 2. "Ship it"
 
-When the user says **"ship it"** (in-session or as a comment on an Astrid task):
+"Ship it" means **deploy** — the push has already happened (§1). When the user says it
+(in-session or as a comment on an Astrid task):
 
 ```bash
 git checkout main && git pull origin main

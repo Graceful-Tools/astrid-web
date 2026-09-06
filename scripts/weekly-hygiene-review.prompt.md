@@ -1,3 +1,14 @@
+> **SUPERSEDED (2026-09-06)** by the weekly deep review — see
+> [`docs/WEEKLY_DEEP_REVIEW.md`](../docs/WEEKLY_DEEP_REVIEW.md) and
+> `scripts/weekly-deep-review.prompt.md`. That review covers both repos, adds architecture,
+> cross-platform contract drift, caching and production traffic, and is triggered by a
+> repeating Astrid task instead of launchd.
+>
+> Kept for one overlap week so the two can be compared. **Bootout the launchd job before
+> deleting anything here**, or a plist pointing at a deleted script fails silently every
+> Friday forever:
+> `launchctl bootout gui/$(id -u)/cc.astrid.weekly-hygiene-review`
+
 # Weekly hygiene review — Astrid Web
 
 You are running **unattended**. Nobody will answer a question, so never stop to ask one:

@@ -258,5 +258,22 @@ since the run began.
 A reopened task means the previous fix missed. Re-read it and find a different cause rather
 than re-closing it on the same reasoning.
 
-**When the list is empty**, summarise in a few lines: what was done, and anything skipped and
-why.
+**When the list is empty**, push, then summarise in a few lines: what was done, and anything
+skipped and why.
+
+## Pushing is part of finishing (Jon, 2026-09-06)
+
+**Do not ask permission to push.** *"I want to look at work when you are done. I don't want to
+tell you to push it so I can look at it and then wait."* An empty queue ends with the work
+pushed, so it is already reviewable — a TestFlight build building on iOS/Mac, `main` updated on
+web — and the summary says what went out.
+
+Two things this does NOT change:
+
+- **Push once, at the end of the run, not per task.** The batching is the point: on iOS a push
+  per fix exhausted the Xcode Cloud allotment on 2026-08-18, after which every run was created
+  and cancelled before it started. One build carries several tasks, so the completion reports
+  have to carry the per-task detail.
+- **Anything that reaches real users still waits for an explicit go-ahead** — an App Store
+  submission on iOS/Mac (or a local `:upload`), a production deploy on web. Pushing is not
+  shipping in either repo, which is exactly why pushing needs no permission and shipping does.
