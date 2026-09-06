@@ -1,4 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { parseLimit } from '@/lib/pagination'
+import { safeUserSelect } from '@/lib/user-select'
+
+/**
+ * A task's comment thread is read in one request by every client, so these are
+ * about keeping one response inside the function's memory rather than about
+ * paging a UI. Raised deliberately high; the point is that there IS a ceiling.
+ */
+const DEFAULT_COMMENT_PAGE_SIZE = 200
+const MAX_COMMENT_PAGE_SIZE = 500
+const MAX_REPLIES_PER_COMMENT = 50
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { CreateCommentData } from "@/types/api"
@@ -40,7 +51,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
       include: {
         lists: {
           include: {
-            owner: true,
+            owner: { select: safeUserSelect },
             listMembers: {
               include: {
                 user: true
@@ -67,28 +78,42 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
+    // Bounded, and with a user SELECT rather than the whole row.
+    //
+    // This was an unbounded findMany that embedded the whole author row on
+    // both the comment and every reply, so a long agent thread returned
+    // hundreds of full User records — each carrying email, mcpSettings,
+    // webhookUrl and the email verification token. On 2026-08-29 this endpoint was killed for running
+    // out of memory seven times on a single task, taking neighbouring requests
+    // down with the instance (task 2e08b86d).
+    const take = parseLimit(new URL(request.url).searchParams.get('limit'), {
+      fallback: DEFAULT_COMMENT_PAGE_SIZE,
+      max: MAX_COMMENT_PAGE_SIZE,
+    })
+
     const comments = await prisma.comment.findMany({
       where: {
         taskId,
         parentCommentId: null // Only get top-level comments
       },
       include: {
-        author: true,
+        author: { select: safeUserSelect },
         secureFiles: true,
         replies: {
           include: {
-            author: true,
+            author: { select: safeUserSelect },
             secureFiles: true,
           },
           orderBy: {
             createdAt: "asc",
           },
-          take: 50,
+          take: MAX_REPLIES_PER_COMMENT,
         },
       },
       orderBy: {
         createdAt: "asc",
       },
+      take,
     })
 
     return NextResponse.json(comments)
@@ -118,10 +143,13 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        assignee: true, // Include assignee for AI agent checks
+        // Only the fields the AI-agent check and the side effects use.
+        assignee: {
+          select: { id: true, email: true, name: true, isAIAgent: true, aiAgentType: true },
+        },
         lists: {
           include: {
-            owner: true,
+            owner: { select: safeUserSelect },
             listMembers: {
               include: {
                 user: true
@@ -153,11 +181,12 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     // queued comment creates after a network reconnect; without this, every
     // retry produces a fresh row.
     const commentInclude = {
-      author: true,
+      author: { select: safeUserSelect },
       secureFiles: true,
       replies: {
-        include: { author: true, secureFiles: true },
+        include: { author: { select: safeUserSelect }, secureFiles: true },
         orderBy: { createdAt: "asc" as const },
+        take: MAX_REPLIES_PER_COMMENT,
       },
     } as const
 

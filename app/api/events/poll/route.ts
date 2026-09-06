@@ -1,4 +1,5 @@
 import { getUnifiedSession } from "@/lib/session-utils"
+import { safeUserSelect } from '@/lib/user-select'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
@@ -51,8 +52,8 @@ export async function POST(request: NextRequest) {
         ]
       },
       include: {
-        assignee: true,
-        creator: true,
+        assignee: { select: safeUserSelect },
+        creator: { select: safeUserSelect },
         lists: true
       },
       orderBy: { updatedAt: 'desc' },
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         ]
       },
       include: {
-        author: true,
+        author: { select: safeUserSelect },
         task: {
           include: {
             lists: true

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { safeUserSelect } from '@/lib/user-select'
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
     const list = await prisma.taskList.findUnique({
       where: { id: listId },
       include: {
-        owner: true,
+        owner: { select: safeUserSelect },
         listMembers: {
           include: {
             user: true
@@ -71,11 +72,11 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
         ...completionWhere
       },
       include: {
-        assignee: true,
-        creator: true,
+        assignee: { select: safeUserSelect },
+        creator: { select: safeUserSelect },
         lists: {
           include: {
-            owner: true,
+            owner: { select: safeUserSelect },
             listMembers: {
               include: {
                 user: true
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
         },
         comments: {
           include: {
-            author: true,
+            author: { select: safeUserSelect },
             secureFiles: true,
           },
           orderBy: {
