@@ -35,9 +35,6 @@ const LOCALES = fs.readdirSync(LOCALES_DIR).filter(f => f.endsWith('.json'))
 const PICKER_SOURCES = [
   'components/task-detail/TaskFieldEditors.tsx',
   'components/ui/time-picker.tsx',
-  'components/date-time-reminder-picker.tsx',
-  'components/task-form.tsx',
-  'components/list-detail.tsx',
   'components/list-admin/DefaultTaskSettingsSection.tsx',
 ]
 

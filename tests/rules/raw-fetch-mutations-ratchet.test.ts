@@ -49,7 +49,12 @@ const ROOT = process.cwd()
  * issued into one call in the hook. Neither branch could see that on its own —
  * the slack check found it in the merge, which is the case it exists for.
  */
-const CEILING = 115 // 119 → 115: CustomAgentManager registration, deletion, upload,
+const CEILING = 107 // 115 → 107: task 1b381810 deleted the dead components
+// (task-form and its picker subtree, ai-api-key-manager, sync-status,
+// public-task-browser, list-detail and the rest), taking their raw mutations
+// with them. Nothing was migrated to the offline client here — the count fell
+// because the code is gone.
+// 119 → 115: CustomAgentManager registration, deletion, upload,
                     // and profile update now use the canonical client (AWTD-761)
 // 122 → 119: comment edit/delete now use the canonical client
                      // so credentials, errors, and offline replay stay centralized

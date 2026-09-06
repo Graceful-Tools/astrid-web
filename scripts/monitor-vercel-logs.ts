@@ -20,6 +20,7 @@
  */
 
 import { execSync, spawn } from 'child_process'
+import { brandOrigin } from '../lib/brand/config'
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import path from 'path'
 import {
@@ -113,7 +114,11 @@ class VercelLogMonitor {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          listId: this.astridListId,
+          // listIds (array), not listId. The singular field is silently
+          // ignored, so every deployment-failure task this script filed landed
+          // with NO list — findable only by id, and invisible on the board it
+          // was meant to appear on (CLAUDE.md rule 5, task 1b381810).
+          listIds: [this.astridListId],
           title,
           description,
           priority
@@ -228,7 +233,7 @@ class VercelLogMonitor {
     if (!token) return null
 
     try {
-      const response = await fetch(`https://astrid.cc/api/v1/tasks?listId=${this.astridListId}&completed=false`, {
+      const response = await fetch(`${brandOrigin()}/api/v1/tasks?listId=${this.astridListId}&completed=false`, {
         method: 'GET',
         headers: {
           'X-OAuth-Token': token,
@@ -616,7 +621,7 @@ vercel logs <deployment-url>
       console.log('🔍 Checking for deployment issue tasks to resolve...')
 
       // Get tasks from the list
-      const response = await fetch(`https://astrid.cc/api/v1/tasks?listId=${this.astridListId}&completed=false`, {
+      const response = await fetch(`${brandOrigin()}/api/v1/tasks?listId=${this.astridListId}&completed=false`, {
         method: 'GET',
         headers: {
           'X-OAuth-Token': token,

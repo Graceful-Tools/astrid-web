@@ -231,6 +231,14 @@ class SelfHealingPredeploy {
         autoFixable: false,
       },
       {
+        // ~2,900 lines of lib/ had no import sites, one of which shadowed the
+        // enforcing withAuth without its capability option — a route importing
+        // the wrong one silently lost its gate (task 1b381810).
+        name: 'Unimported Modules',
+        command: 'npm run check:unimported',
+        autoFixable: false,
+      },
+      {
         name: 'Prisma Client',
         command: 'node -e "require(\'@prisma/client\')"',
         autoFixable: true,
