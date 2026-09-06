@@ -86,6 +86,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Burn the challenge BEFORE verifying. It is single-use by definition, but
+    // it used to be deleted only on the success path, leaving it live for the
+    // rest of its five-minute TTL after a failure (task 1a52195f).
+    await deleteChallenge(sessionId)
+
     // Verify the registration (pass request origin for subdomain support)
     const requestOrigin = request.headers.get("origin") || undefined
     const verification = await verifyRegistration(
@@ -101,9 +106,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    // Clean up challenge
-    await deleteChallenge(sessionId)
 
     // Update passkey name if provided
     if (name) {

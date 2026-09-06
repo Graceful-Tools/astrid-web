@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose'
 import { prisma } from '@/lib/prisma'
+import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { resolveAppleIdentity, appleAllowedAudiences } from '@/lib/auth/apple-identity'
 import { createDefaultListsForUser } from '@/lib/default-lists'
 import { withRateLimitHandler, authRateLimiter } from '@/lib/rate-limiter'
@@ -108,6 +109,12 @@ async function appleSignInHandler(request: NextRequest) {
           log.error({ appleUserId }, 'Apple link refused: email not verified by token')
           return NextResponse.json({ error: 'Account verification failed' }, { status: 401 })
         }
+
+        // See app/api/auth/apple/route.ts — Apple has affirmed ownership, the
+        // row found by email had proved nothing, and passkey signup creates
+        // exactly such unverified rows (task 1a52195f).
+        await adoptUnverifiedAccount(prisma, existingUser, 'apple')
+
         const appleAccount = existingUser.accounts.find(acc => acc.provider === 'apple')
         if (!appleAccount) {
           await prisma.account.create({

@@ -36,6 +36,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Burn the challenge BEFORE verifying, not after. A WebAuthn challenge is
+    // single-use by definition, but this used to be deleted only on the success
+    // path, so a failed or replayed assertion left it live for the rest of its
+    // five-minute TTL and a captured assertion could be replayed inside that
+    // window (task 1a52195f).
+    await deleteChallenge(sessionId)
+
     // Verify the authentication (pass request origin for subdomain support)
     const requestOrigin = request.headers.get("origin") || undefined
     const verification = await verifyAuthentication(response, storedData.challenge, requestOrigin)
@@ -46,9 +53,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-
-    // Clean up challenge
-    await deleteChallenge(sessionId)
 
     const user = verification.user
 
