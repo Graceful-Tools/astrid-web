@@ -1,11 +1,15 @@
 /**
- * Astrid API Client
+ * Astrid agent OAuth tokens.
  *
- * Provides authenticated access to the Astrid v1 API on behalf of users.
- * Used by the Astrid agent runtime to make API calls with proper auth.
+ * Despite the filename this makes no HTTP request — it mints access tokens the
+ * agent runtime then uses against the v1 API. A review once listed it as "a
+ * third API client" to be deleted alongside lib/api.ts and lib/astrid-api-client;
+ * deleting it would remove the agent's authentication (task b8b21855).
  *
  * Architecture: Astrid's OAuth client is the app; tokens carry the user's
  * identity so all permission checks use the user's own access rights.
+ *
+ * It DID duplicate base-URL resolution, which now lives only in lib/base-url.ts.
  */
 
 import { BRAND } from '@/lib/brand/config'
@@ -91,11 +95,4 @@ export async function getTokenForUser(userId: string): Promise<string> {
   })
 
   return tokenResult.accessToken
-}
-
-/**
- * Get the base URL for internal API calls.
- */
-export function getBaseUrl(): string {
-  return process.env.NEXTAUTH_URL || 'http://localhost:3000'
 }

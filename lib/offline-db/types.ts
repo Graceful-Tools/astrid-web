@@ -26,6 +26,11 @@ export interface MutationOperation {
   timestamp: number
   retryCount: number
   lastError?: string
+  /**
+   * Epoch ms before which this mutation must not be retried. Absent on a first
+   * attempt, so a fresh mutation is sent immediately (task b8b21855).
+   */
+  nextAttemptAt?: number
   status: 'pending' | 'failed' | 'completed'
   parentId?: string // For tracking relationships (e.g., comment's taskId)
   tempId?: string // Original temp ID before mapping to real ID

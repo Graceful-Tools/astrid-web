@@ -4,6 +4,7 @@ import { apiCall } from './api'
 import { CrossTabSync } from './cross-tab-sync'
 import { safeResponseJson } from './safe-parse'
 import { createLogger } from '@/lib/logger'
+import { retryBackoffMs, isDueForRetry } from './offline-retry-schedule'
 
 const log = createLogger('offline-sync')
 
@@ -15,7 +16,8 @@ const log = createLogger('offline-sync')
 export class OfflineSyncManager {
   private static syncInProgress = false
   private static maxRetries = 3
-  private static retryDelay = 1000 // 1 second base delay
+  /** Pace between network calls in a pass. See the replay loop for why it is not applied blindly. */
+  private static pacingDelayMs = 100
 
   /**
    * Queue a mutation operation for offline sync
@@ -136,8 +138,26 @@ export class OfflineSyncManager {
       let failedCount = 0
       const errors: Array<{ mutation: MutationOperation; error: string }> = []
 
-      // Process mutations in order, resolving dependencies
+      // Process mutations IN ORDER. The ordering is load-bearing, not incidental:
+      // a mutation whose parentId is still a temp ID needs the create that
+      // produced it to have completed earlier in this same pass.
+      let attempted = 0
+
       for (const mutation of pendingMutations) {
+        // A failed mutation waits out its backoff. Without this, `retryDelay`
+        // was declared and never read, and a pass triggered milliseconds later
+        // (by `online`, by a cross-tab message, by the next queueMutation)
+        // burned all three retries without the mutation ever waiting.
+        if (!isDueForRetry(mutation, Date.now())) continue
+
+        // Pace between actual network calls, and only between them: the old
+        // code slept 100ms after EVERY iteration including skips and the final
+        // mutation, so a 500-deep queue paid 50s of pure sleep.
+        if (attempted > 0) {
+          await new Promise(resolve => setTimeout(resolve, this.pacingDelayMs))
+        }
+        attempted++
+
         try {
           // Check if this mutation depends on a parent entity that has a temp ID
           let updatedMutation = mutation
@@ -222,11 +242,13 @@ export class OfflineSyncManager {
           errors.push({ mutation, error: errorMessage })
 
           // Update retry count and status
+          const retryCount = mutation.retryCount + 1
           const updatedMutation: MutationOperation = {
             ...mutation,
-            retryCount: mutation.retryCount + 1,
+            retryCount,
             lastError: errorMessage,
-            status: mutation.retryCount + 1 >= this.maxRetries ? 'failed' : 'pending'
+            nextAttemptAt: Date.now() + retryBackoffMs(retryCount),
+            status: retryCount >= this.maxRetries ? 'failed' : 'pending'
           }
 
           await offlineDB.mutations.put(updatedMutation)
@@ -242,9 +264,6 @@ export class OfflineSyncManager {
             }
           }
         }
-
-        // Small delay between mutations to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100))
       }
 
       if (process.env.NODE_ENV === 'development') {
