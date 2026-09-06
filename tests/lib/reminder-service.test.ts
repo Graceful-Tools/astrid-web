@@ -15,6 +15,11 @@ const mockPrisma = {
     findMany: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
+    // processDueReminders claims each reminder before sending it, so a
+    // delivery already made is not re-sent when a run is killed part-way
+    // through a backlog (task 134bf288). The default here is "the claim
+    // succeeded", which is the path these tests exercise.
+    updateMany: vi.fn(),
     delete: vi.fn(),
     groupBy: vi.fn(),
   },
@@ -53,6 +58,9 @@ describe('ReminderService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default: the claim in processDueReminders succeeds, and the stale-claim
+    // sweep releases nothing (task 134bf288).
+    mockPrisma.reminderQueue.updateMany.mockResolvedValue({ count: 1 })
     // Mock current time to a fixed date for predictable testing
     mockDate = new Date('2024-01-15T10:00:00Z') // Monday 10:00 AM UTC
     vi.useFakeTimers()
@@ -190,12 +198,16 @@ describe('ReminderService', () => {
       // Should not send notification during quiet hours
       expect(mockPushService.sendNotification).not.toHaveBeenCalled()
 
-      // Should reschedule reminder to end of quiet hours (8 AM)
+      // Should reschedule reminder to end of quiet hours (8 AM), and release
+      // the claim taken before sending — it was postponed, not delivered, so
+      // it must be pending again for the run that covers its new time
+      // (task 134bf288).
       expect(mockPrisma.reminderQueue.update).toHaveBeenCalledWith({
         where: { id: 'reminder1' },
         data: {
           scheduledFor: new Date('2024-01-16T08:00:00Z'),
           retryCount: 1,
+          status: 'pending',
         },
       })
     })
@@ -526,10 +538,15 @@ describe('ReminderService', () => {
       // Should not send reminder more than 7 days in advance
       expect(mockEmailService.sendTaskReminder).not.toHaveBeenCalled()
       
-      // Should reschedule the reminder
+      // Should reschedule the reminder, and release the claim taken before
+      // sending: postponed is not delivered, so it goes back to pending for
+      // the run that covers its new time (task 134bf288).
       expect(mockPrisma.reminderQueue.update).toHaveBeenCalledWith({
         where: { id: 'reminder1' },
-        data: { scheduledFor: new Date('2024-01-18T18:00:00.000Z') } // 7 days before due date
+        data: {
+          scheduledFor: new Date('2024-01-18T18:00:00.000Z'), // 7 days before due date
+          status: 'pending',
+        }
       })
     })
 

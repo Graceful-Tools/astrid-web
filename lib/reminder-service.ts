@@ -22,10 +22,34 @@ export class ReminderService {
     private pushService: PushService
   ) {}
 
+  /**
+   * How many reminders one invocation will attempt.
+   *
+   * The query used to be unbounded. After any outage the backlog exceeds the
+   * function's time limit, the invocation is killed part-way through, and
+   * because delivery was recorded AFTER sending, every reminder already
+   * delivered was re-sent on the next minute's run — and the run after that.
+   * A bounded batch finishes inside the limit and the next minute continues
+   * where this one stopped (task 134bf288).
+   */
+  private static readonly REMINDER_BATCH_SIZE = 100
+
+  /**
+   * How long a claim may sit before another run may take it back.
+   *
+   * Claiming before sending is what stops duplicates, but a process killed
+   * between the claim and the send would strand the reminder forever. This
+   * bounds that to one recovery cycle: worst case a single duplicate, rather
+   * than an unbounded storm or a silently dropped reminder.
+   */
+  private static readonly STALE_CLAIM_MS = 10 * 60 * 1000
+
   async processDueReminders(): Promise<void> {
     const now = new Date()
-    
-    // Get all pending reminders that are due
+
+    await this.releaseStaleClaims(now)
+
+    // Get pending reminders that are due, bounded and oldest-first.
     const dueReminders = await this.prisma.reminderQueue.findMany({
       where: {
         status: 'pending',
@@ -34,6 +58,8 @@ export class ReminderService {
           lte: now,
         },
       },
+      orderBy: { scheduledFor: 'asc' },
+      take: ReminderService.REMINDER_BATCH_SIZE,
       include: {
         task: {
           include: {
@@ -53,6 +79,18 @@ export class ReminderService {
     })
 
     for (const reminder of dueReminders) {
+      // Claim it FIRST, conditionally on it still being pending. This is what
+      // makes delivery at-most-once per claim: a concurrent invocation, or a
+      // re-run after this one is killed, sees a row that is no longer pending
+      // and skips it. Previously the row stayed pending until after the email
+      // and push had gone out, so a timeout mid-batch re-sent everything
+      // already delivered (task 134bf288).
+      const claimed = await this.prisma.reminderQueue.updateMany({
+        where: { id: reminder.id, status: 'pending' },
+        data: { status: 'sending' },
+      })
+      if (claimed.count === 0) continue
+
       try {
         await this.processSingleReminder(reminder)
       } catch (error) {
@@ -62,10 +100,38 @@ export class ReminderService {
     }
   }
 
+  /**
+   * Return reminders stuck mid-delivery to the queue.
+   *
+   * A run killed between claiming and sending leaves `sending` behind. Without
+   * this they would never be retried; with it, they are retried once the claim
+   * is clearly stale rather than immediately, so a slow-but-alive run is not
+   * raced by the next minute's invocation.
+   */
+  private async releaseStaleClaims(now: Date): Promise<void> {
+    const cutoff = new Date(now.getTime() - ReminderService.STALE_CLAIM_MS)
+
+    const released = await this.prisma.reminderQueue.updateMany({
+      where: { status: 'sending', updatedAt: { lt: cutoff } },
+      data: { status: 'pending' },
+    })
+
+    if (released.count > 0) {
+      log.warn(`Released ${released.count} reminder(s) stuck mid-delivery back to pending`)
+    }
+  }
+
   private async processSingleReminder(reminder: any): Promise<void> {
     const userSettings = await this.getUserReminderSettings(reminder.userId)
-    
+
     if (!userSettings) {
+      // Nothing to send and nothing to wait for. Releasing the claim rather
+      // than returning silently keeps this out of the stale-claim sweep every
+      // ten minutes forever (task 134bf288).
+      await this.prisma.reminderQueue.update({
+        where: { id: reminder.id },
+        data: { status: 'pending' },
+      })
       return
     }
 
@@ -87,7 +153,8 @@ export class ReminderService {
         const newScheduledFor = new Date(new Date(task.dueDateTime).getTime() - maxAdvance)
         await this.prisma.reminderQueue.update({
           where: { id: reminder.id },
-          data: { scheduledFor: newScheduledFor }
+          // Postponed, not delivered — release the claim (task 134bf288).
+          data: { scheduledFor: newScheduledFor, status: 'pending' }
         })
         return
       }
@@ -317,10 +384,14 @@ export class ReminderService {
       data: {
         scheduledFor: endOfQuietHours,
         retryCount: (reminder.retryCount || 0) + 1,
+        // Release the claim taken in processDueReminders: this reminder was not
+        // delivered, it was postponed, so it must be pending again for the run
+        // that covers its new time (task 134bf288).
+        status: 'pending',
       },
     })
   }
-  
+
   private getTimezoneOffset(timezone: string): number {
     const now = new Date()
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000)
