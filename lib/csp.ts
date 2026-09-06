@@ -19,8 +19,6 @@
 const SCRIPT_HOSTS = [
   'https://va.vercel-scripts.com',
   'https://vercel.live',
-  'https://us-assets.i.posthog.com',
-  'https://*.posthog.com',
   'https://static.cloudflareinsights.com',
 ]
 
@@ -41,8 +39,6 @@ const CONNECT_HOSTS = [
   'https://people.googleapis.com',
   'https://*.vercel-storage.com',
   'https://*.public.blob.vercel-storage.com',
-  'https://us.i.posthog.com',
-  'https://*.posthog.com',
   'https://lh3.googleusercontent.com',
 ]
 

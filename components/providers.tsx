@@ -10,7 +10,6 @@ import { PWARegistration } from "@/components/pwa-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { PWAStatus } from "@/components/pwa-status"
 import { CodingWorkflowProvider } from "@/components/coding-workflow-provider"
-import { PostHogProvider } from "@/components/posthog-provider"
 import { OfflineProvider } from "@/components/offline-provider"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
@@ -19,7 +18,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <FeatureFlagProvider>
-       <PostHogProvider>
         <ThemeProvider>
           <SettingsProvider>
             <OfflineProvider>
@@ -37,7 +35,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </OfflineProvider>
           </SettingsProvider>
         </ThemeProvider>
-       </PostHogProvider>
       </FeatureFlagProvider>
     </SessionProvider>
   )

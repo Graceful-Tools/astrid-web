@@ -31,7 +31,6 @@ import {
 } from '@/lib/task-creation-utils'
 import { applyTaskDefaultsWithPriority } from '@/lib/task-defaults-priority'
 import type { Task, TaskList } from "@/types/task"
-import { trackListCreated, trackListDeleted, trackListEdited } from "@/lib/analytics"
 import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
@@ -853,12 +852,6 @@ export function useTaskManagerController({
       const newList = await response.json()
       listState.setLists(prev => [...prev, newList])
 
-      trackListCreated({
-        listId: newList.id,
-        isShared: listData.memberEmails && listData.memberEmails.length > 0,
-        hasGitIntegration: false,
-        isPublic: newList.privacy === 'PUBLIC',
-      })
 
       toast({
         title: "List created",
@@ -1017,7 +1010,6 @@ export function useTaskManagerController({
 
       await apiDelete(`/api/v1/lists/${listId}`)
 
-      trackListDeleted({ listId, taskCount })
 
       listState.setLists(prev => {
         const updatedLists = prev.filter(list => list.id !== listId)
@@ -1085,10 +1077,6 @@ export function useTaskManagerController({
       const result = unwrapList<TaskList>(await response.json())
 
       if (fieldsChanged.length > 0) {
-        trackListEdited({
-          listId: updatedList.id,
-          fieldsChanged,
-        })
       }
 
       // A null here means the body was neither shape — keep the optimistic

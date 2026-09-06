@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { startRegistration, startAuthentication } from "@simplewebauthn/browser"
-import { trackSignUp, trackLogin } from "@/lib/analytics"
 import { safeResponseJson, hasRequiredFields } from "@/lib/safe-parse"
 
 export function useWebAuthn() {
@@ -121,8 +120,7 @@ export function useWebAuthn() {
           throw new Error(verifyData.error || "Authentication failed")
         }
 
-        // Success - track login and redirect to home
-        trackLogin("passkey")
+        // Success — redirect to home
         window.location.href = "/"
         return { success: true, existingUser: true }
       }
@@ -134,7 +132,6 @@ export function useWebAuthn() {
       // For new users, they're now logged in - redirect to home
       // Use window.location.href to ensure session cookie is picked up
       if (result.isNewUser) {
-        trackSignUp("passkey")
         window.location.href = "/"
         return { success: true, isNewUser: true }
       }
@@ -217,7 +214,6 @@ export function useWebAuthn() {
       }>(verifyRes, {})
 
       // Track successful login
-      trackLogin("passkey")
 
       // Full page redirect to ensure session cookie is picked up
       // router.refresh() + router.push() doesn't reliably pick up new cookies

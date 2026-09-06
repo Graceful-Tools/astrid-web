@@ -216,8 +216,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', scope: 'optional', description: 'Per-task cost tracking.' },
 
   // ── Analytics and observability ───────────────────────────────────────────
-  { name: 'NEXT_PUBLIC_POSTHOG_KEY', scope: 'optional', description: 'PostHog project key. Unset disables product analytics.' },
-  { name: 'NEXT_PUBLIC_POSTHOG_HOST', scope: 'optional', description: 'PostHog ingestion host.' },
+  // No third-party analytics client. Product analytics are server-side
+  // (lib/analytics-events.ts, backed by the database).
   { name: 'LOG_LEVEL', scope: 'optional', description: 'Global pino level. Defaults to info in production, debug otherwise. Per-module override: LOG_LEVEL_<MODULE>, e.g. LOG_LEVEL_SSE_UTILS=debug.' },
   { name: 'OTEL_SERVICE_NAME', scope: 'optional', description: 'Service name reported to tracing.' },
   { name: 'NEXT_PUBLIC_DEBUG_PERMISSIONS', scope: 'tooling', description: 'Logs permission decisions in the browser.' },

@@ -9,7 +9,6 @@ import type { CustomRepeatingPattern } from '@/types/repeating'
 import { OfflineSyncManager, isOfflineMode } from '@/lib/offline-sync'
 import { OfflineTaskOperations, OfflineListOperations } from '@/lib/offline-db'
 import { nanoid } from 'nanoid'
-import { trackTaskCreated, trackTaskCompleted, trackTaskUncompleted, trackTaskDeleted, trackTaskEdited } from '@/lib/analytics'
 import { safeResponseJson, hasRequiredFields } from '@/lib/safe-parse'
 import { unwrapTask } from '@/lib/v1-response'
 
@@ -187,15 +186,6 @@ export const useTaskOperations = ({
           apiData
         )
 
-        // Track and notify success
-        trackTaskCreated({
-          taskId: tempTask.id,
-          listId: taskData.listIds?.[0],
-          hasDescription: !!taskData.description,
-          hasDueDate: !!taskData.dueDate || !!taskData.dueDateTime,
-          priority: taskData.priority || 0,
-          isRepeating: taskData.repeating !== undefined && taskData.repeating !== 'never',
-        })
         onTaskCreated?.(tempTask)
         toast({
           title: "Task created (offline)",
@@ -217,14 +207,6 @@ export const useTaskOperations = ({
         await OfflineTaskOperations.saveTask(data)
 
         // Track successful task creation
-        trackTaskCreated({
-          taskId: data.id,
-          listId: taskData.listIds?.[0],
-          hasDescription: !!taskData.description,
-          hasDueDate: !!taskData.dueDate || !!taskData.dueDateTime,
-          priority: taskData.priority || 0,
-          isRepeating: taskData.repeating !== undefined && taskData.repeating !== 'never',
-        })
 
         onTaskCreated?.(data)
         toast({
@@ -428,9 +410,7 @@ export const useTaskOperations = ({
             isRepeating: updatedTask.repeating !== 'never',
           }
           if (updates.completed) {
-            trackTaskCompleted({ ...trackProps, completionSource: 'checkbox' })
           } else {
-            trackTaskUncompleted(trackProps)
           }
         }
 
@@ -446,11 +426,6 @@ export const useTaskOperations = ({
           if (updates.repeating !== undefined && updates.repeating !== existingTask.repeating) fieldsChanged.push('repeating')
 
           if (fieldsChanged.length > 0) {
-            trackTaskEdited({
-              taskId,
-              listId: updatedTask.lists?.[0]?.id,
-              fieldsChanged,
-            })
           }
         }
 
@@ -484,9 +459,7 @@ export const useTaskOperations = ({
             isRepeating: taskData.repeating !== 'never',
           }
           if (updates.completed) {
-            trackTaskCompleted({ ...trackProps, completionSource: 'checkbox' })
           } else {
-            trackTaskUncompleted(trackProps)
           }
         }
 
@@ -502,11 +475,6 @@ export const useTaskOperations = ({
           if (updates.repeating !== undefined && updates.repeating !== existingTask.repeating) fieldsChanged.push('repeating')
 
           if (fieldsChanged.length > 0) {
-            trackTaskEdited({
-              taskId,
-              listId: taskData.lists?.[0]?.id,
-              fieldsChanged,
-            })
           }
         }
 
@@ -555,8 +523,6 @@ export const useTaskOperations = ({
           'DELETE'
         )
 
-        // Track and notify success
-        trackTaskDeleted({ taskId })
         onTaskDeleted?.(taskId)
         toast({
           title: "Task deleted (offline)",
@@ -573,7 +539,6 @@ export const useTaskOperations = ({
       await OfflineTaskOperations.deleteTask(taskId)
 
       // Track successful deletion
-      trackTaskDeleted({ taskId })
 
       onTaskDeleted?.(taskId)
       toast({
