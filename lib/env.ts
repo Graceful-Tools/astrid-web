@@ -115,6 +115,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_VAPID_PUBLIC_KEY', scope: 'optional', description: 'Web push public key, needed in the browser to subscribe.' },
   { name: 'VAPID_SUBJECT', scope: 'optional', description: 'mailto: contact required by the web-push spec.' },
   { name: 'CORS_ALLOWED_ORIGINS', scope: 'optional', description: 'Extra origins allowed credentialed cross-origin API access, beyond the brand apex and www.' },
+  { name: 'TRUSTED_PROXY_DEPTH', scope: 'optional', description: 'Proxy hops whose X-Forwarded-For entries are trusted. 1 is correct on Vercel; a deployment behind an extra proxy MUST raise it or rate limits are keyed on a value the caller chooses.' },
 
   // ── Encryption ────────────────────────────────────────────────────────────
   { name: 'ENCRYPTION_KEY', scope: 'required', description: 'Encrypts stored user API keys and OAuth credentials at rest. Losing it makes them unrecoverable.', validate: minLength(32) },
