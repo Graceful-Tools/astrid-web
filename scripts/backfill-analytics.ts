@@ -1,10 +1,26 @@
 /**
- * Backfill Analytics Script
+ * Backfill Analytics Script — DESTRUCTIVE. Prefer scripts/reaggregate-analytics.ts.
  *
- * This script reconstructs analytics events from existing database records
- * and populates AnalyticsDailyStats for historical data.
+ * This does NOT re-aggregate existing analytics. It SYNTHESISES AnalyticsEvent
+ * rows from Task/Comment/TaskList records — every one with `platform: 'unknown'`
+ * and an approximate timestamp (a task's `updatedAt` stands in for its
+ * completion time) — writes them into the real event table, and then rebuilds
+ * every day from the earliest event to the latest.
  *
- * Run: npx tsx scripts/backfill-analytics.ts
+ * Three properties make it unsafe to reach for casually (task 82752f76):
+ *
+ *   1. The synthetic events are indistinguishable from real ones afterwards.
+ *   2. `skipDuplicates: true` below is a NO-OP: AnalyticsEvent has only plain
+ *      indexes, no unique constraint, so nothing can conflict. Each run inserts
+ *      another full copy of every synthetic event and inflates every day again.
+ *   3. There is no window — it rewrites all of history, not the gap you meant.
+ *
+ * To repair missing AnalyticsDailyStats rows, the raw events are already there:
+ * use `scripts/reaggregate-analytics.ts --from <day> --to <day>`, which is
+ * windowed, dry-runnable, and idempotent.
+ *
+ * Run (only if you actually want fabricated events):
+ *   npx tsx scripts/backfill-analytics.ts --yes-fabricate-events
  */
 
 import { PrismaClient } from '@prisma/client'
@@ -183,6 +199,17 @@ async function backfillAnalytics() {
   console.log(`   Analytics Events: ${eventCount}`)
   console.log(`   Daily Stats Records: ${statsCount}`)
   console.log(`   Admin Users: ${adminCount}`)
+}
+
+// Refuse to run on a bare invocation. This script's name promises a repair and
+// its behaviour is a rewrite, so the flag is the only thing standing between
+// "backfill the missing days" and a permanently polluted event table.
+if (!process.argv.includes('--yes-fabricate-events')) {
+  console.error('❌ scripts/backfill-analytics.ts FABRICATES AnalyticsEvent rows; it does not re-aggregate.')
+  console.error('   To rebuild missing AnalyticsDailyStats rows from the real events, use:')
+  console.error('     npx tsx scripts/reaggregate-analytics.ts --from YYYY-MM-DD --to YYYY-MM-DD --dry-run')
+  console.error('   If you genuinely want synthetic events, re-run with --yes-fabricate-events.')
+  process.exit(1)
 }
 
 // Run the backfill

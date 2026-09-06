@@ -129,7 +129,8 @@
     "check:env": "tsx scripts/check-env-schema.ts",
     "vendor:sync": "node scripts/sync-vendor-assets.mjs",
     "check:unimported": "tsx scripts/check-unimported.ts",
-    "check:prisma-client": "tsx scripts/check-prisma-client.ts"
+    "check:prisma-client": "tsx scripts/check-prisma-client.ts",
+    "analytics:reaggregate": "tsx scripts/reaggregate-analytics.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
