@@ -96,10 +96,20 @@ describe('MCP SSE Integration', () => {
       name: 'Test Creator',
       email: 'creator@example.com',
     },
+    // The shared create service (epic 9dedd8aa) reads the SSE audience off the
+    // created task's own relations instead of issuing a second members query,
+    // so the created row has to carry them — which is what it carries in
+    // production.
     lists: [
       {
         id: 'test-list-id',
         name: 'Test List',
+        ownerId: 'list-owner-id',
+        owner: { id: 'list-owner-id' },
+        listMembers: [
+          { id: 'lm-1', listId: 'test-list-id', userId: 'admin-user-id', role: 'admin', user: { id: 'admin-user-id' } },
+          { id: 'lm-2', listId: 'test-list-id', userId: 'member-user-id', role: 'member', user: { id: 'member-user-id' } },
+        ],
       },
     ],
     createdAt: new Date(),

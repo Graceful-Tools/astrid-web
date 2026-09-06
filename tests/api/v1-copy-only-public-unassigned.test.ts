@@ -55,11 +55,18 @@ vi.mock('@/lib/list-member-utils', () => ({
 // Post-create fan-out; not what this test is about.
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
 vi.mock('@/lib/redis', () => ({ RedisCache: { del: vi.fn() }, isRedisAvailable: vi.fn(() => false) }))
-vi.mock('@/lib/analytics-events', () => ({ trackEventFromRequest: vi.fn(), AnalyticsEventType: {} }))
+vi.mock('@/lib/analytics-events', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // The create service records the analytics event itself now.
+  trackAnalyticsEvent: vi.fn(),
+}))
 vi.mock('@/lib/task-recipients', () => ({ collectListRecipientUserIds: vi.fn(() => []) }))
 vi.mock('@/lib/task-update-handler', () => ({ recordTaskCreationComment: vi.fn() }))
 vi.mock('@/lib/agent-protocol', () => ({ enrichTaskForAgent: vi.fn((t: unknown) => t) }))
-vi.mock('@/lib/reminder-scheduling', () => ({ scheduleRemindersForTask: vi.fn() }))
+vi.mock('@/lib/reminder-scheduling', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  scheduleReminders: vi.fn(),
+}))
 
 import { POST } from '@/app/api/v1/tasks/route'
 import { prisma } from '@/lib/prisma'
@@ -123,6 +130,10 @@ describe('POST /api/v1/tasks — copy-only public lists stay unassigned (task e0
         isVirtual: true,
         projectId: true,
         listType: true,
+        // The list's default assignee decides who an unassigned create lands
+        // on, so the shared create service reads it here rather than issuing a
+        // second query for it. One scalar column, no new relation.
+        defaultAssigneeId: true,
         listMembers: {
           select: {
             userId: true,

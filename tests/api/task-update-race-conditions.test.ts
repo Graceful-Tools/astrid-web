@@ -32,7 +32,11 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
-vi.mock('@/lib/analytics-events', () => ({
+vi.mock('@/lib/analytics-events', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // The create service records the analytics event itself now, so the
+  // write has to be stubbed even where the test does not assert on it.
+  trackAnalyticsEvent: vi.fn(),
   trackEventFromRequest: vi.fn(),
   AnalyticsEventType: {
     TASK_CREATED: 'task_created',
@@ -58,6 +62,8 @@ vi.mock('@/lib/task-assignee', () => ({
 }))
 
 const mockRedisDel = vi.fn().mockResolvedValue(undefined)
+const mockRedisInvalidateUserTasks = vi.fn().mockResolvedValue(undefined)
+const mockRedisInvalidateUserLists = vi.fn().mockResolvedValue(undefined)
 const mockIsRedisAvailable = vi.fn().mockResolvedValue(true)
 
 vi.mock('@/lib/redis', () => ({
@@ -65,6 +71,10 @@ vi.mock('@/lib/redis', () => ({
     del: (...args: any[]) => mockRedisDel(...args),
     keys: {
       userTasks: (userId: string) => `tasks:user:${userId}`,
+    },
+    invalidate: {
+      userTasks: (...args: any[]) => mockRedisInvalidateUserTasks(...args),
+      userListsAllVersions: (...args: any[]) => mockRedisInvalidateUserLists(...args),
     },
   },
   isRedisAvailable: (...args: any[]) => mockIsRedisAvailable(...args),
@@ -335,12 +345,15 @@ describe('v1 POST — Redis cache invalidation', () => {
     const response = await POST(req)
     expect(response.status).toBe(201)
 
-    // Should have called RedisCache.del for creator and list members
-    expect(mockRedisDel).toHaveBeenCalled()
+    // The shared create service (epic 9dedd8aa) uses invalidate.userTasks
+    // rather than a bare del: it also clears the per-list task caches, which
+    // v1's own hand-rolled invalidation left stale for everyone else viewing
+    // the list.
+    expect(mockRedisInvalidateUserTasks).toHaveBeenCalled()
 
-    const deletedKeys = mockRedisDel.mock.calls.map(call => call[0])
-    expect(deletedKeys).toContain('tasks:user:user-1') // creator
-    expect(deletedKeys).toContain('tasks:user:user-2') // assignee + list member
+    const invalidatedUsers = mockRedisInvalidateUserTasks.mock.calls.map(call => call[0])
+    expect(invalidatedUsers).toContain('user-1') // creator
+    expect(invalidatedUsers).toContain('user-2') // assignee + list member
   })
 })
 
@@ -466,8 +479,9 @@ describe('Create-then-edit flow — cache invalidated at each step', () => {
     const createResponse = await POST(createReq)
     expect(createResponse.status).toBe(201)
 
-    const createDelCount = mockRedisDel.mock.calls.length
-    expect(createDelCount).toBeGreaterThan(0) // cache was invalidated on create
+    // Create goes through the shared service, which invalidates via
+    // invalidate.userTasks; the edit path below still uses del directly.
+    expect(mockRedisInvalidateUserTasks.mock.calls.length).toBeGreaterThan(0)
 
     // Step 2: Edit task (assign someone)
     vi.clearAllMocks()

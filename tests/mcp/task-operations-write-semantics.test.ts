@@ -69,6 +69,14 @@ describe('MCP updateTask (task fb94f2ee)', () => {
 })
 
 describe('MCP createTask (task fb94f2ee)', () => {
+  beforeEach(() => {
+    // createTask now runs the shared service's time-based dedup, which uses the
+    // same findFirst the update tests above stub with an existing task. Left as
+    // it is, every create here looks like a duplicate of a task made seconds
+    // ago and returns without creating anything.
+    taskFindFirst.mockResolvedValue(null)
+  })
+
   it('defaults isPrivate to true, like the schema and every other create path', async () => {
     const { createTask } = await import('@/app/api/mcp/operations/handlers/task-operations')
 
