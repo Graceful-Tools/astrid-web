@@ -222,6 +222,15 @@ class SelfHealingPredeploy {
         autoFixable: false,
       },
       {
+        // CRON_SECRET was absent from the env validator for months while every
+        // cron route failed closed on it. lib/env.ts is the registry now, and
+        // this fails if it, .env.example and the source ever disagree again
+        // (task 0c387855).
+        name: 'Environment Registry',
+        command: 'npm run check:env',
+        autoFixable: false,
+      },
+      {
         name: 'Prisma Client',
         command: 'node -e "require(\'@prisma/client\')"',
         autoFixable: true,
