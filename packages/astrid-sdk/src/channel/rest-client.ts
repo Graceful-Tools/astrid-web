@@ -1,3 +1,4 @@
+import { resolveApiBase } from '../config/api-base.js'
 import type { OAuthClient } from './oauth-client.js'
 import type { AgentTask, AgentComment } from './types.js'
 
@@ -6,7 +7,7 @@ import type { AgentTask, AgentComment } from './types.js'
  */
 export class RestClient {
   constructor(
-    private apiBase: string = 'https://www.astrid.cc/api/v1',
+    private apiBase: string = resolveApiBase(),
     private oauth: OAuthClient
   ) {}
 

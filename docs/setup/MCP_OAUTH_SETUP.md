@@ -76,6 +76,11 @@ This creates:
 - `dist/mcp-server-oauth.js` - Compiled JavaScript
 - `mcp/astrid-mcp-oauth` - Executable script
 
+Both are build output and are **not committed** (task 979e1325). They were,
+once, and never rebuilt: the checked-in bundle ended up with no
+`get_agent_queue` tool at all while its source had one. Build them from your
+checkout rather than trusting a binary in git.
+
 ## Setup Instructions
 
 ### For Claude Desktop

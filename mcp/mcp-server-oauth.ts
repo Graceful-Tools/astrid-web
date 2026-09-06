@@ -10,7 +10,7 @@
  * - ASTRID_OAUTH_CLIENT_ID: OAuth client ID
  * - ASTRID_OAUTH_CLIENT_SECRET: OAuth client secret
  * - ASTRID_OAUTH_LIST_ID: Default list ID to operate on
- * - ASTRID_API_BASE_URL: API base URL (default: https://astrid.cc)
+ * - ASTRID_API_BASE_URL: API base URL (default: this brand's own origin)
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js"
@@ -22,6 +22,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod"
+import { mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
 
 // OAuth API Client
 interface OAuthTokenResponse {
@@ -105,7 +106,7 @@ class OAuthAPIClient {
   private staticAccessToken: string | null
 
   constructor(
-    baseUrl: string = "https://astrid.cc",
+    baseUrl: string = mcpDefaultBaseUrl(),
     clientId?: string,
     clientSecret?: string,
     staticAccessToken?: string | null
@@ -206,7 +207,7 @@ export default class AstridMCPServerOAuth {
   private defaultListId: string | null = null
 
   constructor(options: AstridMCPServerOptions = {}) {
-    const baseUrl = options.baseUrl || process.env.ASTRID_API_BASE_URL || "https://astrid.cc"
+    const baseUrl = options.baseUrl || mcpDefaultBaseUrl()
     this.oauthClient = new OAuthAPIClient(
       baseUrl,
       options.clientId,
@@ -220,7 +221,7 @@ export default class AstridMCPServerOAuth {
 
     this.server = new Server(
       {
-        name: "astrid-task-manager-oauth",
+        name: mcpServerName("oauth"),
         version: "3.0.0",
       },
       {
@@ -726,7 +727,7 @@ export default class AstridMCPServerOAuth {
 
   private logStartup(transportLabel: string) {
     console.error(`Astrid MCP Server (OAuth) running via ${transportLabel} transport`)
-    console.error(`Base URL: ${process.env.ASTRID_API_BASE_URL || "https://astrid.cc"}`)
+    console.error(`Base URL: ${mcpDefaultBaseUrl()}`)
     console.error(
       `Default List: ${this.defaultListId || "none (must provide listId in each call)"}`
     )

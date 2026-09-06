@@ -1,3 +1,4 @@
+import { resolveApiBase } from '../config/api-base.js'
 import type { AstridChannelConfig } from './types.js'
 
 /**
@@ -20,7 +21,7 @@ export class OAuthClient {
   /** Force-refresh the token. */
   async refreshToken(): Promise<string> {
     const endpoint = this.config.tokenEndpoint
-      || `${this.config.apiBase || 'https://www.astrid.cc/api/v1'}/oauth/token`
+      || `${resolveApiBase(this.config.apiBase)}/oauth/token`
 
     const res = await fetch(endpoint, {
       method: 'POST',

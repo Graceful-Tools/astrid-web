@@ -257,6 +257,23 @@ Not oversights. Changing any of these breaks something real.
 | `ASTRID.md` | Agent context filename, deliberately named. |
 | iOS bundle IDs, keychain service, App Group, `astrid://`, associated domains | App Store Connect and provisioning. |
 
+### The MCP server name is NOT frozen (task 979e1325)
+
+This table used to be silent about it, which read as an oversight and was one.
+The MCP server announces itself as `<wordmark>-task-manager-oauth`, derived from
+`BRAND.wordmark` by `mcpServerName()` in `lib/brand/config.ts`.
+
+The reason it differs from `name_for_model` directly above: OpenAI pins
+`name_for_model` into every already-installed GPT action, so renaming it breaks
+live installs. Nothing external pins the MCP server name — it is a display
+string in the client's server list, and it is the most visible identity the
+product has outside the app itself. A partner's users were installing a server
+that introduced itself as Astrid.
+
+The default API base URL for the standalone MCP servers follows the brand too
+(`mcpDefaultBaseUrl()`), so a partner's server talks to their own API rather
+than requiring every operator to remember `ASTRID_API_BASE_URL`.
+
 ### WebAuthn RP ID
 
 The RP ID is resolved **per request from the `Origin` header**, not from configuration.

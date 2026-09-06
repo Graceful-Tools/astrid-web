@@ -168,3 +168,11 @@ ALL_BUILD_*.md
 READY_TO_BUILD.md
 
 certificates
+
+# Compiled MCP server bundles. Built on demand with `npm run build:mcp:oauth`;
+# they were committed once and never rebuilt, so the checked-in OAuth bundle
+# ended up with no get_agent_queue tool at all while its source had one
+# (task 979e1325). Guarded by tests/mcp/no-committed-bundles.test.ts.
+mcp/astrid-mcp
+mcp/astrid-mcp-oauth
+mcp/astrid-mcp-oauth-http

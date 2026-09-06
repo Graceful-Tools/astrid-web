@@ -91,7 +91,7 @@ export interface PlanningResult {
 // CONFIG TYPES
 // ============================================================================
 
-export type AIService = 'claude' | 'openai' | 'gemini' | 'openclaw'
+export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
 
 export interface AIAgentConfig {
   /** The AI service provider */

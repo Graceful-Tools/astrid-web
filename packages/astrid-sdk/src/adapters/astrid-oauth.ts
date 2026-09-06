@@ -4,6 +4,7 @@
  * Client for accessing Astrid tasks via OAuth 2.0 Client Credentials flow
  */
 
+import { resolveOrigin } from '../config/api-base.js'
 import type { AstridTask, AstridList } from '../types/index.js'
 
 interface OAuthTokenResponse {
@@ -58,7 +59,10 @@ export class AstridOAuthClient {
   private tokenExpiry: number = 0
 
   constructor(config?: AstridOAuthConfig) {
-    this.baseUrl = config?.baseUrl || process.env.ASTRID_API_URL || 'https://astrid.cc'
+    // Was 'https://astrid.cc' while the channel clients defaulted to
+    // 'https://www.astrid.cc/api/v1' — the same SDK talking to two different
+    // hosts (task 979e1325).
+    this.baseUrl = resolveOrigin(config?.baseUrl)
     this.clientId = config?.clientId || process.env.ASTRID_OAUTH_CLIENT_ID || ''
     this.clientSecret = config?.clientSecret || process.env.ASTRID_OAUTH_CLIENT_SECRET || ''
   }

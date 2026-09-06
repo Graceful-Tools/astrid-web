@@ -1,3 +1,4 @@
+import { resolveApiBase } from '../config/api-base.js'
 import type { OAuthClient } from './oauth-client.js'
 import type { AstridChannelConfig, AgentSSEEvent } from './types.js'
 
@@ -39,7 +40,7 @@ export class SSEClient {
     this.stopped = false
     const token = await this.oauth.ensureToken()
     const base = this.config.sseEndpoint
-      || `${this.config.apiBase || 'https://www.astrid.cc/api/v1'}/agent/events`
+      || `${resolveApiBase(this.config.apiBase)}/agent/events`
     const since = new Date(this.lastEventTime).toISOString()
     const url = `${base}?since=${encodeURIComponent(since)}`
 

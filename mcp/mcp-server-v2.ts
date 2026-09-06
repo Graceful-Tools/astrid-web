@@ -10,6 +10,7 @@
  * and each module also opened its own connection pool (task 390bccc3).
  */
 import { prisma } from "../lib/prisma"
+import { mcpServerName } from "../lib/brand/config"
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
@@ -80,7 +81,7 @@ class AstridMCPServerV2 {
   constructor() {
     this.server = new Server(
       {
-        name: "astrid-task-manager-v2",
+        name: mcpServerName("v2"),
         version: "2.0.0",
       },
       {

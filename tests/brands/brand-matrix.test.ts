@@ -425,6 +425,26 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     }
   })
 
+  it('announces the MCP server under this profile’s own name', async () => {
+    // The MCP server a partner's users install into Claude Desktop introduced
+    // itself as "astrid-task-manager-oauth" (task 979e1325). It is the most
+    // visible identity the product has outside the app itself.
+    const { mcpServerName } = await import('@/lib/brand/config')
+
+    const name = mcpServerName('oauth')
+    expect(name).toContain(profile.expect.wordmark.toLowerCase())
+    for (const literal of profile.expect.forbidLiterals) {
+      expect(name, `MCP server name leaks "${literal}"`)
+        .not.toContain(literal.toLowerCase())
+    }
+  })
+
+  it('defaults the MCP client’s API base to this profile’s origin', async () => {
+    const { mcpDefaultBaseUrl } = await import('@/lib/brand/config')
+
+    expect(mcpDefaultBaseUrl()).toBe(`https://${profile.expect.domain}`)
+  })
+
   it('gates the SERVER half of a disabled integration, not just its UI', async () => {
     // With syncGithubIssues off the UI 404s, but the webhook and the cron kept
     // running: a partner who turned the integration off still had it syncing.

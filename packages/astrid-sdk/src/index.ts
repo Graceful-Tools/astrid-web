@@ -48,6 +48,8 @@ export {
   AI_AGENT_CONFIG,
   SUGGESTED_MODELS,
   DEFAULT_MODELS,
+  agentEmailDomain,
+  fetchAgentConfig,
   getAgentConfig,
   getAgentService,
   getAgentModel,

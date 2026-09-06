@@ -130,3 +130,39 @@ export type Brand = typeof BRAND
 export function brandOrigin(): string {
   return `https://${BRAND.domain}`
 }
+
+/**
+ * The name an MCP server announces itself under, e.g. `astrid-task-manager-oauth`.
+ *
+ * This string is what a user sees in Claude Desktop's server list, so it is
+ * arguably the most visible identity the product has outside the app. It was
+ * hardcoded, so a partner's users installed a server calling itself Astrid
+ * (task 979e1325).
+ *
+ * Deliberately NOT frozen the way `name_for_model` and the OpenAPI path are in
+ * docs/WHITELABELING.md §7: those are pinned by OpenAI's plugin contract and
+ * changing them breaks existing installs. Nothing external pins the MCP server
+ * name.
+ *
+ * Derived from the wordmark rather than the app name so it is already
+ * lowercase and hyphen-safe.
+ */
+export function mcpServerName(variant?: string): string {
+  const slug = BRAND.wordmark
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'app'
+
+  return variant ? `${slug}-task-manager-${variant}` : `${slug}-task-manager`
+}
+
+/**
+ * Default API base URL for the standalone MCP servers and CLI helpers.
+ *
+ * They hardcoded `https://astrid.cc`, so a partner's server talked to Astrid's
+ * API unless every operator remembered to set ASTRID_API_BASE_URL.
+ */
+export function mcpDefaultBaseUrl(): string {
+  return process.env.ASTRID_API_BASE_URL?.trim() || brandOrigin()
+}
