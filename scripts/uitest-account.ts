@@ -27,6 +27,7 @@
 export {}
 
 import { PrismaClient } from '@prisma/client'
+import { loadScriptEnv } from './lib/load-env'
 import { encode } from 'next-auth/jwt'
 import { randomUUID } from 'crypto'
 import {
@@ -47,7 +48,28 @@ const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
 /** The cookie name the app sends and the server reads over HTTPS. */
 const COOKIE_NAME = '__Secure-next-auth.session-token'
 
-const prisma = new PrismaClient()
+// Load .env.local before anything reads process.env.
+//
+// Without this the script found no NEXTAUTH_SECRET and exited 1, and `run-tests.sh --ui`
+// treats a failed mint as "no session available" — so the WHOLE iOS UI suite ran signed out
+// and reported "✓ UI tests passed (28 passed, 36 skipped)". Green, asserting nothing. That is
+// the same failure this account was created to end (astrid-ios task b86c97c5).
+loadScriptEnv()
+
+/**
+ * The DEPLOYED database, which is what this script targets — the app under UI test talks to
+ * production, so a session minted against a local database names a user that production has
+ * never heard of. `DATABASE_URL` on a developer machine points at localhost, so preferring the
+ * prod URL is what the header above has always meant. An explicit `DATABASE_URL` in the
+ * environment still wins, for the case where someone means it.
+ */
+const DATASOURCE_URL = process.env.UITEST_DATABASE_URL
+  ?? process.env.DATABASE_URL_PROD
+  ?? process.env.DATABASE_URL
+
+const prisma = new PrismaClient({
+  datasources: DATASOURCE_URL ? { db: { url: DATASOURCE_URL } } : undefined,
+})
 
 /**
  * Every query here names its columns instead of going through a Prisma model.
