@@ -97,6 +97,101 @@ interface FixAttempt {
   output: string
 }
 
+/**
+ * Define all checks with their auto-fix commands
+ */
+export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>[] {
+  return [
+    // Quick checks first
+    {
+      // FIRST, and deliberately so. Every other check reads the generated
+      // client, and a stale one fails them as if the source were broken: a
+      // schema change once filed a "Predeploy Failed: TypeScript" task full of
+      // `Property 'agentMailbox' does not exist on type` errors against code
+      // that was correct (task ea700455). This check used to sit ten places
+      // further down AND only prove the package was requirable — true of a
+      // stale client too — so it could neither catch the drift nor auto-fix it
+      // in time.
+      name: 'Prisma Client',
+      command: 'npm run check:prisma-client',
+      autoFixable: true,
+      fixCommand: 'npx prisma generate',
+      fixDescription: 'Regenerate Prisma client (schema drifted from generated client)',
+    },
+    {
+      name: 'TypeScript',
+      command: 'npx tsc --noEmit',
+      autoFixable: false, // Type errors need manual fix
+    },
+    {
+      name: 'ESLint',
+      command: 'npm run lint',
+      autoFixable: true,
+      fixCommand: 'npm run lint -- --fix',
+      fixDescription: 'Auto-fix lint errors',
+    },
+    {
+      name: 'Model Sync',
+      command: 'npm run check:model-sync',
+      autoFixable: false,
+    },
+    {
+      name: 'Documentation Links',
+      command: 'npm run check:docs',
+      autoFixable: false,
+    },
+    {
+      name: 'API Breaking Changes',
+      command: 'npm run check:api-breaking',
+      autoFixable: false,
+    },
+    {
+      // A whole feature shipped untranslated once, in all eleven locales at
+      // the same time, because nothing was checking (task d818849d).
+      name: 'Locale Key Parity',
+      command: 'npm run check:i18n',
+      autoFixable: false,
+    },
+    {
+      // CRON_SECRET was absent from the env validator for months while every
+      // cron route failed closed on it. lib/env.ts is the registry now, and
+      // this fails if it, .env.example and the source ever disagree again
+      // (task 0c387855).
+      name: 'Environment Registry',
+      command: 'npm run check:env',
+      autoFixable: false,
+    },
+    {
+      // ~2,900 lines of lib/ had no import sites, one of which shadowed the
+      // enforcing withAuth without its capability option — a route importing
+      // the wrong one silently lost its gate (task 1b381810).
+      name: 'Unimported Modules',
+      command: 'npm run check:unimported',
+      autoFixable: false,
+    },
+    {
+      name: 'Unit Tests (Vitest)',
+      command: 'npm run test:run',
+      autoFixable: false, // Test failures need investigation
+    },
+    {
+      // Runs every brands/*.brand.json through the real route handlers. Separate from
+      // the Vitest gate so a whitelabel regression is reported as itself rather than
+      // as one failure among 3000. Task 97208a72.
+      name: 'Brand Profiles',
+      command: 'npm run check:brands',
+      autoFixable: false,
+    },
+    {
+      name: 'Build',
+      command: 'npm run build:next',
+      autoFixable: true,
+      fixCommand: 'rm -rf .next && npm run build:next',
+      fixDescription: 'Clean build cache and rebuild',
+    },
+  ]
+}
+
 class SelfHealingPredeploy {
   private results: CheckResult[] = []
   private fixAttempts: FixAttempt[] = []
@@ -181,92 +276,6 @@ class SelfHealingPredeploy {
     return undefined
   }
 
-  /**
-   * Define all checks with their auto-fix commands
-   */
-  private getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>[] {
-    return [
-      // Quick checks first
-      {
-        name: 'TypeScript',
-        command: 'npx tsc --noEmit',
-        autoFixable: false, // Type errors need manual fix
-      },
-      {
-        name: 'ESLint',
-        command: 'npm run lint',
-        autoFixable: true,
-        fixCommand: 'npm run lint -- --fix',
-        fixDescription: 'Auto-fix lint errors',
-      },
-      {
-        name: 'Model Sync',
-        command: 'npm run check:model-sync',
-        autoFixable: false,
-      },
-      {
-        name: 'Documentation Links',
-        command: 'npm run check:docs',
-        autoFixable: false,
-      },
-      {
-        name: 'API Breaking Changes',
-        command: 'npm run check:api-breaking',
-        autoFixable: false,
-      },
-      {
-        // A whole feature shipped untranslated once, in all eleven locales at
-        // the same time, because nothing was checking (task d818849d).
-        name: 'Locale Key Parity',
-        command: 'npm run check:i18n',
-        autoFixable: false,
-      },
-      {
-        // CRON_SECRET was absent from the env validator for months while every
-        // cron route failed closed on it. lib/env.ts is the registry now, and
-        // this fails if it, .env.example and the source ever disagree again
-        // (task 0c387855).
-        name: 'Environment Registry',
-        command: 'npm run check:env',
-        autoFixable: false,
-      },
-      {
-        // ~2,900 lines of lib/ had no import sites, one of which shadowed the
-        // enforcing withAuth without its capability option — a route importing
-        // the wrong one silently lost its gate (task 1b381810).
-        name: 'Unimported Modules',
-        command: 'npm run check:unimported',
-        autoFixable: false,
-      },
-      {
-        name: 'Prisma Client',
-        command: 'node -e "require(\'@prisma/client\')"',
-        autoFixable: true,
-        fixCommand: 'npx prisma generate',
-        fixDescription: 'Regenerate Prisma client',
-      },
-      {
-        name: 'Unit Tests (Vitest)',
-        command: 'npm run test:run',
-        autoFixable: false, // Test failures need investigation
-      },
-      {
-        // Runs every brands/*.brand.json through the real route handlers. Separate from
-        // the Vitest gate so a whitelabel regression is reported as itself rather than
-        // as one failure among 3000. Task 97208a72.
-        name: 'Brand Profiles',
-        command: 'npm run check:brands',
-        autoFixable: false,
-      },
-      {
-        name: 'Build',
-        command: 'npm run build:next',
-        autoFixable: true,
-        fixCommand: 'rm -rf .next && npm run build:next',
-        fixDescription: 'Clean build cache and rebuild',
-      },
-    ]
-  }
 
   /**
    * Parse test stats from output based on check type
@@ -750,7 +759,7 @@ All predeploy checks are now passing.
     if (options.dryRun) console.log('   Mode: DRY RUN (no fixes)')
     if (options.ci) console.log('   Mode: CI (strict)')
 
-    const checks = this.getChecks()
+    const checks = getChecks()
     let failedChecks: CheckResult[] = []
     let allPassedResults: CheckResult[] = [] // Keep track of all passed results
 
