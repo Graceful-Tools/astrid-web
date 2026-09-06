@@ -128,6 +128,12 @@ function createUpstashAdapter(upstash: UpstashRedis): any {
       return await upstash.setex(key, seconds, value)
     },
 
+    /** SET key value NX EX seconds — returns true only for the caller that won. */
+    async setNx(key: string, seconds: number, value: string) {
+      const result = await upstash.set(key, value, { nx: true, ex: seconds })
+      return result === 'OK'
+    },
+
     async del(key: string | string[]) {
       if (Array.isArray(key)) {
         return await upstash.del(...key)
@@ -441,6 +447,30 @@ export class RedisCache {
     publicTasks: () => 'tasks:public',
     userSearch: (query: string) => `users:search:${query}`,
     taskComments: (taskId: string) => `comments:task:${taskId}`,
+  }
+
+  /**
+   * Take a named claim that expires, atomically, across every instance.
+   *
+   * Returns true only for the caller that won it. Serverless code that
+   * de-duplicates work in a module-level Set is de-duplicating per INSTANCE,
+   * which on a warm fleet means once per instance rather than once
+   * (task a7394c89).
+   *
+   * Answers false — nobody wins — when Redis is unavailable, so the caller can
+   * decide whether to fall back or skip. It never throws: a cache outage must
+   * not take out the job that depends on it.
+   */
+  static async claimOnce(key: string, ttlSeconds: number): Promise<boolean> {
+    try {
+      const client = await getRedisClient()
+      if (!client?.setNx) return false
+      return await client.setNx(key, ttlSeconds, '1')
+    } catch (error) {
+      log.error({ err: error }, 'Redis claimOnce error:')
+      this.metrics.errors++
+      return false
+    }
   }
 
   // Cache invalidation patterns

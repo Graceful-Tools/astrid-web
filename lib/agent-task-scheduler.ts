@@ -12,6 +12,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
 import { createLogger } from '@/lib/logger'
@@ -19,12 +20,56 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('agent-task-scheduler')
 
 
-// In-memory set of recently dispatched task IDs to avoid duplicate notifications
-// (reset on server restart, which is fine — the DB check is the source of truth)
+/**
+ * Per-instance fallback for the dispatch claim.
+ *
+ * This used to be the ONLY guard, with a comment saying the DB check was the
+ * source of truth — there is no DB check in this file, and never was. The
+ * dispatch window is 30-60 minutes and the cron runs every minute, so each due
+ * task is seen by roughly thirty consecutive runs; on a warm fleet a
+ * module-level Set de-duplicates per INSTANCE, which means one dispatch per
+ * instance rather than one dispatch. Every duplicate is a real agent run and
+ * real model spend (task a7394c89).
+ *
+ * The claim below is now taken in Redis, which every instance shares. This
+ * stays as the degraded path for when Redis is unavailable: better than
+ * nothing, and no worse than what was here before.
+ */
 const recentlyDispatched = new Set<string>()
 
 // Clean up old entries every hour
 setInterval(() => recentlyDispatched.clear(), 60 * 60 * 1000)
+
+/** Long enough to cover the whole 30-60 minute dispatch window, plus slack. */
+const DISPATCH_CLAIM_TTL_SECONDS = 2 * 60 * 60
+
+/**
+ * True when THIS run should dispatch the task.
+ *
+ * Redis first, because it is shared; the in-memory set is consulted only when
+ * Redis could not answer, so a cache outage degrades to the old behaviour
+ * rather than dispatching thirty times.
+ */
+async function claimDispatch(taskId: string): Promise<boolean> {
+  if (recentlyDispatched.has(taskId)) return false
+
+  const won = await RedisCache.claimOnce(`agent-dispatch:${taskId}`, DISPATCH_CLAIM_TTL_SECONDS)
+  if (won) {
+    recentlyDispatched.add(taskId)
+    return true
+  }
+
+  // Redis said no. That is either "another instance already has it" or "Redis
+  // is unavailable"; claimOnce cannot distinguish, and both are answered the
+  // same way — fall back to the local set, which at least stops this instance
+  // repeating itself every minute.
+  if (!(await isRedisAvailable())) {
+    recentlyDispatched.add(taskId)
+    return true
+  }
+
+  return false
+}
 
 /**
  * Process tasks that are due soon and dispatch them to their assigned AI agent.
@@ -66,8 +111,8 @@ export async function processAgentTasksDueSoon(): Promise<number> {
     let dispatched = 0
 
     for (const task of tasks) {
-      // Skip if already dispatched recently
-      if (recentlyDispatched.has(task.id)) continue
+      // Claim across every instance, not just this one.
+      if (!(await claimDispatch(task.id))) continue
 
       let agentId: string | null = null
 
@@ -102,7 +147,7 @@ export async function processAgentTasksDueSoon(): Promise<number> {
         },
       })
 
-      recentlyDispatched.add(task.id)
+      // The claim above already recorded this locally; nothing to add here.
       dispatched++
 
       log.info(`🤖 Dispatched task "${task.title}" to agent ${agentId} (due ${task.dueDateTime?.toISOString()})`)
