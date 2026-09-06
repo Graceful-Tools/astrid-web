@@ -2,25 +2,14 @@
 
 import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
-import { headers } from "next/headers"
 import { NextResponse } from "next/server"
-import { getBaseUrl } from "@/lib/base-url"
-
-async function resolveBaseUrl() {
-  const hdrs = await headers()
-  const host = hdrs.get("x-forwarded-host") || hdrs.get("host")
-  const protocol = hdrs.get("x-forwarded-proto") || "https"
-  if (host) {
-    return `${protocol}://${host}`
-  }
-  return getBaseUrl().replace(/\/$/, "")
-}
+import { resolveDiscoveryBaseUrl } from "@/lib/oauth/discovery-base-url"
 
 export async function GET() {
   const blocked = capabilityGate('integrationMcp')
   if (blocked) return blocked
 
-  const baseUrl = await resolveBaseUrl()
+  const baseUrl = await resolveDiscoveryBaseUrl()
   const resourceUrl = `${baseUrl}/mcp`
 
   const metadata = {
