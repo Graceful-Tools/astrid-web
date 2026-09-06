@@ -1,6 +1,7 @@
 #!/usr/bin/env npx tsx
 
 import { PrismaClient } from '@prisma/client'
+import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 
 const prisma = new PrismaClient()
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -90,6 +91,7 @@ class CompleteAIWorkflowTester {
       // Create test list with MCP enabled
       this.testList = await prisma.taskList.create({
         data: {
+          color: DEFAULT_LIST_COLOR,
           name: 'Complete Workflow Test List',
           description: 'Testing complete AI agent workflow end-to-end',
           ownerId: this.testUser.id,
@@ -192,6 +194,7 @@ class CompleteAIWorkflowTester {
       // Create list with different permissions
       const readOnlyList = await prisma.taskList.create({
         data: {
+          color: DEFAULT_LIST_COLOR,
           name: 'Read Only Test List',
           ownerId: this.testUser.id,
           mcpEnabled: true,

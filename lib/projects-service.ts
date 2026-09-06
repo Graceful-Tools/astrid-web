@@ -9,6 +9,7 @@
  */
 
 import { Prisma } from '@prisma/client'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { prisma } from '@/lib/prisma'
 import { addCustomState, renameCustomState, renameBuiltinState, reorderCustomState, removeCustomState, type ReorderDirection } from '@/lib/project-custom-states'
 import { isDefaultStatusRole, type StatusState } from '@/lib/task-status'
@@ -82,7 +83,7 @@ export interface CreateProjectInput {
  * docs/product/project-status-board.md for the invariants.
  */
 export async function createProjectForUser(userId: string, input: CreateProjectInput) {
-  const color = input.color || '#3b82f6'
+  const color = input.color || DEFAULT_LIST_COLOR
   return prisma.$transaction(async (tx) => {
     const createdProject = await tx.project.create({
       data: {
@@ -152,7 +153,7 @@ export async function createProjectFromList(
       data: {
         name: list.name,
         description: list.description || null,
-        color: list.color || '#3b82f6',
+        color: list.color || DEFAULT_LIST_COLOR,
         imageUrl: list.imageUrl || null,
         ownerId: userId,
         members: { create: { userId, role: 'admin' } },

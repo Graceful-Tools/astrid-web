@@ -5,6 +5,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 
 const prisma = new PrismaClient()
 
@@ -55,6 +56,7 @@ async function testPhase2Workflow() {
     console.log('📝 Test 3: Creating test list...')
     testList = await prisma.taskList.create({
       data: {
+        color: DEFAULT_LIST_COLOR,
         name: 'Test Coding Projects',
         description: 'Test list for coding agent tasks',
         ownerId: testUser.id,

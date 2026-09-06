@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 
 let sequence = 0
 
@@ -24,6 +25,9 @@ export function buildListCreate(
 ): Prisma.TaskListCreateInput {
   return {
     name: `Risk list ${nextSuffix()}`,
+    // Required since task 518ec534 dropped the database default; tests/** is
+    // outside tsconfig, so the compiler cannot catch a missing colour here.
+    color: DEFAULT_LIST_COLOR,
     owner: { connect: { id: ownerId } },
     ...overrides,
   }

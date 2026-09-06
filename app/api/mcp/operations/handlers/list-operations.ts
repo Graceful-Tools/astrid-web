@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { hydrateListFavorites, hydrateSingleListFavorite, toggleFavorite } from "@/lib/favorites"
@@ -71,7 +72,7 @@ export async function getSharedLists(accessToken: string, userId: string) {
       id: list.id,
       name: list.name,
       description: list.description || '',
-      color: list.color || '#3b82f6',
+      color: list.color || DEFAULT_LIST_COLOR,
       privacy: list.privacy,
       isFavorite: list.isFavorite,
       favoriteOrder: list.favoriteOrder,
@@ -204,7 +205,7 @@ export async function createList(accessToken: string, listData: any, userId: str
       data: {
         name: listData.name,
         description: listData.description || '',
-        color: listData.color || '#3b82f6',
+        color: listData.color || DEFAULT_LIST_COLOR,
         privacy: listData.privacy || 'PRIVATE',
         imageUrl: listData.imageUrl,
         ownerId: mcpToken.userId,

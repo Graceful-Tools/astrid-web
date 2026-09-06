@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -257,7 +258,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
       const newList: TaskList = {
         id: Date.now().toString(),
         name: newListName.trim(),
-        color: "#3b82f6",
+        color: DEFAULT_LIST_COLOR,
         privacy: "PRIVATE",
         owner: currentUser,
         ownerId: currentUser.id,

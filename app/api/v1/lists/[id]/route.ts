@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
@@ -99,7 +100,7 @@ export const GET = withAuth<RouteContext>(
           id: list.id,
           name: list.name,
           description: list.description || '',
-          color: list.color || '#3b82f6',
+          color: list.color || DEFAULT_LIST_COLOR,
           imageUrl: list.imageUrl,
           privacy: list.privacy,
           isFavorite: list.isFavorite,
@@ -362,7 +363,7 @@ export const PUT = withAuth<RouteContext>(
           id: list.id,
           name: list.name,
           description: list.description || '',
-          color: list.color || '#3b82f6',
+          color: list.color || DEFAULT_LIST_COLOR,
           imageUrl: list.imageUrl,
           privacy: list.privacy,
           isFavorite: list.isFavorite,

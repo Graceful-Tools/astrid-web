@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
+import { CHART_SERIES_COLORS } from '@/lib/brand/colors'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import {
@@ -307,7 +308,7 @@ export default function AnalyticsDashboard() {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="DAU" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="DAU" stroke={CHART_SERIES_COLORS[0]} strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="WAU" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="MAU" stroke="#8b5cf6" strokeWidth={2} dot={false} />
               </LineChart>
@@ -332,7 +333,7 @@ export default function AnalyticsDashboard() {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="Desktop Web" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Desktop Web" stroke={CHART_SERIES_COLORS[0]} strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="iPhone Web" stroke="#10b981" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="Android Web" stroke="#f59e0b" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="iOS App" stroke="#8b5cf6" strokeWidth={2} dot={false} />
@@ -364,7 +365,7 @@ export default function AnalyticsDashboard() {
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={100} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill={CHART_SERIES_COLORS[0]} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

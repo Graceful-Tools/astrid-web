@@ -10,6 +10,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { prisma } from '@/lib/prisma'
 import { placeholderUserService } from '@/lib/placeholder-user-service'
 import type { User, Task, TaskList } from '@prisma/client'
@@ -314,7 +315,7 @@ export class EmailToTaskService {
         description: `Created from email`,
         ownerId: data.ownerId,
         privacy: 'PRIVATE',
-        color: '#3b82f6',
+        color: DEFAULT_LIST_COLOR,
       },
       include: {
         owner: true,

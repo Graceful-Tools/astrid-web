@@ -5,6 +5,7 @@
  */
 
 import { config } from 'dotenv'
+import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 import { PrismaClient } from '@prisma/client'
 
 // Load environment variables
@@ -137,6 +138,7 @@ async function testGitHubAgentConnection() {
     // Create a test list with GitHub repository configured
     const testList = await prisma.taskList.create({
       data: {
+        color: DEFAULT_LIST_COLOR,
         name: 'Test GitHub Agent List',
         ownerId: userWithGitHub.id,
         githubRepositoryId: repositories.length > 0 ? repositories[0].fullName : null,

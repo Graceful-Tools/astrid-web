@@ -704,8 +704,8 @@ html, body {
   .task-panel-mobile textarea:focus {
     /* Use a subtle focus state instead of blue ring */
     outline: none !important;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 1px #3b82f6;
+    border-color: var(--brand-accent);
+    box-shadow: 0 0 0 1px var(--brand-accent);
     /* Prevent iOS blue overlay */
     -webkit-tap-highlight-color: transparent;
   }

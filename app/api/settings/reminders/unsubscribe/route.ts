@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
             margin-bottom: 24px;
           }
           .button {
-            background-color: #3b82f6;
+            background-color: ${BRAND.accentColor};
             color: white;
             padding: 12px 24px;
             text-decoration: none;

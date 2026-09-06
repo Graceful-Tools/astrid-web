@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
+import { DEFAULT_LIST_COLOR, randomListColor } from '@/lib/brand/colors'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
@@ -1188,8 +1189,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         : undefined
 
       // Pick a color
-      const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
-      const randomColor = colors[Math.floor(Math.random() * colors.length)]
+      const randomColor = randomListColor()
 
       // Create via API
       const response = await apiPost('/api/v1/lists', {
@@ -1245,7 +1245,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       suggestions.push({
         id: 'create-new',
         name: listSearchTerm.trim(),
-        color: '#3b82f6',
+        color: DEFAULT_LIST_COLOR,
         isCreateNew: true
       } as TaskList & { isCreateNew: boolean })
     }

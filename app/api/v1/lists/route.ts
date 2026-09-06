@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
@@ -117,7 +118,7 @@ export const GET = withAuth(
           ownerId: list.ownerId,
           name: list.name,
           description: list.description || '',
-          color: list.color || '#3b82f6',
+          color: list.color || DEFAULT_LIST_COLOR,
           imageUrl: list.imageUrl,
           privacy: list.privacy,
           isFavorite: list.isFavorite,
@@ -222,7 +223,7 @@ export const POST = withAuth(
           data: {
             name,
             description: body.description || '',
-            color: body.color || '#3b82f6',
+            color: body.color || DEFAULT_LIST_COLOR,
             imageUrl: body.imageUrl,
             privacy: body.privacy || 'PRIVATE',
             ownerId: auth.userId,

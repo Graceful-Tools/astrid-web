@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useMemo, useState } from 'react'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Keyboard, Hash } from "lucide-react"
@@ -298,7 +299,7 @@ export function EnhancedTaskCreation({
                   {isPublicOrShared ? (
                     <span className="text-blue-600 dark:text-blue-400 font-mono text-sm flex-shrink-0">#</span>
                   ) : (
-                    <Hash className="w-3 h-3 flex-shrink-0" style={{ color: list.color || '#3b82f6' }} />
+                    <Hash className="w-3 h-3 flex-shrink-0" style={{ color: list.color || DEFAULT_LIST_COLOR }} />
                   )}
                   <span className="theme-text-primary flex-1 truncate">{list.name}</span>
                   <span className="text-xs theme-text-muted flex-shrink-0">

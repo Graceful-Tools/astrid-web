@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { useToast } from '@/hooks/use-toast'
 import { apiPost, apiPut, apiDelete } from '@/lib/api'
 import { playTaskCreateSound, playTaskCompleteSound } from '@/lib/task-sounds'
@@ -116,7 +117,7 @@ export const useTaskOperations = ({
                   id: listId,
                   name: `List ${listId.slice(0, 8)}`, // Placeholder name
                   description: '',
-                  color: '#3b82f6',
+                  color: DEFAULT_LIST_COLOR,
                   privacy: 'PRIVATE' as const,
                   ownerId: userId,
                   owner: {
@@ -354,7 +355,7 @@ export const useTaskOperations = ({
                   id: listId,
                   name: `List ${listId.slice(0, 8)}`,
                   description: '',
-                  color: '#3b82f6',
+                  color: DEFAULT_LIST_COLOR,
                   privacy: 'PRIVATE' as const,
                   ownerId: userId,
                   owner: {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
         filterPriority: "all",
         filterInLists: "dont_filter",
         sortBy: "auto",
-        color: "#3b82f6"
+        color: DEFAULT_LIST_COLOR
       },
       {
         name: "Not in a List",

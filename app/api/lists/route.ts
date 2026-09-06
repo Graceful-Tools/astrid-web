@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-request-shapes'
 import { prisma } from "@/lib/prisma"
 import { getConsistentDefaultImage } from "@/lib/default-images"
@@ -200,7 +201,7 @@ export async function POST(request: NextRequest) {
     const listData: any = {
       name: data.name.trim(),
       description: data.description,
-      color: data.color || "#3b82f6",
+      color: data.color || DEFAULT_LIST_COLOR,
       privacy: data.privacy,
       imageUrl: data.imageUrl, // Use provided imageUrl or null
       ownerId: session.user.id,

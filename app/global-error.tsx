@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { createLogger } from '@/lib/logger'
+import { BRAND } from '@/lib/brand/config'
 
 const log = createLogger('global-error.tsx')
 
@@ -21,7 +22,12 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   }, [error])
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      // This page replaces the root layout, so it must set the brand accent
+      // custom property itself or stylesheets that reference it paint nothing.
+      style={{ '--brand-accent': BRAND.accentColor } as React.CSSProperties}
+    >
       <body>
         <div style={{
           display: "flex",
@@ -94,7 +100,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 padding: "10px 20px",
                 borderRadius: "6px",
                 border: "none",
-                backgroundColor: "#3b82f6",
+                backgroundColor: BRAND.accentColor,
                 color: "white",
                 cursor: "pointer",
                 fontSize: "14px",

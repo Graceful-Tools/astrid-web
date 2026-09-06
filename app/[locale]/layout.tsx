@@ -94,7 +94,13 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages()
 
   return (
-    <html lang={locale}>
+    <html
+      lang={locale}
+      // The brand accent as a CSS custom property, so stylesheets can paint it
+      // too. CSS cannot read env, so the stylesheets hardcoded the Astrid blue
+      // and a partner's focus ring and prose links stayed blue (task 518ec534).
+      style={{ '--brand-accent': BRAND.accentColor } as React.CSSProperties}
+    >
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

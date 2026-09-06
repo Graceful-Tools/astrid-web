@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -449,14 +450,14 @@ export function TaskFieldEditors({
 
   const getListPrivacyIcon = (list: any, useWhiteColor = false) => {
     if (isLabelList(list)) {
-      return <Tag className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} style={useWhiteColor ? undefined : { color: list.color || '#3b82f6' }} />
+      return <Tag className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} style={useWhiteColor ? undefined : { color: list.color || DEFAULT_LIST_COLOR }} />
     } else if (list.privacy === 'PUBLIC') {
       return <Globe className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} />
     } else if (list.privacy === 'SHARED') {
       return <Users className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} />
     } else {
       // Private list - use hashtag with white color for solid badges, list color otherwise
-      return <Hash className="w-3 h-3" style={{ color: useWhiteColor ? 'white' : (list.color || '#3b82f6') }} />
+      return <Hash className="w-3 h-3" style={{ color: useWhiteColor ? 'white' : (list.color || DEFAULT_LIST_COLOR) }} />
     }
   }
 

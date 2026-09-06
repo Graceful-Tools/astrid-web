@@ -1,4 +1,5 @@
 import { brandListCaption } from './brand/copy'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
 import { toggleFavorite } from "./favorites"
@@ -31,7 +32,7 @@ export async function createDefaultListsForUser(userId: string) {
         filterPriority: "all",
         filterInLists: "dont_filter",
         sortBy: "auto",
-        color: "#3b82f6"
+        color: DEFAULT_LIST_COLOR
       },
       {
         name: "Not in a List",

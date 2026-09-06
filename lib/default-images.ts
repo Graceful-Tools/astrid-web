@@ -1,6 +1,8 @@
 // Default list images configuration
 // These use placeholder images that can be replaced with AI-generated ones
 
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+
 export interface DefaultListImage {
   name: string
   filename: string
@@ -14,7 +16,7 @@ export const DEFAULT_LIST_IMAGES: DefaultListImage[] = [
     name: "Default List 0", 
     filename: "/icons/default_list_0.png", 
     theme: "default", 
-    color: "#3b82f6",
+    color: DEFAULT_LIST_COLOR,
     description: "Default list icon"
   },
   { 

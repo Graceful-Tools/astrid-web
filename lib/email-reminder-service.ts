@@ -1,4 +1,5 @@
 import { BRAND } from '@/lib/brand/config'
+import { DANGER_COLOR, accentGradientStops } from '@/lib/brand/colors'
 import type { TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { sendVerificationEmail, getFromEmail } from '@/lib/email'
 import { Resend } from 'resend'
@@ -155,7 +156,7 @@ export class EmailReminderService {
             text-align: center;
           }
           .header.normal {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: linear-gradient(135deg, ${accentGradientStops()[0]} 0%, ${accentGradientStops()[1]} 100%);
           }
           .astrid-section {
             padding: 40px 20px;
@@ -282,7 +283,7 @@ export class EmailReminderService {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background-color: #3b82f6;
+            background-color: ${BRAND.accentColor};
             color: white;
             display: flex;
             align-items: center;
@@ -303,7 +304,7 @@ export class EmailReminderService {
             background-color: #f9fafb;
           }
           .button {
-            background-color: ${isOverdue ? '#ef4444' : '#3b82f6'};
+            background-color: ${isOverdue ? DANGER_COLOR : BRAND.accentColor};
             color: white;
             padding: 14px 28px;
             text-decoration: none;
@@ -547,7 +548,7 @@ You can modify your reminder preferences in your account settings.
             background-color: #f9fafb;
           }
           .footer-link {
-            color: #3b82f6;
+            color: ${BRAND.accentColor};
             text-decoration: none;
           }
           .footer-link:hover {
@@ -637,14 +638,14 @@ You can modify your reminder preferences in your account settings.
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; padding: 20px 0; border-bottom: 2px solid #3b82f6; }
+          .header { text-align: center; padding: 20px 0; border-bottom: 2px solid ${BRAND.accentColor}; }
           .task-list { background-color: #f9fafb; border-radius: 8px; padding: 16px; margin: 20px 0; }
           .task-item { padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
           .task-item:last-child { border-bottom: none; }
           .task-title { font-weight: bold; color: #1f2937; }
           .task-meta { font-size: 14px; color: #6b7280; margin-top: 4px; }
           .footer { margin-top: 40px; font-size: 12px; color: #6b7280; text-align: center; }
-          .button { background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
+          .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
         </style>
       </head>
       <body>

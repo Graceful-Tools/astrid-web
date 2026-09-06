@@ -1,6 +1,7 @@
 #!/usr/bin/env npx tsx
 
 import { PrismaClient } from '@prisma/client'
+import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 
 const prisma = new PrismaClient()
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -75,6 +76,7 @@ class AIAgentWorkflowTester {
       // Create test list
       const testList = await prisma.taskList.create({
         data: {
+          color: DEFAULT_LIST_COLOR,
           name: 'AI Agent Test List',
           description: 'Test list for AI agent workflow',
           ownerId: this.testUserId,

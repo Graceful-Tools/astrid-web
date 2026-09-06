@@ -162,7 +162,13 @@ model TaskList {
   id                      String             @id @default(dbgenerated("(gen_random_uuid())::text"))
   name                    String
   description             String?
-  color                   String             @default("#3b82f6")
+  /// Always supplied by the application from BRAND.accentColor
+  /// (lib/brand/colors.ts). The database default was removed in task 518ec534:
+  /// it was a hardcoded Astrid blue, so a partner's newly created lists came
+  /// out blue no matter what their accent was configured to. Required rather
+  /// than nullable on purpose — the compiler then names every create site that
+  /// forgets it, instead of a wrong colour appearing at runtime.
+  color                   String
   imageUrl                String?
   projectId               String?
   listType                String             @default("regular")
@@ -239,7 +245,8 @@ model Project {
   id           String          @id @default(dbgenerated("(gen_random_uuid())::text"))
   name         String
   description  String?
-  color        String          @default("#3b82f6")
+  /// See TaskList.color — supplied by the application, no database default.
+  color        String
   imageUrl     String?
   ownerId      String
   /// Short prefix for this project's task identifiers, e.g. "AST" in AST-142

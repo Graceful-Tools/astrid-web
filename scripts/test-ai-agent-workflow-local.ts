@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
 
 const prisma = new PrismaClient()
@@ -80,6 +81,7 @@ class LocalAIAgentTester {
       // Create test list
       const testList = await prisma.taskList.create({
         data: {
+          color: DEFAULT_LIST_COLOR,
           name: 'AI Agent Test List',
           description: 'Test list for AI agent workflow testing',
           ownerId: this.testUserId
