@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
 
     const body = JSON.parse(rawBody)
 
-    log.info({ body }, '📦 [UploadComplete] Received callback')
+    // Field names, not the payload (task 2e15b42f).
+    log.debug({ fields: Object.keys(body ?? {}) }, '[UploadComplete] Received callback')
 
     // Validate request type
     if (body.type !== 'blob.upload-completed') {

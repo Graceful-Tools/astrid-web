@@ -488,7 +488,9 @@ export async function getMissedEvents(userId: string, sinceTimestamp: number): P
         .map(m => (typeof m === 'string' ? JSON.parse(m) : m))
         .filter((p: any) => p.timestamp > sinceTimestamp)
         .map((p: any) => p.event)
-      log.info(`[SSE] getMissedEvents from Redis for user ${userId}: ${events.length} events`)
+      // debug: fires on EVERY SSE connect and reports nothing actionable —
+      // it was the second most common line in production (task 2e15b42f).
+      log.debug(`[SSE] getMissedEvents from Redis for user ${userId}: ${events.length} events`)
       return events
     } catch (error) {
       log.error({ err: error }, '[SSE] Failed to get events from Redis:')

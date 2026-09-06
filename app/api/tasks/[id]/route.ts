@@ -99,11 +99,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     const data = await request.json()
     taskId = (await context.params).id
 
-    log.info({
-      taskId,
-      userId: session.user.id,
-      updateData: data
-    }, `🔧 [TASK-UPDATE] PUT request received:`)
+    // Identifiers only. This used to attach the entire request body — task
+    // titles, descriptions, whatever the user typed — to production logs on
+    // every PUT (task 2e15b42f).
+    log.debug({ taskId, userId: session.user.id }, 'PUT /api/tasks/[id]')
 
     // Validate required data
     if (!data.title?.trim()) {
@@ -111,14 +110,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     }
 
     // Check if user has permission to update this task
-    log.info(`[DEBUG] Before existingTask lookup: prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
-    log.info(`[DEBUG] Before existingTask lookup (DELETE): prisma exists? ${!!prisma}, prisma.task exists? ${!!prisma.task}`);
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: TASK_PERMISSION_INCLUDE,
     })
-    log.info(`[DEBUG] After existingTask lookup (DELETE): existingTask exists? ${!!existingTask}`);
-    log.info(`[DEBUG] After existingTask lookup: existingTask exists? ${!!existingTask}`);
 
     if (!existingTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
@@ -154,7 +149,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     // Validate and sanitize the data
     if (process.env.NODE_ENV === "development") {
-      log.info({ data }, 'Updating task with data')
+      // Field names, not values — this was a third full body dump on the write
+      // path (task 2e15b42f).
+      log.debug({ taskId, fields: Object.keys(data ?? {}) }, 'Updating task')
       log.info({ userId: session?.user?.id, email: session?.user?.email }, 'Session data:')
     }
     
@@ -368,7 +365,6 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       }
     }
 
-    // Log exactly what will be sent to Prisma
     const updateData = {
       title: data.title,
       description: data.description,
@@ -382,12 +378,14 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       ...(parentUpdate.skip ? {} : { parentTaskId: parentUpdate.parentTaskId }),
     }
 
-    log.info({
-      taskId,
-      updateData,
-      hasRepeatFrom: 'repeatFrom' in updateData,
-      repeatFromValue: updateData.repeatFrom
-    }, '[API Route] Prisma update data:')
+    // The FIELD NAMES being written, never their values. This logged the whole
+    // updateData object — title, description and all — on every PUT
+    // (task 2e15b42f). Which fields changed is the useful signal; what the user
+    // typed is not, and does not belong in a log aggregator.
+    log.debug(
+      { taskId, fields: Object.keys(updateData) },
+      '[API Route] Prisma update data'
+    )
 
     // Update the task (only if not a repeating task that was rolled forward)
     const updatedTask = await prisma.task.update({

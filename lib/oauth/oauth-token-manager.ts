@@ -241,6 +241,25 @@ export async function refreshAccessToken(
 }
 
 /**
+ * How often a client's lastUsedAt is actually written.
+ *
+ * Per-instance, so with N warm instances the true rate is N writes per
+ * interval — still three orders of magnitude below one per request, and this
+ * is telemetry: an approximate "last seen" is the whole requirement.
+ */
+const LAST_USED_WRITE_INTERVAL_MS = 5 * 60 * 1000
+const lastUsedWrittenAt = new Map<string, number>()
+
+function shouldRecordClientUse(clientId: string, now = Date.now()): boolean {
+  const previous = lastUsedWrittenAt.get(clientId)
+  if (previous !== undefined && now - previous < LAST_USED_WRITE_INTERVAL_MS) {
+    return false
+  }
+  lastUsedWrittenAt.set(clientId, now)
+  return true
+}
+
+/**
  * Validate an access token and return token info
  */
 export async function validateAccessToken(
@@ -262,7 +281,7 @@ export async function validateAccessToken(
     name: string | null
   } | null
 } | null> {
-  log.info({
+  log.debug({
     tokenFp: hashToken(token).slice(0, 12), // fingerprint, not the token itself
   }, '[OAuth] validateAccessToken called:')
 
@@ -287,21 +306,31 @@ export async function validateAccessToken(
   })
 
   if (!oauthToken) {
-    log.info('[OAuth] Token not found or expired')
-    // Debug: Check if token exists at all
-    const anyToken = await prisma.oAuthToken.findFirst({
-      where: { accessToken: { in: oauthTokenLookup(token) } },
-      select: { id: true, expiresAt: true, revokedAt: true },
-    })
-    if (anyToken) {
-      log.info({ anyToken }, '[OAuth] Token exists but invalid:')
-    } else {
-      log.info('[OAuth] Token does not exist in database')
+    // WARN, and once — this is the only line a rejected request produces, and
+    // it is what makes a recurring 401 identifiable instead of another
+    // investigation (task 2e15b42f).
+    log.warn(
+      { tokenFp: hashToken(token).slice(0, 12) },
+      '[OAuth] Access token rejected: not found, expired or revoked'
+    )
+
+    // The "why" probe is a SECOND database query, and it used to run on every
+    // rejection — so one client polling with a stale token cost two queries a
+    // minute, forever. Debug only.
+    if (log.isLevelEnabled('debug')) {
+      const anyToken = await prisma.oAuthToken.findFirst({
+        where: { accessToken: { in: oauthTokenLookup(token) } },
+        select: { id: true, expiresAt: true, revokedAt: true },
+      })
+      log.debug(
+        { anyToken: anyToken ?? null },
+        anyToken ? '[OAuth] Token exists but is invalid' : '[OAuth] Token does not exist'
+      )
     }
     return null
   }
 
-  log.info({ userId: oauthToken.userId }, '[OAuth] Token validated successfully for user')
+  log.debug({ userId: oauthToken.userId }, '[OAuth] Token validated successfully for user')
 
   // Fail closed: a token minted with agent consent that can no longer resolve its
   // identity must not silently fall back to authoring as the human who granted it.
@@ -321,13 +350,20 @@ export async function validateAccessToken(
     }
   }
 
-  // Update last used timestamp for the client
-  await prisma.oAuthClient.update({
-    where: { id: oauthToken.clientId },
-    data: { lastUsedAt: new Date() },
-  }).catch(() => {
-    // Ignore errors - this is just telemetry
-  })
+  // Update last-used telemetry, at most once per client per interval.
+  //
+  // This used to run on EVERY authenticated request, taking a row lock on a
+  // handful of shared client rows — so an iOS sync burst had every request
+  // queueing behind the same write for a timestamp nobody reads to the minute
+  // (task 2e15b42f).
+  if (shouldRecordClientUse(oauthToken.clientId)) {
+    await prisma.oAuthClient.update({
+      where: { id: oauthToken.clientId },
+      data: { lastUsedAt: new Date() },
+    }).catch(() => {
+      // Ignore errors - this is just telemetry
+    })
+  }
 
   return {
     userId: oauthToken.userId,

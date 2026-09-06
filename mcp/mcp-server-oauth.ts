@@ -23,6 +23,9 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod"
 import { BRAND, mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
+import { createLogger } from "../lib/logger"
+
+const log = createLogger("mcp.server-oauth")
 
 // OAuth API Client
 interface OAuthTokenResponse {
@@ -117,7 +120,7 @@ class OAuthAPIClient {
     this.staticAccessToken = staticAccessToken || null
 
     if (!this.staticAccessToken && (!this.clientId || !this.clientSecret)) {
-      console.error("❌ OAuth credentials not configured")
+      log.error("OAuth credentials not configured")
       throw new Error(
         `Provide ASTRID_OAUTH_CLIENT_ID + ASTRID_OAUTH_CLIENT_SECRET or a valid ${BRAND.appName} access token`
       )
@@ -137,7 +140,7 @@ class OAuthAPIClient {
       return this.accessToken
     }
 
-    console.error("🔑 Obtaining OAuth access token...")
+    log.debug("Obtaining OAuth access token")
 
     const response = await fetch(`${this.baseUrl}/api/v1/oauth/token`, {
       method: "POST",
@@ -162,7 +165,7 @@ class OAuthAPIClient {
     // Set expiry to 5 minutes before actual expiry for safety
     this.tokenExpiry = Date.now() + (data.expires_in - 300) * 1000
 
-    console.error("✅ Access token obtained successfully")
+    log.debug("Access token obtained")
     return this.accessToken
   }
 
@@ -202,6 +205,12 @@ export interface AstridMCPServerOptions {
 }
 
 export default class AstridMCPServerOAuth {
+  /**
+   * The HTTP transport builds a server per request, so without this the
+   * "startup" banner is per-request output (task 2e15b42f).
+   */
+  private static bannerLogged = false
+
   private server: Server
   private oauthClient: OAuthAPIClient
   private defaultListId: string | null = null
@@ -726,10 +735,23 @@ export default class AstridMCPServerOAuth {
   }
 
   private logStartup(transportLabel: string) {
-    console.error(`${BRAND.appName} MCP Server (OAuth) running via ${transportLabel} transport`)
-    console.error(`Base URL: ${mcpDefaultBaseUrl()}`)
-    console.error(
-      `Default List: ${this.defaultListId || "none (must provide listId in each call)"}`
+    // ONCE per process, at debug.
+    //
+    // This was three console.error lines, which Vercel classifies as ERROR —
+    // and the HTTP transport constructs a new server instance per request, so
+    // a startup banner became the project's single most common error line,
+    // drowning the real ones (task 2e15b42f). The guard is what matters: at any
+    // level, per-request is per-request.
+    if (AstridMCPServerOAuth.bannerLogged) return
+    AstridMCPServerOAuth.bannerLogged = true
+
+    log.debug(
+      {
+        transport: transportLabel,
+        baseUrl: mcpDefaultBaseUrl(),
+        defaultList: this.defaultListId || null,
+      },
+      `${BRAND.appName} MCP Server (OAuth) ready`
     )
   }
 
