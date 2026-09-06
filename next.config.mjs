@@ -2,25 +2,16 @@ import createNextIntlPlugin from 'next-intl/plugin'
 
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
 
-// Content Security Policy configuration
-// See https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
-// Note: upgrade-insecure-requests only in production (breaks Safari localhost)
+// NOTE: the Content Security Policy is NOT here.
+//
+// It used to be a static header carrying `'unsafe-inline'` in script-src, which
+// defeats the point — that directive permits exactly the injected script a CSP
+// exists to stop — and it allowed https://unpkg.com because the service worker
+// pulled Dexie from there. A nonce cannot be a static value, so the policy is
+// built per request in lib/csp.ts and applied in middleware.ts. Do not restore
+// it here: a static header would win over the middleware's and silently
+// reintroduce 'unsafe-inline'. (Task eea00b1b.)
 const isProduction = process.env.NODE_ENV === 'production'
-const ContentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' ${isProduction ? '' : "'unsafe-eval'"} https://va.vercel-scripts.com https://vercel.live https://us-assets.i.posthog.com https://*.posthog.com https://static.cloudflareinsights.com https://unpkg.com;
-  worker-src 'self' blob:;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  font-src 'self' https://fonts.gstatic.com;
-  img-src 'self' data: blob: https://lh3.googleusercontent.com https://images.unsplash.com https://*.vercel-storage.com https://*.public.blob.vercel-storage.com https://uvq3rbgqrtvvavdq.public.blob.vercel-storage.com;
-  connect-src 'self' https://vitals.vercel-insights.com https://*.vercel-insights.com https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://oauth2.googleapis.com https://people.googleapis.com https://*.vercel-storage.com https://*.public.blob.vercel-storage.com https://us.i.posthog.com https://*.posthog.com https://lh3.googleusercontent.com;
-  frame-src 'self' https://accounts.google.com https://appleid.apple.com https://vercel.live;
-  frame-ancestors 'self';
-  form-action 'self';
-  base-uri 'self';
-  object-src 'none';
-  ${isProduction ? 'upgrade-insecure-requests;' : ''}
-`.replace(/\s{2,}/g, ' ').trim()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -28,7 +19,11 @@ const nextConfig = {
   // step (`npm run lint`) and the quality gates run it separately, so nothing is lost by
   // dropping it. Keeping it made the whole config invalid.
   typescript: {
-    ignoreBuildErrors: process.env.NODE_ENV === 'production',
+    // The build that SHIPS used to be the one that skipped type checking:
+    // ignoreBuildErrors was true exactly when NODE_ENV was production, so
+    // predeploy was the only gate and anything that reached the deploy
+    // workflow another way went out unchecked (task eea00b1b).
+    ignoreBuildErrors: false,
   },
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
@@ -78,10 +73,6 @@ const nextConfig = {
   async headers() {
     // Security headers applied to all routes
     const securityHeaders = [
-      {
-        key: 'Content-Security-Policy',
-        value: ContentSecurityPolicy,
-      },
       // Only apply HSTS in production - it breaks Safari on localhost
       ...(process.env.NODE_ENV === 'production' ? [{
         // HSTS: Force HTTPS for 1 year, include subdomains

@@ -62,12 +62,15 @@ export async function GET(request: NextRequest) {
 
 /** Redirect the browser back to the Astrid app via its custom scheme so an in-app
  *  ASWebAuthenticationSession auto-dismisses and reopens the app (matching Google sign-in).
- *  Renders as 200 HTML with a meta/JS redirect + a visible fallback link for a plain browser. */
+ *  Renders as 200 HTML with an immediate meta refresh + a visible fallback link for a
+ *  plain browser. No inline <script>: the meta refresh already redirects at once and the
+ *  link covers anything that ignores it, so the script was a third redundant mechanism —
+ *  and it was the only inline script in the app, which is what forced script-src to allow
+ *  'unsafe-inline' (task eea00b1b). */
 function returnToApp(appUrl: string, heading: string, message: string): NextResponse {
   return new NextResponse(
     `<html><head>
       <meta http-equiv="refresh" content="0;url=${escapeHtml(appUrl)}">
-      <script>window.location.replace(${JSON.stringify(appUrl)})</script>
     </head><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
       <h2>${escapeHtml(heading)}</h2><p>${escapeHtml(message)}</p>
       <p><a href="${escapeHtml(appUrl)}">Return to ${BRAND.appName}</a></p>

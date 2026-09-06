@@ -2,9 +2,19 @@ const CACHE_NAME = 'astrid-v1.0.8';
 const STATIC_CACHE_NAME = 'astrid-static-v1.0.8';
 const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.8';
 
-// Import Dexie for IndexedDB access in service worker
-// Note: Using CDN version for service worker context
-importScripts('https://unpkg.com/dexie@4.0.1/dist/dexie.min.js');
+// Import Dexie for IndexedDB access in the service worker.
+//
+// Self-hosted, NOT from unpkg (task eea00b1b). A service worker runs on every
+// page load with access to the cache and to credentialed requests, so anyone
+// who can serve that URL — a compromised CDN, a hijacked package, a
+// republished version — gets arbitrary code in every user's browser,
+// persistently. It also meant script-src had to allow https://unpkg.com, which
+// is the whole of npm.
+//
+// public/vendor/dexie.min.js is copied from node_modules at build time by
+// scripts/sync-vendor-assets.mjs, so the version here cannot drift from the
+// one package.json pins.
+importScripts('/vendor/dexie.min.js');
 
 // Static assets to cache immediately (only files that exist)
 const STATIC_ASSETS = [

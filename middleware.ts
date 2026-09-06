@@ -11,6 +11,7 @@ import { shouldBypassIntlRouting } from '@/lib/middleware-bypass'
 import { LEGACY_USAGE_BEACON_PATH } from '@/lib/legacy-api-usage'
 import { BRAND } from '@/lib/brand/config'
 import { corsHeadersForOrigin } from '@/lib/cors'
+import { buildContentSecurityPolicy, generateNonce } from '@/lib/csp'
 
 // Create next-intl middleware
 const intlMiddleware = createMiddleware(routing)
@@ -79,6 +80,38 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
     return response
   }
 
+  // Content Security Policy, built around a per-request nonce. It used to be a
+  // static header in next.config.mjs carrying 'unsafe-inline' in script-src,
+  // which defeats the point of having a CSP at all — that directive permits
+  // exactly the injected script CSP exists to stop. A nonce cannot be static,
+  // so the policy is assembled here (task eea00b1b).
+  //
+  // API responses are JSON and execute nothing, so they are left alone; a
+  // pointless CSP on every API response is bytes on a hot path.
+  const nonce = isApi ? null : generateNonce()
+  const csp = nonce ? buildContentSecurityPolicy(nonce, process.env.NODE_ENV === 'production') : null
+
+  /**
+   * Next applies the nonce to its OWN bootstrap scripts by reading it back off
+   * the request headers, so it has to be set on both sides — response only,
+   * and every Next script is blocked by its own policy.
+   */
+  const withCsp = (response: NextResponse) => {
+    if (csp) response.headers.set('Content-Security-Policy', csp)
+    return response
+  }
+
+  // Next reads the nonce back off the REQUEST headers to stamp its own
+  // bootstrap scripts, so it has to be forwarded, not just returned. Set on the
+  // incoming headers so next-intl's own response inherits it too — it builds
+  // its response itself and offers no hook for request headers.
+  if (nonce && csp) {
+    request.headers.set('x-nonce', nonce)
+    request.headers.set('Content-Security-Policy', csp)
+  }
+
+  const nonceRequestInit = nonce ? { request: { headers: request.headers } } : undefined
+
   // Canonicalise the apex to www for THIS brand's domain. Hardcoding astrid.cc
   // sent a partner's apex traffic to somebody else's host.
   // EXCEPT for:
@@ -129,11 +162,12 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
   // Without this the request is rewritten to a /[locale]/... page that 404s,
   // which also shadows the next.config `/mcp -> /api/mcp` rewrite (task a0e0808c).
   if (shouldBypassIntlRouting(pathname)) {
-    return withCors(NextResponse.next())
+    return withCsp(withCors(NextResponse.next(nonceRequestInit)))
   }
 
-  // Apply i18n middleware for all other routes
-  return intlMiddleware(request)
+  // Apply i18n middleware for all other routes. It builds its own response, so
+  // the nonce goes on by hand — next-intl has no hook for request headers.
+  return withCsp(intlMiddleware(request))
 }
 
 export const config = {
