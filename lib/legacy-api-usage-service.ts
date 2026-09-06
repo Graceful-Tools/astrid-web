@@ -26,7 +26,15 @@ export async function recordLegacyApiHit(args: {
   method: string
   platform: string
   at?: Date
+  /**
+   * How many hits this call represents. The middleware samples 1 in N, so a
+   * sampled beacon arrives with weight N and the guaranteed first-hit-per-route
+   * with weight 1 — counting every beacon as one would under-report the totals
+   * by the sample rate (task f9ba26b3).
+   */
+  weight?: number
 }): Promise<void> {
+  const weight = Math.max(1, Math.floor(args.weight ?? 1))
   const bucket = legacyUsageBucket({
     route: args.route,
     method: args.method,
@@ -44,8 +52,8 @@ export async function recordLegacyApiHit(args: {
           platform: bucket.platform,
         },
       },
-      create: { ...bucket, count: 1 },
-      update: { count: { increment: 1 } },
+      create: { ...bucket, count: weight },
+      update: { count: { increment: weight } },
     })
   } catch (err) {
     // Swallow: a telemetry write must not fail the request it is describing.

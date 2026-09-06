@@ -7,7 +7,7 @@ vi.mock('next-intl/middleware', () => ({
 vi.mock('@/lib/i18n/routing', () => ({ routing: { locales: ['en'], defaultLocale: 'en' } }))
 
 import { middleware } from '@/middleware'
-import { LEGACY_USAGE_BEACON_PATH } from '@/lib/legacy-api-usage'
+import { LEGACY_USAGE_BEACON_PATH, resetBeaconMemoryForTests } from '@/lib/legacy-api-usage'
 
 /**
  * Task 641a7615, re-landed for task 058d80ad — the durable half of the legacy-traffic census.
@@ -40,6 +40,11 @@ describe('legacy usage beacon (task 641a7615)', () => {
     process.env.INTERNAL_API_SECRET = 'test-secret'
     fetchSpy = vi.fn(async () => new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetchSpy)
+    // Beacons are sampled 1-in-N, with the first hit per (route, method) always
+    // sent (task f9ba26b3). That memory is module-scoped so it lives as long as
+    // the edge instance; without this reset the second case to touch
+    // `GET /api/tasks` would be a sampled repeat and usually send nothing.
+    resetBeaconMemoryForTests()
   })
 
   afterEach(() => {
@@ -83,6 +88,23 @@ describe('legacy usage beacon (task 641a7615)', () => {
     const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit]
     expect(JSON.parse(String(init.body))).toMatchObject({ oauthBearer: true })
     expect(String(init.body)).not.toContain('astrid_secret_token_value')
+  })
+
+  it('samples repeats, so a hot legacy route no longer doubles invocations', async () => {
+    // The first hit for a (route, method) is always sent — summarizeLegacyUsage
+    // marks a route safeToDelete only on ZERO hits, so a live route must never
+    // be able to report none. Everything after that is 1-in-N (task f9ba26b3).
+    const { event, settle } = fetchEvent()
+
+    for (let i = 0; i < 40; i++) middleware(req('/api/tasks'), event)
+    await settle()
+
+    expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(1)
+    expect(fetchSpy.mock.calls.length).toBeLessThan(40)
+
+    // The guaranteed first hit stands for exactly one request; sampled ones
+    // carry the rate, so the recorded totals stay estimates of the truth.
+    expect(JSON.parse(String(fetchSpy.mock.calls[0][1].body)).weight).toBe(1)
   })
 
   it('does NOT beacon the beacon — otherwise every hit generates a hit, forever', async () => {
