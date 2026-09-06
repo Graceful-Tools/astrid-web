@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { PushNotificationService } from "@/lib/push-notification-service"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('debug.test-notifications')
 
@@ -187,13 +188,8 @@ export async function POST(request: NextRequest) {
         log.error({ err: error }, "Failed to send test push notification:")
         return NextResponse.json({
           success: false,
-          error: "Failed to send push notification",
-          message: error instanceof Error ? error.message : "Unknown error occurred",
+          ...createSafeErrorResponse(error, 'Failed to send push notification'),
           testsRemaining: MAX_TESTS_PER_DAY - (testCounts.get(userKey)?.count || 0),
-          debugInfo: {
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-          }
         })
       }
     }

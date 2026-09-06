@@ -74,7 +74,9 @@ export async function POST(request: NextRequest) {
     // 1. Authentication
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return new Response("Unauthorized", { status: 401 })
+      // JSON, like the other 129 sites — not the plain-text Response this
+      // sample used to show. A client cannot parse two different 401 shapes.
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // 2. Input validation
@@ -722,18 +724,35 @@ import type { Task } from "@/types"
 
 ### Error Handling
 
+**Never return an error's message to the client.** It carries Prisma errors,
+connection strings and server paths to anyone who can provoke a 500.
+`createSafeErrorResponse` returns `{ error }` in production and adds `details`
+only in development.
+
 ```typescript
+import { createSafeErrorResponse } from "@/lib/logging/error-sanitizer"
+
 try {
   const result = await operation()
-  return Response.json(result)
+  return NextResponse.json(result)
 } catch (error) {
-  console.error("Operation failed:", error)
-  return new Response(
-    error instanceof Error ? error.message : "Unknown error",
-    { status: 500 }
-  )
+  log.error({ err: error }, "Operation failed")   // the message belongs HERE
+  return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
 }
 ```
+
+A *narrowed* domain error is different: its message is written for the caller,
+so returning it with a 4xx is correct.
+
+```typescript
+if (error instanceof ListImageClaimError) {
+  return NextResponse.json({ error: error.message }, { status: 409 })
+}
+```
+
+> This section used to prescribe `return new Response(error.message, { status: 500 })`,
+> and 21 routes duly did it. `scripts/check-api-boundaries.ts` now fails any
+> newly added line that returns an error message from `app/api/**` (task 17fea642).
 
 ---
 

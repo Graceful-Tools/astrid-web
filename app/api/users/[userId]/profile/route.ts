@@ -3,6 +3,7 @@ import { authenticateAPI } from "@/lib/api-auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { getUserStats } from "@/lib/user-stats"
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('users.[userId].profile')
 
@@ -143,9 +144,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    return NextResponse.json(
-      { error: "Failed to fetch user profile", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    )
+    return NextResponse.json(createSafeErrorResponse(error, 'Failed to fetch user profile'), {
+      status: 500,
+    })
   }
 }

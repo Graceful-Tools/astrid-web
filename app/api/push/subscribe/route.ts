@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { encryptField } from '@/lib/field-encryption'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('push.subscribe')
 
@@ -104,9 +105,6 @@ export async function POST(request: NextRequest) {
     }
     
     log.error({ err: error }, 'Error saving push subscription:')
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }

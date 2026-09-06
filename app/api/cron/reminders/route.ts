@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
 import { runCronJob } from '@/lib/cron-observability'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('cron.reminders')
 
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     log.error({ err: error }, '❌ Error in manual reminder processing:')
     return NextResponse.json(
-      { error: 'Manual reminder processing failed', details: error instanceof Error ? error.message : String(error) },
+      createSafeErrorResponse(error, 'Manual reminder processing failed'),
       { status: 500 }
     )
   }

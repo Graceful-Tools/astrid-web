@@ -20,4 +20,15 @@ export const API_BOUNDARY_EXEMPTIONS: readonly ApiBoundaryExemption[] = [
       'task c2fbe8e4 moved the existing-account switch from the options step to ' +
       'the verify step to close an enumeration oracle.',
   },
+  {
+    kind: 'leaked-error-message',
+    file: 'app/api/mcp/operations/route.ts',
+    contains: 'ListImageClaimError',
+    reason:
+      'ListImageClaimError is a narrowed domain error whose message is written ' +
+      'for the caller — "that image is already claimed by another list" — and ' +
+      'is returned with a 409, not a 500. It carries no internal detail. The ' +
+      'branch exists precisely so the surrounding catch-all can be sanitised ' +
+      'without losing the one message a client needs (task 17fea642).',
+  },
 ]

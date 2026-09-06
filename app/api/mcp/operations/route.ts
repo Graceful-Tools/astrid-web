@@ -79,6 +79,7 @@ import {
   getUserSettings,
   updateUserSettings
 } from './handlers'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 /**
  * Process an MCP request with authentication and error handling
@@ -166,9 +167,11 @@ export async function POST(request: NextRequest) {
     return await processMCPRequest(request, operation, args)
   } catch (error) {
     log.error({ err: error }, "Error executing MCP operation:")
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Internal server error"
-    }, { status: error instanceof ListImageClaimError ? 409 : 500 })
+    // The 409 message is a curated domain message; anything else is internal.
+    if (error instanceof ListImageClaimError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }
 
@@ -237,9 +240,7 @@ export async function GET(request: NextRequest) {
     return await processMCPRequest(request, operation, args)
   } catch (error) {
     log.error({ err: error }, "Error executing MCP operation:")
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Internal server error"
-    }, { status: 500 })
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }
 

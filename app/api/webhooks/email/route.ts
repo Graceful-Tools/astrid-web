@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { emailToTaskService } from '@/lib/email-to-task-service'
 import type { ParsedEmail } from '@/lib/email-to-task-service'
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('api.webhooks.email')
 
@@ -254,13 +255,7 @@ export async function POST(request: NextRequest) {
       }, 'Error details:')
     }
 
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }
 

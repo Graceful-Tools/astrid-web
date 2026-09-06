@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { v4 as uuid } from "uuid"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('auth.webauthn.register.options')
 
@@ -80,9 +81,8 @@ async function registrationOptionsHandler(request: NextRequest) {
     })
   } catch (error) {
     log.error({ err: error }, "[WebAuthn] Registration options error:")
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { error: `Failed to generate registration options: ${errorMessage}` },
+      createSafeErrorResponse(error, 'Failed to generate registration options'),
       { status: 500 }
     )
   }
