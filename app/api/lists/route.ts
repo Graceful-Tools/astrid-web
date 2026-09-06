@@ -17,6 +17,7 @@ import {
   createListWithImageOwnership,
   ListImageClaimError,
 } from '@/lib/images/update-list-image'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('api.lists')
 
@@ -254,10 +255,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 409 })
       }
       log.error({ err: error }, 'Error creating list:')
-      return NextResponse.json({
-        error: 'Failed to create list',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, { status: 400 })
+      return NextResponse.json(createSafeErrorResponse(error, 'Failed to create list'), { status: 400 })
     }
 
     // If no imageUrl was provided, assign a consistent default based on the list ID
@@ -367,10 +365,7 @@ export async function POST(request: NextRequest) {
       })
     } catch (error) {
       log.error({ err: error }, 'Error adding members to new list:')
-      return NextResponse.json({
-        error: 'Failed to create list',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, { status: 400 })
+      return NextResponse.json(createSafeErrorResponse(error, 'Failed to create list'), { status: 400 })
     }
 
     // Send invitations for member emails

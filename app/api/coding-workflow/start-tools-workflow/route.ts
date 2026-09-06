@@ -17,6 +17,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { getTaskForUser } from '@/services/task.service'
 import { startToolsWorkflow } from '@/lib/coding-workflow/start-tools-workflow'
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('api.coding-workflow.start-tools-workflow')
 
@@ -60,12 +61,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     log.error({ err: error }, 'Error starting tools workflow')
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }

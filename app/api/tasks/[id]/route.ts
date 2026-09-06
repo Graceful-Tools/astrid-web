@@ -32,6 +32,7 @@ import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { deleteTaskWithSideEffects } from '@/services/task.service'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('api.tasks.id')
 
@@ -736,10 +737,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       taskId,
       userId: session?.user?.id
     }, "Error details:")
-    return NextResponse.json({ 
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 })
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }
 

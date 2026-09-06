@@ -4,6 +4,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('tasks.[id].share-to-claude')
 
@@ -277,7 +278,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       configured: !!process.env.ASTRID_OAUTH_CLIENT_ID && !!process.env.ASTRID_OAUTH_CLIENT_SECRET,
       connected: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      ...createSafeErrorResponse(error, 'Connection test failed'),
     })
   }
 }

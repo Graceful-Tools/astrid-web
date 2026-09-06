@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
+import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('coding-workflow.progress.[taskId]')
 
@@ -163,10 +164,7 @@ export const GET = withAuth<RouteContext>(
 
   } catch (error) {
     log.error({ err: error }, 'Error fetching workflow progress:')
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 })
 
