@@ -76,3 +76,20 @@ export function isAstridSubdomainUrl(url: string): boolean {
   if (parsed.protocol !== 'https:') return false
   return parsed.hostname === BRAND.domain || parsed.hostname.endsWith(`.${BRAND.domain}`)
 }
+
+/**
+ * True when two URLs share an origin.
+ *
+ * The NextAuth redirect callback used `url.startsWith(baseUrl)`, which is a
+ * string test, not an origin test: `https://www.astrid.cc.evil.test/phish`
+ * starts with `https://www.astrid.cc` and was therefore accepted, turning the
+ * post-sign-in redirect into an open redirect (task b54bfb37). Parsing both
+ * sides is the only way to compare origins.
+ */
+export function sameOrigin(url: string, baseUrl: string): boolean {
+  try {
+    return new URL(url).origin === new URL(baseUrl).origin
+  } catch {
+    return false
+  }
+}

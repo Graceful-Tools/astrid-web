@@ -7,7 +7,7 @@ import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
 import { getDevBaseUrl, isLocalDevelopment } from "./port-detection"
 import { getBaseUrl } from "./base-url"
-import { isAstridSubdomainUrl } from "./auth-host"
+import { isAstridSubdomainUrl, sameOrigin } from "./auth-host"
 import { createDefaultListsForUser } from "./default-lists"
 import { createLogger } from '@/lib/logger'
 
@@ -298,7 +298,13 @@ const authConfig: NextAuthOptions = {
         return url
       }
 
-      return url.startsWith(baseUrl) ? url : baseUrl
+      // Compare ORIGINS, not string prefixes. `url.startsWith(baseUrl)` is an
+      // open redirect: with baseUrl https://www.astrid.cc, the URL
+      // https://www.astrid.cc.evil.test/phish passes the test and the user is
+      // sent off-site immediately after authenticating. isAstridSubdomainUrl
+      // two lines above already does the parsed-hostname comparison; this line
+      // was the one that did not (task b54bfb37).
+      return sameOrigin(url, baseUrl) ? url : baseUrl
     },
     jwt: ({ token, user, account }) => {
       if (process.env.NODE_ENV === "development") {
