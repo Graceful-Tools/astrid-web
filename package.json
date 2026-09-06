@@ -209,7 +209,7 @@
     "jose": "^6.2.8",
     "js-yaml": "^4.1.1",
     "lru-cache": "^11.5.2",
-    "lucide-react": "^0.454.0",
+    "lucide-react": "^1.34.0",
     "marked": "^18.0.9",
     "nanoid": "^5.1.16",
     "next": "^16.2.9",
