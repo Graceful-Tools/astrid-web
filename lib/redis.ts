@@ -191,6 +191,44 @@ export async function closeRedis() {
 }
 
 // Cache utility functions
+/**
+ * The keyset a cache key belongs to, and the keyset a delete pattern targets.
+ *
+ * These two MUST agree, and for a long time they did not (task 21dc1119). Keys
+ * were tracked under the family prefix alone — `keyset:tasks:user:` — while
+ * delPattern computed `keyset:` + the pattern minus its star, i.e.
+ * `keyset:tasks:user:<id>`. They never matched, sMembers always came back
+ * empty, and EVERY pattern delete fell through to a full Upstash keyspace scan
+ * on the hottest write path in the app.
+ *
+ * Both now derive from `family:scope:id`, which is also the scope a delete
+ * actually targets.
+ */
+const KEYSET_SCOPED_FAMILIES = [
+  'tasks:user:',
+  'tasks:list:',
+  'lists:user:',
+  'members:list:',
+  'comments:task:',
+] as const
+
+export function keysetNameForKey(key: string): string | null {
+  for (const family of KEYSET_SCOPED_FAMILIES) {
+    if (key.startsWith(family)) {
+      const id = key.slice(family.length).split(':')[0]
+      return `keyset:${family}${id}`
+    }
+  }
+
+  if (key.startsWith('public_lists:')) return 'keyset:public_lists:'
+
+  return null
+}
+
+export function keysetNameForPattern(pattern: string): string {
+  return `keyset:${pattern.replace('*', '')}`
+}
+
 export class RedisCache {
   private static defaultTTL = 300 // 5 minutes default TTL
 
@@ -277,27 +315,8 @@ export class RedisCache {
   // Track key in pattern sets for efficient deletion
   private static async trackKeyInSets(key: string, ttl: number, client: any): Promise<void> {
     try {
-      // Determine which pattern sets this key belongs to
-      const patterns: string[] = []
-
-      if (key.startsWith('tasks:user:')) {
-        patterns.push('keyset:tasks:user:')
-      }
-      if (key.startsWith('tasks:list:')) {
-        patterns.push('keyset:tasks:list:')
-      }
-      if (key.startsWith('lists:user:')) {
-        patterns.push('keyset:lists:user:')
-      }
-      if (key.startsWith('members:list:')) {
-        patterns.push('keyset:members:list:')
-      }
-      if (key.startsWith('public_lists:')) {
-        patterns.push('keyset:public_lists:')
-      }
-      if (key.startsWith('comments:task:')) {
-        patterns.push('keyset:comments:task:')
-      }
+      const keysetName = keysetNameForKey(key)
+      const patterns: string[] = keysetName ? [keysetName] : []
 
       // Add key to each relevant pattern set
       for (const pattern of patterns) {
@@ -333,7 +352,7 @@ export class RedisCache {
       this.metrics.patternDeletes++
 
       // Strategy 1: Try using key sets (fastest for Upstash)
-      const keysetName = `keyset:${pattern.replace('*', '')}`
+      const keysetName = keysetNameForPattern(pattern)
       let keys: string[] = []
 
       if (client.sMembers) {
@@ -439,9 +458,17 @@ export class RedisCache {
       }
       await this.del(this.keys.publicTasks())
     },
-    userLists: async (userId: string) => {
+    userLists: async (userId: string, listIds?: string[]) => {
       await this.delPattern(`lists:user:${userId}*`)
-      await this.delPattern(`members:list:*`)
+      // Only the affected lists' member caches. This used to be
+      // `members:list:*`, which — because that pattern DOES resolve to a
+      // tracked keyset — deleted the cached member set for every list on the
+      // platform on a single membership change. The same blast-radius bug was
+      // already fixed for tasks a few lines above and missed here
+      // (task 21dc1119).
+      if (listIds && listIds.length > 0) {
+        await Promise.all(listIds.map(id => this.del(this.keys.listMembers(id))))
+      }
     },
     /**
      * Clear every cached list set for ONE user — the legacy key and the v1 key —
