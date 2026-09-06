@@ -152,12 +152,12 @@
 }
 
 /* Ocean theme: Mobile quick add footer uses same treatment */
-.ocean .mobile-quick-add {
+.ocean .quick-add {
   background-color: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(136, 220, 248, 0.3);
 }
 
-/* Comment input bar: Match mobile quick add styling */
+/* Comment input bar: Match quick add styling */
 .ocean .chat-input-bar {
   background-color: rgba(255, 255, 255, 0.8);
   border-top: 1px solid rgba(136, 220, 248, 0.3);

@@ -365,14 +365,14 @@
 }
 
 /* Mobile quick add bar: Glass material */
-.light .mobile-quick-add {
+.light .quick-add {
   background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-/* Comment input bar: Match mobile quick add styling */
+/* Comment input bar: Match quick add styling */
 .light .chat-input-bar {
   background-color: rgba(255, 255, 255, 0.95);
   border-top: 1px solid rgba(229, 231, 235, 0.8);

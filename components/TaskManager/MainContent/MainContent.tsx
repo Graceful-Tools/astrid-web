@@ -8,7 +8,7 @@ import {
   LazyListSettingsHost,
   LazyProjectStatusBoard,
 } from "@/components/TaskManager/lazy-panels"
-import { useLayoutType } from "../../enhanced-task-creation"
+import { useLayoutType } from "@/hooks/use-layout-type"
 import { AddTaskInput } from "../../add-task-input"
 import { getDeviceType, isMobilePhoneDevice, isTouchDevice } from "@/lib/layout-detection"
 import { taskDragCapability } from "@/lib/touch-drag-sort"
@@ -495,7 +495,8 @@ export function MainContent({
             setQuickTaskInput={setQuickTaskInput}
             onCreateTask={handleQuickCreateTask}
             onKeyDown={handleQuickTaskKeyDown}
-            isMobile={isMobilePhoneDevice()}
+            availableUsers={availableUsers}
+            currentUser={effectiveSession?.user}
             isSessionReady={isSessionReady}
             className="w-full"
           />
@@ -530,7 +531,8 @@ export function MainContent({
           setQuickTaskInput={setQuickTaskInput}
           onCreateTask={handleQuickCreateTask}
           onKeyDown={handleQuickTaskKeyDown}
-          isMobile={isMobilePhoneDevice()}
+          availableUsers={availableUsers}
+          currentUser={effectiveSession?.user}
           isSessionReady={isSessionReady}
           className="w-full"
         />
