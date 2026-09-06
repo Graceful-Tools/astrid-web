@@ -60,7 +60,6 @@ vi.mock('@/lib/analytics-events', async (importOriginal) => ({
   // The create service records the analytics event itself now.
   trackAnalyticsEvent: vi.fn(),
 }))
-vi.mock('@/lib/task-recipients', () => ({ collectListRecipientUserIds: vi.fn(() => []) }))
 vi.mock('@/lib/task-update-handler', () => ({ recordTaskCreationComment: vi.fn() }))
 vi.mock('@/lib/agent-protocol', () => ({ enrichTaskForAgent: vi.fn((t: unknown) => t) }))
 vi.mock('@/lib/reminder-scheduling', async (importOriginal) => ({

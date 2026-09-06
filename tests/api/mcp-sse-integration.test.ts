@@ -248,17 +248,22 @@ describe('MCP SSE Integration', () => {
       await POST(request)
 
       // Verify broadcastToUsers was called with task_updated event
+      // `task_completed`, not `task_updated`: this request completes an open
+      // task, and the shared update verb (epic 9dedd8aa) distinguishes the two
+      // the way v1 and the agent PATCH always have. MCP emitted a flat
+      // `task_updated` for everything, so a completion arriving over MCP looked
+      // like any other edit to every listening client.
       expect(broadcastToUsers).toHaveBeenCalledWith(
         expect.any(Array),
         expect.objectContaining({
-          type: 'task_updated',
+          type: 'task_completed',
           timestamp: expect.any(String),
+          // Lean payload — `{ taskId, task }` — the same one v1 and the agent
+          // PATCH send. The flat duplicates MCP used to add are the web
+          // route's compatibility fields and stay there (epic 9dedd8aa).
           data: expect.objectContaining({
             taskId: 'test-task-id',
-            taskTitle: 'Test Task',
-            taskCompleted: false,
-            updaterName: 'Test MCP User',
-            userId: 'test-user-id',
+            task: expect.objectContaining({ id: 'test-task-id' }),
           }),
         })
       )

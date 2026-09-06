@@ -1,5 +1,9 @@
 import { canUserManageList } from "../../lib/list-permissions"
-import { createTaskWithSideEffects, deleteTaskWithSideEffects } from '../../services/task.service'
+import {
+  createTaskWithSideEffects,
+  deleteTaskWithSideEffects,
+  updateTaskWithSideEffects,
+} from '../../services/task.service'
 /**
  * The SHARED client, not a new one.
  *
@@ -100,6 +104,16 @@ async function updateTask(args: any) {
       id: taskId,
       lists: { some: { id: listId } },
     },
+    include: {
+      lists: {
+        select: {
+          id: true,
+          name: true,
+          listType: true,
+          listMembers: { select: { userId: true, role: true } },
+        },
+      },
+    },
   })
 
   if (!existingTask) {
@@ -115,19 +129,38 @@ async function updateTask(args: any) {
     throw new Error("User no longer has permission to edit this task")
   }
 
-  const updatedTask = await prisma.task.update({
-    where: { id: taskId },
-    data: {
-      ...updateData,
-      dueDateTime: updateData.dueDateTime ? new Date(updateData.dueDateTime) : undefined,
-      reminderTime: updateData.reminderTime ? new Date(updateData.reminderTime) : undefined,
-    },
+  // Everything an update implies lives in the service (epic 9dedd8aa). This was
+  // a raw prisma.task.update, so completing a task through the MCP server left
+  // no completion stamp, kept its board status set, never rolled a repeating
+  // series forward — killing it — and told nobody: no events, no notification,
+  // no reminder rescheduling, no cache invalidation.
+  const result = await updateTaskWithSideEffects({
+    taskId,
+    actorId: user.id,
+    actorName: user.name || user.email || "MCP Agent",
+    actorType: 'agent',
+    platform: "API-other",
+    intent: updateData,
+    existingTask,
     include: {
       assignee: { select: { id: true, name: true, email: true } },
       creator: { select: { id: true, name: true, email: true } },
-      lists: { select: { id: true, name: true } },
+      comments: { select: { id: true, authorId: true } },
+      lists: {
+        select: {
+          id: true,
+          name: true,
+          listMembers: { select: { userId: true, role: true } },
+        },
+      },
     },
   })
+
+  if (!result.ok) {
+    throw new Error(result.error)
+  }
+
+  const updatedTask = result.task as any
 
   return {
     content: [{
@@ -144,10 +177,11 @@ async function updateTask(args: any) {
           reminderTime: updatedTask.reminderTime,
           reminderType: updatedTask.reminderType,
           isPrivate: updatedTask.isPrivate,
+          identifier: updatedTask.identifier,
           updatedAt: updatedTask.updatedAt,
           assignee: updatedTask.assignee,
           creator: updatedTask.creator,
-          lists: updatedTask.lists,
+          lists: (updatedTask.lists ?? []).map((l: any) => ({ id: l.id, name: l.name })),
         },
       }),
     }],

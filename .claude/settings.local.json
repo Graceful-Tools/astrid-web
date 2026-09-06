@@ -1,0 +1,106 @@
+{
+  "permissions": {
+    "allow": [
+      
+      "Bash(npm run *)",
+      "Bash(npm run dev)",                        
+      "Bash(npx *)",                         
+      "Bash(pnpm *)",                        
+      "Bash(node *)",                        
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/astrid_dev\" npx tsx scripts/check-claude-agent-user.ts)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/astrid_dev\" npx tsx scripts/test-claude-api.ts)",
+      "Bash(npm run predeploy)",
+      "Bash(npm run predeploy:quick)",
+      "Bash(npx tsx scripts/get-astrid-tasks.ts)",
+      "Read(//dev/**)",
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run monitor:vercel:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm install)",
+      "Bash(npm run typecheck)",
+      "Bash(npx tsc --noEmit)",
+      "Bask(npm install --ignore-scripts)", 
+      "Bash(curl -X POST http://localhost:300*)",
+      "Bash(npm run dev:*)",
+      "Bash(echo \"LIST_IMAGE_GEN_API_KEY length: $#LIST_IMAGE_GEN_API_KEY\")",
+      "Bash(echo \"First 10 chars: $LIST_IMAGE_GEN_API_KEY:0:10\")",
+      "Bash(npx tsx scripts/get-astrid-tasks.ts)",
+      "Bash(echo \"🔍 Checking for deployment issues...\" && npm run monitor:vercel)",
+
+      
+      "Bash(DATABASE_URL=* npx prisma *)",   
+      "Bash(DATABASE_URL=* npx tsx scripts/*)", 
+      "Bash(DATABASE_URL=* node scripts/*)", 
+
+      
+      "Bash(git *)",                         
+      "Bash(curl *)",                        
+
+      
+      "Bash(grep *)",                        
+      "Bash(find *)",                        
+      "Bash(sed *)",                         
+      "Bash(ls *)",                          
+      "Bash(cat *)",                         
+      "Bash(head *)",                        
+      "Bash(tail *)",                        
+      "Bash(wc *)",                          
+      "Bash(sort *)",                        
+
+      
+      "Bash(lsof *)",                        
+      "Bash(pkill *)",                       
+      "Bash(kill *)",                        
+      "Bash(ps *)",                          
+
+      
+      "Bash(export *)",                      
+      "Bash(echo *)",                        
+      "Bash(env *)",                         
+      "Bash(which *)",                       
+      "Bash(pwd)",                           
+      "Bash(cd *)",                          
+      "Bash(mkdir *)",                       
+      "Bash(rm *)",                          
+      "Bash(mv *)",                          
+      "Bash(cp *)",                          
+      "Bash(chmod *)",                       
+
+      
+      "Bash(psql *)",                        
+      "Bash(redis-cli *)",                   
+      "Bash(source *)",                      
+
+      
+      "WebSearch",                           
+      "WebFetch(domain:github.com)",         
+      "WebFetch(domain:api.github.com)",     
+      "WebFetch(domain:raw.githubusercontent.com)", 
+      "WebFetch(domain:docs.claude.com)",    
+
+      
+      "Bash(npx tsx scripts/get-astrid-tasks.ts)", 
+      "Bash(npm run docs:review)",          
+
+      
+      "Bash(tree *)"                        
+    ],
+    "deny": [
+      
+      "Bash(rm -rf /)",                      
+      "Bash(sudo *)",                        
+      "Bash(su *)",                          
+      "Bash(chmod 777 *)",                   
+      "Bash(dd *)"                           
+    ],
+    "ask": [
+      
+      "Bash(npm publish *)",                 
+      "Bash(git push origin main)",          
+      "Bash(git push origin master)",        
+      "Bash(npx prisma migrate reset *)",    
+      "Bash(npx prisma db push --force-reset *)" 
+    ]
+  }
+}
