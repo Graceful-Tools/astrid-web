@@ -4,12 +4,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyAuthentication, getChallenge, deleteChallenge, isProduction } from "@/lib/webauthn"
 import { encode } from "next-auth/jwt"
 import type { AuthenticationResponseJSON } from "@simplewebauthn/types"
+import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.webauthn.authenticate.verify')
 
 
-export async function POST(request: NextRequest) {
+async function authenticationVerifyHandler(request: NextRequest) {
   const blocked = capabilityGate('authPasskey')
   if (blocked) return blocked
 
@@ -125,3 +126,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export const POST = withRateLimitHandlerAsync(authenticationVerifyHandler, passkeyRateLimiter)

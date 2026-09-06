@@ -44,7 +44,7 @@ describe('Authentication System', () => {
   })
 
   describe('Rate Limiting', () => {
-    it('should allow requests within rate limit', () => {
+    it('should allow requests within rate limit', async () => {
       const rateLimiter = new RateLimiter({
         windowMs: 60000,
         maxRequests: 5
@@ -53,13 +53,13 @@ describe('Authentication System', () => {
 
       // First 5 requests should succeed
       for (let i = 0; i < 5; i++) {
-        const result = rateLimiter.checkRateLimit(createMockRequest(ip))
+        const result = await rateLimiter.checkRateLimitAsync(createMockRequest(ip))
         expect(result.allowed).toBe(true)
         expect(result.remaining).toBe(4 - i)
       }
 
       // 6th request should fail
-      const result = rateLimiter.checkRateLimit(createMockRequest(ip))
+      const result = await rateLimiter.checkRateLimitAsync(createMockRequest(ip))
       expect(result.allowed).toBe(false)
       expect(result.remaining).toBe(0)
     })
@@ -74,22 +74,22 @@ describe('Authentication System', () => {
 
       // Use up all requests
       for (let i = 0; i < 3; i++) {
-        rateLimiter.checkRateLimit(req)
+        await rateLimiter.checkRateLimitAsync(req)
       }
 
       // Should be rate limited
-      expect(rateLimiter.checkRateLimit(req).allowed).toBe(false)
+      expect((await rateLimiter.checkRateLimitAsync(req)).allowed).toBe(false)
 
       // Advance time past the window
       vi.advanceTimersByTime(150)
 
       // Should allow requests again
-      const result = rateLimiter.checkRateLimit(req)
+      const result = await rateLimiter.checkRateLimitAsync(req)
       expect(result.allowed).toBe(true)
       expect(result.remaining).toBe(2)
     })
 
-    it('should handle multiple IPs independently', () => {
+    it('should handle multiple IPs independently', async () => {
       const rateLimiter = new RateLimiter({
         windowMs: 60000,
         maxRequests: 3
@@ -99,28 +99,28 @@ describe('Authentication System', () => {
 
       // Use up all requests for IP1
       for (let i = 0; i < 3; i++) {
-        rateLimiter.checkRateLimit(req1)
+        await rateLimiter.checkRateLimitAsync(req1)
       }
 
       // IP1 should be rate limited
-      expect(rateLimiter.checkRateLimit(req1).allowed).toBe(false)
+      expect((await rateLimiter.checkRateLimitAsync(req1)).allowed).toBe(false)
 
       // IP2 should still work
-      const result = rateLimiter.checkRateLimit(req2)
+      const result = await rateLimiter.checkRateLimitAsync(req2)
       expect(result.allowed).toBe(true)
       expect(result.remaining).toBe(2)
     })
   })
 
   describe('Rate Limiter Response', () => {
-    it('should include correct rate limit info in response', () => {
+    it('should include correct rate limit info in response', async () => {
       const rateLimiter = new RateLimiter({
         windowMs: 60000,
         maxRequests: 5
       })
       const req = createMockRequest(getUniqueIP())
 
-      const result = rateLimiter.checkRateLimit(req)
+      const result = await rateLimiter.checkRateLimitAsync(req)
 
       expect(result).toHaveProperty('allowed')
       expect(result).toHaveProperty('remaining')

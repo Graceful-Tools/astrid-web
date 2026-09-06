@@ -7,7 +7,7 @@
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { aiAgentWebhookService, type TaskAssignmentWebhookPayload } from '@/lib/ai-agent-webhook-service'
-import { RATE_LIMITS, withRateLimit } from '@/lib/rate-limiter'
+import { RATE_LIMITS, withRateLimitAsync } from '@/lib/rate-limiter'
 import { z } from 'zod'
 import { detectPortFromRequest } from '@/lib/runtime-port-detection'
 import { createLogger } from '@/lib/logger'
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Apply rate limiting
-  const rateLimitCheck = withRateLimit(RATE_LIMITS.WEBHOOK)(request)
+  const rateLimitCheck = await withRateLimitAsync(RATE_LIMITS.WEBHOOK)(request)
   if (!rateLimitCheck.allowed) {
     log.info(rateLimitCheck.error, '[AI Agent] Webhook rate limited:')
     return NextResponse.json(

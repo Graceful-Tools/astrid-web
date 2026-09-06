@@ -46,7 +46,7 @@ vi.mock('@/lib/rate-limiter', () => ({
   RATE_LIMITS: {
     MCP_OPERATIONS: {},
   },
-  withRateLimit: vi.fn(() => () => ({
+  withRateLimitAsync: vi.fn(() => async () => ({
     allowed: true,
     headers: {},
   })),

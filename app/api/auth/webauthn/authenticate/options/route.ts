@@ -2,12 +2,13 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthenticationOptions, storeChallenge } from "@/lib/webauthn"
 import { v4 as uuid } from "uuid"
+import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.webauthn.authenticate.options')
 
 
-export async function POST(request: NextRequest) {
+async function authenticationOptionsHandler(request: NextRequest) {
   const blocked = capabilityGate('authPasskey')
   if (blocked) return blocked
 
@@ -38,3 +39,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export const POST = withRateLimitHandlerAsync(authenticationOptionsHandler, passkeyRateLimiter)

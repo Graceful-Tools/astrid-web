@@ -22,7 +22,7 @@ vi.mock('@/lib/api-auth-middleware', () => ({
 }))
 vi.mock('@/lib/brand/capabilities', () => ({ capabilityGate: () => null }))
 vi.mock('@/lib/rate-limiter', () => ({
-  withRateLimit: () => () => ({ allowed: true, headers: {} }),
+  withRateLimitAsync: () => async () => ({ allowed: true, headers: {} }),
   RATE_LIMITS: { MCP_OPERATIONS: {} },
 }))
 vi.mock('@/lib/admin-auth', () => ({ isAdmin: vi.fn().mockResolvedValue(false) }))

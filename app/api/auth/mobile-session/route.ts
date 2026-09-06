@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { decode } from "next-auth/jwt"
+import { sessionRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.mobile-session')
@@ -10,7 +11,7 @@ const log = createLogger('auth.mobile-session')
 // Supports both:
 // 1. JWT tokens (from passkey auth, NextAuth JWT strategy)
 // 2. Database sessions (from Apple/Google mobile auth)
-export async function GET(request: NextRequest) {
+async function mobileSessionHandler(request: NextRequest) {
   try {
     // Get session token from cookie
     const cookies = request.cookies
@@ -95,3 +96,5 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export const GET = withRateLimitHandlerAsync(mobileSessionHandler, sessionRateLimiter)

@@ -36,20 +36,49 @@ export function useWebAuthn() {
       })
 
       const optionsData = await safeResponseJson<{
-        existingUser?: boolean
-        email?: string
         options?: any
         sessionId?: string
         error?: string
       }>(optionsRes, { error: 'Failed to get registration options' })
 
-      // If user already exists, automatically switch to login flow
-      if (optionsData.existingUser) {
+
+      if (!optionsRes.ok) {
+        throw new Error(optionsData.error || "Failed to get registration options")
+      }
+
+      const { options, sessionId } = optionsData
+
+      // Start WebAuthn registration ceremony
+      const credential = await startRegistration(options)
+
+      // Verify with server
+      const verifyRes = await fetch("/api/auth/webauthn/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          response: credential,
+          name: name || "My Passkey",
+        }),
+      })
+
+      const result = await safeResponseJson<{
+        isNewUser?: boolean
+        user?: any
+        existingUser?: boolean
+        email?: string
+        error?: string
+      }>(verifyRes, { error: "Registration failed" })
+
+      // The account already existed. /register/options cannot say so without
+      // becoming an enumeration oracle (task c2fbe8e4), so verify is where we
+      // find out — switch to the sign-in ceremony.
+      if (result.existingUser) {
         // Get authentication options
         const authOptionsRes = await fetch("/api/auth/webauthn/authenticate/options", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: optionsData.email }),
+          body: JSON.stringify({ email: result.email || email }),
         })
 
         if (!authOptionsRes.ok) {
@@ -72,21 +101,21 @@ export function useWebAuthn() {
         const { options: authOptions, sessionId: authSessionId } = authData
 
         // Start WebAuthn authentication ceremony
-        const credential = await startAuthentication(authOptions)
+        const authCredential = await startAuthentication(authOptions)
 
         // Verify with server
-        const verifyRes = await fetch("/api/auth/webauthn/authenticate/verify", {
+        const authVerifyRes = await fetch("/api/auth/webauthn/authenticate/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionId: authSessionId,
-            response: credential,
+            response: authCredential,
           }),
         })
 
-        if (!verifyRes.ok) {
+        if (!authVerifyRes.ok) {
           const verifyData = await safeResponseJson<{ error?: string }>(
-            verifyRes,
+            authVerifyRes,
             { error: "Authentication failed" }
           )
           throw new Error(verifyData.error || "Authentication failed")
@@ -98,38 +127,9 @@ export function useWebAuthn() {
         return { success: true, existingUser: true }
       }
 
-      if (!optionsRes.ok) {
-        throw new Error(optionsData.error || "Failed to get registration options")
-      }
-
-      const { options, sessionId } = optionsData
-
-      // Start WebAuthn registration ceremony
-      const credential = await startRegistration(options)
-
-      // Verify with server
-      const verifyRes = await fetch("/api/auth/webauthn/register/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          response: credential,
-          name: name || "My Passkey",
-        }),
-      })
-
       if (!verifyRes.ok) {
-        const data = await safeResponseJson<{ error?: string }>(
-          verifyRes,
-          { error: "Registration failed" }
-        )
-        throw new Error(data.error || "Registration failed")
+        throw new Error(result.error || "Registration failed")
       }
-
-      const result = await safeResponseJson<{
-        isNewUser?: boolean
-        user?: any
-      }>(verifyRes, {})
 
       // For new users, they're now logged in - redirect to home
       // Use window.location.href to ensure session cookie is picked up

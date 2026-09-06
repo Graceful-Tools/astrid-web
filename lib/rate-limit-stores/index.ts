@@ -24,8 +24,13 @@ export async function getRateLimitStore(): Promise<RateLimitStore> {
     if (redisAvailable) {
       return getRedisStore()
     }
+    log.warn(
+      '[RateLimitStore] Redis is NOT available — falling back to the per-instance memory store. ' +
+      'Rate limits are now per warm instance and reset on cold start; auth limits are effectively ' +
+      'multiplied by the instance count until Redis returns.'
+    )
   } catch (error) {
-    log.warn({ error }, '[RateLimitStore] Redis check failed, using memory store:')
+    log.warn({ error }, '[RateLimitStore] Redis check FAILED, degrading to the per-instance memory store:')
   }
 
   return getMemoryStore()
@@ -43,14 +48,21 @@ export async function getCachedRateLimitStore(): Promise<RateLimitStore> {
   const now = Date.now()
 
   if (!cachedStore || now - lastCheck > CHECK_INTERVAL) {
+    const previous = cachedStore
     cachedStore = await getRateLimitStore()
     lastCheck = now
 
-    // Log which store is being used (only on initial selection or change)
-    if (cachedStore.isAvailable) {
-      const isRedis = await cachedStore.isAvailable()
-      const storeType = isRedis ? 'Redis' : 'Memory'
-      log.info(`[RateLimitStore] Using ${storeType} store`)
+    // A Redis blip used to downgrade the whole process to the in-memory store
+    // for the next 60 seconds with nothing in the logs saying so (task
+    // c2fbe8e4). Every transition is now reported at warn, so the window is
+    // attributable after the fact.
+    if (previous && previous !== cachedStore) {
+      log.warn(
+        { from: previous.constructor.name, to: cachedStore.constructor.name },
+        '[RateLimitStore] Rate limit store CHANGED'
+      )
+    } else if (!previous) {
+      log.info(`[RateLimitStore] Using ${cachedStore.constructor.name}`)
     }
   }
 

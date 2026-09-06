@@ -18,7 +18,7 @@ import { prisma } from '@/lib/prisma'
 import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { resolveAppleIdentity, appleAllowedAudiences } from '@/lib/auth/apple-identity'
 import { createDefaultListsForUser } from '@/lib/default-lists'
-import { withRateLimitHandler, authRateLimiter } from '@/lib/rate-limiter'
+import { withRateLimitHandlerAsync, authRateLimiter } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.auth.apple')
@@ -205,4 +205,4 @@ async function appleSignInHandler(request: NextRequest) {
   }
 }
 
-export const POST = withRateLimitHandler(appleSignInHandler, authRateLimiter)
+export const POST = withRateLimitHandlerAsync(appleSignInHandler, authRateLimiter)

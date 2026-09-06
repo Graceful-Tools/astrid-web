@@ -24,7 +24,7 @@ vi.mock('@/lib/brand/capabilities', () => ({
 // The rate limiter wraps the handler; pass straight through so these cases are
 // about the gate and nothing else.
 vi.mock('@/lib/rate-limiter', () => ({
-  withRateLimitHandler: (handler: unknown) => handler,
+  withRateLimitHandlerAsync: (handler: unknown) => handler,
   authRateLimiter: {},
 }))
 

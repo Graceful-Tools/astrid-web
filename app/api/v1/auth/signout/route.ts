@@ -14,13 +14,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sessionRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.auth.signout')
 
 const META = { apiVersion: 'v1' as const, authSource: 'cookie' }
 
-export async function DELETE(request: NextRequest) {
+async function signoutHandler(request: NextRequest) {
   try {
     const sessionCookie =
       request.cookies.get('next-auth.session-token') ||
@@ -59,3 +60,5 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true, meta: META })
   }
 }
+
+export const DELETE = withRateLimitHandlerAsync(signoutHandler, sessionRateLimiter)
