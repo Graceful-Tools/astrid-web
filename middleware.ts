@@ -179,12 +179,12 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, favicon-*.png (favicon files)
      * - apple-touch-icon*.png, apple-icon*.png (Apple icons)
-     * - public folder files (icons, images, screenshots, etc.)
+     * - public folder files (icons, images, screenshots, vendor, etc.)
      * - sw.js (service worker)
      * - manifest.json (PWA manifest)
      * - Static asset extensions (.png, .jpg, .ico, .svg, .webp)
      * - .md (public docs such as ASTRID_WORKFLOW.md, which users download)
      */
-    "/((?!_next/static|_next/image|favicon|apple-touch-icon|apple-icon|icons/|images/|screenshots/|sounds/|sw\\.js|manifest\\.json|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.webp$|.*\\.wav$|.*\\.md$).*)",
+    "/((?!_next/static|_next/image|favicon|apple-touch-icon|apple-icon|icons/|images/|screenshots/|sounds/|vendor/|sw\\.js|manifest\\.json|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.webp$|.*\\.wav$|.*\\.md$).*)",
   ],
 }

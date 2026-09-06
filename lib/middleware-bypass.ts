@@ -13,6 +13,13 @@
  *
  * Task 97208a72: `/llms.txt` had the same problem — it is advertised to agents in
  * WELL_KNOWN_ENDPOINTS but was rewritten to `/[locale]/llms.txt` and 404'd.
+ *
+ * Task eea00b1b: `/vendor/*` — the third time. The service worker stopped
+ * importing Dexie from unpkg and started importing `/vendor/dexie.min.js`
+ * instead, which was rewritten to `/[locale]/vendor/…` and 404'd. Nothing
+ * local catches this: no build step or unit test requests that path. The
+ * SERVICE WORKER does, at runtime, and a failed importScripts breaks the
+ * worker and with it offline mode. Found on a preview deploy.
  */
 export function shouldBypassIntlRouting(pathname: string): boolean {
   return (
@@ -22,6 +29,7 @@ export function shouldBypassIntlRouting(pathname: string): boolean {
     pathname.startsWith('/mcp/') ||
     pathname === '/sw.js' ||
     pathname === '/manifest.json' ||
-    pathname === '/llms.txt'
+    pathname === '/llms.txt' ||
+    pathname.startsWith('/vendor/')
   )
 }

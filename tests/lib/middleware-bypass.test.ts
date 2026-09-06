@@ -53,4 +53,25 @@ describe('shouldBypassIntlRouting for /llms.txt (task 97208a72)', () => {
     expect(shouldBypassIntlRouting('/llms')).toBe(false)
     expect(shouldBypassIntlRouting('/llms.txt-guide')).toBe(false)
   })
+
+describe('static assets served from public/ (task eea00b1b, found on preview)', () => {
+  // THIRD occurrence of this bug. The two in this module's docstring were /mcp
+  // (a0e0808c) and /llms.txt (97208a72); this one was /vendor/dexie.min.js,
+  // added when the service worker stopped importing Dexie from unpkg.
+  //
+  // It 404'd in production while passing every local check, because nothing
+  // requests that path during a build or a unit run — the SERVICE WORKER does,
+  // at runtime, and a failed importScripts breaks the worker and with it
+  // offline mode. Caught by a preview deploy.
+  it.each([
+    '/vendor/dexie.min.js',
+  ])('%s bypasses locale routing', (pathname) => {
+    expect(shouldBypassIntlRouting(pathname)).toBe(true)
+  })
+
+  it('does not swallow a localized page that merely starts with the same letters', () => {
+    // /vendor must not match a hypothetical /vendors settings page.
+    expect(shouldBypassIntlRouting('/vendors')).toBe(false)
+  })
+})
 })
