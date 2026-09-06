@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
  *
  * **The alignment invariant, and it is shared with the header row.** The icon
  * column is exactly as wide as the title row's leading control (`w-8`), and
- * this row uses the same gap as that row (`gap-2` / `space-x-2`) inside the
+ * both rows use the shared `gap-2` class inside the
  * same `p-4` container. So the icon lands centred under the checkbox and the
  * content's left edge lands on the title field's left edge — 16 + 32 + 8 = 56px
  * in both. Changing one without the other breaks it. iOS states the same
@@ -31,7 +31,7 @@ import { Label } from "@/components/ui/label"
 
 /** Icon column width — must match the header's leading control. */
 export const FIELD_ICON_COLUMN_CLASS = "w-8"
-/** Row gap — must match the header row's `space-x-2`. */
+/** Row gap shared with the header row. */
 export const FIELD_ROW_GAP_CLASS = "gap-2"
 /** Text-label column width, for rows that show a word instead of an icon. */
 export const FIELD_LABEL_COLUMN_CLASS = "w-20"
