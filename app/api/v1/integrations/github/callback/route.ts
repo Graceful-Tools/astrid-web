@@ -3,6 +3,7 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { githubRequest, githubSyncConfigured, storeGithubIntegration, verifyOAuthState } from '@/lib/sync/github'
+import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 
 const log = createLogger('v1.integrations.github.callback')
 
@@ -26,6 +27,15 @@ export async function GET(request: NextRequest) {
     return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
+  // The state names who STARTED the flow, which is not necessarily who is
+  // sitting here. When the browser is signed in it answers that, and a
+  // mismatch means somebody else's connect link (task 842601f2).
+  if (await callbackSessionConflicts(request, userId, 'github')) {
+    return errorPage(
+      `This connect link was started from a different ${BRAND.appName} account. Open ${BRAND.appName} and tap Connect again.`,
+    )
+  }
+
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -38,7 +48,9 @@ export async function GET(request: NextRequest) {
   const tokenJson = await tokenRes.json().catch(() => null)
   const accessToken = tokenJson?.access_token as string | undefined
   if (!accessToken) {
-    log.error({ tokenJson }, 'GitHub token exchange failed')
+    // Never log tokenJson: a partial grant still carries a refresh_token, and
+    // pino has no redaction configured (task 842601f2).
+    log.error({ hasError: Boolean(tokenJson?.error) }, 'GitHub token exchange failed')
     return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 

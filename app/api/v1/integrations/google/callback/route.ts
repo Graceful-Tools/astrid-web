@@ -3,6 +3,7 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { verifyOAuthState } from '@/lib/sync/github'
+import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 import { exchangeGoogleCode, googleRequest, googleSyncConfigured, storeGoogleIntegration } from '@/lib/sync/google'
 
 const log = createLogger('v1.integrations.google.callback')
@@ -21,6 +22,14 @@ export async function GET(request: NextRequest) {
   if (!code || !userId) {
     return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }
+
+  // See the GitHub callback: the state names the initiator, the signed-in
+  // browser names who is actually here (task 842601f2).
+  if (await callbackSessionConflicts(request, userId, 'google')) {
+    return errorPage(
+      `This connect link was started from a different ${BRAND.appName} account. Open ${BRAND.appName} and tap Connect again.`,
+    )
+  }
   const redirectUri = `${url.origin}/api/v1/integrations/google/callback`
   const tokens = await exchangeGoogleCode(code, redirectUri)
   // Granular consent: the user can UNCHECK the Tasks permission on Google's
@@ -32,7 +41,9 @@ export async function GET(request: NextRequest) {
     )
   }
   if (!tokens.access_token) {
-    log.error({ tokens }, 'Google token exchange failed')
+    // Never log the exchange response: it can still carry a refresh_token on a
+    // partial grant, and pino has no redaction configured (task 842601f2).
+    log.error('Google token exchange failed')
     return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
   }
   // Identify the account (userinfo via tasklists owner isn't available; use id_token-less userinfo endpoint)
