@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import { mcpTokenLookup } from "@/lib/mcp-token"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { getUserRoleInList } from "@/lib/list-permissions"
 
@@ -66,12 +67,29 @@ export function getTokenAccessLevel(tokenPermissions: string[]): 'READ' | 'WRITE
 }
 
 /**
- * Validate an MCP token and return the token record with user and list info
+ * Validate an MCP token and return the token record with user and list info.
+ *
+ * The guard below is load-bearing (task 13f43055). `accessToken` is optional on
+ * every MCP operation — the route also accepts a session cookie and an OAuth
+ * bearer — so this was routinely reached with `undefined`. Prisma DROPS an
+ * `undefined` filter, which turned the query into "any active MCP token" and
+ * returned the first row in the table, belonging to an unrelated user. The
+ * caller was then authorized as that stranger. An absent token must fail here;
+ * callers who legitimately have no token go through `resolveMCPActor`.
  */
 export async function validateMCPToken(token: string, listId?: string) {
+  if (typeof token !== 'string' || token.trim() === '') {
+    throw new Error('MCP_TOKEN_INVALID: No MCP access token was presented.')
+  }
+
   const mcpToken = await prisma.mCPToken.findFirst({
     where: {
-      token,
+      // Hash-or-plaintext, like every other validation site
+      // (lib/api-auth-middleware.ts, app/api/mcp/user-tokens, coding-agent).
+      // This one matched the raw column only, so once
+      // scripts/migrate-hash-mcp-tokens.ts had hashed the rows, a real token
+      // presented here matched nothing.
+      token: { in: mcpTokenLookup(token) },
       isActive: true,
       OR: [
         { listId: listId },
@@ -104,6 +122,57 @@ export async function validateMCPToken(token: string, listId?: string) {
   }
 
   return mcpToken
+}
+
+/**
+ * Who an MCP operation runs as.
+ *
+ * Two legitimate ways to reach these handlers, and they resolve identity
+ * differently:
+ *
+ * - **An MCP token was presented.** It is a bearer credential, so acting as its
+ *   owner is correct by design, and the token also carries its own list scope
+ *   and permissions. Unchanged behaviour.
+ * - **No token.** The caller authenticated with a session cookie or an OAuth
+ *   bearer, and `authenticateAPI` has already resolved exactly who they are.
+ *   Use that. Before task 13f43055 the handlers instead asked the database for
+ *   a token that was never presented and got somebody else's.
+ */
+export interface MCPActor {
+  userId: string
+  user: { id: string; name: string | null; email: string }
+  /** The token record when one was presented; null for session/OAuth callers. */
+  token: Awaited<ReturnType<typeof validateMCPToken>> | null
+}
+
+export async function resolveMCPActor(
+  accessToken: string | null | undefined,
+  authenticatedUserId: string | undefined,
+  listId?: string,
+): Promise<MCPActor> {
+  if (typeof accessToken === 'string' && accessToken.trim() !== '') {
+    const token = await validateMCPToken(accessToken, listId)
+    return { userId: token.userId, user: token.user, token }
+  }
+
+  // Neither a token nor a resolved identity: refuse. `removeListMember` types
+  // its trailing `userId` as optional even though the route always passes
+  // `auth.userId`, and "no identity" must not fall through to a lookup that
+  // could match somebody.
+  if (!authenticatedUserId) {
+    throw new Error('MCP_TOKEN_INVALID: No MCP access token and no authenticated user.')
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: authenticatedUserId },
+    select: { id: true, name: true, email: true },
+  })
+
+  if (!user) {
+    throw new Error('MCP_TOKEN_INVALID: No authenticated user for this request.')
+  }
+
+  return { userId: user.id, user, token: null }
 }
 
 /**

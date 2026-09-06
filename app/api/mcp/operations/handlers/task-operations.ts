@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { createLogger } from '@/lib/logger'
 import {
-  validateMCPToken,
+  resolveMCPActor,
   getListMemberIdsByListId,
   redactArgsForLogging,
   maskToken
@@ -15,7 +15,7 @@ import {
 const log = createLogger('mcp.task-operations')
 
 export async function getListTasks(accessToken: string, listId: string, userId: string, includeCompleted = false) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   // Verify access to this specific list (token-level permissions control access)
   const list = await prisma.taskList.findFirst({
@@ -92,7 +92,7 @@ export async function getListTasks(accessToken: string, listId: string, userId: 
 
 export async function getUserTasks(accessToken: string, userId: string, includeCompleted = true) {
   // Validate MCP token (user-level access)
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Get ALL tasks where the user is the assignee
   const tasks = await prisma.task.findMany({
@@ -162,8 +162,8 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
   // Validate MCP token
   // If listIds provided, use first list for validation, otherwise use user-level token
   const mcpToken = listIds.length > 0
-    ? await validateMCPToken(accessToken, listIds[0])
-    : await validateMCPToken(accessToken)
+    ? await resolveMCPActor(accessToken, userId, listIds[0])
+    : await resolveMCPActor(accessToken, userId)
 
   // Verify write access to all specified lists (if any)
   let validLists: any[] = []
@@ -312,7 +312,7 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
 }
 
 export async function updateTask(accessToken: string, taskId: string, updates: any, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Find task and verify access
   // Allow access if:
@@ -476,7 +476,7 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
 }
 
 export async function deleteTask(accessToken: string, taskId: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   log.info(`[MCP deleteTask] Attempting to delete task ${taskId} for user ${mcpToken.userId}`)
 
@@ -597,7 +597,7 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
 }
 
 export async function getTaskDetails(accessToken: string, taskId: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   const task = await prisma.task.findFirst({
     where: {
@@ -686,7 +686,7 @@ export async function getTaskDetails(accessToken: string, taskId: string, userId
 }
 
 export async function addTaskAttachment(accessToken: string, taskId: string, attachmentData: any, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Verify task access and write permission
   const task = await prisma.task.findFirst({

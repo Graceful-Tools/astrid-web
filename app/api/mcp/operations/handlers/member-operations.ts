@@ -4,11 +4,11 @@
 
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
-import { validateMCPToken } from "./shared"
+import { resolveMCPActor } from "./shared"
 import { getUserRoleInList } from "@/lib/list-permissions"
 
 export async function getListMembers(accessToken: string, listId: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   const list = await prisma.taskList.findFirst({
     where: {
@@ -60,7 +60,7 @@ export async function getListMembers(accessToken: string, listId: string, userId
 }
 
 export async function addListMember(accessToken: string, listId: string, email: string, role: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   // Verify user is admin of the list
   const list = await prisma.taskList.findFirst({
@@ -178,7 +178,7 @@ export async function addListMember(accessToken: string, listId: string, email: 
 }
 
 export async function updateListMember(accessToken: string, listId: string, memberId: string, role: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   // Verify user is admin of the list
   const list = await prisma.taskList.findFirst({
@@ -242,7 +242,7 @@ export async function updateListMember(accessToken: string, listId: string, memb
 }
 
 export async function removeListMember(accessToken: string, listId: string, memberId?: string, email?: string, isInvitation?: boolean, userId?: string) {
-  const mcpToken = await validateMCPToken(accessToken, listId)
+  const mcpToken = await resolveMCPActor(accessToken, userId, listId)
 
   // Verify user is admin of the list
   const list = await prisma.taskList.findFirst({

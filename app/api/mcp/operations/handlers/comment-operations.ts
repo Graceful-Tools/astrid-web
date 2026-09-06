@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
-import { validateMCPToken, getListMemberIdsByListId } from "./shared"
+import { resolveMCPActor, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
 
@@ -179,7 +179,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
 }
 
 export async function getTaskComments(accessToken: string, taskId: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   // Verify task access
   // Allow access if: 1) task is in a list user has access to, OR 2) user is the creator (for listless tasks), OR 3) task is in a PUBLIC list
@@ -244,7 +244,7 @@ export async function getTaskComments(accessToken: string, taskId: string, userI
 }
 
 export async function deleteComment(accessToken: string, commentId: string, userId: string) {
-  const mcpToken = await validateMCPToken(accessToken)
+  const mcpToken = await resolveMCPActor(accessToken, userId)
 
   log.info(`[MCP deleteComment] Attempting to delete comment ${commentId} for user ${mcpToken.userId}`)
 
