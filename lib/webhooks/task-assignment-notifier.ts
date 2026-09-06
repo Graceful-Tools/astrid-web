@@ -23,6 +23,7 @@
  */
 
 import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TIMESTAMP_HEADER, WEBHOOK_EVENT_HEADER } from './protocol-headers'
+import { assertPublicOutboundUrl } from '@/lib/security/outbound-url'
 import { BRAND } from '@/lib/brand/config'
 import type { PrismaClient } from '@prisma/client'
 import { mcpTokenStorageFields, resolveMCPPlaintext } from "@/lib/mcp-token"
@@ -348,6 +349,12 @@ export async function sendWebhookNotification(
   payload: TaskAssignmentWebhookPayload,
 ): Promise<void> {
   try {
+    // Re-check before every delivery, not only on save. A hostname that
+    // resolved publicly when the user saved it can resolve to 127.0.0.1 today,
+    // so validating once at save time is a DNS-rebinding hole rather than a
+    // defence (task 3794f4ce).
+    await assertPublicOutboundUrl(webhookUrl)
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {

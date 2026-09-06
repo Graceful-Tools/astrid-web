@@ -1,4 +1,5 @@
 import { prisma as defaultPrisma } from '@/lib/prisma'
+import { assertPublicOutboundUrl } from '@/lib/security/outbound-url'
 import { PushNotificationService } from '@/lib/push-notification-service'
 import { getBaseUrl } from '@/lib/base-url'
 import { generateWebhookHeaders } from '@/lib/webhook-signature'
@@ -178,6 +179,10 @@ export class AIAgentWebhookService {
       const headers = generateWebhookHeaders(body, webhookSecret, event)
 
       log.info(`📤 Sending signed webhook to user's Claude Code Remote server: ${webhookUrl}`)
+
+      // Re-check before every delivery: a name that resolved publicly at save
+      // time can resolve to a private address later (task 3794f4ce).
+      await assertPublicOutboundUrl(webhookUrl)
 
       // Send with timeout
       const response = await fetch(webhookUrl, {

@@ -7,6 +7,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { assertOutboundUrlShape, assertPublicOutboundUrl, OutboundUrlError } from '@/lib/security/outbound-url'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
@@ -23,7 +24,22 @@ const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot'] as const
 
 // Validation schema for webhook settings
 const WebhookSettingsSchema = z.object({
-  webhookUrl: z.string().url('Must be a valid URL'),
+  // Not just "is a URL". This value is fetched by the server on save and on
+  // every delivery, so an unchecked one is an internal port scanner and a
+  // cloud-metadata probe (task 3794f4ce).
+  webhookUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .superRefine((value, ctx) => {
+      try {
+        assertOutboundUrlShape(value)
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: error instanceof OutboundUrlError ? error.message : 'Invalid URL',
+        })
+      }
+    }),
   enabled: z.boolean().optional(),
   events: z.array(z.enum([
     'task.assigned',
@@ -279,6 +295,24 @@ export async function POST(request: NextRequest) {
     // Decrypt URL and secret
     const webhookUrl = decryptField(config.webhookUrl)
     const webhookSecret = decryptField(config.webhookSecret)
+
+    // Re-check the stored URL before the test ping. Save-time validation cannot
+    // cover a name whose DNS changed since, and this handler hands the caller
+    // back the status code and response time — which is what made it a usable
+    // internal port scanner (task 3794f4ce).
+    if (webhookUrl) {
+      try {
+        await assertPublicOutboundUrl(webhookUrl)
+      } catch (error) {
+        return NextResponse.json({
+          success: false,
+          message:
+            error instanceof OutboundUrlError
+              ? error.message
+              : 'Webhook URL is no longer reachable safely',
+        })
+      }
+    }
 
     if (!webhookUrl || !webhookSecret) {
       return NextResponse.json(
