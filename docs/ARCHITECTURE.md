@@ -169,7 +169,7 @@ hooks/                 # Custom React hooks
 └── useTaskManagerModals.ts     # Modal management
 
 lib/                   # Utility libraries
-├── auth.ts           # Authentication utilities
+├── auth-config.ts    # NextAuth configuration and callbacks
 ├── database-utils.ts # Database helpers
 └── github-client.ts  # GitHub integration
 
@@ -178,8 +178,8 @@ mcp/                   # Model Context Protocol servers
 └── README.md         # MCP documentation
 
 prisma/               # Database schema and migrations
-scripts/              # Utility scripts (70+ automation scripts)
-tests/                # Test suites (40+ test files)
+scripts/              # Operational and maintenance scripts (see scripts/)
+tests/                # Vitest suites, mirroring the source tree
 ```
 
 ## Data Flow
@@ -230,7 +230,7 @@ tests/
    - Cache-first strategy for static resources (CSS, JS, images)
    - Network-first with cache fallback for API requests
    - Progressive Web App (PWA) support with offline capability
-   - Cache versioning: `astrid-static-v1.0.2`, `astrid-dynamic-v1.0.2`
+   - Cache versioning: `astrid-static-v1.0.8`, `astrid-dynamic-v1.0.8` (the version lives at the top of `public/sw.js`)
 
 2. **API Key Cache** ([lib/api-key-cache.ts](../lib/api-key-cache.ts))
    - In-memory cache for decrypted AI service API keys (Claude, OpenAI, Gemini, GitHub Copilot)
@@ -645,13 +645,22 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
   "buildCommand": "npm run build",
   "functions": {
     "app/api/**/*.ts": { "maxDuration": 30 },
-    "app/api/admin/migrate/route.ts": { "maxDuration": 60 }
+    "app/api/sse/route.ts": { "maxDuration": 300 },
+    "app/api/cron/github-sync/route.ts": { "maxDuration": 60 }
   },
   "crons": [
-    { "path": "/api/cron/reminders", "schedule": "* * * * *" }
+    { "path": "/api/cron/reminders", "schedule": "* * * * *" },
+    { "path": "/api/cron/system-tasks", "schedule": "0 0 * * 0" },
+    { "path": "/api/cron/analytics", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/abandoned-uploads", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" }
   ]
 }
 ```
+
+> Abridged (`devCommand` and `installCommand` omitted); `vercel.json` is the
+> source of truth. The snippet here previously invented a function entry for an
+> admin-migrate route that does not exist, and showed one cron of five.
 
 ### **Database & Storage**
 
@@ -762,7 +771,9 @@ npm run predeploy:quick  # TypeScript + ESLint only
   - `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`: Push notifications
   - `ENCRYPTION_KEY`: API key encryption
   - `CRON_SECRET`: Cron job authentication
-  - AI Provider keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`
+  - AI Provider keys: `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are **tooling-scoped,
+    not required by the app** — they serve maintenance scripts, while the app uses
+    per-user keys (`lib/env.ts`). `GOOGLE_AI_API_KEY` is read by nothing at all.
 
 #### **Multi-Environment Support**
 - Development: Local PostgreSQL, local Redis
@@ -793,8 +804,10 @@ npm run predeploy:quick  # TypeScript + ESLint only
 
 #### **Runtime Migrations** ([lib/runtime-migrations.ts](../lib/runtime-migrations.ts))
 - On-demand schema updates for deployments
-- API endpoint: `POST /api/admin/migrate`
-- Used for production hotfixes without downtime
+- **There is no `/api/admin/migrate` endpoint.** This section documented one for
+  production hotfixes; the route does not exist and neither does the
+  `vercel.json` entry shown further up (task ff74f430). Migrations apply during
+  a production deploy — see [CLI_OPERATIONS.md](./CLI_OPERATIONS.md)
 
 ## Benefits of Current Architecture
 
