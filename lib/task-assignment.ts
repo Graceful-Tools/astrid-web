@@ -3,9 +3,8 @@
  * Handles assignment of tasks to both users and AI agents
  */
 
-import { PrismaClient } from '@prisma/client'
+import { prisma } from './prisma'
 
-const prisma = new PrismaClient()
 
 export interface AssignmentTarget {
   type: 'user' | 'ai_agent'

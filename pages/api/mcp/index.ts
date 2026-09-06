@@ -1,4 +1,5 @@
 import { hasCapability } from '@/lib/brand/capabilities'
+import { BRAND, brandOrigin } from "@/lib/brand/config"
 import type { NextApiRequest, NextApiResponse } from "next"
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"
 import AstridMCPServerOAuth from "../../../mcp/mcp-server-oauth"
@@ -87,7 +88,7 @@ async function readJsonBody(req: NextApiRequest): Promise<unknown> {
  * bare 401 with nowhere to go, and connecting becomes a manual credential hunt.
  */
 function sendAuthChallenge(req: NextApiRequest, res: NextApiResponse) {
-  const host = req.headers.host || "astrid.cc"
+  const host = req.headers.host || BRAND.domain
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"
   const metadata = `${proto}://${host}/.well-known/oauth-protected-resource/mcp`
   res.setHeader("WWW-Authenticate", `Bearer resource_metadata="${metadata}"`)
@@ -195,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await serverInstance.startWithTransport(transport, "sse")
     console.log(
-      `[MCP] SSE session established (${sessionId}) for base ${authContext.options.baseUrl || "https://astrid.cc"}`
+      `[MCP] SSE session established (${sessionId}) for base ${authContext.options.baseUrl || brandOrigin()}`
     )
   } catch (error) {
     console.error("[MCP] Failed to establish SSE session:", error)

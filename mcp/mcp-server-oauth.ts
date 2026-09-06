@@ -22,7 +22,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod"
-import { mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
+import { BRAND, mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
 
 // OAuth API Client
 interface OAuthTokenResponse {
@@ -119,7 +119,7 @@ class OAuthAPIClient {
     if (!this.staticAccessToken && (!this.clientId || !this.clientSecret)) {
       console.error("❌ OAuth credentials not configured")
       throw new Error(
-        "Provide ASTRID_OAUTH_CLIENT_ID + ASTRID_OAUTH_CLIENT_SECRET or a valid Astrid access token"
+        `Provide ASTRID_OAUTH_CLIENT_ID + ASTRID_OAUTH_CLIENT_SECRET or a valid ${BRAND.appName} access token`
       )
     }
   }
@@ -726,7 +726,7 @@ export default class AstridMCPServerOAuth {
   }
 
   private logStartup(transportLabel: string) {
-    console.error(`Astrid MCP Server (OAuth) running via ${transportLabel} transport`)
+    console.error(`${BRAND.appName} MCP Server (OAuth) running via ${transportLabel} transport`)
     console.error(`Base URL: ${mcpDefaultBaseUrl()}`)
     console.error(
       `Default List: ${this.defaultListId || "none (must provide listId in each call)"}`

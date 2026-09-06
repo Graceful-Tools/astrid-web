@@ -3,7 +3,7 @@
  * Monitors task comments for multiple action types: approve, merge, change requests
  */
 
-import { PrismaClient } from '@prisma/client'
+import { prisma } from './prisma'
 import { createAIAgentComment } from './ai-agent-comment-service'
 import {
   getAgentExecutionMode,
@@ -15,7 +15,6 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('comment-approval-detector')
 
 
-const prisma = new PrismaClient()
 
 export type CommentAction =
   | { type: 'approve'; confidence: number }

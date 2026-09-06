@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -218,7 +219,7 @@ export function OAuthAPITester() {
       example: {
         name: "API Test List",
         description: "Created via OAuth API",
-        color: "#3B82F6",
+        color: DEFAULT_LIST_COLOR,
         isPublic: false
       }
     },

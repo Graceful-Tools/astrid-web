@@ -5,10 +5,9 @@
 
 import { App } from '@octokit/app'
 import { Octokit } from '@octokit/rest'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from './prisma'
 import { createLogger } from './logger'
 
-const prisma = new PrismaClient()
 const log = createLogger('GitHubClient')
 
 export interface FileChange {

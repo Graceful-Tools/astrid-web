@@ -10,7 +10,7 @@
  * and each module also opened its own connection pool (task 390bccc3).
  */
 import { prisma } from "../lib/prisma"
-import { mcpServerName } from "../lib/brand/config"
+import { BRAND, mcpServerName } from "../lib/brand/config"
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
@@ -254,7 +254,7 @@ class AstridMCPServerV2 {
   public async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error("Astrid MCP Server V2 running on stdio");
+    console.error(`${BRAND.appName} MCP Server V2 running on stdio`);
   }
 }
 

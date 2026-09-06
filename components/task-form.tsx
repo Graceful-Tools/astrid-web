@@ -211,7 +211,7 @@ export function TaskForm({ task, currentUser, availableLists, availableUsers, on
         id: Date.now().toString(),
         name: listInputValue.trim(),
         description: "",
-        color: "#3B82F6",
+        color: DEFAULT_LIST_COLOR,
         privacy: "PRIVATE", // Default to private as specified
         owner: currentUser,
         ownerId: currentUser.id,

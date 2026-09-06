@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -200,7 +201,7 @@ export default function APIEndpointsPage() {
                     <code>{`{
   "name": "My List",
   "description": "List description",
-  "color": "#3B82F6",
+  "color": "${DEFAULT_LIST_COLOR}",
   "isPublic": false
 }`}</code>
                   </pre>

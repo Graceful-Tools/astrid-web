@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import http, { IncomingMessage, ServerResponse } from "node:http"
+import { BRAND } from "../lib/brand/config"
 import { AddressInfo } from "node:net"
 import { URL } from "node:url"
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"
@@ -74,17 +75,17 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   const address = server.address() as AddressInfo
   console.log(
-    `Astrid MCP HTTP/SSE server listening on port ${address?.port ?? PORT} (SSE path: ${SSE_PATH}, messages path: ${POST_PATH})`
+    `${BRAND.appName} MCP HTTP/SSE server listening on port ${address?.port ?? PORT} (SSE path: ${SSE_PATH}, messages path: ${POST_PATH})`
   )
   if (AUTH_TOKEN) {
     console.log("🔒 Authorization required via Authorization header (Bearer token)")
   } else {
-    console.warn("⚠️  No ASTRID_MCP_HTTP_AUTH_TOKEN set. Anyone with the URL can issue Astrid API calls.")
+    console.warn(`⚠️  No ASTRID_MCP_HTTP_AUTH_TOKEN set. Anyone with the URL can issue ${BRAND.appName} API calls.`)
   }
 })
 
 const shutdown = async () => {
-  console.log("Shutting down Astrid MCP HTTP server...")
+  console.log(`Shutting down ${BRAND.appName} MCP HTTP server...`)
   server.close()
   for (const [sessionId, entry] of transports.entries()) {
     try {

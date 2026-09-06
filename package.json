@@ -124,7 +124,8 @@
     "prepare": "husky || true",
     "check:reuse:warn": "tsx scripts/check-reuse.ts",
     "hygiene:review": "zsh scripts/weekly-hygiene-review.sh",
-    "check:i18n": "tsx scripts/check-i18n.ts"
+    "check:i18n": "tsx scripts/check-i18n.ts",
+    "audit:brand": "tsx scripts/brand-audit.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
