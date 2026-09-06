@@ -128,7 +128,8 @@
     "audit:brand": "tsx scripts/brand-audit.ts",
     "check:env": "tsx scripts/check-env-schema.ts",
     "vendor:sync": "node scripts/sync-vendor-assets.mjs",
-    "check:unimported": "tsx scripts/check-unimported.ts"
+    "check:unimported": "tsx scripts/check-unimported.ts",
+    "check:prisma-client": "tsx scripts/check-prisma-client.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
