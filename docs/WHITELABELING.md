@@ -230,7 +230,7 @@ brand. Verified by mutation. So the native suite has three layers, and only the 
 can see a whitelabel regression:
 
 1. **Default-build tests** — prove the fallbacks. Necessarily vacuous about wiring.
-2. **`scripts/check-brand.sh`** — a source lint, the only thing that catches a
+2. **The iOS repository's `check-brand.sh`** — a source lint under its own `scripts/`, the only thing that catches a
    re-introduced literal while Astrid is the brand.
 3. **`BrandAuditTests`** — skip on an Astrid build, run under an applied partner profile.
    These prove Info.plist configuration actually *reaches* `Brand`, and that no Astrid

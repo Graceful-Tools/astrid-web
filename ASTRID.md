@@ -91,8 +91,9 @@ export async function POST(request: NextRequest) {
     // 5. Response
     return Response.json(result)
   } catch (error) {
-    console.error("API Error:", error)
-    return new Response("Internal Server Error", { status: 500 })
+    // The message is logged, never returned — see Error Handling below.
+    log.error({ err: error }, "Operation failed")
+    return NextResponse.json(createSafeErrorResponse(error), { status: 500 })
   }
 }
 ```
@@ -139,16 +140,21 @@ export function TaskComponent({
 
 ### Hook Naming Convention
 
+**Both casings are in the tree and both are correct.** `hooks/` is mostly
+kebab-case, while 23 hooks — the task-detail and task-manager groups especially —
+are camelCase. This section used to mandate kebab-case and illustrate it with
+four files that have never existed (`use-tasks.ts`, `use-lists.ts`,
+`use-auth.ts`, `use-task-operations.ts`), so it described neither the rule nor
+the repository (task ff74f430).
+
+Match the directory you are adding to rather than the rule you remember:
+
 ```typescript
-// State hooks: use-[feature].ts
-hooks/use-tasks.ts
-hooks/use-lists.ts
-hooks/use-auth.ts
+// Top-level hooks: kebab-case
+hooks/use-cached-data.ts
+hooks/use-cache-sync.ts
 
-// Operation hooks: use-[feature]-operations.ts
-hooks/use-task-operations.ts
-
-// Detail hooks: use-[feature]-detail.ts
+// Grouped hooks: camelCase, matching their neighbours
 hooks/task-detail/useTaskDetailState.ts
 ```
 
@@ -865,7 +871,7 @@ Each package has its own README with setup and usage instructions.
 
 | File | Purpose |
 |------|---------|
-| `lib/ai-agent-config.ts` | Agent routing configuration |
+| `lib/ai/agent-config.ts` | Agent routing configuration |
 | `lib/ai-orchestrator.ts` | AI workflow execution |
 | `prisma/schema.prisma` | Database schema |
 | `app/api/` | API endpoints |

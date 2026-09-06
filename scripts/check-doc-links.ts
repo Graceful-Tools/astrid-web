@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
+import { findBrokenCodePaths } from './lib/doc-code-paths'
 
 const root = process.cwd()
 const docsRoot = join(root, 'docs')
@@ -155,10 +156,19 @@ for (const [packageName, label] of canonicalVersionReferences) {
   }
 }
 
+// Markdown links are only half of how a document points at the tree. The other
+// half — a path in backticks, in prose or a reference table — went unchecked
+// until task ff74f430, which is how ASTRID.md came to name `lib/ai-agent-config.ts`
+// and four hooks that have never existed. Enforced across the authoritative doc
+// set only; scripts/lib/doc-code-paths.ts explains that boundary.
+for (const broken of findBrokenCodePaths(root)) {
+  problems.push(`${broken.file}:${broken.line} -> ${broken.path} does not exist`)
+}
+
 if (problems.length > 0) {
   console.error(`Documentation validation failures (${problems.length}):`)
   for (const problem of problems) console.error(`- ${problem}`)
   process.exitCode = 1
 } else {
-  console.log(`Documentation links, owners, headings, and stack versions valid across ${activeFiles.length} active Markdown files.`)
+  console.log(`Documentation links, code paths, owners, headings, and stack versions valid across ${activeFiles.length} active Markdown files.`)
 }

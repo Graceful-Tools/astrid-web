@@ -10,9 +10,9 @@
 
 ### Import Boundaries
 - **Absolute Imports**: Use `@/` prefix for all internal imports (`app/api/lists/route.ts:2-4`)
-- **UI Components**: Import from `@/components/ui/` (`components/task-form.tsx:5-11`)
+- **UI Components**: Import from `@/components/ui/` (`components/task-detail.tsx:10-12`)
 - **Utilities**: Import from `@/lib/` (`app/api/tasks/route.ts:2-3`)
-- **Types**: Import from `@/types/` (`hooks/use-lists.ts:3`)
+- **Types**: Import from `@/types/` (`hooks/use-cached-data.ts:17`)
 
 ## Error Handling Conventions
 
@@ -30,16 +30,23 @@
 ## Logging & Observability
 
 ### Logger Usage
-- **Console Logging**: Primary logging method throughout the codebase
-- **Auth Logging**: Extensive logging in authentication flow (`lib/auth-config.ts:20-40`)
-- **Error Logging**: `console.error` for all error conditions (`lib/email.ts:79-80`)
-- **Info Logging**: `console.log` for important operations (`lib/openai.ts:37`)
-- **Warning Logging**: `console.warn` for non-critical issues (`lib/date-utils.ts:68`)
+- **Structured Logger, Not `console`**: Take a logger from `createLogger` in
+  `lib/logger.ts` (pino). `console.*` is not the convention — this section used
+  to say it was, and every file it cited as proof had since been deleted or
+  renamed (task ff74f430).
+- **Levels**: `info` and above are emitted in production, `debug` and above in
+  development (`lib/logger.ts`)
+- **Error Logging**: pass the error as `err` so pino serializes it —
+  `log.error({ err: error }, 'Resend error:')` (`lib/email.ts:86`)
+- **Info Logging**: `log.info(...)` for important operations (`lib/email.ts:90`)
 
 ### Logging Patterns
-- **Prefixed Logs**: Use `[Auth]`, `📧`, `🎨` prefixes for context (`lib/auth-config.ts:25`)
-- **Structured Data**: Log objects and arrays for debugging (`lib/auth-config.ts:14`)
-- **Development Mode**: Extensive logging in development, reduced in production
+- **Structured First**: an object of fields, then the message —
+  `log.info({ id: data?.id, to: invitation.email }, 'Email sent successfully:')`
+  (`lib/email.ts:90`)
+- **Prefixed Logs**: `📧`, `🎨` emoji prefixes mark subsystem context (`lib/email.ts:30`)
+- **Never Log a Secret**: and never return a logged error message to a client —
+  see the error-handling section of [ASTRID.md](../../ASTRID.md)
 
 ## Input Validation & Security
 
