@@ -116,15 +116,13 @@ const nextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: process.env.NODE_ENV === 'production' ? 'https://astrid.cc' : 'http://localhost:3000' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-OAuth-Token, X-API-Version, X-Internal-Secret, X-Platform' },
-        ],
-      },
+      // NOTE: /api CORS is NOT here. Static headers cannot vary by request, so
+      // this block sent `Access-Control-Allow-Origin: https://astrid.cc` with
+      // `Allow-Credentials: true` on every deployment — a partner's API
+      // granting credentialed cross-origin access to somebody else's domain —
+      // and no `Vary: Origin`. It now lives in middleware.ts via lib/cors.ts,
+      // where the request Origin is available. Do not restore it: a static
+      // header here would win over the middleware's. (Task 229c175c.)
       {
         source: '/manifest.json',
         headers: [

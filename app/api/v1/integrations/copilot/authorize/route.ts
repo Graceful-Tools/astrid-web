@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { copilotOAuthConfigured, mintCopilotOAuthState } from '@/lib/copilot/oauth'
+import {
+  copilotIntegrationGate,
+  copilotOAuthConfigured,
+  mintCopilotOAuthState,
+} from '@/lib/copilot/oauth'
 
 /**
  * GET /api/v1/integrations/copilot/authorize
@@ -11,6 +15,11 @@ import { copilotOAuthConfigured, mintCopilotOAuthState } from '@/lib/copilot/oau
 export const GET = withAuth(
   { scopes: ['tasks:write'], tag: 'v1.integrations.copilot' },
   async (_req, auth) => {
+    // A brand without the copilot agent has no Copilot integration to
+    // authorize against (task 229c175c).
+    const gateBlocked = copilotIntegrationGate()
+    if (gateBlocked) return gateBlocked
+
     if (!copilotOAuthConfigured()) {
       return NextResponse.json(
         { error: 'GitHub Copilot is not configured on this server' },

@@ -89,8 +89,24 @@ An unrecognised value counts as enabled — a typo must not silently remove a fe
 | `NEXT_PUBLIC_BRAND_ENABLE_MCP` | MCP server and discovery |
 | `NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW` | Third-party OpenClaw workers |
 | `NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS` | OpenAPI + ai-plugin documents |
+| `NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE` | Projects, status boards and the team-shaped features |
+| `NEXT_PUBLIC_BRAND_ENABLE_TASK_COST` | Per-task cost tracking |
 | `NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK` | Inbound email-to-task |
 | `NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED` | Public `.ics` feed |
+
+Two of these — `PROJECT_MODE` and `TASK_COST` — existed in
+`lib/brand/capabilities.ts` for some time without appearing here or in
+`.env.example`, so a partner had no way to learn they were switchable
+(task 229c175c).
+
+**CORS.** `/api` accepts credentialed cross-origin requests from this brand's own
+apex and `www` hosts only. Add others with `CORS_ALLOWED_ORIGINS` (comma-separated,
+scheme included). An origin that is not on the list receives no
+`Access-Control-Allow-Origin` header at all, and every API response carries
+`Vary: Origin`. This is enforced in `middleware.ts` via `lib/cors.ts`, NOT in
+`next.config.mjs`: a static header cannot vary by request, which is how the old
+configuration ended up granting `https://astrid.cc` credentialed access to every
+deployment.
 
 **At least one auth method must remain.** A build with all three off is an outage, not a
 degraded feature, so `instrumentation.ts` asserts it at server start and the process

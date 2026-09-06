@@ -16,10 +16,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { syncAllGithubLinks } from '@/lib/sync/github/sync-all-links'
 import { requireCronSecret } from '@/lib/cron-auth'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 export const maxDuration = 60
 
 export async function GET(request: NextRequest) {
+  // A deployment that turned the GitHub integration off must not keep running
+  // sync passes against its users' repositories (task 229c175c).
+  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  if (capabilityBlocked) return capabilityBlocked
+
   // Fails CLOSED: no CRON_SECRET configured means nobody gets in.
   const blocked = requireCronSecret(request)
   if (blocked) return blocked

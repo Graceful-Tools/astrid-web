@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEventToUser } from '@/lib/sse-utils'
 import { verifyWebhookSignature } from '@/lib/sync/github'
+import { capabilityGate } from '@/lib/brand/capabilities'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('webhooks.github-issues')
@@ -12,6 +13,13 @@ const log = createLogger('webhooks.github-issues')
  * and nudges their clients over SSE (external_sync_refresh) to pull.
  */
 export async function POST(request: NextRequest) {
+  // A deployment with the integration disabled must not keep syncing on the
+  // server while the UI 404s. Gated before the signature check: with the
+  // capability off there is nothing here to authenticate against
+  // (task 229c175c).
+  const blocked = capabilityGate('syncGithubIssues')
+  if (blocked) return blocked
+
   const rawBody = await request.text()
   const signature = request.headers.get('x-hub-signature-256')
   if (!verifyWebhookSignature(rawBody, signature)) {

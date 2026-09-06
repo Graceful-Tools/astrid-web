@@ -1,6 +1,7 @@
 // Email service implementation using Resend
 import { Resend } from 'resend'
 import { getBaseUrl } from './base-url'
+import { BRAND } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('email')
@@ -11,29 +12,28 @@ const resend = typeof window === 'undefined' && process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null
 
-// Smart email configuration that works in both test and production
+/**
+ * The From address for outbound mail.
+ *
+ * `FROM_EMAIL` wins when set. The fallback is derived from the brand rather
+ * than hardcoded: this used to fall back to `noreply@yourdomain.com` in
+ * development and `onboarding@resend.dev` in production, so a partner who
+ * forgot the variable sent mail from a placeholder or from Resend's shared
+ * sandbox domain, with nothing tying it to their product (task 229c175c).
+ * lib/email-reminder-service.ts next door was already brand-aware; this is the
+ * same treatment.
+ */
 export function getFromEmail(): string {
-  const configuredEmail = process.env.FROM_EMAIL
-  const environment = process.env.NODE_ENV
-  
-  log.info(`📧 Email Configuration - Environment: ${environment}, Configured: ${configuredEmail}`)
-  
-  // In development, use configured email or fallback
-  if (environment === "development") {
-    const email = configuredEmail || 'noreply@yourdomain.com'
-    log.info(`📧 Using development email: ${email}`)
-    return email
-  }
-  
-  // In production, if we have a configured email, use it (assuming domain is verified)
+  const configuredEmail = process.env.FROM_EMAIL?.trim()
+
   if (configuredEmail) {
     log.info(`📧 Using configured email: ${configuredEmail}`)
     return configuredEmail
   }
-  
-  // If no configured email, fallback to Resend's verified test domain
-  log.info(`📧 No FROM_EMAIL configured, falling back to: onboarding@resend.dev`)
-  return 'onboarding@resend.dev'
+
+  const fallback = `noreply@${BRAND.domain}`
+  log.info(`📧 No FROM_EMAIL configured, falling back to the brand domain: ${fallback}`)
+  return fallback
 }
 
 interface Invitation {
@@ -164,7 +164,7 @@ function getVerificationEmailHtml(data: EmailVerificationData, verifyUrl: string
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
+        .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
         .footer { margin-top: 30px; font-size: 12px; color: #666; }
         .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 16px 0; }
       </style>
@@ -215,7 +215,7 @@ If you didn't request this verification, you can safely ignore this email.
 }
 
 // List invitation functionality
-interface ListInvitationData {
+export interface ListInvitationData {
   to: string
   inviterName: string
   listName: string
@@ -265,6 +265,14 @@ export async function sendListInvitationEmail(data: ListInvitationData) {
   }
 }
 
+/**
+ * Exported so tests/brands/brand-matrix.test.ts can assert that transactional
+ * email is painted in the deployment's own accent colour (task 229c175c).
+ */
+export function renderListInvitationEmailHtml(data: ListInvitationData): string {
+  return getListInvitationHtml(data)
+}
+
 function getListInvitationHtml(data: ListInvitationData): string {
   const roleDescription = data.role === "manager" ? "manage the list and its members" : "add and edit tasks"
   
@@ -277,9 +285,9 @@ function getListInvitationHtml(data: ListInvitationData): string {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
+        .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
         .footer { margin-top: 30px; font-size: 12px; color: #666; }
-        .list-info { background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 16px; margin: 16px 0; border-radius: 4px; }
+        .list-info { background-color: #f8fafc; border-left: 4px solid ${BRAND.accentColor}; padding: 16px; margin: 16px 0; border-radius: 4px; }
       </style>
     </head>
     <body>
@@ -361,7 +369,7 @@ function getEmailHtml(invitation: Invitation, inviteUrl: string): string {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
+        .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
         .footer { margin-top: 30px; font-size: 12px; color: #666; }
       </style>
     </head>
@@ -458,7 +466,7 @@ export async function sendFeatureAccessRequestEmail(data: FeatureAccessRequestDa
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px;">
       <h2 style="margin-bottom: 4px;">Feature request: ${escapeEmailHtml(data.featureKey)}</h2>
       <p style="color:#666; margin-top: 0;">${escapeEmailHtml(who)}</p>
-      <div style="background-color:#f8fafc; border-left:4px solid #3b82f6; padding:16px; margin:16px 0; border-radius:4px;">
+      <div style="background-color:#f8fafc; border-left:4px solid ${BRAND.accentColor}; padding:16px; margin:16px 0; border-radius:4px;">
         ${data.useCase
           ? `<p style="margin:0;"><strong>Use case</strong></p><p style="margin:8px 0 0; white-space:pre-wrap;">${escapeEmailHtml(data.useCase)}</p>`
           : '<p style="margin:0; color:#666;">No use case given.</p>'}

@@ -3,6 +3,7 @@ import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import {
+  copilotIntegrationGate,
   copilotOAuthConfigured,
   exchangeCopilotCode,
   githubLoginFor,
@@ -18,6 +19,10 @@ const log = createLogger('v1.integrations.copilot.callback')
  * (encrypted) on the user's CopilotCredential, then shows a "return to app" page.
  */
 export async function GET(request: NextRequest) {
+  // A brand without the copilot agent has no Copilot integration (task 229c175c).
+  const gateBlocked = copilotIntegrationGate()
+  if (gateBlocked) return gateBlocked
+
   if (!copilotOAuthConfigured()) {
     return NextResponse.json({ error: 'GitHub Copilot is not configured' }, { status: 503 })
   }

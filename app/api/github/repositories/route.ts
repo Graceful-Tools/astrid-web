@@ -10,10 +10,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { listGitHubRepositories } from '@/lib/github-repositories'
 import { createLogger } from '@/lib/logger'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('github.repositories')
 
 export async function GET(request: NextRequest) {
+  // A deployment with the GitHub integration disabled must refuse
+  // server-side, not merely hide the UI (task 229c175c).
+  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  if (capabilityBlocked) return capabilityBlocked
+
   try {
     const session = await getUnifiedSession()
     if (!session?.user?.id) {

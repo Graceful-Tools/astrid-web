@@ -9,6 +9,8 @@ import {
 } from '@/lib/api-deprecation'
 import { shouldBypassIntlRouting } from '@/lib/middleware-bypass'
 import { LEGACY_USAGE_BEACON_PATH } from '@/lib/legacy-api-usage'
+import { BRAND } from '@/lib/brand/config'
+import { corsHeadersForOrigin } from '@/lib/cors'
 
 // Create next-intl middleware
 const intlMiddleware = createMiddleware(routing)
@@ -50,24 +52,51 @@ function beaconLegacyHit(request: NextRequest, pathname: string): Promise<unknow
 export function middleware(request: NextRequest, event?: NextFetchEvent) {
   const host = request.headers.get("host") || ""
   const pathname = request.nextUrl.pathname
+  const isApi = pathname.startsWith("/api")
 
-  // Redirect naked domain (astrid.cc) to www.astrid.cc
+  // CORS for the API. This lived in next.config.mjs as a STATIC header, which
+  // is structurally incapable of the thing it needed to do: it sent
+  // `Access-Control-Allow-Origin: https://astrid.cc` together with
+  // `Allow-Credentials: true` on every deployment, so a partner's API granted
+  // credentialed cross-origin access to somebody else's domain, and with no
+  // `Vary: Origin` a shared cache could hand one origin's grant to another.
+  // Here the request Origin exists, so the header is reflected only when it is
+  // on this brand's allow-list and omitted otherwise (task 229c175c).
+  const corsHeaders = isApi ? corsHeadersForOrigin(request.headers.get("origin")) : null
+
+  // Preflight never reaches a route handler; answer it here.
+  if (corsHeaders && request.method === "OPTIONS") {
+    const preflight = new NextResponse(null, { status: 204 })
+    for (const [k, v] of Object.entries(corsHeaders)) preflight.headers.set(k, v)
+    return preflight
+  }
+
+  /** Attach the CORS headers, if this is an API request, to any response we build. */
+  const withCors = (response: NextResponse) => {
+    if (corsHeaders) {
+      for (const [k, v] of Object.entries(corsHeaders)) response.headers.set(k, v)
+    }
+    return response
+  }
+
+  // Canonicalise the apex to www for THIS brand's domain. Hardcoding astrid.cc
+  // sent a partner's apex traffic to somebody else's host.
   // EXCEPT for:
   // - .well-known paths (needed for iOS passkeys/AASA)
-  // - /api routes (iOS app uses astrid.cc directly for API calls)
+  // - /api routes (the iOS app uses the apex directly for API calls)
   // - /mcp (task a0e0808c): this redirect crosses hosts, and HTTP clients drop
   //   the Authorization header when they follow it. MCP clients pointed at
-  //   https://astrid.cc/mcp therefore arrived unauthenticated and got a 401
+  //   https://<domain>/mcp therefore arrived unauthenticated and got a 401
   //   that looked like a credentials problem. /mcp is an API surface, not a
   //   page — it must not be canonicalised.
   if (
-    host === "astrid.cc" &&
+    host === BRAND.domain &&
     !pathname.startsWith("/.well-known") &&
-    !pathname.startsWith("/api") &&
+    !isApi &&
     !pathname.startsWith("/mcp")
   ) {
     const url = request.nextUrl.clone()
-    url.host = "www.astrid.cc"
+    url.host = `www.${BRAND.domain}`
     // Use 308 to preserve HTTP method (301 converts POST to GET)
     return NextResponse.redirect(url, 308)
   }
@@ -93,14 +122,14 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
     for (const [k, v] of Object.entries(buildDeprecationHeaders(pathname))) {
       response.headers.set(k, v)
     }
-    return response
+    return withCors(response)
   }
 
   // Skip i18n for API routes, .well-known, MCP endpoints, and static PWA files.
   // Without this the request is rewritten to a /[locale]/... page that 404s,
   // which also shadows the next.config `/mcp -> /api/mcp` rewrite (task a0e0808c).
   if (shouldBypassIntlRouting(pathname)) {
-    return NextResponse.next()
+    return withCors(NextResponse.next())
   }
 
   // Apply i18n middleware for all other routes

@@ -1,6 +1,8 @@
 import crypto from 'crypto'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
+import { ENABLED_AGENT_MAILBOXES } from '@/lib/ai/agent-config'
 
 /**
  * GitHub Copilot per-user OAuth — server-side helpers.
@@ -28,6 +30,27 @@ const REFRESH_SKEW_MS = 60 * 1000
 
 export function copilotOAuthConfigured(): boolean {
   return !!(process.env.GITHUB_COPILOT_CLIENT_ID && process.env.GITHUB_COPILOT_CLIENT_SECRET)
+}
+
+/**
+ * Does this deployment offer the Copilot integration at all?
+ *
+ * A brand that leaves `copilot` out of BRAND_ENABLED_AGENTS has no Copilot
+ * agent, so its authorize/callback/status routes must refuse rather than mint
+ * OAuth state for an identity that does not exist here. The routes were
+ * reachable regardless of the brand's agent set (task 229c175c).
+ */
+export function copilotIntegrationEnabled(): boolean {
+  return ENABLED_AGENT_MAILBOXES.includes('copilot')
+}
+
+/**
+ * 404 for a deployment without the Copilot integration, or null to continue.
+ * Matches capabilityGate's shape and its absent-not-forbidden reasoning.
+ */
+export function copilotIntegrationGate(): NextResponse | null {
+  if (copilotIntegrationEnabled()) return null
+  return NextResponse.json({ error: 'Not found' }, { status: 404 })
 }
 
 // ── OAuth state (HMAC-signed, no storage; provider-tagged) ───────────────────

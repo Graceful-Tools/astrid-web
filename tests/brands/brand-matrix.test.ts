@@ -24,6 +24,14 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { profileEnv } from '@/lib/brand/profile'
 
+// next-intl's middleware cannot load under vitest. The plumbing assertions
+// below (apex redirect, CORS) run before it, so stub it out — the same
+// approach tests/middleware/apex-redirect.test.ts takes.
+vi.mock('next-intl/middleware', async () => {
+  const { NextResponse } = await import('next/server')
+  return { default: () => () => NextResponse.next() }
+})
+
 interface BrandProfile {
   name: string
   description: string
@@ -300,6 +308,143 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
         expect(gate!.status, `${key} should 404`).toBe(404)
       }
     }
+  })
+
+  // ── Server plumbing (task 229c175c) ──────────────────────────────────────
+  //
+  // Everything above this line is content a partner sees. These four are the
+  // plumbing underneath it, which a partner following docs/WHITELABELING.md
+  // could not override at all: the redirect target, the CORS origin, the
+  // outbound From address and the server-side half of a disabled integration.
+
+  it('canonicalises the apex to this profile’s own domain', async () => {
+    const { middleware } = await import('@/middleware')
+    const { NextRequest } = await import('next/server')
+
+    const domain = profile.expect.domain
+    const res = middleware(
+      new NextRequest(`https://${domain}/dashboard`, { headers: { host: domain } })
+    )
+
+    // A partner deployment redirecting to www.astrid.cc would hand its traffic
+    // to someone else's domain.
+    expect(res.status).toBe(308)
+    expect(res.headers.get('location')).toContain(`www.${domain}`)
+    for (const literal of profile.expect.forbidLiterals) {
+      expect(res.headers.get('location'), `redirect leaks "${literal}"`)
+        .not.toContain(literal)
+    }
+  })
+
+  it('never redirects the API, .well-known or /mcp across hosts', async () => {
+    // Following the redirect drops the Authorization header (task a0e0808c).
+    const { middleware } = await import('@/middleware')
+    const { NextRequest } = await import('next/server')
+
+    const domain = profile.expect.domain
+    for (const path of ['/api/v1/tasks', '/.well-known/assetlinks.json', '/mcp']) {
+      const res = middleware(
+        new NextRequest(`https://${domain}${path}`, { headers: { host: domain } })
+      )
+      expect(res.status, `${path} must not redirect`).not.toBe(308)
+    }
+  })
+
+  it('grants credentialed CORS only to this profile’s own origin', async () => {
+    const { middleware } = await import('@/middleware')
+    const { NextRequest } = await import('next/server')
+
+    const origin = `https://${profile.expect.domain}`
+    const res = middleware(
+      new NextRequest(`https://${profile.expect.domain}/api/v1/tasks`, {
+        headers: { host: profile.expect.domain, origin },
+      })
+    )
+
+    expect(res.headers.get('access-control-allow-origin')).toBe(origin)
+    expect(res.headers.get('access-control-allow-credentials')).toBe('true')
+    // Without Vary, a shared cache can serve one origin's ACAO to another.
+    expect(res.headers.get('vary') ?? '').toContain('Origin')
+  })
+
+  it('refuses credentialed CORS to a foreign origin', async () => {
+    // The static next.config header sent `https://astrid.cc` with
+    // Allow-Credentials on EVERY deployment, so a partner's API granted
+    // credentialed cross-origin access to Astrid's domain.
+    const { middleware } = await import('@/middleware')
+    const { NextRequest } = await import('next/server')
+
+    const res = middleware(
+      new NextRequest(`https://${profile.expect.domain}/api/v1/tasks`, {
+        headers: { host: profile.expect.domain, origin: 'https://evil.example' },
+      })
+    )
+
+    expect(res.headers.get('access-control-allow-origin')).toBeNull()
+    expect(res.headers.get('access-control-allow-credentials')).toBeNull()
+  })
+
+  it('sends outbound mail from this profile’s domain, never a placeholder', async () => {
+    const ORIGINAL = process.env.FROM_EMAIL
+    try {
+      delete process.env.FROM_EMAIL
+      vi.resetModules()
+      const { getFromEmail } = await import('@/lib/email')
+
+      const from = getFromEmail()
+
+      // The old fallbacks were noreply@yourdomain.com then onboarding@resend.dev.
+      expect(from).not.toContain('yourdomain.com')
+      expect(from).not.toContain('resend.dev')
+      expect(from).toContain(profile.expect.domain)
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(from, `From address leaks "${literal}"`).not.toContain(literal)
+      }
+    } finally {
+      if (ORIGINAL === undefined) delete process.env.FROM_EMAIL
+      else process.env.FROM_EMAIL = ORIGINAL
+    }
+  })
+
+  it('paints transactional email in this profile’s accent colour', async () => {
+    vi.resetModules()
+    const { renderListInvitationEmailHtml } = await import('@/lib/email')
+
+    const html = renderListInvitationEmailHtml({
+      to: 'someone@example.test',
+      inviterName: 'Someone',
+      listName: 'A list',
+      role: 'member',
+      invitationUrl: 'https://example.test/accept',
+    })
+
+    expect(html).toContain(profile.expect.accentColor)
+    if (profile.expect.accentColor !== '#3b82f6') {
+      expect(html, 'invitation email still hardcodes the Astrid accent')
+        .not.toContain('#3b82f6')
+    }
+  })
+
+  it('gates the SERVER half of a disabled integration, not just its UI', async () => {
+    // With syncGithubIssues off the UI 404s, but the webhook and the cron kept
+    // running: a partner who turned the integration off still had it syncing.
+    const enabled = profile.expect.capabilities.syncGithubIssues
+    const { capabilityGate } = await import('@/lib/brand/capabilities')
+
+    for (const route of [
+      '@/app/api/webhooks/github-issues/route',
+      '@/app/api/cron/github-sync/route',
+    ]) {
+      const mod = await import(route)
+      const source = readFileSync(
+        join(process.cwd(), route.replace('@/', '') + '.ts'),
+        'utf8'
+      )
+      expect(source, `${route} must consult capabilityGate`).toMatch(/capabilityGate/)
+      expect(typeof (mod.POST ?? mod.GET)).toBe('function')
+    }
+
+    expect(capabilityGate('syncGithubIssues') === null).toBe(enabled)
   })
 })
 
