@@ -1,38 +1,35 @@
 "use client"
 
 /**
- * The one add-task input (Reuse Phase 2, task 5fac84e8).
+ * The one add-task input (Reuse Phase 2, task 5fac84e8; unified in f699462a).
  *
  * Callers import this and pick a variant; they never reach for a specific
  * implementation:
  *
- *   <AddTaskInput variant="inline" ... />   inline in the list header/body
- *   <AddTaskInput variant="footer" ... />   fixed to the bottom on phones
+ *   <AddTaskInput variant="inline" ... />   in the flow above the list (2- and 3-column)
+ *   <AddTaskInput variant="footer" ... />   pinned to the bottom of the 1-column view
  *
- * WHY THE TWO IMPLEMENTATIONS SURVIVE BEHIND IT
+ * Both variants now render the SAME control (components/quick-add.tsx) in two
+ * placements. Task 5fac84e8 collapsed the seam to one component and one prop but
+ * left two implementations behind it: a single-line input with `#list`
+ * autocomplete for the desktop columns, and the expanding textarea with priority
+ * and assignee pickers for the phone bar. That was two designs for one job, and
+ * they drifted — the columns never got the pickers, the phone never got the
+ * autocomplete. f699462a merged them: the control is the phone bar's design in
+ * both places, it kept the autocomplete, and the create button grows an
+ * "Add task" label where a column is wide enough for the words.
  *
- * The task asked to collapse three components into one. quick-task-create was
- * dead and is gone. The remaining two are not stylistic variants of one input —
- * they render different controls:
- *
- *   inline (enhanced-task-creation) single-line <Input>, hashtag autocomplete
- *                                    over lists, layout-aware placeholder
- *   footer (mobile-quick-add)        auto-expanding <textarea>, priority picker,
- *                                    assignee picker, fixed bottom sheet
- *
- * Inlining both trees into one function body would produce a component that is
- * two components wearing a trenchcoat — larger, and easy to break one half while
- * editing the other. So the seam callers touch is collapsed to one component and
- * one prop, while each implementation keeps its own file. Adding a control to
- * both, or extracting their shared core later, now happens behind this surface
- * without touching a single call site.
+ * `variant` survives because callers name a placement, not a component — the
+ * distinction is real (one floats over the list, one does not) and one prop is
+ * a smaller thing for a call site to know than a positioning strategy.
  */
 
 import type { TaskList, User } from "../types/task"
-import { EnhancedTaskCreation, type LayoutType } from "./enhanced-task-creation"
-import { MobileQuickAdd } from "./mobile-quick-add"
+import { QuickAdd } from "./quick-add"
+import type { LayoutType } from "@/lib/quick-add"
 
 export type AddTaskInputVariant = "inline" | "footer"
+export type { LayoutType }
 
 export interface AddTaskInputProps {
   variant: AddTaskInputVariant
@@ -48,40 +45,27 @@ export interface AddTaskInputProps {
   isSessionReady: boolean
   className?: string
 
-  /** inline only — drives width, button text and the contextual placeholder. */
+  /** inline only — picks the contextual placeholder. */
   layoutType?: LayoutType
-  /** inline only. */
-  isMobile?: boolean
-
-  /** footer only — powers the assignee picker. */
+  /** Powers the assignee picker. */
   availableUsers?: User[]
-  /** footer only. */
   currentUser?: User
 }
 
 export function AddTaskInput({
   variant,
   layoutType,
-  isMobile,
   availableUsers,
   currentUser,
   ...shared
 }: AddTaskInputProps) {
-  if (variant === "footer") {
-    return (
-      <MobileQuickAdd
-        {...shared}
-        availableUsers={availableUsers ?? []}
-        currentUser={currentUser}
-      />
-    )
-  }
-
   return (
-    <EnhancedTaskCreation
+    <QuickAdd
       {...shared}
-      layoutType={layoutType ?? "1-column"}
-      isMobile={isMobile ?? false}
+      placement={variant === "footer" ? "fixed-bottom" : "inline"}
+      layoutType={variant === "footer" ? undefined : layoutType ?? "1-column"}
+      availableUsers={availableUsers ?? []}
+      currentUser={currentUser}
     />
   )
 }

@@ -181,12 +181,12 @@
 }
 
 /* Mobile quick add bar: Solid dark gray */
-.dark .mobile-quick-add {
+.dark .quick-add {
   background-color: rgb(31, 41, 55);
   border: 1px solid rgb(55, 65, 81);
 }
 
-/* Comment input bar: Match mobile quick add styling */
+/* Comment input bar: Match quick add styling */
 .dark .chat-input-bar {
   background-color: rgb(31, 41, 55);
   border-top: 1px solid rgb(55, 65, 81);
