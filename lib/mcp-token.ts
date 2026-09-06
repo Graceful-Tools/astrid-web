@@ -29,7 +29,24 @@ export function resolveMCPPlaintext(row: { token: string; tokenEncrypted?: strin
   return row.token.startsWith('astrid_') ? row.token : null
 }
 
-/** Dual-read lookup filter: matches a hashed row, or a legacy plaintext row. */
+/**
+ * Dual-read lookup filter: matches a hashed row, or a legacy plaintext row.
+ *
+ * The plaintext branch is guarded by the credential prefix, and that guard is
+ * the security property (task 0845cf1c). Without it the filter also matched the
+ * STORED value verbatim, so anyone who could read the table — a backup, a
+ * support export, a log line — could present the stored hash as the bearer and
+ * be authenticated, which is precisely the threat hashing was added to stop.
+ *
+ * Real tokens are `astrid_mcp_<64 hex>`; a stored hash is bare hex with no
+ * prefix. Keeping the guard rather than deleting the branch means this is safe
+ * whether or not scripts/migrate-hash-mcp-tokens.ts has finished in a given
+ * environment.
+ */
 export function mcpTokenLookup(presented: string): string[] {
-  return [hashMCPToken(presented), presented]
+  const filters = [hashMCPToken(presented)]
+  if (presented.startsWith('astrid_')) {
+    filters.push(presented)
+  }
+  return filters
 }

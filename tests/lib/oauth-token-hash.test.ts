@@ -5,8 +5,9 @@ import { hashToken } from '@/lib/oauth/oauth-token-manager'
 /**
  * Locks the token-hashing contract: OAuth access/refresh tokens are stored as
  * SHA-256 hashes so a DB/backup leak can't yield usable bearer credentials.
- * Lookup hashes the presented token and matches (with a dual-read fallback to
- * legacy plaintext rows during transition).
+ * Lookup hashes the presented token and matches (with a prefix-guarded
+ * dual-read fallback to legacy plaintext rows during transition — see
+ * tests/lib/token-hash-lookup.test.ts for why the guard matters).
  */
 describe('hashToken', () => {
   it('is a deterministic 64-char hex SHA-256', () => {

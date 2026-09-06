@@ -58,6 +58,28 @@ export function hashToken(token: string): string {
 }
 
 /**
+ * Dual-read lookup filter for a presented OAuth credential (access token,
+ * refresh token or authorization code).
+ *
+ * The prefix guard is the security property (task 0845cf1c). These lookups used
+ * to be `{ in: [hashToken(presented), presented] }`, whose second branch
+ * matches the STORED value verbatim — so anyone able to read the table could
+ * present the stored hash itself as a bearer token and be authenticated,
+ * defeating the hashing entirely.
+ *
+ * Every real credential is prefixed (`astrid_`, `astrid_refresh_`,
+ * `astrid_code_`) and a stored hash is bare hex, so legacy un-backfilled rows
+ * keep working without a hash ever being accepted.
+ */
+export function oauthTokenLookup(presented: string): string[] {
+  const filters = [hashToken(presented)]
+  if (presented.startsWith('astrid_')) {
+    filters.push(presented)
+  }
+  return filters
+}
+
+/**
  * Verify client secret against hash
  */
 export function verifyClientSecret(secret: string, hash: string): boolean {
@@ -179,7 +201,7 @@ export async function refreshAccessToken(
   // Find and validate refresh token
   const existingToken = await prisma.oAuthToken.findFirst({
     where: {
-      refreshToken: { in: [hashToken(refreshToken), refreshToken] },
+      refreshToken: { in: oauthTokenLookup(refreshToken) },
       clientId,
       revokedAt: null,
       refreshExpiresAt: {
@@ -246,7 +268,7 @@ export async function validateAccessToken(
 
   const oauthToken = await prisma.oAuthToken.findFirst({
     where: {
-      accessToken: { in: [hashToken(token), token] },
+      accessToken: { in: oauthTokenLookup(token) },
       expiresAt: {
         gt: new Date(),
       },
@@ -268,7 +290,7 @@ export async function validateAccessToken(
     log.info('[OAuth] Token not found or expired')
     // Debug: Check if token exists at all
     const anyToken = await prisma.oAuthToken.findFirst({
-      where: { accessToken: { in: [hashToken(token), token] } },
+      where: { accessToken: { in: oauthTokenLookup(token) } },
       select: { id: true, expiresAt: true, revokedAt: true },
     })
     if (anyToken) {
@@ -322,7 +344,7 @@ export async function validateAccessToken(
 export async function revokeAccessToken(token: string): Promise<boolean> {
   const result = await prisma.oAuthToken.updateMany({
     where: {
-      accessToken: { in: [hashToken(token), token] },
+      accessToken: { in: oauthTokenLookup(token) },
       revokedAt: null,
     },
     data: {
@@ -368,7 +390,12 @@ export async function generateAuthorizationCode(
 
   await prisma.oAuthAuthorizationCode.create({
     data: {
-      code,
+      // Hashed at rest, like the access and refresh tokens. This column used to
+      // hold the code verbatim, so anyone who could read the table had directly
+      // redeemable codes for their ten-minute lifetime — the same leak the
+      // token hashing exists to prevent, on the credential that exchanges into
+      // both tokens (task 0845cf1c).
+      code: hashToken(code),
       clientId,
       userId,
       redirectUri,
@@ -401,7 +428,9 @@ export async function exchangeAuthorizationCode(
   // Find and validate auth code
   const authCode = await prisma.oAuthAuthorizationCode.findFirst({
     where: {
-      code,
+      // Prefix-guarded dual read, so codes minted before this change (and
+      // still inside their ten-minute window at deploy time) still redeem.
+      code: { in: oauthTokenLookup(code) },
       clientId,
       redirectUri,
       expiresAt: {
