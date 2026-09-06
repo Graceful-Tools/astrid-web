@@ -1,5 +1,15 @@
 import { canUserManageList } from "../../lib/list-permissions"
 /**
+ * The SHARED client, not a new one.
+ *
+ * These modules each constructed their own PrismaClient, which bypassed the
+ * `$extends` hook in lib/prisma.ts that watches for an assignee change and
+ * dispatches the AI agent. So assigning a task to an agent through the MCP
+ * server never started the agent — the single feature MCP exists to serve —
+ * and each module also opened its own connection pool (task 390bccc3).
+ */
+import { prisma } from "../../lib/prisma"
+/**
  * MCP task CRUD handlers — createTask, updateTask, deleteTask,
  * getTaskDetails, addTaskAttachment.
  *
@@ -11,7 +21,6 @@ import { canUserManageList } from "../../lib/list-permissions"
  * minted.
  */
 
-const { PrismaClient } = require("@prisma/client")
 const {
   CreateTaskSchema,
   UpdateTaskSchema,
@@ -20,7 +29,6 @@ const {
 const { validateAccessToken } = require("../access-token-validator")
 const { hasListAccess } = require("../list-access")
 
-const prisma = new PrismaClient()
 
 async function createTask(args: any) {
   const { accessToken, listId, task } = args

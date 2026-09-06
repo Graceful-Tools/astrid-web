@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+/**
+ * The SHARED client, not a new one.
+ *
+ * These modules each constructed their own PrismaClient, which bypassed the
+ * `$extends` hook in lib/prisma.ts that watches for an assignee change and
+ * dispatches the AI agent. So assigning a task to an agent through the MCP
+ * server never started the agent — the single feature MCP exists to serve —
+ * and each module also opened its own connection pool (task 390bccc3).
+ */
+import { prisma } from "../lib/prisma"
+
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const {
@@ -11,8 +22,6 @@ const {
 const { z } = require("zod");
 
 // Import the new controller architecture
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
 
 // Helper function to check if user has access to a list — extracted to ./list-access.ts
 const { hasListAccess } = require("./list-access");

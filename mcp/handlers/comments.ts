@@ -1,4 +1,15 @@
 /**
+ * The SHARED client, not a new one.
+ *
+ * These modules each constructed their own PrismaClient, which bypassed the
+ * `$extends` hook in lib/prisma.ts that watches for an assignee change and
+ * dispatches the AI agent. So assigning a task to an agent through the MCP
+ * server never started the agent — the single feature MCP exists to serve —
+ * and each module also opened its own connection pool (task 390bccc3).
+ */
+import { prisma } from "../../lib/prisma"
+import { dispatchPostCommentSideEffects } from "../../lib/comments/post-comment-side-effects"
+/**
  * MCP comment handlers — addComment + getTaskComments.
  *
  * Both handlers share the same shape:
@@ -13,11 +24,9 @@
  * from now on.
  */
 
-const { PrismaClient } = require("@prisma/client")
 const { CreateCommentSchema } = require("../schemas")
 const { validateAccessToken } = require("../access-token-validator")
 
-const prisma = new PrismaClient()
 
 async function addComment(args: any) {
   const { accessToken, listId, comment } = args
@@ -30,6 +39,12 @@ async function addComment(args: any) {
     where: {
       id: validatedComment.taskId,
       lists: { some: { id: listId } },
+    },
+    include: {
+      assignee: {
+        select: { id: true, email: true, name: true, isAIAgent: true, aiAgentType: true },
+      },
+      lists: { select: { id: true, githubRepositoryId: true, aiAgentConfiguredBy: true } },
     },
   })
 
@@ -45,8 +60,29 @@ async function addComment(args: any) {
       taskId: validatedComment.taskId,
     },
     include: {
-      author: { select: { id: true, name: true, email: true } },
+      author: { select: { id: true, name: true, email: true, isAIAgent: true } },
       task: { select: { id: true, title: true } },
+    },
+  })
+
+  // Run the same side effects the web and v1 comment routes run. Creating the
+  // row directly meant an @mention posted through MCP triggered no agent and
+  // sent no push — the notification simply did not happen (task 390bccc3).
+  await dispatchPostCommentSideEffects({
+    comment: { id: newComment.id, content: newComment.content },
+    task: {
+      id: existingTask.id,
+      title: existingTask.title,
+      creatorId: existingTask.creatorId,
+      assigneeId: existingTask.assigneeId,
+      assignee: existingTask.assignee,
+      lists: existingTask.lists,
+    },
+    commenter: {
+      id: userId,
+      name: newComment.author?.name,
+      email: newComment.author?.email,
+      isAIAgent: newComment.author?.isAIAgent ?? false,
     },
   })
 

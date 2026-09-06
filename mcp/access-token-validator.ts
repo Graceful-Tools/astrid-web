@@ -1,4 +1,15 @@
 import { hasExplicitListRole } from "../lib/list-permissions"
+import { mcpTokenLookup } from "../lib/mcp-token"
+/**
+ * The SHARED client, not a new one.
+ *
+ * These modules each constructed their own PrismaClient, which bypassed the
+ * `$extends` hook in lib/prisma.ts that watches for an assignee change and
+ * dispatches the AI agent. So assigning a task to an agent through the MCP
+ * server never started the agent — the single feature MCP exists to serve —
+ * and each module also opened its own connection pool (task 390bccc3).
+ */
+import { prisma } from "../lib/prisma"
 /**
  * Validate an MCP access token against a target list and required permission.
  *
@@ -16,17 +27,15 @@ import { hasExplicitListRole } from "../lib/list-permissions"
  * test harness can share one definition.
  */
 
-const { PrismaClient } = require("@prisma/client")
-const prisma = new PrismaClient()
 
 async function validateAccessToken(
   accessToken: string,
   listId: string,
   requiredPermission: "read" | "write" | "admin"
 ): Promise<{ userId: string; permissions: string[]; user: any; list: any }> {
-  const mcpToken = await prisma.mcpToken.findFirst({
+  const mcpToken = await prisma.mCPToken.findFirst({
     where: {
-      token: accessToken,
+      token: { in: mcpTokenLookup(accessToken) },
       listId,
       isActive: true,
       OR: [

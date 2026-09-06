@@ -1,4 +1,15 @@
-import { canUserManageList } from "../../lib/list-permissions"
+import { getUserRoleInList } from "../../lib/list-permissions"
+import { mcpTokenLookup } from "../../lib/mcp-token"
+/**
+ * The SHARED client, not a new one.
+ *
+ * These modules each constructed their own PrismaClient, which bypassed the
+ * `$extends` hook in lib/prisma.ts that watches for an assignee change and
+ * dispatches the AI agent. So assigning a task to an agent through the MCP
+ * server never started the agent — the single feature MCP exists to serve —
+ * and each module also opened its own connection pool (task 390bccc3).
+ */
+import { prisma } from "../../lib/prisma"
 /**
  * MCP list-level read handlers — getSharedLists, getListTasks, getListMembers.
  *
@@ -9,10 +20,8 @@ import { canUserManageList } from "../../lib/list-permissions"
  * a router instead of a god class.
  */
 
-const { PrismaClient } = require("@prisma/client")
 const { validateAccessToken } = require("../access-token-validator")
 
-const prisma = new PrismaClient()
 
 /**
  * Return all lists this access token can reach.
@@ -27,9 +36,9 @@ async function getSharedLists(args: any) {
     throw new Error("Access token required")
   }
 
-  const mcpToken = await prisma.mcpToken.findFirst({
+  const mcpToken = await prisma.mCPToken.findFirst({
     where: {
-      token: accessToken,
+      token: { in: mcpTokenLookup(accessToken) },
       isActive: true,
       OR: [
         { expiresAt: null },
@@ -48,6 +57,15 @@ async function getSharedLists(args: any) {
 
   if (!mcpToken) {
     throw new Error("No accessible lists found")
+  }
+
+  // A user-level token has listId null, so `list` is null here. Reading through
+  // it threw a TypeError, which was invisible while this module used an
+  // untyped Prisma client (task 390bccc3).
+  if (!mcpToken.list) {
+    throw new Error(
+      "This access token is not scoped to a list. Create a list-scoped MCP token, or pass listId explicitly.",
+    )
   }
 
   const lists = [{
@@ -145,8 +163,6 @@ async function getListMembers(args: any) {
     where: { id: listId },
     include: {
       owner: { select: { id: true, name: true, email: true } },
-      admins: { select: { id: true, name: true, email: true } },
-      members: { select: { id: true, name: true, email: true } },
       listMembers: {
         include: { user: { select: { id: true, name: true, email: true } } },
       },
@@ -160,18 +176,12 @@ async function getListMembers(args: any) {
   const members: any[] = []
   members.push({ ...list.owner, role: "owner" })
 
-  list.admins.forEach((admin: any) => {
-    if (admin.id !== list.ownerId) {
-      members.push({ ...admin, role: "admin" })
-    }
-  })
-
-  list.members.forEach((member: any) => {
-    // Anyone who is not owner/admin is a plain member. Asked via the canonical
-    // role lookup rather than two inline checks (task e2803305).
-    if (!canUserManageList({ id: member.id }, list as never)) {
-      members.push({ ...member, role: "member" })
-    }
+  list.listMembers.forEach((membership) => {
+    // Role comes from the canonical lookup rather than being re-derived here,
+    // which also answers "is this the owner" without an inline comparison.
+    const role = getUserRoleInList({ id: membership.user.id }, list as never)
+    if (role === "owner") return
+    members.push({ ...membership.user, role: role ?? "member" })
   })
 
   list.listMembers.forEach((listMember: any) => {
