@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { Task, User } from '@/types/task'
 
 vi.mock('@/contexts/feature-flag-context', () => ({
@@ -108,6 +109,22 @@ describe('TaskHeader layout (cc76307c)', () => {
     renderHeader({ onClose: vi.fn(), compact: true })
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
+
+  it('AWTD-756 reduces trailing checkbox space without shifting its icon column', () => {
+    renderHeader({
+      task: {
+        ...task,
+        assigneeId: user.id,
+        assignee: user,
+      },
+    })
+
+    const checkbox = screen.getByAltText('Unchecked priority 0 checkbox')
+    const leadingControlColumn = checkbox.parentElement?.parentElement
+
+    expect(checkbox.parentElement).toHaveClass('p-2', '-m-2')
+    expect(leadingControlColumn).toHaveClass('-mr-2')
+  })
 })
 
 /**
@@ -125,13 +142,23 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
   })
 
-  it('offers it on the compact/inline panel too (task 52bf1efb)', () => {
-    // This used to assert the opposite — the compact header omitted the control
-    // on the reasoning that an inline panel is a peek. Jon asked for it on the
-    // board card, where the expanded card IS the only way to read the task, so
-    // the compact header now carries the toggle above its collapse chevron.
-    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn() })
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+  it('puts board expansion at the top of the action menu without shifting the title (AWTD-754)', async () => {
+    const user = userEvent.setup()
+    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn(), fullScreen: false })
+
+    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+    expect(trigger).not.toBeNull()
+    await user.click(trigger!)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items[0]).toHaveTextContent('Full screen')
+  })
+
+  it('keeps the board shrink control visible after expansion (AWTD-754)', () => {
+    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn(), fullScreen: true })
+    expect(screen.getByLabelText('Exit full screen')).toBeInTheDocument()
   })
 
   it('still omits it on the compact panel when no handler is passed', () => {
@@ -150,5 +177,16 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     renderHeader({ onClose: vi.fn(), onToggleFullScreen: onToggle, fullScreen: false })
     screen.getByLabelText('Full screen').click()
     expect(onToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the action menu above the full-screen panel (AWTD-753)', async () => {
+    const user = userEvent.setup()
+    renderHeader({ onClose: vi.fn(), onToggleFullScreen: vi.fn(), fullScreen: true })
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+    expect(trigger).not.toBeNull()
+    await user.click(trigger!)
+
+    expect(screen.getByRole('menu').className).toMatch(/(?:^|\s)z-\[(?:6[1-9]|[7-9]\d|\d{3,})\](?:\s|$)/)
   })
 })

@@ -6,7 +6,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw } from "lucide-react"
+import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Maximize2 } from "lucide-react"
 import type { Task, User } from "../../types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 import { isCanceled } from "@/lib/closed-reason"
@@ -27,6 +27,7 @@ interface TaskActionMenuProps {
   onShare: () => void
   onDelete: () => void
   onTestReminder: () => void
+  onEnterFullScreen?: () => void
   /**
    * Close the task as "won't do" — or reopen it if it already is
    * (task 11042ae3). Optional so call sites that predate it still compile.
@@ -42,6 +43,7 @@ export function TaskActionMenu({
   onShare,
   onDelete,
   onTestReminder,
+  onEnterFullScreen,
   onCancel,
 }: TaskActionMenuProps) {
   const { t } = useTranslations()
@@ -60,7 +62,16 @@ export function TaskActionMenu({
           <MoreVertical className="w-5 h-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="z-[70] w-44">
+        {onEnterFullScreen && (
+          <>
+            <DropdownMenuItem onClick={onEnterFullScreen}>
+              <Maximize2 className="w-4 h-4 mr-2" />
+              {t("tasks.fullScreen")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={onCopy}>
           <Copy className="w-4 h-4 mr-2" />
           Copy

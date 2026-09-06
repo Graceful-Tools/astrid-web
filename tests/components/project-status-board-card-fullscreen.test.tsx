@@ -124,20 +124,31 @@ async function expandCard(u: ReturnType<typeof userEvent.setup>) {
   await u.click(card)
 }
 
+async function enterFullScreen(u: ReturnType<typeof userEvent.setup>) {
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+  expect(trigger).not.toBeNull()
+  await u.click(trigger!)
+  await u.click(screen.getByRole('menuitem', { name: 'Full screen' }))
+}
+
 describe('Board card task details — full screen (task 52bf1efb)', () => {
-  it('offers the full-screen control on an expanded card', async () => {
+  it('offers full screen from the expanded card action menu (AWTD-754)', async () => {
     const u = userEvent.setup()
     renderBoard()
     await expandCard(u)
 
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+    expect(trigger).not.toBeNull()
+    await u.click(trigger!)
+    expect(screen.getByRole('menuitem', { name: 'Full screen' })).toBeInTheDocument()
   })
 
   it('expands against the viewport, not the card', async () => {
     const u = userEvent.setup()
     renderBoard()
     await expandCard(u)
-    await u.click(screen.getByLabelText('Full screen'))
+    await enterFullScreen(u)
 
     const panel = document.querySelector('[data-task-detail-panel][data-fullscreen="true"]')
     expect(panel).toBeTruthy()
@@ -166,7 +177,7 @@ describe('Board card task details — full screen (task 52bf1efb)', () => {
     renderBoard()
     await expandCard(u)
 
-    await u.click(screen.getByLabelText('Full screen'))
+    await enterFullScreen(u)
     expect(document.querySelector('[data-fullscreen="true"]')).toBeTruthy()
 
     await u.click(screen.getByLabelText('Exit full screen'))

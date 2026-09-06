@@ -171,7 +171,7 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
     expect(panel(container).className).not.toContain('inset-0')
   })
 
-  it('an inline/board panel expands when its renderer opts in (task 52bf1efb)', () => {
+  it('an inline/board panel expands when its renderer opts in (task 52bf1efb, AWTD-754)', async () => {
     // This assertion used to be the opposite: inline panels were excluded on
     // the reasoning that a card is a peek. Jon overrode that — a board card's
     // details are the only way to read the task on the board, so they need the
@@ -188,7 +188,10 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
         allowFullScreen
       />,
     )
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')
+    expect(trigger).not.toBeNull()
+    await userEvent.setup().click(trigger!)
+    expect(screen.getByRole('menuitem', { name: 'Full screen' })).toBeInTheDocument()
   })
 
   it('an inline panel still offers nothing when its renderer stays out', () => {
