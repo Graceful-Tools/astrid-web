@@ -6,6 +6,13 @@ const path = require('path');
 
 console.log('🔨 Building Astrid MCP Server (OAuth Version)...');
 
+// Both servers import `../lib/brand/config` and `../lib/logger`, so the repo
+// root — not `mcp/` — is the root tsc infers across the input set, and the
+// output lands at `dist/mcp/<name>.js` with `dist/lib/` beside it. The script
+// used to look for `dist/<name>.js` and report "Compilation failed" for a
+// compile that had in fact succeeded.
+const compiledPathFor = (output) => path.join(__dirname, '..', 'dist', 'mcp', output);
+
 const artifacts = [
   {
     input: 'mcp-server-oauth.ts',
@@ -13,7 +20,7 @@ const artifacts = [
     executable: 'astrid-mcp-oauth',
     description: 'stdio transport (Claude Desktop, local tooling)',
     postBuildLog: () => {
-      const mcpServerPath = path.join(__dirname, '..', 'dist', 'mcp-server-oauth.js');
+      const mcpServerPath = compiledPathFor('mcp-server-oauth.js');
       console.log('\n🚀 To test the stdio MCP server:');
       console.log(`   node "${mcpServerPath}"`);
       console.log('\n📋 Claude/Desktop config snippet:');
@@ -39,7 +46,7 @@ const artifacts = [
     executable: 'astrid-mcp-oauth-http',
     description: 'HTTP/SSE transport (remote MCP for OpenAI/Responses API)',
     postBuildLog: () => {
-      const remoteServerPath = path.join(__dirname, '..', 'dist', 'mcp-server-oauth-http.js');
+      const remoteServerPath = compiledPathFor('mcp-server-oauth-http.js');
       console.log('\n🌐 To start the HTTP/SSE MCP server:');
       console.log('   ASTRID_OAUTH_CLIENT_ID=xxx \\');
       console.log('   ASTRID_OAUTH_CLIENT_SECRET=yyy \\');
@@ -55,11 +62,11 @@ try {
   for (const artifact of artifacts) {
     console.log(`\n📦 Compiling ${artifact.input} (${artifact.description})...`);
     execSync(
-      `npx tsc ${artifact.input} --target es2020 --module commonjs --moduleResolution node --outDir ../dist --esModuleInterop --skipLibCheck`,
+      `npx tsc ${artifact.input} --ignoreConfig --target es2020 --module node16 --moduleResolution node16 --outDir ../dist --esModuleInterop --skipLibCheck`,
       { stdio: 'inherit' }
     );
 
-    const compiledPath = path.join(__dirname, '..', 'dist', artifact.output);
+    const compiledPath = compiledPathFor(artifact.output);
     const executablePath = path.join(__dirname, artifact.executable);
 
     if (!fs.existsSync(compiledPath)) {
