@@ -30,7 +30,13 @@ const LIST_EVENT_TYPES = [
  * nothing it could recognise (task ed1d85ba).
  */
 function affectedMemberId(data: any): string | null {
-  return data?.newMemberId ?? data?.memberId ?? data?.member?.id ?? null
+  return (
+    data?.newMemberId ??
+    data?.removedMemberId ??
+    data?.memberId ??
+    data?.member?.id ??
+    null
+  )
 }
 
 export interface UseTaskListStateProps {
@@ -503,17 +509,25 @@ export function useTaskListState({
           console.log('[useTaskListState] SSE: Removed from list', event.data)
         }
 
-        setLists(prev => prev.filter(list => list.id !== event.data.listId))
+        // Gated for the same reason list_member_added above is: this event goes
+        // to EVERY member so their rosters update, but only one person was
+        // removed. Ungated, removing anyone dropped the list out of every
+        // member's sidebar and told them all "You were removed" — and through
+        // v1, which sent no listName, told them so about "undefined".
+        // (Epic 9dedd8aa.)
+        if (affectedMemberId(event.data) === currentUserId) {
+          setLists(prev => prev.filter(list => list.id !== event.data.listId))
 
-        if (selectedListIdRef.current === event.data.listId) {
-          setSelectedListIdRef.current("my-tasks")
-        }
+          if (selectedListIdRef.current === event.data.listId) {
+            setSelectedListIdRef.current("my-tasks")
+          }
 
-        if (toastRef.current) {
-          toastRef.current({
-            title: "Removed from List",
-            description: `You were removed from "${event.data.listName}"`
-          })
+          if (toastRef.current && event.data.listName) {
+            toastRef.current({
+              title: "Removed from List",
+              description: `You were removed from "${event.data.listName}"`
+            })
+          }
         }
         break
     }
