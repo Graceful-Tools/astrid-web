@@ -211,13 +211,14 @@ describe('v1 PUT — Redis cache invalidation', () => {
     const response = await PUT(req, { params: Promise.resolve({ id: 'task-1' }) })
     expect(response.status).toBe(200)
 
-    // Should have called RedisCache.del for affected users
-    expect(mockRedisDel).toHaveBeenCalled()
+    // The shared update verb (epic 9dedd8aa) uses invalidate.userTasks rather
+    // than a bare del: it also clears the per-list task caches, which every
+    // write surface's hand-rolled invalidation left stale for other viewers.
+    expect(mockRedisInvalidateUserTasks).toHaveBeenCalled()
 
-    // Collect all keys that were invalidated
-    const deletedKeys = mockRedisDel.mock.calls.map(call => call[0])
-    expect(deletedKeys).toContain('tasks:user:user-1') // creator + list owner
-    expect(deletedKeys).toContain('tasks:user:user-2') // assignee + list member
+    const invalidatedUsers = mockRedisInvalidateUserTasks.mock.calls.map(call => call[0])
+    expect(invalidatedUsers).toContain('user-1') // creator + list owner
+    expect(invalidatedUsers).toContain('user-2') // assignee + list member
   })
 
   it('should invalidate OLD assignee cache when reassigning', async () => {
@@ -242,9 +243,9 @@ describe('v1 PUT — Redis cache invalidation', () => {
     const response = await PUT(req, { params: Promise.resolve({ id: 'task-1' }) })
     expect(response.status).toBe(200)
 
-    const deletedKeys = mockRedisDel.mock.calls.map(call => call[0])
-    expect(deletedKeys).toContain('tasks:user:user-old') // old assignee
-    expect(deletedKeys).toContain('tasks:user:user-new') // new assignee
+    const invalidatedUsers = mockRedisInvalidateUserTasks.mock.calls.map(call => call[0])
+    expect(invalidatedUsers).toContain('user-old') // old assignee
+    expect(invalidatedUsers).toContain('user-new') // new assignee
   })
 
   it('should invalidate user stats on completion change', async () => {
@@ -480,7 +481,8 @@ describe('Create-then-edit flow — cache invalidated at each step', () => {
     expect(createResponse.status).toBe(201)
 
     // Create goes through the shared service, which invalidates via
-    // invalidate.userTasks; the edit path below still uses del directly.
+    // invalidate.userTasks. So does the edit below, now that the update verb
+    // is extracted too.
     expect(mockRedisInvalidateUserTasks.mock.calls.length).toBeGreaterThan(0)
 
     // Step 2: Edit task (assign someone)
@@ -510,10 +512,10 @@ describe('Create-then-edit flow — cache invalidated at each step', () => {
     expect(editResponse.status).toBe(200)
 
     // Cache invalidated again on edit
-    expect(mockRedisDel).toHaveBeenCalled()
+    expect(mockRedisInvalidateUserTasks).toHaveBeenCalled()
 
-    const deletedKeys = mockRedisDel.mock.calls.map(call => call[0])
-    expect(deletedKeys).toContain('tasks:user:user-3') // new assignee
-    expect(deletedKeys).toContain('tasks:user:user-1') // creator + list owner
+    const invalidatedUsers = mockRedisInvalidateUserTasks.mock.calls.map(call => call[0])
+    expect(invalidatedUsers).toContain('user-3') // new assignee
+    expect(invalidatedUsers).toContain('user-1') // creator + list owner
   })
 })

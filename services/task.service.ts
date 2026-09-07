@@ -35,6 +35,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { hasExplicitListRole } from '@/lib/list-permissions'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
+import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
@@ -42,7 +43,19 @@ import { broadcastToUsers } from '@/lib/sse-utils'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { allocateTaskIdentifier } from '@/lib/task-identifier'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
-import { recordTaskCreationComment } from '@/lib/task-update-handler'
+import {
+  recordTaskCreationComment,
+  recordStateChangeComment,
+  resolveRepeatingTaskCompletion,
+} from '@/lib/task-update-handler'
+import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
+import { parseClosedReason } from '@/lib/closed-reason'
+import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
+import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
+import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
+import { notifyTaskUpdate } from '@/lib/notification-store'
+import { invalidateUserStats } from '@/lib/user-stats'
+import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
 import {
@@ -888,4 +901,689 @@ async function runCreateSideEffects(args: {
   } catch (err) {
     log.error({ err }, 'Failed to track task creation analytics')
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Slice 4: the UPDATE verb (epic 9dedd8aa)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A surface's parsed intent for an update.
+ *
+ * Deliberately NOT a Prisma `data` object. Completion carries rules — the stamp,
+ * the status clearing, the closed-reason guard on a repeating series — and a
+ * surface that hands over a finished `data` has already made those decisions,
+ * which is how five surfaces came to make them five different ways. Each
+ * surface parses its own body (they validate differently, and legitimately);
+ * what they hand over is what the caller ASKED FOR.
+ *
+ * A key that is absent means "not provided" and is left untouched. A key
+ * present with `null` means "clear it" — the distinction matters for
+ * assigneeId, parentTaskId, statusRole, closedReason and dueDateTime, so those
+ * are read with `in` rather than an undefined check.
+ */
+export interface UpdateTaskIntent {
+  title?: string
+  description?: string | null
+  priority?: number
+  completed?: boolean
+  completedAt?: string | Date | null
+  completedSource?: string | null
+  closedReason?: string | null
+  /** YYYY-MM-DD from the client; all-day repeating tasks in COMPLETION_DATE mode. */
+  localCompletionDate?: string | null
+  statusRole?: string | null
+  dueDateTime?: string | Date | null
+  isAllDay?: boolean
+  isPrivate?: boolean
+  repeating?: string | null
+  repeatingData?: unknown
+  repeatFrom?: string | null
+  assigneeId?: string | null
+  timerDuration?: number | null
+  lastTimerValue?: number | null
+  parentTaskId?: string | null
+  listIds?: string[]
+}
+
+export type UpdateTaskResult =
+  | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
+  | { ok: false; status: 400 | 403 | 404 | 412; error: string; code?: string; conflict?: any }
+
+/** The pre-update columns the event diff and the change rules read. */
+const TASK_UPDATE_EXISTING_INCLUDE = {
+  lists: {
+    select: {
+      id: true,
+      name: true,
+      listType: true,
+      privacy: true,
+      publicListType: true,
+      ownerId: true,
+      listMembers: { select: { userId: true, role: true } },
+    },
+  },
+} as const
+
+/**
+ * Update a task, with every side effect the update implies.
+ *
+ * FIVE surfaces updated tasks. Task fb94f2ee brought three of them level and
+ * left tests/api/task-write-path-parity.test.ts asserting they stay that way;
+ * the two MCP handlers were never in that test and were still raw
+ * `prisma.task.update` calls, with none of the semantics:
+ *
+ *   legacy app/api/tasks/[id]                  ✅ (the reference implementation)
+ *   v1     app/api/v1/tasks/[id]               ✅ (brought level by fb94f2ee)
+ *   agent  app/api/v1/agent/tasks/[id]         ✅ (brought level by fb94f2ee)
+ *   MCP    operations/task-operations          ❌ raw update
+ *   MCP    mcp/handlers/tasks.ts               ❌ raw update
+ *
+ * What that cost, for anything completed over MCP: no `completedAt` /
+ * `completedSource` stamp; `statusRole` left set on a done task, which violates
+ * the schema invariant the board depends on (task db7c6670); no repeating
+ * roll-forward, so completing one occurrence of a repeating task KILLED THE
+ * SERIES outright — the exact bug fb94f2ee fixed for the agent PATCH; no
+ * reminder rescheduling, so a completed task kept notifying; no coding-workflow
+ * cancellation; no events, no notification, no state-change comment, and no
+ * cache invalidation, so the change stayed invisible to every other client
+ * until the cache expired.
+ *
+ * ORDER matters in three places:
+ *   - list validation runs BEFORE the completion decision, because toggling a
+ *     project status column is itself a completion (`completedFromStatus`);
+ *   - the repeating roll-forward is resolved BEFORE the update is built, and
+ *     short-circuits it — the helpers write the row themselves;
+ *   - the pre-update task is read BEFORE the write, since every event, comment
+ *     and reminder decision is a diff against it.
+ *
+ * Everything after the row is written is best-effort and individually guarded.
+ *
+ * AUTHENTICATION is not done here — each surface has its own and has already
+ * decided. LIST authorisation is, for the same reason it is on the create: the
+ * check decides which lists the task ends up on, not merely whether to proceed.
+ */
+export async function updateTaskWithSideEffects(args: {
+  taskId: string
+  actorId: string
+  actorName?: string
+  /** Distinguishes agent traffic in the activity history. */
+  actorType?: 'user' | 'agent'
+  platform?: AnalyticsPlatformValue
+  intent: UpdateTaskIntent
+  /**
+   * Include for the RETURNED task. Defaults to legacy's TASK_FULL_INCLUDE.
+   * Surfaces pass their own so their wire shapes are unchanged — v1's capped,
+   * newest-first comments would be lost to a one-size include, and that cap is
+   * load-bearing (task a86b5bed).
+   *
+   * Must carry `lists` (with `listMembers`) and `comments`: the SSE fan-out and
+   * the notification audience are read off the updated row.
+   */
+  include?: Record<string, unknown>
+  /** Already-fetched pre-update task, for surfaces that needed one to authorise. */
+  existingTask?: any
+  /** v1's rule; see the note on createTaskWithSideEffects. */
+  requireAssigneeListMembership?: boolean
+  /** Opt-in optimistic concurrency (If-Unmodified-Since). */
+  ifUnmodifiedSince?: Date | null
+  /** Shown on the cancelled coding workflow. */
+  cancelWorkflowReason?: string
+  /**
+   * Add the web route's flat duplicate fields to the SSE payload.
+   *
+   * Only /api/tasks/[id] sets this. Its long-lived web clients read
+   * `taskTitle`, `listNames` and friends off the event, while v1 and the agent
+   * PATCH send only `{ taskId, task }` — a deliberately lean payload that
+   * tests/api/sse-event-delivery pins.
+   */
+  legacySsePayload?: boolean
+}): Promise<UpdateTaskResult> {
+  const {
+    taskId,
+    actorId,
+    actorName,
+    actorType = 'user',
+    platform,
+    intent,
+    include,
+    requireAssigneeListMembership,
+    ifUnmodifiedSince,
+    cancelWorkflowReason = 'Task marked as completed',
+    legacySsePayload = false,
+  } = args
+
+  const has = (key: keyof UpdateTaskIntent) => Object.hasOwn(intent, key)
+
+  const existingTask =
+    args.existingTask ??
+    (await prisma.task.findUnique({ where: { id: taskId }, include: TASK_UPDATE_EXISTING_INCLUDE }))
+
+  if (!existingTask) {
+    return { ok: false, status: 404, error: 'Task not found' }
+  }
+
+  // Optimistic concurrency, before anything is decided on stale input.
+  if (ifUnmodifiedSince && existingTask.updatedAt > ifUnmodifiedSince) {
+    return {
+      ok: false,
+      status: 412,
+      error: 'Task has been modified since your last read',
+      code: 'STALE_UPDATE',
+      conflict: { id: existingTask.id, updatedAt: existingTask.updatedAt },
+    }
+  }
+
+  const data: Record<string, unknown> = {}
+
+  // ── Lists ─────────────────────────────────────────────────────────────────
+  // Runs first: moving a task onto a project's status column can itself decide
+  // completion, and the completion rules below need that answer.
+  let validatedListIds: string[] | undefined
+  let completedFromStatus: boolean | undefined
+
+  if (has('listIds') && Array.isArray(intent.listIds)) {
+    if (intent.listIds.length === 0) {
+      validatedListIds = []
+    } else {
+      const lists = await prisma.taskList.findMany({
+        where: { id: { in: intent.listIds } },
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          privacy: true,
+          publicListType: true,
+          isVirtual: true,
+          projectId: true,
+          listType: true,
+          listMembers: { select: { userId: true, role: true } },
+        },
+      })
+
+      const found = new Set(lists.map(list => list.id))
+      const missing = intent.listIds.filter(id => !found.has(id))
+      if (missing.length > 0) {
+        return { ok: false, status: 400, error: `Invalid list IDs: ${missing.join(', ')}` }
+      }
+
+      for (const list of lists) {
+        const isCollaborativePublic =
+          list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
+        if (!hasListAccess(list as never, actorId) && !isCollaborativePublic) {
+          return {
+            ok: false,
+            status: 403,
+            error: `You don't have permission to add tasks to list: ${list.name}`,
+          }
+        }
+      }
+
+      validatedListIds = lists.filter(list => !list.isVirtual).map(list => list.id)
+
+      const projectIds = Array.from(
+        new Set(lists.map(list => list.projectId).filter((id): id is string => Boolean(id)))
+      )
+      if (projectIds.length > 0) {
+        const projectStatusLists = await prisma.taskList.findMany({
+          where: { projectId: { in: projectIds }, listType: 'status' },
+        })
+        const requestedCompletedFlag =
+          typeof intent.completed === 'boolean' ? intent.completed : existingTask.completed
+        const normalized = normalizeProjectStatusListIds(
+          validatedListIds,
+          [...lists, ...projectStatusLists] as never,
+          { completed: requestedCompletedFlag }
+        )
+        validatedListIds = normalized.listIds
+        completedFromStatus = normalized.completedFromStatus
+      }
+    }
+  }
+
+  const requestedCompleted = completedFromStatus ?? intent.completed
+
+  // ── Assignee ──────────────────────────────────────────────────────────────
+  if (has('assigneeId')) {
+    const assigneeId = intent.assigneeId || null
+    if (requireAssigneeListMembership && assigneeId && assigneeId !== actorId) {
+      // lib/task-assignee.ts already answers exactly this, as a COUNT rather
+      // than a fetch-and-filter. It is the check v1 used before the extraction;
+      // re-deriving it here would be a third copy of the rule that exists to
+      // stop unsolicited task planting.
+      const currentListIds = (existingTask.lists ?? []).map((list: any) => list.id)
+      const targetListIds = validatedListIds ?? currentListIds
+      if (!(await assigneeCanBeAssigned(assigneeId, targetListIds))) {
+        return { ok: false, status: 400, error: 'Assignee must be a member of one of the task lists' }
+      }
+    }
+    data.assigneeId = assigneeId
+  }
+
+  // ── Closed reason ─────────────────────────────────────────────────────────
+  // Rejected rather than silently nulled when unrecognised: a typo must not
+  // quietly become "completed normally" (task 11042ae3).
+  const parsedClosedReason = parseClosedReason(intent.closedReason)
+  if (!parsedClosedReason.ok) {
+    return { ok: false, status: 400, error: parsedClosedReason.error }
+  }
+
+  // ── Repeating series ──────────────────────────────────────────────────────
+  // Resolved before the update is built: the helper writes the row itself, so
+  // this branch returns the rolled-forward task instead of updating.
+  const repeatingResult = await resolveRepeatingTaskCompletion({
+    taskId,
+    existingCompleted: existingTask.completed,
+    dataCompleted: requestedCompleted,
+    localCompletionDate: intent.localCompletionDate ?? undefined,
+    closedReason: parsedClosedReason.value,
+  })
+
+  if (repeatingResult) {
+    await applyRepeatingTaskRollForward(taskId, repeatingResult)
+
+    const rolled = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: (include ?? TASK_FULL_INCLUDE) as never,
+    })
+    if (!rolled) {
+      return { ok: false, status: 404, error: 'Task not found after update' }
+    }
+
+    const rolledComment = await runUpdateSideEffects({
+      existingTask,
+      task: rolled,
+      actorId,
+      actorName,
+      actorType,
+      platform,
+      intent,
+      requestedCompleted,
+      validatedListIds,
+      rolledForward: true,
+      cancelWorkflowReason,
+      legacySsePayload,
+    })
+
+    return { ok: true, task: rolled, rolledForward: true, stateChangeComment: rolledComment }
+  }
+
+  // ── Columns ───────────────────────────────────────────────────────────────
+  if (has('title')) data.title = intent.title
+  if (has('description')) data.description = intent.description
+  if (has('priority')) data.priority = intent.priority
+  if (has('isPrivate')) data.isPrivate = intent.isPrivate
+  if (has('repeating')) data.repeating = intent.repeating
+  if (has('repeatFrom')) data.repeatFrom = intent.repeatFrom
+  if (has('timerDuration')) data.timerDuration = intent.timerDuration
+  if (has('lastTimerValue')) data.lastTimerValue = intent.lastTimerValue
+  if (has('parentTaskId')) data.parentTaskId = intent.parentTaskId
+  if (has('dueDateTime')) data.dueDateTime = parseTaskDate(intent.dueDateTime).value
+  if (has('isAllDay')) data.isAllDay = intent.isAllDay
+
+  // `repeatingData` is only meaningful for a custom schedule.
+  if (has('repeatingData') || has('repeating')) {
+    let repeatingData: unknown = intent.repeatingData ?? null
+    if (intent.repeating !== 'custom') {
+      repeatingData = null
+    } else if (typeof repeatingData === 'string') {
+      try {
+        repeatingData = JSON.parse(repeatingData)
+      } catch {
+        repeatingData = null
+      }
+    }
+    if (has('repeatingData') || repeatingData === null) {
+      data.repeatingData = repeatingData
+    }
+  }
+
+  if (requestedCompleted !== undefined) {
+    data.completed = requestedCompleted
+  }
+
+  // Completion stamp and provenance. Sync may backdate completedAt to the
+  // provider's real completion time; completedSource records where it happened
+  // (astrid | google | github | apple).
+  if (requestedCompleted === true) {
+    data.completedAt = intent.completedAt ? new Date(intent.completedAt) : new Date()
+    data.completedSource =
+      typeof intent.completedSource === 'string' && intent.completedSource
+        ? intent.completedSource
+        : 'astrid'
+    // Done carries no board status (AWTD-562).
+    data.statusRole = null
+  } else if (requestedCompleted === false) {
+    data.completedAt = null
+    data.completedSource = null
+    // A reopened task is not a canceled one (task 11042ae3).
+    data.closedReason = null
+  }
+
+  if (has('closedReason') && requestedCompleted !== false) {
+    data.closedReason = parsedClosedReason.value
+  }
+
+  if (has('statusRole') && requestedCompleted !== true) {
+    data.statusRole = intent.statusRole || null
+  }
+
+  // Invariant: completed = true => no status memberships (task db7c6670). The
+  // listIds branch enforces it through the normalizer, but only when the
+  // request carries listIds. A completion-only update — PUT { completed: true },
+  // which is what the checkbox sends — skipped it and left the task in Ready.
+  if (validatedListIds !== undefined) {
+    data.lists = { set: validatedListIds.map(id => ({ id })) }
+  } else if (requestedCompleted === true) {
+    const detach = statusListIdsToDetachOnCompletion(existingTask.lists)
+    if (detach.length > 0) {
+      data.lists = { disconnect: detach.map(id => ({ id })) }
+    }
+  }
+
+  const task = await prisma.task.update({
+    where: { id: taskId },
+    data: data as never,
+    include: (include ?? TASK_FULL_INCLUDE) as never,
+  })
+
+  const stateChangeComment = await runUpdateSideEffects({
+    existingTask,
+    task,
+    actorId,
+    actorName,
+    actorType,
+    platform,
+    intent,
+    requestedCompleted,
+    validatedListIds,
+    rolledForward: false,
+    cancelWorkflowReason,
+    legacySsePayload,
+  })
+
+  return { ok: true, task, rolledForward: false, stateChangeComment }
+}
+
+/**
+ * Everything that happens after the row is written.
+ *
+ * Individually guarded: the update is committed and the caller was told so, and
+ * no single downstream failure may turn that into an error. The one exception
+ * is ordering — the state-change comment is prepended to the returned task's
+ * comments, so it runs before the response is handed back rather than after.
+ */
+async function runUpdateSideEffects(args: {
+  existingTask: any
+  task: any
+  actorId: string
+  actorName?: string
+  actorType: 'user' | 'agent'
+  platform?: AnalyticsPlatformValue
+  intent: UpdateTaskIntent
+  requestedCompleted: boolean | undefined
+  validatedListIds: string[] | undefined
+  rolledForward: boolean
+  cancelWorkflowReason: string
+  legacySsePayload: boolean
+}): Promise<unknown> {
+  const {
+    existingTask,
+    task,
+    actorId,
+    actorName,
+    actorType,
+    platform,
+    intent,
+    requestedCompleted,
+    validatedListIds,
+    rolledForward,
+    cancelWorkflowReason,
+    legacySsePayload,
+  } = args
+
+  const justCompleted = requestedCompleted === true && !existingTask.completed
+
+  // Stop the agent working on something that is now done.
+  if (justCompleted) {
+    try {
+      await cancelActiveCodingWorkflow({ taskId: task.id, reason: cancelWorkflowReason })
+    } catch (err) {
+      log.error({ err }, 'Failed to cancel coding workflow after task update')
+    }
+  }
+
+  // Reminders must follow the task, or a completed one keeps notifying.
+  try {
+    const dueDateChanged =
+      existingTask.dueDateTime?.getTime() !== task.dueDateTime?.getTime()
+    const completedChanged = existingTask.completed !== task.completed
+    const assigneeChanged = existingTask.assigneeId !== task.assigneeId
+
+    if (dueDateChanged || completedChanged || assigneeChanged) {
+      await rescheduleRemindersForUpdate({
+        taskId: task.id,
+        taskTitle: task.title,
+        userId: task.assigneeId || task.creatorId || actorId,
+        dueDateTime: task.dueDateTime ?? null,
+        completed: !!task.completed,
+      })
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to reschedule reminders after task update')
+  }
+
+  try {
+    if (validatedListIds !== undefined) {
+      await syncManualSortMemberships({
+        taskId: task.id,
+        previousListIds: (existingTask.lists ?? []).map((list: any) => list.id),
+        requestedListIds: (task.lists ?? []).map((list: any) => list.id),
+      })
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to synchronise manual sort after task update')
+  }
+
+  // Structured activity history (task 51a4b8ff) alongside the prose comment
+  // below. Both derive from the same before/after pair; the comment is what a
+  // human reads, the events are what can be queried and fanned out. actorType
+  // is the point of the distinction: an agent silently reassigning or
+  // completing work must leave the same trace a human would.
+  const events = diffTaskEvents(
+    {
+      title: existingTask.title,
+      completed: existingTask.completed,
+      closedReason: existingTask.closedReason,
+      priority: existingTask.priority,
+      assigneeId: existingTask.assigneeId,
+      dueDateTime: existingTask.dueDateTime,
+      listIds: (existingTask.lists ?? []).map((list: any) => list.id),
+    },
+    {
+      title: task.title,
+      completed: task.completed,
+      closedReason: task.closedReason,
+      priority: task.priority,
+      assigneeId: task.assigneeId,
+      dueDateTime: task.dueDateTime,
+      listIds: (task.lists ?? []).map((list: any) => list.id),
+    }
+  )
+
+  try {
+    await recordTaskEvents({ taskId: task.id, actorId, actorType, events })
+  } catch (err) {
+    log.error({ err }, 'Failed to record task events')
+  }
+
+  try {
+    const commenterIds = Array.from(
+      new Set(
+        (task.comments ?? [])
+          .map((comment: any) => comment?.authorId)
+          .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+      )
+    ) as string[]
+
+    // One persist for the whole update — per-event persists defeat the
+    // row-level dedupe and wrote duplicate rows (task ceaff1c5).
+    await notifyTaskUpdate({
+      taskId: task.id,
+      actorId,
+      events,
+      audience: {
+        assigneeId: task.assigneeId,
+        creatorId: task.creatorId,
+        commenterIds,
+      },
+    })
+  } catch (err) {
+    log.error({ err }, 'Failed to notify about task update')
+  }
+
+  // System comment for state changes. Uses legacy's helper rather than a copy:
+  // a hand-rolled version in v1 dropped `systemEventType`, the typed
+  // discriminator lib/completion-streak.ts folds on, so its comments stopped
+  // folding the moment the sentence was localised (task efecc4b8).
+  //
+  // RETURNED rather than spliced into task.comments. Where it belongs is a
+  // wire-shape decision and the surfaces genuinely differ: legacy's comments
+  // arrive oldest-first, v1's arrive newest-first under a cap and are reversed
+  // on the way out (task a86b5bed). A prepend inside here lands at the top of
+  // one list and, after that reverse, at the bottom of the other — so each
+  // surface places it, the same way each surface owns its include.
+  let stateChangeComment: unknown = null
+  try {
+    stateChangeComment = await recordStateChangeComment({
+      existingTask,
+      updatedTask: task,
+      updaterName: actorName || 'Someone',
+    })
+  } catch (err) {
+    log.error({ err }, 'Failed to create state change comment')
+  }
+
+  // Everyone whose view of this task just changed, computed once and used for
+  // both the broadcast and the cache invalidation — those had drifted into
+  // answering the same question two different ways.
+  const audience = new Set<string>()
+  try {
+    if (task.assigneeId) audience.add(task.assigneeId)
+    if (task.creatorId) audience.add(task.creatorId)
+    if (existingTask.assigneeId) audience.add(existingTask.assigneeId)
+    for (const list of task.lists ?? []) {
+      for (const memberId of getListMemberIds(list as never) ?? []) {
+        audience.add(memberId)
+      }
+    }
+  } catch (err) {
+    // Guarded like everything else past the write. An update that is already
+    // committed must not be reported as a failure because working out who to
+    // tell about it went wrong.
+    log.error({ err }, 'Failed to resolve the audience for a task update')
+  }
+
+  try {
+    const completionChanged = existingTask.completed !== task.completed
+    const assignmentChanged = existingTask.assigneeId !== task.assigneeId
+
+    if (completionChanged || assignmentChanged) {
+      const statsUserIds = new Set<string>()
+      if (task.assigneeId && completionChanged) statsUserIds.add(task.assigneeId)
+      if (existingTask.assigneeId && assignmentChanged && existingTask.assigneeId !== task.assigneeId) {
+        statsUserIds.add(existingTask.assigneeId)
+      }
+      if (task.creatorId && completionChanged) statsUserIds.add(task.creatorId)
+
+      if (statsUserIds.size > 0) {
+        await invalidateUserStats(Array.from(statsUserIds))
+      }
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to invalidate user stats')
+  }
+
+  // Cached task lists go stale the moment the row changes. Invalidated BEFORE
+  // the broadcast, so a client that refetches on the nudge cannot be served the
+  // pre-update rows.
+  try {
+    if (await isRedisAvailable()) {
+      const listIds = (task.lists ?? []).map((list: any) => list.id)
+      await Promise.all(
+        Array.from(audience).map(userId => RedisCache.invalidate.userTasks(userId, listIds))
+      )
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to invalidate task cache after update')
+  }
+
+  try {
+    const recipients = Array.from(audience).filter(id => id !== actorId)
+    if (recipients.length > 0) {
+      // A new assignee gets task_assigned rather than task_updated — being
+      // given work is a different event from work changing under you.
+      const assigneeChanged =
+        Object.hasOwn(intent, 'assigneeId') && task.assigneeId !== existingTask.assigneeId
+
+      let updateRecipients = recipients
+      if (assigneeChanged && task.assigneeId && task.assigneeId !== actorId) {
+        broadcastToUsers([task.assigneeId], {
+          type: 'task_assigned',
+          timestamp: new Date().toISOString(),
+          data: { taskId: task.id, task: enrichTaskForAgent(task as never) },
+        })
+        updateRecipients = recipients.filter(id => id !== task.assigneeId)
+      }
+
+      if (updateRecipients.length > 0) {
+        broadcastToUsers(updateRecipients, {
+          type: justCompleted ? 'task_completed' : 'task_updated',
+          timestamp: new Date().toISOString(),
+          data: {
+            taskId: task.id,
+            task: enrichTaskForAgent(task as never),
+            // The flat duplicates below are the WEB route's payload and only
+            // its own: every field here is already inside `task`, and v1 and
+            // the agent PATCH deliberately send the lean pair, which
+            // tests/api/sse-event-delivery asserts. Adding them everywhere
+            // would grow every agent's event payload to carry data it has and
+            // does not read.
+            ...(legacySsePayload
+              ? {
+                  taskTitle: task.title,
+                  taskPriority: task.priority,
+                  taskDueDateTime: task.dueDateTime,
+                  taskIsAllDay: task.isAllDay,
+                  taskCompleted: task.completed,
+                  updaterName: actorName || 'Someone',
+                  userId: actorId,
+                  listNames: (task.lists ?? []).map((list: any) => list.name),
+                }
+              : {}),
+          },
+        })
+      }
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to broadcast task update SSE')
+  }
+
+  // Analytics lives here so the MCP surfaces are counted too — they were
+  // invisible in TASK_EDITED and TASK_COMPLETED before.
+  try {
+    const resolvedPlatform = platform ?? AnalyticsPlatform.API_OTHER
+    if (rolledForward || (requestedCompleted === true && !existingTask.completed)) {
+      await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_COMPLETED, resolvedPlatform, {
+        taskId: task.id,
+      })
+    }
+    await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_EDITED, resolvedPlatform, {
+      taskId: task.id,
+    })
+  } catch (err) {
+    log.error({ err }, 'Failed to track task update analytics')
+  }
+
+  return stateChangeComment
 }

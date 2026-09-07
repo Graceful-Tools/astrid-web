@@ -7,29 +7,20 @@
  */
 
 import { NextResponse } from 'next/server'
-import { collectListRecipientUserIds } from '@/lib/task-recipients'
 import { requireTaskAccess, requireTaskReadAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
-import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { prisma } from '@/lib/prisma'
 import { validateParentTask, readParentTaskIdFromBody } from '@/lib/subtasks'
-import { hasListAccess, getListMemberIds } from '@/lib/list-member-utils'
-import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { enrichTaskForAgent } from '@/lib/agent-protocol'
-import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { getListMemberIds } from '@/lib/list-member-utils'
+import { trackEventFromRequest, AnalyticsEventType, detectPlatform } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
-import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from '@/lib/project-status'
-import { parseClosedReason } from '@/lib/closed-reason'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
-import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
-import { recordStateChangeComment, resolveRepeatingTaskCompletion } from '@/lib/task-update-handler'
-import { deleteTaskWithSideEffects } from '@/services/task.service'
-import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
-import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
-import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
-import { notifyTaskUpdate } from '@/lib/notification-store'
+import {
+  deleteTaskWithSideEffects,
+  updateTaskWithSideEffects,
+  type UpdateTaskIntent,
+} from '@/services/task.service'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
@@ -153,6 +144,69 @@ export const GET = withAuth<RouteContext>(
  * PUT /api/v1/tasks/:id
  * Update task fields
  */
+/**
+ * The v1 wire shape for a task after a write.
+ *
+ * Passed to the shared update verb as the include for the returned row, so the
+ * response is exactly what v1 has always sent. The service defaults to legacy's
+ * TASK_FULL_INCLUDE, which is richer — it carries whole user records on list
+ * owners and members — and handing that to v1 would newly publish member email
+ * addresses to API consumers.
+ *
+ * The comment cap is load-bearing, not cosmetic: newest-first with a `take`,
+ * reversed on the way out so the wire order stays ascending (task a86b5bed).
+ */
+const V1_TASK_RESPONSE_INCLUDE = {
+  lists: {
+    select: {
+      id: true,
+      ownerId: true,
+      name: true,
+      description: true,
+      color: true,
+      githubRepositoryId: true,
+      aiAgentConfiguredBy: true,
+      listMembers: {
+        select: {
+          id: true,
+          listId: true,
+          userId: true,
+          role: true,
+        },
+      },
+    },
+  },
+  assignee: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      isAIAgent: true,
+      aiAgentType: true,
+    },
+  },
+  creator: {
+    select: { id: true, name: true, email: true, image: true },
+  },
+  comments: {
+    include: {
+      author: {
+        select: { id: true, name: true, email: true, isAIAgent: true },
+      },
+      secureFiles: true,
+    },
+    orderBy: { createdAt: 'desc' as const },
+    take: TASK_COMMENTS_RESPONSE_LIMIT,
+  },
+  // Parity with legacy TASK_FULL_INCLUDE. This response replaces the task in
+  // client state after every edit, so omitting these does not render fewer
+  // attachments — it makes a title change drop a file off the task until the
+  // next full reload. (641a7615)
+  attachments: true,
+  secureFiles: true,
+} as const
+
 export const PUT = withAuth<RouteContext>(
   { scopes: ['tasks:write'], tag: 'v1.tasks.id' },
   async (req, auth, { params }) => {
@@ -162,679 +216,102 @@ export const PUT = withAuth<RouteContext>(
 
     const body: V1TaskUpdateRequest = await req.json()
 
-    // Types only — membership, cycles and list access are validated further
-    // down against data this cannot see. Without it a wrong-typed scalar went
-    // straight into `data` and surfaced as a 500 from the driver where the
+    // Types only — membership, cycles and list access are validated by the
+    // service against data this cannot see. Without it a wrong-typed scalar
+    // went straight into `data` and surfaced as a 500 from the driver where the
     // caller deserved a 400. (Task 87e19910.)
     const shape = validateV1TaskUpdate(body)
     if (!shape.ok) {
       return NextResponse.json({ error: shape.error }, { status: 400 })
     }
 
-    const data: any = {}
+    // Subtasks: re-parent or promote to top-level (null). Validates existence,
+    // self-parenting and cycles. Parsing is shared with the web route so the
+    // two cannot disagree about what "no parent" looks like (task b00a1f94).
+    const parentUpdate = readParentTaskIdFromBody(body)
+    if (!parentUpdate.skip && parentUpdate.parentTaskId !== null) {
+      const parentError = await validateParentTask(parentUpdate.parentTaskId, taskId)
+      if (parentError) {
+        return NextResponse.json({ error: parentError }, { status: 400 })
+      }
+    }
 
-    if (body.title !== undefined) data.title = body.title
-    if (body.description !== undefined) data.description = body.description
-    if (body.priority !== undefined) data.priority = body.priority
-    if (body.completed !== undefined) data.completed = body.completed
+    // PATCH semantics: only what the caller sent is touched. Contrast the web
+    // route, whose PUT clears an absent due date.
+    const intent: UpdateTaskIntent = {}
+    if (body.title !== undefined) intent.title = body.title
+    if (body.description !== undefined) intent.description = body.description
+    if (body.priority !== undefined) intent.priority = body.priority
+    if (body.completed !== undefined) intent.completed = body.completed
+    if (body.completedAt !== undefined) intent.completedAt = body.completedAt
+    if (body.completedSource !== undefined) intent.completedSource = body.completedSource
+    if (body.closedReason !== undefined) intent.closedReason = body.closedReason
+    if (body.localCompletionDate !== undefined) {
+      intent.localCompletionDate = body.localCompletionDate
+    }
+    if (body.statusRole !== undefined) intent.statusRole = body.statusRole
+    if (body.isPrivate !== undefined) intent.isPrivate = body.isPrivate
+    if (body.repeating !== undefined) intent.repeating = body.repeating
+    if (body.repeatingData !== undefined) intent.repeatingData = body.repeatingData
+    if (body.repeatFrom !== undefined) intent.repeatFrom = body.repeatFrom
+    if (body.assigneeId !== undefined) intent.assigneeId = body.assigneeId || null
+    if (body.timerDuration !== undefined) intent.timerDuration = body.timerDuration
+    if (body.lastTimerValue !== undefined) intent.lastTimerValue = body.lastTimerValue
+    if (body.listIds !== undefined && Array.isArray(body.listIds)) intent.listIds = body.listIds
+    if (!parentUpdate.skip) intent.parentTaskId = parentUpdate.parentTaskId
 
+    // An empty string clears the date, and clearing a date clears all-day with
+    // it — an all-day flag on no date means nothing.
     if (body.dueDateTime !== undefined) {
       if (body.dueDateTime === '' || body.dueDateTime === null) {
-        data.dueDateTime = null
-        data.isAllDay = false
+        intent.dueDateTime = null
+        intent.isAllDay = false
       } else {
         const dueDateTime = new Date(body.dueDateTime)
         const isAllDay = body.isAllDay ?? false
-
-        if (isAllDay) {
-          dueDateTime.setUTCHours(0, 0, 0, 0)
-        }
-
-        data.dueDateTime = dueDateTime
-        data.isAllDay = isAllDay
+        if (isAllDay) dueDateTime.setUTCHours(0, 0, 0, 0)
+        intent.dueDateTime = dueDateTime
+        intent.isAllDay = isAllDay
       }
+    } else if (body.isAllDay !== undefined) {
+      intent.isAllDay = body.isAllDay
     }
 
-    // Standalone isAllDay update (no dueDateTime change)
-    if (body.isAllDay !== undefined && body.dueDateTime === undefined) {
-      data.isAllDay = body.isAllDay
-    }
+    const ifUnmodifiedSinceHeader = req.headers.get('If-Unmodified-Since')
+    const ifUnmodifiedSince = ifUnmodifiedSinceHeader ? new Date(ifUnmodifiedSinceHeader) : null
 
-    if (body.isPrivate !== undefined) data.isPrivate = body.isPrivate
-    if (body.repeating !== undefined) data.repeating = body.repeating
-
-    if (body.repeatingData !== undefined) {
-      data.repeatingData = body.repeatingData === null ? null : body.repeatingData
-    }
-    if (body.repeatFrom !== undefined) {
-      data.repeatFrom = body.repeatFrom
-    }
-
-    // assigneeId can be null to unassign (membership validated after the
-    // existingTask fetch below, once we know the task's lists).
-    if (body.assigneeId !== undefined) {
-      data.assigneeId = body.assigneeId || null
-    }
-
-    if (body.timerDuration !== undefined) data.timerDuration = body.timerDuration
-    if (body.lastTimerValue !== undefined) data.lastTimerValue = body.lastTimerValue
-
-    // Subtasks: re-parent or promote to top-level (null). Validates existence,
-    // self-parenting, and cycles. Parsing is shared with the web route so the
-    // two cannot disagree about what "no parent" looks like (task b00a1f94).
-    const parentUpdate = readParentTaskIdFromBody(body)
-    if (!parentUpdate.skip) {
-      if (parentUpdate.parentTaskId !== null) {
-        const parentError = await validateParentTask(parentUpdate.parentTaskId, taskId)
-        if (parentError) {
-          return NextResponse.json({ error: parentError }, { status: 400 })
-        }
-      }
-      data.parentTaskId = parentUpdate.parentTaskId
-    }
-
-    // SECURITY: validate caller has access to every list before connecting
-    if (body.listIds !== undefined && Array.isArray(body.listIds)) {
-      if (body.listIds.length > 0) {
-        const lists = await prisma.taskList.findMany({
-          where: { id: { in: body.listIds } },
-          include: {
-            owner: { select: { id: true, name: true, email: true, image: true } },
-            listMembers: {
-              include: {
-                user: { select: { id: true, name: true, email: true, image: true } }
-              }
-            }
-          }
-        })
-
-        const foundListIds = new Set(lists.map(l => l.id))
-        const missingListIds = body.listIds.filter((id: string) => !foundListIds.has(id))
-        if (missingListIds.length > 0) {
-          return NextResponse.json(
-            { error: `Invalid list IDs: ${missingListIds.join(', ')}` },
-            { status: 400 }
-          )
-        }
-
-        for (const list of lists) {
-          const userHasAccess = hasListAccess(list as any, auth.userId)
-          const isCollaborativePublic = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-
-          if (!userHasAccess && !isCollaborativePublic) {
-            return NextResponse.json(
-              { error: `You don't have permission to add tasks to list: ${list.name}` },
-              { status: 403 }
-            )
-          }
-        }
-
-        // Virtual lists are saved-filter views, not real containers
-        let validListIds = lists
-          .filter(list => !list.isVirtual)
-          .map(list => list.id)
-
-        // Enforce project-status-board invariants on the resulting list
-        // membership: at most one status list per project; toggling to a
-        // completing status flips `completed`. Mirrors /api/tasks/[id].
-        const projectIds = lists
-          .map(list => list.projectId)
-          .filter((id): id is string => Boolean(id))
-
-        if (projectIds.length > 0) {
-          const projectStatusLists = await prisma.taskList.findMany({
-            where: {
-              projectId: { in: Array.from(new Set(projectIds)) },
-              listType: 'status',
-            },
-          })
-          const requestedCompleted = typeof data.completed === 'boolean'
-            ? data.completed
-            : false
-          const normalized = normalizeProjectStatusListIds(
-            validListIds,
-            [...lists, ...projectStatusLists] as any,
-            { completed: requestedCompleted },
-          )
-          validListIds = normalized.listIds
-          if (normalized.completedFromStatus !== undefined) {
-            data.completed = normalized.completedFromStatus
-          }
-        }
-
-        data.lists = {
-          set: validListIds.map((id: string) => ({ id })),
-        }
-      } else {
-        // Empty array → detach from all lists
-        data.lists = { set: [] }
-      }
-    }
-
-    // Pre-update fetch: needed for assignment-change detection,
-    // optimistic-concurrency check, and repeating-task state machine
-    const existingTask = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        assignee: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            isAIAgent: true,
-            aiAgentType: true,
-          },
-        },
-        lists: {
-          select: { id: true, name: true, color: true, listType: true },
-        },
-      },
+    const result = await updateTaskWithSideEffects({
+      taskId,
+      actorId: auth.userId,
+      actorName: auth.user?.name || auth.user?.email || 'Someone',
+      actorType: auth.isAIAgent ? 'agent' : 'user',
+      platform: detectPlatform(req),
+      intent,
+      include: V1_TASK_RESPONSE_INCLUDE as never,
+      requireAssigneeListMembership: true,
+      ifUnmodifiedSince:
+        ifUnmodifiedSince && !isNaN(ifUnmodifiedSince.getTime()) ? ifUnmodifiedSince : null,
+      cancelWorkflowReason: 'Task marked as completed by user',
     })
 
-    // Invariant: completed = true => no status memberships (task db7c6670).
-    // The listIds branch above already enforces this via
-    // normalizeProjectStatusListIds, but it only runs when the request carries
-    // listIds. A completion-only update — PUT { completed: true }, what the
-    // checkbox and the API actually send — skipped it and left the task
-    // sitting in Ready, writing a new violation every time.
-    if (data.completed === true && data.lists === undefined) {
-      const detach = statusListIdsToDetachOnCompletion(existingTask?.lists)
-      if (detach.length > 0) {
-        data.lists = { disconnect: detach.map(id => ({ id })) }
-      }
-    }
-
-    // SECURITY: a non-self assignee must be a member of one of the task's lists.
-    if (data.assigneeId && data.assigneeId !== auth.userId) {
-      const listIds = (existingTask?.lists ?? []).map(l => l.id)
-      if (!(await assigneeCanBeAssigned(data.assigneeId, listIds))) {
+    if (!result.ok) {
+      if (result.status === 412) {
         return NextResponse.json(
-          { error: 'Assignee must be a member of one of the task lists' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Optimistic concurrency control (opt-in via If-Unmodified-Since header)
-    const ifUnmodifiedSince = req.headers.get('If-Unmodified-Since')
-    if (ifUnmodifiedSince && existingTask) {
-      const clientDate = new Date(ifUnmodifiedSince)
-      if (!isNaN(clientDate.getTime()) && existingTask.updatedAt > clientDate) {
-        return NextResponse.json(
-          {
-            error: 'Task has been modified since your last read',
-            code: 'STALE_UPDATE',
-            task: { id: existingTask.id, updatedAt: existingTask.updatedAt },
-          },
+          { error: result.error, code: result.code, task: result.conflict },
           { status: 412 }
         )
       }
+      return NextResponse.json({ error: result.error }, { status: result.status })
     }
 
-    // Same decision the legacy route makes, from the same helper. Calling
-    // handleRepeatingTaskCompletion directly here skipped the closed-reason
-    // guard from task 11042ae3, so closing a repeating task as *canceled*
-    // through v1 rolled it forward to the next occurrence anyway (task fb94f2ee).
-    const { applyRepeatingTaskRollForward } = await import('@/lib/repeating-task-handler')
-    const repeatingTaskResult = existingTask
-      ? await resolveRepeatingTaskCompletion({
-          taskId,
-          existingCompleted: existingTask.completed,
-          dataCompleted: body.completed,
-          // null and undefined mean the same thing to the helper (it guards
-          // with a truthiness check); the coercion is for the type.
-          localCompletionDate: body.localCompletionDate ?? undefined,
-          closedReason: body.closedReason,
-        })
-      : null
-
-    // Repeating-task roll-forward already updates the row in the DB; we just refetch + return.
-    if (repeatingTaskResult) {
-      await applyRepeatingTaskRollForward(taskId, repeatingTaskResult)
-
-      const task = await prisma.task.findUnique({
-        where: { id: taskId },
-        include: {
-          lists: {
-            select: {
-              id: true,
-              ownerId: true,
-              name: true,
-              description: true,
-              color: true,
-              githubRepositoryId: true,
-              aiAgentConfiguredBy: true,
-              listMembers: {
-                select: {
-                  id: true,
-                  listId: true,
-                  userId: true,
-                  role: true,
-                }
-              },
-            },
-          },
-          assignee: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              isAIAgent: true,
-              aiAgentType: true,
-            },
-          },
-          creator: {
-            select: { id: true, name: true, email: true, image: true },
-          },
-          comments: {
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  isAIAgent: true,
-                },
-              },
-            },
-            orderBy: { createdAt: 'desc' as const },
-          take: TASK_COMMENTS_RESPONSE_LIMIT,
-          },
-        },
-      })
-
-      if (!task) {
-        return NextResponse.json(
-          { error: 'Task not found after update' },
-          { status: 404 }
-        )
-      }
-
-      // Wire order stays ascending under the newest-first cap (task a86b5bed).
-      task.comments?.reverse()
-
-      log.info({ taskId, rolledForward: repeatingTaskResult.shouldRollForward }, 'Repeating task processed')
-
-      // Repeating-task roll-forward counts as both completion and edit
-      trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
-      trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_EDITED, { taskId })
-
-      try {
-        const userIds = new Set<string>()
-
-        collectListRecipientUserIds(task.lists).forEach(id => userIds.add(id))
-        if (task.assigneeId) userIds.add(task.assigneeId)
-        if (task.creatorId) userIds.add(task.creatorId)
-        userIds.delete(auth.userId)
-
-        if (userIds.size > 0) {
-          broadcastToUsers(Array.from(userIds), {
-            type: 'task_updated',
-            timestamp: new Date().toISOString(),
-            data: {
-              taskId: task.id,
-              task: enrichTaskForAgent(task),
-            },
-          })
-        }
-      } catch (sseError) {
-        log.error({ err: sseError }, 'Failed to broadcast repeating task SSE')
-      }
-
-      try {
-        const redisAvailable = await isRedisAvailable()
-        if (redisAvailable) {
-          const affectedUserIds = new Set<string>()
-          if (task.assigneeId) affectedUserIds.add(task.assigneeId)
-          if (task.creatorId) affectedUserIds.add(task.creatorId)
-          collectListRecipientUserIds(task.lists).forEach(id => affectedUserIds.add(id))
-          await Promise.all(
-            Array.from(affectedUserIds).map(userId =>
-              RedisCache.del(RedisCache.keys.userTasks(userId))
-            )
-          )
-          log.debug({ users: affectedUserIds.size }, 'Invalidated task cache (repeating task)')
-        }
-      } catch (cacheError) {
-        log.error({ err: cacheError }, 'Failed to invalidate task cache (repeating)')
-      }
-
-      const headers: Record<string, string> = {}
-      const deprecationWarning = getDeprecationWarning(auth)
-      if (deprecationWarning) {
-        headers['X-Deprecation-Warning'] = deprecationWarning
-      }
-
-      const taskWithListIds = {
-        ...task,
-        listIds: task.lists?.map(list => list.id) || []
-      }
-
-      return NextResponse.json(
-        {
-          task: taskWithListIds,
-          meta: { apiVersion: 'v1', authSource: auth.source },
-        },
-        { headers }
-      )
-    }
-
-    // Completion stamp + provenance. Sync may backdate completedAt to the
-    // provider's real completion time; completedSource records where it
-    // happened (astrid | google | github | apple). Uncompleting clears both.
-    if (data.completed === true) {
-      data.completedAt = body.completedAt ? new Date(body.completedAt) : new Date()
-      data.completedSource = typeof body.completedSource === 'string' && body.completedSource
-        ? body.completedSource : 'astrid'
-    } else if (data.completed === false) {
-      data.completedAt = null
-      data.completedSource = null
-      // Reopening clears the terminal reason — a reopened task is not a
-      // canceled one (task 11042ae3).
-      data.closedReason = null
-    }
-
-    // Board status as a state on the task (AWTD-562), mirroring the web route.
-    if (body.statusRole !== undefined) {
-      data.statusRole = body.statusRole || null
-    }
-    // Done carries no status.
-    if (data.completed === true) {
-      data.statusRole = null
-    }
-
-    // Terminal state other than done (task 11042ae3). Same validation as the
-    // web route so the two surfaces cannot drift.
-    if (body.closedReason !== undefined && data.completed !== false) {
-      const parsed = parseClosedReason(body.closedReason)
-      if (!parsed.ok) {
-        return NextResponse.json({ error: parsed.error }, { status: 400 })
-      }
-      data.closedReason = parsed.value
-    }
-
-    const task = await prisma.task.update({
-      where: { id: taskId },
-      data,
-      include: {
-        lists: {
-          select: {
-            id: true,
-            ownerId: true,
-            name: true,
-            description: true,
-            color: true,
-            githubRepositoryId: true,
-            aiAgentConfiguredBy: true,
-            listMembers: {
-              select: {
-                id: true,
-                listId: true,
-                userId: true,
-                role: true,
-              }
-            },
-          },
-        },
-        assignee: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            isAIAgent: true,
-            aiAgentType: true,
-          },
-        },
-        creator: {
-          select: { id: true, name: true, email: true, image: true },
-        },
-        comments: {
-          include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                isAIAgent: true,
-              },
-            },
-            secureFiles: true,
-          },
-          orderBy: { createdAt: 'desc' as const },
-          take: TASK_COMMENTS_RESPONSE_LIMIT,
-        },
-        // Parity with legacy TASK_FULL_INCLUDE. This response replaces the
-        // task in client state after every edit, so omitting these does not
-        // render fewer attachments — it makes a title change drop a file off
-        // the task until the next full reload. (641a7615)
-        attachments: true,
-        secureFiles: true,
-      },
-    })
-
+    const task = result.task
     // Wire order stays ascending under the newest-first cap (task a86b5bed).
     task.comments?.reverse()
 
-    // The three side effects v1 never had. All of them existed only inline in
-    // the legacy route, so an iOS or agent client completing a task left the
-    // coding workflow running, kept firing reminders for a done task and left
-    // manual-sort positions stale (task fb94f2ee).
-    if (data.completed === true && existingTask && !existingTask.completed) {
-      await cancelActiveCodingWorkflow({
-        taskId,
-        reason: 'Task marked as completed by user',
-      })
-    }
-
-    const dueDateChanged =
-      existingTask?.dueDateTime?.getTime() !== task.dueDateTime?.getTime()
-    const completedChanged = existingTask?.completed !== task.completed
-    const assigneeChanged = existingTask?.assigneeId !== task.assigneeId
-
-    if (dueDateChanged || completedChanged || assigneeChanged) {
-      await rescheduleRemindersForUpdate({
-        taskId: task.id,
-        taskTitle: task.title,
-        userId: task.assigneeId || task.creatorId || auth.userId,
-        dueDateTime: task.dueDateTime ?? null,
-        completed: !!task.completed,
-      })
-    }
-
-    if (body.listIds !== undefined) {
-      await syncManualSortMemberships({
-        taskId,
-        previousListIds: existingTask?.lists.map(list => list.id) ?? [],
-        requestedListIds: task.lists?.map(list => list.id) ?? [],
-      })
-    }
-
-    // Structured activity history (task 51a4b8ff). Same helper as the web
-    // route, so the two surfaces cannot emit different events for the same
-    // mutation — the drift that lib/projects-service.ts had to fix for
-    // projects. actorType distinguishes agent traffic, which is the whole
-    // point: an agent silently reassigning work must leave a trace.
-    if (existingTask) {
-      const taskAudience = {
-        assigneeId: task.assigneeId,
-        creatorId: task.creatorId,
-        commenterIds: Array.from(
-          new Set(
-            (task.comments ?? [])
-              .filter((comment: { authorId?: string | null } | null | undefined): comment is { authorId: string } =>
-                Boolean(comment && comment.authorId)
-              )
-              .map((comment) => comment.authorId)
-              .filter((id): id is string => typeof id === 'string' && id.length > 0)
-          )
-        ),
-      }
-
-      const events = diffTaskEvents(
-        {
-          title: existingTask.title,
-          completed: existingTask.completed,
-          closedReason: existingTask.closedReason,
-          priority: existingTask.priority,
-          assigneeId: existingTask.assigneeId,
-          dueDateTime: existingTask.dueDateTime,
-          listIds: existingTask.lists.map(list => list.id),
-        },
-        {
-          title: task.title,
-          completed: task.completed,
-          closedReason: task.closedReason,
-          priority: task.priority,
-          assigneeId: task.assigneeId,
-          dueDateTime: task.dueDateTime,
-          listIds: task.lists.map(list => list.id),
-        }
-      )
-
-      await recordTaskEvents({
-        taskId,
-        actorId: auth.userId,
-        actorType: auth.isAIAgent ? 'agent' : 'user',
-        events,
-      })
-
-      // One persist for the whole update — per-event persists defeat the
-      // row-level dedupe and wrote duplicate rows (task ceaff1c5).
-      await notifyTaskUpdate({
-        taskId,
-        actorId: auth.userId,
-        events,
-        audience: taskAudience,
-      })
-    }
-
-    // System comment for state changes (assignee/priority/etc.).
-    //
-    // Shares legacy's helper rather than re-deriving it here. v1 used to
-    // hand-roll this block, and the copy dropped `systemEventType` — the typed
-    // discriminator that lib/completion-streak.ts folds on. Without it the fold
-    // falls back to matching English prose, which is precisely what that column
-    // was added to stop: a comment written by v1 would stop folding the moment
-    // the sentence was localised, on every client at once. (Task efecc4b8.)
-    //
-    // The name comes from `auth.user`, which the wrapper already loaded — the
-    // old copy issued a second query for a row it was holding.
-    // Wrapped: a system comment is a nice-to-have on top of an update that has
-    // already been committed. The inline version this replaced was wrapped too,
-    // and dropping that made every unrelated failure in here fail the whole PUT.
-    try {
-      if (!existingTask) {
-        log.warn('Cannot track state changes - existing task not found')
-      } else {
-        const stateChangeComment = await recordStateChangeComment({
-          existingTask,
-          updatedTask: task,
-          updaterName: auth.user?.name || auth.user?.email || 'Someone',
-        })
-        // Prepend so the client renders it without a refetch, as legacy does.
-        if (stateChangeComment) {
-          task.comments = [stateChangeComment as never, ...task.comments]
-        }
-      }
-    } catch (stateChangeError) {
-      log.error({ err: stateChangeError }, 'Failed to create state change comment')
-    }
-
-    // AI agent workflow triggering happens in Prisma middleware: it posts the
-    // "starting" comment, sends webhooks, and triggers assistant workflow.
-
-    try {
-      const userIds = new Set<string>()
-
-      collectListRecipientUserIds(task.lists).forEach(id => userIds.add(id))
-
-      if (task.assigneeId) userIds.add(task.assigneeId)
-      if (task.creatorId) userIds.add(task.creatorId)
-
-      userIds.delete(auth.userId)
-
-      if (userIds.size > 0) {
-        // Assignee change → new assignee gets task_assigned, not task_updated
-        const assigneeChanged = existingTask && body.assigneeId !== undefined &&
-          body.assigneeId !== existingTask.assigneeId
-        if (assigneeChanged && task.assigneeId) {
-          broadcastToUsers([task.assigneeId], {
-            type: 'task_assigned',
-            timestamp: new Date().toISOString(),
-            data: {
-              taskId: task.id,
-              task: enrichTaskForAgent(task),
-            }
-          })
-          userIds.delete(task.assigneeId)
-        }
-
-        const eventType = (body.completed === true && existingTask && !existingTask.completed)
-          ? 'task_completed'
-          : 'task_updated'
-
-        broadcastToUsers(Array.from(userIds), {
-          type: eventType,
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            task: enrichTaskForAgent(task),
-          }
-        })
-      }
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to broadcast task update SSE')
-    }
-
-    try {
-      const completionChanged = existingTask && existingTask.completed !== task.completed
-      const assignmentChanged = existingTask && existingTask.assigneeId !== task.assigneeId
-
-      if (completionChanged || assignmentChanged) {
-        const { invalidateUserStats } = await import('@/lib/user-stats')
-        const statsUserIds = new Set<string>()
-
-        if (task.assigneeId && completionChanged) {
-          statsUserIds.add(task.assigneeId)
-        }
-        if (existingTask.assigneeId && assignmentChanged && existingTask.assigneeId !== task.assigneeId) {
-          statsUserIds.add(existingTask.assigneeId)
-        }
-        if (task.creatorId && completionChanged) {
-          statsUserIds.add(task.creatorId)
-        }
-
-        if (statsUserIds.size > 0) {
-          await invalidateUserStats(Array.from(statsUserIds))
-          log.debug({ users: statsUserIds.size }, 'Invalidated user stats')
-        }
-      }
-    } catch (statsError) {
-      log.error({ err: statsError }, 'Failed to invalidate user stats')
-    }
-
-    try {
-      const redisAvailable = await isRedisAvailable()
-      if (redisAvailable) {
-        const affectedUserIds = new Set<string>()
-        if (task.assigneeId) affectedUserIds.add(task.assigneeId)
-        if (existingTask?.assigneeId && existingTask.assigneeId !== task.assigneeId) {
-          affectedUserIds.add(existingTask.assigneeId)
-        }
-        if (task.creatorId) affectedUserIds.add(task.creatorId)
-        collectListRecipientUserIds(task.lists).forEach(id => affectedUserIds.add(id))
-        await Promise.all(
-          Array.from(affectedUserIds).map(userId =>
-            RedisCache.del(RedisCache.keys.userTasks(userId))
-          )
-        )
-        log.debug({ users: affectedUserIds.size }, 'Invalidated task cache after update')
-      }
-    } catch (cacheError) {
-      log.error({ err: cacheError }, 'Failed to invalidate task cache')
+    // Prepended AFTER the reverse, so the client renders it without a refetch
+    // in the position v1 has always put it.
+    if (result.stateChangeComment && Array.isArray(task.comments)) {
+      task.comments = [result.stateChangeComment, ...task.comments]
     }
 
     const headers: Record<string, string> = {}
@@ -843,19 +320,9 @@ export const PUT = withAuth<RouteContext>(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    if (body.completed === true && existingTask && !existingTask.completed) {
-      trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_COMPLETED, { taskId })
-    }
-    trackEventFromRequest(req, auth.userId, AnalyticsEventType.TASK_EDITED, { taskId })
-
-    const taskWithListIds = {
-      ...task,
-      listIds: task.lists?.map(list => list.id) || []
-    }
-
     return NextResponse.json(
       {
-        task: taskWithListIds,
+        task: { ...task, listIds: task.lists?.map((list: { id: string }) => list.id) || [] },
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }

@@ -53,8 +53,11 @@ vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
 // Everything else the handlers fire off afterwards wants a real DB/Redis/SSE.
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
 vi.mock('@/lib/redis', () => ({ RedisCache: { del: vi.fn(), keys: { userTasks: (id: string) => id } }, isRedisAvailable: vi.fn(async () => false) }))
-vi.mock('@/lib/analytics-events', () => ({ trackEventFromRequest: vi.fn(), AnalyticsEventType: {} }))
-vi.mock('@/lib/task-recipients', () => ({ collectListRecipientUserIds: vi.fn(() => []) }))
+vi.mock('@/lib/analytics-events', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // The shared update verb records the analytics event itself now.
+  trackAnalyticsEvent: vi.fn(),
+ trackEventFromRequest: vi.fn(), AnalyticsEventType: {} }))
 vi.mock('@/lib/list-member-utils', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   hasListAccess: vi.fn(() => true),
@@ -75,6 +78,18 @@ vi.mock('@/lib/list-permissions', async (importOriginal) => ({
   canUserEditTask: vi.fn(() => true),
 }))
 
+// The MCP operations surface authenticates differently from the HTTP ones — a
+// token rather than a session — so its validator is stubbed to a resolved
+// actor. Everything past that point is the behaviour under test.
+vi.mock('@/app/api/mcp/operations/handlers/shared', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  resolveMCPActor: vi.fn(async () => ({
+    userId: 'user-1',
+    user: { id: 'user-1', name: 'Jon', email: 'jon@example.com' },
+    token: { id: 'token-1' },
+  })),
+  getListMemberIdsByListId: vi.fn(async () => []),
+}))
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn(async () => ({ user: { id: 'user-1', email: 'jon@example.com', name: 'Jon' } })) }))
 vi.mock('@/lib/api-auth-middleware', () => {
   class UnauthorizedError extends Error {}
@@ -152,9 +167,17 @@ const SURFACES = {
     const { PATCH } = await import('@/app/api/v1/agent/tasks/[id]/route')
     return await PATCH(jsonReq('http://localhost/api/v1/agent/tasks/task-1', 'PATCH', body), ctx())
   },
+  // Both MCP surfaces were raw prisma.task.update calls: no completion stamp,
+  // no statusRole clearing (breaking the schema invariant), no repeating
+  // roll-forward — so an agent completing a repeating task over MCP killed the
+  // series, exactly the bug fb94f2ee fixed for the agent PATCH (epic 9dedd8aa).
+  async mcpOperations(body: unknown) {
+    const { updateTask } = await import('@/app/api/mcp/operations/handlers/task-operations')
+    return await updateTask('token', 'task-1', body as never, 'user-1')
+  },
 }
 
-const NAMES = ['legacy', 'v1', 'agent'] as const
+const NAMES = ['legacy', 'v1', 'agent', 'mcpOperations'] as const
 
 function updateData() {
   return taskUpdate.mock.calls.at(-1)?.[0]?.data ?? {}
@@ -235,5 +258,27 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     const data = updateData()
     expect(data.completedAt).toBeNull()
     expect(data.completedSource).toBeNull()
+  })
+})
+
+describe('every task-write surface goes through the service (epic 9dedd8aa)', () => {
+  it.each([
+    'app/api/tasks/[id]/route.ts',
+    'app/api/v1/tasks/[id]/route.ts',
+    'app/api/v1/agent/tasks/[id]/route.ts',
+    'app/api/mcp/operations/handlers/task-operations.ts',
+    // mcp/handlers/tasks.ts mixes ESM imports with require() for its schema and
+    // token modules, so vitest cannot load it and it cannot be driven above.
+    // Covered structurally instead — the same way the DELETE and CREATE slices
+    // cover this one file, and for the same reason.
+    'mcp/handlers/tasks.ts',
+  ])('%s does not hand-roll the update', async (file) => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const src = readFileSync(join(process.cwd(), file), 'utf8')
+
+    // One implementation per verb: no surface calls prisma.task.update itself.
+    expect(src).not.toMatch(/prisma\.task\.update\(/)
+    expect(src).toMatch(/updateTaskWithSideEffects/)
   })
 })

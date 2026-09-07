@@ -3,7 +3,12 @@
  */
 
 import { prisma } from "@/lib/prisma"
-import { createTaskWithSideEffects, deleteTaskWithSideEffects } from '@/services/task.service'
+import {
+  createTaskWithSideEffects,
+  deleteTaskWithSideEffects,
+  updateTaskWithSideEffects,
+  type UpdateTaskIntent,
+} from '@/services/task.service'
 import { AnalyticsPlatform } from '@/lib/analytics-events'
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { createLogger } from '@/lib/logger'
@@ -239,19 +244,21 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
             }
           }
         },
-        {
-          creatorId: mcpToken.userId
-        }
-      ]
+        { creatorId: mcpToken.userId },
+      ],
     },
     include: {
       lists: {
         select: {
+          id: true,
+          name: true,
+          listType: true,
           privacy: true,
-          publicListType: true
-        }
-      }
-    }
+          publicListType: true,
+          listMembers: { select: { userId: true, role: true } },
+        },
+      },
+    },
   })
 
   if (!task) {
@@ -266,30 +273,33 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
     throw new Error('Access denied: can only edit your own tasks in collaborative lists')
   }
 
-  const updatedTask = await prisma.task.update({
-    where: { id: taskId },
-    data: {
-      ...(updates.title && { title: updates.title }),
-      ...(updates.description !== undefined && { description: updates.description }),
-      ...(updates.priority !== undefined && { priority: updates.priority }),
-      ...(updates.completed !== undefined && { completed: updates.completed }),
-      ...(updates.dueDateTime !== undefined && {
-        // No `when` twin here: that column was dropped from the Task model, so
-        // writing it made Prisma reject the whole update with "Unknown argument
-        // `when`" — every MCP due-date change threw (task fb94f2ee). tsc could
-        // not see it because spreading a conditional object suppresses excess
-        // property checking.
-        dueDateTime: updates.dueDateTime ? new Date(updates.dueDateTime) : null,
-      }),
-      ...(updates.assigneeId !== undefined && { assigneeId: updates.assigneeId })
-    },
+  // The whole verb lives in the service now (epic 9dedd8aa). This was a raw
+  // prisma.task.update: no completion stamp, no statusRole clearing (breaking
+  // the schema invariant the board depends on), and no repeating roll-forward —
+  // so completing one occurrence of a repeating task over MCP killed the
+  // series, the same bug task fb94f2ee fixed for the agent PATCH.
+  const intent: UpdateTaskIntent = {}
+  if (updates.title) intent.title = updates.title
+  if (updates.description !== undefined) intent.description = updates.description
+  if (updates.priority !== undefined) intent.priority = updates.priority
+  if (updates.completed !== undefined) intent.completed = updates.completed
+  if (updates.dueDateTime !== undefined) intent.dueDateTime = updates.dueDateTime
+  if (updates.assigneeId !== undefined) intent.assigneeId = updates.assigneeId
+  if (updates.closedReason !== undefined) intent.closedReason = updates.closedReason
+  if (updates.statusRole !== undefined) intent.statusRole = updates.statusRole
+
+  const result = await updateTaskWithSideEffects({
+    taskId,
+    actorId: mcpToken.userId,
+    actorName: mcpToken.user?.name || mcpToken.user?.email || 'MCP Agent',
+    actorType: 'agent',
+    platform: AnalyticsPlatform.API_OTHER,
+    intent,
+    existingTask: task,
     include: {
-      assignee: {
-        select: { id: true, name: true, email: true }
-      },
-      creator: {
-        select: { id: true, name: true, email: true }
-      },
+      assignee: { select: { id: true, name: true, email: true } },
+      creator: { select: { id: true, name: true, email: true } },
+      comments: { select: { id: true, authorId: true } },
       lists: {
         select: {
           id: true,
@@ -303,59 +313,15 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
           }
         }
       }
-    }
+    },
   })
 
-  // Broadcast SSE event for real-time updates
-  try {
-    const userIds = new Set<string>()
-
-    // Get all members from all lists this task belongs to
-    for (const list of updatedTask.lists) {
-      const listMemberIds = await getListMemberIdsByListId(list.id)
-      listMemberIds.forEach(id => userIds.add(id))
-    }
-
-    // Add assignee if different from updater
-    if (updatedTask.assigneeId && updatedTask.assigneeId !== mcpToken.userId) {
-      userIds.add(updatedTask.assigneeId)
-    }
-
-    // Remove the updater (MCP user) from notifications
-    userIds.delete(mcpToken.userId)
-
-    if (userIds.size > 0) {
-      log.info(`[MCP SSE] Broadcasting task_updated to ${userIds.size} users`)
-      broadcastToUsers(Array.from(userIds), {
-        type: 'task_updated',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: updatedTask.id,
-          taskTitle: updatedTask.title,
-          taskPriority: updatedTask.priority,
-          taskCompleted: updatedTask.completed,
-          updaterName: mcpToken.user.name || mcpToken.user.email || "MCP Agent",
-          userId: mcpToken.userId,
-          listNames: Array.isArray(updatedTask.lists) ? updatedTask.lists.map(list => list.name) : [],
-          task: {
-            id: updatedTask.id,
-            title: updatedTask.title,
-            description: updatedTask.description,
-            priority: updatedTask.priority,
-            completed: updatedTask.completed,
-            dueDateTime: updatedTask.dueDateTime,
-            isAllDay: updatedTask.isAllDay,
-            assignee: updatedTask.assignee,
-            creator: updatedTask.creator,
-            updatedAt: updatedTask.updatedAt
-          }
-        }
-      })
-    }
-  } catch (error) {
-    log.error({ err: error }, '[MCP SSE] Failed to broadcast task_updated:')
-    // Don't fail the operation if SSE fails
+  // MCP surfaces signal failure by throwing; there is no status code to carry.
+  if (!result.ok) {
+    throw new Error(result.error)
   }
+
+  const updatedTask = result.task as any
 
   return {
     success: true,
@@ -368,14 +334,14 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
       isPrivate: updatedTask.isPrivate,
       dueDateTime: updatedTask.dueDateTime,
       isAllDay: updatedTask.isAllDay,
-      assigneeId: updatedTask.assigneeId,  // Add assigneeId for filtering
+      identifier: updatedTask.identifier,
+      assigneeId: updatedTask.assigneeId,
       assignee: updatedTask.assignee,
-      creatorId: updatedTask.creatorId,    // Add creatorId for consistency
+      creatorId: updatedTask.creatorId,
       creator: updatedTask.creator,
-      listIds: Array.isArray(updatedTask.lists) ? updatedTask.lists.map(l => l.id) : [],
+      updatedAt: updatedTask.updatedAt,
       lists: Array.isArray(updatedTask.lists) ? updatedTask.lists : [],
-      createdAt: updatedTask.createdAt,
-      updatedAt: updatedTask.updatedAt
+      listIds: Array.isArray(updatedTask.lists) ? updatedTask.lists.map((l: any) => l.id) : []
     }
   }
 }

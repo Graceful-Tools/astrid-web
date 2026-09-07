@@ -62,9 +62,17 @@ vi.mock('@/lib/task-identifier', () => ({ resolveTaskIdOrIdentifier: vi.fn(async
 vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents: vi.fn() }))
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
 vi.mock('@/lib/redis', () => ({ RedisCache: { del: vi.fn() }, isRedisAvailable: vi.fn(() => false) }))
-vi.mock('@/lib/analytics-events', () => ({ trackEventFromRequest: vi.fn(), AnalyticsEventType: {} }))
-vi.mock('@/lib/task-recipients', () => ({ collectListRecipientUserIds: vi.fn(() => []) }))
-vi.mock('@/lib/list-member-utils', () => ({ hasListAccess: vi.fn(() => true), getListMemberIds: vi.fn(async () => []) }))
+vi.mock('@/lib/analytics-events', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // The shared task-write verbs record analytics themselves now, so the real
+  // module is spread in for detectPlatform and the write is stubbed.
+  trackAnalyticsEvent: vi.fn(),
+ trackEventFromRequest: vi.fn(), AnalyticsEventType: {}
+}))
+// getListMemberIds is synchronous; mocking it async made it return a Promise,
+// which only mattered once the shared update verb started reading the SSE
+// audience off it.
+vi.mock('@/lib/list-member-utils', () => ({ hasListAccess: vi.fn(() => true), getListMemberIds: vi.fn(() => []) }))
 vi.mock('@/lib/sync/mirror-deletes', () => ({ mirrorExternalDeletesForTask: vi.fn() }))
 vi.mock('@/lib/agent-protocol', () => ({ enrichTaskForAgent: vi.fn((t: unknown) => t) }))
 vi.mock('@/lib/deletion-log', () => ({ audienceForTask: vi.fn(async () => []), recordDeletion: vi.fn() }))

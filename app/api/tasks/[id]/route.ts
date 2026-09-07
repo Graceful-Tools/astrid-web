@@ -1,37 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { prisma } from "@/lib/prisma"
-import { RedisCache, isRedisAvailable } from "@/lib/redis"
-import { getListMemberIds, hasListAccess } from "@/lib/list-member-utils"
+import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
 import { placeholderUserService } from "@/lib/placeholder-user-service"
-import { broadcastToUsers } from "@/lib/sse-utils"
 import { canUserEditTask } from "@/lib/list-permissions"
-import { parseClosedReason } from "@/lib/closed-reason"
-import { diffTaskEvents, recordTaskEvents } from "@/lib/task-events"
-import { invalidateUserStats } from "@/lib/user-stats"
-import { notifyTaskUpdate } from "@/lib/notification-store"
 import {
   TASK_FULL_INCLUDE,
   TASK_PERMISSION_INCLUDE,
   type TaskWithFullRelations,
   type ListWithMembers
 } from "@/lib/task-query-utils"
-import { getErrorMessage } from "@/lib/error-utils"
-import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
-import { rescheduleRemindersForUpdate } from "@/lib/reminder-scheduling"
-import {
-  applyRepeatingTaskCompletion,
-  recordStateChangeComment,
-} from "@/lib/task-update-handler"
+import { detectPlatform } from "@/lib/analytics-events"
 import { createLogger } from '@/lib/logger'
-import { normalizeProjectStatusListIds, statusListIdsToDetachOnCompletion } from "@/lib/project-status"
 import { validateParentTask, readParentTaskIdFromBody } from "@/lib/subtasks"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
-import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
-import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
-import { deleteTaskWithSideEffects } from '@/services/task.service'
+import {
+  deleteTaskWithSideEffects,
+  updateTaskWithSideEffects,
+  type UpdateTaskIntent,
+} from '@/services/task.service'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('api.tasks.id')
@@ -106,12 +95,10 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     // every PUT (task 2e15b42f).
     log.debug({ taskId, userId: session.user.id }, 'PUT /api/tasks/[id]')
 
-    // Validate required data
     if (!data.title?.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 })
     }
 
-    // Check if user has permission to update this task
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: TASK_PERMISSION_INCLUDE,
@@ -121,79 +108,22 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
     }
 
-    // Check if user can update this task
-    // Must check: 1) task assignee, 2) task creator, 3) list permissions
+    // Who may edit THIS task: assignee, creator, or an editor on one of its
+    // lists. The surface's own authorisation — the service authorises the
+    // lists a task is moving to, not the caller.
     const user = { id: session.user.id, email: session.user.email, name: session.user.name }
     const canUpdate =
       existingTask.assigneeId === session.user.id ||
       existingTask.creatorId === session.user.id ||
-      existingTask.lists.some((list) =>
-        canUserEditTask(user, existingTask, list)
-      )
-
-    log.info({
-      taskId,
-      userId: session.user.id,
-      canUpdate,
-      isAssignee: existingTask.assigneeId === session.user.id,
-      isCreator: existingTask.creatorId === session.user.id,
-      lists: existingTask.lists.map((l) => ({
-        id: l.id,
-        name: l.name,
-        privacy: l.privacy,
-        publicListType: l.publicListType
-      }))
-    }, `🔐 [TASK-UPDATE] Permission check:`)
+      existingTask.lists.some((list) => canUserEditTask(user, existingTask, list))
 
     if (!canUpdate) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Validate and sanitize the data
-    if (process.env.NODE_ENV === "development") {
-      // Field names, not values — this was a third full body dump on the write
-      // path (task 2e15b42f).
-      log.debug({ taskId, fields: Object.keys(data ?? {}) }, 'Updating task')
-      log.info({ userId: session?.user?.id, email: session?.user?.email }, 'Session data:')
-    }
-    
-    // Handle date conversion for 'dueDateTime' field
-    let sanitizedDueDateTime = data.dueDateTime
-    if (sanitizedDueDateTime === undefined) {
-      sanitizedDueDateTime = null  // Convert undefined to null for database
-    } else if (sanitizedDueDateTime !== null) {
-      if (typeof sanitizedDueDateTime === 'string') {
-        try {
-          sanitizedDueDateTime = new Date(sanitizedDueDateTime)
-          if (isNaN(sanitizedDueDateTime.getTime())) {
-            log.error({ dueDateTime: data.dueDateTime }, 'Invalid dueDateTime string')
-            sanitizedDueDateTime = null
-          }
-        } catch (e) {
-          log.error({ err: e, dueDateTime: data.dueDateTime }, 'Error parsing dueDateTime')
-          sanitizedDueDateTime = null
-        }
-      } else if (!(sanitizedDueDateTime instanceof Date)) {
-        log.error({ type: typeof data.dueDateTime, value: data.dueDateTime }, 'Invalid dueDateTime type')
-        sanitizedDueDateTime = null
-      }
-    }
-
-    // Ensure repeatingData is properly formatted JSON or null
-    let sanitizedRepeatingData = data.repeatingData
-    if (data.repeating !== 'custom') {
-      sanitizedRepeatingData = null
-    } else if (sanitizedRepeatingData && typeof sanitizedRepeatingData === 'string') {
-      try {
-        sanitizedRepeatingData = JSON.parse(sanitizedRepeatingData)
-      } catch (e) {
-        log.error({ err: sanitizedRepeatingData }, 'Invalid JSON in repeatingData:')
-        sanitizedRepeatingData = null
-      }
-    }
-
-    // Handle assigneeEmail (for non-registered users)
-    // If assigneeEmail is provided, find or create placeholder user
+    // Reassigning by email to someone who has not signed up yet mints a
+    // placeholder user. Only this route accepts it, and it writes to the User
+    // table rather than the task, so it stays at the surface.
     let emailAssigneeId: string | null = null
     if (data.assigneeEmail) {
       try {
@@ -212,153 +142,25 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       }
     }
 
-    // Check if task is in a PUBLIC list - if so, prevent REGULAR USER assignee changes
-    // BUT allow AI agent assignments (coding agents should work on public lists)
-    const hasPublicList = existingTask.lists.some((list) => list.privacy === 'PUBLIC')
-    let finalAssigneeId = emailAssigneeId || data.assigneeId
+    // A task on a PUBLIC list takes no regular-user assignee — that would
+    // publish a real person's identity on a public artifact. AI agents are
+    // exempt: coding agents are expected to work on public lists.
+    const assigneeProvided = emailAssigneeId !== null || data.assigneeId !== undefined
+    let finalAssigneeId: string | null = emailAssigneeId ?? data.assigneeId ?? null
 
-    if (hasPublicList && finalAssigneeId) {
-      // Check if assignee is an AI agent
+    if (finalAssigneeId && existingTask.lists.some((list) => list.privacy === 'PUBLIC')) {
       const assigneeUser = await prisma.user.findUnique({
         where: { id: finalAssigneeId },
-        select: { isAIAgent: true, aiAgentType: true }
+        select: { isAIAgent: true },
       })
-
       if (!assigneeUser?.isAIAgent) {
-        // Regular user assignment on public list - prevent it
         log.info(`📢 Task ${taskId} is in a PUBLIC list - preventing regular user assignment`)
-        finalAssigneeId = null // Force unassigned for public lists
-      } else {
-        // AI agent assignment on public list - allow it
-        log.info(`🤖 Task ${taskId} is in a PUBLIC list - allowing AI agent assignment`)
+        finalAssigneeId = null
       }
-    }
-
-    // Log ALL updates with repeatFrom for debugging
-    log.info({
-      taskId,
-      repeating: data.repeating,
-      repeatFrom: data.repeatFrom,
-      repeatFromType: typeof data.repeatFrom,
-      repeatFromUndefined: data.repeatFrom === undefined,
-      hasRepeatFromInData: 'repeatFrom' in data,
-      repeatingData: sanitizedRepeatingData
-    }, '[API Route] Update request received:')
-
-    // Log repeating task data for debugging
-    if (data.repeating && data.repeating !== 'never') {
-      log.info({
-        taskId,
-        repeating: data.repeating,
-        repeatFrom: data.repeatFrom,
-        repeatingData: sanitizedRepeatingData
-      }, '[API Route] Updating repeating task:')
-    }
-
-    // SECURITY: Validate user has access to all specified lists before updating
-    let validatedListIds: string[] | undefined
-    let completedFromStatus: boolean | undefined
-    if (data.listIds !== undefined && Array.isArray(data.listIds)) {
-      if (data.listIds.length > 0) {
-        const lists = await prisma.taskList.findMany({
-          where: { id: { in: data.listIds } },
-          include: {
-            owner: { select: { id: true } },
-            listMembers: { select: { userId: true } },
-          }
-        })
-
-        // Check if all requested lists exist
-        const foundListIds = new Set(lists.map(l => l.id))
-        const missingListIds = data.listIds.filter((id: string) => !foundListIds.has(id))
-        if (missingListIds.length > 0) {
-          return NextResponse.json(
-            { error: `Invalid list IDs: ${missingListIds.join(', ')}` },
-            { status: 400 }
-          )
-        }
-
-        // Validate user has permission to add tasks to each list
-        for (const list of lists) {
-          const userHasAccess = hasListAccess(list as any, session.user.id)
-          const isCollaborativePublic = list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-
-          if (!userHasAccess && !isCollaborativePublic) {
-            return NextResponse.json(
-              { error: `You don't have permission to add tasks to list: ${list.name}` },
-              { status: 403 }
-            )
-          }
-        }
-
-        // Filter out virtual lists
-        validatedListIds = lists
-          .filter(list => !list.isVirtual)
-          .map(list => list.id)
-
-        const projectIds = lists
-          .map(list => list.projectId)
-          .filter((id): id is string => Boolean(id))
-
-        if (projectIds.length > 0) {
-          const projectStatusLists = await prisma.taskList.findMany({
-            where: {
-              projectId: { in: Array.from(new Set(projectIds)) },
-              listType: "status",
-            },
-          })
-          const requestedCompletedFlag = typeof data.completed === 'boolean'
-            ? data.completed
-            : existingTask.completed
-          const normalized = normalizeProjectStatusListIds(
-            validatedListIds,
-            [...lists, ...projectStatusLists] as any,
-            { completed: requestedCompletedFlag }
-          )
-          validatedListIds = normalized.listIds
-          completedFromStatus = normalized.completedFromStatus
-        }
-      } else {
-        // Allow removing task from all lists (empty array)
-        validatedListIds = []
-      }
-    }
-
-    const requestedCompleted = completedFromStatus ?? data.completed
-
-    // See the `lists:` clause below — computed here so it reads next to the
-    // completion decision it depends on.
-    const statusListsToDetachOnCompletion =
-      requestedCompleted === true && validatedListIds === undefined
-        ? statusListIdsToDetachOnCompletion(existingTask.lists)
-        : []
-
-    // Terminal state other than done (task 11042ae3). Rejected rather than
-    // silently nulled when unrecognised: a typo must not quietly become
-    // "completed normally".
-    const parsedClosedReason = parseClosedReason(data.closedReason)
-    if (!parsedClosedReason.ok) {
-      return NextResponse.json({ error: parsedClosedReason.error }, { status: 400 })
-    }
-
-    // Handle repeating-task completion: if the task is part of a repeating
-    // series and should roll forward / terminate, the helper applies it and
-    // we short-circuit with the freshly-fetched task.
-    const completionOutcome = await applyRepeatingTaskCompletion({
-      taskId,
-      existingCompleted: existingTask.completed,
-      dataCompleted: requestedCompleted,
-      localCompletionDate: data.localCompletionDate,
-      closedReason: parsedClosedReason.value,
-    })
-    if (completionOutcome.rolledForward) {
-      return NextResponse.json(completionOutcome.updatedTask)
     }
 
     // Subtasks: re-parent, or promote to top-level with null (task b00a1f94).
-    // The web route never read this, so the UI had no way to unnest a task even
-    // though the column and the v1 route already supported it. Parsing and
-    // cycle-validation are shared with v1 rather than re-derived.
+    // Cycle-validation is shared with v1 rather than re-derived.
     const parentUpdate = readParentTaskIdFromBody(data)
     if (!parentUpdate.skip && parentUpdate.parentTaskId !== null) {
       const parentError = await validateParentTask(parentUpdate.parentTaskId, taskId)
@@ -367,367 +169,57 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       }
     }
 
-    const updateData = {
+    // PUT semantics: an absent date CLEARS the date, and an absent isAllDay is
+    // false. That is this route's contract with the web client, which always
+    // sends the whole task — so these two keys are always present in the
+    // intent, unlike the fields below that are only forwarded when sent.
+    const intent: UpdateTaskIntent = {
       title: data.title,
-      description: data.description,
-      priority: data.priority,
-      repeating: data.repeating,
-      repeatingData: sanitizedRepeatingData,
-      ...(data.repeatFrom !== undefined && { repeatFrom: data.repeatFrom }),
-      isPrivate: data.isPrivate,
-      ...(data.timerDuration !== undefined && { timerDuration: data.timerDuration }),
-      ...(data.lastTimerValue !== undefined && { lastTimerValue: data.lastTimerValue }),
-      ...(parentUpdate.skip ? {} : { parentTaskId: parentUpdate.parentTaskId }),
+      dueDateTime: data.dueDateTime ?? null,
+      isAllDay: data.isAllDay ?? false,
+      repeatingData: data.repeatingData ?? null,
     }
+    if (data.description !== undefined) intent.description = data.description
+    if (data.priority !== undefined) intent.priority = data.priority
+    if (data.repeating !== undefined) intent.repeating = data.repeating
+    if (data.repeatFrom !== undefined) intent.repeatFrom = data.repeatFrom
+    if (data.isPrivate !== undefined) intent.isPrivate = data.isPrivate
+    if (data.timerDuration !== undefined) intent.timerDuration = data.timerDuration
+    if (data.lastTimerValue !== undefined) intent.lastTimerValue = data.lastTimerValue
+    if (data.completed !== undefined) intent.completed = data.completed
+    if (data.completedAt !== undefined) intent.completedAt = data.completedAt
+    if (data.completedSource !== undefined) intent.completedSource = data.completedSource
+    if (data.closedReason !== undefined) intent.closedReason = data.closedReason
+    if (data.localCompletionDate !== undefined) intent.localCompletionDate = data.localCompletionDate
+    if (data.statusRole !== undefined) intent.statusRole = data.statusRole
+    if (data.listIds !== undefined && Array.isArray(data.listIds)) intent.listIds = data.listIds
+    if (assigneeProvided) intent.assigneeId = finalAssigneeId
+    if (!parentUpdate.skip) intent.parentTaskId = parentUpdate.parentTaskId
 
-    // The FIELD NAMES being written, never their values. This logged the whole
-    // updateData object — title, description and all — on every PUT
-    // (task 2e15b42f). Which fields changed is the useful signal; what the user
-    // typed is not, and does not belong in a log aggregator.
-    log.debug(
-      { taskId, fields: Object.keys(updateData) },
-      '[API Route] Prisma update data'
-    )
-
-    // Update the task (only if not a repeating task that was rolled forward)
-    const updatedTask = await prisma.task.update({
-      where: { id: taskId },
-      data: {
-        ...updateData,
-        completed: requestedCompleted,
-        ...(requestedCompleted === true
-          ? { completedAt: new Date(), completedSource: 'astrid' }
-          : requestedCompleted === false
-            // Reopening clears the reason too — a reopened task is not a
-            // canceled one (task 11042ae3).
-            ? { completedAt: null, completedSource: null, closedReason: null }
-            : {}),
-        ...(data.closedReason !== undefined && requestedCompleted !== false
-          ? { closedReason: parsedClosedReason.value }
-          : {}),
-        // Board status as a state on the task (AWTD-562). Completing a task
-        // clears it — Done carries no status, the same invariant the list
-        // model needed a normalizer to hold.
-        ...(requestedCompleted === true
-          ? { statusRole: null }
-          : data.statusRole !== undefined
-            ? { statusRole: data.statusRole || null }
-            : {}),
-        dueDateTime: sanitizedDueDateTime,
-        isAllDay: data.isAllDay ?? false,
-        assigneeId: finalAssigneeId,
-        lists: validatedListIds !== undefined
-          ? {
-              set: validatedListIds.map((id: string) => ({ id })),
-            }
-          // Invariant: completed = true => no status memberships (task
-          // db7c6670). The listIds branch enforces it via
-          // normalizeProjectStatusListIds, but only when the request carries
-          // listIds. A completion-only update left the task sitting in Ready.
-          : statusListsToDetachOnCompletion.length > 0
-            ? { disconnect: statusListsToDetachOnCompletion.map((id: string) => ({ id })) }
-            : undefined,
-      },
-      include: TASK_FULL_INCLUDE,
-    })
-
-    // Structured activity history (task 51a4b8ff), alongside the prose comment
-    // below. Both derive from the same before/after pair; the comment is what a
-    // human reads, the events are what can be queried and fanned out.
-    const taskUpdateEvents = diffTaskEvents(
-      {
-        title: existingTask.title,
-        completed: existingTask.completed,
-        closedReason: existingTask.closedReason,
-        priority: existingTask.priority,
-        assigneeId: existingTask.assigneeId,
-        dueDateTime: existingTask.dueDateTime,
-        listIds: existingTask.lists.map((list) => list.id),
-      },
-      {
-        title: updatedTask.title,
-        completed: updatedTask.completed,
-        closedReason: updatedTask.closedReason,
-        priority: updatedTask.priority,
-        assigneeId: updatedTask.assigneeId,
-        dueDateTime: updatedTask.dueDateTime,
-        listIds: updatedTask.lists.map((list) => list.id),
-      }
-    )
-
-    // Best-effort by contract — recordTaskEvents never throws.
-    await recordTaskEvents({
+    const result = await updateTaskWithSideEffects({
       taskId,
       actorId: session.user.id,
+      actorName: session.user.name || session.user.email || 'Someone',
       // Always a human here: this route is session-authenticated web UI. Agents
       // reach tasks through /api/v1, which passes auth.isAIAgent.
       actorType: 'user',
-      events: taskUpdateEvents,
-    })
-
-    const commenterIds = Array.from(
-      new Set(
-        (updatedTask.comments ?? [])
-          .filter((comment: { authorId?: string | null } | null | undefined): comment is { authorId: string } =>
-            Boolean(comment && comment.authorId)
-          )
-          .map((comment) => comment.authorId)
-          .filter((id): id is string => typeof id === 'string' && id.length > 0)
-      )
-    )
-    const taskAudience = {
-      assigneeId: updatedTask.assigneeId,
-      creatorId: updatedTask.creatorId,
-      commenterIds,
-    }
-    // One persist for the whole update — per-event persists defeat the
-    // row-level dedupe and wrote duplicate rows (task ceaff1c5).
-    await notifyTaskUpdate({
-      taskId,
-      actorId: session.user.id,
-      events: taskUpdateEvents,
-      audience: taskAudience,
-    })
-
-    // Track state changes and create system comment.
-    const stateChangeComment = await recordStateChangeComment({
+      platform: detectPlatform(request),
+      intent,
       existingTask,
-      updatedTask,
-      updaterName: session.user.name || session.user.email || 'Someone',
+      cancelWorkflowReason: 'Task marked as completed by user',
+      legacySsePayload: true,
     })
-    if (stateChangeComment) {
-      updatedTask.comments = [stateChangeComment, ...updatedTask.comments]
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
     }
 
-    if (data.listIds !== undefined) {
-      const previousListIds = existingTask.lists.map((list) => list.id)
-      const requestedListIdsForManualSort = validatedListIds ?? data.listIds
-      await syncManualSortMemberships({
-        taskId,
-        previousListIds,
-        requestedListIds: requestedListIdsForManualSort,
-      })
+    // Prepended so the client renders it without a refetch, as before.
+    if (result.stateChangeComment && Array.isArray(result.task.comments)) {
+      result.task.comments = [result.stateChangeComment, ...result.task.comments]
     }
 
-    // Handle AI agent assignment using command pattern (prevents circular dependencies)
-    try {
-      log.info(`🔔 [TASK-UPDATE] Starting AI agent assignment check for task ${updatedTask.id}`)
-      log.info(`🔔 [TASK-UPDATE] Session user: ${session.user.id}, email: ${session.user.email}`)
-
-      // Check if updater is an AI agent to prevent self-triggering loops
-      const updaterUser = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { isAIAgent: true }
-      })
-      const isUpdaterAIAgent = updaterUser?.isAIAgent === true
-      log.info(`🔔 [TASK-UPDATE] isUpdaterAIAgent: ${isUpdaterAIAgent}`)
-
-      // AI agent workflow triggering is handled by Prisma middleware
-      // The middleware posts the "starting" comment, sends webhooks, and triggers assistant workflow
-      // This keeps the API route simple and avoids duplicate processing
-      if (!isUpdaterAIAgent) {
-        const assigneeChanged = updatedTask.assigneeId !== existingTask.assigneeId
-        if (assigneeChanged && updatedTask.assigneeId) {
-          log.info(`🤖 [TASK-UPDATE] Assignee changed to ${updatedTask.assigneeId} - Prisma middleware will handle AI agent processing`)
-        }
-      } else {
-        log.info(`🤖 Task updated by AI agent itself, skipping AI agent processing`)
-      }
-    } catch (aiWebhookError) {
-      log.error({ err: aiWebhookError }, "Failed to check AI agent assignment:")
-      // Don't fail the task update if check fails
-    }
-
-    // Invalidate user statistics if completion status or assignment changed
-    try {
-      const completionChanged = existingTask.completed !== updatedTask.completed
-      const assignmentChanged = existingTask.assigneeId !== updatedTask.assigneeId
-
-      if (completionChanged || assignmentChanged) {
-        // invalidateUserStats imported at top level
-        const statsUserIds = new Set<string>()
-
-        // Invalidate assignee's stats (completed tasks count changed)
-        if (updatedTask.assigneeId && completionChanged) {
-          statsUserIds.add(updatedTask.assigneeId)
-        }
-
-        // Invalidate old assignee's stats if assignment changed
-        if (existingTask.assigneeId && assignmentChanged && existingTask.assigneeId !== updatedTask.assigneeId) {
-          statsUserIds.add(existingTask.assigneeId)
-        }
-
-        // Invalidate creator's stats (inspired tasks count might have changed)
-        // This happens when someone else completes their task
-        if (updatedTask.creatorId && completionChanged) {
-          statsUserIds.add(updatedTask.creatorId)
-        }
-
-        if (statsUserIds.size > 0) {
-          await invalidateUserStats(Array.from(statsUserIds))
-          log.info(`📊 Invalidated user stats for ${statsUserIds.size} users`)
-        }
-      }
-    } catch (statsError) {
-      log.error({ err: statsError }, "❌ Failed to invalidate user stats:")
-      // Continue - task was still updated
-    }
-
-    // Invalidate cache for all affected users BEFORE broadcasting SSE
-    try {
-      const redisAvailable = await isRedisAvailable()
-      if (redisAvailable) {
-        const affectedUserIds = new Set<string>()
-
-        // Add task assignee (both old and new if assignee changed)
-        if (updatedTask.assigneeId) {
-          affectedUserIds.add(updatedTask.assigneeId)
-        }
-        if (existingTask.assigneeId && existingTask.assigneeId !== updatedTask.assigneeId) {
-          // Also invalidate cache for old assignee if assignment changed
-          affectedUserIds.add(existingTask.assigneeId)
-        }
-
-        // Add task creator
-        if (updatedTask.creatorId) {
-          affectedUserIds.add(updatedTask.creatorId)
-        }
-
-        // Add all list members from all associated lists
-        for (const list of updatedTask.lists) {
-          // getListMemberIds imported at top level
-          const memberIds = getListMemberIds(list)
-          memberIds.forEach(id => affectedUserIds.add(id))
-        }
-
-        // Invalidate cache for all affected users
-        const invalidationPromises = Array.from(affectedUserIds).map(userId =>
-          RedisCache.del(RedisCache.keys.userTasks(userId))
-        )
-
-        log.info(`🗄️ Invalidating task cache for ${affectedUserIds.size} users after task update`)
-        await Promise.all(invalidationPromises)
-        log.info(`✅ Task cache invalidated for all affected users`)
-      }
-    } catch (cacheError) {
-      log.error({ err: cacheError }, "❌ Failed to invalidate task cache:")
-      // Continue - task was still updated
-    }
-
-    // Broadcast real-time updates to relevant users
-    try {
-      // Get all users who should receive updates
-      const userIds = new Set<string>()
-      
-      // Add task assignee
-      if (updatedTask.assigneeId) {
-        userIds.add(updatedTask.assigneeId)
-      }
-      
-      // Add task creator  
-      if (updatedTask.creatorId) {
-        userIds.add(updatedTask.creatorId)
-      }
-      
-      // Add all list members from all associated lists using comprehensive member utils
-      for (const list of updatedTask.lists) {
-        // getListMemberIds imported at top level
-        const memberIds = getListMemberIds(list)
-        memberIds.forEach(id => userIds.add(id))
-      }
-      
-      // Remove the user who made the update (they already see it)
-      userIds.delete(session.user.id)
-      
-      log.info(`[SSE] Task update broadcast - userIds before removal: ${Array.from(userIds).length}`)
-      log.info(Array.from(userIds), `[SSE] User IDs to notify:`)
-      
-      // Broadcast to all relevant users
-      if (userIds.size > 0) {
-        log.info(`[SSE] Broadcasting task update to ${userIds.size} users`)
-        // broadcastToUsers imported at top level
-        broadcastToUsers(Array.from(userIds), {
-          type: 'task_updated',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: updatedTask.id,
-            taskTitle: updatedTask.title,
-            taskPriority: updatedTask.priority,
-            taskDueDateTime: updatedTask.dueDateTime,
-            taskIsAllDay: updatedTask.isAllDay,
-            taskCompleted: updatedTask.completed,
-            updaterName: session.user.name || session.user.email || "Someone",
-            userId: session.user.id, // Add userId for client-side filtering
-            listNames: updatedTask.lists.map((list) => list.name),
-            // Send complete task data for real-time updates
-            task: {
-              id: updatedTask.id,
-              title: updatedTask.title,
-              description: updatedTask.description,
-              priority: updatedTask.priority,
-              completed: updatedTask.completed,
-              dueDateTime: updatedTask.dueDateTime,
-              isAllDay: updatedTask.isAllDay,
-              assignee: updatedTask.assignee,
-              assigneeId: updatedTask.assigneeId,
-              creator: updatedTask.creator,
-              creatorId: updatedTask.creatorId,
-              lists: updatedTask.lists,
-              isPrivate: updatedTask.isPrivate,
-              repeating: updatedTask.repeating,
-              repeatingData: updatedTask.repeatingData,
-              createdAt: updatedTask.createdAt,
-              updatedAt: updatedTask.updatedAt,
-              comments: updatedTask.comments,
-              attachments: updatedTask.attachments
-            }
-          }
-        })
-      }
-    } catch (sseError) {
-      log.error({ err: sseError }, "Failed to send task update SSE notifications:")
-      // Continue - task was still updated
-    }
-
-
-    // Cancel any active coding workflow if the task is being marked complete
-    if (data.completed && !existingTask.completed) {
-      await cancelActiveCodingWorkflow({
-        taskId,
-        reason: 'Task marked as completed by user',
-      })
-    }
-
-    // Update reminders if due date, completion status, or assignee changed
-    const dueDateChanged = existingTask.dueDateTime?.getTime() !== sanitizedDueDateTime?.getTime()
-    const completedChanged = existingTask.completed !== data.completed
-    const assigneeChanged = existingTask.assigneeId !== data.assigneeId
-
-    if (dueDateChanged || completedChanged || assigneeChanged) {
-      await rescheduleRemindersForUpdate({
-        taskId: updatedTask.id,
-        taskTitle: updatedTask.title,
-        userId: updatedTask.assigneeId || updatedTask.creatorId || session.user.id,
-        dueDateTime: sanitizedDueDateTime ? new Date(sanitizedDueDateTime) : null,
-        completed: !!updatedTask.completed,
-      })
-    }
-
-    log.info({
-      taskId: updatedTask.id,
-      repeatFrom: updatedTask.repeatFrom,
-      repeating: updatedTask.repeating
-    }, '[API Route] Returning updated task:')
-
-    // Track analytics events (fire-and-forget)
-    if (data.completed !== undefined && data.completed !== existingTask.completed) {
-      if (data.completed) {
-        trackEventFromRequest(request, session.user.id, AnalyticsEventType.TASK_COMPLETED, { taskId })
-      }
-    }
-    trackEventFromRequest(request, session.user.id, AnalyticsEventType.TASK_EDITED, { taskId })
-
-    return NextResponse.json(updatedTask)
+    return NextResponse.json(result.task)
   } catch (error) {
     log.error({ err: error }, "Error updating task:")
     log.error({
