@@ -133,6 +133,76 @@ export const AUTHORITATIVE_DOCS = [
 export const INTENTIONALLY_MISSING: Record<string, string> = {
   '.codex/': 'AGENTS.md names it precisely to say the broken CLAUDE.md copy invented it.',
   'components/foo.tsx': 'CODEX.md uses it to show the file:line reference FORMAT, not a real file.',
+  '.claude/settings.local.json':
+    'Per-machine and gitignored — the file a developer creates from .claude/settings.json.example. ' +
+    'It was tracked until 747cb68 untracked it, at which point every doc citing it became a path ' +
+    'that resolves on the author\'s machine and nowhere else.',
+  '.vercel/project.json':
+    'Per-machine and gitignored — written by the Vercel CLI on link. docs/CLI_OPERATIONS.md cites ' +
+    'it to say what the CLI leaves behind, not to promise the repository contains it.',
+}
+
+/**
+ * Which cited paths git refuses to track.
+ *
+ * This exists because "does the file exist" is the WRONG question when the
+ * checker runs on a developer machine: a gitignored file is present for the
+ * author and absent in every clone, so the suite passed locally and failed in
+ * CI — seven minutes into a production deploy, with the deploy job skipped
+ * behind it. A path that git ignores must be declared in INTENTIONALLY_MISSING
+ * with a reason, so the verdict is the same everywhere.
+ *
+ * Returns [] when git is unavailable: this is a guard against drift, not a
+ * reason to fail a build that has no repository to ask.
+ */
+export function findGitIgnoredCodePaths(root: string): BrokenCodePath[] {
+   
+  const { existsSync, readFileSync } = require('node:fs') as typeof import('node:fs')
+   
+  const { dirname, join, resolve } = require('node:path') as typeof import('node:path')
+   
+  const { execFileSync } = require('node:child_process') as typeof import('node:child_process')
+
+  const cited: BrokenCodePath[] = []
+  for (const file of AUTHORITATIVE_DOCS) {
+    const absolute = join(root, file)
+    if (!existsSync(absolute)) continue
+    for (const reference of extractCodePathReferences(readFileSync(absolute, 'utf8'))) {
+      if (reference.path in INTENTIONALLY_MISSING) continue
+      // Same exclusion findBrokenCodePaths makes, and for the same reason:
+      // ASTRID.md's `../CLAUDE.md` points at the parent workspace on purpose.
+      // It also has to happen HERE rather than being left to git, which treats
+      // a path outside the repository as a fatal error and abandons the whole
+      // batch — one such citation silently emptied this guard's answer.
+      const fromRoot = resolve(root, reference.path)
+      const fromDoc = resolve(dirname(absolute), reference.path)
+      if (!fromRoot.startsWith(root) && !fromDoc.startsWith(root)) continue
+      cited.push({ file, ...reference })
+    }
+  }
+  if (cited.length === 0) return []
+
+  let stdout: string
+  try {
+    stdout = execFileSync('git', ['check-ignore', '--stdin'], {
+      cwd: root,
+      input: cited.map(c => c.path).join('\n'),
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    const status = (error as { status?: number }).status
+    // 1 is check-ignore's normal "nothing matched".
+    if (status === 1) return []
+    // Anything else is git failing, not git answering. Returning [] here is
+    // what made the first version of this guard a no-op that reported success.
+    if (status === undefined) return []
+    const stderr = String((error as { stderr?: unknown }).stderr ?? '').trim()
+    throw new Error(`git check-ignore failed (exit ${status}): ${stderr}`)
+  }
+
+  const ignored = new Set(stdout.split('\n').filter(Boolean))
+  return cited.filter(c => ignored.has(c.path))
 }
 
 export interface BrokenCodePath extends CodePathReference {

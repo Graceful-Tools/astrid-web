@@ -14,6 +14,8 @@ import {
   stripFencedBlocks,
   normalizeCodePath,
   findBrokenCodePaths,
+  findGitIgnoredCodePaths,
+  INTENTIONALLY_MISSING,
   AUTHORITATIVE_DOCS,
 } from '@/scripts/lib/doc-code-paths'
 
@@ -75,5 +77,31 @@ describe('the authoritative docs cite paths that exist (task ff74f430)', () => {
   it('has no broken code path in any of them', () => {
     const broken = findBrokenCodePaths(process.cwd())
     expect(broken.map(p => `${p.file}:${p.line} -> ${p.path}`)).toEqual([])
+  })
+})
+
+/**
+ * The checker asked "does this file exist", which is the wrong question on a
+ * developer machine. `.claude/settings.local.json` and `.vercel/project.json`
+ * are gitignored: present for whoever wrote the doc, absent in every clone. So
+ * `npm run predeploy` was green locally and the same suite failed in CI —
+ * discovered seven minutes into a production deploy, with the deploy job
+ * skipped behind it.
+ *
+ * A gitignored path has to be declared, with a reason, rather than resolved by
+ * luck of the working directory.
+ */
+describe('no authoritative doc relies on a gitignored path existing', () => {
+  it('finds no undeclared gitignored citation', () => {
+    const undeclared = findGitIgnoredCodePaths(process.cwd())
+    expect(undeclared.map(p => `${p.file}:${p.line} -> ${p.path}`)).toEqual([])
+  })
+
+  it('has the mechanism actually engaged, not vacuously passing', () => {
+    // If these two ever become tracked files, this assertion is the prompt to
+    // drop them from INTENTIONALLY_MISSING rather than leave a stale excuse.
+    for (const path of ['.claude/settings.local.json', '.vercel/project.json']) {
+      expect(INTENTIONALLY_MISSING[path], path).toBeTruthy()
+    }
   })
 })
