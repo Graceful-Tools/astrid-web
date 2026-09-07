@@ -27,6 +27,13 @@ const CACHE_SYNC_EVENTS = [
   'list_member_added',
   'list_member_removed',
   'list_member_updated',
+  // The server emits list_member_role_changed / list_admin_role_granted for a
+  // role change; list_member_updated was v1's private spelling. Subscribing to
+  // only the latter meant a role change made from the web left this cache
+  // stale, while one made from iOS left the member list on screen unchanged —
+  // each name was handled by one half of the client. (Epic 9dedd8aa.)
+  'list_member_role_changed',
+  'list_admin_role_granted',
   'chat_message_created',
   'chat_message_updated',
   'chat_message_deleted',
@@ -159,6 +166,8 @@ export function useCacheSync() {
         case 'list_member_added':
         case 'list_member_removed':
         case 'list_member_updated':
+        case 'list_member_role_changed':
+        case 'list_admin_role_granted':
           if (event.data.listId) {
             // Invalidate the list to force refresh of members
             CacheManager.invalidateEntity('list', event.data.listId)

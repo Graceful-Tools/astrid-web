@@ -7,8 +7,15 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
     },
     listMember: {
+      // Epic 9dedd8aa: the writes moved into services/list-member.service.ts
+      // and settled on the *Many variants, whose count answers "did this
+      // membership exist" in one round trip without throwing — which is how
+      // these routes answer 404. The behaviour these tests pin (who may act,
+      // what status comes back) is unchanged.
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }))
@@ -123,15 +130,15 @@ describe('PUT /api/v1/lists/:id/members/:userId', () => {
 
   it('updates role for an admin caller', async () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(listWithAdminAndMember as any)
-    ;(mockPrisma.listMember.update as any).mockResolvedValue({})
+    ;(mockPrisma.listMember.updateMany as any).mockResolvedValue({ count: 1 })
 
     const res = await PUT(makeReq('PUT', { role: 'admin' }), { params } as any)
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.member.isAdmin).toBe(true)
-    expect(mockPrisma.listMember.update).toHaveBeenCalledWith(
+    expect(mockPrisma.listMember.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { listId_userId: { listId: 'list-1', userId: 'member-1' } },
+        where: { listId: 'list-1', userId: 'member-1' },
         data: { role: 'admin' },
       })
     )
@@ -170,19 +177,19 @@ describe('DELETE /api/v1/lists/:id/members/:userId', () => {
   it('lets a non-admin remove themselves', async () => {
     mockAuth.mockResolvedValue(memberAuth as any)
     mockPrisma.taskList.findUnique.mockResolvedValue(listWithAdminAndMember as any)
-    ;(mockPrisma.listMember.delete as any).mockResolvedValue({})
+    ;(mockPrisma.listMember.deleteMany as any).mockResolvedValue({ count: 1 })
 
     const res = await DELETE(makeReq('DELETE'), { params } as any)
     expect(res.status).toBe(200)
-    expect(mockPrisma.listMember.delete).toHaveBeenCalledWith({
-      where: { listId_userId: { listId: 'list-1', userId: 'member-1' } },
+    expect(mockPrisma.listMember.deleteMany).toHaveBeenCalledWith({
+      where: { listId: 'list-1', userId: 'member-1' },
     })
   })
 
   it('lets an admin remove a member', async () => {
     mockAuth.mockResolvedValue(adminAuth as any)
     mockPrisma.taskList.findUnique.mockResolvedValue(listWithAdminAndMember as any)
-    ;(mockPrisma.listMember.delete as any).mockResolvedValue({})
+    ;(mockPrisma.listMember.deleteMany as any).mockResolvedValue({ count: 1 })
 
     const res = await DELETE(makeReq('DELETE'), { params } as any)
     expect(res.status).toBe(200)

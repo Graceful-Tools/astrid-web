@@ -8,12 +8,14 @@
 import { NextResponse } from 'next/server'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { getUserRoleInList } from "@/lib/list-permissions"
-import { invalidateMemberCache } from '@/lib/list-member-operations'
+import {
+  changeListMemberRole,
+  removeListMember,
+} from '@/services/list-member.service'
 
 const log = createLogger('v1.lists.members.id')
 
@@ -81,22 +83,13 @@ export const PUT = withAuth<RouteContext>(
       )
     }
 
-    await prisma.listMember.update({
-      where: {
-        listId_userId: { listId: id, userId },
-      },
-      data: { role }
+    await changeListMemberRole({
+      list,
+      member: { id: userId },
+      role,
+      actor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
     })
 
-    try {
-      const memberIds = getListMemberIds(list as any)
-      broadcastToUsers(memberIds, {
-        type: 'list_member_updated',
-        data: { listId: id, userId, role }
-      })
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to broadcast list member updated event')
-    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -195,17 +188,12 @@ export const DELETE = withAuth<RouteContext>(
     // The legacy handler has always done this. This one deleted, broadcast SSE
     // and returned, never importing a cache module at all — so the divergence
     // arrived the moment a caller moved from the legacy route to v1.
-    await invalidateMemberCache(userId)
+    await removeListMember({
+      list,
+      member: { id: userId },
+      actor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
+    })
 
-    try {
-      const memberIds = getListMemberIds(list as any)
-      broadcastToUsers(memberIds, {
-        type: 'list_member_removed',
-        data: { listId: id, userId }
-      })
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to broadcast list member removed event')
-    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)

@@ -3,6 +3,11 @@
  */
 
 import { prisma } from "@/lib/prisma"
+import {
+  addListMember as addListMemberService,
+  changeListMemberRole,
+  removeListMember as removeListMemberService,
+} from "@/services/list-member.service"
 import crypto from "crypto"
 import { resolveMCPActor } from "./shared"
 import { getUserRoleInList } from "@/lib/list-permissions"
@@ -113,13 +118,20 @@ export async function addListMember(accessToken: string, listId: string, email: 
       throw new Error('User is already a member')
     }
 
-    // Add existing user as member immediately
-    await prisma.listMember.create({
-      data: {
-        listId,
-        userId: existingUser.id,
-        role: memberRole
-      }
+    // Add existing user as member immediately. Through the service, so this
+    // surface finally emits list_member_added and invalidates the new member's
+    // cache — it did neither, so a member added through MCP appeared to nobody
+    // until something else forced a refetch.
+    await addListMemberService({
+      list,
+      member: {
+        id: existingUser.id,
+        name: existingUser.name,
+        email: existingUser.email,
+        image: (existingUser as { image?: string | null }).image ?? null,
+      },
+      role: memberRole,
+      actor: { id: mcpToken.userId, name: mcpToken.user?.name, email: mcpToken.user?.email },
     })
 
     return {
@@ -228,14 +240,11 @@ export async function updateListMember(accessToken: string, listId: string, memb
     }
   }
 
-  // Update the member's role
-  await prisma.listMember.update({
-    where: {
-      id: existingMember.id
-    },
-    data: {
-      role
-    }
+  await changeListMemberRole({
+    list,
+    member: { id: memberId },
+    role,
+    actor: { id: mcpToken.userId, name: mcpToken.user?.name, email: mcpToken.user?.email },
   })
 
   return { success: true, message: `Member role updated to ${role}` }
@@ -314,17 +323,11 @@ export async function removeListMember(accessToken: string, listId: string, memb
     }
   }
 
-  // Remove the member
-  const deleteResult = await prisma.listMember.deleteMany({
-    where: {
-      listId,
-      userId: memberId
-    }
+  await removeListMemberService({
+    list,
+    member: { id: memberId },
+    actor: { id: mcpToken.userId, name: mcpToken.user?.name, email: mcpToken.user?.email },
   })
-
-  if (deleteResult.count === 0) {
-    throw new Error('Member not found')
-  }
 
   return { success: true, message: "Member removed successfully" }
 }

@@ -44,7 +44,7 @@ const memberDelete = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { findUnique },
-    listMember: { delete: memberDelete },
+    listMember: { delete: memberDelete, deleteMany: memberDelete },
   },
 }))
 
@@ -81,7 +81,7 @@ const ctx = { params: Promise.resolve({ id: 'list-1', userId: AGENT }) } as neve
 beforeEach(() => {
   vi.clearAllMocks()
   findUnique.mockResolvedValue(LIST)
-  memberDelete.mockResolvedValue({})
+  memberDelete.mockResolvedValue({ count: 1 })
 })
 
 describe('v1 member removal invalidates the cache (task e27642cc)', () => {
@@ -90,8 +90,13 @@ describe('v1 member removal invalidates the cache (task e27642cc)', () => {
     const res = await DELETE(del(), ctx)
 
     expect(res.status).toBe(200)
+    // Epic 9dedd8aa moved the write into services/list-member.service.ts and
+    // settled it on deleteMany, whose count answers "did this membership
+    // exist" in one round trip without throwing — which is how the routes
+    // answer 404, and what two of the three surfaces already did. What this
+    // test is actually about, the cache invalidation below, is unchanged.
     expect(memberDelete).toHaveBeenCalledWith({
-      where: { listId_userId: { listId: 'list-1', userId: AGENT } },
+      where: { listId: 'list-1', userId: AGENT },
     })
   })
 

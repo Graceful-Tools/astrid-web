@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 import { sendListInvitationEmail } from "@/lib/email"
 import { broadcastToUsers } from "@/lib/sse-utils"
+import {
+  addListMember,
+  changeListMemberRole,
+  removeListMember as removeListMemberService,
+} from "@/services/list-member.service"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
 import {
@@ -234,20 +239,23 @@ export async function POST(
         return NextResponse.json({ error: "User is already a member" }, { status: 409 })
       }
 
-      // Add existing user as member immediately (quote_vote approach)
-      await prisma.listMember.create({
-        data: {
-          listId,
-          userId: existingUser.id,
-          role
-        }
+      // Add existing user as member immediately (quote_vote approach).
+      // Through the service, which owns the write, the cache invalidation and
+      // the list_member_added broadcast for every surface.
+      await addListMember({
+        list: await loadListWithMembers(listId) ?? list,
+        member: {
+          id: existingUser.id,
+          name: existingUser.name,
+          email: existingUser.email,
+          image: (existingUser as { image?: string | null }).image ?? null,
+        },
+        role,
+        actor: { id: session.user.id, name: session.user.name, email: session.user.email },
       })
 
-
-      // Generate token for notification
-      const token = crypto.randomBytes(32).toString('hex')
-
       // Still create an invitation record for notification purposes
+      const token = crypto.randomBytes(32).toString('hex')
       await prisma.listInvite.create({
         data: {
           listId,
@@ -269,34 +277,6 @@ export async function POST(
         })
       } catch (emailError) {
         log.error({ err: emailError }, "Failed to send notification email:")
-        // Continue - member was still added
-      }
-
-      await invalidateMemberCache(existingUser.id)
-
-      // Broadcast SSE event to ALL list members (including the person who added them)
-      try {
-        const fullList = await loadListWithMembers(listId)
-
-        if (fullList) {
-          const allMemberIds = getListMemberIds(fullList as any)
-
-          broadcastToUsers(allMemberIds, {
-            type: 'list_member_added',
-            timestamp: new Date().toISOString(),
-            data: {
-              listId: list.id,
-              listName: list.name,
-              listColor: (list as any).color || null,
-              inviterName: session.user.name || session.user.email || "Someone",
-              newMemberId: existingUser.id,
-              newMemberEmail: existingUser.email,
-              role: role
-            }
-          })
-        }
-      } catch (sseError) {
-        log.error({ err: sseError }, "Failed to send SSE notification:")
         // Continue - member was still added
       }
 
@@ -416,15 +396,25 @@ export async function DELETE(
       return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 })
     }
 
-    // Remove the member
-    const deleteResult = await prisma.listMember.deleteMany({
-      where: {
-        listId,
-        userId: memberId
-      }
+    // The audience has to be read BEFORE the row goes, or the one person who
+    // must react to this event is the one person left out of it. This route
+    // named its variable `allMemberIdsBeforeRemoval` and then loaded it AFTER
+    // the delete, so the removed member never heard that they were removed and
+    // their web client kept showing the list. The service takes the audience
+    // first; that is the fix. (Epic 9dedd8aa.)
+    const fullListBeforeRemoval = await loadListWithMembers(listId)
+
+    if (!fullListBeforeRemoval) {
+      return NextResponse.json({ error: "List not found" }, { status: 404 })
+    }
+
+    const removed = await removeListMemberService({
+      list: fullListBeforeRemoval,
+      member: { id: memberId },
+      actor: { id: session.user.id, name: session.user.name, email: session.user.email },
     })
 
-    if (deleteResult.count === 0) {
+    if (!removed) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 })
     }
 
@@ -457,41 +447,6 @@ export async function DELETE(
     }
 
     // Get all remaining member IDs BEFORE removing the member (for cache invalidation and broadcast)
-    const fullListBeforeRemoval = await loadListWithMembers(listId)
-
-    if (!fullListBeforeRemoval) {
-      return NextResponse.json({ error: "List not found" }, { status: 404 })
-    }
-
-    const allMemberIdsBeforeRemoval = getListMemberIds(fullListBeforeRemoval as any)
-
-    await invalidateMemberCache(memberId)
-
-    // Broadcast SSE event to ALL members (including the person who removed them)
-    try {
-      const listDetails = await prisma.taskList.findUnique({
-        where: { id: listId },
-        select: { id: true, name: true, color: true }
-      })
-
-      if (listDetails) {
-        // Broadcast to all members who had access before removal
-        broadcastToUsers(allMemberIdsBeforeRemoval, {
-          type: 'list_member_removed',
-          timestamp: new Date().toISOString(),
-          data: {
-            listId: listDetails.id,
-            listName: listDetails.name,
-            listColor: listDetails.color || null,
-            removedMemberId: memberId,
-            removedBy: session.user.name || session.user.email || "Someone"
-          }
-        })
-      }
-    } catch (sseError) {
-      log.error({ err: sseError }, "Failed to send SSE notification for member removal:")
-      // Continue - member was still removed
-    }
 
     return NextResponse.json({ message: "Member removed successfully" })
   } catch (error) {
@@ -716,57 +671,26 @@ export async function PATCH(
       }
     }
 
-    // Update member role
-    const result = await prisma.listMember.updateMany({
-      where: {
-        listId,
-        userId: memberId
-      },
-      data: { role }
-    })
-
-    if (result.count === 0) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 })
-    }
-
-    // Fetch full list to get all member IDs for cache invalidation and SSE broadcast
     const fullList = await loadListWithMembers(listId)
 
     if (!fullList) {
       return NextResponse.json({ error: "List not found" }, { status: 404 })
     }
 
-    // Invalidate Redis cache for all affected users
-    try {
-      const allMemberIds = getListMemberIds(fullList as any)
-      await Promise.all(
-        allMemberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId))
-      )
-    } catch (cacheError) {
-      log.error({ err: cacheError }, "Failed to invalidate cache for list members:")
+    // Owns the update, the cache invalidation for the whole roster, and the
+    // list_admin_role_granted / list_member_role_changed broadcast. Returns
+    // false when no such membership existed, which is this route's 404.
+    const updated = await changeListMemberRole({
+      list: fullList,
+      member: { id: memberId },
+      role,
+      actor: { id: session.user.id, name: session.user.name, email: session.user.email },
+    })
+
+    if (!updated) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 })
     }
 
-    // Send SSE notification to ALL list members (including the user making the change)
-    try {
-      const allMemberIds = getListMemberIds(fullList as any)
-
-      // Broadcast to all list members
-      broadcastToUsers(allMemberIds, {
-        type: role === 'admin' ? 'list_admin_role_granted' : 'list_member_role_changed',
-        timestamp: new Date().toISOString(),
-        data: {
-          listId: fullList.id,
-          listName: fullList.name,
-          listColor: fullList.color || null,
-          memberId,
-          updatedBy: session.user.name || session.user.email || "Someone",
-          newRole: role
-        }
-      })
-    } catch (sseError) {
-      log.error({ err: sseError }, "Failed to send SSE notification for role update:")
-      // Continue - role was still updated
-    }
 
     return NextResponse.json({ message: "Member role updated successfully" })
   } catch (error) {

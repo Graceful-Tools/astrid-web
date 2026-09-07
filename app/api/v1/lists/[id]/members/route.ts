@@ -8,8 +8,8 @@
 import { NextResponse } from 'next/server'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
+import { addListMember } from '@/services/list-member.service'
+import { isListAdminOrOwner } from '@/lib/list-member-utils'
 import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 import { withAuth } from '@/lib/api-auth-wrapper'
@@ -296,29 +296,13 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    await prisma.listMember.create({
-      data: { listId: id, userId: user.id, role }
+    await addListMember({
+      list,
+      member: { id: user.id, name: user.name, email: user.email, image: user.image },
+      role,
+      actor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
     })
 
-
-    try {
-      const memberIds = getListMemberIds(list as any)
-      broadcastToUsers(memberIds, {
-        type: 'list_member_added',
-        data: {
-          listId: id,
-          member: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            role,
-          }
-        }
-      })
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to broadcast list member added event')
-    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
