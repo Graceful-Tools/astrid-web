@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { getTaskCountInclude, getMultipleListTaskCounts } from '@/lib/task-count-utils'
+import { getMultipleListTaskCounts } from '@/lib/task-count-utils'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateListFavorites } from '@/lib/favorites'
@@ -72,8 +72,7 @@ export const GET = withAuth(
           },
           listInvites: {
             select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
-          },
-          ...getTaskCountInclude({ includeCompleted: false })
+          }
         },
         orderBy: updatedSince ? { updatedAt: 'desc' } : undefined,
       })
@@ -251,8 +250,7 @@ export const POST = withAuth(
               include: {
                 user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
               }
-            },
-            ...getTaskCountInclude({ includeCompleted: false })
+            }
           },
         }),
       )
@@ -262,8 +260,6 @@ export const POST = withAuth(
       }
       throw error
     }
-
-    const taskCount = await getMultipleListTaskCounts([list.id], { includeCompleted: false })
 
     // Invalidate user-lists cache for everyone who can see the new list.
     // Pattern delete (`lists:user:${userId}*`) wipes both the legacy
@@ -294,7 +290,7 @@ export const POST = withAuth(
       {
         list: {
           ...list,
-          taskCount: taskCount[list.id] || 0
+          taskCount: 0
         },
         meta: {
           apiVersion: 'v1',

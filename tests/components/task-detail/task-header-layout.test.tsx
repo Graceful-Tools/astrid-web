@@ -67,6 +67,14 @@ function renderHeader(overrides: Record<string, unknown> = {}) {
 }
 
 describe('TaskHeader layout (cc76307c)', () => {
+  it('aligns the checkbox with field icons when the responsive back button exists (task fbc3b0ab)', () => {
+    renderHeader({ onClose: vi.fn() })
+
+    const titleRow = screen.getByText('Fix repeating rollover').parentElement
+    expect(titleRow?.className).toContain('gap-2')
+    expect(titleRow?.className).not.toContain('space-x-2')
+  })
+
   it('does not render a "Task Details" header bar', () => {
     renderHeader({ onClose: vi.fn() })
     expect(screen.queryByText('Task Details')).not.toBeInTheDocument()
