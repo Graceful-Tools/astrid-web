@@ -176,3 +176,6 @@ certificates
 mcp/astrid-mcp
 mcp/astrid-mcp-oauth
 mcp/astrid-mcp-oauth-http
+
+# Claude Code local permissions — per-machine, never shared (.claude/settings.json.example is the template)
+.claude/settings.local.json
