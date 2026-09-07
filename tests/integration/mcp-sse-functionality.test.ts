@@ -47,16 +47,21 @@ describe('MCP SSE Integration - Core Functionality', () => {
     expect(allContent).toContain('@/lib/sse-utils')
 
     // Verify SSE calls for each operation
-    expect(allContent).toContain('comment_created')
-    // create, update and delete are no longer asserted here. All three verbs
-    // moved into services/task.service.ts (epic 9dedd8aa) — delete because two
-    // of the four surfaces skipped the deletion tombstone, create because the
-    // MCP surfaces minted no identifier and posted no creation comment, update
+    expect(allContent).toContain('comment_deleted')
+    // comment_created followed the task verbs out of here (epic 9dedd8aa). It
+    // moved into services/comment.service.ts because this handler broadcast the
+    // event and then fired NO post-comment side effects: an @-mention posted
+    // through MCP notified nobody, and "ship it" was never detected. The
+    // broadcast went with the fix, and is asserted against the service below.
+    // comment_deleted is still here — delete is the next slice.
+    //
+    // create, update and delete of TASKS are not asserted here either. All
+    // three moved into services/task.service.ts — delete because two of the
+    // four surfaces skipped the deletion tombstone, create because the MCP
+    // surfaces minted no identifier and posted no creation comment, update
     // because they stamped no completion, cleared no board status and killed
-    // repeating series outright. The broadcasts went with them. All three are
-    // asserted below against the service, so the coverage is kept rather than
-    // dropped — this test checks WHERE the string lives, and the string moved
-    // on purpose.
+    // repeating series outright. This test checks WHERE the string lives, and
+    // the strings moved on purpose.
 
     // Verify error handling for SSE failures
     expect(allContent).toContain('Failed to broadcast')
@@ -113,12 +118,12 @@ describe('MCP SSE Integration - Core Functionality', () => {
   it('should verify all MCP operations have SSE broadcasting', async () => {
     const allContent = getMCPOperationsContent()
 
-    // Count SSE broadcast calls for each operation (now in handler files)
-    const commentBroadcasts = (allContent.match(/Broadcasting comment_created/g) || []).length
-    // See above: the create, update and delete broadcasts live in the service.
+    // Count SSE broadcast calls for each operation (now in handler files).
+    // See above: comment_created and the three task verbs live in the services.
+    const commentDeleteBroadcasts = (allContent.match(/comment_deleted/g) || []).length
 
-    // Each operation should have exactly one SSE broadcast
-    expect(commentBroadcasts).toBe(1)
+    // The one comment verb still implemented here broadcasts exactly once.
+    expect(commentDeleteBroadcasts).toBe(1)
   })
 
   it('should verify error handling prevents SSE failures from breaking MCP operations', async () => {
