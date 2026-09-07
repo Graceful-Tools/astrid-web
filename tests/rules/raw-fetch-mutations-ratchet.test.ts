@@ -49,7 +49,18 @@ const ROOT = process.cwd()
  * issued into one call in the hook. Neither branch could see that on its own —
  * the slack check found it in the merge, which is the case it exists for.
  */
-const CEILING = 107 // 115 → 107: task 1b381810 deleted the dead components
+// 107 → 108: the desktop sign-in hand-off POSTs /api/auth/desktop/grant from
+// app/[locale]/auth/desktop/desktop-handoff-client.tsx (commit 2e3aa21). This
+// is the documented exception rather than an oversight: the call is a
+// synchronous auth handshake. It needs `redirectUrl` back in the same tick to
+// send the browser to <scheme>://auth/callback, and the grant it mints is
+// single-use with a five-minute life. apiPost would queue it through
+// OfflineSyncManager and replay it later — by which point nobody is on the
+// page to be redirected, there is no response left to read, and the code has
+// very likely expired. Offline is already handled correctly there, by telling
+// the user to check their connection. This file's own preamble names the auth
+// flows as having no useful offline story; this is one of them.
+const CEILING = 108 // 115 → 107: task 1b381810 deleted the dead components
 // (task-form and its picker subtree, ai-api-key-manager, sync-status,
 // public-task-browser, list-detail and the rest), taking their raw mutations
 // with them. Nothing was migrated to the offline client here — the count fell
