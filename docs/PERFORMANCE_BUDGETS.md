@@ -46,6 +46,8 @@ contract tests establish these before/after measurements:
 | `POST /api/v1/tasks` list validation | Every scalar on `TaskList` and `ListMember`, plus four user and four owner fields | 10 contract-required scalar fields; no user or owner relation |
 | Three concurrent cold cache reads | 1 loader call, 3 misses, no coalescing metric | 1 loader call, 3 misses, 2 coalesced loads |
 | Cache hit/miss logging | One info event per lookup | Debug-level structured outcome events |
+| `GET /api/v1/lists` task counts | Correlated `_count.tasks` per list plus the contract count query | Contract count query only |
+| `POST /api/v1/lists` task counts | Correlated `_count.tasks` plus a follow-up query | No count query; a new list returns the same `taskCount: 0` |
 
 No index migration is included. Index work requires sanitized production query
 plans and cardinality evidence, followed by post-deployment verification.
