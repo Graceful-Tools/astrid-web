@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 const ACME_ACCENT = '#a855f7'
 const ASTRID_ACCENT = '#3b82f6'
@@ -81,7 +81,10 @@ describe('no source file outside the colour modules hardcodes the Astrid accent 
   it('finds no stray #3b82f6 in runtime source', () => {
     const offenders: string[] = []
     for (const file of walk(ROOT)) {
-      const rel = file.replace(`${ROOT}/`, '')
+      // Normalised to forward slashes: join() emits backslashes on Windows, so
+      // a plain `${ROOT}/` strip left every path absolute and ALLOWED matched
+      // nothing — the two colour modules reported themselves as offenders.
+      const rel = relative(ROOT, file).split(sep).join('/')
       if (ALLOWED.has(rel)) continue
       if (readFileSync(file, 'utf8').includes(ASTRID_ACCENT)) offenders.push(rel)
     }
