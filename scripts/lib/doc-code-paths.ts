@@ -140,6 +140,11 @@ export const INTENTIONALLY_MISSING: Record<string, string> = {
   '.vercel/project.json':
     'Per-machine and gitignored — written by the Vercel CLI on link. docs/CLI_OPERATIONS.md cites ' +
     'it to say what the CLI leaves behind, not to promise the repository contains it.',
+  'astrid-windows/docs/CONTRACTS.md':
+    'A path in the SIBLING astrid-windows repository, not in this one. docs/PRODUCT_CONTRACT.md ' +
+    'cites it to say where cross-platform divergences are written down — the same way it links ' +
+    'astrid-ios. A cross-repo citation can never resolve in this clone, so checking it for ' +
+    'existence here asks a question this repository cannot answer.',
 }
 
 /**

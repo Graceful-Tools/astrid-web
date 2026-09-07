@@ -92,7 +92,7 @@ for (const file of activeFiles) {
     {
       domain: 'Product behavior',
       path: join(docsRoot, 'PRODUCT_CONTRACT.md'),
-      heading: '# Product Contract — shared behavior & copy across Web and iOS/Mac',
+      heading: '# Product Contract — shared behavior & copy across Web, iOS/Mac and Windows',
       indexLink: '(./PRODUCT_CONTRACT.md)',
     },
   ] as const
