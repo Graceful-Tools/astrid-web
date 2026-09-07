@@ -92,6 +92,36 @@ iOS apps post their Apple identity token to `/api/auth/apple`. The endpoint veri
 
 Registration: `/api/auth/webauthn/register/begin` → `/api/auth/webauthn/register/verify`. Authentication: `/api/auth/webauthn/authenticate/begin` → `/api/auth/webauthn/authenticate/verify`. See `lib/webauthn.ts`.
 
+### Desktop browser hand-off (Windows; Mac and Linux later)
+
+A native desktop app cannot host the NextAuth sign-in page, and should not try:
+doing so would mean re-implementing passkeys, Google and Apple per platform, and
+asking the user to type a password into a window that could be anything. Instead
+the app opens the system browser at `/auth/desktop`, the user signs in with
+whatever the web already supports, and the browser hands a one-time code back
+through the app's registered URL scheme (`BRAND.appUrlScheme`).
+
+The threat that shapes the design: **any local program can register the same URL
+scheme**, so the callback is not a private channel. PKCE is what makes an
+intercepted code worthless — the app keeps a random verifier to itself and sends
+only its SHA-256 hash when the flow starts.
+
+- `lib/auth/desktop-handoff.ts` — the rules, with no storage in sight: S256 only,
+  fixed per-client redirect URI, five-minute lifetime.
+- `lib/auth/desktop-grant-store.ts` — `DesktopAuthGrant` rows: code hashed at
+  rest, claimed by a conditional write so two racing redemptions cannot both win.
+- Routes: `POST /api/auth/desktop/grant` (cookie-authenticated) and
+  `POST /api/v1/auth/desktop/exchange` (unauthenticated; the code is the
+  credential).
+
+Deliberately **not** built on `OAuthAuthorizationCode`. The two look alike, but an
+OAuth code redeems into a scoped third-party token while one of these redeems
+into a full first-party session; sharing a table would make one lookup bug enough
+to turn the former into the latter.
+
+A wrong verifier burns the code instead of allowing another attempt — the same
+call this repo made for WebAuthn challenges (task 1a52195f), for the same reason.
+
 ## Custom Adapter
 
 The system uses a custom Prisma adapter that:
