@@ -481,7 +481,8 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
 - When diagnosing webhook / worker **401** errors, verify environment variables are set **at deploy time** (not just build time) before anything else — recurring 401s traced to deploy-time env-var gaps and were fixed by redeploying with the var present.
 
 ### Task Management / Tooling
-- When filing/updating Astrid tasks, use the correct **`listIds`** array field (not `listId`), and double-check **list ID vs task ID** before closing a task. The wrong field orphans tasks and causes `400`s on comment posts.
+- When filing/updating Astrid tasks **through the REST API**, use the **`listIds`** array field (not `listId`), and double-check **list ID vs task ID** before closing a task. The wrong field orphans tasks and causes `400`s on comment posts.
+- The **MCP `create_task` tool** is the exception, and deliberately so: it takes singular **`listId`** (or a `listIds` array) and maps it to the API's `listIds` itself. It used to forward the singular key untouched, which the API drops — so the create returned `success: true` and attached the task to nothing (task 86b5fbbf). It now refuses a create that resolves to no list rather than filing an invisible one.
 
 ### Communication Style
 - Keep responses concise; avoid exceeding output token limits during long deploys or multi-file work (overlong turns have truncated sessions). Lead with the outcome, then supporting detail.

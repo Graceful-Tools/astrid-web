@@ -346,6 +346,12 @@ export interface CreateTaskInput {
   isPrivate?: boolean
   repeating?: string | null
   customRepeatingData?: unknown
+  /**
+   * DUE_DATE or COMPLETION_DATE. Omitted, the column default (COMPLETION_DATE)
+   * stands — writing that value explicitly would be the same result by luck
+   * rather than by contract.
+   */
+  repeatFrom?: string | null
   reminderTime?: string | Date | null
   reminderType?: string | null
   completed?: boolean
@@ -625,6 +631,11 @@ export async function createTaskWithSideEffects(args: {
     priority: input.priority ?? 0,
     repeating: input.repeating || 'never',
     repeatingData: repeatingData as Prisma.InputJsonValue,
+    // Only when asked for. The create path had no repeatFrom at all, so every
+    // task created through an API took COMPLETION_DATE whatever the caller
+    // wanted — and a weekly job whose run lands late then slips a day per run
+    // (task ee44bc35). Update has honoured it since it shipped.
+    ...(input.repeatFrom ? { repeatFrom: input.repeatFrom } : {}),
     isPrivate: input.isPrivate ?? true,
     dueDateTime,
     isAllDay,

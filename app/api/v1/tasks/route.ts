@@ -290,6 +290,8 @@ export const GET = withAuth(
  *   isAllDay?: boolean
  *   isPrivate?: boolean
  *   repeating?: string
+ *   repeatingData?: object (custom pattern; only read when repeating is "custom")
+ *   repeatFrom?: 'DUE_DATE' | 'COMPLETION_DATE'
  *   clientRequestId?: string (8-128 chars; idempotency key)
  * }
  */
@@ -341,6 +343,13 @@ export const POST = withAuth(
         isAllDay: body.isAllDay,
         isPrivate: body.isPrivate,
         repeating: body.repeating,
+        // The update route has accepted both since it shipped; create ignored
+        // them, which made a repeating task impossible to file in one call —
+        // and docs/FIXALL_WORKFLOW.md names exactly that as the alternative to
+        // a cron (task ee44bc35). `customRepeatingData` is the service's name
+        // for the same field; the wire name here matches the column and PUT.
+        customRepeatingData: body.repeatingData,
+        repeatFrom: body.repeatFrom,
         clientRequestId: body.clientRequestId,
         parentTaskId: rawParentTaskId,
         statusRole: rawStatusRole,
