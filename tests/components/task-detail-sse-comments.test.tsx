@@ -9,6 +9,7 @@
  * adds the new comment to the task's comments array.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { upsertComment } from '@/lib/comment-stream'
 
 describe('TaskDetail SSE Comment Handling - Regression', () => {
   beforeEach(() => {
@@ -105,28 +106,36 @@ describe('TaskDetail SSE Comment Handling - Regression', () => {
       expect(existingComments).toHaveLength(1)
     })
 
-    it('should NOT process SSE event from current user (optimistic update handles it)', () => {
-      const currentUserId = 'user-1'
-
-      const sseEvent = {
-        type: 'comment_created',
-        data: {
-          taskId: 'task-1',
-          userId: 'user-1', // Same as current user
-          comment: {
-            id: 'comment-2',
-            content: 'My own comment',
-            authorId: 'user-1',
-            createdAt: new Date('2024-01-01T11:00:00Z'),
-          },
+    it('DOES process an SSE event from the current user on another device', () => {
+      // This used to assert the opposite: same user id => skip, because "the
+      // optimistic update already handled it". That holds for the tab that
+      // posted the comment and for nothing else. Commenting on the Mac app and
+      // reading on web is one user id on two SSE connections, so the rule
+      // silently threw away every comment the user wrote elsewhere — the bug
+      // in task cb1581e0. The handler now runs upsertComment, which dedupes on
+      // comment id and is therefore device-count-independent.
+      const existingComments = [
+        {
+          id: 'comment-1',
+          content: 'First comment',
+          authorId: 'user-1',
+          createdAt: new Date('2024-01-01T10:00:00Z'),
         },
-      }
+      ] as never
 
-      const { userId } = sseEvent.data
+      const fromMyMac = {
+        id: 'comment-2',
+        content: 'My own comment, written on the Mac',
+        authorId: 'user-1', // same user as the web session
+        createdAt: new Date('2024-01-01T11:00:00Z'),
+      } as never
 
-      // Should NOT process: same user (already handled by optimistic update)
-      expect(userId).toBe(currentUserId)
-      // The handler should return early and not update
+      expect(upsertComment(existingComments, fromMyMac).map(c => c.id))
+        .toEqual(['comment-1', 'comment-2'])
+
+      // And the echo of a comment already on screen still does not double it.
+      expect(upsertComment(upsertComment(existingComments, fromMyMac), fromMyMac))
+        .toHaveLength(2)
     })
 
     it('should NOT process SSE event for different task', () => {

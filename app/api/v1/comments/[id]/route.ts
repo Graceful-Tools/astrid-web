@@ -317,8 +317,13 @@ export const DELETE = withAuth<RouteContext>(
 
     // Broadcast SSE event for real-time updates
     try {
-      const userIds = commentAudience(task)
-      userIds.delete(auth.userId)
+      // The deleter stays in the audience, like the editor above: their other
+      // devices are separate connections under the same user id, and a comment
+      // deleted on the Mac has to disappear from the open web tab too rather
+      // than lingering until the next refresh. Removal is idempotent by id, so
+      // the tab that issued the delete can safely see its own event.
+      // (Task cb1581e0.)
+      const userIds = commentAudience(task, { id: auth.userId, isAIAgent: auth.isAIAgent })
 
       if (userIds.size > 0) {
         broadcastToUsers(Array.from(userIds), {
@@ -327,6 +332,7 @@ export const DELETE = withAuth<RouteContext>(
           data: {
             taskId: task.id,
             commentId: existingComment.id,
+            userId: auth.userId,
             listNames: task.lists.map(list => list.name),
           }
         })

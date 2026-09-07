@@ -234,7 +234,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     // Broadcast SSE updates to relevant users (route-specific: this also pings
     // OpenClaw agents on assigned tasks).
     try {
-      await broadcastCommentCreatedNotification(task, comment, session.user.id)
+      await broadcastCommentCreatedNotification(task, comment)
 
       if (task.assigneeId && task.assignee?.email &&
           (isOpenClawAgentEmail(task.assignee.email) || task.assignee.email === agentEmail('openclaw')) &&

@@ -7,6 +7,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { resolveMCPActor, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
+import { applyCommentActorRule } from "@/lib/comment-permissions"
 
 const log = createLogger('mcp.comment-operations')
 
@@ -130,8 +131,16 @@ export async function addComment(accessToken: string, taskId: string, commentDat
     if (task.assigneeId) userIds.add(task.assigneeId)
     if (task.creatorId) userIds.add(task.creatorId)
 
-    // Remove the comment author from notifications (don't notify yourself)
-    userIds.delete(userId)
+    // The actor is the comment's AUTHOR, not the token owner. This removed
+    // `userId` — so an AI agent commenting through a human's MCP token cut the
+    // HUMAN out of the event about a comment they did not write, while leaving
+    // the agent in: exactly backwards. Humans now stay in (their other devices
+    // are separate SSE connections under one user id) and agents are dropped.
+    // (Task cb1581e0.)
+    applyCommentActorRule(userIds, {
+      id: comment.authorId ?? userId,
+      isAIAgent: Boolean(aiAgentId),
+    })
 
     if (userIds.size > 0) {
       log.info(`[MCP SSE] Broadcasting comment_created to ${userIds.size} users`)
@@ -144,7 +153,7 @@ export async function addComment(accessToken: string, taskId: string, commentDat
           commentId: comment.id,
           commentContent: comment.content.substring(0, 100),
           commenterName: comment.author?.name || comment.author?.email || "Someone",
-          userId,
+          userId: comment.authorId ?? userId,
           listNames: Array.isArray(task.lists) ? task.lists.map(list => list.name) : [],
           comment: {
             id: comment.id,

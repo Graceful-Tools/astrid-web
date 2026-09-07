@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis'
 import { createLogger } from '@/lib/logger'
+import { applyCommentActorRule } from '@/lib/comment-permissions'
 
 const log = createLogger('sse-utils')
 
@@ -302,10 +303,18 @@ export async function sendEventToUser(userId: string, event: any) {
 }
 
 // Helper function to broadcast comment created notifications
+/**
+ * SSE fan-out for a new comment on the legacy `/api/tasks/:id/comments` route.
+ *
+ * The author is IN the audience. This used to take an `excludeUserId` that the
+ * route filled with the commenter, on the reasoning that they already see their
+ * own comment — true of the tab that posted it and of no other device that user
+ * has open. Receivers dedupe on comment id. The AI-agent exception lives in
+ * `applyCommentActorRule`. (Task cb1581e0.)
+ */
 export async function broadcastCommentCreatedNotification(
   task: any, // Task with lists, assignee, etc. included
   comment: any, // Comment with author included
-  excludeUserId?: string // User ID to exclude from notifications (usually the comment author)
 ) {
   try {
     // Get all users who should receive updates
@@ -332,17 +341,12 @@ export async function broadcastCommentCreatedNotification(
       }
     }
 
-    // Debug: Log users before removing commenter
-    log.info(Array.from(userIds), '🔍 Comment SSE debug - All users who should be notified:')
-    log.info(comment.authorId, '🔍 Comment SSE debug - Comment author:')
-    log.info({ excludeUserId }, '🔍 Comment SSE debug - Exclude user ID:')
+    applyCommentActorRule(userIds, {
+      id: comment.authorId,
+      isAIAgent: comment.author?.isAIAgent ?? false,
+    })
 
-    // Remove the excluded user (usually the comment author, since they already see it)
-    if (excludeUserId) {
-      userIds.delete(excludeUserId)
-    }
-
-    log.info(Array.from(userIds), '🔍 Comment SSE debug - Users after removing excluded:')
+    log.info(Array.from(userIds), '🔍 Comment SSE debug - Users to notify:')
 
     // Broadcast to all relevant users
     if (userIds.size > 0) {

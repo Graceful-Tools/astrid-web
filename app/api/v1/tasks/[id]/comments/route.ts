@@ -15,6 +15,7 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
+import { applyCommentActorRule } from '@/lib/comment-permissions'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
 import { withAuth } from '@/lib/api-auth-wrapper'
@@ -373,8 +374,15 @@ export const POST = withAuth<RouteContext>(
       if (task.assigneeId) userIds.add(task.assigneeId)
       if (task.creatorId) userIds.add(task.creatorId)
 
-      // Don't notify the comment author about their own comment
-      userIds.delete(authorId)
+      // The author STAYS in: their phone, Mac and other tabs are separate SSE
+      // connections under the same user id, and they are the whole reason this
+      // event exists. Receivers dedupe on comment id. Only an AI-agent author
+      // is dropped, to stop an agent answering its own comment. (Task cb1581e0
+      // — see commentAudience in lib/comment-permissions.ts.)
+      applyCommentActorRule(userIds, {
+        id: authorId,
+        isAIAgent: comment.author ? !!(comment.author as any).isAIAgent : false,
+      })
 
       if (userIds.size > 0) {
         // AgentComment-shaped object for SDK consumers
@@ -398,6 +406,7 @@ export const POST = withAuth<RouteContext>(
           data: {
             taskId: task.id,
             commentId: comment.id,
+            userId: authorId,
             listNames: task.lists.map(l => l.name),
             comment: agentComment
           }

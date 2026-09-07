@@ -15,6 +15,7 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
+import { nestComments, updateComment, removeComment, settleOptimisticComment } from "@/lib/comment-stream"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
@@ -236,12 +237,16 @@ export function CommentSection({
     await postPendingComments(task.id, pending, originalFiles, originalComment, {
       replace: (tempId, serverComment) => {
         if (!shouldSkipOptimisticUpdate) {
-          writeComments(comments => comments.map(c => (c.id === tempId ? serverComment : c)))
+          // Not a straight id swap: the author is now in their own SSE
+          // audience, so the echo of this comment can arrive before the POST
+          // response does. settleOptimisticComment drops the temp row when the
+          // server comment is already in the thread. (Task cb1581e0.)
+          writeComments(comments => settleOptimisticComment(comments as never, tempId, serverComment))
         } else if (onLocalUpdate) {
           // Non-members never got an optimistic row; append without triggering the task PUT.
           onLocalUpdate((taskId: string, currentTask: Task) => {
             if (currentTask.id !== task.id) return currentTask
-            return { ...currentTask, comments: [...(currentTask.comments || []), serverComment] }
+            return { ...currentTask, comments: settleOptimisticComment(currentTask.comments || [], tempId, serverComment) }
           })
         }
       },
@@ -266,17 +271,11 @@ export function CommentSection({
       if (onLocalUpdate) {
         onLocalUpdate((taskId: string, currentTask: Task) => {
           if (currentTask.id !== task.id) return currentTask
-          return {
-            ...currentTask,
-            comments: (currentTask.comments || []).filter(c => c.id !== commentId),
-          }
+          return { ...currentTask, comments: removeComment(currentTask.comments || [], commentId) }
         })
       } else {
         // Object-based update for onUpdate (fallback)
-        onUpdate({
-          ...task,
-          comments: (task.comments || []).filter(c => c.id !== commentId),
-        })
+        onUpdate({ ...task, comments: removeComment(task.comments || [], commentId) })
       }
     } catch (error) {
       console.error("Error deleting comment:", error)
@@ -294,22 +293,8 @@ export function CommentSection({
 
       // Optimistically update the comment (top-level or nested reply)
       // Use onLocalUpdate to avoid triggering full task PUT request
-      const applyEdit = (comments: any[]) => comments.map(comment => {
-        if (comment.id === commentId) {
-          return { ...comment, content: trimmed, updatedAt: new Date().toISOString() }
-        }
-        if (comment.replies?.some((reply: any) => reply.id === commentId)) {
-          return {
-            ...comment,
-            replies: comment.replies.map((reply: any) =>
-              reply.id === commentId
-                ? { ...reply, content: trimmed, updatedAt: new Date().toISOString() }
-                : reply
-            ),
-          }
-        }
-        return comment
-      })
+      const applyEdit = (comments: any[]) =>
+        updateComment(comments, { id: commentId, content: trimmed, updatedAt: new Date() } as never)
       if (onLocalUpdate) {
         onLocalUpdate((taskId: string, currentTask: Task) => {
           if (currentTask.id !== task.id) return currentTask
@@ -428,7 +413,8 @@ export function CommentSection({
 
     await postPendingComments(task.id, pending, originalReplyFiles, originalReply, {
       replace: (tempId, serverReply) => {
-        writeReplies(replies => replies.map(reply => (reply.id === tempId ? serverReply : reply)))
+        // Same echo race as the top-level comment above (task cb1581e0).
+        writeReplies(replies => settleOptimisticComment(replies as never, tempId, serverReply))
       },
       remove: tempIds => {
         const unsent = new Set(tempIds)
@@ -448,9 +434,16 @@ export function CommentSection({
     ? (task.comments || []).length
     : userComments.length
 
-  const sortedComments = (task.comments || [])
-    .filter(comment => showSystemComments || comment.authorId !== null)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  // Nest BEFORE filtering. The API returns comments flat with a
+  // parentCommentId and no `replies` relation, so without this a reply renders
+  // as its own top-level bubble the moment the thread is refetched — the same
+  // reply the optimistic path had nested under its parent. Filtering first
+  // would instead orphan a reply whose parent is a hidden system comment.
+  // (Task cb1581e0; nestComments sorts oldest-first.)
+  const sortedComments = useMemo(
+    () => nestComments(task.comments || []).filter(c => showSystemComments || c.authorId !== null),
+    [task.comments, showSystemComments],
+  )
 
   // Fold runs of repeating-task completions into one expandable row
   // (task 59e2dcff). A weekly task otherwise buries every real discussion
