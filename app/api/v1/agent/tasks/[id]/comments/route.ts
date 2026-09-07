@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
+import { applyCommentActorRule } from '@/lib/comment-permissions'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
@@ -136,8 +137,12 @@ export const POST = withAgentAuth<RouteContext>(
         const memberIds = getListMemberIds(list as any)
         memberIds.forEach(id => userIds.add(id))
       }
-      // Don't notify the agent about its own comment
-      userIds.delete(auth.userId)
+      // The author here is always an agent (this route authenticates as one),
+      // and agents share the SSE pool this event goes to — an agent that
+      // answers comments on its own tasks would answer itself. Expressed
+      // through the shared rule so all five comment surfaces agree about the
+      // actor. (Task cb1581e0.)
+      applyCommentActorRule(userIds, { id: auth.userId, isAIAgent: true })
 
       if (userIds.size > 0) {
         // AgentComment-shaped object for SDK consumers

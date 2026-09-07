@@ -31,6 +31,7 @@ import type { Task, Comment, User, TaskList } from "../types/task"
 import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Copy, Link as LinkIcon } from "lucide-react"
 import { apiPost } from "@/lib/api"
 import { shouldHideTaskPriority, shouldHideTaskWhen, shouldHideTaskComments } from "@/lib/public-list-utils"
+import { upsertComment, updateComment, removeComment, nestComments } from "@/lib/comment-stream"
 import { format } from "date-fns"
 import { useTheme } from "@/contexts/theme-context"
 import { useSSESubscription } from "@/hooks/use-sse-subscription"
@@ -535,23 +536,21 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
     switch (event.type) {
       case 'comment_created': {
-        const { taskId, comment, userId } = event.data
+        const { taskId, comment } = event.data
 
-        // Only update if this is the same task and not from current user
-        // (current user already sees their comment via optimistic update)
-        if (taskId === currentTask.id && userId !== currentUser.id && comment) {
+        // NOT filtered on `userId !== currentUser.id`. That skipped every
+        // comment the user wrote on another device — the Mac app and this tab
+        // are one user id on two SSE connections — on the theory that the
+        // optimistic update had already covered it, which is only true of the
+        // tab that posted. upsertComment dedupes on comment id instead, which
+        // is what actually prevents double-rendering. (Task cb1581e0.)
+        if (taskId === currentTask.id && comment) {
           console.log(`📡 [TaskDetail] Received new comment for task ${taskId}:`, comment.id)
 
-          // Check if comment already exists (avoid duplicates)
           const existingComments = currentTask.comments || []
-          const commentExists = existingComments.some(c => c.id === comment.id)
+          const updatedComments = upsertComment(existingComments, comment)
 
-          if (!commentExists) {
-            // Add the new comment and sort by creation date
-            const updatedComments = [...existingComments, comment].sort((a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )
-
+          if (updatedComments !== existingComments) {
             applyRemote({
               ...currentTask,
               comments: updatedComments
@@ -580,10 +579,9 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           if (newComments.length > 0) {
             console.log(`📡 [TaskDetail] Task updated with ${newComments.length} new comments for task ${updatedTask.id}`)
 
-            // Merge and sort by creation date
-            const mergedComments = [...existingComments, ...newComments].sort((a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )
+            // Merge, sort and re-nest: the payload is flat, so a reply in it
+            // would otherwise land at the top of the thread (task cb1581e0).
+            const mergedComments = nestComments([...existingComments, ...newComments])
 
             applyRemote({
               ...currentTask,
@@ -607,41 +605,39 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       }
 
       case 'comment_updated': {
-        const { taskId, comment, userId } = event.data
+        const { taskId, comment } = event.data
 
-        // Only update if this is the same task and not from current user
-        if (taskId === currentTask.id && userId !== currentUser.id) {
+        // Same-user events are kept, as above. Applying an edit is idempotent,
+        // and `updateComment` also reaches REPLIES — the old inline `.map` only
+        // walked the top level, so a reply edited elsewhere stayed stale until a
+        // full refresh. (Task cb1581e0.)
+        if (taskId === currentTask.id && comment) {
           console.log(`📡 [TaskDetail] Received comment update for task ${taskId}:`, comment)
 
-          // Update the specific comment in the task
           const existingComments = currentTask.comments || []
-          const updatedComments = existingComments.map(c =>
-            c.id === comment.id ? { ...c, ...comment } : c
-          )
-
-          applyRemote({
-            ...currentTask,
-            comments: updatedComments
-          })
+          const updatedComments = updateComment(existingComments, comment)
+          if (updatedComments !== existingComments) {
+            applyRemote({ ...currentTask, comments: updatedComments })
+          }
         }
         break
       }
 
       case 'comment_deleted': {
-        const { taskId, commentId, userId } = event.data
+        const { taskId, commentId } = event.data
 
-        // Only update if this is the same task and not from current user
-        if (taskId === currentTask.id && userId !== currentUser.id) {
+        // Same-user events are kept: a comment deleted on another device has to
+        // disappear here too, rather than lingering until the next refresh —
+        // the "comments get deleted with repeat refreshing" report. Removal is
+        // idempotent and reply-aware. (Task cb1581e0.)
+        if (taskId === currentTask.id && commentId) {
           console.log(`📡 [TaskDetail] Comment deleted for task ${taskId}:`, commentId)
 
-          // Remove the deleted comment from the task
           const existingComments = currentTask.comments || []
-          const filteredComments = existingComments.filter(c => c.id !== commentId)
-
-          applyRemote({
-            ...currentTask,
-            comments: filteredComments
-          })
+          const remaining = removeComment(existingComments, commentId)
+          if (remaining !== existingComments) {
+            applyRemote({ ...currentTask, comments: remaining })
+          }
         }
         break
       }
@@ -1016,10 +1012,20 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         )
       }
 
-      const freshTask = unwrapTask<Task>(await response.json())
-      if (!freshTask) {
+      const fetched = unwrapTask<Task>(await response.json())
+      if (!fetched) {
         throw new Error('Task refresh returned no task')
       }
+
+      // The API returns comments FLAT, each carrying parentCommentId; the
+      // thread renders `comment.replies` and does not filter parented rows out
+      // of the top level. Without this translation a reply that was posted
+      // nested jumped to the top of the thread on the next refresh — which is
+      // what "comments move / disappear when I refresh" looks like from the
+      // outside. (Task cb1581e0.)
+      const freshTask = fetched.comments
+        ? { ...fetched, comments: nestComments(fetched.comments) }
+        : fetched
 
       // CRITICAL: Update taskRef immediately BEFORE triggering state updates
       // This prevents race conditions where SSE events arrive before React re-renders

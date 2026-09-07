@@ -94,12 +94,35 @@ describe('commentAudience (task e0613ae5)', () => {
   })
 
   it('returns the full set INCLUDING the actor', () => {
-    // Deliberate. comment_updated keeps the editor in and lets the client
-    // filter on data.userId; comment_deleted drops the actor server-side.
-    // Deciding that here would make one of the two verbs wrong.
+    // A user is not a device. Dropping the actor was justified as "they
+    // already see their own comment optimistically", which is true only of the
+    // tab that posted it — their phone, Mac and other browser tabs are the
+    // same user id and were silently cut out of the event. Clients dedupe by
+    // comment id instead. (Task cb1581e0.)
     const audience = commentAudience(task({ creatorId: AUTHOR }))
 
     expect(audience.has(AUTHOR)).toBe(true)
+  })
+
+  it('keeps a human actor in their own audience so their other devices hear it', () => {
+    const audience = commentAudience(task({ creatorId: AUTHOR }), { id: AUTHOR, isAIAgent: false })
+
+    expect(audience.has(AUTHOR)).toBe(true)
+  })
+
+  it('drops an AI-agent actor, which has no second device and would echo-loop', () => {
+    // Agents register in the same SSE pool (app/api/v1/agent/events), where
+    // comment_created is delivered as task.commented. An agent that answers
+    // comments on its own tasks would answer itself. (Task cb1581e0.)
+    const audience = commentAudience(task({ creatorId: AUTHOR }), { id: AUTHOR, isAIAgent: true })
+
+    expect(audience.has(AUTHOR)).toBe(false)
+  })
+
+  it('leaves everyone else in when the AI-agent actor is removed', () => {
+    const audience = commentAudience(task(), { id: 'creator-2', isAIAgent: true })
+
+    expect([...audience].sort()).toEqual(['assignee-3', 'member-5', 'owner-4'])
   })
 
   it('deduplicates someone who holds several roles', () => {
