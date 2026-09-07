@@ -49,6 +49,13 @@ export interface SyncRunSummary {
   pushed: number
   /** Outbound: links whose push watermark was initialised without pushing. */
   seeded: number
+  /**
+   * Outbound: at least one link had more edits waiting than its per-pass push
+   * cap allowed (task f9ba26b3). Without this, a container permanently behind
+   * on pushes is indistinguishable from one that is fully in step — both just
+   * report a small `pushed`.
+   */
+  pushCapped: boolean
 }
 
 export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
@@ -92,6 +99,7 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
     capped: totalLinks > links.length,
     remaining: Math.max(0, totalLinks - links.length),
     created: 0, updated: 0, skipped: 0, failed: 0, pushed: 0, seeded: 0,
+    pushCapped: false,
   }
 
   for (const link of links) {
@@ -117,6 +125,7 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
       const pushedResult = await pushTasksForLink({ link, token })
       summary.pushed += pushedResult.pushed
       summary.seeded += pushedResult.seeded
+      if (pushedResult.capped) summary.pushCapped = true
 
       if (!directionPulls(link.direction)) {
         log.info(
@@ -153,7 +162,10 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
         },
       })
 
-      log.info({ linkId: link.id, repo: link.remoteContainerId, ...applied, truncated }, 'Link synced')
+      log.info(
+        { linkId: link.id, repo: link.remoteContainerId, ...applied, ...pushedResult, truncated },
+        'Link synced',
+      )
     } catch (error) {
       // Deliberately no cursor write on this path — see the header.
       summary.failed++
