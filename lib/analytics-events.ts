@@ -36,6 +36,12 @@ export const AnalyticsPlatform = {
    * working while every Mac request still fell to UNKNOWN. (Task b4591534.)
    */
   MAC_APP: 'mac-app',
+  /**
+   * The Windows app. Value matches the `x-platform: windows-app` header the client sends on every
+   * Astrid-bound request. Added before that client ships, because the server has to be ready to
+   * receive a platform the moment a build starts sending it.
+   */
+  WINDOWS_APP: 'windows-app',
   API_OTHER: 'API-other',
   UNKNOWN: 'unknown',
 } as const
@@ -61,6 +67,13 @@ export function detectPlatform(request: NextRequest): AnalyticsPlatformValue {
   // iOS user-agent branch below fell into. (Task b4591534.)
   if (xPlatform === 'mac-app') {
     return AnalyticsPlatform.MAC_APP
+  }
+
+  // Windows native app. Header only, and there is no user-agent alternative worth wanting: a WinUI
+  // client's agent is a Windows HTTP stack string with nothing Astrid about it, and the Windows
+  // browser agents it would have to be told apart from all say Mozilla.
+  if (xPlatform === 'windows-app') {
+    return AnalyticsPlatform.WINDOWS_APP
   }
 
   // iOS native app - custom header first, then user agent.
@@ -365,6 +378,7 @@ export const ANALYTICS_PLATFORM_ORDER: AnalyticsPlatformValue[] = [
   AnalyticsPlatform.WEB_ANDROID,
   AnalyticsPlatform.IOS_APP,
   AnalyticsPlatform.MAC_APP,
+  AnalyticsPlatform.WINDOWS_APP,
   AnalyticsPlatform.API_OTHER,
   AnalyticsPlatform.UNKNOWN,
 ]
