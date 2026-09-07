@@ -28,6 +28,8 @@
  * services/comment.service.ts, and this is what keeps a fifth surface — or a
  * rewrite of one of these four — from quietly dropping a guarantee again.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const dispatchPostCommentSideEffects = vi.hoisted(() => vi.fn())
@@ -82,6 +84,10 @@ vi.mock('@/app/api/mcp/operations/handlers/shared', () => ({
   resolveMCPActor,
   getListMemberIdsByListId,
 }))
+
+// The stdio MCP server validates its own token and loads schemas through
+// require(); both are CommonJS, hence the module paths rather than aliases.
+
 
 vi.mock('@/lib/list-member-utils', () => ({
   getListMemberIds: vi.fn((list: { ownerId?: string; listMembers?: { userId: string }[] }) => [
@@ -238,4 +244,39 @@ describe('every comment-create surface fires the post-comment side effects (epic
       expect(call.commenter.id).toBe(call.comment.authorId ?? call.commenter.id)
     })
   }
+})
+
+/**
+ * The fifth surface, checked structurally rather than behaviourally.
+ *
+ * mcp/handlers/comments.ts is CommonJS by convention — it pulls its schemas and
+ * token validator through require() — so vi.mock cannot intercept them and the
+ * handler cannot be driven the way the four HTTP surfaces above are. That is a
+ * property of the stdio MCP server's module style, not of the fix; converting
+ * mcp/ to ESM is its own change with its own risk (that server has broken at
+ * build and launch before) and does not belong in this slice.
+ *
+ * So this asserts the one thing that actually regresses: that the handler still
+ * delegates instead of growing its own prisma.comment.create back. That is how
+ * the drift started everywhere else.
+ */
+describe('the stdio MCP comment handler delegates to the service (epic 9dedd8aa)', () => {
+  const source = readFileSync(
+    join(process.cwd(), 'mcp/handlers/comments.ts'),
+    'utf8',
+  )
+
+  it('calls createCommentWithSideEffects', () => {
+    expect(source).toContain('createCommentWithSideEffects')
+  })
+
+  it('does not create comment rows itself', () => {
+    expect(
+      source,
+      'mcp/handlers/comments.ts writes comments directly again. Every other ' +
+        'surface goes through services/comment.service.ts; a raw create here ' +
+        'skips the SSE fan-out and the post-comment side effects, which is the ' +
+        'bug this epic was opened for.',
+    ).not.toMatch(/prisma\.comment\.create/)
+  })
 })

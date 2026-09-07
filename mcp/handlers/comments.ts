@@ -8,7 +8,8 @@
  * and each module also opened its own connection pool (task 390bccc3).
  */
 import { prisma } from "../../lib/prisma"
-import { dispatchPostCommentSideEffects } from "../../lib/comments/post-comment-side-effects"
+import type { Prisma } from "@prisma/client"
+import { createCommentWithSideEffects } from "../../services/comment.service"
 /**
  * MCP comment handlers — addComment + getTaskComments.
  *
@@ -27,6 +28,12 @@ import { dispatchPostCommentSideEffects } from "../../lib/comments/post-comment-
 const { CreateCommentSchema } = require("../schemas")
 const { validateAccessToken } = require("../access-token-validator")
 
+/** This surface returns the parent task alongside the comment. */
+const MCP_COMMENT_INCLUDE = {
+  author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true } },
+  task: { select: { id: true, title: true } },
+} as const
+
 
 async function addComment(args: any) {
   const { accessToken, listId, comment } = args
@@ -44,7 +51,20 @@ async function addComment(args: any) {
       assignee: {
         select: { id: true, email: true, name: true, isAIAgent: true, aiAgentType: true },
       },
-      lists: { select: { id: true, githubRepositoryId: true, aiAgentConfiguredBy: true } },
+      // name / ownerId / listMembers are the SSE audience. This handler used to
+      // select only what the side effects read, because it broadcast nothing —
+      // so a comment posted through the stdio MCP server reached no connected
+      // client until something else made them refetch.
+      lists: {
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          githubRepositoryId: true,
+          aiAgentConfiguredBy: true,
+          listMembers: { select: { userId: true } },
+        },
+      },
     },
   })
 
@@ -52,39 +72,24 @@ async function addComment(args: any) {
     throw new Error("Task not found in the specified list")
   }
 
-  const newComment = await prisma.comment.create({
-    data: {
-      content: validatedComment.content,
-      type: validatedComment.type,
-      authorId: userId,
-      taskId: validatedComment.taskId,
-    },
-    include: {
-      author: { select: { id: true, name: true, email: true, isAIAgent: true } },
-      task: { select: { id: true, title: true } },
-    },
+  const outcome = await createCommentWithSideEffects<
+    Prisma.CommentGetPayload<{ include: typeof MCP_COMMENT_INCLUDE }>
+  >({
+    task: existingTask,
+    authorId: userId,
+    content: validatedComment.content,
+    type: validatedComment.type,
+    // No clientRequestId: CreateCommentSchema in mcp/schemas.ts does not accept
+    // one, so this surface has no retry idempotency. Adding it means changing
+    // the schema, which is a wire change for every stdio MCP client.
+    include: MCP_COMMENT_INCLUDE,
   })
 
-  // Run the same side effects the web and v1 comment routes run. Creating the
-  // row directly meant an @mention posted through MCP triggered no agent and
-  // sent no push — the notification simply did not happen (task 390bccc3).
-  await dispatchPostCommentSideEffects({
-    comment: { id: newComment.id, content: newComment.content },
-    task: {
-      id: existingTask.id,
-      title: existingTask.title,
-      creatorId: existingTask.creatorId,
-      assigneeId: existingTask.assigneeId,
-      assignee: existingTask.assignee,
-      lists: existingTask.lists,
-    },
-    commenter: {
-      id: userId,
-      name: newComment.author?.name,
-      email: newComment.author?.email,
-      isAIAgent: newComment.author?.isAIAgent ?? false,
-    },
-  })
+  if (outcome.kind === 'invalid' || outcome.kind === 'conflict') {
+    throw new Error(outcome.error)
+  }
+
+  const newComment = outcome.comment
 
   return {
     content: [
