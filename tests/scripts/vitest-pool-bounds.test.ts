@@ -31,8 +31,12 @@ describe('the worker pool leaves headroom', () => {
     expect(test.maxWorkers as number).toBeGreaterThan(1)
   })
 
-  it('leaves at least one core unclaimed on this machine', () => {
-    expect(test.maxWorkers as number).toBeLessThan(os.cpus().length)
+  it('claims at most half the cores, leaving room for a fork to boot', () => {
+    // Vitest allows a worker a hardcoded 60s to report "started". Booting N
+    // forks that each load this module graph, on a box that also runs CI
+    // runners and a simulator, is what pushes some past it — and a worker that
+    // misses it is reported as a FAILING test file.
+    expect(test.maxWorkers as number).toBeLessThanOrEqual(Math.floor(os.cpus().length / 2))
   })
 
   it('keeps isolation on, so the bound cannot be mistaken for a licence to share state', () => {
