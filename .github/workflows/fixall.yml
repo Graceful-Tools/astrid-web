@@ -1,12 +1,13 @@
 name: 'Fix All Ready Tasks'
 
-# Concurrency: if a run is already in progress for the same harness, skip the
-# new one rather than cancel it (cancel-in-progress: false). This is safe for
-# the 30-minute schedule because a long-running task won't be interrupted.
+# Concurrency: if a manual diagnostic/fallback run is already in progress for
+# this harness, queue the new one rather than interrupting task work.
 concurrency:
   group: fixall-github-copilot
   cancel-in-progress: false
 
+# Autonomous queue work is scheduled by the Copilot app workflow
+# "Work Astrid Web queue" on the local host (cron: 7,37 * * * *).
 on:
   workflow_dispatch:
     inputs:
@@ -24,18 +25,14 @@ on:
           - local
           - cloud
 
-  schedule:
-    # Every 30 minutes, 24/7. GitHub Actions minimum is 5 minutes; 30 is safe.
-    - cron: '*/30 * * * *'
-
 env:
   NODE_VERSION: '20'
 
 jobs:
   list-ready-tasks:
     name: 'List Ready Tasks'
-    # Scheduled runs and the default manual path use the dedicated organization
-    # runner. A queued self-hosted job cannot automatically fail over to cloud.
+    # The default manual path uses the dedicated organization runner. A queued
+    # self-hosted job cannot automatically fail over to cloud.
     runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
     outputs:
       has_tasks: ${{ steps.list.outputs.has_tasks }}
