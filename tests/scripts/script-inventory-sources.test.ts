@@ -52,7 +52,16 @@ function gitIgnoredAmong(relativePaths: string[]): string[] {
   return stdout.split('\n').filter(Boolean)
 }
 
-describe('script inventory sources (task 67b83f7e)', () => {
+/*
+ * These walk scripts/ and shell out to git, which measures at ~3.4s on an idle
+ * machine — against vitest's 5s default. That is not a margin, it is a coin
+ * toss: this file timed out in a full-suite run while passing in isolation, and
+ * a gate that fails on load is a gate people learn to re-run rather than read.
+ *
+ * The budget is raised for THIS file only. The 5s default is worth keeping
+ * everywhere else, where it catches a genuine hang.
+ */
+describe('script inventory sources (task 67b83f7e)', { timeout: 30_000 }, () => {
   it('scans no gitignored file, so the answer is the same in a clean checkout', () => {
     const scanned = scannableSources(root).map(path => relative(root, path))
 

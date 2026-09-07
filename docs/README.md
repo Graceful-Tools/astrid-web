@@ -46,6 +46,7 @@ and stack versions with `npm run check:docs`.
 
 ### 🤖 AI Agents & Automation
 - **[AI Workflow Review](./AI_WORKFLOW_REVIEW.md)** - Recommended paved paths for Claude Code, GitHub Copilot, Codex, server-run agents, and Custom Agents
+- **[AI Workflow Implementation Handoff](./AI_WORKFLOW_HANDOFF.md)** - Branches, review status, unresolved findings, and continuation order for the seven-phase implementation
 - **[CLAUDE.md](../CLAUDE.md)** - ⭐ **Essential**: Claude Code operational context (root)
 - **[CODEX.md](../CODEX.md)** - OpenAI Codex operational context (root)
 - **[ASTRID.md Template](./templates/ASTRID.md)** - ⭐ **Essential**: Configure AI agent behavior for your project

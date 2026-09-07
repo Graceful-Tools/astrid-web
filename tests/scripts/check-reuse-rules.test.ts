@@ -88,7 +88,13 @@ afterAll(() => {
   rmSync(cleanRoot, { recursive: true, force: true })
 })
 
-describe('check:reuse rules actually fire (task bc27c00a)', () => {
+/*
+ * Genuinely slow, not starved: this walks the repo running the reuse rules
+ * and measures ~4.1s on an idle machine — against a 5s default. That is a
+ * coin toss, and it is the one file here that needs its own budget rather
+ * than the global headroom in vitest.config.ts.
+ */
+describe('check:reuse rules actually fire (task bc27c00a)', { timeout: 60_000 }, () => {
   it.each(Object.keys(VIOLATIONS))('%s catches its planted violation', (ruleId) => {
     const findings = run(fixtureRoot)
 

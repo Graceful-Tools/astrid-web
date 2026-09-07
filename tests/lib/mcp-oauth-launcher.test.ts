@@ -16,6 +16,18 @@
  *
  * So this test does the only thing that would have caught all three: build,
  * spawn the launcher exactly as an MCP client does, and speak MCP to it.
+ *
+ *  4. It then failed in CI ONLY, and so did not block anything until a
+ *     production deploy stopped on it. The launcher fails fast when the OAuth
+ *     credentials are absent — correct behaviour for a launcher — but this
+ *     test inherited them from the developer's `.env.local`, a file no CI
+ *     runner has. So it passed on every machine that could not catch a
+ *     regression and failed on the one that could.
+ *
+ *     The handshake below needs the server to START, not to hold usable
+ *     credentials: nothing here calls the Astrid API. So the test supplies its
+ *     own placeholders. A real `.env.local` still wins (the launcher loads it
+ *     with `override: true`), which keeps local runs identical to before.
  */
 import { describe, it, expect, beforeAll } from 'vitest'
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -42,6 +54,18 @@ const HANDSHAKE =
   frame({ jsonrpc: '2.0', method: 'notifications/initialized' }) +
   frame({ jsonrpc: '2.0', id: 2, method: 'tools/list' })
 
+/**
+ * Placeholders so the launcher's credential guard passes on a machine with no
+ * `.env.local` — every CI runner. They are never used to authenticate: this
+ * test speaks initialize/tools-list and nothing else. Real values from
+ * `.env.local` override these, so a developer's run is unchanged.
+ */
+const LAUNCH_ENV = {
+  ...process.env,
+  ASTRID_OAUTH_CLIENT_ID: process.env.ASTRID_OAUTH_CLIENT_ID || 'test-client-id',
+  ASTRID_OAUTH_CLIENT_SECRET: process.env.ASTRID_OAUTH_CLIENT_SECRET || 'test-client-secret',
+}
+
 describe('Astrid MCP stdio server is launchable by an MCP client', () => {
   beforeAll(() => {
     // Build output is gitignored, so a clean checkout (and CI) has none. This
@@ -66,6 +90,7 @@ describe('Astrid MCP stdio server is launchable by an MCP client', () => {
       input: HANDSHAKE,
       encoding: 'utf8',
       timeout: 60_000,
+      env: LAUNCH_ENV,
     })
 
     // Case 2: a server that starts nothing exits 0 with an empty stdout, so an

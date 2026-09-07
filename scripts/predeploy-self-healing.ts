@@ -88,6 +88,10 @@ interface CheckResult {
   fixCommand?: string
   fixDescription?: string
   testStats?: TestStats
+  /** Per-check budget. One global value made the slowest check unpassable. */
+  timeoutMs: number
+  /** True when the check was killed at its budget rather than failing. */
+  timedOut?: boolean
 }
 
 interface FixAttempt {
@@ -95,6 +99,83 @@ interface FixAttempt {
   fixCommand: string
   success: boolean
   output: string
+}
+
+/**
+ * Budget for a check that should be quick. Also the ceiling for "quick" — a
+ * wedged lint must not hold the gate for half an hour.
+ */
+export const DEFAULT_CHECK_TIMEOUT_MS = 300_000
+
+/** Budget for the compile-and-bundle checks. The build has hit 267s. */
+export const BUILD_CHECK_TIMEOUT_MS = 900_000
+
+/**
+ * Budget for the full unit suite.
+ *
+ * It runs ~870s (594 files, 5,600 tests) on a developer machine. The old
+ * hardcoded 300s meant this check could NEVER pass — and a timeout kill was
+ * caught by the same `catch` as a real failure, so the gate reported
+ * "Unit Tests (Vitest) failed" while the suite was green. Set with real
+ * headroom: a budget equal to the runtime just fails on a slower day.
+ */
+export const TEST_CHECK_TIMEOUT_MS = 1_800_000
+
+/**
+ * Did the command die because WE killed it, rather than exiting on its own?
+ *
+ * `execSync` surfaces its `timeout` as a SIGTERM kill with a null status, and
+ * some Node versions use an ETIMEDOUT code instead. A process that exited with
+ * a status — however unhappily — decided its own fate and is a real failure.
+ * SIGINT is excluded on purpose: that is a person pressing Ctrl-C.
+ */
+export function isTimeoutKill(error: {
+  killed?: boolean
+  signal?: string | null
+  code?: string
+}): boolean {
+  if (error?.code === 'ETIMEDOUT') return true
+  return error?.killed === true && error?.signal === 'SIGTERM'
+}
+
+export interface CheckOutcome {
+  timedOut: boolean
+  /** One-line console form. */
+  label: string
+  /** Sentence for the auto-filed task, where the distinction actually matters. */
+  summary: string
+}
+
+/**
+ * Describe how a check ended, distinguishing "it failed" from "we killed it".
+ *
+ * Collapsing the two cost a full investigation every time it happened: a killed
+ * vitest never prints its summary, so the report named no failing test and the
+ * only way to learn the suite was fine was to run it by hand.
+ */
+export function describeCheckOutcome(
+  name: string,
+  error: { killed?: boolean; signal?: string | null; code?: string },
+  timeoutMs: number,
+): CheckOutcome {
+  if (isTimeoutKill(error)) {
+    const seconds = Math.round(timeoutMs / 1000)
+    return {
+      timedOut: true,
+      label: `${name} TIMED OUT after ${seconds}s`,
+      summary:
+        `\`${name}\` did not finish within its ${seconds}s budget and was killed. ` +
+        `This is NOT a test failure — the command never reported a result, so no ` +
+        `test failure should be inferred from it. Either the check needs a larger ` +
+        `timeout, or it is genuinely hanging. Run it directly to find out which.`,
+    }
+  }
+
+  return {
+    timedOut: false,
+    label: `${name} failed`,
+    summary: `\`${name}\` exited non-zero.`,
+  }
 }
 
 /**
@@ -114,6 +195,7 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // in time.
       name: 'Prisma Client',
       command: 'npm run check:prisma-client',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: true,
       fixCommand: 'npx prisma generate',
       fixDescription: 'Regenerate Prisma client (schema drifted from generated client)',
@@ -121,11 +203,13 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
     {
       name: 'TypeScript',
       command: 'npx tsc --noEmit',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false, // Type errors need manual fix
     },
     {
       name: 'ESLint',
       command: 'npm run lint',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: true,
       fixCommand: 'npm run lint -- --fix',
       fixDescription: 'Auto-fix lint errors',
@@ -133,16 +217,19 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
     {
       name: 'Model Sync',
       command: 'npm run check:model-sync',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
       name: 'Documentation Links',
       command: 'npm run check:docs',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
       name: 'API Breaking Changes',
       command: 'npm run check:api-breaking',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
@@ -150,6 +237,7 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // the same time, because nothing was checking (task d818849d).
       name: 'Locale Key Parity',
       command: 'npm run check:i18n',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
@@ -159,6 +247,7 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // (task 0c387855).
       name: 'Environment Registry',
       command: 'npm run check:env',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
@@ -167,11 +256,13 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // the wrong one silently lost its gate (task 1b381810).
       name: 'Unimported Modules',
       command: 'npm run check:unimported',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
       name: 'Unit Tests (Vitest)',
       command: 'npm run test:run',
+      timeoutMs: TEST_CHECK_TIMEOUT_MS,
       autoFixable: false, // Test failures need investigation
     },
     {
@@ -180,11 +271,13 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // as one failure among 3000. Task 97208a72.
       name: 'Brand Profiles',
       command: 'npm run check:brands',
+      timeoutMs: BUILD_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
     {
       name: 'Build',
       command: 'npm run build:next',
+      timeoutMs: BUILD_CHECK_TIMEOUT_MS,
       autoFixable: true,
       fixCommand: 'rm -rf .next && npm run build:next',
       fixDescription: 'Clean build cache and rebuild',
@@ -320,7 +413,10 @@ class SelfHealingPredeploy {
       const output = execSync(check.command, {
         encoding: 'utf-8',
         stdio: 'pipe',
-        timeout: 300000, // 5 minute timeout
+        // Per-check, not one global value. A single 300s ceiling made the unit
+        // suite (~870s) permanently unpassable while reporting itself as a
+        // test failure.
+        timeout: check.timeoutMs,
         maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
         env: { ...originalEnv, FORCE_COLOR: '0', CI: 'true', NO_COLOR: '1' },
       })
@@ -351,20 +447,29 @@ class SelfHealingPredeploy {
       const stdout = error.stdout || ''
       const stderr = error.stderr || ''
       const output = [stdout, stderr].filter(Boolean).join('\n').trim() || error.message || ''
-      const testStats = this.parseTestStats(check.name, output)
+      const outcome = describeCheckOutcome(check.name, error, check.timeoutMs)
+
+      // A killed command prints no summary, so any stats parsed out of its
+      // partial output describe a run that never finished. Reporting them
+      // would be inventing a result.
+      const testStats = outcome.timedOut ? undefined : this.parseTestStats(check.name, output)
 
       if (CONFIG.verboseOutput) {
-        let message = `   ❌ ${check.name} failed (${(duration / 1000).toFixed(1)}s)`
+        let message = `   ${outcome.timedOut ? '⏱️' : '❌'}  ${outcome.label} (${(duration / 1000).toFixed(1)}s)`
         if (testStats) {
           message += ` - ${this.formatTestStats(testStats)}`
         }
         console.log(message)
+        if (outcome.timedOut) {
+          console.log(`      ${outcome.summary}`)
+        }
       }
 
       return {
         ...check,
         passed: false,
-        output,
+        timedOut: outcome.timedOut,
+        output: outcome.timedOut ? `${outcome.summary}\n\n${output}` : output,
         duration,
         testStats,
       }
@@ -383,7 +488,9 @@ class SelfHealingPredeploy {
       const output = execSync(result.fixCommand!, {
         encoding: 'utf-8',
         stdio: 'pipe',
-        timeout: 300000,
+        // A fix reruns the same work as its check (a clean rebuild, say), so it
+        // needs the same budget.
+        timeout: result.timeoutMs,
         env: { ...originalEnv, FORCE_COLOR: '0' },
       })
 
@@ -504,7 +611,12 @@ class SelfHealingPredeploy {
       return existingTaskId
     }
 
-    const title = `🔴 Predeploy Failed: ${failedNames}`
+    // A task titled "Predeploy Failed" for a check that was merely killed sends
+    // the reader hunting a broken test that does not exist.
+    const allTimedOut = failedChecks.length > 0 && failedChecks.every((c) => c.timedOut)
+    const title = allTimedOut
+      ? `⏱️ Predeploy Timed Out: ${failedNames}`
+      : `🔴 Predeploy Failed: ${failedNames}`
 
     const description = `## Automated Predeploy Failure Report
 
@@ -515,10 +627,10 @@ class SelfHealingPredeploy {
 
 ${failedChecks
   .map(
-    (c) => `#### ❌ ${c.name}
+    (c) => `#### ${c.timedOut ? '⏱️' : '❌'} ${c.name}${c.timedOut ? ' — TIMED OUT, not failed' : ''}
 - **Command**: \`${c.command}\`
 - **Auto-fixable**: ${c.autoFixable ? 'Yes' : 'No'}
-- **Duration**: ${(c.duration / 1000).toFixed(1)}s
+- **Duration**: ${(c.duration / 1000).toFixed(1)}s (budget ${(c.timeoutMs / 1000).toFixed(0)}s)
 
 **Output**:
 \`\`\`
@@ -731,6 +843,9 @@ All predeploy checks are now passing.
       console.log('\n❌ Failed Checks:')
       failed.forEach((r) => {
         let line = `   - ${r.name}${r.autoFixable ? ' (auto-fixable)' : ''}`
+        if (r.timedOut) {
+          line += ` — TIMED OUT at ${(r.timeoutMs / 1000).toFixed(0)}s (not a failure)`
+        }
         if (r.testStats && r.testStats.failed > 0) {
           line += ` [${r.testStats.failed} test failures]`
         }

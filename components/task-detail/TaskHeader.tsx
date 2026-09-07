@@ -4,6 +4,7 @@ import { TaskLeadingControl } from "../task-leading-control"
 import { PublicTaskCopyButton } from "../public-task-copy-button"
 import { isPublicListTask } from "@/lib/public-list-utils"
 import { TaskActionMenu } from "./TaskActionMenu"
+import { FIELD_ROW_GAP_CLASS } from "./TaskFieldRow"
 import type { Task, User } from "../../types/task"
 
 /**
@@ -96,7 +97,7 @@ export function TaskHeader({
        *  back button moved here rather than being deleted with the bar: it was the
        *  only way back to the list on a narrow viewport. */}
       <div className="p-4">
-        <div className="flex items-center space-x-2 min-w-0">
+        <div className={`flex items-center ${FIELD_ROW_GAP_CLASS} min-w-0`}>
           {!compact && onClose && (
             <Button
               variant="ghost"
