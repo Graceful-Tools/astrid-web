@@ -485,7 +485,23 @@ describe('SSE Event Delivery — POST /api/v1/agent/tasks/:id/comments', () => {
     )
   })
 
-  it('should not include raw Prisma author object in broadcast', async () => {
+  /**
+   * Epic 9dedd8aa: this used to assert the agent surface sent a STRICTLY
+   * flattened AgentComment — no `author`, no `type`, no `parentCommentId`.
+   *
+   * That was never the contract of `comment_created`; it was one surface's
+   * private variation. `/api/v1/tasks/:id/comments` has always put all three on
+   * the same event (the web client appends from the payload without
+   * re-fetching, so it needs `type` and `secureFiles`), which meant a client
+   * subscribed to `comment_created` saw a different shape depending on who
+   * posted. Routing every surface through services/comment.service.ts settles
+   * it on the union, so the flattened SDK fields are still there and the richer
+   * ones are there too.
+   *
+   * The original concern in the name — "raw Prisma author" — still holds and is
+   * asserted below: `author` is the narrow safe select, never the full row.
+   */
+  it('sends the unified comment payload, with a narrow author and the flattened SDK fields', async () => {
     const { prisma } = await import('@/lib/prisma')
 
     vi.mocked(prisma.task.findFirst).mockResolvedValue({
@@ -518,13 +534,17 @@ describe('SSE Event Delivery — POST /api/v1/agent/tasks/:id/comments', () => {
 
     if (vi.mocked(broadcastToUsers).mock.calls.length > 0) {
       const commentData = (vi.mocked(broadcastToUsers).mock.calls[0][1] as any).data.comment
-      // Should have flattened AgentComment fields, not raw Prisma author
-      expect(commentData.author).toBeUndefined()
-      expect(commentData.type).toBeUndefined()
-      expect(commentData.parentCommentId).toBeUndefined()
-      // Should have proper fields
+      // The flattened fields SDK consumers read are still present.
       expect(commentData.authorName).toBeDefined()
       expect(commentData.isAgent).toBeDefined()
+      // And so are the fields the web client needs to render without a re-fetch.
+      expect(commentData).toHaveProperty('type')
+      expect(commentData).toHaveProperty('parentCommentId')
+      // `author` is the narrow select, never the whole user row: no password
+      // hash, no tokens, no internal columns leaking to every list member.
+      expect(Object.keys(commentData.author ?? {}).sort()).toEqual(
+        ['email', 'id', 'isAIAgent', 'name'],
+      )
     }
   })
 })

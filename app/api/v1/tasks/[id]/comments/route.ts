@@ -13,19 +13,12 @@ import {
 } from '@/lib/api-contracts/v1-request-shapes'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { getListMemberIds } from '@/lib/list-member-utils'
-import { applyCommentActorRule } from '@/lib/comment-permissions'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
-import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { agentEmail, isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
+import { agentEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { createLogger } from '@/lib/logger'
-import {
-  associateFileWithComment,
-  createCommentIdempotently,
-} from '@/lib/comments/create-comment'
 import { userCanAccessTask } from "@/services/task.service"
+import { createCommentWithSideEffects } from "@/services/comment.service"
 import { TASK_COMMENTS_LIST_LIMIT } from "@/lib/task-query-utils"
 
 const log = createLogger('v1.tasks.comments')
@@ -295,207 +288,51 @@ export const POST = withAuth<RouteContext>(
     // appear in the order the user submitted, even if uploads finish out of order.
     const createdAt = body.createdAt ? new Date(body.createdAt) : undefined
 
-    // ── Idempotency: clientRequestId-based (offline retry safety) ─────────
-    // Mirrors the pattern in /api/v1/tasks POST. Required because iOS replays
-    // queued comment creates after a network reconnect; without this, every
-    // retry produces a fresh row.
-    const commentInclude = {
-      author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true } },
-      secureFiles: {
-        select: { id: true, originalName: true, mimeType: true, fileSize: true, createdAt: true },
+    const outcome = await createCommentWithSideEffects({
+      task: {
+        id: task.id,
+        title: task.title,
+        creatorId: task.creatorId,
+        assigneeId: task.assigneeId,
+        assignee: task.assignee,
+        lists: task.lists,
       },
-    } as const
-
-    const creation = await createCommentIdempotently({
-      taskId,
       authorId,
+      content: body.content?.trim() || '',
+      type: body.type || 'TEXT',
+      parentCommentId: body.parentCommentId || null,
       clientRequestId: body.clientRequestId,
-      data: {
-        content: body.content?.trim() || '',
-        type: body.type || 'TEXT',
-        parentCommentId: body.parentCommentId || null,
-        ...(createdAt && !isNaN(createdAt.getTime()) && { createdAt }),
-      },
-      include: commentInclude,
+      createdAt,
+      ...(body.fileId ? { file: { id: body.fileId, linkerUserId: auth.userId } } : {}),
     })
-    if (creation.kind === 'invalid') {
-      return NextResponse.json({ error: creation.error }, { status: 400 })
+
+    if (outcome.kind === 'invalid') {
+      return NextResponse.json({ error: outcome.error }, { status: 400 })
     }
-    if (creation.kind === 'conflict') {
-      return NextResponse.json({ error: creation.error }, { status: 409 })
+    if (outcome.kind === 'conflict') {
+      return NextResponse.json({ error: outcome.error }, { status: 409 })
     }
-    if (creation.kind === 'existing') {
-      log.info({ commentId: creation.comment.id }, 'Idempotency hit: returning existing comment')
-      const headers: Record<string, string> = {}
-      const deprecationWarning = getDeprecationWarning(auth)
-      if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+
+    const headers: Record<string, string> = {}
+    const deprecationWarning = getDeprecationWarning(auth)
+    if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
+
+    if (outcome.kind === 'existing') {
       return NextResponse.json(
         {
-          comment: creation.comment,
+          comment: outcome.comment,
           meta: { apiVersion: 'v1', authSource: auth.source, idempotent: true },
         },
         { status: 200, headers },
       )
     }
-    let comment = creation.comment
 
-    if (body.fileId) {
-      try {
-        const updatedComment = await associateFileWithComment({
-          fileId: body.fileId,
-          commentId: comment.id,
-          include: commentInclude,
-          canLink: async file => {
-            if (file.uploadedBy === auth.userId) return true
-            if (file.chatMessage?.channelId) {
-              const { canAccessChatChannel } = await import('@/lib/chat-access')
-              return canAccessChatChannel(file.chatMessage.channelId, auth.userId)
-            }
-            return false
-          },
-        })
-
-        if (updatedComment) {
-          comment = updatedComment
-        }
-      } catch (error) {
-        log.error({ err: error }, 'Failed to associate file with comment')
-      }
-    }
-
-    try {
-      const userIds = new Set<string>()
-
-      for (const list of task.lists) {
-        const listMemberIds = getListMemberIds(list as any)
-        listMemberIds.forEach(id => userIds.add(id))
-      }
-
-      if (task.assigneeId) userIds.add(task.assigneeId)
-      if (task.creatorId) userIds.add(task.creatorId)
-
-      // The author STAYS in: their phone, Mac and other tabs are separate SSE
-      // connections under the same user id, and they are the whole reason this
-      // event exists. Receivers dedupe on comment id. Only an AI-agent author
-      // is dropped, to stop an agent answering its own comment. (Task cb1581e0
-      // — see commentAudience in lib/comment-permissions.ts.)
-      applyCommentActorRule(userIds, {
-        id: authorId,
-        isAIAgent: comment.author ? !!(comment.author as any).isAIAgent : false,
-      })
-
-      if (userIds.size > 0) {
-        // AgentComment-shaped object for SDK consumers
-        const agentComment = {
-          id: comment.id,
-          content: comment.content,
-          authorName: comment.author?.name || comment.author?.email || null,
-          authorId: comment.authorId,
-          isAgent: comment.author ? !!(comment.author as any).isAIAgent : false,
-          createdAt: new Date(comment.createdAt).toISOString(),
-          // Web client appends comment from this payload without re-fetching;
-          // include attachments so offline-synced photo comments render.
-          type: (comment as any).type,
-          author: comment.author,
-          parentCommentId: (comment as any).parentCommentId ?? null,
-          secureFiles: (comment as any).secureFiles ?? []
-        }
-        broadcastToUsers(Array.from(userIds), {
-          type: 'comment_created',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            commentId: comment.id,
-            userId: authorId,
-            listNames: task.lists.map(l => l.name),
-            comment: agentComment
-          }
-        })
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Failed to broadcast comment_created')
-    }
-
-    // Direct ping to OpenClaw assignees so the agent picks the work up
-    // without having to subscribe to the broader comment_created channel.
-    try {
-      if (task.assigneeId && task.assignee?.email &&
-          (isOpenClawAgentEmail(task.assignee.email) || task.assignee.email === agentEmail('openclaw')) &&
-          authorId !== task.assigneeId) {
-        broadcastToUsers([task.assigneeId], {
-          type: 'agent_task_comment',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            taskTitle: task.title,
-            comment: {
-              id: comment.id,
-              content: comment.content,
-              authorName: comment.author?.name || comment.author?.email || null,
-              authorId: comment.authorId,
-              isAgent: false,
-              createdAt: new Date(comment.createdAt).toISOString(),
-            }
-          }
-        })
-        log.info({ agentEmail: task.assignee.email }, 'Sent agent_task_comment to OpenClaw agent')
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Failed to broadcast agent_task_comment')
-    }
-
-    // Shared with /api/tasks/[id]/comments: AI mention triggers, workflow command
-    // detection, AI assignee wake-up, and stats invalidation.
-    try {
-      const commenterUser = await prisma.user.findUnique({
-        where: { id: authorId },
-        select: { id: true, name: true, email: true, isAIAgent: true },
-      })
-      if (commenterUser) {
-        await dispatchPostCommentSideEffects({
-          comment: { id: comment.id, content: comment.content },
-          task: {
-            id: task.id,
-            title: task.title,
-            creatorId: task.creatorId,
-            assigneeId: task.assigneeId,
-            assignee: task.assignee
-              ? {
-                  id: task.assignee.id,
-                  email: task.assignee.email,
-                  name: task.assignee.name,
-                  isAIAgent: task.assignee.isAIAgent,
-                  aiAgentType: (task.assignee as any).aiAgentType ?? null,
-                }
-              : null,
-            lists: task.lists.map(l => ({
-              id: l.id,
-              githubRepositoryId: (l as any).githubRepositoryId ?? null,
-              aiAgentConfiguredBy: (l as any).aiAgentConfiguredBy ?? null,
-            })),
-          },
-          commenter: {
-            id: commenterUser.id,
-            name: commenterUser.name,
-            email: commenterUser.email,
-            isAIAgent: commenterUser.isAIAgent,
-          },
-        })
-      }
-    } catch (sideEffectError) {
-      log.error({ err: sideEffectError }, 'post-comment side effects failed')
-    }
+    const comment = outcome.comment
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.COMMENT_ADDED, {
       taskId,
       commentId: comment.id
     })
-
-    const headers: Record<string, string> = {}
-    const deprecationWarning = getDeprecationWarning(auth)
-    if (deprecationWarning) {
-      headers['X-Deprecation-Warning'] = deprecationWarning
-    }
 
     return NextResponse.json(
       {

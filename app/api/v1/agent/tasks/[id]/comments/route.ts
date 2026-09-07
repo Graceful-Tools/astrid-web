@@ -7,9 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { getListMemberIds } from '@/lib/list-member-utils'
-import { applyCommentActorRule } from '@/lib/comment-permissions'
+import { createCommentWithSideEffects } from '@/services/comment.service'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { createLogger } from '@/lib/logger'
@@ -78,6 +76,12 @@ export const POST = withAgentAuth<RouteContext>(
     const task = await prisma.task.findFirst({
       where: { id, assigneeId: auth.userId },
       include: {
+        // assignee and the two list columns are read by the post-comment side
+        // effects (agent wake-up, repository routing). This route used to omit
+        // them because it fired no side effects at all.
+        assignee: {
+          select: { id: true, email: true, name: true, isAIAgent: true, aiAgentType: true },
+        },
         lists: {
           include: {
             listMembers: {
@@ -111,63 +115,28 @@ export const POST = withAgentAuth<RouteContext>(
 
     const content = body.content.slice(0, 10_000)
 
-    const comment = await prisma.comment.create({
-      data: {
-        content,
-        taskId: id,
-        authorId: auth.userId,
-        type: 'MARKDOWN',
+    const outcome = await createCommentWithSideEffects({
+      task: {
+        id: task.id,
+        title: task.title,
+        creatorId: task.creatorId,
+        assigneeId: task.assigneeId,
+        assignee: task.assignee,
+        lists: task.lists,
       },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            isAIAgent: true,
-          },
-        },
-      },
+      authorId: auth.userId,
+      content,
+      type: 'MARKDOWN',
     })
 
-    try {
-      const userIds = new Set<string>()
-      if (task.creatorId) userIds.add(task.creatorId)
-      for (const list of task.lists || []) {
-        const memberIds = getListMemberIds(list as any)
-        memberIds.forEach(id => userIds.add(id))
-      }
-      // The author here is always an agent (this route authenticates as one),
-      // and agents share the SSE pool this event goes to — an agent that
-      // answers comments on its own tasks would answer itself. Expressed
-      // through the shared rule so all five comment surfaces agree about the
-      // actor. (Task cb1581e0.)
-      applyCommentActorRule(userIds, { id: auth.userId, isAIAgent: true })
-
-      if (userIds.size > 0) {
-        // AgentComment-shaped object for SDK consumers
-        const agentComment = {
-          id: comment.id,
-          content: comment.content,
-          authorName: comment.author?.name || comment.author?.email || null,
-          authorId: comment.authorId,
-          isAgent: comment.author?.isAIAgent ?? false,
-          createdAt: new Date(comment.createdAt).toISOString(),
-        }
-        broadcastToUsers(Array.from(userIds), {
-          type: 'comment_created',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: id,
-            commentId: comment.id,
-            listNames: (task.lists || []).map((l: any) => l.name),
-            comment: agentComment,
-          },
-        })
-      }
-    } catch (err) {
-      log.error({ err }, 'SSE broadcast error')
+    if (outcome.kind === 'invalid') {
+      return NextResponse.json({ error: outcome.error }, { status: 400 })
     }
+    if (outcome.kind === 'conflict') {
+      return NextResponse.json({ error: outcome.error }, { status: 409 })
+    }
+
+    const comment = outcome.comment
 
     return addRateLimitHeaders(
       NextResponse.json(

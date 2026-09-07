@@ -4,10 +4,10 @@
 
 import { prisma } from "@/lib/prisma"
 import { broadcastToUsers } from "@/lib/sse-utils"
+import { createCommentWithSideEffects } from "@/services/comment.service"
 import { resolveMCPActor, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
-import { applyCommentActorRule } from "@/lib/comment-permissions"
 
 const log = createLogger('mcp.comment-operations')
 
@@ -44,12 +44,20 @@ export async function addComment(accessToken: string, taskId: string, commentDat
       ]
     },
     include: {
+      // assignee and the two list columns feed the post-comment side effects
+      // (agent wake-up, repository routing). This handler used to omit them
+      // because it fired no side effects at all.
+      assignee: {
+        select: { id: true, email: true, name: true, isAIAgent: true, aiAgentType: true }
+      },
       lists: {
         select: {
           id: true,
           name: true,
           color: true,
           privacy: true,
+          githubRepositoryId: true,
+          aiAgentConfiguredBy: true,
           listMembers: {
             include: {
               user: { select: { id: true, name: true, email: true } }
@@ -68,107 +76,37 @@ export async function addComment(accessToken: string, taskId: string, commentDat
   // Use AI agent ID as author if provided, otherwise use authenticated user
   const authorId = aiAgentId || userId
 
-  const comment = await prisma.comment.create({
-    data: {
-      content: commentData.content,
-      type: commentData.type || 'TEXT',
-      authorId,
-      taskId,
-      parentCommentId: commentData.parentCommentId
+  // The audience MCP has always computed: members of every list the task is in,
+  // resolved through its own query rather than the include.
+  const additionalAudience: string[] = []
+  for (const list of task.lists) {
+    additionalAudience.push(...(await getListMemberIdsByListId(list.id)))
+  }
+
+  const outcome = await createCommentWithSideEffects({
+    task: {
+      id: task.id,
+      title: task.title,
+      creatorId: task.creatorId,
+      assigneeId: task.assigneeId,
+      assignee: task.assignee,
+      lists: task.lists,
     },
-    include: {
-      author: {
-        select: { id: true, name: true, email: true }
-      },
-      secureFiles: true
-    }
+    authorId,
+    content: commentData.content,
+    type: commentData.type || 'TEXT',
+    parentCommentId: commentData.parentCommentId,
+    ...(commentData.fileId
+      ? { file: { id: commentData.fileId, linkerUserId: userId } }
+      : {}),
+    additionalAudience,
   })
 
-  // Associate secure file if provided
-  if (commentData.fileId) {
-    try {
-      await prisma.secureFile.update({
-        where: {
-          id: commentData.fileId,
-          uploadedBy: userId // Security: only allow linking files uploaded by the user
-        },
-        data: {
-          commentId: comment.id
-        }
-      })
-
-      // Refetch the comment to include the associated file
-      const updatedComment = await prisma.comment.findUnique({
-        where: { id: comment.id },
-        include: {
-          author: {
-            select: { id: true, name: true, email: true }
-          },
-          secureFiles: true
-        },
-      })
-
-      if (updatedComment) {
-        Object.assign(comment, updatedComment)
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Failed to associate file with comment:')
-      // Don't fail the comment creation if file association fails
-    }
+  if (outcome.kind === 'invalid' || outcome.kind === 'conflict') {
+    throw new Error(outcome.error)
   }
 
-  // Broadcast SSE event for real-time updates
-  try {
-    const userIds = new Set<string>()
-
-    // Get all members from all lists this task belongs to
-    for (const list of task.lists) {
-      const listMemberIds = await getListMemberIdsByListId(list.id)
-      listMemberIds.forEach(id => userIds.add(id))
-    }
-
-    // Add task assignee and creator
-    if (task.assigneeId) userIds.add(task.assigneeId)
-    if (task.creatorId) userIds.add(task.creatorId)
-
-    // The actor is the comment's AUTHOR, not the token owner. This removed
-    // `userId` — so an AI agent commenting through a human's MCP token cut the
-    // HUMAN out of the event about a comment they did not write, while leaving
-    // the agent in: exactly backwards. Humans now stay in (their other devices
-    // are separate SSE connections under one user id) and agents are dropped.
-    // (Task cb1581e0.)
-    applyCommentActorRule(userIds, {
-      id: comment.authorId ?? userId,
-      isAIAgent: Boolean(aiAgentId),
-    })
-
-    if (userIds.size > 0) {
-      log.info(`[MCP SSE] Broadcasting comment_created to ${userIds.size} users`)
-      broadcastToUsers(Array.from(userIds), {
-        type: 'comment_created',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          taskTitle: task.title,
-          commentId: comment.id,
-          commentContent: comment.content.substring(0, 100),
-          commenterName: comment.author?.name || comment.author?.email || "Someone",
-          userId: comment.authorId ?? userId,
-          listNames: Array.isArray(task.lists) ? task.lists.map(list => list.name) : [],
-          comment: {
-            id: comment.id,
-            content: comment.content,
-            type: comment.type,
-            createdAt: comment.createdAt,
-            author: comment.author
-          }
-        }
-      })
-    }
-  } catch (error) {
-    log.error({ err: error }, '[MCP SSE] Failed to broadcast comment_created:')
-    // Don't fail the operation if SSE fails
-  }
+  const comment = outcome.comment
 
   // Transform secureFiles for iOS compatibility (name/size vs originalName/fileSize)
   const transformedComment = {
