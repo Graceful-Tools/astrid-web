@@ -12,6 +12,21 @@
  * which inherits project membership from task 6c20d125). Filtering after the
  * fact would mean the database had already handed us rows the caller may not
  * see, and one forgotten filter becomes a leak.
+ *
+ * PAGINATION DOES NOT RE-RUN THE SEARCH (task f9ba26b3)
+ * ----------------------------------------------------
+ * The text predicate is `ILIKE '%term%'` over task titles, task descriptions
+ * and comment content, none of them indexed for it (the pg_trgm index is the
+ * schema task 466c10f1, parked pending production query plans). This route used
+ * to run that predicate a second time as a `count`, only to decide whether a
+ * next page existed — so every page cost two full scans, and the sole consumer
+ * walks every page while never reading `total` at all.
+ *
+ * Asking for one row MORE than the page answers the same question for the cost
+ * of one row. `total` became opt-in with it: an exact count is a scan, and a
+ * caller that wants one should say so. On the last page it is free anyway,
+ * because reaching the end is what makes it knowable — and when it is genuinely
+ * unknown the field is `null` rather than a plausible-looking wrong number.
  */
 
 import { NextResponse } from 'next/server'
@@ -44,6 +59,7 @@ export const GET = withAuth(
       MAX_LIMIT
     )
     const offset = Math.max(parseInt(url.searchParams.get('cursor') || '0', 10) || 0, 0)
+    const includeTotal = url.searchParams.get('includeTotal') === 'true'
 
     const parsed = parseSearchQuery(rawQuery)
 
@@ -149,7 +165,7 @@ export const GET = withAuth(
     const where = { AND: filters }
 
     try {
-      const [tasks, total, lists] = await Promise.all([
+      const [pageRows, lists] = await Promise.all([
         prisma.task.findMany({
           where: where as never,
           select: {
@@ -166,10 +182,11 @@ export const GET = withAuth(
             lists: { select: { id: true, name: true, color: true, listType: true } },
           },
           orderBy: [{ completed: 'asc' }, { updatedAt: 'desc' }],
-          take: limit,
+          // One beyond the page. Its presence IS the "there is more" signal, so
+          // it must be trimmed off below rather than shipped as a result.
+          take: limit + 1,
           skip: offset,
         }),
-        prisma.task.count({ where: where as never }),
         // Lists matching by name, so the palette can offer "jump to list".
         parsed.text
           ? prisma.taskList.findMany({
@@ -185,7 +202,23 @@ export const GET = withAuth(
           : Promise.resolve([]),
       ])
 
-      const nextCursor = offset + tasks.length < total ? String(offset + tasks.length) : null
+      const hasMore = pageRows.length > limit
+      const tasks = hasMore ? pageRows.slice(0, limit) : pageRows
+      const nextCursor = hasMore ? String(offset + limit) : null
+
+      /*
+       * Exact when it is cheap or explicitly requested; null otherwise.
+       *
+       * The last page is the free case: nothing follows it, so the offset plus
+       * what it returned IS the total. Returning the page size instead of null
+       * on the unknown path would be worse than useless — anything rendering a
+       * result count would state it as fact.
+       */
+      const total = !hasMore
+        ? offset + tasks.length
+        : includeTotal
+          ? await prisma.task.count({ where: where as never })
+          : null
 
       return NextResponse.json({
         query: parsed,

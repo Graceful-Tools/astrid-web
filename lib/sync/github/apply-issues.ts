@@ -30,9 +30,20 @@
 
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { mapWithConcurrency } from '@/lib/concurrency'
 import type { PulledIssue } from '@/lib/sync/github/pull-issues'
 
 const log = createLogger('sync.github.apply')
+
+/**
+ * How many issues are applied at once (task f9ba26b3).
+ *
+ * Each one costs up to two writes, and `connectionPoolConfig` caps production
+ * at ten connections shared with everything else the process is doing. Five
+ * leaves headroom while cutting the sequential depth of a 300-issue batch from
+ * 600 waits to about 120.
+ */
+const APPLY_CONCURRENCY = 5
 
 export type { PulledIssue }
 
@@ -82,92 +93,138 @@ export async function applyPulledIssues(args: {
     return { ...result, skipped: items.length }
   }
 
+  /*
+   * ONE LOOKUP FOR THE BATCH, NOT ONE PER ITEM (task f9ba26b3).
+   *
+   * This used to `findFirst` per issue before doing any work, so 300 changed
+   * issues cost 300 sequential existence probes inside a single link's turn of
+   * a 60-second pass. `@@unique([provider, remoteId, userId])` means one row
+   * per key, so a single `in` query answers the same question exactly.
+   *
+   * Deduping first is not tidiness. The map is a snapshot taken before the
+   * loop, so a `remoteId` appearing twice in one batch would miss it twice and
+   * be imported twice — a duplicate the per-item probe could not produce.
+   * Dropping the repeat is also the honest reading: two entries for one issue
+   * describe one issue.
+   */
+  const applicable: PulledIssue[] = []
+  const seenRemoteIds = new Set<string>()
+
   for (const item of items) {
     if (!item.remoteId || !item.title) {
       result.skipped++
       continue
     }
-
-    const existing = await prisma.externalTaskLink.findFirst({
-      where: { provider: 'GITHUB_ISSUES', remoteId: item.remoteId, userId: link.userId },
-      select: { id: true, astridTaskId: true, remoteUpdatedAt: true },
-    })
-
-    if (existing) {
-      if (isStale(item, existing.remoteUpdatedAt)) {
-        result.skipped++
-        continue
-      }
-
-      await prisma.task.update({
-        where: { id: existing.astridTaskId },
-        data: {
-          title: item.title,
-          description: item.notes ?? '',
-          completed: item.completed,
-          completedAt: item.completedAt ? new Date(item.completedAt) : null,
-          closedReason: item.closedReason ?? null,
-        },
-      })
-      await prisma.externalTaskLink.update({
-        where: { id: existing.id },
-        data: {
-          remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
-          lastSyncedAt: new Date(),
-        },
-      })
-      result.updated++
+    if (seenRemoteIds.has(item.remoteId)) {
+      result.skipped++
       continue
     }
-
-    // New issue. The task and its link are written together: a task with no
-    // link would be re-imported as a duplicate on the very next run, which is
-    // the failure mode that makes naive importers unusable.
-    try {
-      await prisma.$transaction(async tx => {
-        const task = await tx.task.create({
-          data: {
-            title: item.title,
-            description: item.notes ?? '',
-            completed: item.completed,
-            completedAt: item.completedAt ? new Date(item.completedAt) : null,
-            closedReason: item.closedReason ?? null,
-            creatorId: link.userId,
-            // '' means no assignee resolved to an Astrid user — leave it unset
-            // rather than writing an empty string into a relation.
-            assigneeId: item.metadata.assigneeUserId || undefined,
-            lists: { connect: { id: link.astridListId } },
-          },
-        })
-        await tx.externalTaskLink.create({
-          data: {
-            integrationId: link.integrationId,
-            userId: link.userId,
-            astridTaskId: task.id,
-            provider: 'GITHUB_ISSUES',
-            remoteId: item.remoteId,
-            remoteContainerId: link.remoteContainerId,
-            remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : null,
-            lastSyncedAt: new Date(),
-          },
-        })
-      })
-      result.created++
-    } catch (error) {
-      // ONLY a unique violation is safe to absorb: it means another run created
-      // the same issue concurrently, so the desired end state already holds.
-      //
-      // Everything else MUST propagate. The caller commits the cursor when this
-      // returns without throwing, so swallowing a real failure here (DB down,
-      // constraint violation, bad data) would advance the watermark past an
-      // issue that was never imported — the exact silent loss this module is
-      // built to prevent. A failed run that retries is always the cheaper bug.
-      if ((error as { code?: string })?.code !== 'P2002') throw error
-
-      log.warn({ remoteId: item.remoteId }, 'Concurrent create; treating as skip')
-      result.skipped++
-    }
+    seenRemoteIds.add(item.remoteId)
+    applicable.push(item)
   }
+
+  if (applicable.length === 0) return result
+
+  const existingRows = await prisma.externalTaskLink.findMany({
+    where: {
+      provider: 'GITHUB_ISSUES',
+      userId: link.userId,
+      remoteId: { in: applicable.map(item => item.remoteId) },
+    },
+    select: { id: true, astridTaskId: true, remoteUpdatedAt: true, remoteId: true },
+  })
+
+  const existingByRemoteId = new Map(existingRows.map(row => [row.remoteId, row]))
+
+  type Outcome = 'created' | 'updated' | 'skipped'
+
+  const outcomes = await mapWithConcurrency(
+    applicable,
+    APPLY_CONCURRENCY,
+    async (item): Promise<Outcome> => {
+      const existing = existingByRemoteId.get(item.remoteId)
+
+      if (existing) {
+        if (isStale(item, existing.remoteUpdatedAt)) return 'skipped'
+
+        // Independent rows, so one round trip rather than two. Not a
+        // transaction: if the link write is the one that fails, the watermark
+        // simply does not advance and the next run reapplies — which is the
+        // recoverable direction. A half-applied CREATE is the one that is not,
+        // and that is still transactional below.
+        await Promise.all([
+          prisma.task.update({
+            where: { id: existing.astridTaskId },
+            data: {
+              title: item.title,
+              description: item.notes ?? '',
+              completed: item.completed,
+              completedAt: item.completedAt ? new Date(item.completedAt) : null,
+              closedReason: item.closedReason ?? null,
+            },
+          }),
+          prisma.externalTaskLink.update({
+            where: { id: existing.id },
+            data: {
+              remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
+              lastSyncedAt: new Date(),
+            },
+          }),
+        ])
+        return 'updated'
+      }
+
+      // New issue. The task and its link are written together: a task with no
+      // link would be re-imported as a duplicate on the very next run, which is
+      // the failure mode that makes naive importers unusable.
+      try {
+        await prisma.$transaction(async tx => {
+          const task = await tx.task.create({
+            data: {
+              title: item.title,
+              description: item.notes ?? '',
+              completed: item.completed,
+              completedAt: item.completedAt ? new Date(item.completedAt) : null,
+              closedReason: item.closedReason ?? null,
+              creatorId: link.userId,
+              // '' means no assignee resolved to an Astrid user — leave it unset
+              // rather than writing an empty string into a relation.
+              assigneeId: item.metadata.assigneeUserId || undefined,
+              lists: { connect: { id: link.astridListId } },
+            },
+          })
+          await tx.externalTaskLink.create({
+            data: {
+              integrationId: link.integrationId,
+              userId: link.userId,
+              astridTaskId: task.id,
+              provider: 'GITHUB_ISSUES',
+              remoteId: item.remoteId,
+              remoteContainerId: link.remoteContainerId,
+              remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : null,
+              lastSyncedAt: new Date(),
+            },
+          })
+        })
+        return 'created'
+      } catch (error) {
+        // ONLY a unique violation is safe to absorb: it means another run created
+        // the same issue concurrently, so the desired end state already holds.
+        //
+        // Everything else MUST propagate. The caller commits the cursor when this
+        // returns without throwing, so swallowing a real failure here (DB down,
+        // constraint violation, bad data) would advance the watermark past an
+        // issue that was never imported — the exact silent loss this module is
+        // built to prevent. A failed run that retries is always the cheaper bug.
+        if ((error as { code?: string })?.code !== 'P2002') throw error
+
+        log.warn({ remoteId: item.remoteId }, 'Concurrent create; treating as skip')
+        return 'skipped'
+      }
+    },
+  )
+
+  for (const outcome of outcomes) result[outcome]++
 
   return result
 }
