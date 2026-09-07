@@ -16,12 +16,15 @@ import { parseJsonBody, parseRouteParams } from '@/lib/api-validation'
 import type { V1ResponseMeta } from '@/lib/api-contracts/v1-ios-shapes'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { broadcastToUsers } from '@/lib/sse-utils'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { userCanAccessTask } from "@/services/task.service"
-import { canDeleteComment, commentAudience } from "@/lib/comment-permissions"
+import { canDeleteComment } from "@/lib/comment-permissions"
+import {
+  deleteCommentWithSideEffects,
+  updateCommentWithSideEffects,
+} from "@/services/comment.service"
 
 const log = createLogger('v1.comments.id')
 
@@ -182,51 +185,15 @@ export const PUT = withAuth<RouteContext>(
       )
     }
 
-    const comment = await prisma.comment.update({
-      where: { id },
-      data: { content, updatedAt: new Date() },
+    const comment = await updateCommentWithSideEffects<
+      Prisma.CommentGetPayload<{ include: typeof COMMENT_UPDATE_INCLUDE }>
+    >({
+      commentId: id,
+      content,
+      task: existingComment.task,
+      editor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
       include: COMMENT_UPDATE_INCLUDE,
     })
-
-    // Tell everyone looking at this task. Without it, an edit made from iOS left
-    // every open web client showing the old text until it refetched — the
-    // legacy PUT has always broadcast this. (Task 130508e3.)
-    //
-    // The editor stays IN the audience on purpose: components/task-detail.tsx
-    // filters on data.userId itself. That is the opposite of DELETE below,
-    // which drops the actor server-side.
-    try {
-      const task = existingComment.task
-      const userIds = commentAudience(task)
-
-      if (userIds.size > 0) {
-        broadcastToUsers(Array.from(userIds), {
-          type: 'comment_updated',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            taskTitle: task.title,
-            commentId: comment.id,
-            commentContent: comment.content.substring(0, 100),
-            editorName: auth.user?.name || auth.user?.email || 'Someone',
-            userId: auth.userId,
-            listNames: task.lists.map(list => list.name),
-            comment: {
-              id: comment.id,
-              content: comment.content,
-              type: comment.type,
-              author: comment.author,
-              createdAt: comment.createdAt,
-              updatedAt: comment.updatedAt,
-              parentCommentId: comment.parentCommentId,
-            },
-          },
-        })
-      }
-    } catch (sseError) {
-      // Best-effort: the edit is already committed.
-      log.error({ err: sseError }, 'Failed to broadcast comment_updated')
-    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -308,38 +275,21 @@ export const DELETE = withAuth<RouteContext>(
       )
     }
 
-    await prisma.comment.delete({ where: { id } })
+    await deleteCommentWithSideEffects({
+      commentId: id,
+      task,
+      actor: {
+        id: auth.userId,
+        name: auth.user?.name,
+        email: auth.user?.email,
+        isAIAgent: auth.isAIAgent,
+      },
+    })
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.COMMENT_DELETED, {
       taskId: task.id,
       commentId: id
     })
-
-    // Broadcast SSE event for real-time updates
-    try {
-      // The deleter stays in the audience, like the editor above: their other
-      // devices are separate connections under the same user id, and a comment
-      // deleted on the Mac has to disappear from the open web tab too rather
-      // than lingering until the next refresh. Removal is idempotent by id, so
-      // the tab that issued the delete can safely see its own event.
-      // (Task cb1581e0.)
-      const userIds = commentAudience(task, { id: auth.userId, isAIAgent: auth.isAIAgent })
-
-      if (userIds.size > 0) {
-        broadcastToUsers(Array.from(userIds), {
-          type: 'comment_deleted',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            commentId: existingComment.id,
-            userId: auth.userId,
-            listNames: task.lists.map(list => list.name),
-          }
-        })
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Failed to broadcast comment_deleted')
-    }
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)

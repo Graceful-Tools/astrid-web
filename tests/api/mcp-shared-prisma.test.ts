@@ -55,9 +55,23 @@ describe('bugs the untyped client was hiding', () => {
 })
 
 describe('MCP comments run the shared side effects', () => {
+  /**
+   * Task 390bccc3: this handler wrote the comment row directly, so an @mention
+   * posted through MCP triggered no agent and sent no push. The fix was a call
+   * to dispatchPostCommentSideEffects, and this test pinned it there.
+   *
+   * Epic 9dedd8aa moved that call one level down: the handler now goes through
+   * services/comment.service.ts, which dispatches on behalf of every surface —
+   * and which also gave this one the SSE fan-out it never had. The guarantee is
+   * unchanged and still worth pinning, so the assertion follows it rather than
+   * being deleted: the handler must delegate, and the service must dispatch.
+   */
   it('dispatches them rather than only writing the row', () => {
-    const source = fs.readFileSync('mcp/handlers/comments.ts', 'utf8')
+    const handler = fs.readFileSync('mcp/handlers/comments.ts', 'utf8')
+    const service = fs.readFileSync('services/comment.service.ts', 'utf8')
 
-    expect(source).toContain('dispatchPostCommentSideEffects')
+    expect(handler).toContain('createCommentWithSideEffects')
+    expect(handler).not.toMatch(/prisma\.comment\.create/)
+    expect(service).toContain('dispatchPostCommentSideEffects')
   })
 })

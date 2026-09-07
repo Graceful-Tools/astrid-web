@@ -3,11 +3,13 @@
  */
 
 import { prisma } from "@/lib/prisma"
-import { broadcastToUsers } from "@/lib/sse-utils"
-import { createCommentWithSideEffects } from "@/services/comment.service"
+import {
+  createCommentWithSideEffects,
+  deleteCommentWithSideEffects,
+} from "@/services/comment.service"
 import { resolveMCPActor, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
-import { canUserManageList } from "@/lib/list-permissions"
+import { canDeleteComment } from "@/lib/comment-permissions"
 
 const log = createLogger('mcp.comment-operations')
 
@@ -220,60 +222,29 @@ export async function deleteComment(accessToken: string, commentId: string, user
 
   const task = existingComment.task
 
-  // Check permissions: comment author OR task/list owners/admins can delete
-  const isCommentAuthor = existingComment.authorId === mcpToken.userId
-  const isTaskCreator = task.creatorId === mcpToken.userId
-  const isTaskAssignee = task.assigneeId === mcpToken.userId
-  const isListOwnerOrAdmin = task.lists.some(
-    (list) => canUserManageList({ id: mcpToken.userId }, list as never),
-  )
-
-  if (!isCommentAuthor && !isTaskCreator && !isTaskAssignee && !isListOwnerOrAdmin) {
+  // Author, the people responsible for the task, or a list admin — through the
+  // shared rule the other two delete surfaces already use. This handler
+  // re-derived the same four clauses by hand; they happened to agree, and
+  // "happened to agree" is what this epic exists to stop.
+  if (!canDeleteComment(existingComment.authorId, task, mcpToken.userId)) {
     log.info(`[MCP deleteComment] Access denied for user ${mcpToken.userId} to delete comment ${commentId}`)
     throw new Error('You can only delete your own comments or comments on tasks you manage')
   }
 
   log.info(`[MCP deleteComment] Access granted. Deleting comment ${commentId}`)
 
-  // Delete the comment
-  await prisma.comment.delete({
-    where: { id: commentId }
+  await deleteCommentWithSideEffects({
+    commentId,
+    task,
+    actor: {
+      id: mcpToken.userId,
+      name: mcpToken.user?.name,
+      email: mcpToken.user?.email,
+      // The MCP actor is resolved from the token; its select carries no
+      // isAIAgent, and an agent posting through MCP does so as its own user.
+      isAIAgent: (mcpToken.user as { isAIAgent?: boolean } | undefined)?.isAIAgent,
+    },
   })
-
-  // Send SSE notification to all users with access to the task
-  try {
-    const userIds = new Set<string>()
-
-    // Add task creator and assignee
-    if (task.creatorId) userIds.add(task.creatorId)
-    if (task.assigneeId) userIds.add(task.assigneeId)
-
-    // Add all users who have access to the task through lists
-    for (const list of task.lists) {
-      if (list.ownerId) userIds.add(list.ownerId)
-
-      // Add all list members (unified in listMembers table)
-      list.listMembers.forEach((member) => userIds.add(member.userId))
-    }
-
-    if (userIds.size > 0) {
-      broadcastToUsers(Array.from(userIds), {
-        type: 'comment_deleted',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          taskTitle: task.title,
-          commentId: existingComment.id,
-          deletedByName: mcpToken.user?.name || mcpToken.user?.email || "Someone",
-          userId: mcpToken.userId,
-          listNames: task.lists.map((list) => list.name),
-        }
-      })
-    }
-  } catch (sseError) {
-    log.error({ err: sseError }, "[MCP deleteComment] Failed to send SSE notifications:")
-    // Continue - comment was still deleted
-  }
 
   log.info(`[MCP deleteComment] Comment ${commentId} deleted successfully`)
 
