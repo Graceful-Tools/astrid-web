@@ -141,6 +141,17 @@ export const sessionRateLimiter = new RateLimiter({
   keyGenerator: (request) => clientIpKey('session', request),
 })
 
+// Desktop browser hand-off sign-in (grant + exchange). Its own bucket, for the
+// same reason the passkey and session limiters have theirs: the exchange half is
+// unauthenticated, so a code-guessing loop from one IP must not be able to lock
+// that IP out of Google and Apple sign-in, which share the default bucket.
+// A real hand-off spends two requests, so the budget is generous.
+export const desktopHandoffRateLimiter = new RateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  maxRequests: 20,
+  keyGenerator: (request) => clientIpKey('desktop-handoff', request),
+})
+
 // Preset configurations for different endpoints
 export const RATE_LIMITS = {
   // Webhook endpoints - higher limits for legitimate AI service integrations

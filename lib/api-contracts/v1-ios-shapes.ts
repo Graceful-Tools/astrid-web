@@ -484,3 +484,23 @@ export interface V1MobileMcpTokenRevokeResponse {
   success: true
   meta: V1ResponseMeta
 }
+
+/**
+ * POST /api/v1/auth/desktop/exchange — a one-time hand-off code plus its PKCE
+ * verifier, traded for a session.
+ *
+ * `sessionToken` is returned in the body, never as a Set-Cookie: the caller is
+ * a native app that stores the credential itself.
+ *
+ * `sessionCookieName` exists because that client holds a whole `Cookie` header
+ * and has to choose a name before it has ever seen a server cookie — the
+ * `__Secure-` prefix is used in production and not in development. Guessing
+ * wrong means signing in successfully and then reading as signed out.
+ */
+export interface V1DesktopExchangeResponse {
+  sessionToken: string
+  expiresAt: string
+  sessionCookieName: string
+  user: V1AuthUser
+  meta: V1ResponseMeta
+}

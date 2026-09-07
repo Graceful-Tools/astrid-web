@@ -1,8 +1,17 @@
-# Product Contract — shared behavior & copy across Web and iOS/Mac
+# Product Contract — shared behavior & copy across Web, iOS/Mac and Windows
 
-*Single source of truth for the rules and user-facing strings that **both** the
-web app (this repo) and the Apple app ([astrid-ios](https://github.com/Graceful-Tools/astrid-ios))
-must honor, so the two platforms don't drift.*
+*Single source of truth for the rules and user-facing strings that **every**
+client must honor, so the platforms don't drift: the web app (this repo), the
+Apple app ([astrid-ios](https://github.com/Graceful-Tools/astrid-ios), which
+ships both iOS and Mac), and the Windows app
+([astrid-windows](https://github.com/Graceful-Tools/astrid-windows)).*
+
+> Windows reads several of these rules as **generated fixtures** rather than
+> prose: `astrid-windows/contracts/fixtures/*.json` are produced by running this
+> repo's own implementations, and its Rust tests replay them. A behaviour change
+> here therefore lands as a coordinated change — web first with tests, then the
+> fixtures, then the clients. Divergences that cannot be closed in one change are
+> written down in `astrid-windows/docs/CONTRACTS.md`.
 
 Status: **active**. Companion to
 [docs/CODE_REUSE_AND_CONSISTENCY.md](./CODE_REUSE_AND_CONSISTENCY.md).
@@ -10,7 +19,7 @@ API shapes live in [docs/API_CONTRACT.md](./API_CONTRACT.md);
 this file governs *behavioral rules* and *copy*, not wire formats.
 
 > Rule of thumb: if a change alters **who can do what** or **what words the user
-> sees**, and it should look the same on both platforms, update this file in the
+> sees**, and it should look the same everywhere, update this file in the
 > same PR.
 
 ---
