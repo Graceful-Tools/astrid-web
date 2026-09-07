@@ -101,6 +101,31 @@ Sign out the current user.
 ### POST `/api/auth/mobile-mcp-token`
 Get MCP (Model Context Protocol) token for AI integrations.
 
+### POST `/api/auth/desktop/grant`
+Mint a one-time hand-off code for a native desktop app. Cookie-authenticated: the
+code is always for the **session** user, never for a user named in the body.
+
+Body: `{ client, state, codeChallenge, codeChallengeMethod: "S256" }` →
+`{ redirectUrl }`, a URL on the app's own scheme carrying `code` and `state`.
+
+`plain` PKCE is rejected. The redirect URI is a per-client constant and is never
+read from the request, so this cannot be turned into an open redirect.
+
+### POST `/api/v1/auth/desktop/exchange`
+Trade a hand-off code plus its PKCE verifier for a session. Unauthenticated by
+design — the code is the credential.
+
+Body: `{ client, code, codeVerifier }` →
+`{ sessionToken, expiresAt, sessionCookieName, user, meta }`.
+
+The token is returned in the body, never as a `Set-Cookie`: the caller stores the
+credential itself. `sessionCookieName` is stated because a native client holds a
+whole `Cookie` header and has to pick a name before it has ever seen a server
+cookie — production uses the `__Secure-` prefix and development does not.
+
+Codes are single-use, hashed at rest, and expire in five minutes. A wrong
+verifier burns the code rather than allowing another attempt.
+
 ---
 
 ## Task Endpoints

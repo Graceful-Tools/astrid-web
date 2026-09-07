@@ -42,6 +42,7 @@ import type {
   V1ShortcodesResponse,
   V1MessageResponse,
   V1DeleteResponse,
+  V1DesktopExchangeResponse,
   V1Reminder,
   V1RemindersResponse,
   V1ReminderDismissResponse,
@@ -545,6 +546,30 @@ describe('v1 contract — generic envelopes', () => {
     // success must literally be true — not just truthy. iOS uses it as a
     // discriminator when the same handler can return error envelopes.
     expect(sample.success).toBe(true)
+  })
+})
+
+describe('v1 contract — V1DesktopExchangeResponse (desktop hand-off sign-in)', () => {
+  it('carries the token, its expiry, the cookie name and the user', () => {
+    const sample: V1DesktopExchangeResponse = {
+      sessionToken: 'jwt.value.here',
+      expiresAt: '2026-10-07T12:00:00.000Z',
+      sessionCookieName: 'next-auth.session-token',
+      user: { id: 'u1', email: 'a@example.test', name: 'A', image: null },
+      meta: { apiVersion: 'v1', authSource: 'desktop-handoff' },
+    }
+    expect(Object.keys(sample).sort()).toEqual([
+      'expiresAt', 'meta', 'sessionCookieName', 'sessionToken', 'user',
+    ])
+  })
+
+  it('names the cookie, so a native client never has to guess the prefix', () => {
+    // The Windows and Mac clients store a whole `Cookie` header. Production
+    // issues `__Secure-next-auth.session-token` and development does not; a
+    // client that assumes one signs in against the other and is immediately
+    // treated as signed out.
+    const valid = ['next-auth.session-token', '__Secure-next-auth.session-token']
+    expect(valid).toContain('next-auth.session-token')
   })
 })
 

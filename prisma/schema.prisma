@@ -89,6 +89,7 @@ model User {
   agentMcpTokens               MCPToken[]             @relation("MCPTokenAgentUser")
   oauthClients                 OAuthClient[]          @relation("OAuthClients")
   oauthTokens                  OAuthToken[]           @relation("OAuthTokens")
+  desktopAuthGrants            DesktopAuthGrant[]
   ownedProjects                Project[]              @relation("ProjectOwner")
   projectMemberships           ProjectMember[]        @relation("ProjectMembership")
   pushSubscriptions            PushSubscription[]
@@ -850,6 +851,29 @@ model OAuthAuthorizationCode {
 
   @@index([code])
   @@index([clientId])
+  @@index([expiresAt])
+}
+
+/// One-time codes that hand a signed-in browser back to a native desktop app.
+///
+/// Separate from OAuthAuthorizationCode on purpose: these redeem into a full
+/// first-party session, not a scoped third-party token, so the two must not
+/// share a lookup. See lib/auth/desktop-grant-store.ts.
+model DesktopAuthGrant {
+  id                  String    @id @default(cuid())
+  /// SHA-256 of the code. The plaintext exists only in the callback URL.
+  code                String    @unique
+  userId              String
+  /// Which desktop app the code was minted for, e.g. "windows".
+  client              String
+  codeChallenge       String
+  codeChallengeMethod String
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([expiresAt])
 }
 

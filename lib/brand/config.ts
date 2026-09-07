@@ -27,6 +27,7 @@ const DEFAULTS = {
   wordmark: 'astrid',
   slogan: 'Get it done!',
   appStoreUrl: 'https://apps.apple.com/app/astrid-tasks/id6755752694',
+  appUrlScheme: 'astrid',
   logo: '/images/astrid-character.png',
   icon: '/icons/icon-512x512.png',
   iconSmall: '/icons/icon-96x96.png',
@@ -107,6 +108,15 @@ export const BRAND = {
    * without a published app should not advertise someone else's.
    */
   appStoreUrl: process.env.NEXT_PUBLIC_BRAND_APP_STORE_URL?.trim() ?? DEFAULTS.appStoreUrl,
+
+  /**
+   * Custom URL scheme the desktop and mobile apps register, without `://`.
+   *
+   * The server hands a signed-in browser back to a native app through
+   * `<scheme>://auth/callback`, so a fork that ships its own apps must set this
+   * or the hand-off would deep-link into someone else's application.
+   */
+  appUrlScheme: env(process.env.NEXT_PUBLIC_BRAND_APP_URL_SCHEME, DEFAULTS.appUrlScheme),
 
   /**
    * Character / mascot artwork — the sign-in page, empty states and reminder popovers.
