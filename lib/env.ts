@@ -219,6 +219,7 @@ export const ENV_VARS: EnvVar[] = [
   // No third-party analytics client. Product analytics are server-side
   // (lib/analytics-events.ts, backed by the database).
   { name: 'LOG_LEVEL', scope: 'optional', description: 'Global pino level. Defaults to info in production, debug otherwise. Per-module override: LOG_LEVEL_<MODULE>, e.g. LOG_LEVEL_SSE_UTILS=debug.' },
+  { name: 'LOG_TO_STDERR', scope: 'tooling', description: 'Set to 1 to send pino output to stderr. Required by the stdio MCP server, where stdout is the JSON-RPC channel and a log line is a malformed frame.' },
   { name: 'OTEL_SERVICE_NAME', scope: 'optional', description: 'Service name reported to tracing.' },
   { name: 'NEXT_PUBLIC_DEBUG_PERMISSIONS', scope: 'tooling', description: 'Logs permission decisions in the browser.' },
 

@@ -73,7 +73,7 @@ npm run build:mcp:oauth
 ```
 
 This creates:
-- `dist/mcp-server-oauth.js` - Compiled JavaScript
+- `dist/mcp/mcp-server-oauth.js` - Compiled JavaScript
 - `mcp/astrid-mcp-oauth` - Executable script
 
 Both are build output and are **not committed** (task 979e1325). They were,
@@ -81,7 +81,60 @@ once, and never rebuilt: the checked-in bundle ended up with no
 `get_agent_queue` tool at all while its source had one. Build them from your
 checkout rather than trusting a binary in git.
 
+The compiled entry point is `dist/mcp/mcp-server-oauth.js`, not `dist/`
+directly: both servers import `../lib/*`, so tsc takes the repo root as the
+root of the input set and mirrors the tree under `dist/`.
+
 ## Setup Instructions
+
+### For Claude Code (this repo)
+
+Claude Code runs from this checkout, so it uses `mcp/astrid-mcp-launch.js`
+instead of the compiled file. The launcher loads `.env.local`, points pino at
+stderr (stdout is the JSON-RPC channel), and fails with an actionable message
+when the build output is missing.
+
+**Credentials stay in `.env.local`.** Do not paste them into an MCP config:
+`.mcp.json` is committed and cannot hold a secret, and a copy in
+`~/.claude.json` is one more place for `scripts/rotate-fixall-mcp-token.ts` to
+miss on the next rotation.
+
+```bash
+npm run build:mcp:oauth   # required first — dist/ is gitignored
+```
+
+Then register the server. Project scope (committed, applies to everyone
+working the repo) — create `.mcp.json` in the repo root:
+
+```json
+{
+  "mcpServers": {
+    "astrid": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./mcp/astrid-mcp-launch.js"]
+    }
+  }
+}
+```
+
+Local scope (this machine only, not committed) — use an absolute path:
+
+```bash
+claude mcp add astrid -s local -- node /absolute/path/to/astrid-web/mcp/astrid-mcp-launch.js
+```
+
+**Claude Code reads MCP servers at startup, so restart the session** — an
+already-running session will not see a newly registered server. Verify with
+`/mcp`, or from a shell:
+
+```bash
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"1"}}}' \
+  | node mcp/astrid-mcp-launch.js 2>/dev/null
+```
+
+A JSON-RPC result on stdout means it is working. Empty output means the server
+never started; anything non-JSON on stdout will break a real client.
 
 ### For Claude Desktop
 
@@ -102,7 +155,7 @@ Edit the configuration file and add:
   "mcpServers": {
     "astrid-oauth": {
       "command": "node",
-      "args": ["/absolute/path/to/your/project/dist/mcp-server-oauth.js"],
+      "args": ["/absolute/path/to/your/project/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_OAUTH_CLIENT_ID": "astrid_client_xxxxxxxxxxxxx",
         "ASTRID_OAUTH_CLIENT_SECRET": "your_secret_here",
@@ -126,7 +179,7 @@ Edit the configuration file and add:
   "mcpServers": {
     "astrid-oauth": {
       "command": "node",
-      "args": ["/Users/jonparis/Documents/mycode/astrid-res/www/dist/mcp-server-oauth.js"],
+      "args": ["/Users/jonparis/Documents/mycode/astrid-res/www/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_OAUTH_CLIENT_ID": "astrid_client_abc123def456",
         "ASTRID_OAUTH_CLIENT_SECRET": "secret_xyz789uvw012",
@@ -172,7 +225,7 @@ OpenAI’s MCP support works with the exact same OAuth server. Each teammate jus
   "mcpServers": {
     "astrid-oauth": {
       "command": "node",
-      "args": ["/absolute/path/to/astrid-res/www/dist/mcp-server-oauth.js"],
+      "args": ["/absolute/path/to/astrid-res/www/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_OAUTH_CLIENT_ID": "astrid_client_xxxxxxxxxxxxx",
         "ASTRID_OAUTH_CLIENT_SECRET": "your_secret_here",
@@ -185,7 +238,7 @@ OpenAI’s MCP support works with the exact same OAuth server. Each teammate jus
 ```
 
 Tips:
-- Use the fully-qualified path to the `dist/mcp-server-oauth.js` file.
+- Use the fully-qualified path to the `dist/mcp/mcp-server-oauth.js` file.
 - Forward slashes work on every platform (`C:/Users/...` on Windows).
 - Point `ASTRID_API_BASE_URL` to `http://localhost:3000` when developing against a local Astrid instance.
 
@@ -326,7 +379,7 @@ Prefer to run the transport yourself (custom domain, private VPC, staging, etc.)
    ```
    Outputs:
    - `mcp/astrid-mcp-oauth-http` – executable wrapper
-   - `dist/mcp-server-oauth-http.js` – compiled HTTP/SSE entry point
+   - `dist/mcp/mcp-server-oauth-http.js` – compiled HTTP/SSE entry point
 
 2. **Run or deploy the server** with your Astrid OAuth credentials:
    ```bash
@@ -486,7 +539,7 @@ If you set `ASTRID_OAUTH_LIST_ID`:
    - Use forward slashes `/` even on Windows
 2. **Verify build:**
    - Run `npm run build:mcp:oauth` again
-   - Check that `dist/mcp-server-oauth.js` exists
+   - Check that `dist/mcp/mcp-server-oauth.js` exists
 3. **Check configuration file:**
    - Valid JSON (no trailing commas)
    - Correct environment variables
@@ -504,7 +557,7 @@ Enable detailed logging:
    ASTRID_OAUTH_CLIENT_SECRET="your_secret" \
    ASTRID_OAUTH_LIST_ID="your_list_id" \
    ASTRID_API_BASE_URL="https://astrid.cc" \
-   node dist/mcp-server-oauth.js
+   node dist/mcp/mcp-server-oauth.js
    ```
 
 2. Check the output for connection errors
@@ -553,7 +606,7 @@ For local development against `localhost:3000`:
   "mcpServers": {
     "astrid-local": {
       "command": "node",
-      "args": ["/path/to/dist/mcp-server-oauth.js"],
+      "args": ["/path/to/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_OAUTH_CLIENT_ID": "local_client_id",
         "ASTRID_OAUTH_CLIENT_SECRET": "local_secret",
@@ -574,7 +627,7 @@ You can configure both simultaneously:
   "mcpServers": {
     "astrid-production": {
       "command": "node",
-      "args": ["/path/to/dist/mcp-server-oauth.js"],
+      "args": ["/path/to/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_API_BASE_URL": "https://astrid.cc",
         "ASTRID_OAUTH_CLIENT_ID": "prod_client_id",
@@ -584,7 +637,7 @@ You can configure both simultaneously:
     },
     "astrid-local": {
       "command": "node",
-      "args": ["/path/to/dist/mcp-server-oauth.js"],
+      "args": ["/path/to/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_API_BASE_URL": "http://localhost:3000",
         "ASTRID_OAUTH_CLIENT_ID": "local_client_id",
