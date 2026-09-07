@@ -66,6 +66,25 @@ interface Comment {
   author: { id: string; name: string; email: string }
 }
 
+/**
+ * Repeat configuration, shared by create and update.
+ *
+ * The wire shape is settled and cross-platform — `types/repeating.ts` is
+ * canonical and iOS mirrors it in RepeatingTaskHandler.swift — so this is
+ * plumbing, not a new design. Next-occurrence math stays in the calculator
+ * (ASTRID.md rule 4); nothing here computes a date.
+ *
+ * `repeatFrom` matters more than it looks for scheduled work: the column
+ * defaults to COMPLETION_DATE, which drags the slot forward every time a run
+ * lands late. A weekly job that must stay on its day needs DUE_DATE.
+ */
+const RepeatingFields = {
+  repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).optional(),
+  /** Only meaningful when `repeating` is "custom"; a CustomRepeatingPattern. */
+  repeatingData: z.record(z.any()).nullable().optional(),
+  repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
+}
+
 // Schema definitions for validation
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
@@ -76,6 +95,7 @@ const CreateTaskSchema = z.object({
   reminderTime: z.string().datetime().optional(),
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().default(true),
+  ...RepeatingFields,
 })
 
 const UpdateTaskSchema = z.object({
@@ -89,6 +109,7 @@ const UpdateTaskSchema = z.object({
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().optional(),
   completed: z.boolean().optional(),
+  ...RepeatingFields,
 })
 
 const CreateCommentSchema = z.object({
@@ -194,6 +215,227 @@ class OAuthAPIClient {
 }
 
 /**
+ * The tool schemas this server advertises.
+ *
+ * Module-level rather than inline in the ListTools handler so the contract is
+ * assertable without standing up a transport. A field the handlers forward but
+ * the schema hides is a field no agent will ever send, so the schema is the
+ * thing worth pinning (tasks 86b5fbbf, ee44bc35).
+ */
+export const OAUTH_MCP_TOOLS = [
+      {
+        name: "get_lists",
+        description: "Get all task lists accessible to the authenticated user",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "get_tasks",
+        description: "Get all tasks from a specific list (or default list if not specified)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            listId: {
+              type: "string",
+              description: "ID of the list to get tasks from (optional, uses default list if not provided)",
+            },
+            includeCompleted: {
+              type: "boolean",
+              description: "Whether to include completed tasks",
+              default: false,
+            },
+          },
+        },
+      },
+      {
+        name: "get_agent_queue",
+        description:
+          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agent: {
+              type: "string",
+              description:
+                "Which agent identity this harness is — a mailbox (claude, codex, copilot, openai, gemini) or a full agent address. Required: guessing would claim another harness's work.",
+            },
+            listId: {
+              type: "string",
+              description:
+                "Scope the queue to one list/board (optional). Use it when different boards are worked by different harnesses.",
+            },
+          },
+          required: ["agent"],
+        },
+      },
+      {
+        name: "get_task",
+        description: "Get detailed information about a specific task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task",
+            },
+          },
+          required: ["taskId"],
+        },
+      },
+      {
+        name: "create_task",
+        description: "Create a new task in a list",
+        inputSchema: {
+          type: "object",
+          properties: {
+            listId: {
+              type: "string",
+              description:
+                "ID of the list to create the task in. Optional only when a default list is configured; a task that resolves to no list is rejected rather than created invisible.",
+            },
+            listIds: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "IDs of the lists to create the task in, for callers that want more than one. Takes precedence over listId.",
+            },
+            title: {
+              type: "string",
+              description: "Task title",
+            },
+            description: {
+              type: "string",
+              description: "Task description",
+            },
+            priority: {
+              type: "number",
+              minimum: 0,
+              maximum: 3,
+              description: "Task priority (0-3)",
+            },
+            dueDateTime: {
+              type: "string",
+              format: "date-time",
+              description: "Due date and time",
+            },
+            repeating: {
+              type: "string",
+              enum: ["never", "daily", "weekly", "monthly", "yearly", "custom"],
+              description:
+                "How the task repeats. Use this instead of scheduling a cron for recurring work.",
+            },
+            repeatingData: {
+              type: "object",
+              description:
+                'Custom repeat pattern, required when repeating is "custom" and ignored otherwise. Shape is CustomRepeatingPattern from types/repeating.ts, e.g. { type: "custom", unit: "weeks", interval: 1, endCondition: "never", weekdays: ["monday"] }.',
+            },
+            repeatFrom: {
+              type: "string",
+              enum: ["DUE_DATE", "COMPLETION_DATE"],
+              description:
+                "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
+            },
+          },
+          required: ["title"],
+        },
+      },
+      {
+        name: "update_task",
+        description: "Update an existing task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task to update",
+            },
+            title: {
+              type: "string",
+              description: "New task title",
+            },
+            description: {
+              type: "string",
+              description: "New task description",
+            },
+            priority: {
+              type: "number",
+              minimum: 0,
+              maximum: 3,
+              description: "New priority (0-3)",
+            },
+            completed: {
+              type: "boolean",
+              description: "Mark as completed/incomplete",
+            },
+            dueDateTime: {
+              type: "string",
+              format: "date-time",
+              description: "New due date and time",
+            },
+            repeating: {
+              type: "string",
+              enum: ["never", "daily", "weekly", "monthly", "yearly", "custom"],
+              description:
+                "How the task repeats. Use this instead of scheduling a cron for recurring work.",
+            },
+            repeatingData: {
+              type: "object",
+              description:
+                'Custom repeat pattern, required when repeating is "custom" and ignored otherwise. Shape is CustomRepeatingPattern from types/repeating.ts, e.g. { type: "custom", unit: "weeks", interval: 1, endCondition: "never", weekdays: ["monday"] }.',
+            },
+            repeatFrom: {
+              type: "string",
+              enum: ["DUE_DATE", "COMPLETION_DATE"],
+              description:
+                "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
+            },
+          },
+          required: ["taskId"],
+        },
+      },
+      {
+        name: "add_comment",
+        description: "Add a comment to a task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task",
+            },
+            content: {
+              type: "string",
+              description: "Comment content",
+            },
+            type: {
+              type: "string",
+              enum: ["TEXT", "MARKDOWN"],
+              description: "Comment type",
+              default: "TEXT",
+            },
+          },
+          required: ["taskId", "content"],
+        },
+      },
+      {
+        name: "get_task_comments",
+        description: "Get all comments for a specific task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task",
+            },
+          },
+          required: ["taskId"],
+        },
+      },
+] as const
+
+/**
  * MCP Server V3 - OAuth-Enabled
  */
 export interface AstridMCPServerOptions {
@@ -247,179 +489,7 @@ export default class AstridMCPServerOAuth {
   private setupHandlers() {
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: "get_lists",
-            description: "Get all task lists accessible to the authenticated user",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-          {
-            name: "get_tasks",
-            description: "Get all tasks from a specific list (or default list if not specified)",
-            inputSchema: {
-              type: "object",
-              properties: {
-                listId: {
-                  type: "string",
-                  description: "ID of the list to get tasks from (optional, uses default list if not provided)",
-                },
-                includeCompleted: {
-                  type: "boolean",
-                  description: "Whether to include completed tasks",
-                  default: false,
-                },
-              },
-            },
-          },
-          {
-            name: "get_agent_queue",
-            description:
-              "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do.",
-            inputSchema: {
-              type: "object",
-              properties: {
-                agent: {
-                  type: "string",
-                  description:
-                    "Which agent identity this harness is — a mailbox (claude, codex, copilot, openai, gemini) or a full agent address. Required: guessing would claim another harness's work.",
-                },
-                listId: {
-                  type: "string",
-                  description:
-                    "Scope the queue to one list/board (optional). Use it when different boards are worked by different harnesses.",
-                },
-              },
-              required: ["agent"],
-            },
-          },
-          {
-            name: "get_task",
-            description: "Get detailed information about a specific task",
-            inputSchema: {
-              type: "object",
-              properties: {
-                taskId: {
-                  type: "string",
-                  description: "ID of the task",
-                },
-              },
-              required: ["taskId"],
-            },
-          },
-          {
-            name: "create_task",
-            description: "Create a new task in a list",
-            inputSchema: {
-              type: "object",
-              properties: {
-                listId: {
-                  type: "string",
-                  description: "ID of the list to create task in (optional, uses default list if not provided)",
-                },
-                title: {
-                  type: "string",
-                  description: "Task title",
-                },
-                description: {
-                  type: "string",
-                  description: "Task description",
-                },
-                priority: {
-                  type: "number",
-                  minimum: 0,
-                  maximum: 3,
-                  description: "Task priority (0-3)",
-                },
-                dueDateTime: {
-                  type: "string",
-                  format: "date-time",
-                  description: "Due date and time",
-                },
-              },
-              required: ["title"],
-            },
-          },
-          {
-            name: "update_task",
-            description: "Update an existing task",
-            inputSchema: {
-              type: "object",
-              properties: {
-                taskId: {
-                  type: "string",
-                  description: "ID of the task to update",
-                },
-                title: {
-                  type: "string",
-                  description: "New task title",
-                },
-                description: {
-                  type: "string",
-                  description: "New task description",
-                },
-                priority: {
-                  type: "number",
-                  minimum: 0,
-                  maximum: 3,
-                  description: "New priority (0-3)",
-                },
-                completed: {
-                  type: "boolean",
-                  description: "Mark as completed/incomplete",
-                },
-                dueDateTime: {
-                  type: "string",
-                  format: "date-time",
-                  description: "New due date and time",
-                },
-              },
-              required: ["taskId"],
-            },
-          },
-          {
-            name: "add_comment",
-            description: "Add a comment to a task",
-            inputSchema: {
-              type: "object",
-              properties: {
-                taskId: {
-                  type: "string",
-                  description: "ID of the task",
-                },
-                content: {
-                  type: "string",
-                  description: "Comment content",
-                },
-                type: {
-                  type: "string",
-                  enum: ["TEXT", "MARKDOWN"],
-                  description: "Comment type",
-                  default: "TEXT",
-                },
-              },
-              required: ["taskId", "content"],
-            },
-          },
-          {
-            name: "get_task_comments",
-            description: "Get all comments for a specific task",
-            inputSchema: {
-              type: "object",
-              properties: {
-                taskId: {
-                  type: "string",
-                  description: "ID of the task",
-                },
-              },
-              required: ["taskId"],
-            },
-          },
-        ],
-      }
+      return { tools: OAUTH_MCP_TOOLS }
     })
 
     // List available resources
@@ -603,9 +673,28 @@ export default class AstridMCPServerOAuth {
   }
 
   private async createTask(args: any) {
-    const listId = args.listId || this.defaultListId
+    /**
+     * `listIds`, PLURAL, is the only key POST /api/v1/tasks reads.
+     *
+     * This sent `listId` — which that route never looks at — so the create
+     * succeeded with zero list connections. The task was an orphan: `success:
+     * true`, a real id, invisible on every board, findable only by id. There
+     * was no error for an agent to notice and no board for a human to notice
+     * it on, which is the failure mode where an agent reports "filed 6 tasks"
+     * and the board shows none (task 86b5fbbf).
+     *
+     * The singular name stays as the friendlier tool surface; the array is
+     * accepted too, and wins when both are sent.
+     */
+    const requestedListIds: string[] = Array.isArray(args.listIds)
+      ? args.listIds.filter((id: unknown) => typeof id === "string" && id)
+      : args.listId
+        ? [args.listId]
+        : this.defaultListId
+          ? [this.defaultListId]
+          : []
 
-    if (!listId) {
+    if (requestedListIds.length === 0) {
       throw new Error(
         "No list ID provided and no default list configured. Set ASTRID_OAUTH_LIST_ID or provide listId parameter."
       )
@@ -617,13 +706,16 @@ export default class AstridMCPServerOAuth {
       description: args.description,
       priority: args.priority,
       dueDateTime: args.dueDateTime,
+      repeating: args.repeating,
+      repeatingData: args.repeatingData,
+      repeatFrom: args.repeatFrom,
     })
 
     const data = await this.oauthClient.makeRequest<{ task: Task }>("/api/v1/tasks", {
       method: "POST",
       body: JSON.stringify({
         ...taskData,
-        listId,
+        listIds: requestedListIds,
       }),
     })
 

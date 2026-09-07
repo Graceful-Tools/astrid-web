@@ -146,9 +146,15 @@ export interface V1TaskUpdateRequest {
  * Field set read off the handler, and it is NARROWER than the update shape in
  * two ways worth stating rather than leaving to be discovered:
  *
- * - `completed`, `repeatingData` and `repeatFrom` are accepted on PUT but
- *   IGNORED here. Create hardcodes `completed: false`. Declaring them would
- *   invite a client to send them and expect them to stick.
+ * - `completed` is accepted on PUT but IGNORED here — create hardcodes
+ *   `completed: false`. Declaring it would invite a client to send it and
+ *   expect it to stick.
+ * - `repeatingData` and `repeatFrom` used to be in that same sentence. They
+ *   are honoured here now (task ee44bc35): ignoring them made a repeating task
+ *   impossible to create in one call, and docs/FIXALL_WORKFLOW.md names an
+ *   Astrid task with a date and a repeat as the sanctioned alternative to a
+ *   cron — so the create surface could not produce the thing agents are told
+ *   to use.
  * - `when` exists only here — a legacy alias older clients still send, treated
  *   as an all-day date at UTC midnight.
  */
@@ -166,6 +172,14 @@ export interface V1TaskCreateRequest {
   isAllDay?: boolean
   isPrivate?: boolean
   repeating?: string | null
+  /** Custom pattern; read only when `repeating` is `'custom'`, dropped otherwise. */
+  repeatingData?: Record<string, unknown> | null
+  /**
+   * `'DUE_DATE'` or `'COMPLETION_DATE'`. Omitted, the column default
+   * (COMPLETION_DATE) stands — which pushes the next occurrence out by however
+   * late the run was, so scheduled work generally wants DUE_DATE.
+   */
+  repeatFrom?: string | null
   assigneeId?: string | null
   parentTaskId?: string | null
   listIds?: string[]
