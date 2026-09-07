@@ -111,25 +111,44 @@ const REDACT_PATHS = [
   "*.secret",
 ]
 
+/**
+ * Log to stderr instead of stdout when LOG_TO_STDERR=1.
+ *
+ * pino writes to stdout by default, which is fine everywhere except a stdio
+ * MCP server: there stdout IS the JSON-RPC channel, so a single log line is a
+ * malformed frame. The stdio launcher (mcp/astrid-mcp-launch.js) sets this.
+ *
+ * Opt-in, so nothing else changes: Vercel and every other caller keep stdout.
+ */
+const logToStderr = process.env.LOG_TO_STDERR === "1"
+
 // Create the base logger
-const logger = pino({
-  level: getLogLevel(),
-  redact: { paths: REDACT_PATHS, censor: "[redacted]" },
-  // In production, use standard JSON output
-  // In development, use pretty printing (handled by pino-pretty if installed)
-  ...(isProduction
-    ? {}
-    : {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            translateTime: "SYS:standard",
-            ignore: "pid,hostname",
+const logger = pino(
+  {
+    level: getLogLevel(),
+    redact: { paths: REDACT_PATHS, censor: "[redacted]" },
+    // In production, use standard JSON output
+    // In development, use pretty printing (handled by pino-pretty if installed)
+    ...(isProduction
+      ? {}
+      : {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "SYS:standard",
+              ignore: "pid,hostname",
+              // pino-pretty runs in a worker and owns its own output, so the
+              // destination has to be set here rather than on the pino call.
+              ...(logToStderr ? { destination: 2 } : {}),
+            },
           },
-        },
-      }),
-})
+        }),
+  },
+  // Only meaningful for the production/JSON path; with a transport configured
+  // pino ignores this argument.
+  isProduction && logToStderr ? pino.destination(2) : undefined
+)
 
 /**
  * Create a child logger with a specific context/module name.
