@@ -30,7 +30,7 @@ import type { CommentType, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { broadcastToUsers } from '@/lib/sse-utils'
-import { applyCommentActorRule } from '@/lib/comment-permissions'
+import { applyCommentActorRule, commentAudience } from '@/lib/comment-permissions'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { createCommentIdempotently, associateFileWithComment } from '@/lib/comments/create-comment'
 import { dispatchPostCommentSideEffects } from '@/lib/comments/post-comment-side-effects'
@@ -65,7 +65,11 @@ export interface CommentTaskContext {
   title: string
   creatorId: string | null
   assigneeId: string | null
-  assignee: {
+  /**
+   * Only the CREATE path reads this (agent wake-up). Update and delete need
+   * the audience and nothing else, so their callers may omit it.
+   */
+  assignee?: {
     id?: string
     email: string | null
     name?: string | null
@@ -360,5 +364,118 @@ async function runSideEffects(
     })
   } catch (err) {
     log.error({ err }, 'post-comment side effects failed')
+  }
+}
+
+/**
+ * The comment UPDATE verb.
+ *
+ * Two surfaces implemented this identically-but-separately. Nothing was broken
+ * here; it was one edit away from being broken, which is the same problem a
+ * little earlier. Permission stays with the caller — the surfaces return
+ * different error envelopes — but what an edit MEANS is here.
+ *
+ * The editor STAYS in the audience, unlike delete: components/task-detail.tsx
+ * renders the new text from this event, and the editor's other devices need it
+ * as much as anyone's. (Task 130508e3.)
+ */
+export async function updateCommentWithSideEffects<TComment = CreatedComment>(args: {
+  commentId: string
+  content: string
+  task: CommentTaskContext
+  editor: { id: string; name?: string | null; email?: string | null }
+  include?: Prisma.CommentInclude
+}): Promise<TComment> {
+  const include = (args.include ?? COMMENT_INCLUDE) as typeof COMMENT_INCLUDE
+
+  const comment = await prisma.comment.update({
+    where: { id: args.commentId },
+    data: { content: args.content, updatedAt: new Date() },
+    include,
+  })
+
+  broadcastCommentUpdated(comment, args.task, args.editor)
+
+  return comment as TComment
+}
+
+function broadcastCommentUpdated(
+  comment: CommentForFanOut & { updatedAt?: Date },
+  task: CommentTaskContext,
+  editor: { id: string; name?: string | null; email?: string | null },
+): void {
+  try {
+    const userIds = commentAudience(task)
+    if (userIds.size === 0) return
+
+    broadcastToUsers(Array.from(userIds), {
+      type: 'comment_updated',
+      timestamp: new Date().toISOString(),
+      data: {
+        taskId: task.id,
+        taskTitle: task.title,
+        commentId: comment.id,
+        commentContent: comment.content.substring(0, 100),
+        editorName: editor.name || editor.email || 'Someone',
+        userId: editor.id,
+        listNames: task.lists.map(l => l.name).filter(Boolean),
+        comment: {
+          id: comment.id,
+          content: comment.content,
+          type: comment.type,
+          author: comment.author,
+          createdAt: comment.createdAt,
+          updatedAt: comment.updatedAt,
+          parentCommentId: comment.parentCommentId ?? null,
+        },
+      },
+    })
+  } catch (err) {
+    log.error({ err }, 'Failed to broadcast comment_updated')
+  }
+}
+
+/**
+ * The comment DELETE verb.
+ *
+ * Three surfaces implemented this and they disagreed twice. v1 dropped an
+ * AI-agent deleter from the audience while legacy and MCP passed no actor at
+ * all, so an agent deleting through those doors received its own event — the
+ * exact echo `applyCommentActorRule` was extracted to prevent (task cb1581e0).
+ * And v1 omitted `taskTitle` and `deletedByName`, so what a client could render
+ * depended on which door the deleter used. Both are settled here.
+ *
+ * Unlike update, the actor rule DOES apply: removal is idempotent by id, so a
+ * human's other devices still want the event, but an agent must not react to
+ * its own deletion.
+ */
+export async function deleteCommentWithSideEffects(args: {
+  commentId: string
+  task: CommentTaskContext
+  actor: { id: string; name?: string | null; email?: string | null; isAIAgent?: boolean | null }
+}): Promise<void> {
+  await prisma.comment.delete({ where: { id: args.commentId } })
+
+  try {
+    const userIds = commentAudience(args.task, {
+      id: args.actor.id,
+      isAIAgent: args.actor.isAIAgent,
+    })
+    if (userIds.size === 0) return
+
+    broadcastToUsers(Array.from(userIds), {
+      type: 'comment_deleted',
+      timestamp: new Date().toISOString(),
+      data: {
+        taskId: args.task.id,
+        taskTitle: args.task.title,
+        commentId: args.commentId,
+        deletedByName: args.actor.name || args.actor.email || 'Someone',
+        userId: args.actor.id,
+        listNames: args.task.lists.map(l => l.name).filter(Boolean),
+      },
+    })
+  } catch (err) {
+    log.error({ err }, 'Failed to broadcast comment_deleted')
   }
 }

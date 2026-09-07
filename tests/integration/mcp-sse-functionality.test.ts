@@ -46,22 +46,28 @@ describe('MCP SSE Integration - Core Functionality', () => {
     expect(allContent).toContain('import { broadcastToUsers }')
     expect(allContent).toContain('@/lib/sse-utils')
 
-    // Verify SSE calls for each operation
-    expect(allContent).toContain('comment_deleted')
-    // comment_created followed the task verbs out of here (epic 9dedd8aa). It
-    // moved into services/comment.service.ts because this handler broadcast the
-    // event and then fired NO post-comment side effects: an @-mention posted
-    // through MCP notified nobody, and "ship it" was never detected. The
-    // broadcast went with the fix, and is asserted against the service below.
-    // comment_deleted is still here — delete is the next slice.
+    // Verify SSE calls for the operations still implemented here
+    expect(allContent).toContain('list_deleted')
+
+    // No COMMENT or TASK verb is asserted here any more, and that is the point
+    // of epic 9dedd8aa rather than a gap in coverage.
     //
-    // create, update and delete of TASKS are not asserted here either. All
-    // three moved into services/task.service.ts — delete because two of the
-    // four surfaces skipped the deletion tombstone, create because the MCP
-    // surfaces minted no identifier and posted no creation comment, update
-    // because they stamped no completion, cleared no board status and killed
-    // repeating series outright. This test checks WHERE the string lives, and
-    // the strings moved on purpose.
+    // Task create/update/delete moved into services/task.service.ts — delete
+    // because two of the four surfaces skipped the deletion tombstone, create
+    // because the MCP surfaces minted no identifier and posted no creation
+    // comment, update because they stamped no completion, cleared no board
+    // status and killed repeating series outright.
+    //
+    // Comment create/delete moved into services/comment.service.ts — create
+    // because this handler broadcast the event and then fired NO post-comment
+    // side effects (an @-mention posted through MCP notified nobody and "ship
+    // it" was never detected), delete because this handler kept an AI-agent
+    // deleter in its own audience and sent a different payload than v1.
+    //
+    // Both are covered by tests/services/*-parity.test.ts, which assert the
+    // BEHAVIOUR across every surface rather than the presence of a string in
+    // one file. This test checks WHERE the strings live, and they moved on
+    // purpose.
 
     // Verify error handling for SSE failures
     expect(allContent).toContain('Failed to broadcast')
@@ -119,11 +125,14 @@ describe('MCP SSE Integration - Core Functionality', () => {
     const allContent = getMCPOperationsContent()
 
     // Count SSE broadcast calls for each operation (now in handler files).
-    // See above: comment_created and the three task verbs live in the services.
-    const commentDeleteBroadcasts = (allContent.match(/comment_deleted/g) || []).length
+    // See above: every comment and task verb lives in a service now, so the
+    // list verbs are what is left to check here.
+    // Match the broadcast itself, not every mention: the log line before it
+    // and the error handler after it both name the event too.
+    const listDeleteBroadcasts = (allContent.match(/type: 'list_deleted'/g) || []).length
 
-    // The one comment verb still implemented here broadcasts exactly once.
-    expect(commentDeleteBroadcasts).toBe(1)
+    // The one verb still broadcasting from these handlers does it exactly once.
+    expect(listDeleteBroadcasts).toBe(1)
   })
 
   it('should verify error handling prevents SSE failures from breaking MCP operations', async () => {
