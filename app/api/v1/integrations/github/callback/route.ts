@@ -2,7 +2,8 @@ import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
-import { exchangeGithubCode, githubRequest, githubSyncConfigured, storeGithubIntegration, verifyOAuthState } from '@/lib/sync/github'
+import { exchangeGithubCode, githubRequest, githubSyncConfigured, storeGithubIntegration } from '@/lib/sync/github'
+import { verifyOAuthState } from '@/lib/sync/oauth-state'
 import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 
 const log = createLogger('v1.integrations.github.callback')
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const state = searchParams.get('state')
-  const userId = state ? verifyOAuthState(state) : null
+  const userId = state ? verifyOAuthState(state, 'github') : null
   if (!code || !userId) {
     return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }

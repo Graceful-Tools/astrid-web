@@ -40,14 +40,20 @@ vi.mock('@/lib/brand/config', () => ({
 const exchangeGithubCode = vi.hoisted(() => vi.fn())
 const storeGithubIntegration = vi.hoisted(() => vi.fn())
 const githubRequest = vi.hoisted(() => vi.fn())
-const mintOAuthState = vi.hoisted(() => vi.fn(() => `hmac-state-naming-${CALLER}`))
 vi.mock('@/lib/sync/github', () => ({
   githubSyncConfigured: () => true,
   exchangeGithubCode,
   storeGithubIntegration,
   githubRequest,
-  mintOAuthState,
 }))
+
+// The browser flow's state is minted by the shared provider-tagged helper
+// (task 842601f2). Stubbed so the assertions below can read the caller out of
+// it without decoding base64url.
+const mintOAuthState = vi.hoisted(() =>
+  vi.fn((userId: string, provider: string) => `hmac-${provider}-state-naming-${userId}`),
+)
+vi.mock('@/lib/sync/oauth-state', () => ({ mintOAuthState, verifyOAuthState: vi.fn() }))
 
 const exchangeGoogleCode = vi.hoisted(() => vi.fn())
 const storeGoogleIntegration = vi.hoisted(() => vi.fn())

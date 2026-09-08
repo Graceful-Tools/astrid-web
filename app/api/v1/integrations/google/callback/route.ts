@@ -2,7 +2,7 @@ import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
-import { verifyOAuthState } from '@/lib/sync/github'
+import { verifyOAuthState } from '@/lib/sync/oauth-state'
 import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 import { exchangeGoogleCode, googleRequest, googleSyncConfigured, storeGoogleIntegration } from '@/lib/sync/google'
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
-  const userId = state ? verifyOAuthState(state) : null
+  const userId = state ? verifyOAuthState(state, 'google') : null
   if (!code || !userId) {
     return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }

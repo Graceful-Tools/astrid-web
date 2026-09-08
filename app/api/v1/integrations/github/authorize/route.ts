@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { isAppSchemeRedirect, appCompletedState } from '@/lib/sync/app-completed-link'
-import { githubSyncConfigured, mintOAuthState } from '@/lib/sync/github'
+import { githubSyncConfigured } from '@/lib/sync/github'
+import { mintOAuthState } from '@/lib/sync/oauth-state'
 
 /**
  * GET /api/v1/integrations/github/authorize[?redirectUri=astrid://…]
@@ -29,7 +30,7 @@ export const GET = withAuth(
     const params = new URLSearchParams({
       client_id: process.env.GITHUB_SYNC_CLIENT_ID!,
       scope: 'repo',
-      state: requested ? appCompletedState() : mintOAuthState(auth.userId),
+      state: requested ? appCompletedState() : mintOAuthState(auth.userId, 'github'),
     })
     if (requested) params.set('redirect_uri', requested)
 
