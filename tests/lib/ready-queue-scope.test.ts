@@ -144,6 +144,13 @@ describe('resolveReadyQueueOptions', () => {
       ['ios', '--harness=codex'],
       {},
     )).toEqual({ board: 'ios', harness: 'codex', dryRun: false, format: 'human' })
+
+    // Each client repo runs its own loop against its own board. A board the parser does not know
+    // is rejected below, so a new one has to be added here before its workflow can select it.
+    expect(resolveReadyQueueOptions(
+      ['windows', '--harness=github-copilot'],
+      {},
+    )).toEqual({ board: 'windows', harness: 'github-copilot', dryRun: false, format: 'human' })
   })
 
   it('uses ASTRID_FIXALL_HARNESS when the CLI selector is absent', () => {

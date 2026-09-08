@@ -32,9 +32,9 @@ export const FIXALL_HARNESS_MAILBOXES = {
 } as const satisfies Record<string, AgentMailbox>
 
 export type FixallHarness = keyof typeof FIXALL_HARNESS_MAILBOXES
-export type ReadyQueueBoard = 'web' | 'ios'
+export type ReadyQueueBoard = 'web' | 'ios' | 'windows'
 
-const READY_QUEUE_BOARDS: readonly ReadyQueueBoard[] = ['web', 'ios']
+const READY_QUEUE_BOARDS: readonly ReadyQueueBoard[] = ['web', 'ios', 'windows']
 
 type ReadyQueueEnvironment = Record<string, string | undefined>
 
