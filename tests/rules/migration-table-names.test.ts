@@ -87,3 +87,81 @@ describe('migrations only touch tables that exist (task b4591534 / ffa5bbb5)', (
     ).toEqual([])
   })
 })
+
+/**
+ * The same rule, for INDEX names — a migration may only drop an index that a
+ * migration created (task 466c10f1).
+ *
+ * The table rule above catches `ALTER TABLE "DailyStats"`. It cannot catch
+ * `DROP INDEX "UserWebhookConfig_userId_idx"`, because the offending name is
+ * not a table name at all. And that is exactly the mistake available here:
+ * Prisma names an index after the PHYSICAL table, so a model carrying
+ * `@@map("user_webhook_configs")` gets `user_webhook_configs_userId_idx`, and
+ * writing the model name instead produces a statement that is valid SQL,
+ * targets nothing, and — because a redundant-index cleanup is written with
+ * `IF EXISTS` so it can be re-run — SUCCEEDS.
+ *
+ * That is the dangerous shape. The migration reports success, schema.prisma no
+ * longer declares the index, and the index is still there in production doing
+ * its write amplification, with nothing left in the repo to say so. It was
+ * caught here by hand, in this task, on the one mapped model among seventeen.
+ *
+ * Checked against the migration HISTORY rather than schema.prisma, because an
+ * index being dropped is by definition one the schema no longer declares.
+ */
+describe('migrations only drop indexes that exist (task 466c10f1)', () => {
+  // ALL migration directories, not just the 14-digit ones. The older half of
+  // this history is named `YYYYMMDD_thing` — including the migrations that
+  // create ChatChannel's, AnalyticsDailyStats' and user_webhook_configs'
+  // indexes. Filtering them out made a DROP of any of those look unfounded.
+  const dirs = existsSync(MIGRATIONS)
+    ? readdirSync(MIGRATIONS).filter(d => /^\d{8}/.test(d)).sort()
+    : []
+
+  const recent = dirs.filter(d => /^\d{14}_/.test(d) && d.slice(0, 14) >= CHECK_FROM)
+
+  /** Index names any migration up to and including `upTo` creates. */
+  function indexesCreatedBefore(upTo: string): Set<string> {
+    const created = new Set<string>()
+    for (const dir of dirs) {
+      if (dir > upTo) continue
+      const file = join(MIGRATIONS, dir, 'migration.sql')
+      if (!existsSync(file)) continue
+      const sql = readFileSync(file, 'utf8').replace(/--[^\n]*/g, '')
+      for (const m of sql.matchAll(
+        /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/gi,
+      )) {
+        created.add(m[1])
+      }
+    }
+    return created
+  }
+
+  it('finds migrations to check', () => {
+    expect(recent.length).toBeGreaterThan(0)
+  })
+
+  it.each(recent)('%s drops only indexes a migration created', dir => {
+    const file = join(MIGRATIONS, dir, 'migration.sql')
+    if (!existsSync(file)) return
+
+    const sql = readFileSync(file, 'utf8').replace(/--[^\n]*/g, '')
+    const dropped = [
+      ...sql.matchAll(
+        /DROP\s+INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+EXISTS\s+)?(?:"[^"]+"\.)?"([^"]+)"/gi,
+      ),
+    ].map(m => m[1])
+    if (dropped.length === 0) return
+
+    const created = indexesCreatedBefore(dir)
+    const unknown = dropped.filter(name => !created.has(name))
+
+    expect(
+      unknown,
+      `${dir} drops ${unknown.map(n => `"${n}"`).join(', ')}, which no migration ` +
+        `creates. With IF EXISTS this SUCCEEDS while removing nothing — the ` +
+        `schema stops declaring the index and production keeps it. Prisma names ` +
+        `an index after the physical table, so check @@map.`,
+    ).toEqual([])
+  })
+})

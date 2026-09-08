@@ -111,11 +111,9 @@ model User {
   featureAccessRequests        FeatureAccessRequest[] @relation("UserFeatureAccessRequests")
   notifications                Notification[]         @relation("UserNotifications")
 
-  @@index([email])
   @@index([emailVerified])
   @@index([createdAt])
   @@index([isActive])
-  @@index([emailVerificationToken])
   @@index([isAIAgent])
   @@index([aiAgentType])
   @@index([isAIAgent, aiAgentType])
@@ -546,7 +544,6 @@ model SecureFile {
   @@index([commentId])
   @@index([chatMessageId])
   @@index([createdAt])
-  @@index([blobUrl])
 }
 
 model Invitation {
@@ -570,7 +567,6 @@ model Invitation {
 
   @@index([email])
   @@index([status])
-  @@index([token])
   @@index([senderId])
   @@index([receiverId])
   @@index([type])
@@ -659,7 +655,6 @@ model ListInvite {
   @@unique([listId, email])
   @@index([listId])
   @@index([email])
-  @@index([token])
   @@index([createdBy])
 }
 
@@ -679,8 +674,6 @@ model ReminderSettings {
   calendarSyncType     String   @default("all")
   enableCalendarSync   Boolean  @default(false)
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 model UserWebhookConfig {
@@ -698,7 +691,6 @@ model UserWebhookConfig {
   updatedAt     DateTime  @updatedAt
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([enabled])
   @@map("user_webhook_configs")
 }
@@ -782,7 +774,6 @@ model MCPToken {
   @@index([listId])
   @@index([userId])
   @@index([agentUserId])
-  @@index([token])
   @@index([expiresAt])
   @@index([isActive])
 }
@@ -807,7 +798,6 @@ model OAuthClient {
   tokens             OAuthToken[]
 
   @@index([userId])
-  @@index([clientId])
   @@index([isActive])
 }
 
@@ -829,7 +819,6 @@ model OAuthToken {
 
   @@index([userId])
   @@index([clientId])
-  @@index([accessToken])
   @@index([expiresAt])
   @@index([revokedAt])
 }
@@ -848,8 +837,6 @@ model OAuthAuthorizationCode {
   usedAt      DateTime?
   createdAt   DateTime    @default(now())
   client      OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@index([code])
   @@index([clientId])
   @@index([expiresAt])
 }
@@ -910,8 +897,6 @@ model CodingTaskWorkflow {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   task              Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  @@index([taskId])
   @@index([status])
 }
 
@@ -926,8 +911,6 @@ model Shortcode {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   isActive   Boolean   @default(true)
-
-  @@index([code])
   @@index([targetId, targetType])
   @@index([userId])
   @@index([isActive])
@@ -943,9 +926,6 @@ model ChatChannel {
   updatedAt  DateTime      @updatedAt
   messages   ChatMessage[]
   list       TaskList?     @relation(fields: [listId], references: [id], onDelete: Cascade)
-
-  @@index([listId])
-  @@index([virtualKey])
 }
 
 model ChatMessage {
@@ -1076,8 +1056,6 @@ model AnalyticsDailyStats {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([date])
 }
 
 /// Durable census of legacy /api/* traffic (task 641a7615, re-landed for
@@ -1231,8 +1209,6 @@ model CopilotCredential {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   user         User      @relation("UserCopilotCredential", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 /// Durable per-user OAuth credential store for sync providers (tokens encrypted
@@ -1280,6 +1256,10 @@ model ExternalListLink {
   @@unique([userId, astridListId, provider])
   @@index([astridListId])
   @@index([integrationId])
+  /// lib/sync/github/sync-all-links.ts selects `where: { provider }`
+  /// ordered by lastReconciledAt on every pass — 96 times a day — and
+  /// had nothing to use. See the migration for the NULLS FIRST caveat.
+  @@index([provider, lastReconciledAt])
 }
 
 /// The superset key: per-(user, task, provider) external identity with dual
