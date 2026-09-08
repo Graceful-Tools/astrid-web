@@ -275,7 +275,7 @@ export const OAUTH_MCP_TOOLS = [
       {
         name: "get_agent_queue",
         description:
-          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do.",
+          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue.",
         inputSchema: {
           type: "object",
           properties: {

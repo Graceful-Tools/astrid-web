@@ -114,3 +114,98 @@ describe('buildAgentQueue', () => {
     expect(queued.url).toContain('task-1')
   })
 })
+
+/**
+ * Why the queue is empty (AWTD-845, task ba1a4c4c).
+ *
+ * `get_agent_queue` requires TWO conditions — assigned to the agent, and Ready —
+ * and a caller who meets only the first gets `empty: true` forever with nothing
+ * saying which one is missing. That is the failure Joey hit following the
+ * published setup: a dozen tasks assigned to `claude`, all `statusRole: null`,
+ * and a queue that reads exactly like a quiet day.
+ *
+ * The module already refuses to let a queue held by the CLOCK look idle. This is
+ * the same rule for the other condition, so the tests are the same shape.
+ */
+describe('buildAgentQueue — saying which condition is unmet', () => {
+  beforeEach(() => {
+    mockPrisma.user.findUnique.mockReset()
+    mockPrisma.task.findMany.mockReset()
+    mockPrisma.task.count.mockReset()
+    mockPrisma.user.findUnique.mockResolvedValue(AGENT)
+    mockPrisma.task.findMany.mockResolvedValue([])
+    mockPrisma.task.count.mockResolvedValue(0)
+  })
+
+  it('names Ready as the missing condition when tasks are assigned but not Ready', async () => {
+    mockPrisma.task.count.mockResolvedValue(12)
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+    expect(result.empty).toBe(true)
+    expect(result.held.notReadyCount).toBe(12)
+    // The count alone is a number to interpret. Say what to do about it.
+    expect(result.hint).toMatch(/12/)
+    expect(result.hint).toMatch(/Ready/)
+  })
+
+  it('counts not-Ready work with the same assignment and visibility rules as the queue', async () => {
+    // A count drawn more widely than the queue would report work the caller
+    // cannot see, and send them looking for a task that is not theirs.
+    mockPrisma.task.count.mockResolvedValue(3)
+    await buildAgentQueue({ agent: 'claude', userId: 'user-1', listId: 'list-9' })
+
+    const where = mockPrisma.task.count.mock.calls[0][0].where
+    expect(where.assigneeId).toBe('agent-claude')
+    expect(where.completed).toBe(false)
+    // Explicitly including NULL is the point: every task in the reported
+    // failure had statusRole: null, and a filter that missed them would report
+    // "nothing is assigned" for the exact case the count explains.
+    expect(where.OR).toEqual([{ statusRole: null }, { statusRole: { not: 'ready' } }])
+    expect(where.lists.some.id).toBe('list-9')
+    expect(JSON.stringify(where.lists)).toContain('user-1')
+  })
+
+  it('blames the clock, not Ready, when the queue is held by a start date', async () => {
+    // The two holds are different problems with different fixes. Reporting the
+    // wrong one sends a user to change a status that is already correct.
+    mockPrisma.task.findMany.mockResolvedValue([
+      task({ id: 'later', dueDateTime: new Date(Date.now() + 3600_000) }),
+    ])
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+    expect(result.empty).toBe(true)
+    expect(result.hint).toMatch(/date|scheduled|start/i)
+    expect(result.hint).not.toMatch(/Ready/)
+  })
+
+  it('says nothing is assigned when nothing is assigned', async () => {
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+    expect(result.empty).toBe(true)
+    expect(result.held.notReadyCount).toBe(0)
+    expect(result.hint).toMatch(/assigned/i)
+    expect(result.hint).toMatch(/claude/)
+  })
+
+  it('says nothing is assigned for an identity nobody has used yet', async () => {
+    // No agent row means no assignment has ever happened. Same unmet condition,
+    // and it must not report a bare empty queue just because it returns early.
+    mockPrisma.user.findUnique.mockResolvedValue(null)
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+    expect(result.hint).toMatch(/assigned/i)
+    expect(result.held.notReadyCount).toBe(0)
+  })
+
+  it('stays silent, and asks nothing extra, when there is work to do', async () => {
+    // The hot path is a loop waking up on a schedule. A queue with work in it
+    // needs no explanation, and must not pay for a second query to produce one.
+    mockPrisma.task.findMany.mockResolvedValue([task()])
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+    expect(result.empty).toBe(false)
+    expect(result.hint).toBeUndefined()
+    expect(mockPrisma.task.count).not.toHaveBeenCalled()
+  })
+})

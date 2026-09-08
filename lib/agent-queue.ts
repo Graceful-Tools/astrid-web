@@ -43,9 +43,16 @@ export interface AgentQueueResult {
   queue: AgentQueueTask[]
   held: {
     notDueCount: number
+    /** Assigned to this agent and visible to the caller, but not Ready. */
+    notReadyCount: number
     scheduled: Array<{ id: string; title: string; startsAt: string }>
   }
   truncated: boolean
+  /**
+   * Why the queue is empty, when it is. Absent whenever there is work: a loop
+   * with something to do needs no explanation (AWTD-845).
+   */
+  hint?: string
 }
 
 /**
@@ -110,8 +117,9 @@ export async function buildAgentQueue({
       mode,
       empty: true,
       queue: [],
-      held: { notDueCount: 0, scheduled: [] },
+      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
       truncated: false,
+      hint: nothingAssignedHint(mailbox),
     }
   }
 
@@ -125,6 +133,10 @@ export async function buildAgentQueue({
     ],
   }
 
+  // One shape, used by the queue and by the count that explains an empty one. A
+  // count drawn more widely would report work the caller cannot see.
+  const listScope = { some: listId ? { id: listId, ...visibleToCaller } : visibleToCaller }
+
   const tasks = await prisma.task.findMany({
     where: {
       // Assignment is the handshake, and it is REQUIRED here — deliberately
@@ -136,7 +148,7 @@ export async function buildAgentQueue({
       completed: false,
       // Ready is a FIELD on the task (AWTD-562), not membership in a list.
       statusRole: READY_STATUS_ROLE,
-      lists: { some: listId ? { id: listId, ...visibleToCaller } : visibleToCaller },
+      lists: listScope,
     },
     select: {
       id: true,
@@ -169,11 +181,43 @@ export async function buildAgentQueue({
   const due = withSchedule.filter(({ schedule }) => isDueToStart(schedule, now))
   const notDue = withSchedule.filter(({ schedule }) => !isDueToStart(schedule, now))
 
+  const scheduled = notDue
+    .sort(
+      (a, b) =>
+        new Date(a.schedule.dueDateTime ?? 0).getTime() -
+        new Date(b.schedule.dueDateTime ?? 0).getTime()
+    )
+    .map(({ task, schedule }) => ({
+      id: task.id,
+      title: task.title,
+      startsAt: describeSchedule(schedule, now),
+    }))
+
+  const empty = due.length === 0
+
+  // Asked only when the answer is empty. A loop with work to do must not pay a
+  // second query to explain an emptiness it does not have (AWTD-845).
+  const notReadyCount = empty
+    ? await prisma.task.count({
+        where: {
+          assigneeId: agentUser.id,
+          completed: false,
+          // The reported failure is statusRole: NULL, so name that case rather
+          // than leaning on how NOT treats NULL. A filter that quietly skipped
+          // the null rows would answer "nothing is assigned" for the one
+          // situation this count exists to explain.
+          OR: [{ statusRole: null }, { statusRole: { not: READY_STATUS_ROLE } }],
+          lists: listScope,
+        },
+      })
+    : 0
+
   return {
     agent: { mailbox, email, id: agentUser.id, name: agentUser.name },
     mode,
     // An explicit flag, so a loop can stop without interpreting an array.
-    empty: due.length === 0,
+    empty,
+    hint: empty ? emptyQueueHint(mailbox, notReadyCount, scheduled) : undefined,
     queue: due.map(({ task }) => ({
       id: task.id,
       identifier: task.identifier,
@@ -191,20 +235,46 @@ export async function buildAgentQueue({
     // nobody has queued.
     held: {
       notDueCount: notDue.length,
-      scheduled: notDue
-        .sort(
-          (a, b) =>
-            new Date(a.schedule.dueDateTime ?? 0).getTime() -
-            new Date(b.schedule.dueDateTime ?? 0).getTime()
-        )
-        .map(({ task, schedule }) => ({
-          id: task.id,
-          title: task.title,
-          startsAt: describeSchedule(schedule, now),
-        })),
+      notReadyCount,
+      scheduled,
     },
     // A truncated page would hide queued work behind a backlog and report a clean
     // run, so say it rather than working a silent subset.
     truncated: tasks.length === PAGE_LIMIT,
   }
+}
+
+/**
+ * Why an empty queue is empty.
+ *
+ * `get_agent_queue` requires TWO conditions — assigned to this agent, and Ready
+ * — and until AWTD-845 a caller who met only the first got `empty: true` on
+ * every poll with nothing naming the one they had missed. Following the
+ * published setup exactly produced precisely that: tasks assigned to `claude`,
+ * every one of them `statusRole: null`, and a queue that reads like a quiet day.
+ *
+ * The holds are reported in the order that tells the caller the most. A queue
+ * waiting on the CLOCK proves the setup is already correct, so it is named
+ * first and never blamed on status — sending someone to change a status that is
+ * right is worse than saying nothing.
+ */
+function emptyQueueHint(
+  mailbox: string,
+  notReadyCount: number,
+  scheduled: Array<{ startsAt: string }>
+): string {
+  if (scheduled.length > 0) {
+    const waiting = `${scheduled.length} task(s) are queued for ${mailbox} but not due to start yet — the earliest begins ${scheduled[0].startsAt}.`
+    return notReadyCount > 0 ? `${waiting} ${notReadyHint(mailbox, notReadyCount)}` : waiting
+  }
+  if (notReadyCount > 0) return notReadyHint(mailbox, notReadyCount)
+  return nothingAssignedHint(mailbox)
+}
+
+function notReadyHint(mailbox: string, count: number): string {
+  return `${count} task(s) are assigned to ${mailbox} but are not in Ready status, so the queue cannot see them. Set Ready from the task's … menu → Status, by dragging the card into the Ready column, or with update_task { statusRole: "ready" }.`
+}
+
+function nothingAssignedHint(mailbox: string): string {
+  return `No incomplete tasks are assigned to ${mailbox}. A task is queued only when it is BOTH assigned to ${mailbox} and in Ready status.`
 }
