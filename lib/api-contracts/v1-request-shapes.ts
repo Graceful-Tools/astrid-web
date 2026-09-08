@@ -1,3 +1,4 @@
+import { isValidTaskPriority, MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from '@/lib/task-priority'
 export type { V1CommentUpdateRequest } from '@/lib/api-contracts/shared-schemas'
 
 /**
@@ -391,7 +392,12 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
   for (const f of ['completed', 'isAllDay', 'isPrivate'] as const) {
     if (b[f] !== undefined && typeof b[f] !== 'boolean') return wrong(f, 'a boolean')
   }
-  if (b.priority !== undefined && !isFiniteNumber(b.priority)) return wrong('priority', 'a number')
+  // The RANGE, not just the type. `priority: 999` used to pass this line and
+  // land in the Int column, where it renders as nothing any designer chose —
+  // while the same body sent through MCP was rejected (task 17fea642).
+  if (b.priority !== undefined && !isValidTaskPriority(b.priority)) {
+    return wrong('priority', `an integer from ${MIN_TASK_PRIORITY} to ${MAX_TASK_PRIORITY}`)
+  }
 
   for (const f of ['timerDuration', 'lastTimerValue'] as const) {
     if (b[f] !== undefined && b[f] !== null && !isFiniteNumber(b[f])) return wrong(f, 'a number or null')
