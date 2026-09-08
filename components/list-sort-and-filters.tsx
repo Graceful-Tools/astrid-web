@@ -12,6 +12,7 @@ import { Star, StarOff } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/lib/i18n/client"
 import { DEFAULT_LIST_SHOW_SUBTASKS } from "@/lib/list-subtask-visibility"
+import { apiPatch } from '@/lib/api'
 
 interface ListSortAndFiltersProps {
   list: TaskList
@@ -109,26 +110,18 @@ export function ListSortAndFilters({
     }
     setIsToggleFavorite(true)
     try {
-      const response = await fetch(`/api/v1/lists/${list.id}/favorite`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isFavorite: !list.isFavorite
-        }),
-      })
+      // apiPatch, not fetch. This route is PATCH-only because it is the one
+      // favourite path open to a non-owner member, and lib/api had no PATCH
+      // helper until task b8b21855 — which is the whole reason this call was
+      // still raw and still lost offline. A non-ok response now throws.
+      await apiPatch(`/api/v1/lists/${list.id}/favorite`, { isFavorite: !list.isFavorite })
 
-      if (response.ok) {
-        // Update the list with the new favorite status
-        onUpdate({
-          ...list,
-          isFavorite: !list.isFavorite,
-          favoriteOrder: !list.isFavorite ? 1 : null
-        })
-      } else {
-        console.error('Failed to toggle favorite')
-      }
+      // Update the list with the new favorite status
+      onUpdate({
+        ...list,
+        isFavorite: !list.isFavorite,
+        favoriteOrder: !list.isFavorite ? 1 : null
+      })
     } catch (error) {
       console.error('Error toggling favorite:', error)
     } finally {

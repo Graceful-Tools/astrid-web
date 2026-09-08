@@ -60,7 +60,15 @@ const ROOT = process.cwd()
 // very likely expired. Offline is already handled correctly there, by telling
 // the user to check their connection. This file's own preamble names the auth
 // flows as having no useful offline story; this is one of them.
-const CEILING = 108 // 115 → 107: task 1b381810 deleted the dead components
+// 108 → 97: task b8b21855 moved the eleven writes that lib/api would actually
+// QUEUE onto apiPost/apiPut/apiPatch/apiDelete — list rename, list description
+// (twice), agent instructions, task complete-from-reminder, the timer's comment
+// and its two duration saves, list create, and both favourite toggles. Those
+// are now held to zero by tests/rules/offline-safe-record-writes.test.ts, which
+// is a ban rather than a ratchet because for that subset the difference is
+// behavioural: queued and replayed, versus gone. What is left in THIS count is
+// the genuinely discretionary remainder.
+const CEILING = 97 // 115 → 107: task 1b381810 deleted the dead components
 // (task-form and its picker subtree, ai-api-key-manager, sync-status,
 // public-task-browser, list-detail and the rest), taking their raw mutations
 // with them. Nothing was migrated to the offline client here — the count fell

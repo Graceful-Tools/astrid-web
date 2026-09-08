@@ -7,6 +7,7 @@ import { X, Play, Pause, RotateCcw } from "lucide-react"
 import { Task } from "@/types/task"
 import { format } from "date-fns"
 import { unwrapTask } from '@/lib/v1-response'
+import { apiPost, apiPut } from '@/lib/api'
 
 interface TaskTimerProps {
   task: Task
@@ -32,28 +33,20 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
     localStorage.removeItem(`astrid-timer-${task.id}`)
 
     try {
-      // Add comment
-      await fetch(`/api/v1/tasks/${task.id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentContent }),
-      })
+      // apiPost/apiPut, not fetch: a timer is run away from the desk and the
+      // write lands the moment it ends. Raw fetch dropped both the log comment
+      // and the duration when that moment had no connection (task b8b21855).
+      await apiPost(`/api/v1/tasks/${task.id}/comments`, { content: commentContent })
 
       // Update task timerDuration and lastTimerValue
-      const response = await fetch(`/api/v1/tasks/${task.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...task,
-          timerDuration: finalDuration,
-          lastTimerValue: commentContent
-        }),
+      const response = await apiPut(`/api/v1/tasks/${task.id}`, {
+        ...task,
+        timerDuration: finalDuration,
+        lastTimerValue: commentContent
       })
-      if (response.ok) {
-        // v1 wraps the task in { task, meta }; onUpdate needs the task itself.
-        const updatedTask = unwrapTask<Task>(await response.json())
-        if (updatedTask) onUpdate(updatedTask)
-      }
+      // v1 wraps the task in { task, meta }; onUpdate needs the task itself.
+      const updatedTask = unwrapTask<Task>(await response.json())
+      if (updatedTask) onUpdate(updatedTask)
 
       alert("Timer completed!")
     } catch (error) {
@@ -144,18 +137,10 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
     if (newDuration === task.timerDuration) return
 
     try {
-      const response = await fetch(`/api/v1/tasks/${task.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          timerDuration: newDuration,
-        }),
-      })
-      if (response.ok) {
-        // v1 wraps the task in { task, meta }; onUpdate needs the task itself.
-        const updatedTask = unwrapTask<Task>(await response.json())
-        if (updatedTask) onUpdate(updatedTask)
-      }
+      const response = await apiPut(`/api/v1/tasks/${task.id}`, { timerDuration: newDuration })
+      // v1 wraps the task in { task, meta }; onUpdate needs the task itself.
+      const updatedTask = unwrapTask<Task>(await response.json())
+      if (updatedTask) onUpdate(updatedTask)
     } catch (error) {
       console.error("Error saving timer duration:", error)
     }

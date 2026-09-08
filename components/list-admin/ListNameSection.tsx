@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { unwrapList } from '@/lib/v1-response'
+import { apiPut } from '@/lib/api'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,24 +42,17 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
   const handleSaveListName = useCallback(async () => {
     if (tempListName.trim() && tempListName !== list.name) {
       try {
-        const response = await fetch(`/api/v1/lists/${list.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...list,
-            name: tempListName.trim()
-          }),
+        // apiPut, not fetch: renaming a list is queued and replayed offline
+        // instead of being silently discarded (task b8b21855). A non-ok
+        // response throws, so the old `else` branch is now the catch.
+        const response = await apiPut(`/api/v1/lists/${list.id}`, {
+          ...list,
+          name: tempListName.trim()
         })
 
-        if (response.ok) {
-          const updatedList = unwrapList<TaskList>(await response.json())
-          if (updatedList) onUpdate(updatedList)
-          else console.error('List update returned no list')
-        } else {
-          console.error('Failed to update list name')
-        }
+        const updatedList = unwrapList<TaskList>(await response.json())
+        if (updatedList) onUpdate(updatedList)
+        else console.error('List update returned no list')
       } catch (error) {
         console.error('Error updating list name:', error)
       }

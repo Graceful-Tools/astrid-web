@@ -2,6 +2,7 @@
 
 import React from "react"
 import { unwrapList } from '@/lib/v1-response'
+import { apiPut } from '@/lib/api'
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -141,18 +142,14 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                         // Directly call the save
                         if (currentList && dialogDescription !== (currentList.description || '')) {
                           try {
-                            const response = await fetch(`/api/v1/lists/${currentList.id}`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                ...currentList,
-                                description: dialogDescription.trim() || undefined
-                              }),
+                            // apiPut, not fetch: queued and replayed offline
+                            // rather than lost (task b8b21855).
+                            const response = await apiPut(`/api/v1/lists/${currentList.id}`, {
+                              ...currentList,
+                              description: dialogDescription.trim() || undefined
                             })
-                            if (response.ok) {
-                              const updatedList = unwrapList<TaskList>(await response.json())
-                              if (updatedList) onListUpdate(updatedList)
-                            }
+                            const updatedList = unwrapList<TaskList>(await response.json())
+                            if (updatedList) onListUpdate(updatedList)
                           } catch (error) {
                             console.error('Error updating description:', error)
                           }
