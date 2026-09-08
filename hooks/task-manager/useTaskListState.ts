@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { SSEManager } from "@/lib/sse-manager"
+import { createRefreshScheduler, type RefreshScheduler } from "@/lib/refresh-scheduler"
 import { apiGet } from "@/lib/api"
 import { seedFromCache } from "./load-from-cache"
 import { fetchSyncPayload } from "./sync-fetch"
@@ -19,6 +20,21 @@ const LIST_EVENT_TYPES = [
   'list_admin_role_granted',
   'list_member_role_changed'
 ] as const
+
+/**
+ * How long simultaneous "the data might be stale" signals collapse for. Also
+ * the old standalone SSE-reconnect debounce, kept at its original value.
+ */
+const REFRESH_DEBOUNCE_MS = 2000
+
+/** A tab regaining focus is worth at most one reload a minute. */
+const TAB_REFRESH_MIN_INTERVAL_MS = 60000
+
+/**
+ * A reconnect is a catch-up on events missed while the stream was down, so it
+ * is not held for the tab window — only for the coalescing debounce.
+ */
+const RECONNECT_REFRESH_MIN_INTERVAL_MS = 2000
 
 /**
  * Who a membership event is actually about.
@@ -112,6 +128,20 @@ export function useTaskListState({
   const loadDataRef = useRef<(() => Promise<void>) | undefined>(undefined)
   const toastRef = useRef(toast)
 
+  // One scheduler for the whole hook, built on first use and kept for the life
+  // of the mount. It reaches loadData through the ref, so it never has to be
+  // rebuilt when loadData is (task ed1d85ba).
+  const refreshSchedulerRef = useRef<RefreshScheduler | null>(null)
+  const getRefreshScheduler = useCallback((): RefreshScheduler => {
+    if (!refreshSchedulerRef.current) {
+      refreshSchedulerRef.current = createRefreshScheduler(
+        () => loadDataRef.current?.() ?? Promise.resolve(),
+        { debounceMs: REFRESH_DEBOUNCE_MS },
+      )
+    }
+    return refreshSchedulerRef.current
+  }, [])
+
   // Load data function
   const loadData = useCallback(async () => {
     try {
@@ -203,6 +233,10 @@ export function useTaskListState({
       })
     } finally {
       setLoading(false)
+      // Mount and manual refresh call loadData directly. Measuring the minimum
+      // intervals from every load, not only the scheduled ones, is what stops
+      // an alt-tab seconds after the page loads from paying for a second one.
+      refreshSchedulerRef.current?.notifyRan()
     }
   }, [toast])
 
@@ -257,36 +291,38 @@ export function useTaskListState({
     }
   }, [currentUserId, loadData])
 
-  // Browser lifecycle cache invalidation - refresh data on tab focus/visibility
+  // Every "the data might be stale" signal goes through ONE scheduler.
+  //
+  // These used to be two independent effects: a visibilitychange + focus pair
+  // sharing a 60s `lastFetchTime` throttle, and an SSE-reconnect handler on its
+  // own 2s debounce with no throttle. Neither knew about the other, so the most
+  // ordinary sequence in the app was the expensive one — a tab sits in the
+  // background long enough for the browser to kill the EventSource, the user
+  // comes back, visibilitychange runs a full loadData, and ~2s later the
+  // reconnected stream runs a second one. loadData is four round trips, so
+  // returning to a tab cost eight (task ed1d85ba).
+  //
+  // The scheduler coalesces them, keeps each reason's own minimum interval, and
+  // will not overlap two runs. Requests inside a minimum interval are now
+  // deferred to the end of it rather than dropped.
   useEffect(() => {
     if (!currentUserId) return
 
-    let lastFetchTime = Date.now()
-    const REFETCH_THRESHOLD = 60000 // 1 minute
+    const scheduler = getRefreshScheduler()
 
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const timeSinceLastFetch = Date.now() - lastFetchTime
-        if (timeSinceLastFetch > REFETCH_THRESHOLD) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[useTaskListState] Tab visible after', Math.round(timeSinceLastFetch / 1000), 'seconds - refreshing data')
-          }
-          loadData()
-          lastFetchTime = Date.now()
-        }
-      }
+      // visibilitychange fires on hide as well; only a return is a reason.
+      if (document.hidden) return
+      scheduler.request('visibility', { minIntervalMs: TAB_REFRESH_MIN_INTERVAL_MS })
     }
 
     const handleFocus = () => {
-      const timeSinceLastFetch = Date.now() - lastFetchTime
-      if (timeSinceLastFetch > REFETCH_THRESHOLD) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useTaskListState] Window focused after', Math.round(timeSinceLastFetch / 1000), 'seconds - refreshing data')
-        }
-        loadData()
-        lastFetchTime = Date.now()
-      }
+      scheduler.request('focus', { minIntervalMs: TAB_REFRESH_MIN_INTERVAL_MS })
     }
+
+    const unsubscribe = SSEManager.onReconnection(() => {
+      scheduler.request('sse-reconnect', { minIntervalMs: RECONNECT_REFRESH_MIN_INTERVAL_MS })
+    })
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
@@ -294,37 +330,12 @@ export function useTaskListState({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
-    }
-  }, [currentUserId, loadData])
-
-  // SSE reconnection data sync
-  useEffect(() => {
-    if (!currentUserId) return
-
-    let debounceTimeout: NodeJS.Timeout | null = null
-    const DEBOUNCE_DELAY = 2000
-
-    const unsubscribe = SSEManager.onReconnection(() => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
-      }
-
-      debounceTimeout = setTimeout(() => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useTaskListState] SSE reconnected - refreshing all data to sync missed events')
-        }
-        loadData()
-        debounceTimeout = null
-      }, DEBOUNCE_DELAY)
-    })
-
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
-      }
       unsubscribe()
+      scheduler.cancel()
     }
-  }, [currentUserId, loadData])
+    // loadData is reached through loadDataRef, so rebuilding it no longer tears
+    // down and re-arms these listeners.
+  }, [currentUserId, getRefreshScheduler])
 
   // Memoized SSE event handlers
   const handleTaskCreated = useCallback((event: any) => {

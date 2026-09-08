@@ -21,6 +21,7 @@ import { OfflineSyncManager } from './offline-sync'
 import { CrossTabSync } from './cross-tab-sync'
 import type { Task, TaskList, Comment } from '@/types/task'
 import { safeResponseJson } from './safe-parse'
+import { createRefreshScheduler, type RefreshScheduler } from './refresh-scheduler'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('data-sync')
@@ -82,6 +83,27 @@ class DataSyncManagerClass {
   // Sync interval (5 minutes)
   private readonly SYNC_INTERVAL = 5 * 60 * 1000
 
+  // Window over which simultaneous sync triggers collapse into one sync.
+  private readonly SYNC_DEBOUNCE = 2 * 1000
+
+  // A tab regaining visibility is worth at most one sync a minute — the same
+  // budget useTaskListState gives the refresh it runs on the same event.
+  private readonly TAB_SYNC_MIN_INTERVAL = 60 * 1000
+
+  // Coming back online is a catch-up on everything missed while offline, so it
+  // is not held for the tab window (task ed1d85ba).
+  private readonly RECONNECT_SYNC_MIN_INTERVAL = 2 * 1000
+
+  /**
+   * One scheduler in front of the three things that ask for a sync — the
+   * periodic interval, the tab becoming visible, and the network returning.
+   * They used to call performIncrementalSync directly and independently, so
+   * three alt-tabs in half a minute were three network syncs and a periodic
+   * tick landing just after a tab return was a fourth with nothing to fetch
+   * (task ed1d85ba).
+   */
+  private refreshScheduler: RefreshScheduler | null = null
+
   // Max age before forcing full sync (24 hours)
   private readonly MAX_CURSOR_AGE = 24 * 60 * 60 * 1000
 
@@ -102,13 +124,24 @@ class DataSyncManagerClass {
     if (this.initialized) return
     this.initialized = true
 
+    this.refreshScheduler = createRefreshScheduler(
+      async () => {
+        try {
+          await this.performIncrementalSync()
+        } catch (err) {
+          log.error({ err }, 'performIncrementalSync failed')
+        }
+      },
+      { debounceMs: this.SYNC_DEBOUNCE },
+    )
+
     // Start periodic sync
     this.startPeriodicSync()
 
     // Sync on visibility change (tab becomes active)
     this.visibilityHandler = () => {
       if (!document.hidden && navigator.onLine) {
-        this.performIncrementalSync().catch(err => log.error({ err }, 'performIncrementalSync failed'))
+        this.refreshScheduler?.request('visibility', { minIntervalMs: this.TAB_SYNC_MIN_INTERVAL })
       }
     }
     document.addEventListener('visibilitychange', this.visibilityHandler)
@@ -118,7 +151,7 @@ class DataSyncManagerClass {
       if (process.env.NODE_ENV === 'development') {
         log.info('📡 [DataSync] Online - triggering sync')
       }
-      this.performIncrementalSync().catch(err => log.error({ err }, 'performIncrementalSync failed'))
+      this.refreshScheduler?.request('online', { minIntervalMs: this.RECONNECT_SYNC_MIN_INTERVAL })
     }
     window.addEventListener('online', this.onlineHandler)
   }
@@ -133,7 +166,9 @@ class DataSyncManagerClass {
 
     this.syncIntervalId = setInterval(() => {
       if (navigator.onLine && !document.hidden) {
-        this.performIncrementalSync().catch(err => log.error({ err }, 'performIncrementalSync failed'))
+        // Held to a full interval since the LAST sync, whatever asked for it,
+        // so a tick arriving just after a tab return is not a second fetch.
+        this.refreshScheduler?.request('periodic', { minIntervalMs: this.SYNC_INTERVAL })
       }
     }, this.SYNC_INTERVAL)
   }
@@ -154,6 +189,9 @@ class DataSyncManagerClass {
    */
   cleanup() {
     this.stopPeriodicSync()
+
+    this.refreshScheduler?.cancel()
+    this.refreshScheduler = null
 
     if (this.visibilityHandler) {
       document.removeEventListener('visibilitychange', this.visibilityHandler)

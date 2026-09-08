@@ -14,10 +14,11 @@ import { getDeviceType, isMobilePhoneDevice, isTouchDevice } from "@/lib/layout-
 import { taskDragCapability } from "@/lib/touch-drag-sort"
 import { PROMOTE_DROP_TARGET_ID } from "@/lib/subtask-promotion"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
-import { TaskRow, type TaskRowControllerSlice } from "./TaskRow"
+import { TaskRow } from "./TaskRow"
 import { TaskViewToggle } from "../Header/TaskViewToggle"
 import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
+import { useTaskRowController } from "@/hooks/task-manager/useTaskRowController"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
 import { getBoardRowContext, getProjectIdForBoard } from "@/lib/project-status"
@@ -34,7 +35,6 @@ import {
 } from "lucide-react"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
-import { normalizeTaskDisplayMode } from '@/lib/task-display-mode'
 import type { Task, TaskList } from "@/types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 
@@ -356,7 +356,7 @@ export function MainContent({
     }
   }, [justReturnedFromTaskDetail])
 
-  const renderManualPlaceholderRow = (
+  const renderManualPlaceholderRow = React.useCallback((
     key: string,
     label?: string,
     options?: {
@@ -384,7 +384,7 @@ export function MainContent({
         </div>
       )}
     </div>
-  )
+  ), [isMobile])
 
   // Calculate parallax state for mobile transitions
   const isShowingTaskDetail = isMobile && mobileView === 'task' && !isMobileTaskDetailClosing
@@ -394,7 +394,12 @@ export function MainContent({
 
   // Controller slice shared by every TaskRow (Stage 20b). Assembled from the
   // props MainContent already receives so rows take one bundle, not ~14 props.
-  const rowController: TaskRowControllerSlice = {
+  //
+  // Memoised in a hook rather than built inline: as a bare literal it was a new
+  // object on every render, which made the memo boundary on TaskRow inert and
+  // put a full re-render of every row behind each keystroke in the add-task box
+  // (task ed1d85ba).
+  const rowController = useTaskRowController({
     selectedTaskId,
     activeDragTaskId,
     dragTargetTaskId,
@@ -409,15 +414,9 @@ export function MainContent({
     handleTaskDragHover,
     handleTaskDragLeaveTask,
     handleTaskDragEnd,
-    // Adapted rather than cast: the props these arrive on are declared more
-    // loosely than the controller's own types (a void return, a bare string),
-    // and normalizing here means a mode that travelled down a long prop chain
-    // still cannot reach a row as an unrecognised value (task ffa5bbb5).
-    handleUpdateTask: async (updated: Task) => {
-      await handleUpdateTask(updated)
-    },
-    taskDisplayMode: normalizeTaskDisplayMode(taskDisplayMode),
-  }
+    handleUpdateTask,
+    taskDisplayMode,
+  })
 
   // The board behind the selected list, or null. Built once for the whole list
   // rather than per row: every row offers the same columns, and a row that
@@ -448,7 +447,7 @@ export function MainContent({
 
   // Single source of truth for a task row, shared by the plain and the
   // virtualized (very-long-list) render paths.
-  const renderTaskRow = (task: Task) => (
+  const renderTaskRow = React.useCallback((task: Task) => (
     <TaskRow
       key={task.id}
       task={task}
@@ -465,7 +464,17 @@ export function MainContent({
       startMobileDrag={startMobileDrag}
       board={boardRowContext}
     />
-  )
+  ), [
+    rowController,
+    isMobile,
+    isTouchManualSort,
+    dragCapability,
+    draggingTaskMetrics,
+    registerTaskRow,
+    renderManualPlaceholderRow,
+    startMobileDrag,
+    boardRowContext,
+  ])
 
   // Add-task input (or Copy-List button for read-only public/featured lists).
   // Shared by the 3-column header block and the dedicated 2-column row so both

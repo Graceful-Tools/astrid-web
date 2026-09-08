@@ -96,7 +96,7 @@ export interface TaskRowProps {
  * derivation lives here; behavior is unchanged. Stage 20b bundles these props
  * behind a controller contract.
  */
-export function TaskRow({
+function TaskRowImpl({
   task,
   controller,
   isMobile,
@@ -408,3 +408,17 @@ export function TaskRow({
     </div>
   )
 }
+
+/**
+ * Memoised because a keystroke three components up used to reach every row.
+ *
+ * `quickTaskInput` lives in useTaskManagerModals, above TaskManagerView and
+ * MainContent, so every character typed into the add-task box re-rendered the
+ * whole list — 150 rows at the virtualization threshold, and unbounded in
+ * manual-sort mode where virtualization is off by design. The default shallow
+ * prop comparison is enough now that MainContent hands rows a memoised
+ * controller bundle (hooks/task-manager/useTaskRowController.ts) and stable
+ * callbacks rather than fresh literals. (Task ed1d85ba.)
+ */
+export const TaskRow = React.memo(TaskRowImpl)
+TaskRow.displayName = 'TaskRow'
