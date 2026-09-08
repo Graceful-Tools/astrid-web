@@ -106,7 +106,13 @@ function parseTokenResponse(json: any): TokenExchange | null {
 }
 
 /** Exchange an authorization code for a user access token. */
-export async function exchangeCopilotCode(code: string): Promise<TokenExchange | null> {
+/**
+ * `redirectUri` is required when the code was issued against one — GitHub
+ * checks it matches — and omitted for the browser flow, which registers a
+ * single callback URL. The app-completed link passes the app's own scheme
+ * (task 842601f2).
+ */
+export async function exchangeCopilotCode(code: string, redirectUri?: string): Promise<TokenExchange | null> {
   const res = await fetch(`${GITHUB_OAUTH}/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -114,6 +120,7 @@ export async function exchangeCopilotCode(code: string): Promise<TokenExchange |
       client_id: process.env.GITHUB_COPILOT_CLIENT_ID,
       client_secret: process.env.GITHUB_COPILOT_CLIENT_SECRET,
       code,
+      ...(redirectUri ? { redirect_uri: redirectUri } : {}),
     }),
   })
   const json = await res.json().catch(() => null)
