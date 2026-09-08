@@ -2,8 +2,9 @@
  * @vitest-environment node
  *
  * External sync providers (GitHub Issues / Google Tasks) — the deterministic
- * server-side pieces: HMAC OAuth state, webhook signature verification, and
- * OAuth client configuration/fallback. The sync EXECUTION lives on the client
+ * server-side pieces: webhook signature verification and OAuth client
+ * configuration/fallback. The HMAC connect state moved to
+ * tests/lib/oauth-state-provider-tag.test.ts with the helper itself. The sync EXECUTION lives on the client
  * (iOS), which has its own suite (SyncProviderLogicTests).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -15,45 +16,8 @@ vi.mock('@/lib/field-encryption', () => ({
   decryptField: (v: string) => v.replace(/^enc:/, ''),
 }))
 
-import { mintOAuthState, verifyOAuthState, verifyWebhookSignature, githubSyncConfigured } from '@/lib/sync/github'
+import { verifyWebhookSignature, githubSyncConfigured } from '@/lib/sync/github'
 import { googleAuthorizeURL, googleSyncConfigured } from '@/lib/sync/google'
-
-describe('OAuth state (HMAC, shared by GitHub + Google connect flows)', () => {
-  beforeEach(() => vi.stubEnv('NEXTAUTH_SECRET', 'test-secret'))
-  afterEach(() => vi.unstubAllEnvs())
-
-  it('round-trips the userId', () => {
-    const state = mintOAuthState('user-123')
-    expect(verifyOAuthState(state)).toBe('user-123')
-  })
-
-  it('rejects an expired state', () => {
-    const expires = Date.now() - 1000
-    const payload = `user-123.${expires}`
-    const sig = crypto.createHmac('sha256', 'test-secret').update(payload).digest('hex')
-    const state = Buffer.from(`${payload}.${sig}`).toString('base64url')
-    expect(verifyOAuthState(state)).toBeNull()
-  })
-
-  it('rejects a tampered userId (signature mismatch)', () => {
-    const state = mintOAuthState('user-123')
-    const decoded = Buffer.from(state, 'base64url').toString()
-    const tampered = Buffer.from(decoded.replace('user-123', 'user-666')).toString('base64url')
-    expect(verifyOAuthState(tampered)).toBeNull()
-  })
-
-  it('rejects a state signed with a different secret', () => {
-    const state = mintOAuthState('user-123')
-    vi.stubEnv('NEXTAUTH_SECRET', 'other-secret')
-    expect(verifyOAuthState(state)).toBeNull()
-  })
-
-  it('rejects garbage without throwing', () => {
-    expect(verifyOAuthState('not-a-state')).toBeNull()
-    expect(verifyOAuthState('')).toBeNull()
-    expect(verifyOAuthState(Buffer.from('a.b').toString('base64url'))).toBeNull()
-  })
-})
 
 describe('GitHub issues webhook signature', () => {
   const SECRET = 'janes-webhook-secret'

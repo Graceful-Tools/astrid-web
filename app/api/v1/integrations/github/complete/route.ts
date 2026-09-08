@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { createLogger } from '@/lib/logger'
 import { isAppSchemeRedirect } from '@/lib/sync/app-completed-link'
-import { exchangeGithubCode, githubRequest, githubSyncConfigured, storeGithubIntegration } from '@/lib/sync/github'
-
-const log = createLogger('v1.integrations.github.complete')
+import { githubSyncConfigured } from '@/lib/sync/github'
+import { completeIntegrationLink } from '@/lib/sync/link-integration'
 
 /**
  * POST /api/v1/integrations/github/complete  { code, redirectUri }
@@ -27,28 +25,16 @@ export const POST = withAuth(
       return NextResponse.json({ error: 'A code is required' }, { status: 400 })
     }
     if (!isAppSchemeRedirect(body?.redirectUri)) {
-      return NextResponse.json(
-        { error: 'redirectUri must be this app’s URL scheme' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'redirectUri must be this app’s URL scheme' }, { status: 400 })
     }
 
-    const token = await exchangeGithubCode(code, body.redirectUri)
-    if (!token) {
-      // Never log the exchange response: a partial grant still carries a
-      // refresh_token and pino has no redaction configured (task 842601f2).
-      log.error({ userId: auth.userId }, 'GitHub token exchange failed')
-      return NextResponse.json({ error: 'The sign-in code expired before it could be used' }, { status: 400 })
+    const result = await completeIntegrationLink('github', auth.userId, code, body.redirectUri)
+    if (!result.ok) {
+      return result.reason === 'lookup_failed'
+        ? NextResponse.json({ error: 'Connected, but the account lookup failed' }, { status: 502 })
+        : NextResponse.json({ error: 'The sign-in code expired before it could be used' }, { status: 400 })
     }
 
-    const { status, json: user } = await githubRequest(token.accessToken, 'GET', '/user')
-    if (status !== 200 || !user?.login) {
-      return NextResponse.json({ error: 'Connected, but the account lookup failed' }, { status: 502 })
-    }
-
-    await storeGithubIntegration(auth.userId, token.accessToken, user.login, token.scopes)
-    log.info({ userId: auth.userId, login: user.login }, 'GitHub sync connected (app-completed)')
-
-    return NextResponse.json({ connected: true, account: user.login })
+    return NextResponse.json({ connected: true, account: result.account })
   }
 )

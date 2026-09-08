@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { isAppSchemeRedirect, appCompletedState } from '@/lib/sync/app-completed-link'
-import { mintOAuthState } from '@/lib/sync/github'
+import { mintOAuthState } from '@/lib/sync/oauth-state'
 import { googleAuthorizeURL, googleSyncConfigured } from '@/lib/sync/google'
 
 /**
@@ -26,7 +26,7 @@ export const GET = withAuth(
     }
 
     const redirectUri = requested ?? `${url.origin}/api/v1/integrations/google/callback`
-    const state = requested ? appCompletedState() : mintOAuthState(auth.userId)
+    const state = requested ? appCompletedState() : mintOAuthState(auth.userId, 'google')
 
     return NextResponse.json({ url: googleAuthorizeURL(state, redirectUri) })
   }

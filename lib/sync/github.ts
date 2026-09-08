@@ -19,36 +19,14 @@ export function githubSyncConfigured(): boolean {
   return !!(process.env.GITHUB_SYNC_CLIENT_ID && process.env.GITHUB_SYNC_CLIENT_SECRET)
 }
 
-// ── OAuth state (HMAC-signed, no storage) ───────────────────────────────────
+// ── OAuth state ──────────────────────────────────────────────────────────────
+// Minted and verified by lib/sync/oauth-state.ts, which the Copilot flow shares.
+// It used to live here untagged, so one state satisfied both the GitHub and the
+// Google callback (task 842601f2).
 
 /** owner/repo — safe for path + GraphQL interpolation (no quotes/slashes beyond the separator). */
 export function isValidRepoId(id: string): boolean {
   return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(id)
-}
-
-export function mintOAuthState(userId: string): string {
-  const secret = process.env.NEXTAUTH_SECRET
-  if (!secret) throw new Error('NEXTAUTH_SECRET is required to mint OAuth state')
-  const expires = Date.now() + 10 * 60 * 1000
-  const payload = `${userId}.${expires}`
-  const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
-  return Buffer.from(`${payload}.${sig}`).toString('base64url')
-}
-
-export function verifyOAuthState(state: string): string | null {
-  try {
-    const secret = process.env.NEXTAUTH_SECRET
-    if (!secret) return null
-    const decoded = Buffer.from(state, 'base64url').toString()
-    const [userId, expiresStr, sig] = decoded.split('.')
-    if (!userId || !expiresStr || !sig) return null
-    if (Date.now() > Number(expiresStr)) return null
-    const expected = crypto.createHmac('sha256', secret).update(`${userId}.${expiresStr}`).digest('hex')
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
-    return userId
-  } catch {
-    return null
-  }
 }
 
 // ── Token access ─────────────────────────────────────────────────────────────

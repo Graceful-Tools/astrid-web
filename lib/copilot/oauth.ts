@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
 import { ENABLED_AGENT_MAILBOXES } from '@/lib/ai/agent-config'
+import { mintOAuthState, verifyOAuthState } from '@/lib/sync/oauth-state'
 
 /**
  * GitHub Copilot per-user OAuth — server-side helpers.
@@ -23,8 +24,6 @@ import { ENABLED_AGENT_MAILBOXES } from '@/lib/ai/agent-config'
 
 const GITHUB_OAUTH = 'https://github.com/login/oauth'
 const GITHUB_API = 'https://api.github.com'
-const STATE_TAG = 'copilot' // namespaces state so it can't be replayed on another provider's callback
-const STATE_TTL_MS = 10 * 60 * 1000
 /** Refresh a bit before actual expiry so an in-flight call doesn't race the deadline. */
 const REFRESH_SKEW_MS = 60 * 1000
 
@@ -53,34 +52,17 @@ export function copilotIntegrationGate(): NextResponse | null {
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
 }
 
-// ── OAuth state (HMAC-signed, no storage; provider-tagged) ───────────────────
+// ── OAuth state ──────────────────────────────────────────────────────────────
+// The provider-tagged HMAC state started here and is now shared with the GitHub
+// and Google connect flows, which were minting an untagged one (task 842601f2).
+// The wire format is unchanged: `copilot.<userId>.<expires>.<sig>`.
 
 export function mintCopilotOAuthState(userId: string): string {
-  const secret = process.env.NEXTAUTH_SECRET
-  if (!secret) throw new Error('NEXTAUTH_SECRET is required to mint OAuth state')
-  const expires = Date.now() + STATE_TTL_MS
-  const payload = `${STATE_TAG}.${userId}.${expires}`
-  const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
-  return Buffer.from(`${payload}.${sig}`).toString('base64url')
+  return mintOAuthState(userId, 'copilot')
 }
 
 export function verifyCopilotOAuthState(state: string): string | null {
-  try {
-    const secret = process.env.NEXTAUTH_SECRET
-    if (!secret) return null
-    const decoded = Buffer.from(state, 'base64url').toString()
-    const [tag, userId, expiresStr, sig] = decoded.split('.')
-    if (tag !== STATE_TAG || !userId || !expiresStr || !sig) return null
-    if (Date.now() > Number(expiresStr)) return null
-    const expected = crypto
-      .createHmac('sha256', secret)
-      .update(`${STATE_TAG}.${userId}.${expiresStr}`)
-      .digest('hex')
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
-    return userId
-  } catch {
-    return null
-  }
+  return verifyOAuthState(state, 'copilot')
 }
 
 // ── Token exchange ───────────────────────────────────────────────────────────
