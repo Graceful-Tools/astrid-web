@@ -85,32 +85,55 @@ const RepeatingFields = {
   repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
 }
 
-// Schema definitions for validation
-const CreateTaskSchema = z.object({
+/**
+ * Schema definitions for validation.
+ *
+ * `.strict()` is load-bearing (task ba84653c). Zod strips unknown keys by
+ * default, so `statusRole` — which was not declared here — disappeared before
+ * the request body was built while the handler still answered `success: true`.
+ * A write that reports success and changes nothing is detectable only by
+ * re-reading the task and diffing, and because `get_agent_queue` requires
+ * `statusRole: "ready"`, that single silent strip made it impossible to put a
+ * task into an agent queue through MCP at all.
+ *
+ * A field must now be DECLARED here to be accepted, which is the point: this
+ * is the one gate deciding what the tools honour, and
+ * tests/mcp/tool-schemas-match-what-the-server-honours.test.ts goes red if it
+ * and OAUTH_MCP_TOOLS ever disagree in either direction.
+ *
+ * These duplicate mcp/schemas.ts, which serves the shared-list MCP surface.
+ * The same test pins the two to each other so they cannot drift further, but
+ * the duplication itself is still worth deleting.
+ */
+export const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   priority: z.number().min(0).max(3).default(0),
   assigneeId: z.string().optional(),
   dueDateTime: z.string().datetime().optional(),
+  isAllDay: z.boolean().optional(),
   reminderTime: z.string().datetime().optional(),
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().default(true),
+  statusRole: z.string().nullable().optional(),
   ...RepeatingFields,
-})
+}).strict()
 
-const UpdateTaskSchema = z.object({
+export const UpdateTaskSchema = z.object({
   taskId: z.string(),
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   priority: z.number().min(0).max(3).optional(),
   assigneeId: z.string().optional(),
   dueDateTime: z.string().datetime().optional(),
+  isAllDay: z.boolean().optional(),
   reminderTime: z.string().datetime().optional(),
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().optional(),
   completed: z.boolean().optional(),
+  statusRole: z.string().nullable().optional(),
   ...RepeatingFields,
-})
+}).strict()
 
 const CreateCommentSchema = z.object({
   taskId: z.string(),
@@ -337,8 +360,39 @@ export const OAUTH_MCP_TOOLS = [
               description:
                 "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
             },
+            assigneeId: {
+              type: "string",
+              description:
+                "Who owns the task. Takes a user id, or an agent identity such as \"ai-agent-claude\". Assigning to an agent mailbox ACTIVATES the hosted agent runtime, which will comment on the task — it is a trigger, not a passive queue.",
+            },
+            statusRole: {
+              type: ["string", "null"],
+              description:
+                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null means Inbox.",
+            },
+            isAllDay: {
+              type: "boolean",
+              description: "Treat dueDateTime as a day rather than a moment.",
+            },
+            reminderTime: {
+              type: "string",
+              format: "date-time",
+              description: "When to remind.",
+            },
+            reminderType: {
+              type: "string",
+              enum: ["push", "email", "both"],
+              description: "How to remind.",
+            },
+            isPrivate: {
+              type: "boolean",
+              description: "Private to you rather than visible to the list. Defaults to true.",
+            },
           },
           required: ["title"],
+          // Anything not listed here is an error rather than a silent strip
+          // (task ba84653c). See mcp/schemas.ts for why.
+          additionalProperties: false,
         },
       },
       {
@@ -391,8 +445,39 @@ export const OAUTH_MCP_TOOLS = [
               description:
                 "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
             },
+            assigneeId: {
+              type: "string",
+              description:
+                "Who owns the task. Takes a user id, or an agent identity such as \"ai-agent-claude\". Assigning to an agent mailbox ACTIVATES the hosted agent runtime, which will comment on the task — it is a trigger, not a passive queue.",
+            },
+            statusRole: {
+              type: ["string", "null"],
+              description:
+                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null moves it back to Inbox.",
+            },
+            isAllDay: {
+              type: "boolean",
+              description: "Treat dueDateTime as a day rather than a moment.",
+            },
+            reminderTime: {
+              type: "string",
+              format: "date-time",
+              description: "When to remind.",
+            },
+            reminderType: {
+              type: "string",
+              enum: ["push", "email", "both"],
+              description: "How to remind.",
+            },
+            isPrivate: {
+              type: "boolean",
+              description: "Private to you rather than visible to the list.",
+            },
           },
           required: ["taskId"],
+          // Anything not listed here is an error rather than a silent strip
+          // (task ba84653c). See mcp/schemas.ts for why.
+          additionalProperties: false,
         },
       },
       {
@@ -700,16 +785,20 @@ export default class AstridMCPServerOAuth {
       )
     }
 
-    // Validate task data
-    const taskData = CreateTaskSchema.parse({
-      title: args.title,
-      description: args.description,
-      priority: args.priority,
-      dueDateTime: args.dueDateTime,
-      repeating: args.repeating,
-      repeatingData: args.repeatingData,
-      repeatFrom: args.repeatFrom,
-    })
+    /**
+     * Hand the whole body to the schema rather than re-listing the fields.
+     *
+     * This used to name each field it forwarded, so a field the schema
+     * accepted but this list forgot was dropped in silence — which is exactly
+     * what happened to `assigneeId`, and to `repeatFrom`, which the tool
+     * schema advertises (task ba84653c). One gate, in mcp/schemas.ts, is the
+     * fix; a second hand-maintained list is the bug.
+     *
+     * listId/listIds are resolved above because they pick the target list
+     * rather than describe the task, so they must not reach the strict schema.
+     */
+    const { listId: _listId, listIds: _listIds, ...taskArgs } = args ?? {}
+    const taskData = CreateTaskSchema.parse(taskArgs)
 
     const data = await this.oauthClient.makeRequest<{ task: Task }>("/api/v1/tasks", {
       method: "POST",

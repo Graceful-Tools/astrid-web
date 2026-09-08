@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth"
 import { authConfig } from "@/lib/auth-config"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
+import { listVisibilityWhere } from '@/lib/list-permissions'
 
 const log = createLogger('mcp.sync')
 
@@ -69,14 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Get all lists the user has access to
     const userLists = await prisma.taskList.findMany({
-      where: {
-        OR: [
-          { ownerId: userId },
-          { listMembers: { some: { userId: userId } } },
-          { listMembers: { some: { userId: userId } } },
-          { listMembers: { some: { userId } } }
-        ]
-      },
+      where: listVisibilityWhere(userId, { includePublic: false }),
       select: { id: true }
     })
 

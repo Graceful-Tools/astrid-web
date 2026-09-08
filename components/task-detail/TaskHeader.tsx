@@ -48,6 +48,8 @@ interface TaskHeaderProps {
   onTestReminder: () => void
   /** Close as "won't do" / reopen (task 11042ae3). */
   onCancel?: (closedReason: string | null) => void
+  /** Move the task to a board column, by column id (task ba1a4c4c). */
+  onStatusSelect?: (columnId: string) => void
   /** Full-screen task details (task dcbbb0fa). Undefined for the inline/board
    *  panel, which is deliberately a peek and never offers it. */
   fullScreen?: boolean
@@ -79,6 +81,7 @@ export function TaskHeader({
   onDelete,
   onTestReminder,
   onCancel,
+  onStatusSelect,
   fullScreen,
   onToggleFullScreen,
   compact = false,
@@ -211,6 +214,7 @@ export function TaskHeader({
                 onDelete={onDelete}
                 onTestReminder={onTestReminder}
                 onCancel={onCancel}
+                onStatusSelect={onStatusSelect}
               />
             </div>
           ) : (
@@ -242,6 +246,7 @@ export function TaskHeader({
                 onDelete={onDelete}
                 onTestReminder={onTestReminder}
                 onCancel={onCancel}
+                onStatusSelect={onStatusSelect}
               />
             </div>
           )}

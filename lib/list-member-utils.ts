@@ -144,14 +144,6 @@ export function isListOwner(list: ListLike, userId: string): boolean {
 }
 
 /**
- * Get a user's role in a list
- */
-export function getUserListRole(list: ListLike, userId: string): 'owner' | 'admin' | 'member' | null {
-  const member = getAllListMembers(list).find(m => m.id === userId)
-  return member?.role || null
-}
-
-/**
  * Get all user IDs who have access to a list (for SSE broadcasting)
  */
 export function getListMemberIds(list: ListLike): string[] {

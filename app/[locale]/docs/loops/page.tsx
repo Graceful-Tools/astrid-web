@@ -136,6 +136,15 @@ export default function AgentLoopsDocsPage() {
               {' '}<strong className="theme-text-primary">Ready</strong>. Assignment is the handshake —
               nothing is ever picked up off your board without it.
             </p>
+            <p className="pl-4">
+              Ready lives in the task&rsquo;s <strong className="theme-text-primary">&hellip; menu &rarr; Status</strong>,
+              on a board column, or over MCP as
+              {' '}<code className="font-mono text-xs">update_task &#123; statusRole: &quot;ready&quot; &#125;</code>.
+              Both conditions are required: assigned <em>and</em> Ready. A task that is
+              assigned but still in Inbox will never appear in the queue, which is the
+              usual reason a correctly configured loop sees
+              {' '}<code className="font-mono text-xs">empty: true</code> forever.
+            </p>
             <p>
               <strong className="theme-text-primary">3.</strong> Your harness calls
               {' '}<code className="font-mono text-xs">get_agent_queue</code> on a schedule and works

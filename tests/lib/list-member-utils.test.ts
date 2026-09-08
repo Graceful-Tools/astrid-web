@@ -1,10 +1,10 @@
+import { getUserRoleInList } from '@/lib/list-permissions'
 import { describe, it, expect } from 'vitest'
 import {
   getAllListMembers,
   hasListAccess,
   isListAdminOrOwner,
   isListOwner,
-  getUserListRole,
   getListMemberIds,
   canAccessList,
 } from '@/lib/list-member-utils'
@@ -380,7 +380,10 @@ describe('List Member Utils - Permission Checks', () => {
     })
   })
 
-  describe('getUserListRole', () => {
+  // getUserListRole was a dead export (0 call sites) duplicating
+  // getUserRoleInList, which handles owners on payloads carrying ownerId with
+  // no member row. It is gone; these keep its cases against the survivor.
+  describe('role lookup', () => {
     it('should return admin for user in listMembers without user relation', () => {
       const list: TaskList = {
         id: 'list-1',
@@ -402,7 +405,7 @@ describe('List Member Utils - Permission Checks', () => {
         updatedAt: new Date(),
       } as TaskList
 
-      expect(getUserListRole(list, mockAdmin.id)).toBe('admin')
+      expect(getUserRoleInList({ id: mockAdmin.id }, list as never)).toBe('admin')
     })
 
     it('should return null for non-member', () => {
@@ -416,7 +419,7 @@ describe('List Member Utils - Permission Checks', () => {
         updatedAt: new Date(),
       } as TaskList
 
-      expect(getUserListRole(list, mockNonMember.id)).toBeNull()
+      expect(getUserRoleInList({ id: mockNonMember.id }, list as never)).toBeNull()
     })
   })
 

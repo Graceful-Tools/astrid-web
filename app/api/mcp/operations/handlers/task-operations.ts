@@ -12,6 +12,7 @@ import {
 import { AnalyticsPlatform } from '@/lib/analytics-events'
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { createLogger } from '@/lib/logger'
+import { listVisibilityWhere } from '@/lib/list-permissions'
 import {
   resolveMCPActor,
   getListMemberIdsByListId,
@@ -28,13 +29,8 @@ export async function getListTasks(accessToken: string, listId: string, userId: 
   const list = await prisma.taskList.findFirst({
     where: {
       id: listId,
-      OR: [
-        { ownerId: mcpToken.userId },
-        { listMembers: { some: { userId: mcpToken.userId } } },
-        { listMembers: { some: { userId: mcpToken.userId } } },
-        { listMembers: { some: { userId: mcpToken.userId } } },
-        { privacy: 'PUBLIC' }  // Allow access to PUBLIC lists for anyone
-      ]
+      // PUBLIC included: this lookup has always let anyone read a public list.
+      ...listVisibilityWhere(mcpToken.userId, { includePublic: true })
     }
   })
 
@@ -380,14 +376,7 @@ export async function deleteTask(accessToken: string, taskId: string, userId: st
         // OR member of a list containing the task
         {
           lists: {
-            some: {
-              OR: [
-                { ownerId: mcpToken.userId },
-                { listMembers: { some: { userId: mcpToken.userId } } },
-                { listMembers: { some: { userId: mcpToken.userId } } },
-                { listMembers: { some: { userId: mcpToken.userId } } }
-              ]
-            }
+            some: listVisibilityWhere(mcpToken.userId, { includePublic: false })
           }
         }
       ]
@@ -442,14 +431,7 @@ export async function getTaskDetails(accessToken: string, taskId: string, userId
       OR: [
         {
           lists: {
-            some: {
-              OR: [
-                { ownerId: mcpToken.userId },
-                { listMembers: { some: { userId: mcpToken.userId } } },
-                { listMembers: { some: { userId: mcpToken.userId } } },
-                { listMembers: { some: { userId: mcpToken.userId } } }
-              ]
-            }
+            some: listVisibilityWhere(mcpToken.userId, { includePublic: false })
           }
         },
         {
@@ -530,14 +512,7 @@ export async function addTaskAttachment(accessToken: string, taskId: string, att
     where: {
       id: taskId,
       lists: {
-        some: {
-                  OR: [
-            { ownerId: mcpToken.userId },
-            { listMembers: { some: { userId: mcpToken.userId } } },
-            { listMembers: { some: { userId: mcpToken.userId } } },
-            { listMembers: { some: { userId: mcpToken.userId } } }
-          ]
-        }
+        some: listVisibilityWhere(mcpToken.userId, { includePublic: false })
       }
     }
   })

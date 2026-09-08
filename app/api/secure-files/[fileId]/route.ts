@@ -10,13 +10,6 @@ import { hasExplicitListRole } from "@/lib/list-permissions"
 const log = createLogger('secure-files.[fileId]')
 
 
-// Helper function to safely check list access with any list-like object
-function canAccessList(list: any, userId: string): boolean {
-  // hasListAccess covers owner/admin/member on every payload shape; the old
-  // try/catch fallback was unreachable (it returns false, never throws).
-  return hasListAccess(list as any, userId)
-}
-
 // Helper to get session from either JWT (web) or database (mobile)
 async function getSession(request: NextRequest) {
   // Try JWT session first (web app)
@@ -141,7 +134,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
       const canView =
         task.assigneeId === session.user.id ||
         task.creatorId === session.user.id ||
-        task.lists.some((list) => canAccessList(list, session.user.id)) ||
+        task.lists.some((list) => hasListAccess(list, session.user.id)) ||
         // Allow viewing files on public lists (both copy-only and collaborative)
         task.lists.some((list) => list.privacy === 'PUBLIC')
 
@@ -152,7 +145,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
 
     if (!hasAccess && secureFile.listId && secureFile.list) {
       // Check list access using standard hasListAccess function
-      if (canAccessList(secureFile.list, session.user.id) || secureFile.list.privacy === 'PUBLIC') {
+      if (hasListAccess(secureFile.list, session.user.id) || secureFile.list.privacy === 'PUBLIC') {
         hasAccess = true
       }
     }
@@ -170,7 +163,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
         const canView =
           task.assigneeId === session.user.id ||
           task.creatorId === session.user.id ||
-          task.lists.some((list) => canAccessList(list, session.user.id)) ||
+          task.lists.some((list) => hasListAccess(list, session.user.id)) ||
           // Allow viewing files on public lists (both copy-only and collaborative)
           task.lists.some((list) => list.privacy === 'PUBLIC')
 
