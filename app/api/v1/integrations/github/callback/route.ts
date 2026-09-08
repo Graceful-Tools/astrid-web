@@ -1,17 +1,17 @@
 import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
-import { createLogger } from '@/lib/logger'
-import { exchangeGithubCode, githubRequest, githubSyncConfigured, storeGithubIntegration } from '@/lib/sync/github'
+import { githubSyncConfigured } from '@/lib/sync/github'
 import { verifyOAuthState } from '@/lib/sync/oauth-state'
-import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
-
-const log = createLogger('v1.integrations.github.callback')
+import { finishBrowserConnect } from '@/lib/sync/browser-callback'
+import { linkErrorPage } from '@/lib/sync/link-pages'
 
 /**
  * GET /api/v1/integrations/github/callback?code&state
- * Browser redirect target from GitHub. Exchanges the code, stores the token
- * (encrypted) on the user's Integration, then shows a "return to app" page.
+ * Browser redirect target from GitHub. The token is filed on the account this
+ * BROWSER is signed in as, not the one the state names — see
+ * lib/sync/browser-callback.ts for why, and for what happens when nobody is
+ * signed in (task 842601f2).
  */
 export async function GET(request: NextRequest) {
   const blocked = capabilityGate('syncGithubIssues')
@@ -20,57 +20,14 @@ export async function GET(request: NextRequest) {
   if (!githubSyncConfigured()) {
     return NextResponse.json({ error: 'GitHub sync is not configured' }, { status: 503 })
   }
+
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const state = searchParams.get('state')
-  const userId = state ? verifyOAuthState(state, 'github') : null
-  if (!code || !userId) {
-    return errorPage(`This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
+  const stateUserId = state ? verifyOAuthState(state, 'github') : null
+  if (!code || !stateUserId) {
+    return linkErrorPage('github', `This connect link has expired. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
-  // The state names who STARTED the flow, which is not necessarily who is
-  // sitting here. When the browser is signed in it answers that, and a
-  // mismatch means somebody else's connect link (task 842601f2).
-  if (await callbackSessionConflicts(request, userId, 'github')) {
-    return errorPage(
-      `This connect link was started from a different ${BRAND.appName} account. Open ${BRAND.appName} and tap Connect again.`,
-    )
-  }
-
-  // exchangeGithubCode never logs the response: a partial grant still carries a
-  // refresh_token, and pino has no redaction configured (task 842601f2).
-  const token = await exchangeGithubCode(code)
-  if (!token) {
-    log.error('GitHub token exchange failed')
-    return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
-  }
-
-  const { status, json: user } = await githubRequest(token.accessToken, 'GET', '/user')
-  if (status !== 200 || !user?.login) {
-    return errorPage(`Connected, but the account lookup failed. Go back to ${BRAND.appName} and tap Connect again.`)
-  }
-  await storeGithubIntegration(userId, token.accessToken, user.login, token.scopes)
-  log.info({ userId, login: user.login }, 'GitHub sync connected')
-
-  return new NextResponse(
-    `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>GitHub connected ✓</h2><p>Signed in as <b>${escapeHtml(String(user.login))}</b>. You can return to ${BRAND.appName}.</p>
-    </body></html>`,
-    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-  )
-}
-
-/** Human-readable failure page: Cloudflare replaces raw 5xx responses with its
- *  own error page, so OAuth failures must render as 200 HTML to be seen. */
-function errorPage(message: string): NextResponse {
-  return new NextResponse(
-    `<html><body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-      <h2>Connection didn't complete</h2><p>${message}</p>
-    </body></html>`,
-    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-  )
-}
-
-function escapeHtml(v: string): string {
-  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  return finishBrowserConnect(request, 'github', code, stateUserId)
 }

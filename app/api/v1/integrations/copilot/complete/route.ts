@@ -1,16 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { createLogger } from '@/lib/logger'
 import { isAppSchemeRedirect } from '@/lib/sync/app-completed-link'
-import {
-  copilotIntegrationGate,
-  copilotOAuthConfigured,
-  exchangeCopilotCode,
-  githubLoginFor,
-  storeCopilotCredential,
-} from '@/lib/copilot/oauth'
-
-const log = createLogger('v1.integrations.copilot.complete')
+import { copilotIntegrationGate, copilotOAuthConfigured } from '@/lib/copilot/oauth'
+import { completeIntegrationLink } from '@/lib/sync/link-integration'
 
 /**
  * POST /api/v1/integrations/copilot/complete  { code, redirectUri }
@@ -41,17 +33,11 @@ export const POST = withAuth(
       )
     }
 
-    const token = await exchangeCopilotCode(code, body.redirectUri)
-    if (!token) {
-      // Never log the exchange response (task 842601f2).
-      log.error({ userId: auth.userId }, 'GitHub Copilot token exchange failed')
+    const result = await completeIntegrationLink('copilot', auth.userId, code, body.redirectUri)
+    if (!result.ok) {
       return NextResponse.json({ error: 'The sign-in code expired before it could be used' }, { status: 400 })
     }
 
-    const login = await githubLoginFor(token.accessToken)
-    await storeCopilotCredential(auth.userId, token, login)
-    log.info({ userId: auth.userId, login }, 'GitHub Copilot connected (app-completed)')
-
-    return NextResponse.json({ connected: true, account: login })
+    return NextResponse.json({ connected: true, account: result.account })
   }
 )

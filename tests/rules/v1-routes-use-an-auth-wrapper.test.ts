@@ -63,6 +63,8 @@ const PUBLIC: Record<string, string> = {
   'app/api/v1/integrations/github/callback/route.ts': 'OAuth callback — the provider calls it, not a signed-in client',
   'app/api/v1/integrations/google/callback/route.ts': 'OAuth callback — the provider calls it, not a signed-in client',
   'app/api/v1/integrations/copilot/callback/route.ts': 'OAuth callback — the provider calls it, not a signed-in client',
+  'app/api/v1/integrations/resume/route.ts':
+    'where a signed-out OAuth callback finishes (task 842601f2): it checks the session itself so it can redirect a signed-out browser INTO sign-in, which is the whole point — a 401 from withAuth would strand it',
 }
 
 /**
