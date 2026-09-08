@@ -1328,6 +1328,14 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
+        onStatusSelect={columnId => {
+          // Same helper the board and the row use, so a status set from the
+          // menu and a card dragged into a column cannot mean different things
+          // — including that Done means completed rather than a role
+          // (task ba1a4c4c).
+          const move = resolveColumnMove(task, columnId)
+          onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
+        }}
         compact={inline}
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
