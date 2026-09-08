@@ -28,6 +28,22 @@ const RepeatingDataSchema = z.object({
   day: z.number().min(1).max(31).optional(),
 }).optional()
 
+/**
+ * `.strict()` on both task schemas is load-bearing (task ba84653c).
+ *
+ * Zod strips unknown keys by default. `statusRole` was not declared here, so
+ * it disappeared before the request body was built while the handler still
+ * answered `success: true` — a write that reported success and changed
+ * nothing, detectable only by re-reading the task and diffing. Since
+ * `get_agent_queue` requires `statusRole: "ready"`, that one silent strip made
+ * it impossible to put a task into an agent queue through MCP at all.
+ *
+ * Strict turns every future instance of that into an error the caller can see.
+ * The cost is that a field must be DECLARED here to be accepted, which is the
+ * point: this schema is the one place that decides what the tools honour, and
+ * tests/mcp/tool-schemas-match-what-the-server-honours.test.ts fails if it and
+ * the advertised tool schema ever disagree in either direction.
+ */
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
@@ -38,9 +54,11 @@ const CreateTaskSchema = z.object({
   reminderTime: z.string().datetime().optional(),
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().default(true),
+  statusRole: z.string().nullable().optional(),
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).default("never"),
   repeatingData: RepeatingDataSchema,
-})
+  repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
+}).strict()
 
 const UpdateTaskSchema = z.object({
   taskId: z.string(),
@@ -54,9 +72,11 @@ const UpdateTaskSchema = z.object({
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().optional(),
   completed: z.boolean().optional(),
+  statusRole: z.string().nullable().optional(),
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).optional(),
   repeatingData: RepeatingDataSchema,
-})
+  repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
+}).strict()
 
 const CreateCommentSchema = z.object({
   taskId: z.string(),
