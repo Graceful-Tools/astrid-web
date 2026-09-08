@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Bell, Clock, X, CheckCircle, AlertCircle, Calendar, Users } from 'lucide-react'
 import { format } from 'date-fns'
 import { getRandomReminderString } from '@/lib/reminder-constants'
+import { apiPut } from '@/lib/api'
 import Image from 'next/image'
 
 interface ReminderNotificationProps {
@@ -141,28 +142,25 @@ export function ReminderNotification({
       // button never once completed a task. Legacy PUT is no good either — it
       // rejects a body with no title, and this sends only `completed`.
       // `PUT /api/v1/tasks/[id]` does partial updates. (Task cde681e4)
-      const response = await fetch(`/api/v1/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: true }),
+      //
+      // apiPut, not fetch: completing a task from a reminder is exactly the
+      // write most likely to be made on a phone with no signal, and a raw
+      // fetch loses it (task b8b21855).
+      // No `response.ok` branch: apiPut throws an ApiError carrying the
+      // server's message, so failure arrives in the catch below.
+      await apiPut(`/api/v1/tasks/${taskId}`, { completed: true })
+
+      toast({
+        title: 'Task Completed',
+        description: 'Task marked as complete and reminder dismissed',
+        duration: 3000,
       })
 
-      if (response.ok) {
-        toast({
-          title: 'Task Completed',
-          description: 'Task marked as complete and reminder dismissed',
-          duration: 3000,
-        })
-        
-        // Also dismiss the reminder
-        await handleDismiss()
-        
-        if (onComplete) {
-          onComplete()
-        }
-      } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to complete task')
+      // Also dismiss the reminder
+      await handleDismiss()
+
+      if (onComplete) {
+        onComplete()
       }
     } catch (error) {
       console.error('Error completing task:', error)

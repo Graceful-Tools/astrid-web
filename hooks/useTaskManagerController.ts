@@ -16,7 +16,7 @@ import { shouldShowSubtasksInList } from "@/lib/list-subtask-visibility"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
-import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api"
 import { applyVirtualListFilter, getListDisplayInfo } from "@/lib/virtual-list-utils"
 import { getColumnCount, getLayoutType } from "@/lib/layout-detection"
 import {
@@ -832,22 +832,16 @@ export function useTaskManagerController({
 
   const handleCreateList = useCallback(async (listData: { name: string; description: string; memberEmails: string[] }) => {
     try {
-      const response = await fetch('/api/v1/lists', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: listData.name,
-          description: listData.description,
-          privacy: 'PRIVATE',
-          memberEmails: listData.memberEmails
-        })
+      // apiPost, not fetch: /api/v1/lists is one of the shapes lib/api queues,
+      // so creating a list offline now survives to the next connection instead
+      // of failing at the network call (task b8b21855). apiPost throws on a
+      // non-ok response, so the explicit check is gone.
+      const response = await apiPost('/api/v1/lists', {
+        name: listData.name,
+        description: listData.description,
+        privacy: 'PRIVATE',
+        memberEmails: listData.memberEmails
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to create list')
-      }
 
       const newList = await response.json()
       listState.setLists(prev => [...prev, newList])
@@ -1123,16 +1117,11 @@ export function useTaskManagerController({
     )
 
     try {
-      // Use the dedicated favorite endpoint — allows any list member, not just owner/admin
-      const res = await fetch(`/api/v1/lists/${listId}/favorite`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFavorite: newFavorite }),
-      })
-
-      if (!res.ok) {
-        throw new Error(`Failed: ${res.status}`)
-      }
+      // Use the dedicated favorite endpoint — allows any list member, not just owner/admin.
+      // apiPatch, not fetch, so the toggle queues offline rather than rolling
+      // back a change the user made deliberately (task b8b21855); it throws on
+      // a non-ok response, which the catch below already handles.
+      const res = await apiPatch(`/api/v1/lists/${listId}/favorite`, { isFavorite: newFavorite })
 
       const data = await res.json()
       if (data.list) {

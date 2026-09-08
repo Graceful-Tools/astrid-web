@@ -30,12 +30,15 @@ export interface OptimisticUpdateOptions<T> {
  * ```typescript
  * const [task, setTask] = useState(initialTask)
  * const { update, isUpdating } = useOptimisticUpdate(task, setTask, {
+ *   // apiPut, not fetch: offline this queues the edit and replays it on
+ *   // reconnect. A raw fetch here throws and the edit is gone, which is
+ *   // exactly the bug an optimistic update makes invisible — the UI already
+ *   // showed the new value before the write failed.
  *   updateFn: async (updatedTask) => {
- *     const response = await fetch(`/api/tasks/${updatedTask.id}`, {
- *       method: 'PUT',
- *       body: JSON.stringify(updatedTask)
- *     })
- *     return response.json()
+ *     const response = await apiPut(`/api/v1/tasks/${updatedTask.id}`, updatedTask)
+ *     // v1 answers { task, meta }; reading .id off the envelope yields
+ *     // undefined with no error, so unwrap it.
+ *     return unwrapTask<Task>(await response.json())
  *   },
  *   onSuccess: (task) => toast.success('Task updated'),
  *   onError: (error) => toast.error(error.message)

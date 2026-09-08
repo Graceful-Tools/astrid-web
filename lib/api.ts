@@ -228,7 +228,20 @@ export const apiPost = async <TBody extends object>(
   return apiCall(endpoint, { ...options, method: "POST", body: JSON.stringify(data) })
 }
 
-export const apiPut = async <TBody extends object>(
+/**
+ * The body shared by `apiPut` and `apiPatch` (task b8b21855).
+ *
+ * PATCH arrived late. Its absence is why the two "favourite this list" call
+ * sites were still raw `fetch` — `/api/v1/lists/{id}/favorite` exports PATCH
+ * only (it is the route a non-owner member can use), so there was no PUT to
+ * reach for and the offline queue never saw those writes.
+ *
+ * The method is threaded through to `queueMutation` rather than hardcoded: the
+ * replay re-issues whatever method was recorded, and a PATCH-only route
+ * replayed as a PUT is a 405 — the edit would look queued and then quietly die.
+ */
+const queueingWrite = async <TBody extends object>(
+  method: 'PUT' | 'PATCH',
   endpoint: string,
   data: TBody,
   options: RequestInit = {},
@@ -284,7 +297,7 @@ export const apiPut = async <TBody extends object>(
         entity,
         entityId,
         endpoint,
-        'PUT',
+        method,
         data
       )
 
@@ -312,10 +325,22 @@ export const apiPut = async <TBody extends object>(
     }
   }
 
-  const response = await apiCall(endpoint, { ...options, method: "PUT", body: JSON.stringify(data) })
+  const response = await apiCall(endpoint, { ...options, method, body: JSON.stringify(data) })
   await persistTaskResponseToCache(endpoint, response)
   return response
 }
+
+export const apiPut = <TBody extends object>(
+  endpoint: string,
+  data: TBody,
+  options: RequestInit = {},
+) => queueingWrite('PUT', endpoint, data, options)
+
+export const apiPatch = <TBody extends object>(
+  endpoint: string,
+  data: TBody,
+  options: RequestInit = {},
+) => queueingWrite('PATCH', endpoint, data, options)
 
 /**
  * Put a server-confirmed task into the cache (task aaccb172).
