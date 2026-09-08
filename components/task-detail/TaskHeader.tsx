@@ -133,6 +133,10 @@ export function TaskHeader({
             onToggleComplete={onToggleComplete}
             displayMode={displayMode}
             onOpenOptions={onOpenOptions}
+            /* Details is the only surface where completion has nowhere else to
+               live, so someone else's avatar asks to complete here rather than
+               sitting inert as it does on a row (task 43bcc76c). */
+            surface="detail"
           />
           )}
           {editingTitle ? (

@@ -86,6 +86,44 @@ export function leadingControlOpensOptions({
   return usesCompactTaskDetail(displayMode) || onBoard
 }
 
+/** Which surface is rendering the control. Absent means a row. */
+export type TaskLeadingControlSurface = 'row' | 'detail'
+
+/**
+ * Does tapping someone else's avatar ask to confirm completing their task?
+ *
+ * ONLY IN TASK DETAILS (task 43bcc76c). The mark for someone else's task is
+ * their photo, and in list mode that photo carries no handler at all — on a row
+ * that is the documented rule, since completing another person's task from the
+ * row was never an affordance. In DETAILS the same inertness is a dead end:
+ * the leading control is the only completion affordance there, so a task
+ * assigned to anyone but you could not be completed from its own detail view.
+ *
+ * Jon: "in task details cannot complete tasks when user in list mode. Tapping
+ * on profile should show popover with confirmation to complete."
+ *
+ * CONFIRMED RATHER THAN COMPLETED OUTRIGHT, because the objection the row
+ * encodes is still real — this is someone else's work, and a stray tap on a
+ * photo must not finish it. The confirmation is what lets details offer the
+ * action at all without becoming that hazard.
+ *
+ * It yields to `leadingControlOpensOptions`: project mode and boards already
+ * route the tap to the options sheet, which carries complete/reopen itself.
+ * Two popovers competing for one tap is the bug this ordering avoids.
+ */
+export function leadingControlConfirmsCompletion({
+  kind,
+  opensOptions,
+  surface = 'row',
+}: {
+  kind: TaskLeadingControlKind
+  /** Already decided by `leadingControlOpensOptions`, and it wins. */
+  opensOptions: boolean
+  surface?: TaskLeadingControlSurface
+}): boolean {
+  return surface === 'detail' && kind === 'avatar' && !opensOptions
+}
+
 export function taskLeadingControlKind({
   assigneeId,
   currentUserId,

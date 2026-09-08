@@ -104,7 +104,9 @@
     "status": "ステータス",
     "wontDoChip": "Won't do",
     "when": "日時",
-    "createdBy": "作成者"
+    "createdBy": "作成者",
+    "confirmCompleteTitle": "このタスクを完了しますか？",
+    "confirmCompleteAssigned": "担当: {name}"
   },
   "lists": {
     "list": "リスト",

@@ -104,7 +104,9 @@
     "status": "状态",
     "wontDoChip": "Won't do",
     "when": "时间",
-    "createdBy": "创建者"
+    "createdBy": "创建者",
+    "confirmCompleteTitle": "完成此任务？",
+    "confirmCompleteAssigned": "分配给 {name}"
   },
   "lists": {
     "list": "列表",

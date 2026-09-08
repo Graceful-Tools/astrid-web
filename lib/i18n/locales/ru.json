@@ -104,7 +104,9 @@
     "status": "Статус",
     "wontDoChip": "Won't do",
     "when": "Когда",
-    "createdBy": "Создал"
+    "createdBy": "Создал",
+    "confirmCompleteTitle": "Завершить эту задачу?",
+    "confirmCompleteAssigned": "Назначена: {name}"
   },
   "lists": {
     "list": "Список",
