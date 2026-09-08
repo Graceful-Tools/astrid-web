@@ -2,7 +2,7 @@ import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
-import { githubRequest, githubSyncConfigured, storeGithubIntegration, verifyOAuthState } from '@/lib/sync/github'
+import { exchangeGithubCode, githubRequest, githubSyncConfigured, storeGithubIntegration, verifyOAuthState } from '@/lib/sync/github'
 import { callbackSessionConflicts } from '@/lib/sync/oauth-callback-session'
 
 const log = createLogger('v1.integrations.github.callback')
@@ -36,30 +36,19 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      client_id: process.env.GITHUB_SYNC_CLIENT_ID,
-      client_secret: process.env.GITHUB_SYNC_CLIENT_SECRET,
-      code,
-    }),
-  })
-  const tokenJson = await tokenRes.json().catch(() => null)
-  const accessToken = tokenJson?.access_token as string | undefined
-  if (!accessToken) {
-    // Never log tokenJson: a partial grant still carries a refresh_token, and
-    // pino has no redaction configured (task 842601f2).
-    log.error({ hasError: Boolean(tokenJson?.error) }, 'GitHub token exchange failed')
+  // exchangeGithubCode never logs the response: a partial grant still carries a
+  // refresh_token, and pino has no redaction configured (task 842601f2).
+  const token = await exchangeGithubCode(code)
+  if (!token) {
+    log.error('GitHub token exchange failed')
     return errorPage(`The sign-in code expired before it could be used. Go back to ${BRAND.appName} and tap Connect again.`)
   }
 
-  const { status, json: user } = await githubRequest(accessToken, 'GET', '/user')
+  const { status, json: user } = await githubRequest(token.accessToken, 'GET', '/user')
   if (status !== 200 || !user?.login) {
     return errorPage(`Connected, but the account lookup failed. Go back to ${BRAND.appName} and tap Connect again.`)
   }
-  const scopes = (tokenJson?.scope as string | undefined)?.split(',').filter(Boolean) ?? []
-  await storeGithubIntegration(userId, accessToken, user.login, scopes)
+  await storeGithubIntegration(userId, token.accessToken, user.login, token.scopes)
   log.info({ userId, login: user.login }, 'GitHub sync connected')
 
   return new NextResponse(

@@ -84,6 +84,42 @@ export async function storeGithubIntegration(userId: string, accessToken: string
   })
 }
 
+// ── Code exchange ────────────────────────────────────────────────────────────
+
+/**
+ * Trade an authorization code for an access token.
+ *
+ * Shared by the browser callback and the app-completed link (task 842601f2),
+ * so there is one place that knows never to log the response: a partial grant
+ * still carries a refresh_token and pino has no redaction configured.
+ *
+ * `redirectUri` is required when the code was issued against one — GitHub
+ * checks it matches — and omitted for the browser flow, which registers a
+ * single callback URL.
+ */
+export async function exchangeGithubCode(
+  code: string,
+  redirectUri?: string
+): Promise<{ accessToken: string; scopes: string[] } | null> {
+  const res = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      client_id: process.env.GITHUB_SYNC_CLIENT_ID,
+      client_secret: process.env.GITHUB_SYNC_CLIENT_SECRET,
+      code,
+      ...(redirectUri ? { redirect_uri: redirectUri } : {}),
+    }),
+  })
+  const json = await res.json().catch(() => null)
+  const accessToken = json?.access_token as string | undefined
+  if (!accessToken) return null
+  return {
+    accessToken,
+    scopes: (json?.scope as string | undefined)?.split(',').filter(Boolean) ?? [],
+  }
+}
+
 // ── GitHub REST proxy calls ──────────────────────────────────────────────────
 
 export async function githubRequest(
