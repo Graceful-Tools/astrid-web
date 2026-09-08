@@ -8,7 +8,8 @@ kept here.
 
 | Concern | Canonical home | Required use |
 |---|---|---|
-| List/task permissions | `lib/list-permissions.ts` and `lib/list-member-utils.ts` | Import the appropriate `canUser*`, `canEditListSettings`, or membership helper; never reproduce owner/admin role math |
+| List/task permissions — **the rules** | `lib/list-permissions.ts` | Who may do what, and the Prisma clause that expresses it: `getUserRoleInList`, the `canUser*` predicates, `listVisibilityWhere()`. Never reproduce owner/admin role math, and never hand-roll a visibility `OR` |
+| List/task permissions — **the roster** | `lib/list-member-utils.ts` | Turning a list payload into people: `getAllListMembers`, `getListMemberIds`, `hasListAccess`. Built ON TOP of the rules module, which it imports; it must never answer a permission question the rules module does not |
 | User-facing copy | `lib/i18n/locales/*.json` | Use `t("...")`; shared Web/iOS wording also follows [`PRODUCT_CONTRACT.md`](./PRODUCT_CONTRACT.md) |
 | List settings rendering | `components/TaskManager/MainContent/ListSettingsHost.tsx` | Keep layout variants behind the shared host |
 | Cross-platform behavior | [`PRODUCT_CONTRACT.md`](./PRODUCT_CONTRACT.md) | Update the contract when permissions, shared copy, or shared interaction behavior changes |
@@ -16,6 +17,16 @@ kept here.
 
 Thin compatibility re-exports are allowed when removing one would create noisy
 consumer churn, but the implementation must remain in the canonical module.
+
+**Do not give a local helper the name of an exported permission predicate.**
+Three routes declared their own `canAccessList` while `lib/list-member-utils.ts`
+exports one, and the two did not agree: the export returns true for ANY list
+whose privacy is `PUBLIC`, the local copies checked membership only. So the
+obvious tidy-up — delete the copies, import the shared one — would have widened
+access to every public list with nothing going red (task 3baa6e7c). Import the
+helper, or name yours after what it actually does.
+`tests/rules/permission-helpers-are-not-shadowed.test.ts` enforces both this and
+the hand-rolled-visibility rule.
 
 ## Enforcement
 

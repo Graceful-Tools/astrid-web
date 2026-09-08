@@ -3,6 +3,7 @@ import { safeUserSelect } from '@/lib/user-select'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
+import { listVisibilityWhere } from '@/lib/list-permissions'
 
 const log = createLogger('events.poll')
 
@@ -37,14 +38,7 @@ export async function POST(request: NextRequest) {
               { creatorId: session.user.id },
               {
                 lists: {
-                  some: {
-                    OR: [
-                      { ownerId: session.user.id },
-                      { listMembers: { some: { userId: session.user.id } } },
-                      { listMembers: { some: { userId: session.user.id } } },
-                      { listMembers: { some: { userId: session.user.id } } }
-                    ]
-                  }
+                  some: listVisibilityWhere(session.user.id, { includePublic: false })
                 }
               }
             ]
@@ -122,14 +116,7 @@ export async function POST(request: NextRequest) {
                 { creatorId: session.user.id },
                 {
                   lists: {
-                    some: {
-                      OR: [
-                        { ownerId: session.user.id },
-                        { listMembers: { some: { userId: session.user.id } } },
-                        { listMembers: { some: { userId: session.user.id } } },
-                        { listMembers: { some: { userId: session.user.id } } }
-                      ]
-                    }
+                    some: listVisibilityWhere(session.user.id, { includePublic: false })
                   }
                 }
               ]

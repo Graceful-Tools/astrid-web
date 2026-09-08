@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   getUserRoleInList,
-  canUserViewList,
   canUserEditTasks,
   canUserEditTask,
   canUserManageList,
@@ -379,7 +378,10 @@ describe('List Permissions - Permission Functions', () => {
     })
   })
 
-  describe('canUserViewList', () => {
+  // canUserViewList was a dead export (0 call sites) that only restated
+  // `getUserRoleInList(...) !== null`. It is gone; the behaviour it described
+  // is not, so these now assert it through the surviving function.
+  describe('viewing access', () => {
     it('should allow viewer on public list', () => {
       const list: TaskList = {
         id: 'list-1',
@@ -390,7 +392,7 @@ describe('List Permissions - Permission Functions', () => {
         updatedAt: new Date(),
       } as TaskList
 
-      expect(canUserViewList(mockUser, list)).toBe(true)
+      expect(getUserRoleInList(mockUser, list)).not.toBeNull()
     })
 
     it('should NOT allow non-member to view private list', () => {
@@ -403,7 +405,7 @@ describe('List Permissions - Permission Functions', () => {
         updatedAt: new Date(),
       } as TaskList
 
-      expect(canUserViewList(mockUser, list)).toBe(false)
+      expect(getUserRoleInList(mockUser, list)).toBeNull()
     })
   })
 
@@ -625,7 +627,6 @@ describe('Project membership cascades to project lists (6c20d125)', () => {
 
   it('grants a project member access to a list they have no ListMember row on', () => {
     expect(getUserRoleInList(bob, listInProject() as never)).toBe('member')
-    expect(canUserViewList(bob, listInProject() as never)).toBe(true)
     expect(canUserEditTasks(bob, listInProject() as never)).toBe(true)
   })
 

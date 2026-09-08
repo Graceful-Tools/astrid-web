@@ -23,13 +23,6 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('tasks.[id].comments')
 
 
-// Helper function to safely check list access with any list-like object
-function canAccessList(list: any, userId: string): boolean {
-  // hasListAccess covers owner/admin/member on every payload shape; the old
-  // try/catch fallback was unreachable (it returns false, never throws).
-  return hasListAccess(list as any, userId)
-}
-
 export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
     const session = await getUnifiedSession()
@@ -65,7 +58,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
     const hasAccess =
       task.assigneeId === session.user.id ||
       task.creatorId === session.user.id ||
-      task.lists.some((list: any) => canAccessList(list, session.user.id)) ||
+      task.lists.some((list: any) => hasListAccess(list, session.user.id)) ||
       // Allow viewing comments on public lists (both copy-only and collaborative)
       task.lists.some((list: any) => list.privacy === 'PUBLIC')
 
@@ -163,7 +156,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ i
     const hasAccess =
       task.assigneeId === session.user.id ||
       task.creatorId === session.user.id ||
-      task.lists.some((list: any) => canAccessList(list, session.user.id)) ||
+      task.lists.some((list: any) => hasListAccess(list, session.user.id)) ||
       // Allow comments on collaborative public lists
       task.lists.some((list: any) => list.privacy === 'PUBLIC' && list.publicListType === 'collaborative')
 

@@ -10,6 +10,7 @@ import {
 import { resolveMCPActor, getListMemberIdsByListId } from "./shared"
 import { createLogger } from '@/lib/logger'
 import { canDeleteComment } from "@/lib/comment-permissions"
+import { listVisibilityWhere } from '@/lib/list-permissions'
 
 const log = createLogger('mcp.comment-operations')
 
@@ -138,14 +139,7 @@ export async function getTaskComments(accessToken: string, taskId: string, userI
       OR: [
         {
           lists: {
-            some: {
-              OR: [
-                { ownerId: mcpToken.userId },
-                { listMembers: { some: { userId: mcpToken.userId } } },
-                { listMembers: { some: { userId: mcpToken.userId } } },
-                { listMembers: { some: { userId: mcpToken.userId } } }
-              ]
-            }
+            some: listVisibilityWhere(mcpToken.userId, { includePublic: false })
           }
         },
         {

@@ -30,13 +30,6 @@ const log = createLogger('api.tasks.id')
 
 // ✅ Production database migrated to unified listMembers table (2025-11-02)
 
-// Helper function to safely check list access with list-like object
-function canAccessList(list: ListWithMembers, userId: string): boolean {
-  // hasListAccess covers owner/admin/member on every payload shape; the old
-  // try/catch fallback was unreachable (it returns false, never throws).
-  return hasListAccess(list, userId)
-}
-
 export async function GET(request: NextRequest, context: RouteContextParams<{ id: string }>) {
   try {
     const session = await getUnifiedSession(request)
@@ -61,7 +54,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ id
     const canView =
       task.assigneeId === session.user.id ||
       task.creatorId === session.user.id ||
-      task.lists.some((list) => canAccessList(list, session.user.id)) ||
+      task.lists.some((list) => hasListAccess(list, session.user.id)) ||
       // Allow viewing tasks on public lists (both copy-only and collaborative)
       // This matches the permission check in comments/route.ts POST
       task.lists.some((list) => list.privacy === 'PUBLIC')
@@ -257,7 +250,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams<{
 
     const canDelete =
       existingTask.creatorId === session.user.id ||
-      existingTask.lists.some((list) => canAccessList(list, session.user.id))
+      existingTask.lists.some((list) => hasListAccess(list, session.user.id))
 
     if (!canDelete) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })

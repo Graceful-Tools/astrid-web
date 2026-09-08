@@ -241,11 +241,6 @@ function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | nu
   return null
 }
 
-export function canUserViewList(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role !== null
-}
-
 export function canUserEditTasks(user: UserLike, list: ListLike): boolean {
   const role = getUserRoleInList(user, list)
 
