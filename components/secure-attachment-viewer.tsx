@@ -12,6 +12,14 @@ interface SecureAttachmentViewerProps {
   fileName?: string
   className?: string
   showFileName?: boolean
+  /**
+   * An attachment that is already fetchable at a plain url, so there is no
+   * secure-files record to resolve (task AWTD-803: the legacy `Attachment`
+   * model MCP writes). Supplying this skips the lookup entirely — without it
+   * the component would ask /api/v1/secure-files for an id that does not exist
+   * there and render the 404 as a broken attachment.
+   */
+  directFile?: { url: string; mimeType: string; fileSize: number }
 }
 
 interface SecureFileInfo {
@@ -26,9 +34,21 @@ export function SecureAttachmentViewer({
   fileId,
   fileName,
   className,
-  showFileName = true
+  showFileName = true,
+  directFile
 }: SecureAttachmentViewerProps) {
-  const [fileInfo, setFileInfo] = useState<SecureFileInfo | null>(null)
+  const [fileInfo, setFileInfo] = useState<SecureFileInfo | null>(
+    directFile
+      ? {
+          url: directFile.url,
+          fileName: fileName || 'Unknown file',
+          mimeType: directFile.mimeType,
+          fileSize: directFile.fileSize,
+          // Never expires: it is not a signed url in the first place.
+          expiresIn: 0,
+        }
+      : null
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
@@ -74,12 +94,14 @@ export function SecureAttachmentViewer({
     }
   }, [fileId, loading, fileInfo])
 
-  // Load file info on mount for thumbnail display
+  // Load file info on mount for thumbnail display. A directFile is already
+  // resolved, so there is nothing to look up.
   useEffect(() => {
+    if (directFile) return
     if (fileId && !fileInfo && !loading && loadedFileRef.current !== fileId) {
       loadFileInfo()
     }
-  }, [fileId, loadFileInfo, fileInfo, loading])
+  }, [fileId, loadFileInfo, fileInfo, loading, directFile])
 
   const isImage = fileInfo?.mimeType.startsWith('image/')
   const isVideo = fileInfo?.mimeType.startsWith('video/')

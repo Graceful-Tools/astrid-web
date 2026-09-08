@@ -19,9 +19,22 @@
  * graduate into a task attachment. Intent cannot be recovered after the fact, so
  * it is recorded at upload time as `attachTarget`. Legacy rows have it null and
  * stay classified exactly as they were.
+ *
+ * The third model (task AWTD-803): `Attachment`. Its only writers are the two
+ * MCP handlers, and until now it had no reader in the product — the routes load
+ * it (`include: { attachments: true }`) and shipped it to a client that walked
+ * `secureFiles` only. A file attached through MCP was in the database and in the
+ * account export, and invisible everywhere a user could look.
+ *
+ * The two kinds are read back differently, which is why the view carries
+ * `source`: a `SecureFile` resolves through `/api/v1/secure-files/{id}`, while
+ * an `Attachment` row carries a plain `url` and has no such record. Only the
+ * *read* path unions them. `taskLevelAttachments` — what the task form owns and
+ * can remove — stays secure-file-only, because removal goes through the
+ * secure-files endpoint, which knows nothing about a legacy row.
  */
 
-import type { Task, SecureFile } from "@/types/task"
+import type { Task, SecureFile, Attachment } from "@/types/task"
 
 /** One attachment as the task views render it. */
 export interface TaskAttachmentView {
@@ -35,6 +48,12 @@ export interface TaskAttachmentView {
   createdAt: Date
   /** True when the file hangs off the task itself rather than off a comment. */
   isTaskLevel: boolean
+  /**
+   * Which model the row came from, and therefore how `url` is served:
+   * `secure-file` needs the secure-files route, `legacy` is already a fetchable
+   * url. Consumers must not hand a `legacy` id to SecureAttachmentViewer.
+   */
+  source: 'secure-file' | 'legacy'
 }
 
 function toView(file: SecureFile, isTaskLevel: boolean, createdAt?: Date): TaskAttachmentView {
@@ -47,6 +66,22 @@ function toView(file: SecureFile, isTaskLevel: boolean, createdAt?: Date): TaskA
     size: file.fileSize,
     createdAt: createdAt ?? file.createdAt,
     isTaskLevel,
+    source: 'secure-file',
+  }
+}
+
+/** A legacy `Attachment` row, which already carries the url it is served from. */
+function legacyToView(row: Attachment): TaskAttachmentView {
+  return {
+    id: row.id,
+    fileId: row.id,
+    name: row.name,
+    url: row.url,
+    type: row.type,
+    size: row.size,
+    createdAt: row.createdAt,
+    isTaskLevel: true,
+    source: 'legacy',
   }
 }
 
@@ -66,18 +101,27 @@ export function taskLevelAttachments(task: Pick<Task, 'secureFiles'>): TaskAttac
  * Everything the task has attached, task-level first and then whatever its
  * comments carry, in comment order — so adding task-level files doesn't
  * reshuffle a strip the user already knows.
+ *
+ * Task-level covers both models: the secure files the task form writes, then
+ * the legacy rows MCP writes (task AWTD-803). MCP rows come second so adding
+ * one does not reshuffle a strip somebody already knows.
  */
 export function collectTaskAttachments(task: Partial<Task>): TaskAttachmentView[] {
   const seen = new Set<string>()
+  const seenUrls = new Set<string>()
   const result: TaskAttachmentView[] = []
 
   const push = (view: TaskAttachmentView) => {
-    if (seen.has(view.fileId)) return
+    // Ids come from two tables, so identity alone cannot rule out one file
+    // being listed under both models. The url is what the user would see twice.
+    if (seen.has(view.fileId) || seenUrls.has(view.url)) return
     seen.add(view.fileId)
+    seenUrls.add(view.url)
     result.push(view)
   }
 
   taskLevelAttachments(task as Pick<Task, 'secureFiles'>).forEach(push)
+  ;(task.attachments || []).map(legacyToView).forEach(push)
 
   for (const comment of task.comments || []) {
     for (const file of comment.secureFiles || []) {

@@ -144,3 +144,75 @@ describe('abandoned composer uploads (Task ded31696)', () => {
     ])
   })
 })
+
+describe('legacy MCP attachments (Task AWTD-803)', () => {
+  // The `Attachment` model has exactly two writers, both MCP
+  // (mcp/handlers/tasks.ts, app/api/mcp/operations/handlers/task-operations.ts),
+  // and until now no reader in the product: collectTaskAttachments walked
+  // secureFiles only. The routes load the relation and ship it to the client
+  // (`include: { attachments: true }`), where it was dropped on the floor — so
+  // a file attached through MCP existed in the database, appeared in the
+  // account export, and was invisible everywhere a user could look.
+  const legacy = (id: string, over: Record<string, unknown> = {}) => ({
+    id,
+    name: `${id}.pdf`,
+    url: `https://files.example/${id}.pdf`,
+    type: 'application/pdf',
+    size: 99,
+    taskId: 'task-1',
+    createdAt: new Date('2026-09-01T00:00:00Z'),
+    ...over,
+  })
+
+  it('surfaces a file attached through MCP', () => {
+    const task = { attachments: [legacy('a1')], secureFiles: [], comments: [] } as any
+
+    expect(collectTaskAttachments(task)).toEqual([
+      expect.objectContaining({
+        fileId: 'a1',
+        name: 'a1.pdf',
+        url: 'https://files.example/a1.pdf',
+        type: 'application/pdf',
+        size: 99,
+        isTaskLevel: true,
+      }),
+    ])
+  })
+
+  it('marks it as served by its own url, not through the secure-files route', () => {
+    // The two kinds are fetched differently. A SecureFile resolves through
+    // /api/v1/secure-files/{id}?info=true; a legacy row carries a plain url and
+    // has no such record, so handing its id to SecureAttachmentViewer would
+    // trade an invisible attachment for a broken one.
+    const task = { attachments: [legacy('a1')], secureFiles: [secureFile('f1')], comments: [] } as any
+
+    const [legacyView, secureView] = collectTaskAttachments(task)
+      .sort((a, b) => a.fileId.localeCompare(b.fileId))
+
+    expect(legacyView).toMatchObject({ fileId: 'a1', source: 'legacy' })
+    expect(secureView).toMatchObject({ fileId: 'f1', source: 'secure-file' })
+  })
+
+  it('lists secure files first, then MCP attachments, then comment files', () => {
+    const task = {
+      secureFiles: [secureFile('direct')],
+      attachments: [legacy('mcp')],
+      comments: [{ id: 'c1', createdAt: new Date(), secureFiles: [secureFile('viaComment', { commentId: 'c1' })] }],
+    } as any
+
+    expect(collectTaskAttachments(task).map(a => a.fileId)).toEqual(['direct', 'mcp', 'viaComment'])
+  })
+
+  it('does not offer an MCP attachment to the task form, which cannot delete it', () => {
+    // taskLevelAttachments is "what the form owns and can remove", and removal
+    // goes through the secure-files endpoint — which knows nothing about a
+    // legacy row. Listing one there would render a delete button that 404s.
+    const task = { attachments: [legacy('a1')], secureFiles: [], comments: [] } as any
+
+    expect(taskLevelAttachments(task)).toEqual([])
+  })
+
+  it('survives a task with no attachments relation loaded', () => {
+    expect(collectTaskAttachments({ secureFiles: [], comments: [] } as any)).toEqual([])
+  })
+})
