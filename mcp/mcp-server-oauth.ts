@@ -23,6 +23,9 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod"
 import { BRAND, mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
+// Shared with mcp/schemas.ts and the v1 HTTP API — see lib/task-priority.ts
+// for why this stopped being a literal in four places (task 17fea642).
+import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 import { createLogger } from "../lib/logger"
 
 const log = createLogger("mcp.server-oauth")
@@ -108,7 +111,7 @@ const RepeatingFields = {
 export const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  priority: z.number().min(0).max(3).default(0),
+  priority: z.number().int().min(MIN_TASK_PRIORITY).max(MAX_TASK_PRIORITY).default(0),
   assigneeId: z.string().optional(),
   dueDateTime: z.string().datetime().optional(),
   isAllDay: z.boolean().optional(),
@@ -123,7 +126,7 @@ export const UpdateTaskSchema = z.object({
   taskId: z.string(),
   title: z.string().min(1).optional(),
   description: z.string().optional(),
-  priority: z.number().min(0).max(3).optional(),
+  priority: z.number().int().min(MIN_TASK_PRIORITY).max(MAX_TASK_PRIORITY).optional(),
   assigneeId: z.string().optional(),
   dueDateTime: z.string().datetime().optional(),
   isAllDay: z.boolean().optional(),
@@ -336,7 +339,7 @@ export const OAUTH_MCP_TOOLS = [
               type: "number",
               minimum: 0,
               maximum: 3,
-              description: "Task priority (0-3)",
+              description: `Task priority (${MIN_TASK_PRIORITY}-${MAX_TASK_PRIORITY})`,
             },
             dueDateTime: {
               type: "string",
@@ -417,7 +420,7 @@ export const OAUTH_MCP_TOOLS = [
               type: "number",
               minimum: 0,
               maximum: 3,
-              description: "New priority (0-3)",
+              description: `New priority (${MIN_TASK_PRIORITY}-${MAX_TASK_PRIORITY})`,
             },
             completed: {
               type: "boolean",

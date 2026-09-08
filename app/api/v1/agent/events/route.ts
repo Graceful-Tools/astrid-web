@@ -13,7 +13,7 @@
  * A 5-second poll remains as a safety net for edge cases.
  */
 
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAgentRequest, transformEventForAgent, mapEventType } from '@/lib/agent-protocol'
 import { registerConnection, removeConnection, getMissedEvents } from '@/lib/sse-utils'
 import { AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
   try {
     auth = await authenticateAgentRequest(request, ['tasks:read', 'sse:connect'])
   } catch {
-    return new Response('Unauthorized', { status: 401 })
+    // JSON like the other 129 handlers: an agent reading body.error off a text
+    // body gets a parse failure instead of "your token expired", and retries
+    // forever rather than re-authenticating (task 17fea642).
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   // Per-client SSE connection rate limit

@@ -1,6 +1,6 @@
 import { BRAND } from '@/lib/brand/config'
 import { getUnifiedSession } from "@/lib/session-utils"
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { authenticateAPI, type AuthContext } from "@/lib/api-auth-middleware"
 import { hasRequiredScopes } from "@/lib/oauth/oauth-scopes"
 import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from "@/lib/sse-utils"
@@ -57,8 +57,13 @@ export async function GET(request: NextRequest) {
         const auth: AuthContext = await authenticateAPI(request)
         // Check for sse:connect or tasks:read scope
         if (!hasRequiredScopes(auth.scopes, ['sse:connect']) && !hasRequiredScopes(auth.scopes, ['tasks:read']) && !hasRequiredScopes(auth.scopes, ['*'])) {
+          // JSON, and without the scope names. Every client reads body.error;
+          // against a text body response.json() throws and the reconnect loop
+          // cannot tell "signed out" from a network blip. The scopes stay in
+          // the log line above, where they are useful and not handed to a
+          // caller who just failed to authenticate. (Task 17fea642)
           log.warn({ scopes: auth.scopes }, 'OAuth token missing required scope (sse:connect or tasks:read)')
-          return new Response('Forbidden - Missing required scope: sse:connect or tasks:read', { status: 403 })
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
         log.info({ email: auth.user.email, source: auth.source }, 'Authenticated via OAuth')
         session = {
@@ -70,7 +75,7 @@ export async function GET(request: NextRequest) {
         }
       } catch (oauthError) {
         log.warn({ err: oauthError }, 'OAuth authentication failed')
-        return new Response('Unauthorized - Invalid Bearer token', { status: 401 })
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
     }
 
@@ -116,11 +121,11 @@ export async function GET(request: NextRequest) {
 
     if (!session?.user) {
       log.warn('Unauthorized - no valid session found')
-      return new Response('Unauthorized', { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
   } catch (authError) {
     log.error({ err: authError }, 'Authentication error')
-    return new Response('Authentication Error', { status: 500 })
+    return NextResponse.json({ error: 'Authentication error' }, { status: 500 })
   }
 
   // Parse 'since' query parameter for reconnection recovery

@@ -12,6 +12,10 @@
  * the appropriate mcp/handlers/*.ts).
  */
 
+// The bounds this advertises to MCP clients are the same ones the handlers
+// enforce, read from one place rather than restated (task 17fea642).
+import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
+
 const TOOL_DEFINITIONS = [
           {
             name: "get_shared_lists",
@@ -69,7 +73,7 @@ const TOOL_DEFINITIONS = [
                   properties: {
                     title: { type: "string" },
                     description: { type: "string" },
-                    priority: { type: "number", minimum: 0, maximum: 3 },
+                    priority: { type: "number", minimum: MIN_TASK_PRIORITY, maximum: MAX_TASK_PRIORITY },
                     assigneeId: { type: "string" },
                     dueDateTime: { type: "string", format: "date-time" },
                     reminderTime: { type: "string", format: "date-time" },
@@ -102,7 +106,7 @@ const TOOL_DEFINITIONS = [
                     taskId: { type: "string" },
                     title: { type: "string" },
                     description: { type: "string" },
-                    priority: { type: "number", minimum: 0, maximum: 3 },
+                    priority: { type: "number", minimum: MIN_TASK_PRIORITY, maximum: MAX_TASK_PRIORITY },
                     assigneeId: { type: "string" },
                     dueDateTime: { type: "string", format: "date-time" },
                     reminderTime: { type: "string", format: "date-time" },

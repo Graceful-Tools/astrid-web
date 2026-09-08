@@ -9,6 +9,12 @@
  */
 
 const { z } = require("zod")
+// The range is shared with the v1 HTTP API rather than restated (task 17fea642)
+// — v1 checked only that priority was a number, so the two surfaces disagreed
+// about the same field. An `import` rather than this file's usual `require`:
+// tsc emits a require for it in the CommonJS MCP build, and a bare require of
+// a sibling .ts is not resolvable when vitest loads this file directly.
+import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 
 const RepeatingDataSchema = z.object({
   type: z.literal("custom"),
@@ -47,7 +53,7 @@ const RepeatingDataSchema = z.object({
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  priority: z.number().min(0).max(3).default(0),
+  priority: z.number().int().min(MIN_TASK_PRIORITY).max(MAX_TASK_PRIORITY).default(0),
   assigneeId: z.string().optional(),
   dueDateTime: z.string().datetime().optional(),
   isAllDay: z.boolean().optional(),
@@ -64,7 +70,7 @@ const UpdateTaskSchema = z.object({
   taskId: z.string(),
   title: z.string().min(1).optional(),
   description: z.string().optional(),
-  priority: z.number().min(0).max(3).optional(),
+  priority: z.number().int().min(MIN_TASK_PRIORITY).max(MAX_TASK_PRIORITY).optional(),
   assigneeId: z.string().optional(),
   dueDateTime: z.string().datetime().optional(),
   isAllDay: z.boolean().optional(),

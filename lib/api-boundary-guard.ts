@@ -56,6 +56,24 @@ const IS_LOGGING = /\b(?:log|logger|console)\s*\.\s*\w+\s*\(|\blogError\s*\(/
  */
 const DEV_GATED = /NODE_ENV\s*[=!]==?\s*['"`]development['"`]/
 
+/**
+ * A narrowing to an APP-DEFINED error class — `error instanceof
+ * ListImageClaimError`, `instanceof UnknownAgentError`.
+ *
+ * A message reached through one of these is a string we wrote for the caller,
+ * returned with a 4xx. It is the shape this whole rule is trying to produce:
+ * the typed branch exists so the catch-all under it can be sanitised without
+ * losing the one sentence a client can act on.
+ *
+ * `instanceof Error` is excluded on purpose. That IS the catch-all, and
+ * `error instanceof Error ? error.message : String(error)` is exactly the
+ * pattern the original finding named (task 17fea642).
+ */
+const TYPED_ERROR_NARROWING = /\binstanceof\s+(?!Error\b)[A-Z]\w*/
+
+/** A line that closes a block — used to tell when a typed branch has ended. */
+const CLOSES_BLOCK = /^\s*\}/
+
 function isApiRoute(file: string): boolean {
   return file.startsWith('app/api/') && /\.ts$/.test(file)
 }
@@ -158,14 +176,30 @@ export function findAddedApiBoundaryViolations(
       if (IS_LOGGING.test(content)) continue
       if (DEV_GATED.test(content)) continue
 
-      const offset = content.slice(0, content.search(LEAKED_ERROR_MESSAGE)).split('\n').length - 1
+      // Walk the block rather than judging it whole, because the same catch
+      // routinely holds both shapes: a typed 409 that may carry its message,
+      // and a catch-all beneath it that may not. Judging the block would
+      // either bless the catch-all or condemn the typed branch, and the second
+      // is worse — it makes the CORRECT code need an exemption, which is how
+      // an exemption list stops being read.
+      let insideTypedBranch = false
+      const offender = block.find(({ content: text }) => {
+        if (insideTypedBranch && CLOSES_BLOCK.test(text)) insideTypedBranch = false
+        const narrowsHere = TYPED_ERROR_NARROWING.test(text)
+        if (narrowsHere) insideTypedBranch = true
+        if (!LEAKED_ERROR_MESSAGE.test(text)) return false
+        return !(narrowsHere || insideTypedBranch)
+      })
+      if (!offender) continue
+
       const violation: ApiBoundaryViolation = {
         kind: 'leaked-error-message',
         file,
-        line: block[Math.min(offset, block.length - 1)].line,
+        line: offender.line,
         message:
           'Do not return an error message to the client. Use createSafeErrorResponse() from ' +
-          'lib/logging/error-sanitizer.ts, which reveals details in development only.',
+          'lib/logging/error-sanitizer.ts, which reveals details in development only. ' +
+          'A message narrowed to an app-defined error class is fine — that branch is the point.',
       }
       if (!isExempt(violation, exemptions, content)) violations.push(violation)
     }
