@@ -125,7 +125,15 @@ class DataSyncManagerClass {
     this.initialized = true
 
     this.refreshScheduler = createRefreshScheduler(
-      async () => {
+      async (reasons) => {
+        // Re-checked here, not only where the sync was requested: a request can
+        // wait out a minimum interval of up to SYNC_INTERVAL, and the tab may
+        // have gone back into the background, or the network away, in between.
+        // Coming back online is the exception to the visibility gate — that is
+        // the one trigger that was never conditioned on a foreground tab.
+        if (!navigator.onLine) return
+        if (document.hidden && !reasons.includes('online')) return
+
         try {
           await this.performIncrementalSync()
         } catch (err) {

@@ -59,8 +59,15 @@ export function createRefreshScheduler(
   run: (reasons: string[]) => void | Promise<void>,
   { debounceMs, now = () => Date.now() }: RefreshSchedulerOptions,
 ): RefreshScheduler {
-  /** reason -> the minimum interval that reason asked for. */
-  const pending = new Map<string, number>()
+  /**
+   * reason -> when it was asked for, and the minimum interval it asked for.
+   *
+   * The request time is stored rather than folded into a deadline up front
+   * because `lastRunAt` can move after the request — a manual refresh, or a run
+   * finishing — and the moment a reason becomes due has to be recomputed
+   * against the new value rather than fixed at request time.
+   */
+  const pending = new Map<string, { requestedAt: number; minIntervalMs: number }>()
   let timer: ReturnType<typeof setTimeout> | null = null
   let timerFiresAt = 0
   // "Never" — a scheduler that has not run yet holds nothing back, so the very
@@ -76,10 +83,9 @@ export function createRefreshScheduler(
    * since the last run has elapsed; the run itself serves all of them.
    */
   function earliestAllowed(): number {
-    const at = now()
     let earliest = Number.POSITIVE_INFINITY
-    for (const minIntervalMs of pending.values()) {
-      earliest = Math.min(earliest, Math.max(at + debounceMs, lastRunAt + minIntervalMs))
+    for (const { requestedAt, minIntervalMs } of pending.values()) {
+      earliest = Math.min(earliest, Math.max(requestedAt + debounceMs, lastRunAt + minIntervalMs))
     }
     return earliest
   }
@@ -103,6 +109,16 @@ export function createRefreshScheduler(
     timer = null
     // Leave the reasons pending; the in-flight run re-arms when it finishes.
     if (inFlight) return
+    if (pending.size === 0) return
+
+    // The due time is re-derived rather than trusted: a run that completed, or
+    // a notifyRan, may have moved `lastRunAt` forward since this timer was set,
+    // and firing anyway would break the very minimum interval being enforced.
+    if (earliestAllowed() > now()) {
+      arm()
+      return
+    }
+
     execute()
   }
 
@@ -127,14 +143,28 @@ export function createRefreshScheduler(
   return {
     request(reason, options) {
       const minIntervalMs = options?.minIntervalMs ?? 0
-      // Keep the most urgent interval asked for under this reason.
       const existing = pending.get(reason)
-      pending.set(reason, existing === undefined ? minIntervalMs : Math.min(existing, minIntervalMs))
+      // Keep the earliest request and the most urgent interval asked for under
+      // this reason: repeating a request must never push its run further out.
+      pending.set(reason, existing === undefined
+        ? { requestedAt: now(), minIntervalMs }
+        : {
+            requestedAt: Math.min(existing.requestedAt, now()),
+            minIntervalMs: Math.min(existing.minIntervalMs, minIntervalMs),
+          })
       arm()
     },
 
     notifyRan() {
       lastRunAt = now()
+      // Anything already scheduled is now measured against a later run, so the
+      // timer has to be recomputed — otherwise a refresh by another route left
+      // a pending run to fire inside the interval it was supposed to respect.
+      if (timer !== null) {
+        clearTimeout(timer)
+        timer = null
+        arm()
+      }
     },
 
     cancel() {

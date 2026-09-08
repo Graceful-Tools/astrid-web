@@ -201,8 +201,29 @@ function TaskRowImpl({
     classNames.push('opacity-60 ring-2 ring-blue-400/40')
   }
 
-  const rowRef = registerTaskRow(task.id)
-  const measuredHeight = taskMeasurementsRef.current.get(task.id) ?? null
+  // The row measures itself on commit, but everything derived from that height
+  // — the manual-sort grab handle, the drop overlay, the origin placeholder —
+  // is computed during RENDER. Before this component was memoised it got the
+  // measurement on whatever parent re-render happened next, which was never
+  // long in coming. Memoised, that follow-up render does not happen, so a row
+  // mounting under mobile manual sort rendered a grabber with no height at all.
+  // Recording it in state as well as in the shared map is what schedules the
+  // one re-render that reads it back. (Task ed1d85ba.)
+  const [selfMeasuredHeight, setSelfMeasuredHeight] = React.useState<number | null>(null)
+  const registerRow = registerTaskRow(task.id)
+  const rowRef = (node: HTMLDivElement | null) => {
+    registerRow(node)
+    // Only manual sort needs the height on the very first render. The drop
+    // overlay and origin placeholder are sized from it too, but they exist only
+    // mid-drag, where `draggingTaskMetrics` is already re-rendering the row.
+    // Recording it unconditionally would cost every row a second render on
+    // mount to learn something nothing was about to draw.
+    if (!node || !manualSortActive) return
+    const { height } = node.getBoundingClientRect()
+    if (height <= 0) return
+    setSelfMeasuredHeight(previous => (previous === height ? previous : height))
+  }
+  const measuredHeight = taskMeasurementsRef.current.get(task.id) ?? selfMeasuredHeight
   const dropGap = isTouchManualSort ? 0 : 8
   const dropOverlayPosition =
     manualSortPreviewActive && dragTargetTaskId === task.id ? dragTargetPosition : null

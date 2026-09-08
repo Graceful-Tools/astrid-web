@@ -27,9 +27,9 @@ export interface TaskRowControllerInput {
   manualSortActive: boolean
   manualSortPreviewActive: boolean
   effectiveSession: any
-  handleTaskClick: (taskId: string, taskElement?: HTMLElement) => Promise<void> | void
-  handleToggleTaskComplete: (taskId: string) => Promise<void> | void
-  handleCopyTask: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void> | void
+  handleTaskClick: (taskId: string, taskElement?: HTMLElement) => Promise<void>
+  handleToggleTaskComplete: (taskId: string) => Promise<void>
+  handleCopyTask: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   handleTaskDragStart: (taskId: string) => void
   handleTaskDragHover: (taskId: string, position: 'above' | 'below') => void
   handleTaskDragLeaveTask: (taskId: string) => void
@@ -56,7 +56,11 @@ export function useTaskRowController({
   handleUpdateTask,
   taskDisplayMode,
 }: TaskRowControllerInput): TaskRowControllerSlice {
-  return useMemo(() => ({
+  // Annotated, not asserted. `as TaskRowControllerSlice` succeeds whenever the
+  // target is merely assignable to the source, so a field added to the slice
+  // and forgotten here would compile and reach every row as `undefined`; the
+  // return-type annotation makes that a build error instead.
+  return useMemo((): TaskRowControllerSlice => ({
     selectedTaskId,
     activeDragTaskId,
     dragTargetTaskId,
@@ -77,7 +81,7 @@ export function useTaskRowController({
       await handleUpdateTask(updated)
     },
     taskDisplayMode: normalizeTaskDisplayMode(taskDisplayMode),
-  }) as TaskRowControllerSlice, [
+  }), [
     selectedTaskId,
     activeDragTaskId,
     dragTargetTaskId,

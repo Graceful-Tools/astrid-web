@@ -175,3 +175,52 @@ describe('createRefreshScheduler (task ed1d85ba)', () => {
     expect(run).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * Review follow-ups: `lastRunAt` can move after a request is armed, and the
+ * scheduled time has to move with it. Both of these fired a run inside the very
+ * interval it was enforcing.
+ */
+describe('a run reported mid-wait moves the pending run out (task ed1d85ba)', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('re-measures a pending request against a manual refresh', async () => {
+    const run = vi.fn().mockResolvedValue(undefined)
+    const scheduler = createRefreshScheduler(run, { debounceMs: 2000 })
+
+    scheduler.notifyRan()
+    await vi.advanceTimersByTimeAsync(1000)
+    scheduler.request('visibility', { minIntervalMs: 60_000 })
+
+    // The user hits refresh by hand 40s in. The tab refresh armed for ~60s is
+    // now redundant, and firing it would be a second full reload 20s later.
+    await vi.advanceTimersByTimeAsync(39_000)
+    scheduler.notifyRan()
+
+    await vi.advanceTimersByTimeAsync(25_000)
+    expect(run).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(40_000)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let a request repeated in a burst push its own run later', async () => {
+    const run = vi.fn().mockResolvedValue(undefined)
+    const scheduler = createRefreshScheduler(run, { debounceMs: 2000 })
+
+    // A tab alt-tabbed repeatedly must still get its refresh on time. A debounce
+    // that restarted on every event would defer the run for as long as the
+    // events kept arriving, which is the opposite of the bug being fixed.
+    scheduler.request('visibility')
+    for (let i = 0; i < 3; i++) {
+      await vi.advanceTimersByTimeAsync(500)
+      scheduler.request('visibility')
+    }
+
+    // t = 1500, still inside the window opened by the FIRST request.
+    expect(run).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(500)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+})

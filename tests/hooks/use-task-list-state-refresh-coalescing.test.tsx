@@ -137,6 +137,27 @@ describe('returning to a tab refreshes once, not three times (task ed1d85ba)', (
     expect(loads()).toBe(afterMount)
   })
 
+  it('does not start a second load while the mount load is still in flight', async () => {
+    // Review follow-up: the throttle was only claimed when a load FINISHED, so
+    // during the mount load — four round trips, and slow on a bad connection —
+    // an alt-tab scheduled a second, concurrent load racing the first over the
+    // same sync cursors. loadData has no re-entrancy guard of its own.
+    fetchSyncPayload.mockReturnValue(new Promise(() => {}))
+
+    render(<Harness />)
+    await tick(0)
+    expect(loads()).toBe(1)
+
+    await tick(1_000)
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('focus'))
+    })
+    await tick(30_000)
+
+    expect(loads()).toBe(1)
+  })
+
   it('does eventually serve a tab return that arrived inside the throttle', async () => {
     const afterMount = await mountHarness()
 

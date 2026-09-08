@@ -128,22 +128,31 @@ export function useTaskListState({
   const loadDataRef = useRef<(() => Promise<void>) | undefined>(undefined)
   const toastRef = useRef(toast)
 
-  // One scheduler for the whole hook, built on first use and kept for the life
-  // of the mount. It reaches loadData through the ref, so it never has to be
-  // rebuilt when loadData is (task ed1d85ba).
+  // One scheduler for the whole hook, kept for the life of the mount. It
+  // reaches loadData through the ref, so it never has to be rebuilt when
+  // loadData is (task ed1d85ba).
+  //
+  // Built during RENDER, not in the effect that arms the listeners: the mount
+  // load runs from an earlier effect, and a scheduler that did not exist yet
+  // could not be told the load had started — which let an alt-tab seconds later
+  // schedule a second, concurrent one.
   const refreshSchedulerRef = useRef<RefreshScheduler | null>(null)
-  const getRefreshScheduler = useCallback((): RefreshScheduler => {
-    if (!refreshSchedulerRef.current) {
-      refreshSchedulerRef.current = createRefreshScheduler(
-        () => loadDataRef.current?.() ?? Promise.resolve(),
-        { debounceMs: REFRESH_DEBOUNCE_MS },
-      )
-    }
-    return refreshSchedulerRef.current
-  }, [])
+  if (!refreshSchedulerRef.current) {
+    refreshSchedulerRef.current = createRefreshScheduler(
+      () => loadDataRef.current?.() ?? Promise.resolve(),
+      { debounceMs: REFRESH_DEBOUNCE_MS },
+    )
+  }
+  const refreshScheduler: RefreshScheduler = refreshSchedulerRef.current
 
   // Load data function
   const loadData = useCallback(async () => {
+    // Claimed at the START, not only on completion. loadData has no re-entrancy
+    // guard of its own, and the mount load is in flight for as long as four
+    // round trips take — long enough for an alt-tab to schedule a second,
+    // concurrent one racing the first over the same sync cursors. The handlers
+    // this replaced took the same precaution by seeding lastFetchTime up front.
+    refreshSchedulerRef.current?.notifyRan()
     try {
       // Paint from IndexedDB first. The offline layer and DataSyncManager
       // already keep this populated; the render path simply never read it, so
@@ -308,7 +317,7 @@ export function useTaskListState({
   useEffect(() => {
     if (!currentUserId) return
 
-    const scheduler = getRefreshScheduler()
+    const scheduler = refreshScheduler
 
     const handleVisibilityChange = () => {
       // visibilitychange fires on hide as well; only a return is a reason.
@@ -335,7 +344,7 @@ export function useTaskListState({
     }
     // loadData is reached through loadDataRef, so rebuilding it no longer tears
     // down and re-arms these listeners.
-  }, [currentUserId, getRefreshScheduler])
+  }, [currentUserId, refreshScheduler])
 
   // Memoized SSE event handlers
   const handleTaskCreated = useCallback((event: any) => {

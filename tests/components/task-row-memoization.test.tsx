@@ -18,7 +18,7 @@
  * which made any memo boundary inert).
  */
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react'
 import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/components/TaskManager/MainContent/TaskRow'
@@ -181,5 +181,49 @@ describe('the controller bundle rows receive is stable (task ed1d85ba)', () => {
     // unrecognised value (task ffa5bbb5) — the reason this was adapted rather
     // than cast when it was a literal.
     expect(TASK_DISPLAY_MODES).toContain(result.current.taskDisplayMode)
+  })
+})
+
+/**
+ * Review follow-up to the memoisation above.
+ *
+ * The row measures itself on commit, but the manual-sort grab handle, the drop
+ * overlay and the origin placeholder are all sized during RENDER from that
+ * measurement. Unmemoised, the row picked it up on whatever parent re-render
+ * came next — and one always did. Memoised, nothing re-renders it, so the
+ * grabber was left with no height and collapsed to its ~4px inner bar.
+ */
+describe('a memoised row still picks up its own measurement (task ed1d85ba)', () => {
+  const ROW_HEIGHT = 96
+  let originalGetBoundingClientRect: typeof Element.prototype.getBoundingClientRect
+
+  beforeEach(() => {
+    originalGetBoundingClientRect = Element.prototype.getBoundingClientRect
+    Element.prototype.getBoundingClientRect = function () {
+      return { height: ROW_HEIGHT, width: 320, top: 0, left: 0, bottom: ROW_HEIGHT, right: 320, x: 0, y: 0, toJSON: () => ({}) } as DOMRect
+    }
+  })
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = originalGetBoundingClientRect
+  })
+
+  it('sizes the mobile manual-sort grabber without waiting for a parent render', () => {
+    const { container } = render(
+      <TaskRow
+        {...stableProps({
+          isMobile: true,
+          isTouchManualSort: true,
+          dragCapability: { touchDrag: true, html5Drag: false },
+          controller: makeController({ manualSortActive: true }),
+          // A fresh map, as a row mounting into a list it has never been in.
+          taskMeasurementsRef: { current: new Map() },
+        })}
+      />,
+    )
+
+    const grabber = container.querySelector('[style*="height"]')
+    expect(grabber).not.toBeNull()
+    expect((grabber as HTMLElement).style.height).toBe(`${Math.max(ROW_HEIGHT / 2, 24)}px`)
   })
 })

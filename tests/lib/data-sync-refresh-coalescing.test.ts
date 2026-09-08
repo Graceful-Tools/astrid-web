@@ -125,3 +125,40 @@ describe('DataSyncManager coalesces its own triggers (task ed1d85ba)', () => {
     expect(syncSpy).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * Review follow-up: the onLine / hidden guards were evaluated only where the
+ * sync was REQUESTED. A deferred request waits out its minimum interval — up to
+ * five minutes for the periodic one — so by the time it ran the tab could be in
+ * the background or the network gone, which is exactly what the guards existed
+ * to prevent.
+ */
+describe('deferred syncs re-check the conditions they were queued under (task ed1d85ba)', () => {
+  it('does not sync into a tab that went back to the background', async () => {
+    tabReturns()
+    ;(globalThis as any).document.hidden = true
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(syncSpy).not.toHaveBeenCalled()
+    ;(globalThis as any).document.hidden = false
+  })
+
+  it('does not sync after the network went away while it waited', async () => {
+    tabReturns()
+    mockOnline = false
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(syncSpy).not.toHaveBeenCalled()
+    mockOnline = true
+  })
+
+  it('still lets a reconnect sync a backgrounded tab, which never needed focus', async () => {
+    // The online handler was the one trigger with no visibility condition.
+    ;(globalThis as any).document.hidden = true
+    cameOnline()
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(syncSpy).toHaveBeenCalledTimes(1)
+    ;(globalThis as any).document.hidden = false
+  })
+})
