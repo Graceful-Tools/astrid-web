@@ -68,7 +68,11 @@ const ROOT = process.cwd()
 // is a ban rather than a ratchet because for that subset the difference is
 // behavioural: queued and replayed, versus gone. What is left in THIS count is
 // the genuinely discretionary remainder.
-const CEILING = 97 // 115 → 107: task 1b381810 deleted the dead components
+// 97 → 96: task 9377bc2c deleted the SECOND implementation of leaving a list.
+// The members manager POSTed /leave itself and then handed the parent a flag
+// nothing read, so it never navigated anyone anywhere; it now delegates to the
+// caller's onLeave, which is the path that already worked.
+const CEILING = 96 // 115 → 107: task 1b381810 deleted the dead components
 // (task-form and its picker subtree, ai-api-key-manager, sync-status,
 // public-task-browser, list-detail and the rest), taking their raw mutations
 // with them. Nothing was migrated to the offline client here — the count fell

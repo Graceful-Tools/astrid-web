@@ -33,10 +33,23 @@ interface Member {
 interface ListMembersManagerProps {
   list: TaskList
   currentUser: User
-  onUpdate?: (updatedList: TaskList & { _userLeft?: boolean }) => void
+  onUpdate?: (updatedList: TaskList) => void
+  /**
+   * Leave this list. Supplied by the caller so there is ONE implementation
+   * (task 9377bc2c).
+   *
+   * This component used to leave by itself: POST the endpoint, update the
+   * roster optimistically, then hand the parent a `userLeft` flag under a
+   * comment reading "redirect user away from list". Nothing anywhere read that
+   * flag, so leaving from a roster row told you it had worked and left you
+   * sitting on a list you were no longer a member of — while the panel's own
+   * Leave button, in the same modal, went through the controller and navigated
+   * away properly.
+   */
+  onLeave?: (list: TaskList) => void
 }
 
-export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersManagerProps) {
+export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: ListMembersManagerProps) {
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(false)
   const [showInviteForm, setShowInviteForm] = useState(false)
@@ -320,61 +333,16 @@ export function ListMembersManager({ list, currentUser, onUpdate }: ListMembersM
     }
   }
 
-  const handleLeaveList = async () => {
-    const currentUserMember = members.find(m => m.user_id === currentUser.id)
-    
-    try {
-      setLoading(true)
-      
-      // 1. OPTIMISTIC UPDATE: Remove current user from members immediately
-      if (currentUserMember) {
-        setMembers(prevMembers => 
-          prevMembers.filter(member => member.user_id !== currentUser.id)
-        )
-      }
-
-      // Show optimistic success immediately
-      toast({
-        title: "Success",
-        description: "You have left the list",
-      })
-
-      // Immediately trigger parent update to redirect user away from list
-      if (onUpdate) {
-        onUpdate({ ...list, _userLeft: true })
-      }
-      
-      // 2. API CALL: Send the actual request
-      const response = await fetch(`/api/v1/lists/${list.id}/leave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to leave list")
-      }
-    } catch (error) {
-      console.error("Error leaving list:", error)
-      
-      // 3. ROLLBACK: Restore the current user member on error
-      if (currentUserMember) {
-        setMembers(prevMembers => [...prevMembers, currentUserMember])
-      }
-      
-      // Reset the parent state since we failed to leave
-      if (onUpdate) {
-        onUpdate({ ...list, _userLeft: false })
-      }
-      
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to leave list",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
+  /**
+   * Hand the leave off to the caller, which owns the whole consequence —
+   * removing the list from state, navigating away, and the toast.
+   *
+   * `canCurrentUserLeave()` above stays here on purpose: it decides whether to
+   * OFFER the control, and it is the last-admin guard the panel's own Leave
+   * button never had.
+   */
+  const handleLeaveList = () => {
+    onLeave?.(list)
   }
 
   const handleUpdateInviteRole = async (email: string, newRole: "admin" | "member") => {
