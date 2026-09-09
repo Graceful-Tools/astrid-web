@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskModals } from '@/components/task-detail/TaskModals'
 import type { Task, TaskList } from '@/types/task'
+import { BRAND } from '@/lib/brand/config'
 
 describe('TaskModals', () => {
   const mockTask: Task = {
@@ -232,9 +233,9 @@ describe('TaskModals', () => {
     })
 
     it('should show share URL when generated', () => {
-      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" />)
+      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl={`https://${BRAND.domain}/t/abc123`} />)
 
-      expect(screen.getByText('https://astrid.cc/t/abc123')).toBeInTheDocument()
+      expect(screen.getByText(`https://${BRAND.domain}/t/abc123`)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Copy/i })).toBeInTheDocument()
     })
 
@@ -250,7 +251,7 @@ describe('TaskModals', () => {
     // the copied flag and its 2s reset are covered in
     // tests/hooks/useTaskShareLink.test.ts.
     it('should invoke onCopyShareUrl when the copy button is clicked', () => {
-      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" />)
+      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl={`https://${BRAND.domain}/t/abc123`} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Copy/i }))
 
@@ -266,7 +267,7 @@ describe('TaskModals', () => {
     })
 
     it('should invoke onCloseShareModal when the close button is clicked', () => {
-      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" />)
+      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl={`https://${BRAND.domain}/t/abc123`} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Close/i }))
 
@@ -276,7 +277,7 @@ describe('TaskModals', () => {
     })
 
     it('should show copied state after copying URL', () => {
-      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl="https://astrid.cc/t/abc123" shareUrlCopied={true} />)
+      render(<TaskModals {...defaultProps} showShareModal={true} shareUrl={`https://${BRAND.domain}/t/abc123`} shareUrlCopied={true} />)
 
       expect(screen.getByRole('button', { name: /Copied!/i })).toBeInTheDocument()
     })

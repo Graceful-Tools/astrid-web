@@ -54,7 +54,7 @@ import {
 } from '@/lib/task-update-handler'
 import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
 import { parseClosedReason } from '@/lib/closed-reason'
-import { parseCompletedAt, parseCompletedSource, parseRepeating } from '@/lib/task-enums'
+import { parseCompletionStamp, parseRepeating } from '@/lib/task-enums'
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
@@ -1354,20 +1354,12 @@ export async function updateTaskWithSideEffects(args: {
   // provider's real completion time; completedSource records where it happened
   // (astrid | google | github | apple).
   if (requestedCompleted === true) {
-    // Validated, not just coerced. `new Date('yesterday')` is an Invalid Date
-    // rather than a throw, so an unvalidated stamp reached Prisma and came back
-    // as a 500; and nothing bounded the value at all, so a client clock set to
-    // next year would pin the completion to the top of every recently-completed
-    // window forever. The bound is one-sided on purpose — see parseCompletedAt
-    // for why backwards has no defensible floor here (AWTD-873).
-    const parsedCompletedAt = parseCompletedAt(intent.completedAt)
-    if (!parsedCompletedAt.ok) return { ok: false, status: 400, error: parsedCompletedAt.error }
-    data.completedAt = parsedCompletedAt.value ?? new Date()
-    const parsedSource = parseCompletedSource(intent.completedSource)
-    if (!parsedSource.ok) return { ok: false, status: 400, error: parsedSource.error }
-    // An audit field: a provenance nothing wrote is worse than none, so an
-    // unrecognised value is rejected rather than defaulted away (task e16e9b94).
-    data.completedSource = parsedSource.value ?? 'astrid'
+    // Validated, not coerced — parseCompletionStamp says why (AWTD-873).
+    const stamp = parseCompletionStamp(intent)
+    if (!stamp.ok) return { ok: false, status: 400, error: stamp.error }
+    // Absent means the server stamps now; that default is this layer's call.
+    data.completedAt = stamp.value.completedAt ?? new Date()
+    data.completedSource = stamp.value.completedSource
     // Done carries no board status (AWTD-562).
     data.statusRole = null
   } else if (requestedCompleted === false) {

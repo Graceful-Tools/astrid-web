@@ -41,19 +41,19 @@ export interface FilterOption {
 
 /** How the list is ordered. Mirrors `TaskList.sortBy`. */
 export const SORT_BY_OPTIONS: readonly FilterOption[] = [
-  { value: "auto", label: "Auto" },
-  { value: "priority", label: "Priority" },
-  { value: "when", label: "Date" },
-  { value: "assignee", label: "Who" },
-  { value: "completed", label: "Completed" },
-  { value: "incomplete", label: "Incomplete" },
+  { value: "auto", labelKey: "listSettings.sort.auto", label: "Auto" },
+  { value: "priority", labelKey: "listSettings.sort.priority", label: "Priority" },
+  { value: "when", labelKey: "listSettings.sort.date", label: "Date" },
+  { value: "assignee", labelKey: "listSettings.sort.who", label: "Who" },
+  { value: "completed", labelKey: "listSettings.sort.completed", label: "Completed" },
+  { value: "incomplete", labelKey: "listSettings.sort.incomplete", label: "Incomplete" },
   { value: "completedAt", labelKey: "listSettings.sort.recentlyCompleted", label: "Recently completed" },
-  { value: "manual", label: "Manual" },
+  { value: "manual", labelKey: "listSettings.sort.manual", label: "Manual" },
 ]
 
 /** Which tasks are shown at all. */
 export const COMPLETION_FILTER_OPTIONS: readonly FilterOption[] = [
-  { value: "default", label: "Incomplete + Recently completed" },
+  { value: "default", labelKey: "listSettings.show.default", label: "Incomplete + Recently completed" },
   { value: "all", labelKey: "listSettings.show.allTasks", label: "All tasks" },
   { value: "completed", labelKey: "listSettings.show.completedOnly", label: "Completed only" },
   { value: "incomplete", labelKey: "listSettings.show.incompleteOnly", label: "Incomplete only" },
@@ -67,10 +67,10 @@ export const COMPLETION_FILTER_OPTIONS: readonly FilterOption[] = [
  */
 export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
   { value: "all", labelKey: "listSettings.priority.all", label: "All priorities", className: "text-blue-400" },
-  { value: "3", label: "!!! Highest", className: "text-red-500" },
-  { value: "2", label: "!! High", className: "text-orange-500" },
-  { value: "1", label: "! Medium", className: "text-blue-500" },
-  { value: "0", label: "○ Low", className: "text-gray-400" },
+  { value: "3", labelKey: "listSettings.priority.highest", label: "!!! Highest", className: "text-red-500" },
+  { value: "2", labelKey: "listSettings.priority.high", label: "!! High", className: "text-orange-500" },
+  { value: "1", labelKey: "listSettings.priority.medium", label: "! Medium", className: "text-blue-500" },
+  { value: "0", labelKey: "listSettings.priority.low", label: "○ Low", className: "text-gray-400" },
 ]
 
 /**
@@ -81,11 +81,11 @@ export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
  */
 export const DUE_DATE_FILTER_OPTIONS: readonly FilterOption[] = [
   { value: "all", labelKey: "listSettings.due.allDates", label: "All dates", className: "text-blue-400" },
-  { value: "overdue", label: "Overdue", className: "text-red-500" },
-  { value: "today", label: "Today", className: "text-green-500" },
-  { value: "tomorrow", label: "Tomorrow", className: "text-green-500" },
-  { value: "this_week", label: "Next 7 days", className: "text-blue-500" },
-  { value: "this_month", label: "Next 30 days", className: "text-purple-500" },
+  { value: "overdue", labelKey: "listSettings.due.overdue", label: "Overdue", className: "text-red-500" },
+  { value: "today", labelKey: "listSettings.due.today", label: "Today", className: "text-green-500" },
+  { value: "tomorrow", labelKey: "listSettings.due.tomorrow", label: "Tomorrow", className: "text-green-500" },
+  { value: "this_week", labelKey: "listSettings.due.next7Days", label: "Next 7 days", className: "text-blue-500" },
+  { value: "this_month", labelKey: "listSettings.due.next30Days", label: "Next 30 days", className: "text-purple-500" },
   { value: "this_calendar_week", labelKey: "listSettings.due.thisCalendarWeek", label: "This calendar week", className: "text-cyan-500" },
   { value: "this_calendar_month", labelKey: "listSettings.due.thisCalendarMonth", label: "This calendar month", className: "text-indigo-500" },
   { value: "no_date", labelKey: "listSettings.due.noDate", label: "No date", className: "text-gray-400" },

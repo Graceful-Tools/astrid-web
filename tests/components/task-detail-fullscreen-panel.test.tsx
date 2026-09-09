@@ -171,12 +171,18 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
     expect(panel(container).className).not.toContain('inset-0')
   })
 
-  it('an inline/board panel expands when its renderer opts in (task 52bf1efb)', () => {
+  it('an inline/board panel expands when its renderer opts in (task 52bf1efb)', async () => {
     // This assertion used to be the opposite: inline panels were excluded on
     // the reasoning that a card is a peek. Jon overrode that — a board card's
     // details are the only way to read the task on the board, so they need the
     // escape hatch most. The rule is now uniform: the renderer decides, and
     // `inline` no longer overrules it.
+    //
+    // AWTD-872 then moved WHERE it is offered on an inline panel: into the ⋯
+    // menu, because the card gutter was stacking three 20px targets. The rule
+    // this test defends — renderer decides, inline does not overrule — is
+    // unchanged; only the number of taps is.
+    const user = userEvent.setup()
     wrap(
       <TaskDetail
         task={task}
@@ -188,7 +194,10 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
         allowFullScreen
       />,
     )
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Full screen' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Task actions' }))
+    expect(await screen.findByRole('menuitem', { name: 'Full screen' })).toBeInTheDocument()
   })
 
   it('an inline panel still offers nothing when its renderer stays out', () => {

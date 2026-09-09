@@ -21,6 +21,10 @@ const taskComments = [
   { id: 'c-reply', authorId: 'user-a', parentCommentId: 'c-parent' },
 ]
 
+// vi.mock factories are hoisted above the imports, so a plain `import { BRAND }`
+// is still in its temporal dead zone here. vi.hoisted with a dynamic import is
+// evaluated in the hoisted block itself, which is why it works (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     comment: { findMany: vi.fn(async () => taskComments) },
@@ -39,7 +43,7 @@ vi.mock('@/lib/push-notification-service', () => ({
     sendCommentNotification() { return Promise.resolve() }
   },
 }))
-vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: 'astrid@astrid.cc' }))
+vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: `astrid@${BRAND.agentEmailDomain}` }))
 vi.mock('@/lib/astrid-agent-runtime', () => ({ processAstridComment: vi.fn() }))
 vi.mock('@/lib/comment-approval-detector', () => ({ processCommentForWorkflowAction: vi.fn() }))
 vi.mock('@/lib/ai-agent-webhook-service', () => ({

@@ -13,6 +13,10 @@ const notifyCommentOnAssignedTask = vi.fn(() => Promise.resolve())
 let astridUserId: string | null = null
 let assigneeUserIsAgent = false
 
+// vi.mock factories are hoisted above the imports, so a plain `import { BRAND }`
+// is still in its temporal dead zone here. vi.hoisted with a dynamic import is
+// evaluated in the hoisted block itself, which is why it works (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
@@ -20,24 +24,24 @@ vi.mock('@/lib/prisma', () => ({
         const ids = where.id.in as string[]
         return ids.flatMap(id => {
           if (id === astridUserId) {
-            return [{ id, isAIAgent: true, email: 'astrid@astrid.cc' }]
+            return [{ id, isAIAgent: true, email: `astrid@${BRAND.agentEmailDomain}` }]
           }
           if (id === 'human-1') return [{ id, isAIAgent: false, email: 'h1@example.com' }]
           if (id === 'human-2') return [{ id, isAIAgent: false, email: 'h2@example.com' }]
           if (id === 'agent-claude' && assigneeUserIsAgent) {
-            return [{ id, isAIAgent: true, email: 'claude@astrid.cc' }]
+            return [{ id, isAIAgent: true, email: `claude@${BRAND.agentEmailDomain}` }]
           }
           return []
         })
       }),
       findUnique: vi.fn(async ({ where }: any) => {
         if (where.id === astridUserId) {
-          return { id: astridUserId, isAIAgent: true, email: 'astrid@astrid.cc' }
+          return { id: astridUserId, isAIAgent: true, email: `astrid@${BRAND.agentEmailDomain}` }
         }
         if (where.id === 'human-1') return { id: 'human-1', isAIAgent: false, email: 'h1@example.com' }
         if (where.id === 'human-2') return { id: 'human-2', isAIAgent: false, email: 'h2@example.com' }
         if (where.id === 'agent-claude' && assigneeUserIsAgent) {
-          return { id: 'agent-claude', isAIAgent: true, email: 'claude@astrid.cc' }
+          return { id: 'agent-claude', isAIAgent: true, email: `claude@${BRAND.agentEmailDomain}` }
         }
         return null
       }),
@@ -58,7 +62,7 @@ vi.mock('@/lib/push-notification-service', () => ({
   },
 }))
 
-vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: 'astrid@astrid.cc' }))
+vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: `astrid@${BRAND.agentEmailDomain}` }))
 vi.mock('@/lib/astrid-agent-runtime', () => ({ processAstridComment }))
 vi.mock('@/lib/comment-approval-detector', () => ({ processCommentForWorkflowAction }))
 vi.mock('@/lib/ai-agent-webhook-service', () => ({
@@ -207,7 +211,7 @@ describe('dispatchPostCommentSideEffects', () => {
         ...baseTask,
         assigneeId: 'agent-claude',
         assignee: {
-          email: 'claude@astrid.cc',
+          email: `claude@${BRAND.agentEmailDomain}`,
           name: 'Claude',
           isAIAgent: true,
           aiAgentType: 'coding_agent',
@@ -230,7 +234,7 @@ describe('dispatchPostCommentSideEffects', () => {
       task: {
         ...baseTask,
         assigneeId: 'agent-claude',
-        assignee: { email: 'claude@astrid.cc', name: 'Claude', isAIAgent: true, aiAgentType: 'coding_agent' },
+        assignee: { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', isAIAgent: true, aiAgentType: 'coding_agent' },
         lists: [{ id: 'list-1', githubRepositoryId: 'repo-1', aiAgentConfiguredBy: 'human-2' }],
       },
       commenter: humanCommenter,

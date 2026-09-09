@@ -107,3 +107,52 @@ describe('shared list filter options (task 9377bc2c)', () => {
     }
   })
 })
+
+/**
+ * AWTD-863 — every option carries a translation key.
+ *
+ * `labelKey` used to be set only where a translation already happened to exist,
+ * so a German user saw a translated "All dates" sitting directly above an
+ * English "Next 7 days" in the same menu. The English strings were not new — both
+ * duplicated copies of this array already had them — but a shared array made the
+ * gap countable, and this is the count.
+ *
+ * The rule is asserted over the arrays rather than the rendered menu on purpose:
+ * a missing key renders as its English fallback and looks completely fine, which
+ * is exactly why nobody noticed.
+ */
+describe('every filter option is translatable (AWTD-863)', () => {
+  const GROUPS: Record<string, readonly FilterOption[]> = {
+    SORT_BY_OPTIONS,
+    COMPLETION_FILTER_OPTIONS,
+    PRIORITY_FILTER_OPTIONS,
+    DUE_DATE_FILTER_OPTIONS,
+  }
+
+  for (const [name, options] of Object.entries(GROUPS)) {
+    it(`${name}: no option is left as an English literal`, () => {
+      const untranslatable = options.filter(option => !option.labelKey).map(o => o.label)
+      expect(
+        untranslatable,
+        `These render English in every locale. Add a listSettings.* key and the ` +
+          `value to all twelve files in lib/i18n/locales/:\n  ${untranslatable.join('\n  ')}`
+      ).toEqual([])
+    })
+
+    it(`${name}: keeps an English label beside the key, as the fallback`, () => {
+      // FilterSelectItems renders `label` when t() answers with the key itself.
+      // Dropping the label to "finish" the migration would put
+      // "listSettings.due.noDate" on screen the first time a locale lags.
+      expect(options.every(option => Boolean(option.label))).toBe(true)
+    })
+  }
+
+  it('keys are namespaced under listSettings, so they group with their menu', () => {
+    const stray = Object.values(GROUPS)
+      .flat()
+      .map(o => o.labelKey)
+      .filter((key): key is string => Boolean(key))
+      .filter(key => !key.startsWith('listSettings.'))
+    expect(stray).toEqual([])
+  })
+})

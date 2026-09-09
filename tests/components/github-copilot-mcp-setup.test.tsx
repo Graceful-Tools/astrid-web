@@ -9,6 +9,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GitHubCopilotMcpSetup } from '@/components/github-copilot-mcp-setup'
+import { BRAND } from '@/lib/brand/config'
 
 const mockApiPost = vi.hoisted(() => vi.fn())
 
@@ -57,7 +58,7 @@ describe('GitHub Copilot cloud MCP setup (github-cloud-mcp)', () => {
   })
 
   it('creates a token and gives GitHub the complete repository configuration', async () => {
-    render(<GitHubCopilotMcpSetup origin="https://www.astrid.cc" />)
+    render(<GitHubCopilotMcpSetup origin={`https://www.${BRAND.domain}`} />)
 
     expect(screen.getByText(/GitHub cloud cannot open Astrid/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Create GitHub setup' }))
@@ -76,7 +77,7 @@ describe('GitHub Copilot cloud MCP setup (github-cloud-mcp)', () => {
     const config = screen.getByTestId('github-copilot-mcp-config').textContent
     expect(config).toContain('"mcpServers"')
     expect(config).toContain('"type": "http"')
-    expect(config).toContain('"url": "https://www.astrid.cc/mcp"')
+    expect(config).toContain(`"url": "https://www.${BRAND.domain}/mcp"`)
     expect(config).toContain('"Authorization": "Bearer $COPILOT_MCP_ASTRID_TOKEN"')
     expect(config).toContain('"tools": [')
     expect(config).toContain('"*"')

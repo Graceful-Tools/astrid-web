@@ -900,21 +900,38 @@
     "assigneeFilter": "担当者フィルター",
     "dueDateFilter": "期限フィルター",
     "sort": {
-      "recentlyCompleted": "最近完了"
+      "recentlyCompleted": "最近完了",
+      "auto": "自動",
+      "priority": "優先度",
+      "date": "日付",
+      "who": "担当者",
+      "completed": "完了",
+      "incomplete": "未完了",
+      "manual": "手動"
     },
     "show": {
       "allTasks": "すべてのタスク",
       "completedOnly": "完了のみ",
-      "incompleteOnly": "未完了のみ"
+      "incompleteOnly": "未完了のみ",
+      "default": "未完了 + 最近完了"
     },
     "priority": {
-      "all": "すべての優先度"
+      "all": "すべての優先度",
+      "highest": "!!! 最高",
+      "high": "!! 高",
+      "medium": "! 中",
+      "low": "○ 低"
     },
     "due": {
       "allDates": "すべての日付",
       "thisCalendarWeek": "今カレンダー週",
       "thisCalendarMonth": "今カレンダー月",
-      "noDate": "日付なし"
+      "noDate": "日付なし",
+      "overdue": "期限超過",
+      "today": "今日",
+      "tomorrow": "明日",
+      "next7Days": "今後7日間",
+      "next30Days": "今後30日間"
     }
   },
   "reminderSettings": {

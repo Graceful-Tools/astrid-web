@@ -12,7 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3 } from "lucide-react"
+import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2 } from "lucide-react"
 import type { Task, User } from "../../types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 import { isCanceled } from "@/lib/closed-reason"
@@ -68,6 +68,28 @@ interface TaskActionMenuProps {
    * that Done means completed rather than a status role.
    */
   onStatusSelect?: (columnId: string) => void
+  /**
+   * Expand the panel to full screen, or drop it back (AWTD-872).
+   *
+   * On a board card this is a MENU ITEM rather than a button. The compact
+   * header used to stack three 20px controls vertically inside the card's
+   * gutter — full screen, collapse, and this menu — and that column was the
+   * clutter Jon reported. Full screen is the one that moves: collapse is the
+   * card's own affordance (it undoes the tap that expanded it) and the menu is
+   * where every other secondary action already lives.
+   *
+   * The roomy header still renders its own button and passes nothing here. It
+   * lays the same controls out horizontally in a side pane with room to spare,
+   * and task 0ea0b818 is specifically about that control being reachable
+   * there — burying it in a menu would undo that fix.
+   *
+   * Optional in the same way onToggleFullScreen is on TaskHeader: whoever
+   * renders the pane decides. The phone pane passes nothing because it is
+   * already full screen.
+   */
+  onToggleFullScreen?: () => void
+  /** Which way the full-screen item should read. */
+  fullScreen?: boolean
 }
 
 export function TaskActionMenu({
@@ -80,6 +102,8 @@ export function TaskActionMenu({
   onTestReminder,
   onCancel,
   onStatusSelect,
+  onToggleFullScreen,
+  fullScreen = false,
   compact = false,
 }: TaskActionMenuProps) {
   const { t } = useTranslations()
@@ -105,11 +129,34 @@ export function TaskActionMenu({
           className={`flex-shrink-0 theme-text-muted hover:theme-text-secondary ${
             compact ? "h-5 w-5 p-0" : ""
           }`}
+          // The trigger had no accessible name at all — it was an icon and
+          // nothing else, so a screen reader announced "button" and a test
+          // could only reach it by class. Named now that a control users
+          // depend on (full screen, on a board card) lives behind it.
+          aria-label="Task actions"
         >
           <MoreVertical className={compact ? "w-4 h-4" : "w-5 h-5"} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
+        {onToggleFullScreen && (
+          <>
+            <DropdownMenuItem onClick={onToggleFullScreen}>
+              {fullScreen ? (
+                <>
+                  <Minimize2 className="w-4 h-4 mr-2" />
+                  Exit full screen
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4 mr-2" />
+                  Full screen
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={onCopy}>
           <Copy className="w-4 h-4 mr-2" />
           Copy

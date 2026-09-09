@@ -900,21 +900,38 @@
     "assigneeFilter": "负责人筛选",
     "dueDateFilter": "截止日期筛选",
     "sort": {
-      "recentlyCompleted": "最近完成"
+      "recentlyCompleted": "最近完成",
+      "auto": "自动",
+      "priority": "优先级",
+      "date": "日期",
+      "who": "负责人",
+      "completed": "已完成",
+      "incomplete": "未完成",
+      "manual": "手动"
     },
     "show": {
       "allTasks": "所有任务",
       "completedOnly": "仅已完成",
-      "incompleteOnly": "仅未完成"
+      "incompleteOnly": "仅未完成",
+      "default": "未完成 + 最近完成"
     },
     "priority": {
-      "all": "所有优先级"
+      "all": "所有优先级",
+      "highest": "!!! 最高",
+      "high": "!! 高",
+      "medium": "! 中",
+      "low": "○ 低"
     },
     "due": {
       "allDates": "所有日期",
       "thisCalendarWeek": "本日历周",
       "thisCalendarMonth": "本日历月",
-      "noDate": "无日期"
+      "noDate": "无日期",
+      "overdue": "已逾期",
+      "today": "今天",
+      "tomorrow": "明天",
+      "next7Days": "未来 7 天",
+      "next30Days": "未来 30 天"
     }
   },
   "reminderSettings": {

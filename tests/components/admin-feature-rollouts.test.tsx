@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import FeatureRolloutPage from '@/app/[locale]/admin/features/[key]/page'
+import { BRAND } from '@/lib/brand/config'
 
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: { user: { id: 'admin-1', email: 'jon@gracefultools.com' } }, status: 'authenticated' }),
@@ -56,7 +57,7 @@ describe('FeatureRolloutPage (per-feature, task 3cef96ef)', () => {
         flags: [{
           ...response.flags[0],
           rolloutMode: 'SELECTED_USERS',
-          targets: [{ treatment: 'INCLUDE', user: { email: 'tester@astrid.cc' } }],
+          targets: [{ treatment: 'INCLUDE', user: { email: `tester@${BRAND.domain}` } }],
         }],
       }),
     }))
@@ -64,7 +65,14 @@ describe('FeatureRolloutPage (per-feature, task 3cef96ef)', () => {
     render(<FeatureRolloutPage />)
 
     await waitFor(() => expect(screen.getByText('Rollout paused')).toBeInTheDocument())
-    expect(screen.getByText(/tester@astrid.cc will not receive Google Tasks until master availability is on/i)).toBeInTheDocument()
+    // new RegExp, not a regex literal: `${BRAND.domain}` does not interpolate
+    // inside /.../ and would become a literal `${...}` in the pattern, so the
+    // match would silently never fire (AWTD-867). The domain is escaped because
+    // its dot is a regex metacharacter.
+    expect(screen.getByText(new RegExp(
+      `tester@${BRAND.domain.replace(/\./g, '\\.')} will not receive Google Tasks until master availability is on`,
+      'i',
+    ))).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activate rollout' })).toBeInTheDocument()
     expect(screen.getByText(/will receive the feature whenever master availability is on/i)).toBeInTheDocument()
   })
@@ -77,7 +85,7 @@ describe('FeatureRolloutPage (per-feature, task 3cef96ef)', () => {
         flags: [{
           ...response.flags[0],
           enabled: true,
-          targets: [{ treatment: 'INCLUDE', user: { email: 'tester@astrid.cc' } }],
+          targets: [{ treatment: 'INCLUDE', user: { email: `tester@${BRAND.domain}` } }],
         }],
       }),
     }))

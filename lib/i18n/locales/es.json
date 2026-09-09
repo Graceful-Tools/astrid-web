@@ -900,21 +900,38 @@
     "assigneeFilter": "Filtro de asignado",
     "dueDateFilter": "Filtro de fecha límite",
     "sort": {
-      "recentlyCompleted": "Completadas recientemente"
+      "recentlyCompleted": "Completadas recientemente",
+      "auto": "Automático",
+      "priority": "Prioridad",
+      "date": "Fecha",
+      "who": "Quién",
+      "completed": "Completada",
+      "incomplete": "Incompleta",
+      "manual": "Manual"
     },
     "show": {
       "allTasks": "Todas las tareas",
       "completedOnly": "Solo completadas",
-      "incompleteOnly": "Solo pendientes"
+      "incompleteOnly": "Solo pendientes",
+      "default": "Incompletas + Completadas recientemente"
     },
     "priority": {
-      "all": "Todas las prioridades"
+      "all": "Todas las prioridades",
+      "highest": "!!! Máxima",
+      "high": "!! Alta",
+      "medium": "! Media",
+      "low": "○ Baja"
     },
     "due": {
       "allDates": "Todas las fechas",
       "thisCalendarWeek": "Esta semana natural",
       "thisCalendarMonth": "Este mes natural",
-      "noDate": "Sin fecha"
+      "noDate": "Sin fecha",
+      "overdue": "Atrasada",
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "next7Days": "Próximos 7 días",
+      "next30Days": "Próximos 30 días"
     }
   },
   "reminderSettings": {

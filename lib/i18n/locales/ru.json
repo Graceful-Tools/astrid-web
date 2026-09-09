@@ -900,21 +900,38 @@
     "assigneeFilter": "Фильтр по исполнителю",
     "dueDateFilter": "Фильтр по сроку",
     "sort": {
-      "recentlyCompleted": "Недавно завершённые"
+      "recentlyCompleted": "Недавно завершённые",
+      "auto": "Авто",
+      "priority": "Приоритет",
+      "date": "Дата",
+      "who": "Кто",
+      "completed": "Завершено",
+      "incomplete": "Не завершено",
+      "manual": "Вручную"
     },
     "show": {
       "allTasks": "Все задачи",
       "completedOnly": "Только завершённые",
-      "incompleteOnly": "Только незавершённые"
+      "incompleteOnly": "Только незавершённые",
+      "default": "Не завершено + Недавно завершено"
     },
     "priority": {
-      "all": "Все приоритеты"
+      "all": "Все приоритеты",
+      "highest": "!!! Наивысший",
+      "high": "!! Высокий",
+      "medium": "! Средний",
+      "low": "○ Низкий"
     },
     "due": {
       "allDates": "Все даты",
       "thisCalendarWeek": "Эта календарная неделя",
       "thisCalendarMonth": "Этот календарный месяц",
-      "noDate": "Без даты"
+      "noDate": "Без даты",
+      "overdue": "Просрочено",
+      "today": "Сегодня",
+      "tomorrow": "Завтра",
+      "next7Days": "Следующие 7 дней",
+      "next30Days": "Следующие 30 дней"
     }
   },
   "reminderSettings": {

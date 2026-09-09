@@ -900,21 +900,38 @@
     "assigneeFilter": "담당자 필터",
     "dueDateFilter": "마감일 필터",
     "sort": {
-      "recentlyCompleted": "최근 완료됨"
+      "recentlyCompleted": "최근 완료됨",
+      "auto": "자동",
+      "priority": "우선순위",
+      "date": "날짜",
+      "who": "담당자",
+      "completed": "완료됨",
+      "incomplete": "미완료",
+      "manual": "수동"
     },
     "show": {
       "allTasks": "모든 작업",
       "completedOnly": "완료된 항목만",
-      "incompleteOnly": "미완료 항목만"
+      "incompleteOnly": "미완료 항목만",
+      "default": "미완료 + 최근 완료됨"
     },
     "priority": {
-      "all": "모든 우선순위"
+      "all": "모든 우선순위",
+      "highest": "!!! 최고",
+      "high": "!! 높음",
+      "medium": "! 보통",
+      "low": "○ 낮음"
     },
     "due": {
       "allDates": "모든 날짜",
       "thisCalendarWeek": "이번 달력 주",
       "thisCalendarMonth": "이번 달력 월",
-      "noDate": "날짜 없음"
+      "noDate": "날짜 없음",
+      "overdue": "기한 초과",
+      "today": "오늘",
+      "tomorrow": "내일",
+      "next7Days": "다음 7일",
+      "next30Days": "다음 30일"
     }
   },
   "reminderSettings": {

@@ -20,7 +20,12 @@ vi.mock('@/lib/astrid-agent-runtime', () => ({ processAstridMessage }))
 const broadcastToUsers = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers }))
 
-vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: 'astrid@astrid.cc' }))
+// vi.mock factories are hoisted above the imports, so a plain `import { BRAND }`
+// is still in its temporal dead zone when this runs — `Cannot access
+// '__vi_import_1__' before initialization`. vi.hoisted with a dynamic import is
+// evaluated in the hoisted block itself, which is why it works here (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
+vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: `astrid@${BRAND.agentEmailDomain}` }))
 
 const cacheGet = vi.hoisted(() => vi.fn())
 const cacheSet = vi.hoisted(() => vi.fn())
@@ -55,7 +60,7 @@ beforeEach(() => {
   cacheGet.mockResolvedValue(null)
   cacheSet.mockResolvedValue(undefined)
   resolveDefaultAgent.mockResolvedValue('agent-astrid')
-  userFindUnique.mockResolvedValue({ email: 'astrid@astrid.cc' })
+  userFindUnique.mockResolvedValue({ email: `astrid@${BRAND.agentEmailDomain}` })
   processAstridMessage.mockResolvedValue(undefined)
 })
 

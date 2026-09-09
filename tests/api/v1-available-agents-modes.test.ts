@@ -14,6 +14,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// The agent addresses below sit inside a vi.mock factory, hoisted above the
+// imports, so a plain `import { BRAND }` is still in its temporal dead zone when
+// it runs. vi.hoisted evaluates in the hoisted block itself (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
+
 vi.mock('@/lib/api-auth-wrapper', () => ({
   withAuth: (_opts: unknown, handler: (...args: unknown[]) => unknown) =>
     (req: NextRequest, ctx: unknown) =>
@@ -36,7 +41,7 @@ vi.mock('@/lib/ai/ensure-agent-user', () => ({
 }))
 vi.mock('@/lib/astrid-agent', () => ({
   ensureAstridAgent: vi.fn(async () => ({ id: 'uid-astrid', image: null })),
-  ASTRID_EMAIL: 'astrid@astrid.cc',
+  ASTRID_EMAIL: `astrid@${BRAND.agentEmailDomain}`,
   ASTRID_NAME: 'Astrid',
 }))
 vi.mock('@/lib/prisma', () => ({
@@ -65,14 +70,14 @@ describe('available-agents by execution mode (task 9dbe0b17)', () => {
     getAgentExecutionModes.mockResolvedValue({ claude: 'polling' })
 
     const emails = await emailsOf()
-    expect(emails).toContain('claude@astrid.cc')
+    expect(emails).toContain(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('offers a keyless agent whose mode is webhook', async () => {
     getAgentExecutionModes.mockResolvedValue({ claude: 'webhook' })
 
     const emails = await emailsOf()
-    expect(emails).toContain('claude@astrid.cc')
+    expect(emails).toContain(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('hides an off agent even when its key is still saved', async () => {
@@ -80,14 +85,14 @@ describe('available-agents by execution mode (task 9dbe0b17)', () => {
     getAgentExecutionModes.mockResolvedValue({ claude: 'off' })
 
     const emails = await emailsOf()
-    expect(emails).not.toContain('claude@astrid.cc')
+    expect(emails).not.toContain(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('still requires the key for api mode', async () => {
     getAgentExecutionModes.mockResolvedValue({ claude: 'api' })
 
     const emails = await emailsOf()
-    expect(emails).not.toContain('claude@astrid.cc')
+    expect(emails).not.toContain(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('keyed api-mode agents keep appearing, with Astrid first', async () => {
@@ -95,8 +100,8 @@ describe('available-agents by execution mode (task 9dbe0b17)', () => {
     getAgentExecutionModes.mockResolvedValue({ claude: 'api' })
 
     const emails = await emailsOf()
-    expect(emails[0]).toBe('astrid@astrid.cc')
-    expect(emails).toContain('claude@astrid.cc')
+    expect(emails[0]).toBe(`astrid@${BRAND.agentEmailDomain}`)
+    expect(emails).toContain(`claude@${BRAND.agentEmailDomain}`)
   })
 })
 
@@ -108,14 +113,14 @@ describe('serverRun filter — models that can power Astrid (Jon, 2026-09-05)', 
   it('excludes a keyless polling agent even though it is assignable', async () => {
     getAgentExecutionModes.mockResolvedValue({ claude: 'polling' })
 
-    expect(await emailsOf()).toContain('claude@astrid.cc')
-    expect(await emailsOf('?serverRun=true')).not.toContain('claude@astrid.cc')
+    expect(await emailsOf()).toContain(`claude@${BRAND.agentEmailDomain}`)
+    expect(await emailsOf('?serverRun=true')).not.toContain(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('excludes a webhook agent — the runtime is user-operated, not a model API', async () => {
     getAgentExecutionModes.mockResolvedValue({ gemini: 'webhook' })
 
-    expect(await emailsOf('?serverRun=true')).not.toContain('gemini@astrid.cc')
+    expect(await emailsOf('?serverRun=true')).not.toContain(`gemini@${BRAND.agentEmailDomain}`)
   })
 
   it('includes an api-mode agent with a valid key', async () => {
@@ -123,17 +128,17 @@ describe('serverRun filter — models that can power Astrid (Jon, 2026-09-05)', 
     getAgentExecutionModes.mockResolvedValue({ claude: 'api' })
 
     const emails = await emailsOf('?serverRun=true')
-    expect(emails).toContain('claude@astrid.cc')
-    expect(emails[0]).toBe('astrid@astrid.cc')
+    expect(emails).toContain(`claude@${BRAND.agentEmailDomain}`)
+    expect(emails[0]).toBe(`astrid@${BRAND.agentEmailDomain}`)
   })
 
   it('keeps registered Custom Agents — they bring their own runtime', async () => {
     hasValidApiKey.mockImplementation(async (_userId: string, service: string) => service === 'openclaw')
     const { prisma } = await import('@/lib/prisma')
     vi.mocked(prisma.user.findMany).mockResolvedValue([
-      { id: 'uid-worker', name: 'Buddy', email: 'buddy.oc@astrid.cc', image: null },
+      { id: 'uid-worker', name: 'Buddy', email: `buddy.oc@${BRAND.agentEmailDomain}`, image: null },
     ] as never)
 
-    expect(await emailsOf('?serverRun=true')).toContain('buddy.oc@astrid.cc')
+    expect(await emailsOf('?serverRun=true')).toContain(`buddy.oc@${BRAND.agentEmailDomain}`)
   })
 })

@@ -900,21 +900,38 @@
     "assigneeFilter": "Assignee filter",
     "dueDateFilter": "Due date filter",
     "sort": {
-      "recentlyCompleted": "Recently completed"
+      "recentlyCompleted": "Recently completed",
+      "auto": "Auto",
+      "priority": "Priority",
+      "date": "Date",
+      "who": "Who",
+      "completed": "Completed",
+      "incomplete": "Incomplete",
+      "manual": "Manual"
     },
     "show": {
       "allTasks": "All tasks",
       "completedOnly": "Completed only",
-      "incompleteOnly": "Incomplete only"
+      "incompleteOnly": "Incomplete only",
+      "default": "Incomplete + Recently completed"
     },
     "priority": {
-      "all": "All priorities"
+      "all": "All priorities",
+      "highest": "!!! Highest",
+      "high": "!! High",
+      "medium": "! Medium",
+      "low": "○ Low"
     },
     "due": {
       "allDates": "All dates",
       "thisCalendarWeek": "This calendar week",
       "thisCalendarMonth": "This calendar month",
-      "noDate": "No date"
+      "noDate": "No date",
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "next7Days": "Next 7 days",
+      "next30Days": "Next 30 days"
     }
   },
   "reminderSettings": {

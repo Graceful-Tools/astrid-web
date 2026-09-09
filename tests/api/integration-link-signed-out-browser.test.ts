@@ -16,11 +16,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// vi.importActual, not a plain import: this file MOCKS @/lib/brand/config, so an
+// ordinary `import { BRAND }` would yield the mock — which declares only the two
+// fields this file needs and has no `domain`, failing at runtime rather than at
+// compile time. importActual reaches the real config past the mock (AWTD-867).
+const { BRAND } = await vi.hoisted(
+  async () => await vi.importActual<typeof import('@/lib/brand/config')>('@/lib/brand/config'),
+)
+
+
 const ATTACKER = 'attacker-who-minted-the-state'
 const VICTIM = 'victim-who-approved-at-the-provider'
 
 vi.mock('@/lib/brand/capabilities', () => ({ capabilityGate: () => null }))
-vi.mock('@/lib/brand/config', () => ({ BRAND: { appName: 'Astrid', appUrlScheme: 'astrid' } }))
+vi.mock('@/lib/brand/config', () => ({
+  BRAND: { appName: 'Astrid', appUrlScheme: 'astrid', domain: BRAND.domain },
+}))
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
 }))
@@ -49,7 +60,7 @@ const { GET: resume } = await import('@/app/api/v1/integrations/resume/route')
 const { PENDING_LINK_COOKIE, openPendingLink } = await import('@/lib/sync/pending-link')
 
 const callbackReq = (provider: string) =>
-  new NextRequest(`https://astrid.cc/api/v1/integrations/${provider}/callback?code=prov_code&state=state-naming-attacker`)
+  new NextRequest(`https://${BRAND.domain}/api/v1/integrations/${provider}/callback?code=prov_code&state=state-naming-attacker`)
 
 /** The seal the callback handed the victim's browser, read back off Set-Cookie. */
 function sealFrom(res: Response): string {
@@ -100,7 +111,7 @@ describe.each([
 
 describe('resuming a parked link after sign-in (task 842601f2)', () => {
   const resumeReq = (seal: string) =>
-    new NextRequest('https://astrid.cc/api/v1/integrations/resume', {
+    new NextRequest(`https://${BRAND.domain}/api/v1/integrations/resume`, {
       headers: seal ? { cookie: `${PENDING_LINK_COOKIE}=${encodeURIComponent(seal)}` } : {},
     })
 
@@ -126,7 +137,7 @@ describe('resuming a parked link after sign-in (task 842601f2)', () => {
       'google',
       VICTIM,
       'prov_code',
-      'https://astrid.cc/api/v1/integrations/google/callback',
+      `https://${BRAND.domain}/api/v1/integrations/google/callback`,
     )
   })
 

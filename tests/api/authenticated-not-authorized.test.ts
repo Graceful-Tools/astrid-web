@@ -5,6 +5,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fs from 'fs'
 
+// Module scope, not inside the describe: `await` is only legal at the top level
+// of a module. vi.mock factories hoist above the imports, so a plain
+// `import { BRAND }` would still be in its temporal dead zone when the factory
+// below runs — vi.hoisted with a dynamic import is evaluated in the hoisted
+// block itself, which is why this works (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
+
 describe('reminders/status', () => {
   const source = fs.readFileSync('app/api/reminders/status/route.ts', 'utf8')
 
@@ -48,7 +55,7 @@ describe('oauth discovery documents', () => {
 describe('resolveDiscoveryBaseUrl', () => {
   const headers = vi.hoisted(() => vi.fn())
   vi.mock('next/headers', () => ({ headers }))
-  vi.mock('@/lib/base-url', () => ({ getBaseUrl: () => 'https://astrid.cc/' }))
+  vi.mock('@/lib/base-url', () => ({ getBaseUrl: () => `https://${BRAND.domain}/` }))
 
   beforeEach(() => vi.clearAllMocks())
 
@@ -60,22 +67,25 @@ describe('resolveDiscoveryBaseUrl', () => {
 
   it('honours a preview subdomain of the brand domain', async () => {
     const { resolveDiscoveryBaseUrl } = await import('@/lib/oauth/discovery-base-url')
-    withHost('feature-x.astrid.cc')
+    withHost(`feature-x.${BRAND.domain}`)
 
-    expect(await resolveDiscoveryBaseUrl()).toBe('https://feature-x.astrid.cc')
+    expect(await resolveDiscoveryBaseUrl()).toBe(`https://feature-x.${BRAND.domain}`)
   })
 
   it('ignores an attacker-supplied host and falls back to the configured base URL', async () => {
     const { resolveDiscoveryBaseUrl } = await import('@/lib/oauth/discovery-base-url')
     withHost('evil.test')
 
-    expect(await resolveDiscoveryBaseUrl()).toBe('https://astrid.cc')
+    expect(await resolveDiscoveryBaseUrl()).toBe(`https://${BRAND.domain}`)
   })
 
   it('is not fooled by a lookalike domain', async () => {
     const { resolveDiscoveryBaseUrl } = await import('@/lib/oauth/discovery-base-url')
-    withHost('evil-astrid.cc')
+    // The lookalike is BUILT from the brand domain rather than spelled out. A
+    // partner build must reject a lookalike of THEIR domain — ours would sail
+    // past their prefix check and the test would pass while proving nothing.
+    withHost(`evil-${BRAND.domain}`)
 
-    expect(await resolveDiscoveryBaseUrl()).toBe('https://astrid.cc')
+    expect(await resolveDiscoveryBaseUrl()).toBe(`https://${BRAND.domain}`)
   })
 })

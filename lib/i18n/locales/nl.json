@@ -900,21 +900,38 @@
     "assigneeFilter": "Toegewezen-filter",
     "dueDateFilter": "Vervaldatumfilter",
     "sort": {
-      "recentlyCompleted": "Recent voltooid"
+      "recentlyCompleted": "Recent voltooid",
+      "auto": "Automatisch",
+      "priority": "Prioriteit",
+      "date": "Datum",
+      "who": "Wie",
+      "completed": "Voltooid",
+      "incomplete": "Onvoltooid",
+      "manual": "Handmatig"
     },
     "show": {
       "allTasks": "Alle taken",
       "completedOnly": "Alleen voltooide",
-      "incompleteOnly": "Alleen onvoltooide"
+      "incompleteOnly": "Alleen onvoltooide",
+      "default": "Onvoltooid + Onlangs voltooid"
     },
     "priority": {
-      "all": "Alle prioriteiten"
+      "all": "Alle prioriteiten",
+      "highest": "!!! Hoogste",
+      "high": "!! Hoog",
+      "medium": "! Gemiddeld",
+      "low": "○ Laag"
     },
     "due": {
       "allDates": "Alle datums",
       "thisCalendarWeek": "Deze kalenderweek",
       "thisCalendarMonth": "Deze kalendermaand",
-      "noDate": "Geen datum"
+      "noDate": "Geen datum",
+      "overdue": "Verlopen",
+      "today": "Vandaag",
+      "tomorrow": "Morgen",
+      "next7Days": "Komende 7 dagen",
+      "next30Days": "Komende 30 dagen"
     }
   },
   "reminderSettings": {

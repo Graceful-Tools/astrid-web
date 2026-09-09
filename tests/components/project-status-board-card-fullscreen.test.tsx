@@ -124,20 +124,36 @@ async function expandCard(u: ReturnType<typeof userEvent.setup>) {
   await u.click(card)
 }
 
+/**
+ * Click Full screen / Exit full screen, wherever it currently lives.
+ *
+ * AWTD-872 moved it off the card gutter and into the ⋯ menu — the gutter was
+ * stacking three 20px targets. The control and its labels are unchanged; only
+ * the number of taps to reach it is. These tests are about what full screen
+ * DOES, so they go through the menu rather than re-asserting its placement
+ * (tests/components/task-detail/task-card-expand-in-menu.tsx owns that).
+ */
+async function clickFullScreen(u: ReturnType<typeof userEvent.setup>, label: 'Full screen' | 'Exit full screen') {
+  await u.click(screen.getByRole('button', { name: 'Task actions' }))
+  await u.click(await screen.findByRole('menuitem', { name: label }))
+}
+
 describe('Board card task details — full screen (task 52bf1efb)', () => {
   it('offers the full-screen control on an expanded card', async () => {
     const u = userEvent.setup()
     renderBoard()
     await expandCard(u)
 
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+    // Reachable from the ⋯ menu since AWTD-872; the gutter button is gone.
+    await u.click(screen.getByRole('button', { name: 'Task actions' }))
+    expect(await screen.findByRole('menuitem', { name: 'Full screen' })).toBeInTheDocument()
   })
 
   it('expands against the viewport, not the card', async () => {
     const u = userEvent.setup()
     renderBoard()
     await expandCard(u)
-    await u.click(screen.getByLabelText('Full screen'))
+    await clickFullScreen(u, 'Full screen')
 
     const panel = document.querySelector('[data-task-detail-panel][data-fullscreen="true"]')
     expect(panel).toBeTruthy()
@@ -166,10 +182,10 @@ describe('Board card task details — full screen (task 52bf1efb)', () => {
     renderBoard()
     await expandCard(u)
 
-    await u.click(screen.getByLabelText('Full screen'))
+    await clickFullScreen(u, 'Full screen')
     expect(document.querySelector('[data-fullscreen="true"]')).toBeTruthy()
 
-    await u.click(screen.getByLabelText('Exit full screen'))
+    await clickFullScreen(u, 'Exit full screen')
     expect(document.querySelector('[data-fullscreen="true"]')).toBeNull()
     // and the card's own inline panel is still there
     expect(screen.getByTestId('status-card-task-1')).toBeInTheDocument()

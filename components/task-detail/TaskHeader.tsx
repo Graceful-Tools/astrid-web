@@ -198,22 +198,17 @@ export function TaskHeader({
              *  has to stay 12px, because that is what separates the leading
              *  control from the title on the collapsed row. */
             <div className="flex flex-col items-center -my-1 -ml-2.5 flex-shrink-0">
-              {onToggleFullScreen && (
-                // The compact header used to omit this entirely, so a board
-                // card's details had no way to expand however long the
-                // description was. Same handler-decides rule as the roomy
-                // branch below — the caller opts in. (Task 52bf1efb)
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onToggleFullScreen}
-                  className="theme-text-muted hover:theme-text-primary h-5 w-5 p-0"
-                  aria-label={fullScreen ? "Exit full screen" : "Full screen"}
-                  title={fullScreen ? "Exit full screen" : "Full screen"}
-                >
-                  {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </Button>
-              )}
+              {/* Full screen is NOT a button here — it is an item in the menu
+               *  below (AWTD-872). This column used to stack three 20px targets
+               *  vertically inside a card gutter: full screen, collapse, and the
+               *  menu. Two is what a card can carry.
+               *
+               *  Full screen is the one that moved because the other two cannot:
+               *  collapse undoes the tap that expanded the card, and the menu is
+               *  where every other secondary action already lives. Task 52bf1efb
+               *  added full screen here in the first place — a board card's
+               *  details had no way to expand however long the description was —
+               *  so it is still reachable, one tap deeper. */}
               {onClose && (
                 <Button
                   variant="ghost"
@@ -237,6 +232,8 @@ export function TaskHeader({
                 onTestReminder={onTestReminder}
                 onCancel={onCancel}
                 onStatusSelect={onStatusSelect}
+                onToggleFullScreen={onToggleFullScreen}
+                fullScreen={fullScreen}
               />
             </div>
           ) : (

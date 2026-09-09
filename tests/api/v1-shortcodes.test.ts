@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// vi.mock factories are hoisted above the imports, so a plain `import { BRAND }`
+// is still in its temporal dead zone here. vi.hoisted with a dynamic import is
+// evaluated in the hoisted block itself, which is why it works (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     task: {
@@ -31,7 +35,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
 vi.mock('@/lib/shortcode', () => ({
   createShortcode: vi.fn(),
   getShortcodesForTarget: vi.fn(),
-  buildShortcodeUrl: vi.fn((code: string) => `https://astrid.cc/s/${code}`),
+  buildShortcodeUrl: vi.fn((code: string) => `https://${BRAND.domain}/s/${code}`),
 }))
 
 import { POST, GET } from '@/app/api/v1/shortcodes/route'
@@ -117,7 +121,7 @@ describe('POST /api/v1/shortcodes', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.shortcode.code).toBe('abc123')
-    expect(json.url).toBe('https://astrid.cc/s/abc123')
+    expect(json.url).toBe(`https://${BRAND.domain}/s/abc123`)
   })
 
   it('returns 404 when list is not accessible', async () => {
@@ -158,7 +162,7 @@ describe('GET /api/v1/shortcodes', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.shortcodes).toHaveLength(2)
-    expect(json.shortcodes[0].url).toBe('https://astrid.cc/s/abc')
+    expect(json.shortcodes[0].url).toBe(`https://${BRAND.domain}/s/abc`)
     expect(json.meta.count).toBe(2)
   })
 })

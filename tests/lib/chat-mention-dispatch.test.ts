@@ -19,6 +19,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// vi.mock factories are hoisted above the imports, so a plain `import { BRAND }`
+// is still in its temporal dead zone here. vi.hoisted with a dynamic import is
+// evaluated in the hoisted block itself, which is why it works (AWTD-867).
+const { BRAND } = await vi.hoisted(async () => await import('@/lib/brand/config'))
 const findMany = vi.hoisted(() => vi.fn())
 const findUnique = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/prisma', () => ({
@@ -38,7 +42,7 @@ vi.mock('@/lib/push-notification-service', () => ({
   },
 }))
 
-vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: 'astrid@astrid.cc' }))
+vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: `astrid@${BRAND.agentEmailDomain}` }))
 
 import { dispatchChatMentions } from '@/lib/chat-mention-dispatch'
 
@@ -82,7 +86,7 @@ describe('dispatchChatMentions (task 26311472)', () => {
   })
 
   it('does NOT dispatch Astrid — iOS answers her on device, and two answers is worse than none', async () => {
-    findMany.mockResolvedValue([{ id: 'agent-astrid', isAIAgent: true, email: 'astrid@astrid.cc' }])
+    findMany.mockResolvedValue([{ id: 'agent-astrid', isAIAgent: true, email: `astrid@${BRAND.agentEmailDomain}` }])
 
     const result = await dispatchChatMentions({ ...base, content: mention('agent-astrid', 'Astrid') })
 

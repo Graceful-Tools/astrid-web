@@ -131,7 +131,12 @@ describe('the API boundary rejects an invalid value (task e16e9b94)', () => {
     const source = readFileSync(join(process.cwd(), 'services/task.service.ts'), 'utf8')
 
     expect(source).toContain('parseRepeating')
-    expect(source).toContain('parseCompletedSource')
+    // parseCompletionStamp pairs parseCompletedAt with parseCompletedSource, so
+    // a caller cannot validate one and forget the other. The service reaches
+    // completedSource through it rather than calling the parser directly
+    // (AWTD-873); what this rule cares about is that the validation happens
+    // HERE, not which of the two names appears.
+    expect(source).toContain('parseCompletionStamp')
 
     // The pass-through this replaced. If it comes back, the validation is dead
     // code sitting next to the assignment that ignores it.
@@ -144,6 +149,23 @@ describe('the API boundary rejects an invalid value (task e16e9b94)', () => {
       .join('\n')
     expect(code).not.toContain('data.repeating = intent.repeating')
     expect(code).not.toContain("repeating: input.repeating || 'never'")
+  })
+
+  it('still validates completedSource, now via parseCompletionStamp (AWTD-873)', async () => {
+    // Moving the call behind a wrapper must not quietly drop the check. The
+    // rule above greps for a NAME; this asserts the BEHAVIOUR, which is the
+    // half a rename cannot fake.
+    const { parseCompletionStamp } = await import('@/lib/task-enums')
+
+    const bad = parseCompletionStamp({ completedSource: 'telepathy' })
+    expect(bad.ok).toBe(false)
+
+    const good = parseCompletionStamp({ completedSource: 'google' })
+    expect(good.ok && good.value.completedSource).toBe('google')
+
+    // Absent provenance is the ordinary case and means the app itself.
+    const absent = parseCompletionStamp({})
+    expect(absent.ok && absent.value.completedSource).toBe('astrid')
   })
 
   it('returns a 400 rather than throwing, so the caller gets a usable message', () => {

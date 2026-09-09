@@ -210,3 +210,37 @@ export function parseCompletedAt(
 
   return { ok: true, value: parsed }
 }
+
+/**
+ * The completion stamp: WHEN it was completed and WHERE that happened.
+ *
+ * Both fields are client-supplied audit data and both have a parser above; this
+ * pairs them so a caller cannot validate one and forget the other. It lives here
+ * rather than in services/task.service.ts because that file is on the
+ * oversized-files ratchet and this is self-contained validation with no
+ * knowledge of Prisma, the request, or the task being updated (AWTD-873).
+ *
+ * `completedAt` absent means "the server stamps now", which is the caller's
+ * decision to make — so it comes back undefined rather than defaulted here.
+ */
+export function parseCompletionStamp(input: {
+  completedAt?: string | Date | null
+  completedSource?: string | null
+}): ParseResult<{ completedAt: Date | undefined; completedSource: string }> {
+  const at = parseCompletedAt(input.completedAt)
+  if (!at.ok) return at
+
+  const source = parseCompletedSource(input.completedSource)
+  if (!source.ok) return source
+
+  return {
+    ok: true,
+    value: {
+      completedAt: at.value,
+      // An audit field: a provenance nothing wrote is worse than none, so an
+      // unrecognised value is rejected above rather than defaulted away
+      // (task e16e9b94). Absent is the ordinary case and means the app itself.
+      completedSource: source.value ?? 'astrid',
+    },
+  }
+}

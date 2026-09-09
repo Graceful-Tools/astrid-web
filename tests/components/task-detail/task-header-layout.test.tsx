@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { Task, User } from '@/types/task'
 
 vi.mock('@/contexts/feature-flag-context', () => ({
@@ -133,19 +134,32 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
   })
 
-  it('offers it on the compact/inline panel too (task 52bf1efb)', () => {
-    // This used to assert the opposite — the compact header omitted the control
-    // on the reasoning that an inline panel is a peek. Jon asked for it on the
-    // board card, where the expanded card IS the only way to read the task, so
-    // the compact header now carries the toggle above its collapse chevron.
+  it('still offers it on the compact/inline panel — now via the menu (52bf1efb, AWTD-872)', async () => {
+    // The CAPABILITY is what 52bf1efb won and what this test defends: a board
+    // card's details must be expandable, because the expanded card is the only
+    // way to read a long description there. That has not changed.
+    //
+    // Its PLACEMENT has. It was a button stacked above the collapse chevron,
+    // which put three 20px targets in a card's gutter — the clutter AWTD-872
+    // reports. It is a menu item now, one tap deeper and still reachable.
+    const u = userEvent.setup()
     renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn() })
-    expect(screen.getByLabelText('Full screen')).toBeInTheDocument()
+
+    expect(screen.queryByRole('button', { name: 'Full screen' })).not.toBeInTheDocument()
+
+    await u.click(screen.getByRole('button', { name: 'Task actions' }))
+    expect(await screen.findByRole('menuitem', { name: /full screen/i })).toBeInTheDocument()
   })
 
-  it('still omits it on the compact panel when no handler is passed', () => {
-    // The opt-in is the gate, in both header layouts.
+  it('still omits it on the compact panel when no handler is passed', async () => {
+    // The opt-in is the gate, in both header layouts — and it still gates the
+    // menu item now that the control lives there.
+    const u = userEvent.setup()
     renderHeader({ onClose: vi.fn(), compact: true })
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
+
+    await u.click(screen.getByRole('button', { name: 'Task actions' }))
+    expect(screen.queryByRole('menuitem', { name: /full screen/i })).not.toBeInTheDocument()
   })
 
   it('omits it entirely when the parent passes no handler', () => {
