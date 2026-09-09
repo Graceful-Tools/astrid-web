@@ -54,7 +54,7 @@ import {
 } from '@/lib/task-update-handler'
 import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
 import { parseClosedReason } from '@/lib/closed-reason'
-import { parseCompletedSource, parseRepeating } from '@/lib/task-enums'
+import { parseCompletedAt, parseCompletedSource, parseRepeating } from '@/lib/task-enums'
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
@@ -1354,7 +1354,15 @@ export async function updateTaskWithSideEffects(args: {
   // provider's real completion time; completedSource records where it happened
   // (astrid | google | github | apple).
   if (requestedCompleted === true) {
-    data.completedAt = intent.completedAt ? new Date(intent.completedAt) : new Date()
+    // Validated, not just coerced. `new Date('yesterday')` is an Invalid Date
+    // rather than a throw, so an unvalidated stamp reached Prisma and came back
+    // as a 500; and nothing bounded the value at all, so a client clock set to
+    // next year would pin the completion to the top of every recently-completed
+    // window forever. The bound is one-sided on purpose — see parseCompletedAt
+    // for why backwards has no defensible floor here (AWTD-873).
+    const parsedCompletedAt = parseCompletedAt(intent.completedAt)
+    if (!parsedCompletedAt.ok) return { ok: false, status: 400, error: parsedCompletedAt.error }
+    data.completedAt = parsedCompletedAt.value ?? new Date()
     const parsedSource = parseCompletedSource(intent.completedSource)
     if (!parsedSource.ok) return { ok: false, status: 400, error: parsedSource.error }
     // An audit field: a provenance nothing wrote is worse than none, so an

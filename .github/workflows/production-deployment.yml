@@ -402,54 +402,25 @@ jobs:
 
           echo "🎯 Production health checks passed!"
 
-  # Job 5: Update AI Agent Tasks (if applicable)
-  update-ai-tasks:
-    name: 'Update AI Tasks'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [deploy-production, health-check]
-    if: needs.deploy-production.outputs.deployment-success == 'true'
-    continue-on-error: true  # Don't fail deployment if this fails
-    steps:
-      - name: Check for AI Agent Related Changes
-        id: check-ai-changes
-        run: |
-          echo "Checking if this deployment includes AI agent changes..."
-
-          # Check if any AI-related files were changed in this push
-          AI_CHANGES=$(git diff --name-only HEAD~1..HEAD | grep -E "(ai-|coding-|github-)" | wc -l)
-
-          if [ "$AI_CHANGES" -gt 0 ]; then
-            echo "ai_changes=true" >> $GITHUB_OUTPUT
-            echo "✅ AI agent related changes detected"
-          else
-            echo "ai_changes=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No AI agent related changes"
-          fi
-
-      - name: Notify AI Agent of Deployment
-        if: steps.check-ai-changes.outputs.ai_changes == 'true'
-        env:
-          DEPLOYMENT_URL: ${{ needs.deploy-production.outputs.deployment-url }}
-          ASTRID_WEBHOOK_URL: ${{ secrets.ASTRID_WEBHOOK_URL || needs.deploy-production.outputs.deployment-url }}
-          ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
-        run: |
-          echo "Notifying AI agent of successful deployment..."
-
-          # Find any open coding workflows that might be affected
-          curl -s -X POST "$ASTRID_WEBHOOK_URL/api/coding-agent/deployment-complete" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $ASTRID_MCP_TOKEN" \
-            -d "{
-              \"deploymentUrl\": \"$DEPLOYMENT_URL\",
-              \"environment\": \"production\",
-              \"githubContext\": {
-                \"repository\": \"$GITHUB_REPOSITORY\",
-                \"ref\": \"$GITHUB_REF\",
-                \"sha\": \"$GITHUB_SHA\",
-                \"runId\": \"$GITHUB_RUN_ID\"
-              }
-            }" || echo "Warning: Could not notify AI agent of deployment"
+  # Job 5 (Update AI Agent Tasks) was REMOVED — AWTD-868.
+  #
+  # Its only real step POSTed to /api/coding-agent/deployment-complete, a route
+  # that has never existed: `git log -S deployment-complete -- app/` finds it in
+  # no commit, ever. It was wired up from this end only.
+  #
+  # It could not have run in any case. The job had NO checkout step, so its
+  # gating step — `git diff --name-only HEAD~1..HEAD` — had no work tree, and the
+  # `ai_changes` output it produced was never true. Since #204 made this workflow
+  # workflow_dispatch-only, HEAD~1..HEAD would not have meant anything either.
+  #
+  # And the `|| echo "Warning: Could not notify..."` could never fire: `curl -s`
+  # exits 0 on a 404, because an HTTP error is not a curl failure without --fail.
+  # It read as error handling and was guaranteed dead code, which is how this
+  # survived. Any curl added here must check its STATUS, as the health checks
+  # above already do.
+  #
+  # Notifying a task when a deploy finishes is still worth having. It needs an
+  # endpoint built first, which is filed rather than faked here.
 
   # Job 6: Deployment Summary
   deployment-summary:

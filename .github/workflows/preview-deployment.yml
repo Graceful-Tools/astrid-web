@@ -351,64 +351,25 @@ jobs:
             echo "✅ No obvious secrets detected"
           fi
 
-  # Job 5: Notify AI Agent (if PR is from AI)
-  notify-ai-agent:
-    name: 'Notify AI Agent'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build-test, deploy-preview]
-    if: always() && github.event.pull_request.user.login == 'astrid-code-assistant'
-    steps:
-      - name: Extract Task ID from PR
-        id: extract-task
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          # Try to extract task ID from PR title or body
-          # Look for task ID pattern in title or body
-          TASK_ID=$(printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | grep -oE "task[_-]?id:?\s*[0-9a-fA-F-]{36}" | head -1 | sed -E 's/.*[_-]?id:?\s*//')
-
-          if [[ "$TASK_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
-            echo "Found task ID: $TASK_ID"
-            echo "task_id=$TASK_ID" >> $GITHUB_OUTPUT
-          else
-            echo "No task ID found in PR title or body"
-          fi
-
-      - name: Update Astrid Task Status
-        if: steps.extract-task.outputs.task_id != ''
-        env:
-          ASTRID_WEBHOOK_URL: ${{ secrets.ASTRID_WEBHOOK_URL || 'https://astrid.cc' }}
-          ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
-          TASK_ID: ${{ steps.extract-task.outputs.task_id }}
-          PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview-url }}
-          BUILD_SUCCESS: ${{ needs.build-test.outputs.build-success }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          echo "Updating Astrid task status..."
-
-          STATUS="TESTING"
-          if [ "$BUILD_SUCCESS" != "true" ]; then
-            STATUS="FAILED"
-          fi
-
-          curl -s -X POST "$ASTRID_WEBHOOK_URL/api/coding-agent/preview-ready" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $ASTRID_MCP_TOKEN" \
-            -d "{
-              \"taskId\": \"$TASK_ID\",
-              \"status\": \"$STATUS\",
-              \"previewUrl\": \"$PREVIEW_URL\",
-              \"prUrl\": \"$PR_URL\",
-              \"githubContext\": {
-                \"repository\": \"$GITHUB_REPOSITORY\",
-                \"pr_number\": $PR_NUMBER,
-                \"sha\": \"$PR_HEAD_SHA\"
-              }
-            }" || echo "Warning: Could not update Astrid task status"
+  # Job 5 (Notify AI Agent) was REMOVED — AWTD-868.
+  #
+  # It POSTed the preview URL and task status to
+  # /api/coding-agent/preview-ready, which was never a live route. The name
+  # appears exactly once in this repository's history, inside
+  # app/api/coding-agent/trigger-github-actions/route.ts.BACKUP — and Next.js
+  # does not load .backup files, so it never served a request. 58e3d83b deleted
+  # those backups as dead code.
+  #
+  # Repointing it at /api/coding-agent/workflow-complete, which does exist, would
+  # not work: that route requires a CodingTaskWorkflow row for the task and the
+  # task to be assigned to the coding agent. Both belong to astrid-coding-agent.yml,
+  # so an ordinary preview deploy would 404 on nearly every run — a different
+  # silent failure rather than a fix.
+  #
+  # The Extract Task ID step went with it; it fed nothing else.
+  #
+  # Posting the preview link back to the task is genuinely useful and is filed
+  # as its own task rather than dropped. It needs the endpoint to exist first.
 
   # Job 6: Summary
   summary:

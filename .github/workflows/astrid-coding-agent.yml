@@ -372,8 +372,18 @@ jobs:
         run: |
           echo "${{ steps.status.outputs.status_emoji }} $STATUS_MESSAGE"
 
-          # Post workflow completion status to Astrid
-          curl -s -X POST "$ASTRID_WEBHOOK_URL/api/coding-agent/workflow-complete" \
+          # Post workflow completion status to Astrid.
+          #
+          # The status is CAPTURED and checked. This used to end in
+          # `|| echo "Warning: Could not post results to Astrid"`, which could
+          # never run: `curl -s` exits 0 on a 404, because an HTTP error is not a
+          # curl failure without --fail. It read as error handling and was dead
+          # code — and that is exactly how two sibling calls in the deploy
+          # workflows went on POSTing to routes that had never existed, silently,
+          # on every run (AWTD-868). A notification nobody can see failing is a
+          # notification nobody knows they lost.
+          HTTP_STATUS=$(curl -s -o /tmp/workflow-complete.out -w "%{http_code}" \
+            -X POST "$ASTRID_WEBHOOK_URL/api/coding-agent/workflow-complete" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ASTRID_MCP_TOKEN" \
             -d "{
@@ -387,7 +397,17 @@ jobs:
                 \"prUrl\": \"$PR_URL\",
                 \"previewUrl\": \"$PREVIEW_URL\"
               }
-            }" || echo "Warning: Could not post results to Astrid"
+            }" || echo "000")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Posted workflow completion to Astrid"
+          else
+            # Loud, but not fatal: the code has already been built and reviewed by
+            # the time this runs, so failing the job here would report a healthy
+            # workflow as broken. Say it in the summary instead of swallowing it.
+            echo "::warning::Could not post results to Astrid — HTTP $HTTP_STATUS from /api/coding-agent/workflow-complete"
+            echo "Response: $(head -c 500 /tmp/workflow-complete.out 2>/dev/null)"
+          fi
 
       - name: Summary
         run: |

@@ -140,3 +140,73 @@ export function isListMemberRole(value: unknown): value is ListMemberRole {
     (LIST_MEMBER_ROLES as readonly string[]).includes(value.toLowerCase())
   )
 }
+
+// ─── Task.completedAt ─────────────────────────────────────────────────────
+
+/**
+ * How far ahead of the server a client's clock may be and still be believed.
+ *
+ * Phones drift. A completion stamped a few seconds from now is a normal device,
+ * not a lie, and failing it would turn a correct completion into an error the
+ * user cannot act on. Two hours is generous enough to cover a device on the
+ * wrong side of a timezone rounding bug while still catching the cases this
+ * bound exists for — a clock set to next year, or a due date sent by mistake.
+ */
+const COMPLETED_AT_FUTURE_TOLERANCE_MS = 2 * 60 * 60 * 1000
+
+/**
+ * Validate a client-supplied completion time (AWTD-873).
+ *
+ * `completedAt` is one of the few audit fields a CLIENT gets to write, and until
+ * now the service took whatever it was handed: `new Date(intent.completedAt)`,
+ * no check. Two things went wrong with that.
+ *
+ * **Unparseable input became an Invalid Date.** `new Date('yesterday')` is not an
+ * error, it is a Date whose time is NaN, which Prisma then rejects — so a caller's
+ * typo surfaced as a 500. The v1 route pre-validates (lib/api-contracts), but the
+ * MCP, legacy and agent paths do not, and this service is the choke point all of
+ * them go through. A check at one surface looks complete and covers a fifth of
+ * the traffic.
+ *
+ * **Nothing bounded the value.** AWTD-861 saw four completions land carrying a
+ * stamp 6.5 minutes stale; astrid-ios traced it to an offline Outbox drained late,
+ * each PUT replaying the timestamp it had held since enqueue.
+ *
+ * The bound is deliberately ONE-SIDED, and that is the interesting part:
+ *
+ *   - **Backwards: no floor.** The staleness above is the feature. An offline
+ *     client must record when a completion happened, not when it drained. The
+ *     tempting floor — the row's own `createdAt` — is wrong here, and the
+ *     counter-example is in the tree: `lib/sync/github/apply-issues.ts` writes
+ *     `completedAt` from an issue's `closed_at`, so importing an issue closed
+ *     last year onto a row created today is both legitimate and routine.
+ *
+ *   - **Forwards: a hard bound.** Nothing is completed in the future, from any
+ *     client, ever. This is the one claim no caller can defend, and a wrong one
+ *     corrupts the audit trail invisibly — a future stamp sorts to the top of
+ *     every "recently completed" window and stays there.
+ *
+ * Returns `value: undefined` for an absent stamp, which means "the server stamps
+ * now" — distinct from a rejection, and distinct from null.
+ */
+export function parseCompletedAt(
+  value: string | Date | null | undefined,
+  now: Date = new Date(),
+): ParseResult<Date | undefined> {
+  if (value === undefined || value === null) return { ok: true, value: undefined }
+
+  const parsed = value instanceof Date ? value : new Date(value)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return { ok: false, error: 'completedAt must be a valid ISO 8601 date' }
+  }
+
+  if (parsed.getTime() > now.getTime() + COMPLETED_AT_FUTURE_TOLERANCE_MS) {
+    return {
+      ok: false,
+      error: 'completedAt cannot be in the future',
+    }
+  }
+
+  return { ok: true, value: parsed }
+}
