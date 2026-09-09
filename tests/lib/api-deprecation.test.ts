@@ -61,9 +61,6 @@ describe('isLegacyApiPath', () => {
     '/api/upload',
     '/api/users/abc/profile',
     '/api/users/search',
-    '/api/secure-files/abc',
-    '/api/secure-files/abc/upload-url',
-    '/api/secure-files/abc/confirm-upload',
     '/api/secure-upload/request-upload',
     '/api/secure-upload/get-upload-url',
     '/api/user/settings',
@@ -247,6 +244,20 @@ describe('LEGACY_SUNSET_HTTP_DATE', () => {
     expect(LEGACY_SUNSET_HTTP_DATE).toMatch(
       /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/
     )
+  })
+})
+
+describe('permanently exempt non-auth routes (task 79195f81)', () => {
+  // Moved out of the legacy set: their URLs are DATA. Attachment links are
+  // persisted in comment and message content, nothing in the repo builds the
+  // legacy path any more, and a link copied into an email keeps pointing here
+  // whatever we do to the database. See PERMANENT_ALIAS_PREFIXES.
+  it.each([
+    '/api/secure-files/abc',
+    '/api/secure-files/abc/upload-url',
+    '/api/secure-files/abc/confirm-upload',
+  ])('does not count the persisted-URL route %s', path => {
+    expect(isLegacyApiPath(path)).toBe(false)
   })
 })
 
