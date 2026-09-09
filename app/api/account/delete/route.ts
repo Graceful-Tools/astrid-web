@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
-import { del } from "@vercel/blob"
+import { deleteObject } from "@/lib/secure-storage"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('account.delete')
@@ -80,11 +80,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Delete all user files from Vercel Blob storage
+    // Delete all user files from object storage
     if (user.secureFiles.length > 0) {
       // Use Promise.allSettled to attempt all deletions even if some fail
       const deletionResults = await Promise.allSettled(
-        user.secureFiles.map(file => del(file.blobUrl))
+        user.secureFiles.map(file => deleteObject(file.blobUrl))
       )
 
       // Log any failures but continue with account deletion

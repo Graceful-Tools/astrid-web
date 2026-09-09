@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
-import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
+import { issueClientUploadToken } from "@/lib/secure-storage"
 import { createLogger } from '@/lib/logger'
 import { findSecureFileByClientRequestId } from "@/lib/secure-file-idempotency"
 import { validateSecureUpload, SECURE_UPLOAD_MIME_TYPES } from '@/lib/upload-validation'
@@ -205,9 +205,8 @@ export async function POST(request: NextRequest) {
       : process.env.NEXTAUTH_URL || `https://${BRAND.domain}`
     const callbackUrl = `${baseUrl}/api/secure-upload/upload-complete`
 
-    // Generate client token for direct upload to Vercel Blob
-    const clientToken = await generateClientTokenFromReadWriteToken({
-      token: process.env.BLOB_READ_WRITE_TOKEN!,
+    // Client token for a direct upload to the object store.
+    const { token: clientToken, uploadUrl } = await issueClientUploadToken({
       pathname,
       onUploadCompleted: {
         callbackUrl,
@@ -233,9 +232,9 @@ export async function POST(request: NextRequest) {
       uploadToken: clientToken,
       pathname,
       fileId,
-      // For iOS: use PUT to https://blob.vercel-storage.com/{pathname}
-      // with header "x-vercel-blob-client-token: {uploadToken}"
-      uploadUrl: `https://blob.vercel-storage.com/${pathname}`,
+      // For iOS: PUT to this uploadUrl with header
+      // "x-vercel-blob-client-token: {uploadToken}".
+      uploadUrl,
     })
 
   } catch (error) {

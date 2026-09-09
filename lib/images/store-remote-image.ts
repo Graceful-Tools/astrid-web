@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { del, put } from '@vercel/blob'
+import { deleteObject, putObject } from '@/lib/secure-storage'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { downloadRemoteImage } from '@/lib/security/remote-image'
@@ -19,8 +19,7 @@ export async function storeRemoteImageForUser(
   const fileId = randomUUID()
   const filename = `generated-${fileId}.${image.extension}`
   const pathname = `uploads/${userId}/${filename}`
-  const blob = await put(pathname, Buffer.from(image.bytes), {
-    access: 'public',
+  const blob = await putObject(pathname, Buffer.from(image.bytes), {
     contentType: image.contentType,
   })
 
@@ -37,7 +36,7 @@ export async function storeRemoteImageForUser(
       },
     })
   } catch (error) {
-    await del(blob.url).catch(cleanupError => {
+    await deleteObject(blob.url).catch(cleanupError => {
       log.error({ err: cleanupError, blobUrl: blob.url }, 'Failed to clean up untracked image blob')
     })
     throw error

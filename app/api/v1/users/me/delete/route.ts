@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
-import { del } from '@vercel/blob'
+import { deleteObject } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.users.me.delete')
@@ -49,7 +49,7 @@ export const POST = withAuth(
 
       if (user.secureFiles.length > 0) {
         const results = await Promise.allSettled(
-          user.secureFiles.map(f => del(f.blobUrl))
+          user.secureFiles.map(f => deleteObject(f.blobUrl))
         )
         const failed = results.filter(r => r.status === 'rejected')
         if (failed.length > 0) {

@@ -2,17 +2,12 @@ import { BRAND } from '@/lib/brand/config'
 import { DANGER_COLOR, accentGradientStops } from '@/lib/brand/colors'
 import type { TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { sendVerificationEmail, getFromEmail } from '@/lib/email'
-import { Resend } from 'resend'
+import { isEmailTransportLive, sendTransportEmail } from '@/lib/email-transport'
 import { getRandomReminderString } from '@/lib/reminder-constants'
 import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('email-reminder-service')
-
-
-const resend = typeof window === 'undefined' && process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null
 
 export class EmailReminderService {
   async sendTaskReminder(data: TaskReminderData): Promise<void> {
@@ -77,7 +72,7 @@ export class EmailReminderService {
     const fromEmail = getFromEmail()
 
     // In development, just log the email
-    if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
+    if (!isEmailTransportLive()) {
       log.info("📧 Reminder Email (Development Mode)")
       log.info({ to }, "To:")
       log.info({ subject }, "Subject:")
@@ -86,18 +81,13 @@ export class EmailReminderService {
     }
 
     try {
-      const { data: emailData, error } = await resend.emails.send({
+      const emailData = await sendTransportEmail({
         from: fromEmail,
-        to: [to],
+        to,
         subject,
         html,
         text,
       })
-
-      if (error) {
-        log.error({ err: error }, 'Resend error:')
-        throw new Error(`Email sending failed: ${error.message}`)
-      }
 
       log.info({ id: emailData?.id, to }, '📧 Reminder email sent successfully:')
     } catch (error) {
