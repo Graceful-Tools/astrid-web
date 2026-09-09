@@ -4,9 +4,23 @@ import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
 
-const [taskId, action, commentWatermark = ""] = process.argv.slice(2)
+const positional = process.argv.slice(2).filter(arg => !arg.startsWith("--"))
+const [taskId, action, commentWatermark = ""] = positional
+
+/**
+ * Which harness is claiming. Omitted means Copilot, because
+ * .github/workflows/fixall.yml calls this with positional arguments only and is
+ * deployed on its own schedule — the default has to keep meaning what it meant.
+ * A local Claude Code or Codex loop passes its own mailbox so the task is
+ * assigned to the harness that is actually going to do the work.
+ */
+const agentIndex = process.argv.indexOf("--agent")
+const agent = agentIndex === -1 ? undefined : process.argv[agentIndex + 1]
+
 if (!taskId || !action) {
-  console.error("Usage: claim-fixall-task.ts <task-id> <ready|recheck|review> [comment-watermark]")
+  console.error(
+    "Usage: claim-fixall-task.ts <task-id> <ready|recheck|review> [comment-watermark] [--agent <mailbox>]",
+  )
   process.exit(1)
 }
 
@@ -41,11 +55,15 @@ async function main() {
     body: JSON.stringify({
       action,
       commentWatermark: commentWatermark || null,
+      ...(agent ? { agent } : {}),
     }),
   })
 
   if (response.status === 409) {
-    console.error(`CLAIM_CONFLICT ${taskId}: task is no longer eligible`)
+    // Exit 2, not 1: another session claimed it first. That is an ordinary
+    // outcome of two loops sharing a board, and the caller should move to the
+    // next task rather than treat it as a failure.
+    console.error(`CLAIM_CONFLICT ${taskId}: claimed by someone else, or no longer eligible`)
     process.exit(2)
   }
   if (!response.ok) {

@@ -12,6 +12,42 @@ twice is a rule that disagrees with itself.
 
 ---
 
+## One session per working tree — take the lock first
+
+**Before anything else, including reading the queue:**
+
+```bash
+npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness <claude-code|github-copilot|codex>
+```
+
+Exit `0` means the tree is yours. **Exit `2` means another live session is already
+running `/fixall` here — stop, and do not read the queue.** Start again from your own
+worktree (`npm run work:start <task-slug>`), which is the arrangement this is steering
+you toward rather than away from: parallel runs are good, sharing a checkout is not.
+
+`$PPID`, not the script's own pid. In an agent's shell that is the harness session
+itself, so the lock lives exactly as long as the run and clears itself if the session
+is killed. Staleness is decided by whether the holding process is alive, never by an
+age limit — a run can legitimately sit on one hard task for a long time, and a lock
+that expires under a working session is worse than no lock.
+
+Release when the run ends: `npx tsx scripts/fixall-session.ts release --pid $PPID`.
+`status` says who holds the tree and whether they are still alive.
+
+### Why this exists, and why the board lanes do not cover it
+
+On 2026-09-09 two Claude Code `/fixall` sessions ran in one checkout. The second
+created a branch, moving `HEAD` while the first had six files uncommitted, and both
+then wrote the same fix for AWTD-865. Neither noticed until a `git status` returned
+files nobody in that session had touched.
+
+`Ready` → `Doing` claims a **task**. It says nothing about which **working tree** is
+being edited — and two sessions working two *different* tasks in one checkout corrupt
+each other just as thoroughly. The lanes and the lock answer different questions;
+neither substitutes for the other.
+
+---
+
 ## The queue
 
 **Read and write tasks through the `astrid` MCP server** (`https://www.astrid.cc/mcp`), not
@@ -136,12 +172,26 @@ identical there.
 The MCP server has no status or assign tool yet, so these two steps — and only these — use the
 OAuth scripts in astrid-web. Not the database.
 
-**Starting → move it to `Doing`**, before the strategy comment, so the window where the board
-is wrong is as small as possible:
+**Starting → claim it**, before the strategy comment, so the window where the board is
+wrong is as small as possible:
 
 ```bash
-cd ../astrid-web && npx tsx scripts/set-task-status.ts <taskId> Doing
+cd ../astrid-web && npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <mailbox>
 ```
+
+The claim is a single conditional update: it requires the task to still be `Ready` and
+writes `Doing` in the same statement, so of two simultaneous claims exactly one
+succeeds and the other is told `CLAIM_CONFLICT` (exit 2). Reading the queue and then
+writing the status as two steps leaves a window between them, and that window is wide
+enough — it is how two sessions came to work AWTD-865 at once.
+
+`--agent` is not optional for a local harness. Omitted, the claim assigns to **Copilot**,
+because the GitHub Actions worker calls this with positional arguments only and that
+default has to keep meaning what it always did. A Claude Code loop that omits it hands
+its own work to a different harness.
+
+`set-task-status.ts` remains the right tool for the OTHER transitions below — moving a
+task to `Waiting`, or handing it back. It is only the *claim* that has to be atomic.
 
 **Blocked → move it to `Waiting`, and record the RIGHT condition** (see *Waiting carries its
 condition* above). Who keeps the task depends on who can lift the block:
@@ -178,7 +228,15 @@ write if the task would be stranded, and reads back to prove it.
 
 ## Per task
 
-1. **Move it to `Doing`** (above), before anything else.
+1. **Claim it atomically** — this both takes the task and moves it to `Doing`:
+
+   ```bash
+   npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <claude|copilot|codex>
+   ```
+
+   Exit `0` is yours. **Exit `2` (`CLAIM_CONFLICT`) means another session got there
+   first — skip to the next task without comment.** That is an ordinary outcome of
+   two loops sharing a board, not a failure.
 2. **Post the session link** so Jon can follow on mobile:
    `npx tsx scripts/post-session-link.ts <taskId>`
 3. **Read the description AND the comments/attachments** — `get_task` and `get_task_comments`. A screenshot attached to the task is

@@ -21,7 +21,15 @@ TDD → gates → report), filing the other repo's half, and re-checking after e
 That file is shared with astrid-ios because it is one workflow. This file holds only what is
 different **here**.
 
-Pull the queue with the identity of the harness that is actually running this
+**First, take the working-tree lock** (docs/FIXALL_WORKFLOW.md → *One session per
+working tree*). Exit 2 means another live `/fixall` session owns this checkout —
+stop, and re-run from your own worktree via `npm run work:start <task-slug>`:
+
+```bash
+npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness claude-code
+```
+
+Then pull the queue with the identity of the harness that is actually running this
 command:
 
 ```bash
@@ -51,10 +59,20 @@ someone's untriaged note.
   migrations.)
 - **A task is DONE when it is committed on its branch with `npm run predeploy` green.** Say in
   the completion report that it is ready to ship rather than that it shipped.
-- **One isolated branch/worktree per task.** In a Copilot app session, use the branch and
-  worktree the session already created; do not run raw branch-creation commands inside it.
-  Other harnesses should reuse an already-isolated task branch or create one with their native
-  session/worktree workflow.
+- **Claim each task atomically before working it**, with this harness's own mailbox:
+  `npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent claude`. Exit 2
+  (`CLAIM_CONFLICT`) means a peer session took it first — move to the next task silently.
+  Omitting `--agent` assigns the task to Copilot.
+- **One isolated branch/worktree per task, and one `/fixall` session per working tree.**
+  In a Copilot app session, use the branch and worktree the session already created; do not
+  run raw branch-creation commands inside it. Other harnesses should reuse an already-isolated
+  task branch or create one with their native session/worktree workflow.
+
+  This is enforced, not merely advised: `scripts/fixall-session.ts` refuses to start a second
+  run in a checkout another live session holds. On 2026-09-09 two Claude Code sessions ran
+  here at once — one created a branch, moving `HEAD` while the other had six files
+  uncommitted, and both wrote the same fix for AWTD-865. **Never run `git checkout` or
+  `git checkout -b` in a tree you did not lock.**
 - **Gates:** `npm run predeploy`, plus `npm run check:reuse`.
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
   close that task with a one-line explanation rather than leaving a false alarm on the board.
