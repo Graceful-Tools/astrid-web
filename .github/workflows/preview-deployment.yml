@@ -351,25 +351,109 @@ jobs:
             echo "✅ No obvious secrets detected"
           fi
 
-  # Job 5 (Notify AI Agent) was REMOVED — AWTD-868.
+  # Job 5: Post the preview link back to the Astrid task (AWTD-875)
   #
-  # It POSTed the preview URL and task status to
-  # /api/coding-agent/preview-ready, which was never a live route. The name
-  # appears exactly once in this repository's history, inside
-  # app/api/coding-agent/trigger-github-actions/route.ts.BACKUP — and Next.js
-  # does not load .backup files, so it never served a request. 58e3d83b deleted
-  # those backups as dead code.
+  # This replaces the Notify AI Agent job AWTD-868 removed. That one POSTed to
+  # /api/coding-agent/preview-ready, which was never a live route — the name
+  # appears once in this repository's history, inside a .backup file Next.js
+  # does not load — so it 404'd silently on every run for as long as it shipped.
   #
-  # Repointing it at /api/coding-agent/workflow-complete, which does exist, would
-  # not work: that route requires a CodingTaskWorkflow row for the task and the
-  # task to be assigned to the coding agent. Both belong to astrid-coding-agent.yml,
-  # so an ordinary preview deploy would 404 on nearly every run — a different
-  # silent failure rather than a fix.
+  # It needed no new endpoint after all. /api/v1/tasks/:id/comments already
+  # exists, and the reason workflow-complete was the wrong target was never the
+  # auth MECHANISM: it was that route's two extra demands, a CodingTaskWorkflow
+  # row and the agent being the task's assignee, both of which belong to
+  # astrid-coding-agent.yml. The plain comments route has neither. It
+  # authenticates the caller and checks ordinary task access, which is exactly
+  # the auth an arbitrary preview deploy can offer.
   #
-  # The Extract Task ID step went with it; it fed nothing else.
-  #
-  # Posting the preview link back to the task is genuinely useful and is filed
-  # as its own task rather than dropped. It needs the endpoint to exist first.
+  # ASTRID_MCP_TOKEN carries scopes: ['*'] (lib/api-auth-middleware.ts), and the
+  # route authors the comment as the token's bound agent rather than its owner
+  # — auth.agentUser?.id || auth.userId — so no aiAgentId is sent, which is the
+  # caller-chosen path that route deliberately refuses for an MCP credential.
+  notify-astrid-task:
+    name: 'Post Preview Link to Task'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [deploy-preview]
+    # Runs for ANY PR that names a task, not only the coding agent's. The job
+    # this replaces was gated on the author being astrid-code-assistant; a
+    # person's PR for a task deserves the link just as much.
+    if: needs.deploy-preview.result == 'success'
+    steps:
+      - name: Extract Task ID from PR
+        id: extract-task
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # A task id is a UUID somewhere in the title or body, introduced by
+          # "task id:" in any of its usual spellings. Piped through printf with
+          # the values in env rather than interpolated into the script, so a PR
+          # title cannot become shell.
+          TASK_ID=$(printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" \
+            | grep -oiE "task[_-]?id:?[[:space:]]*[0-9a-f-]{36}" \
+            | head -1 \
+            | grep -oiE "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" || true)
+
+          # `|| true` is load-bearing. Actions runs this as `bash -e`, and grep
+          # exits 1 when it matches nothing — so without it, EVERY pull request
+          # that does not name a task would fail this step. Not finding a task
+          # id is the normal case, not an error.
+          if [ -n "$TASK_ID" ]; then
+            echo "Found task ID: $TASK_ID"
+            echo "task_id=$TASK_ID" >> $GITHUB_OUTPUT
+          else
+            echo "No task ID in the PR title or body — nothing to notify."
+          fi
+
+      - name: Post Preview Link to Task
+        if: steps.extract-task.outputs.task_id != ''
+        env:
+          ASTRID_WEBHOOK_URL: ${{ secrets.ASTRID_WEBHOOK_URL || 'https://astrid.cc' }}
+          ASTRID_MCP_TOKEN: ${{ secrets.ASTRID_MCP_TOKEN }}
+          TASK_ID: ${{ steps.extract-task.outputs.task_id }}
+          PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview-url }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # ONE comment per PR, however many times the branch redeploys.
+          # clientRequestId is honoured end to end (lib/comment-idempotency.ts):
+          # a replay returns the existing comment and fires no side effects, so
+          # a busy PR does not bury its own task under a dozen near-identical
+          # notes. Keyed on the PR rather than the deployment because a branch's
+          # preview URL is stable across redeploys.
+          CLIENT_REQUEST_ID="preview-$GITHUB_REPOSITORY-pr-$PR_NUMBER"
+
+          BODY=$(jq -n \
+            --arg url "$PREVIEW_URL" \
+            --arg pr "$PR_URL" \
+            --arg n "$PR_NUMBER" \
+            --arg crid "$CLIENT_REQUEST_ID" \
+            '{
+              content: ("🌐 **Preview is up** — [\($url)](\($url))\n\nFrom [PR #\($n)](\($pr)). Redeploys of this branch reuse the same link."),
+              type: "MARKDOWN",
+              clientRequestId: $crid
+            }')
+
+          # The status is CAPTURED and checked. The call this replaces ended in
+          # `|| echo "Warning: ..."`, which could never run — curl -s exits 0 on
+          # a 404, because an HTTP error is not a curl failure without --fail.
+          # That dead line is the whole reason a route that never existed went
+          # on being called unnoticed (AWTD-868).
+          HTTP_STATUS=$(curl -s -o /tmp/preview-comment.out -w "%{http_code}" \
+            -X POST "$ASTRID_WEBHOOK_URL/api/v1/tasks/$TASK_ID/comments" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ASTRID_MCP_TOKEN" \
+            -d "$BODY" || echo "000")
+
+          if [ "$HTTP_STATUS" = "201" ] || [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Preview link posted to task $TASK_ID (HTTP $HTTP_STATUS)"
+          else
+            # Loud, not fatal. The preview itself deployed fine; failing the job
+            # here would report a healthy deployment as broken.
+            echo "::warning::Could not post the preview link to Astrid — HTTP $HTTP_STATUS from /api/v1/tasks/:id/comments"
+            echo "Response: $(head -c 500 /tmp/preview-comment.out 2>/dev/null)"
+          fi
 
   # Job 6: Summary
   summary:
