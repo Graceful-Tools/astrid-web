@@ -21,6 +21,10 @@ import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+import {
+  PREDEPLOY_REPORT_TAG,
+  findReportTaskToUpdate,
+} from './lib/predeploy-report-tasks'
 
 // Save original environment BEFORE dotenv loads, to use for build commands
 // This prevents dotenv-loaded variables from affecting the Next.js build
@@ -547,9 +551,21 @@ class SelfHealingPredeploy {
   }
 
   /**
-   * Check if a similar task already exists
+   * The open report this run should add its comment to, or null to file a new one.
+   *
+   * Takes the exact title this run would generate, not a summary to match
+   * loosely. The old rule was two substring matches over every open task on the
+   * board — `title.includes('Predeploy')` AND the first 30 characters of a check
+   * name — which selects a person's task titled "Predeploy Failed: Documentation
+   * Links — work out why this keeps happening" just as readily as one of ours.
+   *
+   * Today that leads only to a comment. It is still the same mistake task
+   * d893debc fixed for the deployment monitor one file away, and the reason to
+   * fix it now is AWTD-540: a predeploy report ended up as another task's
+   * description, and a lookup that can return somebody else's task is the shape
+   * that turns any future description write into that. (Task 8ef93fb9.)
    */
-  private async findExistingTask(errorSummary: string): Promise<string | null> {
+  private async findExistingTask(generatedTitle: string): Promise<string | null> {
     const token = await this.getAstridToken()
     if (!token) return null
 
@@ -569,13 +585,7 @@ class SelfHealingPredeploy {
       const data = await response.json()
       const tasks = data.tasks || []
 
-      // Look for existing predeploy failure tasks
-      const existing = tasks.find((task: any) =>
-        task.title.includes('Predeploy') &&
-        task.title.includes(errorSummary.slice(0, 30))
-      )
-
-      return existing?.id || null
+      return findReportTaskToUpdate(tasks, generatedTitle)?.id ?? null
     } catch {
       return null
     }
@@ -601,15 +611,6 @@ class SelfHealingPredeploy {
     }
 
     const failedNames = failedChecks.map((c) => c.name).join(', ')
-    const errorSummary = failedChecks[0]?.name || 'Unknown'
-
-    // Check for existing task
-    const existingTaskId = await this.findExistingTask(errorSummary)
-    if (existingTaskId) {
-      console.log(`\n📝 Found existing task for this issue: ${existingTaskId}`)
-      await this.addTaskComment(existingTaskId, failedChecks, fixAttempts)
-      return existingTaskId
-    }
 
     // A task titled "Predeploy Failed" for a check that was merely killed sends
     // the reader hunting a broken test that does not exist.
@@ -618,7 +619,21 @@ class SelfHealingPredeploy {
       ? `⏱️ Predeploy Timed Out: ${failedNames}`
       : `🔴 Predeploy Failed: ${failedNames}`
 
-    const description = `## Automated Predeploy Failure Report
+    // The title is built BEFORE the lookup because the lookup matches on it
+    // exactly. Same failure, same title, same task; a different failure gets its
+    // own rather than being appended to an unrelated one.
+    const existingTaskId = await this.findExistingTask(title)
+    if (existingTaskId) {
+      console.log(`\n📝 Found existing task for this issue: ${existingTaskId}`)
+      await this.addTaskComment(existingTaskId, failedChecks, fixAttempts)
+      return existingTaskId
+    }
+
+    // Tagged so a later run recognises its own report without guessing from the
+    // words in a title, which people edit.
+    const description = `${PREDEPLOY_REPORT_TAG}
+
+## Automated Predeploy Failure Report
 
 **Generated**: ${new Date().toISOString()}
 **Duration**: ${((Date.now() - this.startTime) / 1000).toFixed(1)}s
