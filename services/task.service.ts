@@ -54,6 +54,7 @@ import {
 } from '@/lib/task-update-handler'
 import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
 import { parseClosedReason } from '@/lib/closed-reason'
+import { parseCompletedSource, parseRepeating } from '@/lib/task-enums'
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
@@ -628,12 +629,19 @@ export async function createTaskWithSideEffects(args: {
     log.error({ err }, 'Failed to allocate task identifier')
   }
 
+  // Same validation as the update path, for the same reason (task e16e9b94).
+  const parsedRepeating = parseRepeating(input.repeating)
+  if (!parsedRepeating.ok) {
+    return { ok: false, status: 400, error: parsedRepeating.error }
+  }
+  const validatedRepeating = parsedRepeating.value ?? 'never'
+
   // ── Create ────────────────────────────────────────────────────────────────
   const data: Record<string, unknown> = {
     title,
     description: input.description || '',
     priority: input.priority ?? 0,
-    repeating: input.repeating || 'never',
+    repeating: validatedRepeating,
     repeatingData: repeatingData as Prisma.InputJsonValue,
     // Only when asked for. The create path had no repeatFrom at all, so every
     // task created through an API took COMPLETION_DATE whatever the caller
@@ -1304,7 +1312,16 @@ export async function updateTaskWithSideEffects(args: {
   if (has('description')) data.description = intent.description
   if (has('priority')) data.priority = intent.priority
   if (has('isPrivate')) data.isPrivate = intent.isPrivate
-  if (has('repeating')) data.repeating = intent.repeating
+  // Validated, not passed through. `repeating` drives the roll-forward
+  // calculator, so a value outside the set is how a repeating series silently
+  // stops repeating — and this is the choke point all five write surfaces
+  // delegate through, so validating here covers every one of them
+  // (task e16e9b94).
+  if (has('repeating')) {
+    const parsed = parseRepeating(intent.repeating)
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    if (parsed.value !== undefined) data.repeating = parsed.value
+  }
   if (has('repeatFrom')) data.repeatFrom = intent.repeatFrom
   if (has('timerDuration')) data.timerDuration = intent.timerDuration
   if (has('lastTimerValue')) data.lastTimerValue = intent.lastTimerValue
@@ -1338,10 +1355,11 @@ export async function updateTaskWithSideEffects(args: {
   // (astrid | google | github | apple).
   if (requestedCompleted === true) {
     data.completedAt = intent.completedAt ? new Date(intent.completedAt) : new Date()
-    data.completedSource =
-      typeof intent.completedSource === 'string' && intent.completedSource
-        ? intent.completedSource
-        : 'astrid'
+    const parsedSource = parseCompletedSource(intent.completedSource)
+    if (!parsedSource.ok) return { ok: false, status: 400, error: parsedSource.error }
+    // An audit field: a provenance nothing wrote is worse than none, so an
+    // unrecognised value is rejected rather than defaulted away (task e16e9b94).
+    data.completedSource = parsedSource.value ?? 'astrid'
     // Done carries no board status (AWTD-562).
     data.statusRole = null
   } else if (requestedCompleted === false) {
