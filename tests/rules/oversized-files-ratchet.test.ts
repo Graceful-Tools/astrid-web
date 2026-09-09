@@ -60,12 +60,20 @@ const BUDGETS: Record<string, number> = {
   // task-detail.tsx, and it is 1,078 lines: the extraction relocated the
   // problem rather than solving it, which is precisely the failure the
   // new-file check below exists to catch, arriving here as history instead.
-  'services/task.service.ts': 1600,
+  // 1600 → 1698. Raised deliberately, not reflexively: AWTD-777 added the
+  // agent-assignment authority check (the credential vulnerability) and
+  // AWTD-856 added enum validation at the write choke point. Both belong in
+  // this file precisely BECAUSE five write surfaces delegate through it — a
+  // check anywhere else would cover one surface and look complete. The next
+  // change to this file should take something out.
+  'services/task.service.ts': 1698,
   'components/task-detail/TaskFieldEditors.tsx': 1078,
   'components/oauth-api-tester.tsx': 973,
   'mcp/mcp-server-oauth.ts': 957,
   'components/oauth-app-manager.tsx': 919,
-  'lib/email-reminder-service.ts': 801,
+  // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
+  // transport. Locking the gain in, which is what the slack check is for.
+  'lib/email-reminder-service.ts': 791,
 }
 
 /** Product code. Tests and scripts are long for their own reasons. */

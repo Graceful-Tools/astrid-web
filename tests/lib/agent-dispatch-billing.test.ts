@@ -22,11 +22,12 @@ vi.mock('@/lib/ai/agent-execution-mode', async importOriginal => {
   return { ...actual, isPollingOnlyAgent: vi.fn(async () => false) }
 })
 
+import { BRAND } from '@/lib/brand/config'
 import { notifyTaskAssignment } from '@/lib/webhooks/task-assignment-notifier'
 
 const AGENT = {
   id: 'agent-user',
-  email: 'claude@astrid.cc',
+  email: `claude@${BRAND.agentEmailDomain}`,
   name: 'Claude Agent',
   isAIAgent: true,
   aiAgentType: 'claude',
