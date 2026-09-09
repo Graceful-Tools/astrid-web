@@ -105,6 +105,7 @@ vi.mock('@/lib/analytics-events', () => ({
 }))
 
 import { prisma } from '@/lib/prisma'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma, true)
 
@@ -121,7 +122,7 @@ const task = () => ({
   title: 'A task',
   creatorId: JON,
   assigneeId: AGENT,
-  assignee: { id: AGENT, email: 'claude@astrid.cc', name: 'Claude', isAIAgent: true, aiAgentType: 'claude_agent' },
+  assignee: { id: AGENT, email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', isAIAgent: true, aiAgentType: 'claude_agent' },
   lists: [
     {
       id: 'list-1',
@@ -172,7 +173,7 @@ beforeEach(() => {
 
   getUnifiedSession.mockResolvedValue({ user: { id: JON, email: 'jon@example.com' } })
   authenticateAPI.mockResolvedValue({ userId: JON, user: { id: JON, email: 'jon@example.com' }, agentUser: null, scopes: ['comments:write'] })
-  authenticateAgentRequest.mockResolvedValue({ userId: AGENT, user: { id: AGENT, email: 'claude@astrid.cc', isAIAgent: true }, scopes: ['tasks:read', 'comments:write'] })
+  authenticateAgentRequest.mockResolvedValue({ userId: AGENT, user: { id: AGENT, email: `claude@${BRAND.agentEmailDomain}`, isAIAgent: true }, scopes: ['tasks:read', 'comments:write'] })
   resolveMCPActor.mockResolvedValue({ userId: JON, user: { id: JON, email: 'jon@example.com' }, token: { userId: JON } })
   getListMemberIdsByListId.mockResolvedValue([JON, MENTIONED])
 })

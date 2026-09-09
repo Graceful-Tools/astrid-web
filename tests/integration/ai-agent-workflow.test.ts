@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 // ============================================================================
 // MOCK SETUP
@@ -58,7 +59,7 @@ const mockTask = {
   assigneeId: 'claude-agent-id',
   assignee: {
     id: 'claude-agent-id',
-    email: 'claude@astrid.cc',
+    email: `claude@${BRAND.agentEmailDomain}`,
     name: 'Claude Code Agent',
     isAIAgent: true,
     aiAgentType: 'coding_agent'
@@ -76,7 +77,7 @@ const mockNonCodingTask = {
   assigneeId: 'gemini-agent-id',
   assignee: {
     id: 'gemini-agent-id',
-    email: 'gemini@astrid.cc',
+    email: `gemini@${BRAND.agentEmailDomain}`,
     name: 'Gemini Agent',
     isAIAgent: true,
     aiAgentType: 'gemini_agent'
@@ -103,28 +104,28 @@ const mockComments = {
     id: 'comment-start',
     content: '🤖 **Claude AI Agent Starting**\n\n**Task:** Fix button alignment issue\n**Mode:** Cloud (Claude Agent SDK)',
     authorId: 'claude-agent-id',
-    author: { email: 'claude@astrid.cc', name: 'Claude Code Agent' },
+    author: { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude Code Agent' },
     createdAt: new Date().toISOString()
   },
   plan: {
     id: 'comment-plan',
     content: '📋 **Implementation Plan**\n\n**Summary:** Fix button alignment...',
     authorId: 'claude-agent-id',
-    author: { email: 'claude@astrid.cc', name: 'Claude Code Agent' },
+    author: { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude Code Agent' },
     createdAt: new Date().toISOString()
   },
   complete: {
     id: 'comment-complete',
     content: '✅ **Implementation Complete**\n\n**PR:** [#123](https://github.com/test/repo/pull/123)',
     authorId: 'claude-agent-id',
-    author: { email: 'claude@astrid.cc', name: 'Claude Code Agent' },
+    author: { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude Code Agent' },
     createdAt: new Date().toISOString()
   },
   preview: {
     id: 'comment-preview',
     content: '🚀 **Staging Deployment Ready**\n\n**Preview URL:** https://test-preview.vercel.app',
     authorId: 'claude-agent-id',
-    author: { email: 'claude@astrid.cc', name: 'Claude Code Agent' },
+    author: { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude Code Agent' },
     createdAt: new Date().toISOString()
   },
   userFeedback: {
@@ -150,26 +151,26 @@ const mockComments = {
 describe('Stage 1: Task Analysis and Detection', () => {
   describe('Agent Type Detection', () => {
     it('should detect Claude agent from email', () => {
-      const email = 'claude@astrid.cc'
-      const isClaudeAgent = email === 'claude@astrid.cc'
+      const email = `claude@${BRAND.agentEmailDomain}`
+      const isClaudeAgent = email === `claude@${BRAND.agentEmailDomain}`
       expect(isClaudeAgent).toBe(true)
     })
 
     it('should detect OpenAI agent from email', () => {
-      const email = 'openai@astrid.cc'
-      const isOpenAIAgent = email === 'openai@astrid.cc'
+      const email = `openai@${BRAND.agentEmailDomain}`
+      const isOpenAIAgent = email === `openai@${BRAND.agentEmailDomain}`
       expect(isOpenAIAgent).toBe(true)
     })
 
     it('should detect Gemini agent from email', () => {
-      const email = 'gemini@astrid.cc'
-      const isGeminiAgent = email === 'gemini@astrid.cc'
+      const email = `gemini@${BRAND.agentEmailDomain}`
+      const isGeminiAgent = email === `gemini@${BRAND.agentEmailDomain}`
       expect(isGeminiAgent).toBe(true)
     })
 
     it('should not detect regular user as agent', () => {
       const email = 'user@example.com'
-      const isAgent = ['claude@astrid.cc', 'openai@astrid.cc', 'gemini@astrid.cc'].includes(email)
+      const isAgent = [`claude@${BRAND.agentEmailDomain}`, `openai@${BRAND.agentEmailDomain}`, `gemini@${BRAND.agentEmailDomain}`].includes(email)
       expect(isAgent).toBe(false)
     })
   })
@@ -178,7 +179,7 @@ describe('Stage 1: Task Analysis and Detection', () => {
     it('should detect new task (no comments)', () => {
       const comments: typeof mockComments.starting[] = []
       const hasAgentActivity = comments.some(c =>
-        c.author?.email?.endsWith('@astrid.cc') &&
+        c.author?.email?.endsWith(`@${BRAND.domain}`) &&
         c.content.includes('Starting')
       )
       expect(hasAgentActivity).toBe(false)
@@ -544,7 +545,7 @@ describe('Stage 6: PR Revision from Comments', () => {
 
     it('should ignore AI agent comments', () => {
       const comment = mockComments.plan
-      const isAIComment = comment.author?.email?.endsWith('@astrid.cc')
+      const isAIComment = comment.author?.email?.endsWith(`@${BRAND.domain}`)
 
       expect(isAIComment).toBe(true)
     })
@@ -737,9 +738,9 @@ Users will receive the update automatically.`
 
 describe('Cross-Agent Compatibility', () => {
   const agents = [
-    { email: 'claude@astrid.cc', name: 'Claude', service: 'claude' },
-    { email: 'openai@astrid.cc', name: 'OpenAI', service: 'openai' },
-    { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini' }
+    { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', service: 'claude' },
+    { email: `openai@${BRAND.agentEmailDomain}`, name: 'OpenAI', service: 'openai' },
+    { email: `gemini@${BRAND.agentEmailDomain}`, name: 'Gemini', service: 'gemini' }
   ]
 
   for (const agent of agents) {

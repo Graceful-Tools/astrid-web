@@ -54,6 +54,7 @@ import type {
   V1ProjectsResponse,
   V1ProjectResponse,
 } from '@/lib/api-contracts/v1-ios-shapes'
+import { BRAND } from '@/lib/brand/config'
 
 /** Frozen task fixture matching the Prisma include shape iOS endpoints use. */
 const makePrismaTask = (overrides: Record<string, unknown> = {}) => ({
@@ -227,7 +228,7 @@ describe('v1 contract — AgentComment shape', () => {
             id: 'c2',
             content: 'agent comment',
             authorId: 'astrid',
-            author: { id: 'astrid', name: 'Astrid', email: 'astrid@astrid.cc', isAIAgent: true },
+            author: { id: 'astrid', name: 'Astrid', email: `astrid@${BRAND.agentEmailDomain}`, isAIAgent: true },
             createdAt: new Date('2026-04-11T00:00:00Z'),
           },
         ],
@@ -506,14 +507,14 @@ describe('v1 contract — V1Shortcode (shortcodes)', () => {
 
   it('every iOS-expected key appears in V1Shortcode', () => {
     const sample: V1Shortcode = {
-      code: 'abc', targetType: 'task', targetId: 't1', url: 'https://astrid.cc/s/abc',
+      code: 'abc', targetType: 'task', targetId: 't1', url: `https://${BRAND.domain}/s/abc`,
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
   })
 
   it('V1ShortcodeResponse has { shortcode, meta }', () => {
     const sample: V1ShortcodeResponse = {
-      shortcode: { code: 'abc', targetType: 'task', targetId: 't1', url: 'https://astrid.cc/s/abc' },
+      shortcode: { code: 'abc', targetType: 'task', targetId: 't1', url: `https://${BRAND.domain}/s/abc` },
       meta: { apiVersion: 'v1', authSource: 'session' },
     }
     expect(Object.keys(sample).sort()).toEqual(['meta', 'shortcode'])

@@ -18,6 +18,7 @@ vi.mock('@/lib/agent-protocol', () => ({
 import { withAgentAuth } from '@/lib/api-agent-auth-wrapper'
 import { authenticateAgentRequest } from '@/lib/agent-protocol'
 import { UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 const mockAuth = vi.mocked(authenticateAgentRequest)
 
@@ -26,7 +27,7 @@ const goodAuth = {
   source: 'oauth' as const,
   scopes: ['tasks:read'],
   isAIAgent: true,
-  user: { id: 'agent-1', email: 'a.oc@astrid.cc', name: 'Agent', isAIAgent: true },
+  user: { id: 'agent-1', email: `a.oc@${BRAND.domain}`, name: 'Agent', isAIAgent: true },
 }
 
 function makeReq(): NextRequest {

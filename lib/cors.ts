@@ -13,7 +13,7 @@
  *
  * Edge-safe by construction: string operations and `process.env` only. It is
  * imported by middleware.ts, which runs on the edge — see
- * tests/middleware-edge-safety.test.ts for what happens when that slips.
+ * tests/middleware/middleware-edge-safety.test.ts for what happens when that slips.
  */
 
 import { BRAND } from './brand/config'

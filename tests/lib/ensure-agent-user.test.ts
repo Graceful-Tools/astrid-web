@@ -23,6 +23,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
+import { BRAND } from '@/lib/brand/config'
 
 beforeEach(() => {
   findFirst.mockReset()
@@ -31,9 +32,9 @@ beforeEach(() => {
 
 describe('ensureAgentUser', () => {
   it('returns the existing agent row without creating a duplicate', async () => {
-    findFirst.mockResolvedValue({ id: 'ai-agent-claude', email: 'claude@astrid.cc' })
+    findFirst.mockResolvedValue({ id: 'ai-agent-claude', email: `claude@${BRAND.agentEmailDomain}` })
 
-    const agent = await ensureAgentUser('claude@astrid.cc')
+    const agent = await ensureAgentUser(`claude@${BRAND.agentEmailDomain}`)
 
     expect(agent?.id).toBe('ai-agent-claude')
     expect(create).not.toHaveBeenCalled()
@@ -43,11 +44,11 @@ describe('ensureAgentUser', () => {
     findFirst.mockResolvedValue(null)
     create.mockImplementation(({ data }: { data: Record<string, unknown> }) => ({ id: 'new-id', ...data }))
 
-    const agent = await ensureAgentUser('copilot@astrid.cc')
+    const agent = await ensureAgentUser(`copilot@${BRAND.agentEmailDomain}`)
 
     expect(create).toHaveBeenCalledTimes(1)
     const { data } = create.mock.calls[0][0]
-    expect(data.email).toBe('copilot@astrid.cc')
+    expect(data.email).toBe(`copilot@${BRAND.agentEmailDomain}`)
     expect(data.isAIAgent).toBe(true)
     // agentType comes from AI_AGENT_CONFIG, not a second hardcoded copy.
     expect(data.aiAgentType).toBe('copilot_agent')
@@ -58,7 +59,7 @@ describe('ensureAgentUser', () => {
     findFirst.mockResolvedValue(null)
     create.mockImplementation(({ data }: { data: Record<string, unknown> }) => ({ id: 'generated-cuid', ...data }))
 
-    const agent = await ensureAgentUser('copilot@astrid.cc')
+    const agent = await ensureAgentUser(`copilot@${BRAND.agentEmailDomain}`)
 
     expect(agent?.id).not.toContain('@')
   })
@@ -70,10 +71,10 @@ describe('ensureAgentUser', () => {
     findFirst.mockResolvedValue(null)
     create.mockImplementation(({ data }: { data: Record<string, unknown> }) => ({ id: 'new-id', ...data }))
 
-    const agent = await ensureAgentUser('codex@astrid.cc')
+    const agent = await ensureAgentUser(`codex@${BRAND.agentEmailDomain}`)
 
     const { data } = create.mock.calls[0][0]
-    expect(data.email).toBe('codex@astrid.cc')
+    expect(data.email).toBe(`codex@${BRAND.agentEmailDomain}`)
     expect(data.aiAgentType).toBe('local_harness_agent')
     expect(agent?.id).toBe('new-id')
   })

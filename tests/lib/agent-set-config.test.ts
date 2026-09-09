@@ -11,6 +11,7 @@
  *   - a foreign agent-email domain resolves, including the OpenClaw `.oc@` pattern.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 const BRAND_ENV = ['BRAND_ENABLED_AGENTS', 'BRAND_AGENT_EMAIL_DOMAIN']
 
@@ -28,46 +29,46 @@ describe('agent registry defaults (task 97208a72)', () => {
     process.env = { ...ORIGINAL_ENV }
   })
 
-  it('registers exactly the historical agent set at the astrid.cc domain', async () => {
+  it(`registers exactly the historical agent set at the ${BRAND.domain} domain`, async () => {
     const { AI_AGENT_CONFIG } = await import('@/lib/ai/agent-config')
 
     expect(Object.keys(AI_AGENT_CONFIG).sort()).toEqual([
-      'astrid@astrid.cc',
-      'claude@astrid.cc',
-      'copilot@astrid.cc',
-      'gemini@astrid.cc',
-      'openai@astrid.cc',
-      'openclaw@astrid.cc',
+      `astrid@${BRAND.agentEmailDomain}`,
+      `claude@${BRAND.agentEmailDomain}`,
+      `copilot@${BRAND.agentEmailDomain}`,
+      `gemini@${BRAND.agentEmailDomain}`,
+      `openai@${BRAND.agentEmailDomain}`,
+      `openclaw@${BRAND.agentEmailDomain}`,
     ])
   })
 
   it('preserves each agent’s routing values', async () => {
     const { AI_AGENT_CONFIG, getAgentService, getAgentModel } = await import('@/lib/ai/agent-config')
 
-    expect(AI_AGENT_CONFIG['copilot@astrid.cc']).toMatchObject({
+    expect(AI_AGENT_CONFIG[`copilot@${BRAND.agentEmailDomain}`]).toMatchObject({
       service: 'copilot',
       model: 'gpt-4.1',
       agentType: 'copilot_agent',
       contextFile: 'ASTRID.md',
     })
-    expect(getAgentService('gemini@astrid.cc')).toBe('gemini')
-    expect(getAgentModel('openclaw@astrid.cc')).toBe('anthropic/claude-opus-4-5')
+    expect(getAgentService(`gemini@${BRAND.agentEmailDomain}`)).toBe('gemini')
+    expect(getAgentModel(`openclaw@${BRAND.agentEmailDomain}`)).toBe('anthropic/claude-opus-4-5')
   })
 
   it('registers local Codex as a distinct assignable identity, not the cloud OpenAI provider', async () => {
     const { getAssignableAgentEmails } = await import('@/lib/ai/assignable-agents')
     const { getAgentConfig } = await import('@/lib/ai/agent-config')
 
-    expect(getAssignableAgentEmails()).toContain('codex@astrid.cc')
-    expect(getAgentConfig('codex@astrid.cc')).toBeNull()
-    expect(getAgentConfig('openai@astrid.cc')?.service).toBe('openai')
+    expect(getAssignableAgentEmails()).toContain(`codex@${BRAND.agentEmailDomain}`)
+    expect(getAgentConfig(`codex@${BRAND.agentEmailDomain}`)).toBeNull()
+    expect(getAgentConfig(`openai@${BRAND.agentEmailDomain}`)?.service).toBe('openai')
   })
 
   it('resolves {name}.oc@ addresses to the openclaw config', async () => {
     const { getAgentConfig, getAgentService } = await import('@/lib/ai/agent-config')
 
-    expect(getAgentConfig('buddy.oc@astrid.cc')?.agentType).toBe('openclaw_worker')
-    expect(getAgentService('buddy.oc@astrid.cc')).toBe('openclaw')
+    expect(getAgentConfig(`buddy.oc@${BRAND.domain}`)?.agentType).toBe('openclaw_worker')
+    expect(getAgentService(`buddy.oc@${BRAND.domain}`)).toBe('openclaw')
     expect(getAgentConfig('buddy.oc@elsewhere.example')).toBeNull()
   })
 })
@@ -91,7 +92,7 @@ describe('BRAND_ENABLED_AGENTS narrows the supported set (task 97208a72)', () =>
     const { AI_AGENT_CONFIG, getAllAgentConfigs } = await import('@/lib/ai/agent-config')
 
     // astrid is the product's own assistant and is always retained.
-    expect(Object.keys(AI_AGENT_CONFIG).sort()).toEqual(['astrid@astrid.cc', 'claude@astrid.cc'])
+    expect(Object.keys(AI_AGENT_CONFIG).sort()).toEqual([`astrid@${BRAND.agentEmailDomain}`, `claude@${BRAND.agentEmailDomain}`])
     expect(getAllAgentConfigs()).toHaveLength(2)
   })
 
@@ -99,10 +100,10 @@ describe('BRAND_ENABLED_AGENTS narrows the supported set (task 97208a72)', () =>
     process.env.BRAND_ENABLED_AGENTS = 'claude'
     const { getAgentConfig, isRegisteredAgent } = await import('@/lib/ai/agent-config')
 
-    expect(getAgentConfig('gemini@astrid.cc')).toBeNull()
-    expect(isRegisteredAgent('gemini@astrid.cc')).toBe(false)
+    expect(getAgentConfig(`gemini@${BRAND.agentEmailDomain}`)).toBeNull()
+    expect(isRegisteredAgent(`gemini@${BRAND.agentEmailDomain}`)).toBe(false)
     // Disabling openclaw must also stop the .oc@ pattern resolving.
-    expect(getAgentConfig('buddy.oc@astrid.cc')).toBeNull()
+    expect(getAgentConfig(`buddy.oc@${BRAND.domain}`)).toBeNull()
   })
 
   it('feeds the built-in list both available-agents routes iterate', async () => {
@@ -111,8 +112,8 @@ describe('BRAND_ENABLED_AGENTS narrows the supported set (task 97208a72)', () =>
 
     // astrid is added separately by the routes; openclaw comes from the database.
     expect(getBuiltInAgents()).toEqual([
-      { email: 'claude@astrid.cc', name: 'Claude', service: 'claude', image: '/api/v1/agent-icon/claude' },
-      { email: 'gemini@astrid.cc', name: 'Gemini', service: 'gemini', image: '/api/v1/agent-icon/gemini' },
+      { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', service: 'claude', image: '/api/v1/agent-icon/claude' },
+      { email: `gemini@${BRAND.agentEmailDomain}`, name: 'Gemini', service: 'gemini', image: '/api/v1/agent-icon/gemini' },
     ])
   })
 
@@ -121,9 +122,9 @@ describe('BRAND_ENABLED_AGENTS narrows the supported set (task 97208a72)', () =>
     const { AI_AGENT_CONFIG } = await import('@/lib/ai/agent-config')
 
     expect(Object.keys(AI_AGENT_CONFIG).sort()).toEqual([
-      'astrid@astrid.cc',
-      'claude@astrid.cc',
-      'gemini@astrid.cc',
+      `astrid@${BRAND.agentEmailDomain}`,
+      `claude@${BRAND.agentEmailDomain}`,
+      `gemini@${BRAND.agentEmailDomain}`,
     ])
   })
 
@@ -154,7 +155,7 @@ describe('agent identities follow the brand domain (task 97208a72)', () => {
     const { AI_AGENT_CONFIG, getAgentService } = await import('@/lib/ai/agent-config')
 
     expect(AI_AGENT_CONFIG['claude@acme.example']).toBeDefined()
-    expect(AI_AGENT_CONFIG['claude@astrid.cc']).toBeUndefined()
+    expect(AI_AGENT_CONFIG[`claude@${BRAND.agentEmailDomain}`]).toBeUndefined()
     expect(getAgentService('gemini@acme.example')).toBe('gemini')
   })
 
@@ -173,7 +174,7 @@ describe('agent identities follow the brand domain (task 97208a72)', () => {
     expect(isCustomAgentEmail('buddy.oc@acme.example')).toBe(true)
     expect(openClawAgentEmail('buddy')).toBe('buddy.oc@acme.example')
     expect(isOpenClawAgentEmail('buddy.oc@acme.example')).toBe(true)
-    expect(isOpenClawAgentEmail('buddy.oc@astrid.cc')).toBe(false)
+    expect(isOpenClawAgentEmail(`buddy.oc@${BRAND.domain}`)).toBe(false)
     expect(isBrandAgentEmail('claude@acme.example')).toBe(true)
     expect(isBrandAgentEmail('someone@gmail.com')).toBe(false)
     expect(isBrandAgentEmail(null)).toBe(false)

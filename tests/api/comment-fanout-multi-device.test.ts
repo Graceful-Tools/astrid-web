@@ -64,6 +64,7 @@ import { POST } from '@/app/api/v1/tasks/[id]/comments/route'
 import { DELETE } from '@/app/api/v1/comments/[id]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
@@ -162,12 +163,12 @@ describe('POST /api/v1/tasks/:id/comments keeps the author in the SSE audience (
     mockPrisma.user.findUnique.mockResolvedValue({
       id: AGENT,
       isAIAgent: true,
-      email: 'claude@astrid.cc',
+      email: `claude@${BRAND.agentEmailDomain}`,
     } as never)
     mockPrisma.comment.create.mockResolvedValue(
       createdComment({
         authorId: AGENT,
-        author: { id: AGENT, name: 'Claude', email: 'claude@astrid.cc', image: null, isAIAgent: true },
+        author: { id: AGENT, name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, image: null, isAIAgent: true },
       }) as never
     )
     mockPrisma.task.findUnique.mockResolvedValue(

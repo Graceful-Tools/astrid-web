@@ -11,6 +11,7 @@
  *     https://astrid.cc — a different HOST, not just a different brand.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 const ORIGINAL_ENV = { ...process.env }
 
@@ -59,7 +60,7 @@ describe('SDK base URL resolution (task 979e1325)', () => {
 })
 
 describe('SDK agent identities (task 979e1325)', () => {
-  it('builds agent addresses on the configured deployment, not astrid.cc', async () => {
+  it(`builds agent addresses on the configured deployment, not ${BRAND.domain}`, async () => {
     process.env.ASTRID_API_URL = 'https://tasks.acme.example'
     const { AI_AGENT_CONFIG, agentEmailDomain } =
       await import('../../packages/astrid-sdk/src/utils/agent-config')
@@ -67,7 +68,7 @@ describe('SDK agent identities (task 979e1325)', () => {
     expect(agentEmailDomain()).toBe('tasks.acme.example')
     expect(Object.keys(AI_AGENT_CONFIG)).toContain('claude@tasks.acme.example')
     for (const email of Object.keys(AI_AGENT_CONFIG)) {
-      expect(email, `${email} still points at astrid.cc`).not.toContain('astrid.cc')
+      expect(email, `${email} still points at ${BRAND.domain}`).not.toContain(`${BRAND.domain}`)
     }
   })
 

@@ -8,6 +8,7 @@ vi.mock('@/lib/i18n/routing', () => ({ routing: { locales: ['en'], defaultLocale
 
 import { middleware } from '@/middleware'
 import { LEGACY_USAGE_BEACON_PATH, resetBeaconMemoryForTests } from '@/lib/legacy-api-usage'
+import { BRAND } from '@/lib/brand/config'
 
 /**
  * Task 641a7615, re-landed for task 058d80ad — the durable half of the legacy-traffic census.
@@ -17,7 +18,7 @@ import { LEGACY_USAGE_BEACON_PATH, resetBeaconMemoryForTests } from '@/lib/legac
  * the two ways it could go wrong: recursing on itself, or breaking traffic.
  */
 function req(pathname: string, method = 'GET') {
-  return new NextRequest(`https://www.astrid.cc${pathname}`, {
+  return new NextRequest(`https://www.${BRAND.domain}${pathname}`, {
     method,
     headers: { 'user-agent': 'AstridApp/1.0' },
   })
@@ -77,7 +78,7 @@ describe('legacy usage beacon (task 641a7615)', () => {
     const { event, settle } = fetchEvent()
 
     middleware(
-      new NextRequest('https://www.astrid.cc/api/tasks', {
+      new NextRequest(`https://www.${BRAND.domain}/api/tasks`, {
         method: 'GET',
         headers: { authorization: 'Bearer astrid_secret_token_value' },
       }),

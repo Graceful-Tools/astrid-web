@@ -11,6 +11,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
+import { BRAND } from '@/lib/brand/config'
 
 describe('renderMarkdownWithLinks — GFM construct parity (task 0a54e46f)', () => {
   describe('headings', () => {
@@ -39,9 +40,9 @@ describe('renderMarkdownWithLinks — GFM construct parity (task 0a54e46f)', () 
     })
 
     it('renders a link inside a heading', () => {
-      const html = renderMarkdownWithLinks('### See [docs](https://astrid.cc/docs)')
+      const html = renderMarkdownWithLinks(`### See [docs](https://${BRAND.domain}/docs)`)
       expect(html).toContain('<h3')
-      expect(html).toContain('href="https://astrid.cc/docs"')
+      expect(html).toContain(`href="https://${BRAND.domain}/docs"`)
     })
   })
 
@@ -107,24 +108,24 @@ describe('renderMarkdownWithLinks — GFM construct parity (task 0a54e46f)', () 
     it('links a www. URL to its FULL host, not a truncated one', () => {
       // Regression: safeLinkify's trailing-character class backtracked and
       // produced href="https://www.astrid" with ".cc" orphaned outside the tag.
-      const html = renderMarkdownWithLinks('go to www.astrid.cc now')
-      expect(html).toContain('href="https://www.astrid.cc"')
+      const html = renderMarkdownWithLinks(`go to www.${BRAND.domain} now`)
+      expect(html).toContain(`href="https://www.${BRAND.domain}"`)
       expect(html).not.toContain('href="https://www.astrid"')
     })
 
     it('links a scheme-qualified URL', () => {
-      expect(renderMarkdownWithLinks('see https://astrid.cc here')).toContain(
-        'href="https://astrid.cc"'
+      expect(renderMarkdownWithLinks(`see https://${BRAND.domain} here`)).toContain(
+        `href="https://${BRAND.domain}"`
       )
     })
 
     it('does NOT link a bare domain with no scheme or www', () => {
-      const html = renderMarkdownWithLinks('go to astrid.cc now')
+      const html = renderMarkdownWithLinks(`go to ${BRAND.domain} now`)
       expect(html).not.toContain('<a')
     })
 
     it('opens external links in a new tab', () => {
-      const html = renderMarkdownWithLinks('[docs](https://astrid.cc)')
+      const html = renderMarkdownWithLinks(`[docs](https://${BRAND.domain})`)
       expect(html).toContain('target="_blank"')
       expect(html).toContain('rel="noopener noreferrer"')
     })

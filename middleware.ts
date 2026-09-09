@@ -27,7 +27,7 @@ const intlMiddleware = createMiddleware(routing)
  * EDGE-SAFETY IS THE WHOLE DESIGN. The first landing of this beacon imported
  * detectPlatform from analytics-events — one hop from Prisma — and the edge
  * bundle failed to instantiate: every request 500'd for ~12 minutes
- * (tests/middleware-edge-safety.test.ts). So this function does string ops on
+ * (tests/middleware/middleware-edge-safety.test.ts). So this function does string ops on
  * headers ONLY and forwards the raw signals; the Node-side beacon route does
  * the platform classification with the one shared implementation. The
  * authorization header itself never leaves this function — only the boolean

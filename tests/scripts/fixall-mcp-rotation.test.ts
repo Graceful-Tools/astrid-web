@@ -7,6 +7,7 @@ import {
   runSerializedFixallMcpRotation,
   validateFixallAgent,
 } from "@/scripts/lib/fixall-mcp-rotation"
+import { BRAND } from '@/lib/brand/config'
 
 describe("parseFixallMcpRotationOptions", () => {
   it("requires an explicit mode and database environment variable", () => {
@@ -44,7 +45,7 @@ describe("validateFixallAgent", () => {
     })).not.toThrow()
 
     expect(() => validateFixallAgent({
-      email: "claude@astrid.cc",
+      email: `claude@${BRAND.agentEmailDomain}`,
       isAIAgent: true,
       isActive: true,
     })).toThrow(/unexpected agent/)

@@ -23,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
 import { POST } from "@/app/api/v1/tasks/[id]/claim-fixall/route"
 import { authenticateAPI, requireTaskAccess } from "@/lib/api-auth-middleware"
 import { prisma } from "@/lib/prisma"
+import { BRAND } from '@/lib/brand/config'
 
 const TASK_ID = "11111111-1111-4111-8111-111111111111"
 const params = Promise.resolve({ id: TASK_ID })
@@ -46,7 +47,7 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     vi.mocked(requireTaskAccess).mockResolvedValue(undefined)
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       id: "copilot-1",
-      email: "copilot@astrid.cc",
+      email: `copilot@${BRAND.agentEmailDomain}`,
       isAIAgent: true,
       isActive: true,
     } as never)

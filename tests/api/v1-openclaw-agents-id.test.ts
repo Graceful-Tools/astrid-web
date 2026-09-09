@@ -30,6 +30,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
 import { PATCH, DELETE } from '@/app/api/v1/openclaw/agents/[id]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma)
 const mockAuth = vi.mocked(authenticateAPI)
@@ -54,7 +55,7 @@ const params = Promise.resolve({ id: 'agent-1' })
 
 const ownedAgent = {
   id: 'agent-1',
-  email: 'astrid.oc@astrid.cc',
+  email: `astrid.oc@${BRAND.domain}`,
   image: '/images/ai-agents/openclaw.svg',
   aiAgentType: 'openclaw_worker',
   aiAgentConfig: JSON.stringify({ registeredBy: 'owner-123', agentName: 'astrid', version: '1.0' }),

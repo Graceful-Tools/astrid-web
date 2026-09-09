@@ -13,11 +13,12 @@ import {
   planGoogleSignIn,
   isAstridSubdomainUrl,
 } from '@/lib/auth-host'
+import { BRAND } from '@/lib/brand/config'
 
 describe('isCanonicalAuthHost', () => {
   it('is true for the production hosts where Google OAuth is whitelisted', () => {
-    expect(isCanonicalAuthHost('astrid.cc')).toBe(true)
-    expect(isCanonicalAuthHost('www.astrid.cc')).toBe(true)
+    expect(isCanonicalAuthHost(`${BRAND.domain}`)).toBe(true)
+    expect(isCanonicalAuthHost(`www.${BRAND.domain}`)).toBe(true)
   })
 
   it('is true for local development hosts', () => {
@@ -27,8 +28,8 @@ describe('isCanonicalAuthHost', () => {
   })
 
   it('is false for preview subdomains', () => {
-    expect(isCanonicalAuthHost('feature-x.astrid.cc')).toBe(false)
-    expect(isCanonicalAuthHost('per-user-status-lists.astrid.cc')).toBe(false)
+    expect(isCanonicalAuthHost(`feature-x.${BRAND.domain}`)).toBe(false)
+    expect(isCanonicalAuthHost(`per-user-status-lists.${BRAND.domain}`)).toBe(false)
   })
 
   it('is false for raw vercel deployment hosts', () => {
@@ -42,26 +43,26 @@ describe('isCanonicalAuthHost', () => {
 
 describe('planGoogleSignIn', () => {
   it('signs in directly on a canonical host', () => {
-    expect(planGoogleSignIn('https://astrid.cc/auth/signin')).toEqual({ mode: 'direct' })
+    expect(planGoogleSignIn(`https://${BRAND.domain}/auth/signin`)).toEqual({ mode: 'direct' })
     expect(planGoogleSignIn('http://localhost:3000/auth/signin')).toEqual({ mode: 'direct' })
   })
 
   it('bounces a preview subdomain to the canonical sign-in page', () => {
-    const plan = planGoogleSignIn('https://feature-x.astrid.cc/auth/signin')
+    const plan = planGoogleSignIn(`https://feature-x.${BRAND.domain}/auth/signin`)
     expect(plan.mode).toBe('redirect')
     if (plan.mode === 'redirect') {
       expect(plan.url).toBe(
-        'https://astrid.cc/auth/signin?callbackUrl=' +
-          encodeURIComponent('https://feature-x.astrid.cc/'),
+        `https://${BRAND.domain}/auth/signin?callbackUrl=` +
+          encodeURIComponent(`https://feature-x.${BRAND.domain}/`),
       )
     }
   })
 
   it('passes the preview origin (not the full path) as callbackUrl', () => {
-    const plan = planGoogleSignIn('https://feature-x.astrid.cc/lists/abc?task=1')
+    const plan = planGoogleSignIn(`https://feature-x.${BRAND.domain}/lists/abc?task=1`)
     expect(plan.mode).toBe('redirect')
     if (plan.mode === 'redirect') {
-      expect(plan.url).toContain(encodeURIComponent('https://feature-x.astrid.cc/'))
+      expect(plan.url).toContain(encodeURIComponent(`https://feature-x.${BRAND.domain}/`))
     }
   })
 
@@ -71,21 +72,21 @@ describe('planGoogleSignIn', () => {
 })
 
 describe('isAstridSubdomainUrl', () => {
-  it('accepts astrid.cc and any https subdomain', () => {
-    expect(isAstridSubdomainUrl('https://astrid.cc/')).toBe(true)
-    expect(isAstridSubdomainUrl('https://www.astrid.cc/lists')).toBe(true)
-    expect(isAstridSubdomainUrl('https://feature-x.astrid.cc/')).toBe(true)
+  it(`accepts ${BRAND.domain} and any https subdomain`, () => {
+    expect(isAstridSubdomainUrl(`https://${BRAND.domain}/`)).toBe(true)
+    expect(isAstridSubdomainUrl(`https://www.${BRAND.domain}/lists`)).toBe(true)
+    expect(isAstridSubdomainUrl(`https://feature-x.${BRAND.domain}/`)).toBe(true)
   })
 
   it('rejects non-https astrid urls', () => {
-    expect(isAstridSubdomainUrl('http://feature-x.astrid.cc/')).toBe(false)
+    expect(isAstridSubdomainUrl(`http://feature-x.${BRAND.domain}/`)).toBe(false)
   })
 
   it('rejects look-alike domains (no open redirect)', () => {
-    expect(isAstridSubdomainUrl('https://astrid.cc.evil.com/')).toBe(false)
-    expect(isAstridSubdomainUrl('https://evil-astrid.cc/')).toBe(false)
-    expect(isAstridSubdomainUrl('https://notastrid.cc/')).toBe(false)
-    expect(isAstridSubdomainUrl('https://xastrid.cc/')).toBe(false)
+    expect(isAstridSubdomainUrl(`https://${BRAND.domain}.evil.com/`)).toBe(false)
+    expect(isAstridSubdomainUrl(`https://evil-${BRAND.domain}/`)).toBe(false)
+    expect(isAstridSubdomainUrl(`https://not${BRAND.domain}/`)).toBe(false)
+    expect(isAstridSubdomainUrl(`https://x${BRAND.domain}/`)).toBe(false)
   })
 
   it('rejects garbage input', () => {

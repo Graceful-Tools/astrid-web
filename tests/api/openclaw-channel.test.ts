@@ -48,6 +48,7 @@ import { POST } from '@/app/api/v1/openclaw/register/route'
 import { prisma } from '@/lib/prisma'
 import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma)
 const mockCreateOAuthClient = vi.mocked(createOAuthClient)
@@ -80,7 +81,7 @@ describe('POST /api/v1/openclaw/register', () => {
     mockPrisma.user.findUnique.mockResolvedValue(null as any)
     mockPrisma.user.create.mockResolvedValue({
       id: 'agent-456',
-      email: 'astrid.oc@astrid.cc',
+      email: `astrid.oc@${BRAND.domain}`,
       name: 'astrid (OpenClaw)',
       isAIAgent: true,
       aiAgentType: 'openclaw_worker',
@@ -100,7 +101,7 @@ describe('POST /api/v1/openclaw/register', () => {
     const json = await res.json()
 
     expect(res.status).toBe(201)
-    expect(json.agent.email).toBe('astrid.oc@astrid.cc')
+    expect(json.agent.email).toBe(`astrid.oc@${BRAND.domain}`)
     expect(json.agent.aiAgentType).toBe('openclaw_worker')
     expect(json.oauth.clientId).toBe('astrid_client_abc')
     expect(json.oauth.clientSecret).toBe('secret123')
@@ -109,7 +110,7 @@ describe('POST /api/v1/openclaw/register', () => {
     expect(mockPrisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          email: 'astrid.oc@astrid.cc',
+          email: `astrid.oc@${BRAND.domain}`,
           isAIAgent: true,
           aiAgentType: 'openclaw_worker',
         }),
@@ -120,7 +121,7 @@ describe('POST /api/v1/openclaw/register', () => {
   it('returns 409 for duplicate agent name', async () => {
     mockPrisma.user.findUnique.mockResolvedValue({
       id: 'existing-agent',
-      email: 'astrid.oc@astrid.cc',
+      email: `astrid.oc@${BRAND.domain}`,
     } as any)
 
     const res = await POST(makeRequest({ agentName: 'astrid' }))
@@ -166,16 +167,16 @@ describe('POST /api/v1/openclaw/register', () => {
 describe('OpenClaw agent email pattern matching', () => {
   const pattern = /\.oc@astrid\.cc$/i
 
-  it('matches standard .oc@astrid.cc emails', () => {
-    expect(pattern.test('astrid.oc@astrid.cc')).toBe(true)
-    expect(pattern.test('jeff.oc@astrid.cc')).toBe(true)
-    expect(pattern.test('my-agent.oc@astrid.cc')).toBe(true)
-    expect(pattern.test('agent.v2.oc@astrid.cc')).toBe(true)
+  it(`matches standard .oc@${BRAND.domain} emails`, () => {
+    expect(pattern.test(`astrid.oc@${BRAND.domain}`)).toBe(true)
+    expect(pattern.test(`jeff.oc@${BRAND.domain}`)).toBe(true)
+    expect(pattern.test(`my-agent.oc@${BRAND.domain}`)).toBe(true)
+    expect(pattern.test(`agent.v2.oc@${BRAND.domain}`)).toBe(true)
   })
 
   it('does not match non-openclaw emails', () => {
-    expect(pattern.test('claude@astrid.cc')).toBe(false)
+    expect(pattern.test(`claude@${BRAND.agentEmailDomain}`)).toBe(false)
     expect(pattern.test('user@gmail.com')).toBe(false)
-    expect(pattern.test('oc@astrid.cc')).toBe(false)
+    expect(pattern.test(`oc@${BRAND.domain}`)).toBe(false)
   })
 })

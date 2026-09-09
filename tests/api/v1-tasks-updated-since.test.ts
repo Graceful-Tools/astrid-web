@@ -21,6 +21,7 @@ import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/tasks/route'
 import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 vi.mock('@/lib/api-auth-middleware', () => ({
   authenticateAPI: vi.fn(),
@@ -45,7 +46,7 @@ beforeEach(() => {
 })
 
 function get(query: string) {
-  return GET(new NextRequest(`https://astrid.cc/api/v1/tasks${query}`) as never, undefined as never)
+  return GET(new NextRequest(`https://${BRAND.domain}/api/v1/tasks${query}`) as never, undefined as never)
 }
 
 /** The `where` Prisma was actually asked for. */

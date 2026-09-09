@@ -20,6 +20,7 @@ import {
   resolveAgentRunOwnerId,
   shouldPostServerWorkflowComments,
 } from '@/lib/ai/agent-execution-mode'
+import { BRAND } from '@/lib/brand/config'
 
 describe('resolveAgentExecutionMode', () => {
   it('puts a coding agent with no key in polling mode', () => {
@@ -137,24 +138,24 @@ describe('isPollingOnlyAgent (reading a real user row)', () => {
 
   it('keeps the server out of a task whose agent the user set to polling', async () => {
     userWith({ agentModes: { claude: 'polling' }, apiKeys: { claude: { encrypted: 'x', iv: 'y' } } })
-    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
+    expect(await isPollingOnlyAgent(`claude@${BRAND.agentEmailDomain}`, 'user-1')).toBe(true)
   })
 
   it('still runs server-side for a user who saved a key and said nothing', async () => {
     userWith({ apiKeys: { claude: { encrypted: 'x', iv: 'y' } } })
-    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(false)
+    expect(await isPollingOnlyAgent(`claude@${BRAND.agentEmailDomain}`, 'user-1')).toBe(false)
   })
 
   it('defaults a keyless coding agent to polling instead of a doomed API call', async () => {
     // The credit-exhaustion regression: with no key, dispatching produced a 400
     // per trigger and a retry storm of identical failure comments on one task.
     userWith({})
-    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
+    expect(await isPollingOnlyAgent(`claude@${BRAND.agentEmailDomain}`, 'user-1')).toBe(true)
   })
 
   it('never routes codex through a server executor, even for an unknown owner', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null)
-    expect(await isPollingOnlyAgent('codex@astrid.cc', null)).toBe(true)
+    expect(await isPollingOnlyAgent(`codex@${BRAND.agentEmailDomain}`, null)).toBe(true)
   })
 
   it('leaves a human assignee alone', async () => {
@@ -164,7 +165,7 @@ describe('isPollingOnlyAgent (reading a real user row)', () => {
 
   it('treats unreadable settings as defaults rather than as permission to spend', async () => {
     userWith('{not json')
-    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
+    expect(await isPollingOnlyAgent(`claude@${BRAND.agentEmailDomain}`, 'user-1')).toBe(true)
   })
 })
 
@@ -183,7 +184,7 @@ describe('webhook mode', () => {
       id: 'user-1',
       mcpSettings: JSON.stringify({ agentModes: { claude: 'webhook' } }),
     })
-    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(false)
+    expect(await isPollingOnlyAgent(`claude@${BRAND.agentEmailDomain}`, 'user-1')).toBe(false)
   })
 })
 
@@ -213,7 +214,7 @@ describe("off mode — Don't use", () => {
       id: 'user-1',
       mcpSettings: JSON.stringify({ agentModes: { claude: 'off' } }),
     })
-    expect(await isPollingOnlyAgent('claude@astrid.cc', 'user-1')).toBe(true)
+    expect(await isPollingOnlyAgent(`claude@${BRAND.agentEmailDomain}`, 'user-1')).toBe(true)
   })
 })
 

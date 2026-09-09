@@ -28,11 +28,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { requireCronSecret } from '@/lib/cron-auth'
+import { BRAND } from '@/lib/brand/config'
 
 const ORIGINAL_ENV = { ...process.env }
 
 function request(headers: Record<string, string> = {}) {
-  return new NextRequest('https://astrid.cc/api/cron/github-sync', { headers })
+  return new NextRequest(`https://${BRAND.domain}/api/cron/github-sync`, { headers })
 }
 
 beforeEach(() => {
@@ -105,7 +106,7 @@ describe('requireCronSecret', () => {
 
   it('does not accept the secret in a query string or elsewhere', () => {
     process.env.CRON_SECRET = 'the-real-secret'
-    const sneaky = new NextRequest('https://astrid.cc/api/cron/github-sync?secret=the-real-secret')
+    const sneaky = new NextRequest(`https://${BRAND.domain}/api/cron/github-sync?secret=the-real-secret`)
 
     expect(requireCronSecret(sneaky)?.status).toBe(401)
   })

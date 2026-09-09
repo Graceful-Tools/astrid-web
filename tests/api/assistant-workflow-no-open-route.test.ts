@@ -41,6 +41,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { BRAND } from '@/lib/brand/config'
 
 const ROOT = process.cwd()
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
@@ -90,7 +91,7 @@ describe('the extracted workflow behaves like the route did (task 12b3478d)', ()
     const { runAssistantWorkflow } = await import('@/lib/assistant-workflow/run-assistant-workflow')
     const result = await runAssistantWorkflow({
       taskId: 'does-not-exist-12b3478d',
-      agentEmail: 'claude@astrid.cc',
+      agentEmail: `claude@${BRAND.agentEmailDomain}`,
       creatorId: 'nobody',
     })
     expect(result.ok).toBe(false)

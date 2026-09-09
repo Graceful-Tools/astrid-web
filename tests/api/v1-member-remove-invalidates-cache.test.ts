@@ -32,6 +32,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { BRAND } from '@/lib/brand/config'
 
 vi.mock('@/lib/api-auth-wrapper', () => ({
   withAuth: (_opts: unknown, handler: (...args: unknown[]) => unknown) =>
@@ -68,7 +69,7 @@ const LIST = {
     {
       userId: AGENT,
       role: 'member',
-      user: { id: AGENT, name: 'astrid.oc', email: 'astrid.oc@astrid.cc', image: null, isAIAgent: true },
+      user: { id: AGENT, name: 'astrid.oc', email: `astrid.oc@${BRAND.domain}`, image: null, isAIAgent: true },
     },
   ],
 }

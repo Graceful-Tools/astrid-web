@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { emailToTaskService, type ParsedEmail } from '@/lib/email-to-task-service'
 import { prisma } from '@/lib/prisma'
 import { placeholderUserService } from '@/lib/placeholder-user-service'
+import { BRAND } from '@/lib/brand/config'
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
@@ -39,13 +40,13 @@ describe('EmailToTaskService', () => {
   })
 
   describe('processEmail - Self Task', () => {
-    it('should create self-task when remindme@astrid.cc is in TO', async () => {
+    it(`should create self-task when remindme@${BRAND.domain} is in TO`, async () => {
       const email: ParsedEmail = {
         // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
         // the From address without one (task 0a5b6337).
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
-        to: ['remindme@astrid.cc'],
+        to: [`remindme@${BRAND.domain}`],
         cc: [],
         bcc: [],
         subject: 'Buy groceries',
@@ -95,7 +96,7 @@ describe('EmailToTaskService', () => {
         // the From address without one (task 0a5b6337).
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
-        to: ['remindme@astrid.cc'],
+        to: [`remindme@${BRAND.domain}`],
         cc: [],
         bcc: [],
         subject: 'Test',
@@ -119,7 +120,7 @@ describe('EmailToTaskService', () => {
         // the From address without one (task 0a5b6337).
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
-        to: ['remindme@astrid.cc'],
+        to: [`remindme@${BRAND.domain}`],
         cc: [],
         bcc: [],
         subject: 'RE: FW: Original Task',
@@ -146,14 +147,14 @@ describe('EmailToTaskService', () => {
   })
 
   describe('processEmail - Assigned Task', () => {
-    it('should create assigned task when remindme@astrid.cc is in CC with single recipient', async () => {
+    it(`should create assigned task when remindme@${BRAND.domain} is in CC with single recipient`, async () => {
       const email: ParsedEmail = {
         // The provider's SPF/DKIM/DMARC verdict. processEmail refuses to act as
         // the From address without one (task 0a5b6337).
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['assignee@example.com'],
-        cc: ['remindme@astrid.cc'],
+        cc: [`remindme@${BRAND.domain}`],
         bcc: [],
         subject: 'Please review document',
         body: 'Document attached',
@@ -200,7 +201,7 @@ describe('EmailToTaskService', () => {
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['user1@example.com', 'user2@example.com'],
-        cc: ['remindme@astrid.cc', 'user3@example.com'],
+        cc: [`remindme@${BRAND.domain}`, 'user3@example.com'],
         bcc: [],
         subject: 'Team meeting notes',
         body: 'Please review',
@@ -274,7 +275,7 @@ describe('EmailToTaskService', () => {
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['sender@example.com', 'user1@example.com'],
-        cc: ['remindme@astrid.cc'],
+        cc: [`remindme@${BRAND.domain}`],
         bcc: [],
         subject: 'Test',
         body: 'Test',
@@ -314,7 +315,7 @@ describe('EmailToTaskService', () => {
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'sender@example.com',
         to: ['first-to@example.com', 'second-to@example.com'],
-        cc: ['remindme@astrid.cc', 'first-cc@example.com'],
+        cc: [`remindme@${BRAND.domain}`, 'first-cc@example.com'],
         bcc: [],
         subject: 'Assignment priority test',
         body: 'Test',
@@ -362,7 +363,7 @@ describe('EmailToTaskService', () => {
         // the From address without one (task 0a5b6337).
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
-        to: ['remindme@astrid.cc'],
+        to: [`remindme@${BRAND.domain}`],
         cc: [],
         bcc: [],
         subject: 'Test task',
@@ -403,7 +404,7 @@ describe('EmailToTaskService', () => {
         // the From address without one (task 0a5b6337).
         senderAuth: { spf: 'pass', dkim: 'pass' },
         from: 'user@example.com',
-        to: ['remindme@astrid.cc'],
+        to: [`remindme@${BRAND.domain}`],
         cc: [],
         bcc: [],
         subject: 'Test task',
@@ -432,7 +433,7 @@ describe('EmailToTaskService', () => {
     const spoofed = (senderAuth: unknown): ParsedEmail => ({
       senderAuth: senderAuth as never,
       from: 'victim@example.com',
-      to: ['remindme@astrid.cc'],
+      to: [`remindme@${BRAND.domain}`],
       cc: [],
       bcc: [],
       subject: 'Buy milk',

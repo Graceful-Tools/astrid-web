@@ -20,7 +20,7 @@
  * died of exactly one import: middleware pulled detectPlatform from
  * analytics-events, which imports Prisma at module scope, and the edge bundle
  * failed to instantiate — every request 500'd for ~12 minutes
- * (tests/middleware-edge-safety.test.ts now guards the class).
+ * (tests/middleware/middleware-edge-safety.test.ts now guards the class).
  */
 
 /**

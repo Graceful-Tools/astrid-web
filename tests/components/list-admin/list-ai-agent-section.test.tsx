@@ -18,6 +18,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ListAiAgentSection } from '@/components/list-admin/ListAiAgentSection'
 import type { TaskList } from '@/types/task'
+import { BRAND } from '@/lib/brand/config'
 
 function mockFetches(opts: {
   agents?: Array<{ id: string; name: string | null; email: string; image: string | null; service: string }>
@@ -59,7 +60,7 @@ function makeList(overrides: Partial<TaskList> = {}): TaskList {
 }
 
 const oneAgent = [
-  { id: 'agent-1', name: 'Claude', email: 'claude@astrid.cc', image: null, service: 'claude' },
+  { id: 'agent-1', name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, image: null, service: 'claude' },
 ]
 
 describe('ListAiAgentSection', () => {

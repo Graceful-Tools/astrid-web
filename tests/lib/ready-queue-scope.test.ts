@@ -18,6 +18,7 @@ import {
   resolveReadyQueueOptions,
 } from '@/lib/ready-queue-scope'
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { BRAND } from '@/lib/brand/config'
 
 describe('isClaimableByAgent', () => {
   it('takes an UNASSIGNED task', () => {
@@ -29,7 +30,7 @@ describe('isClaimableByAgent', () => {
   it('takes a task assigned to the agent itself', () => {
     expect(isClaimableByAgent({
       assigneeId: 'agent-1',
-      assignee: { email: 'claude@astrid.cc', name: 'Claude Agent' },
+      assignee: { email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude Agent' },
     }, 'claude-code')).toBe(true)
   })
 
@@ -130,7 +131,7 @@ describe('resolveReadyQueueOptions', () => {
     expect(() => resolveReadyQueueOptions(['--harness', 'openai'], {})).toThrow(/Unknown harness/)
     expect(() => isClaimableByAgent({
       assigneeId: 'agent-1',
-      assignee: { email: 'openai@astrid.cc' },
+      assignee: { email: `openai@${BRAND.agentEmailDomain}` },
     }, 'openai')).toThrow(/Unknown harness/)
   })
 

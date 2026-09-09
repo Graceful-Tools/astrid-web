@@ -9,27 +9,28 @@
  */
 import { describe, it, expect } from 'vitest'
 import { sameOrigin } from '@/lib/auth-host'
+import { BRAND } from '@/lib/brand/config'
 
-const BASE = 'https://www.astrid.cc'
+const BASE = `https://www.${BRAND.domain}`
 
 describe('sameOrigin', () => {
   it.each([
-    ['suffix domain', 'https://www.astrid.cc.evil.test/phish'],
-    ['prefix-lookalike', 'https://www.astrid.cceviltest.com/'],
-    ['userinfo trick', 'https://www.astrid.cc@evil.test/'],
+    ['suffix domain', `https://www.${BRAND.domain}.evil.test/phish`],
+    ['prefix-lookalike', `https://www.${BRAND.domain}eviltest.com/`],
+    ['userinfo trick', `https://www.${BRAND.domain}@evil.test/`],
     ['plain other host', 'https://evil.test/'],
-    ['http downgrade', 'http://www.astrid.cc/'],
+    ['http downgrade', `http://www.${BRAND.domain}/`],
     ['not a url', 'not-a-url'],
   ])('rejects a %s', (_label, url) => {
     expect(sameOrigin(url, BASE)).toBe(false)
   })
 
   it.each([
-    ['the base itself', 'https://www.astrid.cc'],
-    ['a path on the base', 'https://www.astrid.cc/tasks?x=1'],
+    ['the base itself', `https://www.${BRAND.domain}`],
+    ['a path on the base', `https://www.${BRAND.domain}/tasks?x=1`],
     // A backslash is a path separator for special schemes, so the host really
     // is the base here and the browser would navigate on-site too.
-    ['a backslash that reads like a host trick but is a path', 'https://www.astrid.cc\\@evil.test/'],
+    ['a backslash that reads like a host trick but is a path', `https://www.${BRAND.domain}\\@evil.test/`],
   ])('accepts %s', (_label, url) => {
     expect(sameOrigin(url, BASE)).toBe(true)
   })

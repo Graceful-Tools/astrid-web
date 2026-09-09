@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
+import { BRAND } from '@/lib/brand/config'
 
 describe('Locale Routing Middleware', () => {
   let mockCreateMiddleware: any
@@ -51,7 +52,7 @@ describe('Locale Routing Middleware', () => {
 
   describe('Locale prefix handling', () => {
     it('should allow routes with locale prefixes like /es', async () => {
-      const request = new NextRequest(new URL('https://www.astrid.cc/es'))
+      const request = new NextRequest(new URL(`https://www.${BRAND.domain}/es`))
 
       // Import middleware after mocks are set up
       const { middleware: mw } = await import('@/middleware')
@@ -63,7 +64,7 @@ describe('Locale Routing Middleware', () => {
     })
 
     it('should allow routes with locale prefixes like /fr', async () => {
-      const request = new NextRequest(new URL('https://www.astrid.cc/fr'))
+      const request = new NextRequest(new URL(`https://www.${BRAND.domain}/fr`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -73,7 +74,7 @@ describe('Locale Routing Middleware', () => {
     })
 
     it('should allow routes with locale prefixes like /de', async () => {
-      const request = new NextRequest(new URL('https://www.astrid.cc/de'))
+      const request = new NextRequest(new URL(`https://www.${BRAND.domain}/de`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -83,7 +84,7 @@ describe('Locale Routing Middleware', () => {
     })
 
     it('should allow routes without locale prefixes (backward compatibility)', async () => {
-      const request = new NextRequest(new URL('https://www.astrid.cc/'))
+      const request = new NextRequest(new URL(`https://www.${BRAND.domain}/`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -93,7 +94,7 @@ describe('Locale Routing Middleware', () => {
     })
 
     it('should allow nested routes with locale prefixes like /es/tasks', async () => {
-      const request = new NextRequest(new URL('https://www.astrid.cc/es/tasks'))
+      const request = new NextRequest(new URL(`https://www.${BRAND.domain}/es/tasks`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -105,7 +106,7 @@ describe('Locale Routing Middleware', () => {
 
   describe('API routes exclusion', () => {
     it('should not apply locale routing to /api routes', async () => {
-      const request = new NextRequest(new URL('https://www.astrid.cc/api/tasks'))
+      const request = new NextRequest(new URL(`https://www.${BRAND.domain}/api/tasks`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -115,7 +116,7 @@ describe('Locale Routing Middleware', () => {
     })
 
     it('should not apply locale routing to /.well-known routes', async () => {
-      const request = new NextRequest(new URL('https://astrid.cc/.well-known/apple-app-site-association'))
+      const request = new NextRequest(new URL(`https://${BRAND.domain}/.well-known/apple-app-site-association`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -127,7 +128,7 @@ describe('Locale Routing Middleware', () => {
 
   describe('Domain redirection', () => {
     it('should redirect naked domain to www for non-API routes', async () => {
-      const request = new NextRequest(new URL('https://astrid.cc/'))
+      const request = new NextRequest(new URL(`https://${BRAND.domain}/`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -136,12 +137,12 @@ describe('Locale Routing Middleware', () => {
       expect(response).toBeDefined()
       if (response.status === 308) {
         const location = response.headers.get('location')
-        expect(location).toContain('www.astrid.cc')
+        expect(location).toContain(`www.${BRAND.domain}`)
       }
     })
 
     it('should redirect naked domain with locale prefix to www', async () => {
-      const request = new NextRequest(new URL('https://astrid.cc/es'))
+      const request = new NextRequest(new URL(`https://${BRAND.domain}/es`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -150,13 +151,13 @@ describe('Locale Routing Middleware', () => {
       expect(response).toBeDefined()
       if (response.status === 308) {
         const location = response.headers.get('location')
-        expect(location).toContain('www.astrid.cc')
+        expect(location).toContain(`www.${BRAND.domain}`)
         expect(location).toContain('/es')
       }
     })
 
     it('should NOT redirect naked domain for API routes', async () => {
-      const request = new NextRequest(new URL('https://astrid.cc/api/tasks'))
+      const request = new NextRequest(new URL(`https://${BRAND.domain}/api/tasks`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -166,7 +167,7 @@ describe('Locale Routing Middleware', () => {
     })
 
     it('should NOT redirect naked domain for .well-known routes', async () => {
-      const request = new NextRequest(new URL('https://astrid.cc/.well-known/apple-app-site-association'))
+      const request = new NextRequest(new URL(`https://${BRAND.domain}/.well-known/apple-app-site-association`))
 
       const { middleware: mw } = await import('@/middleware')
       const response = await mw(request)
@@ -179,8 +180,8 @@ describe('Locale Routing Middleware', () => {
   describe('Configuration', () => {
     it('should use as-needed locale prefix strategy', async () => {
       // This test verifies the configuration indirectly by checking behavior
-      const requestWithLocale = new NextRequest(new URL('https://www.astrid.cc/es'))
-      const requestWithoutLocale = new NextRequest(new URL('https://www.astrid.cc/'))
+      const requestWithLocale = new NextRequest(new URL(`https://www.${BRAND.domain}/es`))
+      const requestWithoutLocale = new NextRequest(new URL(`https://www.${BRAND.domain}/`))
 
       const { middleware: mw } = await import('@/middleware')
 

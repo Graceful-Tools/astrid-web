@@ -13,6 +13,7 @@ import {
   assertUITestAccount,
   planFixtureReset,
 } from '@/lib/uitest-fixtures'
+import { BRAND } from '@/lib/brand/config'
 
 describe('assertUITestAccount', () => {
   it('allows the dedicated test account', () => {
@@ -25,8 +26,8 @@ describe('assertUITestAccount', () => {
   })
 
   it('refuses a lookalike on the same domain', () => {
-    expect(() => assertUITestAccount('uitest2@astrid.cc')).toThrow()
-    expect(() => assertUITestAccount('uitest@astrid.cc.evil.com')).toThrow()
+    expect(() => assertUITestAccount(`uitest2@${BRAND.domain}`)).toThrow()
+    expect(() => assertUITestAccount(`uitest@${BRAND.domain}.evil.com`)).toThrow()
   })
 
   it('refuses a missing account rather than treating it as unset-and-fine', () => {
