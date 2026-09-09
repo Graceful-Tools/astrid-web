@@ -257,6 +257,33 @@ Not oversights. Changing any of these breaks something real.
 | `ASTRID.md` | Agent context filename, deliberately named. |
 | iOS bundle IDs, keychain service, App Group, `astrid://`, associated domains | App Store Connect and provisioning. |
 
+### Service providers: what is swappable, and what is fixed (task 1e772f0c)
+
+This section used to be silent about the vendors the product runs on, so they
+read as oversights. Some were. Here is where each one actually stands.
+
+**Object storage — swappable.** Every read and write goes through
+`lib/secure-storage.ts`, which is the only module allowed to name the vendor
+(`putObject`, `deleteObject`, `issueClientUploadToken`). Eight other files used
+to import `@vercel/blob` directly; `tests/rules/blob-storage-goes-through-secure-storage.test.ts`
+now fails if a ninth appears, subpath imports included.
+
+**Email — one transport, swappable.** `lib/email-transport.ts` holds the single
+Resend client and the one rule deciding whether a message actually sends.
+`lib/email.ts` and `lib/email-reminder-service.ts` supply content only. There
+were two clients and two copies of that rule.
+
+**Redis — already swappable, and better than it looked.** `lib/redis.ts` picks
+Upstash's REST client only when `UPSTASH_REDIS_REST_URL` is set *and* the
+environment is production; a deployment with `REDIS_URL` and no Upstash
+variables uses a standard Redis client. A partner on self-hosted Redis
+configures it, they do not fork it.
+
+| Thing | Why it is frozen |
+|---|---|
+| Upstash REST for SSE cross-instance events (`lib/sse-utils.ts`) | The only one of the Redis call sites that is Upstash-only, and deliberately: SSE fan-out runs in serverless functions that hold no connection pool, so it needs a client that works over plain HTTP per invocation. A standard Redis socket client there would open a connection per request. Unlike `lib/redis.ts`, this path has no local fallback because it does nothing in development — events are kept in memory. |
+| `web-push` (`lib/push-notification-service.ts`) | Not a vendor. Web Push is the **browser standard** (RFC 8030 / VAPID), and `web-push` is the library that speaks it. The push service is chosen by the user's browser, not by us, so there is nothing here for a partner to swap — only their own `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` to set. |
+
 ### The MCP server name is NOT frozen (task 979e1325)
 
 This table used to be silent about it, which read as an oversight and was one.

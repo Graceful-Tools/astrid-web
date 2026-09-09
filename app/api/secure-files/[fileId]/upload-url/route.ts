@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
+import { issueClientUploadToken } from "@/lib/secure-storage"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
@@ -87,14 +87,11 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     // client token scoped to this single pathname with size/type limits.
     // The previous implementation returned BLOB_READ_WRITE_TOKEN verbatim,
     // giving any authenticated user read/write/delete over every blob.
-    const clientToken = await generateClientTokenFromReadWriteToken({
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+    const { token: clientToken, uploadUrl } = await issueClientUploadToken({
       pathname,
       maximumSizeInBytes: 100 * 1024 * 1024,
       allowedContentTypes: [mimeType],
     })
-
-    const uploadUrl = `https://blob.vercel-storage.com/${pathname}`
 
     return NextResponse.json({
       uploadUrl,

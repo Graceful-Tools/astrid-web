@@ -1,16 +1,11 @@
-// Email service implementation using Resend
-import { Resend } from 'resend'
+// Email content and templates. The transport itself — the one Resend client —
+// lives in lib/email-transport.ts (task 1e772f0c).
+import { isEmailTransportLive, sendTransportEmail } from '@/lib/email-transport'
 import { getBaseUrl } from './base-url'
 import { BRAND } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('email')
-
-
-// Initialize Resend (only in server environment)
-const resend = typeof window === 'undefined' && process.env.RESEND_API_KEY 
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null
 
 /**
  * The From address for outbound mail.
@@ -61,7 +56,7 @@ export async function sendInvitationEmail(invitation: Invitation) {
   const fromEmail = getFromEmail()
 
   // In development, just log the invitation
-  if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
+  if (!isEmailTransportLive()) {
     log.info({
       to: invitation.email,
       from: invitation.sender?.name || invitation.sender?.email,
@@ -74,18 +69,13 @@ export async function sendInvitationEmail(invitation: Invitation) {
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const data = await sendTransportEmail({
       from: fromEmail,
-      to: [invitation.email],
+      to: invitation.email,
       subject,
       html: htmlBody,
       text: textBody,
     })
-
-    if (error) {
-      log.error({ err: error }, 'Resend error:')
-      throw new Error(`Email sending failed: ${error.message}`)
-    }
 
     log.info({ id: data?.id, to: invitation.email }, '📧 Email sent successfully:')
     return data
@@ -117,7 +107,7 @@ export async function sendVerificationEmail(data: EmailVerificationData) {
   const fromEmail = getFromEmail()
 
   // In development, just log the verification email
-  if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
+  if (!isEmailTransportLive()) {
     log.info({
       to: data.email,
       subject,
@@ -128,18 +118,13 @@ export async function sendVerificationEmail(data: EmailVerificationData) {
   }
 
   try {
-    const { data: emailData, error } = await resend.emails.send({
+    const emailData = await sendTransportEmail({
       from: fromEmail,
-      to: [data.email],
+      to: data.email,
       subject,
       html: htmlBody,
       text: textBody,
     })
-
-    if (error) {
-      log.error({ err: error }, 'Resend error:')
-      throw new Error(`Email sending failed: ${error.message}`)
-    }
 
     log.info({ id: emailData?.id, to: data.email }, '📧 Verification email sent successfully:')
     return emailData
@@ -231,7 +216,7 @@ export async function sendListInvitationEmail(data: ListInvitationData) {
   const fromEmail = getFromEmail()
 
   // In development, just log the invitation
-  if (process.env.NODE_ENV === "development" || !resend || !process.env.RESEND_API_KEY) {
+  if (!isEmailTransportLive()) {
     log.info({
       to: data.to,
       from: data.inviterName,
@@ -244,18 +229,13 @@ export async function sendListInvitationEmail(data: ListInvitationData) {
   }
 
   try {
-    const { data: emailData, error } = await resend.emails.send({
+    const emailData = await sendTransportEmail({
       from: fromEmail,
-      to: [data.to],
+      to: data.to,
       subject,
       html: htmlBody,
       text: textBody,
     })
-
-    if (error) {
-      log.error({ err: error }, 'Resend error:')
-      throw new Error(`Email sending failed: ${error.message}`)
-    }
 
     log.info({ id: emailData?.id, to: data.to }, '📧 List invitation email sent successfully:')
     return emailData
@@ -476,24 +456,19 @@ export async function sendFeatureAccessRequestEmail(data: FeatureAccessRequestDa
     </div>
   `.trim()
 
-  if (process.env.NODE_ENV === 'development' || !resend || !process.env.RESEND_API_KEY) {
+  if (!isEmailTransportLive()) {
     log.info({ to, featureKey: data.featureKey, from: data.userEmail, useCase: data.useCase },
       '📧 Feature access request (Development Mode)')
     return
   }
 
-  const { data: emailData, error } = await resend.emails.send({
+  const emailData = await sendTransportEmail({
     from: getFromEmail(),
-    to: [to],
+    to,
     subject,
     html: htmlBody,
     text: textBody,
   })
-
-  if (error) {
-    log.error({ err: error }, 'Resend error sending feature access request:')
-    throw new Error(`Email sending failed: ${error.message}`)
-  }
 
   log.info({ id: emailData?.id, featureKey: data.featureKey }, '📧 Feature access request email sent')
   return emailData

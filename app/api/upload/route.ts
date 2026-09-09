@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
-import { put } from "@vercel/blob"
+import { putObject } from "@/lib/secure-storage"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
 import { validateUploadFile, MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload-validation"
@@ -67,14 +67,10 @@ export async function POST(request: NextRequest) {
     const fileId = randomUUID()
     const pathname = `uploads/${session.user.id}/${fileId}.${validation.extension}`
 
-    // Upload to Vercel Blob
-    const blob = await put(pathname, file, {
-      access: 'public',
-      contentType: file.type,
-    })
+    const object = await putObject(pathname, file, { contentType: file.type })
 
     return NextResponse.json({
-      url: blob.url,
+      url: object.url,
       name: file.name,
       size: file.size,
       type: file.type

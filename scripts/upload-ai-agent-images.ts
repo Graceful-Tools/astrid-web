@@ -1,9 +1,9 @@
 /**
- * Upload AI agent profile images to Vercel Blob storage
- * This ensures AI agents use the same image storage as regular users
+ * Upload AI agent profile images to object storage.
+ * This ensures AI agents use the same image storage as regular users.
  */
 
-import { put } from "@vercel/blob"
+import { putObject } from "@/lib/secure-storage"
 import { PrismaClient } from "@prisma/client"
 import * as fs from "fs"
 import * as path from "path"
@@ -34,9 +34,7 @@ async function uploadAgentImages() {
     const fileBuffer = fs.readFileSync(localPath)
     const file = new Blob([fileBuffer], { type: agent.contentType })
 
-    // Upload to Vercel Blob
-    const blob = await put(`ai-agents/${agent.filename}`, file, {
-      access: "public",
+    const blob = await putObject(`ai-agents/${agent.filename}`, file as never, {
       contentType: agent.contentType,
     })
 
