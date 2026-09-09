@@ -423,7 +423,12 @@ export function ProjectStatusBoard({
                   return (
                     <div
                       data-testid={`status-card-${task.id}`}
-                      className={`task-row task-card transition-theme relative theme-surface theme-border cursor-grab ${
+                      /* pr-6 (24px), not the .task-row default of 12px: the
+                       *  expanded card spends exactly 24px on its action column
+                       *  (2px + a 20px button + 2px), so the collapsed row has
+                       *  to reserve the same or the title rewraps on expand and
+                       *  the card jumps (task 8eee392d). */
+                      className={`task-row task-card !pr-6 transition-theme relative theme-surface theme-border cursor-grab ${
                         task.completed
                           ? "task-row-completed theme-bg-hover"
                           : "theme-surface-hover"

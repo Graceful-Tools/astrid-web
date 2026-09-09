@@ -99,8 +99,16 @@ export function TaskHeader({
        *  layout, so 2-column, 3-column and the inline/board panel agree. The mobile
        *  back button moved here rather than being deleted with the bar: it was the
        *  only way back to the list on a narrow viewport. */}
-      <div className="p-4">
-        <div className={`flex items-center ${FIELD_ROW_GAP_CLASS} min-w-0`}>
+      {/* Compact (board card) trims the RIGHT padding to almost nothing so the
+       *  action column below can sit inside the card's ordinary right gutter
+       *  rather than adding a column of its own. Expanding a card used to
+       *  narrow the title and rewrap every line — the card visibly jumped
+       *  (task 8eee392d). Jon's spec: a ~20px gutter, ~16px buttons, about 2px
+       *  either side of them. */}
+      <div className={compact ? "p-3 pr-0.5" : "p-4"}>
+        <div
+          className={`flex items-center min-w-0 ${compact ? "gap-3" : FIELD_ROW_GAP_CLASS}`}
+        >
           {!compact && onClose && (
             <Button
               variant="ghost"
@@ -159,15 +167,15 @@ export function TaskHeader({
                   el.style.height = el.scrollHeight + 'px'
                 }
               }}
-              className={`text-base px-2 py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary ${
-                compact ? 'font-medium leading-tight' : ''
+              className={`text-base py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary ${
+                compact ? 'font-medium leading-tight px-0' : 'px-2'
               }`}
               rows={1}
             />
           ) : (
             <span
-              className={`text-base cursor-pointer hover:theme-bg-hover px-2 py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
-                compact ? 'font-medium leading-tight' : ''
+              className={`text-base cursor-pointer hover:theme-bg-hover py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
+                compact ? 'font-medium leading-tight px-0' : 'px-2'
               } ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
@@ -180,7 +188,16 @@ export function TaskHeader({
            *  stacks a collapse chevron above it (an inline panel collapses rather
            *  than navigating back). */}
           {compact ? (
-            <div className="flex flex-col items-center -my-1 flex-shrink-0">
+            /* Sized to the gutter, not to a comfortable button: 20px boxes
+             *  around the same 16px icons, hard against the card edge. Any
+             *  wider and the title reflows on expand, which is the whole
+             *  complaint.
+             *
+             *  -ml-2.5 cancels 10px of the row's 12px gap, leaving the 2px the
+             *  spec asks for between the title and the buttons. The gap itself
+             *  has to stay 12px, because that is what separates the leading
+             *  control from the title on the collapsed row. */
+            <div className="flex flex-col items-center -my-1 -ml-2.5 flex-shrink-0">
               {onToggleFullScreen && (
                 // The compact header used to omit this entirely, so a board
                 // card's details had no way to expand however long the
@@ -190,7 +207,7 @@ export function TaskHeader({
                   variant="ghost"
                   size="sm"
                   onClick={onToggleFullScreen}
-                  className="theme-text-muted hover:theme-text-primary h-6 w-6 p-0"
+                  className="theme-text-muted hover:theme-text-primary h-5 w-5 p-0"
                   aria-label={fullScreen ? "Exit full screen" : "Full screen"}
                   title={fullScreen ? "Exit full screen" : "Full screen"}
                 >
@@ -202,7 +219,7 @@ export function TaskHeader({
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
-                  className="theme-text-muted hover:theme-text-primary h-6 w-6 p-0"
+                  className="theme-text-muted hover:theme-text-primary h-5 w-5 p-0"
                   aria-label="Collapse task"
                   title="Collapse"
                 >
@@ -210,6 +227,7 @@ export function TaskHeader({
                 </Button>
               )}
               <TaskActionMenu
+                compact
                 task={task}
                 currentUser={currentUser}
                 reminderDebugMode={reminderDebugMode}

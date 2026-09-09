@@ -29,6 +29,16 @@ import { useTranslations } from "@/lib/i18n/client"
 interface TaskActionMenuProps {
   task: Task
   currentUser: User
+  /**
+   * Board-card sizing: a 20px trigger with a 16px icon, so the whole action
+   * column fits inside the card's ordinary right gutter.
+   *
+   * The default `size="sm"` trigger is wider than that, and it is the widest
+   * thing in the column — so it, not the two buttons beside it, is what
+   * decided how much width expanding a card stole from the title
+   * (task 8eee392d).
+   */
+  compact?: boolean
   reminderDebugMode: boolean
   onCopy: () => void
   onShare: () => void
@@ -70,6 +80,7 @@ export function TaskActionMenu({
   onTestReminder,
   onCancel,
   onStatusSelect,
+  compact = false,
 }: TaskActionMenuProps) {
   const { t } = useTranslations()
   const taskList = task.lists?.[0]
@@ -88,8 +99,14 @@ export function TaskActionMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex-shrink-0 theme-text-muted hover:theme-text-secondary">
-          <MoreVertical className="w-5 h-5" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex-shrink-0 theme-text-muted hover:theme-text-secondary ${
+            compact ? "h-5 w-5 p-0" : ""
+          }`}
+        >
+          <MoreVertical className={compact ? "w-4 h-4" : "w-5 h-5"} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
