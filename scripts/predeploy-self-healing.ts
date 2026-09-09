@@ -21,6 +21,10 @@ import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+import {
+  PREDEPLOY_REPORT_TAG,
+  selectReportTaskFor,
+} from './lib/predeploy-report-tasks'
 
 // Save original environment BEFORE dotenv loads, to use for build commands
 // This prevents dotenv-loaded variables from affecting the Next.js build
@@ -569,13 +573,13 @@ class SelfHealingPredeploy {
       const data = await response.json()
       const tasks = data.tasks || []
 
-      // Look for existing predeploy failure tasks
-      const existing = tasks.find((task: any) =>
-        task.title.includes('Predeploy') &&
-        task.title.includes(errorSummary.slice(0, 30))
-      )
-
-      return existing?.id || null
+      // Match the marker this script WRITES, never the words a human might
+      // type. This used to be a substring match over every open task on the
+      // board — `title.includes('Predeploy')` AND a 30-character slice of a
+      // check name like "Build" — so any task a person wrote ABOUT the
+      // predeploy gate was a candidate to be commented on. Same mistake, and
+      // same fix, as scripts/lib/deployment-monitor-tasks.ts (task 8ef93fb9).
+      return selectReportTaskFor(tasks, errorSummary)?.id ?? null
     } catch {
       return null
     }
@@ -618,7 +622,11 @@ class SelfHealingPredeploy {
       ? `⏱️ Predeploy Timed Out: ${failedNames}`
       : `🔴 Predeploy Failed: ${failedNames}`
 
-    const description = `## Automated Predeploy Failure Report
+    // The tag is what findExistingTask matches on. It is written here, next to
+    // the heading, so the writer and the reader cannot drift apart.
+    const description = `${PREDEPLOY_REPORT_TAG}
+
+## Automated Predeploy Failure Report
 
 **Generated**: ${new Date().toISOString()}
 **Duration**: ${((Date.now() - this.startTime) / 1000).toFixed(1)}s
