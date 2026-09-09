@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  COMPLETION_FILTER_OPTIONS,
+  DUE_DATE_FILTER_OPTIONS,
+  FilterSelectItems,
+  PRIORITY_FILTER_OPTIONS,
+  SORT_BY_OPTIONS,
+} from "./list-settings/filter-options"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
@@ -345,14 +352,7 @@ export function ListSortAndFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[10100]">
-              <SelectItem value="auto">Auto</SelectItem>
-              <SelectItem value="priority">Priority</SelectItem>
-              <SelectItem value="when">Date</SelectItem>
-              <SelectItem value="assignee">Who</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="incomplete">Incomplete</SelectItem>
-              <SelectItem value="completedAt">Recently completed</SelectItem>
-              <SelectItem value="manual">Manual</SelectItem>
+              <FilterSelectItems options={SORT_BY_OPTIONS} />
             </SelectContent>
           </Select>
         </div>
@@ -371,10 +371,7 @@ export function ListSortAndFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[10100]">
-              <SelectItem value="default">Incomplete + Recently completed</SelectItem>
-              <SelectItem value="all">All tasks</SelectItem>
-              <SelectItem value="completed">Completed only</SelectItem>
-              <SelectItem value="incomplete">Incomplete only</SelectItem>
+              <FilterSelectItems options={COMPLETION_FILTER_OPTIONS} />
             </SelectContent>
           </Select>
         </div>
@@ -393,11 +390,7 @@ export function ListSortAndFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[10100]">
-              <SelectItem value="all"><span className="text-blue-400">All priorities</span></SelectItem>
-              <SelectItem value="3"><span className="text-red-500">!!! Highest</span></SelectItem>
-              <SelectItem value="2"><span className="text-orange-500">!! High</span></SelectItem>
-              <SelectItem value="1"><span className="text-blue-500">! Medium</span></SelectItem>
-              <SelectItem value="0"><span className="text-gray-400">○ Low</span></SelectItem>
+              <FilterSelectItems options={PRIORITY_FILTER_OPTIONS} />
             </SelectContent>
           </Select>
         </div>
@@ -459,14 +452,7 @@ export function ListSortAndFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[10100]">
-              <SelectItem value="all"><span className="text-blue-400">All dates</span></SelectItem>
-              <SelectItem value="overdue"><span className="text-red-500">Overdue</span></SelectItem>
-              <SelectItem value="today"><span className="text-green-500">Today</span></SelectItem>
-              <SelectItem value="this_week"><span className="text-blue-500">Next 7 days</span></SelectItem>
-              <SelectItem value="this_month"><span className="text-purple-500">Next 30 days</span></SelectItem>
-              <SelectItem value="this_calendar_week"><span className="text-cyan-500">This calendar week</span></SelectItem>
-              <SelectItem value="this_calendar_month"><span className="text-indigo-500">This calendar month</span></SelectItem>
-              <SelectItem value="no_date"><span className="text-gray-400">No due date</span></SelectItem>
+              <FilterSelectItems options={DUE_DATE_FILTER_OPTIONS} />
             </SelectContent>
           </Select>
         </div>
