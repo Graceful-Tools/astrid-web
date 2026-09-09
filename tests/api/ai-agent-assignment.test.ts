@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GET } from '@/app/api/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
+import { BRAND } from '@/lib/brand/config'
 
 // Mock NextRequest with URL search params
 const createMockRequest = (searchParams: Record<string, string> = {}, headers: Record<string, string> = {}) => {
@@ -30,7 +31,7 @@ const mockUser = {
 const claudeAgent = {
   id: 'claude-agent-id',
   name: 'Claude Code Agent',
-  email: 'claude@astrid.cc',
+  email: `claude@${BRAND.agentEmailDomain}`,
   image: null,
   isAIAgent: true,
   aiAgentType: 'coding_agent',
@@ -40,7 +41,7 @@ const claudeAgent = {
 const openaiAgent = {
   id: 'openai-agent-id',
   name: 'OpenAI Agent',
-  email: 'openai@astrid.cc',
+  email: `openai@${BRAND.agentEmailDomain}`,
   image: null,
   isAIAgent: true,
   aiAgentType: 'coding_agent',
@@ -50,7 +51,7 @@ const openaiAgent = {
 const geminiAgent = {
   id: 'gemini-agent-id',
   name: 'Gemini Agent',
-  email: 'gemini@astrid.cc',
+  email: `gemini@${BRAND.agentEmailDomain}`,
   image: null,
   isAIAgent: true,
   aiAgentType: 'gemini_agent',
@@ -132,7 +133,7 @@ describe('AI Agent Assignment Fix', () => {
 
     // Should only show Claude agent
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('claude@astrid.cc')
+    expect(aiAgents[0].email).toBe(`claude@${BRAND.agentEmailDomain}`)
     expect(aiAgents[0].name).toBe('Claude Code Agent')
   })
 
@@ -159,7 +160,7 @@ describe('AI Agent Assignment Fix', () => {
 
     // Should only show OpenAI agent
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('openai@astrid.cc')
+    expect(aiAgents[0].email).toBe(`openai@${BRAND.agentEmailDomain}`)
     expect(aiAgents[0].name).toBe('OpenAI Agent')
   })
 
@@ -188,8 +189,8 @@ describe('AI Agent Assignment Fix', () => {
     expect(aiAgents.length).toBe(2)
 
     const emails = aiAgents.map((agent: any) => agent.email)
-    expect(emails).toContain('claude@astrid.cc')
-    expect(emails).toContain('openai@astrid.cc')
+    expect(emails).toContain(`claude@${BRAND.agentEmailDomain}`)
+    expect(emails).toContain(`openai@${BRAND.agentEmailDomain}`)
   })
 
   it('should filter AI agents by search query', async () => {
@@ -215,7 +216,7 @@ describe('AI Agent Assignment Fix', () => {
 
     // Should only show Claude agent when searching for "claude"
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('claude@astrid.cc')
+    expect(aiAgents[0].email).toBe(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('should work with listIds parameter', async () => {
@@ -234,7 +235,7 @@ describe('AI Agent Assignment Fix', () => {
 
     // Should show Claude agent
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('claude@astrid.cc')
+    expect(aiAgents[0].email).toBe(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('should show Gemini agent when Gemini is added to list', async () => {
@@ -260,7 +261,7 @@ describe('AI Agent Assignment Fix', () => {
 
     // Should only show Gemini agent
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('gemini@astrid.cc')
+    expect(aiAgents[0].email).toBe(`gemini@${BRAND.agentEmailDomain}`)
     expect(aiAgents[0].name).toBe('Gemini Agent')
   })
 
@@ -289,9 +290,9 @@ describe('AI Agent Assignment Fix', () => {
     expect(aiAgents.length).toBe(3)
 
     const emails = aiAgents.map((agent: any) => agent.email)
-    expect(emails).toContain('claude@astrid.cc')
-    expect(emails).toContain('openai@astrid.cc')
-    expect(emails).toContain('gemini@astrid.cc')
+    expect(emails).toContain(`claude@${BRAND.agentEmailDomain}`)
+    expect(emails).toContain(`openai@${BRAND.agentEmailDomain}`)
+    expect(emails).toContain(`gemini@${BRAND.agentEmailDomain}`)
   })
 
   it('should filter Gemini agent by search query', async () => {
@@ -317,7 +318,7 @@ describe('AI Agent Assignment Fix', () => {
 
     // Should only show Gemini agent when searching for "gemini"
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('gemini@astrid.cc')
+    expect(aiAgents[0].email).toBe(`gemini@${BRAND.agentEmailDomain}`)
   })
 })
 
@@ -534,6 +535,6 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
 
     const aiAgents = data.users.filter((user: any) => user.isAIAgent)
     expect(aiAgents.length).toBe(1)
-    expect(aiAgents[0].email).toBe('claude@astrid.cc')
+    expect(aiAgents[0].email).toBe(`claude@${BRAND.agentEmailDomain}`)
   })
 })

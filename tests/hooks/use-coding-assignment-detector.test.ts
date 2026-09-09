@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCodingAssignmentDetector } from '@/hooks/use-coding-assignment-detector'
 import type { Task, User } from '@/types/task'
+import { BRAND } from '@/lib/brand/config'
 
 // Mock toast - create inside the mock factory to avoid hoisting issues
 vi.mock('@/hooks/use-toast', () => {
@@ -51,7 +52,7 @@ describe('useCodingAssignmentDetector', () => {
   const mockCodingAgent: User = {
     id: 'agent-1',
     name: 'Claude Agent',
-    email: 'claude@astrid.cc',
+    email: `claude@${BRAND.agentEmailDomain}`,
     isAIAgent: true,
     aiAgentType: 'coding_agent'
   } as User
@@ -146,7 +147,7 @@ describe('useCodingAssignmentDetector', () => {
     const anotherCodingAgent: User = {
       id: 'agent-2',
       name: 'OpenAI Agent',
-      email: 'openai@astrid.cc',
+      email: `openai@${BRAND.agentEmailDomain}`,
       isAIAgent: true,
       aiAgentType: 'coding_agent'
     } as User

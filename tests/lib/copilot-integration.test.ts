@@ -27,8 +27,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 import { dispatchToolCall, type ProviderCallers } from '@/lib/astrid-agent/dispatch-ai-service'
 import { getAgentService } from '@/lib/ai/agent-config'
+import { BRAND } from '@/lib/brand/config'
 
-const COPILOT_EMAIL = 'copilot@astrid.cc'
+const COPILOT_EMAIL = `copilot@${BRAND.agentEmailDomain}`
 
 /** Minimal OpenAI-compatible completion body. */
 function completion(content: string) {
@@ -41,7 +42,7 @@ function completion(content: string) {
 }
 
 describe('GitHub Copilot end-to-end routing (task eed98c5f)', () => {
-  it('entry: resolves copilot@astrid.cc to the copilot service', () => {
+  it(`entry: resolves copilot@${BRAND.agentEmailDomain} to the copilot service`, () => {
     expect(getAgentService(COPILOT_EMAIL)).toBe('copilot')
   })
 

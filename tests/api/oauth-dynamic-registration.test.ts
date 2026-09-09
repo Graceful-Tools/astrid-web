@@ -7,6 +7,7 @@ vi.mock('@/lib/brand/capabilities', () => ({
 }))
 
 import { POST } from '@/app/api/v1/oauth/register/route'
+import { BRAND } from '@/lib/brand/config'
 
 describe('POST /api/v1/oauth/register (task a0e0808c)', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -21,7 +22,7 @@ describe('POST /api/v1/oauth/register (task a0e0808c)', () => {
       lastUsedAt: null,
     }))
 
-    const response = await POST(new NextRequest('https://astrid.cc/api/v1/oauth/register', {
+    const response = await POST(new NextRequest(`https://${BRAND.domain}/api/v1/oauth/register`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -43,7 +44,7 @@ describe('POST /api/v1/oauth/register (task a0e0808c)', () => {
   })
 
   it('rejects unsafe redirect URIs', async () => {
-    const response = await POST(new NextRequest('https://astrid.cc/api/v1/oauth/register', {
+    const response = await POST(new NextRequest(`https://${BRAND.domain}/api/v1/oauth/register`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

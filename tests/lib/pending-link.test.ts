@@ -17,18 +17,19 @@ vi.mock('@/lib/field-encryption', () => ({
 }))
 
 import { sealPendingLink, openPendingLink } from '@/lib/sync/pending-link'
+import { BRAND } from '@/lib/brand/config'
 
 describe('pending integration link (task 842601f2)', () => {
   beforeEach(() => vi.stubEnv('NEXTAUTH_SECRET', 'test-secret'))
   afterEach(() => vi.unstubAllEnvs())
 
   it('round-trips the grant', () => {
-    const sealed = sealPendingLink({ provider: 'github', code: 'gho_code', redirectUri: 'https://astrid.cc/cb' })
+    const sealed = sealPendingLink({ provider: 'github', code: 'gho_code', redirectUri: `https://${BRAND.domain}/cb` })
 
     expect(openPendingLink(sealed)).toEqual({
       provider: 'github',
       code: 'gho_code',
-      redirectUri: 'https://astrid.cc/cb',
+      redirectUri: `https://${BRAND.domain}/cb`,
     })
   })
 

@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 import { buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
+import { BRAND } from '@/lib/brand/config'
 
 const AGENT = { id: 'agent-claude', name: 'Claude Agent', isAIAgent: true }
 
@@ -46,9 +47,9 @@ describe('buildAgentQueue', () => {
 
   it('accepts either a mailbox or a full agent address', async () => {
     const byMailbox = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
-    const byEmail = await buildAgentQueue({ agent: 'CLAUDE@astrid.cc', userId: 'user-1' })
-    expect(byMailbox.agent.email).toBe('claude@astrid.cc')
-    expect(byEmail.agent.email).toBe('claude@astrid.cc')
+    const byEmail = await buildAgentQueue({ agent: `CLAUDE@${BRAND.agentEmailDomain}`, userId: 'user-1' })
+    expect(byMailbox.agent.email).toBe(`claude@${BRAND.agentEmailDomain}`)
+    expect(byEmail.agent.email).toBe(`claude@${BRAND.agentEmailDomain}`)
   })
 
   it('answers an empty queue for an identity nobody has used yet', async () => {

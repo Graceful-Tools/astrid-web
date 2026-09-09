@@ -41,6 +41,7 @@ vi.mock('@/lib/ai-orchestrator', () => ({
 import { POST } from '@/app/api/coding-agent/github-trigger/route'
 import { authenticateAPI, requireTaskAccess } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
+import { BRAND } from '@/lib/brand/config'
 
 const TASK_ID = '11111111-1111-4111-8111-111111111111'
 const githubContext = {
@@ -92,7 +93,7 @@ describe('POST /api/coding-agent/github-trigger', () => {
       assignee: {
         id: 'copilot-1',
         name: 'GitHub Copilot Agent',
-        email: 'copilot@astrid.cc',
+        email: `copilot@${BRAND.agentEmailDomain}`,
         isAIAgent: true,
         isActive: true,
       },
@@ -122,7 +123,7 @@ describe('POST /api/coding-agent/github-trigger', () => {
       assignee: {
         id: 'claude-1',
         name: 'Claude Agent',
-        email: 'claude@astrid.cc',
+        email: `claude@${BRAND.agentEmailDomain}`,
         isAIAgent: true,
         isActive: true,
       },

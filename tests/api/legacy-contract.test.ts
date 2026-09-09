@@ -50,6 +50,7 @@ import type {
   LegacyShortcodeResolveResponse,
   LegacyPushSubscribeResponse,
 } from '@/lib/api-contracts/legacy-ios-shapes'
+import { BRAND } from '@/lib/brand/config'
 
 // ── Tasks ─────────────────────────────────────────────────────────────
 
@@ -346,7 +347,7 @@ describe('legacy contract — AvailableAgentsResponse', () => {
   it('has { agents } where each agent has the expected key set', () => {
     const sample: LegacyAvailableAgentsResponse = {
       agents: [{
-        id: 'a1', email: 'a@astrid.cc', name: 'Astrid',
+        id: 'a1', email: `a@${BRAND.domain}`, name: 'Astrid',
         image: null, isAIAgent: true, aiAgentType: 'ASTRID',
       }],
     }
@@ -442,7 +443,7 @@ describe('legacy contract — ShortcodeMutationResponse', () => {
   it('envelope and shortcode keys match', () => {
     const sample: LegacyShortcodeMutationResponse = {
       shortcode: { code: 'abc', targetType: 'task', targetId: 't1' },
-      url: 'https://astrid.cc/s/abc',
+      url: `https://${BRAND.domain}/s/abc`,
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED))
     expect(new Set(Object.keys(sample.shortcode))).toEqual(new Set(SC_KEYS))

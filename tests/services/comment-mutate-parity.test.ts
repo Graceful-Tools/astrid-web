@@ -69,6 +69,7 @@ vi.mock('@/lib/analytics-events', () => ({
 }))
 
 import { prisma } from '@/lib/prisma'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma, true)
 
@@ -94,7 +95,7 @@ const task = () => ({
       listMembers: [
         { userId: JON, role: 'admin', user: { id: JON, email: 'jon@example.com', name: 'Jon', image: null } },
         { userId: MEMBER, role: 'member', user: { id: MEMBER, email: 'm@example.com', name: 'M', image: null } },
-        { userId: AGENT, role: 'member', user: { id: AGENT, email: 'claude@astrid.cc', name: 'Claude', image: null } },
+        { userId: AGENT, role: 'member', user: { id: AGENT, email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', image: null } },
       ],
     },
   ],
@@ -109,7 +110,7 @@ const existing = () => ({
   parentCommentId: null,
   createdAt: new Date('2026-09-07T00:00:00Z'),
   updatedAt: new Date('2026-09-07T00:00:00Z'),
-  author: { id: AGENT, name: 'Claude', email: 'claude@astrid.cc', image: null, isAIAgent: true },
+  author: { id: AGENT, name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, image: null, isAIAgent: true },
   secureFiles: [],
   task: task(),
 })
@@ -132,21 +133,21 @@ beforeEach(() => {
   mockPrisma.comment.update.mockResolvedValue(updated() as never)
   mockPrisma.comment.delete.mockResolvedValue(existing() as never)
   mockPrisma.user.findUnique.mockResolvedValue({
-    id: AGENT, name: 'Claude', email: 'claude@astrid.cc', isAIAgent: true,
+    id: AGENT, name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, isAIAgent: true,
   } as never)
 
   // The AGENT is the one editing and deleting, on every surface.
-  getUnifiedSession.mockResolvedValue({ user: { id: AGENT, name: 'Claude', email: 'claude@astrid.cc', isAIAgent: true } })
+  getUnifiedSession.mockResolvedValue({ user: { id: AGENT, name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, isAIAgent: true } })
   authenticateAPI.mockResolvedValue({
     userId: AGENT,
-    user: { id: AGENT, name: 'Claude', email: 'claude@astrid.cc', isAIAgent: true },
+    user: { id: AGENT, name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, isAIAgent: true },
     isAIAgent: true,
     source: 'oauth',
     scopes: ['comments:write'],
   })
   resolveMCPActor.mockResolvedValue({
     userId: AGENT,
-    user: { id: AGENT, name: 'Claude', email: 'claude@astrid.cc', isAIAgent: true },
+    user: { id: AGENT, name: 'Claude', email: `claude@${BRAND.agentEmailDomain}`, isAIAgent: true },
     token: { userId: AGENT },
   })
   getListMemberIdsByListId.mockResolvedValue([JON, MEMBER, AGENT])

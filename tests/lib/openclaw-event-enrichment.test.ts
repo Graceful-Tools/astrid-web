@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 describe('OpenClaw Event Enrichment', () => {
   describe('task_assigned event payload', () => {
@@ -95,7 +96,7 @@ describe('OpenClaw Event Enrichment', () => {
         id: 'task-789',
         title: 'Deploy v2',
         assigneeId: 'agent-001',
-        assignee: { email: 'astrid.oc@astrid.cc', isAIAgent: true },
+        assignee: { email: `astrid.oc@${BRAND.domain}`, isAIAgent: true },
       }
       const comment = {
         id: 'comment-1',
@@ -108,7 +109,7 @@ describe('OpenClaw Event Enrichment', () => {
       // Check the condition from our code
       const shouldBroadcast = task.assigneeId &&
         task.assignee?.email &&
-        (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc') &&
+        (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === `openclaw@${BRAND.agentEmailDomain}`) &&
         currentUserId !== task.assigneeId
 
       expect(shouldBroadcast).toBeTruthy()
@@ -138,7 +139,7 @@ describe('OpenClaw Event Enrichment', () => {
 
       const shouldBroadcast = task.assigneeId &&
         task.assignee?.email &&
-        (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === 'openclaw@astrid.cc')
+        (task.assignee.email.match(/\.oc@astrid\.cc$/i) || task.assignee.email === `openclaw@${BRAND.agentEmailDomain}`)
 
       expect(shouldBroadcast).toBeFalsy()
     })
@@ -146,7 +147,7 @@ describe('OpenClaw Event Enrichment', () => {
     it('does not fire when agent comments on own task', () => {
       const task = {
         assigneeId: 'agent-001',
-        assignee: { email: 'astrid.oc@astrid.cc' },
+        assignee: { email: `astrid.oc@${BRAND.domain}` },
       }
       const currentUserId = 'agent-001' // agent is the commenter
 
@@ -158,9 +159,9 @@ describe('OpenClaw Event Enrichment', () => {
       expect(shouldBroadcast).toBeFalsy()
     })
 
-    it('matches openclaw@astrid.cc as legacy pattern', () => {
-      const email = 'openclaw@astrid.cc'
-      const matches = email.match(/\.oc@astrid\.cc$/i) || email === 'openclaw@astrid.cc'
+    it(`matches openclaw@${BRAND.agentEmailDomain} as legacy pattern`, () => {
+      const email = `openclaw@${BRAND.agentEmailDomain}`
+      const matches = email.match(/\.oc@astrid\.cc$/i) || email === `openclaw@${BRAND.agentEmailDomain}`
       expect(matches).toBeTruthy()
     })
   })

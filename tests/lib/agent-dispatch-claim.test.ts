@@ -9,6 +9,7 @@
  * is a real agent run and real model spend.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 const claimOnce = vi.hoisted(() => vi.fn())
 const isRedisAvailable = vi.hoisted(() => vi.fn())
@@ -34,7 +35,7 @@ function dueTask(id: string) {
     dueDateTime: new Date(),
     assigneeId: 'agent-1',
     creatorId: 'u1',
-    assignee: { id: 'agent-1', isAIAgent: true, email: 'claude@astrid.cc' },
+    assignee: { id: 'agent-1', isAIAgent: true, email: `claude@${BRAND.agentEmailDomain}` },
     lists: [{ id: 'l1', ownerId: 'u1' }],
   }
 }

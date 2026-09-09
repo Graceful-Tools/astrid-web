@@ -20,6 +20,7 @@ import {
   ForbiddenError,
   requireScopes,
 } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 describe('OAuth Authentication', () => {
   let testUserId: string
@@ -302,7 +303,7 @@ describe('OAuth Authentication', () => {
       })
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'copilot-agent-id',
-        email: 'copilot@astrid.cc',
+        email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         image: null,
       })
@@ -316,7 +317,7 @@ describe('OAuth Authentication', () => {
       expect(auth.user.email).toBe('test@example.com')
       expect(auth.agentUser).toEqual({
         id: 'copilot-agent-id',
-        email: 'copilot@astrid.cc',
+        email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         isAIAgent: true,
       })
@@ -375,7 +376,7 @@ describe('OAuth Authentication', () => {
       })
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'copilot-agent-id',
-        email: 'copilot@astrid.cc',
+        email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         image: null,
       })
@@ -397,7 +398,7 @@ describe('OAuth Authentication', () => {
       expect(auth.scopes).toContain('*') // Legacy tokens have full access
       expect(auth.agentUser).toEqual({
         id: 'copilot-agent-id',
-        email: 'copilot@astrid.cc',
+        email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         isAIAgent: true,
       })

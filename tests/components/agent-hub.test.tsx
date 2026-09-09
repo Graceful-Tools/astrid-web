@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AgentHub } from '@/components/agent-hub'
+import { BRAND } from '@/lib/brand/config'
 
 const capabilities = vi.hoisted(() => ({ integrationMcp: true }))
 vi.mock('@/lib/brand/capabilities', () => ({ CAPABILITIES: capabilities }))
@@ -72,13 +73,13 @@ describe('AgentHub', () => {
 
   it('shows codex@ as the Codex identity in polling mode, openai@ in api mode', async () => {
     render(<AgentHub />)
-    expect(await screen.findByText('codex@astrid.cc')).toBeInTheDocument()
-    expect(screen.queryByText('openai@astrid.cc')).not.toBeInTheDocument()
+    expect(await screen.findByText(`codex@${BRAND.agentEmailDomain}`)).toBeInTheDocument()
+    expect(screen.queryByText(`openai@${BRAND.agentEmailDomain}`)).not.toBeInTheDocument()
 
     mockFetches({ ...ALL_POLLING, openai: 'api' })
     // Fresh render with api mode stored for the merged row.
     render(<AgentHub />)
-    expect(await screen.findByText('openai@astrid.cc')).toBeInTheDocument()
+    expect(await screen.findByText(`openai@${BRAND.agentEmailDomain}`)).toBeInTheDocument()
   })
 
   it('reveals the inline key editor when a row is set to "Astrid runs it"', async () => {
@@ -86,7 +87,7 @@ describe('AgentHub', () => {
     render(<AgentHub />)
 
     // Expand the claude row.
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByPlaceholderText('sk-ant-...')).toBeInTheDocument()
     // The other modes' content stays hidden.
@@ -95,7 +96,7 @@ describe('AgentHub', () => {
 
   it('reveals only the harness recipe in polling mode', async () => {
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByText(/claude mcp add/)).toBeInTheDocument()
     expect(screen.queryByPlaceholderText('sk-ant-...')).not.toBeInTheDocument()
@@ -112,21 +113,21 @@ describe('AgentHub', () => {
     capabilities.integrationMcp = false
     render(<AgentHub />)
 
-    expect(await screen.findByText('claude@astrid.cc')).toBeInTheDocument()
+    expect(await screen.findByText(`claude@${BRAND.agentEmailDomain}`)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Connect my coding agent guide/i })).not.toBeInTheDocument()
   })
 
   it('reveals the webhook manager in webhook mode', async () => {
     mockFetches({ ...ALL_POLLING, gemini: 'webhook' })
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('gemini@astrid.cc'))
+    fireEvent.click(await screen.findByText(`gemini@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByTestId('webhook-manager')).toBeInTheDocument()
   })
 
   it("saves the merged Codex row's mode against the openai mailbox", async () => {
     render(<AgentHub />)
-    await screen.findByText('codex@astrid.cc')
+    await screen.findByText(`codex@${BRAND.agentEmailDomain}`)
 
     // The Codex row's "Astrid runs it" button — second row, first ownership button.
     const runsIt = screen.getAllByRole('button', { name: 'Astrid runs it' })[1]
@@ -143,7 +144,7 @@ describe('AgentHub', () => {
   it('offers GitHub authorization, not a key field, for Copilot in api mode', async () => {
     mockFetches({ ...ALL_POLLING, copilot: 'api' })
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('copilot@astrid.cc'))
+    fireEvent.click(await screen.findByText(`copilot@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByRole('button', { name: /Connect GitHub/ })).toBeInTheDocument()
     expect(screen.queryByPlaceholderText(/sk-/)).not.toBeInTheDocument()
@@ -162,13 +163,13 @@ describe('AgentHub', () => {
     // Not floating on the page — only inside the expanded Copilot row.
     expect(screen.queryByTestId('github-copilot-mcp-setup')).not.toBeInTheDocument()
 
-    fireEvent.click(await screen.findByText('copilot@astrid.cc'))
+    fireEvent.click(await screen.findByText(`copilot@${BRAND.agentEmailDomain}`))
     expect(await screen.findByTestId('github-copilot-mcp-setup')).toBeInTheDocument()
   })
 
   it('does not offer the cloud-agent setup on non-Copilot rows', async () => {
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByText(/claude mcp add/)).toBeInTheDocument()
     expect(screen.queryByTestId('github-copilot-mcp-setup')).not.toBeInTheDocument()
@@ -185,7 +186,7 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
 
   it('presents exactly three primary choices per row: Astrid runs it, I run it, Off', async () => {
     render(<AgentHub />)
-    await screen.findByText('claude@astrid.cc')
+    await screen.findByText(`claude@${BRAND.agentEmailDomain}`)
 
     expect(screen.getAllByRole('button', { name: 'Astrid runs it' })).toHaveLength(4)
     expect(screen.getAllByRole('button', { name: 'I run it' })).toHaveLength(4)
@@ -196,7 +197,7 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
 
   it('shows the transport choice only inside "I run it"', async () => {
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByRole('button', { name: /Native coding harness/ })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Webhook server/ })).toHaveLength(1)
@@ -206,7 +207,7 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
   it('hides the transport choice when Astrid runs the agent', async () => {
     mockFetches({ ...ALL_POLLING, claude: 'api' })
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByPlaceholderText('sk-ant-...')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Native coding harness/ })).not.toBeInTheDocument()
@@ -215,7 +216,7 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
   it('choosing "I run it" from a server-run row stores the polling default', async () => {
     mockFetches({ ...ALL_POLLING, claude: 'api' })
     render(<AgentHub />)
-    await screen.findByText('claude@astrid.cc')
+    await screen.findByText(`claude@${BRAND.agentEmailDomain}`)
 
     fireEvent.click(screen.getAllByRole('button', { name: 'I run it' })[0])
 
@@ -230,14 +231,14 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
   it('keeps webhook as an explicit stored transport under "I run it"', async () => {
     mockFetches({ ...ALL_POLLING, gemini: 'webhook' })
     render(<AgentHub />)
-    await screen.findByText('gemini@astrid.cc')
+    await screen.findByText(`gemini@${BRAND.agentEmailDomain}`)
 
     // The webhook row reads as user-run in the header…
     const geminiOwnership = screen.getAllByRole('button', { name: 'I run it' })[3]
     expect(geminiOwnership).toHaveAttribute('aria-pressed', 'true')
 
     // …and switching transport writes the explicit mode, not an ownership blob.
-    fireEvent.click(await screen.findByText('gemini@astrid.cc'))
+    fireEvent.click(await screen.findByText(`gemini@${BRAND.agentEmailDomain}`))
     fireEvent.click(await screen.findByRole('button', { name: /Native coding harness/ }))
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith('/api/v1/users/me/agent-modes', {
@@ -249,7 +250,7 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
 
   it('routes the Custom Agent (SSE) transport to the Custom Agents section without a mode write', async () => {
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     fireEvent.click(await screen.findByRole('button', { name: /Custom Agent \(SSE\)/ }))
 
@@ -267,7 +268,7 @@ describe('AgentHub — Off', () => {
   it('explains the off state instead of showing any setup', async () => {
     mockFetches({ ...ALL_POLLING, claude: 'off' })
     render(<AgentHub />)
-    fireEvent.click(await screen.findByText('claude@astrid.cc'))
+    fireEvent.click(await screen.findByText(`claude@${BRAND.agentEmailDomain}`))
 
     expect(await screen.findByText(/does not appear in assignee pickers/)).toBeInTheDocument()
     expect(screen.queryByText(/claude mcp add/)).not.toBeInTheDocument()

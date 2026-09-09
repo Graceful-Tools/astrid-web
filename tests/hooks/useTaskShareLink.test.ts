@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useTaskShareLink } from '@/hooks/task-detail/useTaskShareLink'
+import { BRAND } from '@/lib/brand/config'
 
 const TASK_ID = 'task-72cb4a13'
 
@@ -32,7 +33,7 @@ afterEach(() => {
 
 describe('useTaskShareLink', () => {
   it('mints a shortcode for the task and exposes the returned url', async () => {
-    const fetchMock = mockFetch({ json: async () => ({ url: 'https://astrid.cc/s/abc123' }) })
+    const fetchMock = mockFetch({ json: async () => ({ url: `https://${BRAND.domain}/s/abc123` }) })
 
     const { result } = renderHook(() => useTaskShareLink(TASK_ID))
     await act(async () => {
@@ -49,7 +50,7 @@ describe('useTaskShareLink', () => {
       targetType: 'task',
       targetId: TASK_ID,
     })
-    expect(result.current.shareUrl).toBe('https://astrid.cc/s/abc123')
+    expect(result.current.shareUrl).toBe(`https://${BRAND.domain}/s/abc123`)
     expect(result.current.showShareModal).toBe(true)
     expect(result.current.loadingShareUrl).toBe(false)
   })
@@ -68,7 +69,7 @@ describe('useTaskShareLink', () => {
     expect(result.current.shareUrl).toBeNull()
 
     await act(async () => {
-      release({ ok: true, status: 200, json: async () => ({ url: 'https://astrid.cc/s/x' }) })
+      release({ ok: true, status: 200, json: async () => ({ url: `https://${BRAND.domain}/s/x` }) })
     })
     expect(result.current.loadingShareUrl).toBe(false)
   })
@@ -115,13 +116,13 @@ describe('useTaskShareLink', () => {
 
   it('copies the url and resets the copied flag after 2s', async () => {
     vi.useFakeTimers()
-    mockFetch({ json: async () => ({ url: 'https://astrid.cc/s/abc123' }) })
+    mockFetch({ json: async () => ({ url: `https://${BRAND.domain}/s/abc123` }) })
 
     const { result } = renderHook(() => useTaskShareLink(TASK_ID))
     await act(async () => { await result.current.openShareModal() })
     await act(async () => { await result.current.copyShareUrl() })
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://astrid.cc/s/abc123')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(`https://${BRAND.domain}/s/abc123`)
     expect(result.current.shareUrlCopied).toBe(true)
 
     act(() => { vi.advanceTimersByTime(2000) })
@@ -131,7 +132,7 @@ describe('useTaskShareLink', () => {
   // Moved here from tests/components/task-detail/TaskModals.test.tsx, which
   // used to own the clipboard call and so owned this case too.
   it('reports a clipboard failure without marking the url copied', async () => {
-    mockFetch({ json: async () => ({ url: 'https://astrid.cc/s/abc123' }) })
+    mockFetch({ json: async () => ({ url: `https://${BRAND.domain}/s/abc123` }) })
     const writeText = vi.fn().mockRejectedValue(new Error('Clipboard error'))
     Object.assign(navigator, { clipboard: { writeText } })
 
@@ -153,7 +154,7 @@ describe('useTaskShareLink', () => {
   })
 
   it('drops the url on close, so reopening cannot show the previous task\'s link', async () => {
-    mockFetch({ json: async () => ({ url: 'https://astrid.cc/s/abc123' }) })
+    mockFetch({ json: async () => ({ url: `https://${BRAND.domain}/s/abc123` }) })
 
     const { result } = renderHook(() => useTaskShareLink(TASK_ID))
     await act(async () => { await result.current.openShareModal() })

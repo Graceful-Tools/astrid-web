@@ -18,6 +18,7 @@ import {
   INTENTIONALLY_MISSING,
   AUTHORITATIVE_DOCS,
 } from '@/scripts/lib/doc-code-paths'
+import { BRAND } from '@/lib/brand/config'
 
 describe('extractCodePathReferences (task ff74f430)', () => {
   it('finds a path written as inline code in prose', () => {
@@ -55,7 +56,7 @@ describe('extractCodePathReferences (task ff74f430)', () => {
       '`npm test tests/lib/base-url.test.ts`',    // a command line
       '`/.well-known/ai-plugin.json`',            // a URL route
       '`~/.config/Claude/config.json`',           // the reader\'s home directory
-      '`https://astrid.cc/api/v1/tasks`',         // a URL
+      '`https://${BRAND.domain}/api/v1/tasks`',         // a URL
       '`@/components/ui/button`',                 // an import specifier
       '`node_modules/.bin/tsx`',                  // not committed
       '`dist/mcp-server-oauth.js`',               // build output

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AstridMCPServerOAuth from '@/mcp/mcp-server-oauth'
+import { BRAND } from '@/lib/brand/config'
 
 describe('Copilot MCP API forwarding (task d9e4aae0)', () => {
   beforeEach(() => {
@@ -17,7 +18,7 @@ describe('Copilot MCP API forwarding (task d9e4aae0)', () => {
     await (server as any).getTaskComments({ taskId: 'task-1' })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://astrid.cc/api/v1/tasks/task-1/comments',
+      `https://${BRAND.domain}/api/v1/tasks/task-1/comments`,
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: 'Bearer astrid_mcp_copilot',
@@ -37,7 +38,7 @@ describe('Copilot MCP API forwarding (task d9e4aae0)', () => {
     await (server as any).updateTask({ taskId: 'task-1', completed: true })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://astrid.cc/api/v1/tasks/task-1',
+      `https://${BRAND.domain}/api/v1/tasks/task-1`,
       expect.objectContaining({ method: 'PUT' }),
     )
   })

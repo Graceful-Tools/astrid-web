@@ -39,6 +39,7 @@ vi.mock('@/lib/analytics-events', () => ({
 import { GET, POST } from '@/app/api/v1/tasks/[id]/comments/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma)
 const mockAuth = vi.mocked(authenticateAPI)
@@ -188,7 +189,7 @@ describe('POST /api/v1/tasks/:id/comments — agent-bound authentication', () =>
       source: 'legacy_mcp',
       agentUser: {
         id: 'copilot-agent',
-        email: 'copilot@astrid.cc',
+        email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         isAIAgent: true,
       },
@@ -228,7 +229,7 @@ describe('POST /api/v1/tasks/:id/comments — agent-bound authentication', () =>
       expect(res.status).toBe(400)
     })
 
-    it('returns 400 when aiAgentId user is not an AI agent and not @astrid.cc', async () => {
+    it(`returns 400 when aiAgentId user is not an AI agent and not @${BRAND.domain}`, async () => {
       ;(mockPrisma.user.findUnique as any).mockResolvedValue({
         id: 'human-1', isAIAgent: false, email: 'someone@gmail.com',
       })
@@ -239,10 +240,10 @@ describe('POST /api/v1/tasks/:id/comments — agent-bound authentication', () =>
       expect(res.status).toBe(400)
     })
 
-    it('accepts a system @astrid.cc agent even if isAIAgent is false', async () => {
+    it(`accepts a system @${BRAND.domain} agent even if isAIAgent is false`, async () => {
       ;(mockPrisma.user.findUnique as any).mockImplementation((args: any) => {
         if (args.where.id === 'system-agent') {
-          return Promise.resolve({ id: 'system-agent', isAIAgent: false, email: 'claude@astrid.cc' })
+          return Promise.resolve({ id: 'system-agent', isAIAgent: false, email: `claude@${BRAND.agentEmailDomain}` })
         }
         return Promise.resolve({ id: 'user-1', name: 'Jon', email: 'jon@example.com', isAIAgent: false })
       })

@@ -17,6 +17,7 @@ vi.mock('@/lib/api-key-cache', () => ({
 }))
 
 import { hasValidApiKey } from '@/lib/api-key-cache'
+import { BRAND } from '@/lib/brand/config'
 const mockHasKey = vi.mocked(hasValidApiKey)
 
 describe('getOfferableAgentEmails', () => {
@@ -31,11 +32,11 @@ describe('getOfferableAgentEmails', () => {
     const offered = await getOfferableAgentEmails('u1')
 
     // Keyless coding agents resolve to polling mode, so all of them are workable.
-    expect(offered).toContain('claude@astrid.cc')
-    expect(offered).toContain('copilot@astrid.cc')
-    expect(offered).toContain('codex@astrid.cc')
+    expect(offered).toContain(`claude@${BRAND.agentEmailDomain}`)
+    expect(offered).toContain(`copilot@${BRAND.agentEmailDomain}`)
+    expect(offered).toContain(`codex@${BRAND.agentEmailDomain}`)
     // Codex and OpenAI are one option; in polling mode the identity is codex@.
-    expect(offered).not.toContain('openai@astrid.cc')
+    expect(offered).not.toContain(`openai@${BRAND.agentEmailDomain}`)
   })
 
   it('offers openai@ and hides codex@ once the merged option runs server-side', async () => {
@@ -47,9 +48,9 @@ describe('getOfferableAgentEmails', () => {
 
     const offered = await getOfferableAgentEmails('u1')
 
-    expect(offered).toContain('openai@astrid.cc')
+    expect(offered).toContain(`openai@${BRAND.agentEmailDomain}`)
     // Two names for the same agent would appear in every picker otherwise.
-    expect(offered).not.toContain('codex@astrid.cc')
+    expect(offered).not.toContain(`codex@${BRAND.agentEmailDomain}`)
   })
 
   it('does not duplicate an agent that is both keyed and offered', async () => {
@@ -63,7 +64,7 @@ describe('getOfferableAgentEmails', () => {
 
     const offered = await getOfferableAgentEmails('u1')
 
-    expect(offered.filter(e => e === 'claude@astrid.cc')).toHaveLength(1)
+    expect(offered.filter(e => e === `claude@${BRAND.agentEmailDomain}`)).toHaveLength(1)
   })
 
   it('withholds an agent explicitly set to api mode with no key to run on', async () => {
@@ -77,9 +78,9 @@ describe('getOfferableAgentEmails', () => {
 
     const offered = await getOfferableAgentEmails('u1')
 
-    expect(offered).not.toContain('claude@astrid.cc')
+    expect(offered).not.toContain(`claude@${BRAND.agentEmailDomain}`)
     // The others keep their polling default and stay offered.
-    expect(offered).toContain('copilot@astrid.cc')
+    expect(offered).toContain(`copilot@${BRAND.agentEmailDomain}`)
   })
 })
 
@@ -104,8 +105,8 @@ describe("off agents — Don't use", () => {
 
     const offered = await getOfferableAgentEmails('u1')
 
-    expect(offered).not.toContain('claude@astrid.cc')
-    expect(offered).toContain('copilot@astrid.cc')
+    expect(offered).not.toContain(`claude@${BRAND.agentEmailDomain}`)
+    expect(offered).toContain(`copilot@${BRAND.agentEmailDomain}`)
   })
 
   it('silences BOTH identities when the merged Codex option is off', async () => {
@@ -116,7 +117,7 @@ describe("off agents — Don't use", () => {
 
     const offered = await getOfferableAgentEmails('u1')
 
-    expect(offered).not.toContain('openai@astrid.cc')
-    expect(offered).not.toContain('codex@astrid.cc')
+    expect(offered).not.toContain(`openai@${BRAND.agentEmailDomain}`)
+    expect(offered).not.toContain(`codex@${BRAND.agentEmailDomain}`)
   })
 })

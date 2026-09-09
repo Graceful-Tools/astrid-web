@@ -13,6 +13,7 @@ import {
   getAgentService,
   isRegisteredAgent,
 } from '@/lib/ai/agent-config'
+import { BRAND } from '@/lib/brand/config'
 
 describe('SUGGESTED_MODELS', () => {
   it('has no duplicate model ids per service', () => {
@@ -30,14 +31,14 @@ describe('SUGGESTED_MODELS', () => {
  * through the same agent-config registry the orchestrator routes on.
  */
 describe('GitHub Copilot agent registration (task eed98c5f)', () => {
-  const COPILOT_EMAIL = 'copilot@astrid.cc'
+  const COPILOT_EMAIL = `copilot@${BRAND.agentEmailDomain}`
 
-  it('registers copilot@astrid.cc in AI_AGENT_CONFIG', () => {
+  it(`registers copilot@${BRAND.agentEmailDomain} in AI_AGENT_CONFIG`, () => {
     expect(AI_AGENT_CONFIG[COPILOT_EMAIL]).toBeDefined()
     expect(isRegisteredAgent(COPILOT_EMAIL)).toBe(true)
   })
 
-  it('routes copilot@astrid.cc to the copilot service', () => {
+  it(`routes copilot@${BRAND.agentEmailDomain} to the copilot service`, () => {
     expect(getAgentService(COPILOT_EMAIL)).toBe('copilot')
     expect(getAgentConfig(COPILOT_EMAIL)?.service).toBe('copilot')
   })

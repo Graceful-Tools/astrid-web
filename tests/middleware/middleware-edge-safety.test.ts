@@ -29,7 +29,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { collectImportGraph } from '../scripts/lib/import-graph'
+import { collectImportGraph } from '@/scripts/lib/import-graph'
 import path from 'path'
 
 const ROOT = process.cwd()

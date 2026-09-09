@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 describe('base-url utilities', () => {
   const originalEnv = process.env
@@ -59,14 +60,14 @@ describe('base-url utilities', () => {
       expect(url).not.toMatch(/^http:\/\//)
     })
 
-    it('should use https://astrid.cc as production fallback', async () => {
+    it(`should use https://${BRAND.domain} as production fallback`, async () => {
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
       process.env.NODE_ENV = 'production'
 
       const { getBaseUrl } = await import('@/lib/base-url')
-      expect(getBaseUrl()).toBe('https://astrid.cc')
+      expect(getBaseUrl()).toBe(`https://${BRAND.domain}`)
     })
 
     it('should allow http://localhost in development', async () => {
@@ -102,14 +103,14 @@ describe('base-url utilities', () => {
       global.window = {
         location: {
           protocol: 'https:',
-          host: 'astrid.cc'
+          host: `${BRAND.domain}`
         }
       }
 
       const { getBaseUrl } = await import('@/lib/base-url')
       const url = getBaseUrl()
 
-      expect(url).toBe('https://astrid.cc')
+      expect(url).toBe(`https://${BRAND.domain}`)
       expect(url).toMatch(/^https:\/\//)
     })
   })
@@ -117,12 +118,12 @@ describe('base-url utilities', () => {
   describe('getTaskUrl', () => {
     it('should generate task URL with HTTPS in production', async () => {
       process.env.NODE_ENV = 'production'
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
 
       const { getTaskUrl } = await import('@/lib/base-url')
       const taskUrl = getTaskUrl('task-123')
 
-      expect(taskUrl).toBe('https://astrid.cc/tasks/task-123')
+      expect(taskUrl).toBe(`https://${BRAND.domain}/tasks/task-123`)
       expect(taskUrl).toMatch(/^https:\/\//)
     })
 
@@ -143,12 +144,12 @@ describe('base-url utilities', () => {
   describe('getAIAgentWebhookUrl', () => {
     it('should generate webhook URL with HTTPS in production', async () => {
       process.env.NODE_ENV = 'production'
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
 
       const { getAIAgentWebhookUrl } = await import('@/lib/base-url')
       const webhookUrl = getAIAgentWebhookUrl()
 
-      expect(webhookUrl).toBe('https://astrid.cc/api/ai-agent/webhook')
+      expect(webhookUrl).toBe(`https://${BRAND.domain}/api/ai-agent/webhook`)
       expect(webhookUrl).toMatch(/^https:\/\//)
     })
 
@@ -173,9 +174,9 @@ describe('base-url utilities', () => {
       expect(isProduction()).toBe(true)
     })
 
-    it('should detect production from astrid.cc domain', async () => {
+    it(`should detect production from ${BRAND.domain} domain`, async () => {
       process.env.NODE_ENV = 'development'
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { isProduction } = await import('@/lib/base-url')
       expect(isProduction()).toBe(true)
     })
@@ -199,51 +200,51 @@ describe('base-url utilities', () => {
 
   describe('buildTaskUrlWithContext', () => {
     it('should use shortcode URL when shortcode is provided', async () => {
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { buildTaskUrlWithContext } = await import('@/lib/base-url')
 
       const url = buildTaskUrlWithContext('task-123', 'list-456', 'AbC123')
 
-      expect(url).toBe('https://astrid.cc/s/AbC123')
+      expect(url).toBe(`https://${BRAND.domain}/s/AbC123`)
     })
 
     it('should prefer shortcode over list URL', async () => {
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { buildTaskUrlWithContext } = await import('@/lib/base-url')
 
       const url = buildTaskUrlWithContext('task-123', 'list-456', 'ShRtCd')
 
       // Should use shortcode, not list URL
-      expect(url).toBe('https://astrid.cc/s/ShRtCd')
+      expect(url).toBe(`https://${BRAND.domain}/s/ShRtCd`)
       expect(url).not.toContain('/lists/')
       expect(url).not.toContain('/tasks/')
     })
 
     it('should use list URL with task param when listId provided but no shortcode', async () => {
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { buildTaskUrlWithContext } = await import('@/lib/base-url')
 
       const url = buildTaskUrlWithContext('task-abc', 'list-xyz', undefined)
 
-      expect(url).toBe('https://astrid.cc/lists/list-xyz?task=task-abc')
+      expect(url).toBe(`https://${BRAND.domain}/lists/list-xyz?task=task-abc`)
     })
 
     it('should fallback to task URL when neither listId nor shortcode provided', async () => {
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { buildTaskUrlWithContext } = await import('@/lib/base-url')
 
       const url = buildTaskUrlWithContext('task-789', undefined, undefined)
 
-      expect(url).toBe('https://astrid.cc/tasks/task-789')
+      expect(url).toBe(`https://${BRAND.domain}/tasks/task-789`)
     })
 
     it('should fallback to task URL when listId is empty string', async () => {
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { buildTaskUrlWithContext } = await import('@/lib/base-url')
 
       const url = buildTaskUrlWithContext('task-789', '', undefined)
 
-      expect(url).toBe('https://astrid.cc/tasks/task-789')
+      expect(url).toBe(`https://${BRAND.domain}/tasks/task-789`)
     })
 
     it('should use HTTPS in production environment', async () => {
@@ -268,7 +269,7 @@ describe('base-url utilities', () => {
     })
 
     it('should handle real-world task and list UUIDs', async () => {
-      process.env.NEXTAUTH_URL = 'https://astrid.cc'
+      process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { buildTaskUrlWithContext } = await import('@/lib/base-url')
 
       const url = buildTaskUrlWithContext(
@@ -277,7 +278,7 @@ describe('base-url utilities', () => {
         undefined
       )
 
-      expect(url).toBe('https://astrid.cc/lists/9491ff15-d887-4ad5-9f7a-5b26fd7f1a2c?task=ecce0d80-e566-4217-a394-e965974a6ae1')
+      expect(url).toBe(`https://${BRAND.domain}/lists/9491ff15-d887-4ad5-9f7a-5b26fd7f1a2c?task=ecce0d80-e566-4217-a394-e965974a6ae1`)
     })
   })
 

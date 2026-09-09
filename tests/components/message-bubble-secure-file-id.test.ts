@@ -14,6 +14,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { extractSecureFileId } from '@/components/shared/MessageBubble'
+import { BRAND } from '@/lib/brand/config'
 
 describe('extractSecureFileId (task 641a7615)', () => {
   it('reads an id from a legacy url', () => {
@@ -25,7 +26,7 @@ describe('extractSecureFileId (task 641a7615)', () => {
   })
 
   it('reads an id from an absolute url', () => {
-    expect(extractSecureFileId('https://astrid.cc/api/v1/secure-files/abc123')).toBe('abc123')
+    expect(extractSecureFileId(`https://${BRAND.domain}/api/v1/secure-files/abc123`)).toBe('abc123')
   })
 
   it('keeps ids that contain dashes and underscores', () => {

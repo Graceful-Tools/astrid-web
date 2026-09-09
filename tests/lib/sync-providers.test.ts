@@ -18,6 +18,7 @@ vi.mock('@/lib/field-encryption', () => ({
 
 import { verifyWebhookSignature, githubSyncConfigured } from '@/lib/sync/github'
 import { googleAuthorizeURL, googleSyncConfigured } from '@/lib/sync/google'
+import { BRAND } from '@/lib/brand/config'
 
 describe('GitHub issues webhook signature', () => {
   const SECRET = 'janes-webhook-secret'
@@ -74,7 +75,7 @@ describe('OAuth client configuration', () => {
     vi.stubEnv('GOOGLE_CLIENT_ID', 'login-id')
     vi.stubEnv('GOOGLE_CLIENT_SECRET', 'login-secret')
     expect(googleSyncConfigured()).toBe(true)
-    const url = googleAuthorizeURL('the-state', 'https://astrid.cc/api/v1/integrations/google/callback')
+    const url = googleAuthorizeURL('the-state', `https://${BRAND.domain}/api/v1/integrations/google/callback`)
     expect(url).toContain('client_id=login-id')
   })
 
@@ -82,18 +83,18 @@ describe('OAuth client configuration', () => {
     vi.stubEnv('GOOGLE_SYNC_CLIENT_ID', 'sync-id')
     vi.stubEnv('GOOGLE_SYNC_CLIENT_SECRET', 'sync-secret')
     vi.stubEnv('GOOGLE_CLIENT_ID', 'login-id')
-    const url = googleAuthorizeURL('the-state', 'https://astrid.cc/cb')
+    const url = googleAuthorizeURL('the-state', `https://${BRAND.domain}/cb`)
     expect(url).toContain('client_id=sync-id')
   })
 
   it('google authorize URL requests offline access with the tasks scope', () => {
     vi.stubEnv('GOOGLE_CLIENT_ID', 'login-id')
-    const url = new URL(googleAuthorizeURL('the-state', 'https://astrid.cc/cb'))
+    const url = new URL(googleAuthorizeURL('the-state', `https://${BRAND.domain}/cb`))
     expect(url.origin + url.pathname).toBe('https://accounts.google.com/o/oauth2/v2/auth')
     expect(url.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/tasks')
     expect(url.searchParams.get('access_type')).toBe('offline')
     expect(url.searchParams.get('prompt')).toBe('consent')
     expect(url.searchParams.get('state')).toBe('the-state')
-    expect(url.searchParams.get('redirect_uri')).toBe('https://astrid.cc/cb')
+    expect(url.searchParams.get('redirect_uri')).toBe(`https://${BRAND.domain}/cb`)
   })
 })

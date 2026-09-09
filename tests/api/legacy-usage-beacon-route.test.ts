@@ -20,9 +20,10 @@ vi.mock('@/lib/admin-auth', () => ({ isAdmin: vi.fn(async () => false) }))
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn(async () => null) }))
 
 import { POST } from '@/app/api/internal/legacy-api-usage/route'
+import { BRAND } from '@/lib/brand/config'
 
 function beacon(body: Record<string, unknown>, secret = 'test-secret') {
-  return new NextRequest('https://www.astrid.cc/api/internal/legacy-api-usage', {
+  return new NextRequest(`https://www.${BRAND.domain}/api/internal/legacy-api-usage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': secret },
     body: JSON.stringify(body),

@@ -12,6 +12,7 @@ import {
   verifyWebhookSignature,
   extractWebhookHeaders
 } from '@/lib/webhook-signature'
+import { BRAND } from '@/lib/brand/config'
 
 describe('webhook-signature utilities', () => {
   const testSecret = 'test-secret-key-12345'
@@ -336,7 +337,7 @@ describe('webhook-signature utilities', () => {
           id: 'agent-123',
           name: 'Claude',
           type: 'claude_agent',
-          email: 'claude@astrid.cc'
+          email: `claude@${BRAND.agentEmailDomain}`
         },
         task: {
           id: 'task-abc-123',

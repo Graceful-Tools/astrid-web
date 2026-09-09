@@ -33,6 +33,7 @@ vi.mock('@/lib/mcp-token', () => ({
 vi.mock('@/lib/ai/ensure-agent-user', () => ({ ensureAgentUser: mockEnsureAgentUser }))
 
 import { DELETE, GET, POST } from '@/app/api/mcp/user-tokens/route'
+import { BRAND } from '@/lib/brand/config'
 
 describe('GitHub Copilot MCP token binding (task d9e4aae0)', () => {
   beforeEach(() => {
@@ -41,7 +42,7 @@ describe('GitHub Copilot MCP token binding (task d9e4aae0)', () => {
     mockUserFindUnique.mockResolvedValue({ mcpEnabled: true })
     mockEnsureAgentUser.mockResolvedValue({
       id: 'copilot-agent-id',
-      email: 'copilot@astrid.cc',
+      email: `copilot@${BRAND.agentEmailDomain}`,
       name: 'GitHub Copilot Agent',
       image: null,
     })
@@ -69,7 +70,7 @@ describe('GitHub Copilot MCP token binding (task d9e4aae0)', () => {
     const response = await POST(request)
 
     expect(response.status).toBe(200)
-    expect(mockEnsureAgentUser).toHaveBeenCalledWith('copilot@astrid.cc')
+    expect(mockEnsureAgentUser).toHaveBeenCalledWith(`copilot@${BRAND.agentEmailDomain}`)
     expect(mockTokenCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: 'owner-id',
