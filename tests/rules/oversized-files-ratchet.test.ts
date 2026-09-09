@@ -69,7 +69,12 @@ const BUDGETS: Record<string, number> = {
   'services/task.service.ts': 1698,
   'components/task-detail/TaskFieldEditors.tsx': 1078,
   'components/oauth-api-tester.tsx': 973,
-  'mcp/mcp-server-oauth.ts': 957,
+  // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
+  // get_agent_queue schema, which pushed this over. The 280-line
+  // OAUTH_MCP_TOOLS array moved to mcp/tool-definitions.ts instead of the
+  // number moving — the tool schemas are pure declaration and the half that
+  // gets edited most, so the next parameter now costs this budget nothing.
+  'mcp/mcp-server-oauth.ts': 688,
   'components/oauth-app-manager.tsx': 919,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.

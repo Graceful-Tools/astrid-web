@@ -1,501 +1,300 @@
 /**
- * Static tool registry for the MCP server.
+ * The tool schemas the OAuth MCP server advertises (AWTD-871 extraction).
  *
- * The MCP SDK ListToolsRequestSchema handler returns a list of tool
- * descriptors — each is a (name, description, JSON schema for inputs)
- * tuple. These do not change at runtime, so they live here as a plain
- * data export instead of being inlined in mcp-server-v2.ts where they
- * dwarfed the actual class.
+ * Module-level rather than inline in the ListTools handler so the contract is
+ * assertable without standing up a transport. A field the handlers forward but
+ * the schema hides is a field no agent will ever send, so the schema is the
+ * thing worth pinning (tasks 86b5fbbf, ee44bc35).
  *
- * If you add a new tool: append the descriptor here AND add the case +
- * handler in mcp-server-v2.ts CallToolRequestSchema dispatch (or in
- * the appropriate mcp/handlers/*.ts).
+ * In its OWN file because mcp-server-oauth.ts is on the oversized-files ratchet
+ * and this is the piece with the clearest seam: 280 lines of pure declaration
+ * next to the transport, the OAuth client and fifteen handlers. It is also the
+ * half that gets edited most — every new tool parameter lands here — so keeping
+ * it here means the next parameter costs nothing against the budget.
+ *
+ * `mcp-server-oauth.ts` re-exports OAUTH_MCP_TOOLS, so importers and the
+ * schema-parity test do not need to know it moved.
  */
 
-// The bounds this advertises to MCP clients are the same ones the handlers
-// enforce, read from one place rather than restated (task 17fea642).
 import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 
-const TOOL_DEFINITIONS = [
-          {
-            name: "get_shared_lists",
-            description: "Get all task lists that have been shared with the AI agent",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-              },
-              required: ["accessToken"],
+export const OAUTH_MCP_TOOLS = [
+      {
+        name: "get_lists",
+        description: "Get all task lists accessible to the authenticated user",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "get_tasks",
+        description: "Get all tasks from a specific list (or default list if not specified)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            listId: {
+              type: "string",
+              description: "ID of the list to get tasks from (optional, uses default list if not provided)",
+            },
+            includeCompleted: {
+              type: "boolean",
+              description: "Whether to include completed tasks",
+              default: false,
             },
           },
-          {
-            name: "get_list_tasks",
-            description: "Get all tasks from a specific shared list",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list to get tasks from",
-                },
-                includeCompleted: {
-                  type: "boolean",
-                  description: "Whether to include completed tasks",
-                  default: false,
-                },
-              },
-              required: ["accessToken", "listId"],
+        },
+      },
+      {
+        name: "get_agent_queue",
+        description:
+          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agent: {
+              type: "string",
+              description:
+                "Which agent identity this harness is — a mailbox (claude, codex, copilot, openai, gemini) or a full agent address. Required: guessing would claim another harness's work.",
+            },
+            listId: {
+              type: "string",
+              description:
+                "Scope the queue to one list/board (optional). Use it when different boards are worked by different harnesses.",
+            },
+            requireReady: {
+              type: "boolean",
+              description:
+                "Must a task be in Ready to queue? Default true. Pass false if you do not use the board: a task with NO status queues as well, so assignment alone is enough. It relaxes only that — Waiting, Doing and a project's custom states are still never queued, so parking a blocked task in Waiting keeps stopping the loop from re-reading it.",
+              default: true,
             },
           },
-          {
-            name: "create_task",
-            description: "Create a new task in a shared list",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list to create task in",
-                },
-                task: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    description: { type: "string" },
-                    priority: { type: "number", minimum: MIN_TASK_PRIORITY, maximum: MAX_TASK_PRIORITY },
-                    assigneeId: { type: "string" },
-                    dueDateTime: { type: "string", format: "date-time" },
-                    reminderTime: { type: "string", format: "date-time" },
-                    reminderType: { type: "string", enum: ["push", "email", "both"] },
-                    isPrivate: { type: "boolean" },
-                  },
-                  required: ["title"],
-                },
-              },
-              required: ["accessToken", "listId", "task"],
+          required: ["agent"],
+        },
+      },
+      {
+        name: "get_task",
+        description: "Get detailed information about a specific task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task",
             },
           },
-          {
-            name: "update_task",
-            description: "Update an existing task in a shared list",
-            inputSchema: {
+          required: ["taskId"],
+        },
+      },
+      {
+        name: "create_task",
+        description: "Create a new task in a list",
+        inputSchema: {
+          type: "object",
+          properties: {
+            listId: {
+              type: "string",
+              description:
+                "ID of the list to create the task in. Optional only when a default list is configured; a task that resolves to no list is rejected rather than created invisible.",
+            },
+            listIds: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "IDs of the lists to create the task in, for callers that want more than one. Takes precedence over listId.",
+            },
+            title: {
+              type: "string",
+              description: "Task title",
+            },
+            description: {
+              type: "string",
+              description: "Task description",
+            },
+            priority: {
+              type: "number",
+              minimum: 0,
+              maximum: 3,
+              description: `Task priority (${MIN_TASK_PRIORITY}-${MAX_TASK_PRIORITY})`,
+            },
+            dueDateTime: {
+              type: "string",
+              format: "date-time",
+              description: "Due date and time",
+            },
+            repeating: {
+              type: "string",
+              enum: ["never", "daily", "weekly", "monthly", "yearly", "custom"],
+              description:
+                "How the task repeats. Use this instead of scheduling a cron for recurring work.",
+            },
+            repeatingData: {
               type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list containing the task",
-                },
-                taskUpdate: {
-                  type: "object",
-                  properties: {
-                    taskId: { type: "string" },
-                    title: { type: "string" },
-                    description: { type: "string" },
-                    priority: { type: "number", minimum: MIN_TASK_PRIORITY, maximum: MAX_TASK_PRIORITY },
-                    assigneeId: { type: "string" },
-                    dueDateTime: { type: "string", format: "date-time" },
-                    reminderTime: { type: "string", format: "date-time" },
-                    reminderType: { type: "string", enum: ["push", "email", "both"] },
-                    isPrivate: { type: "boolean" },
-                    completed: { type: "boolean" },
-                  },
-                  required: ["taskId"],
-                },
-              },
-              required: ["accessToken", "listId", "taskUpdate"],
+              description:
+                'Custom repeat pattern, required when repeating is "custom" and ignored otherwise. Shape is CustomRepeatingPattern from types/repeating.ts, e.g. { type: "custom", unit: "weeks", interval: 1, endCondition: "never", weekdays: ["monday"] }.',
+            },
+            repeatFrom: {
+              type: "string",
+              enum: ["DUE_DATE", "COMPLETION_DATE"],
+              description:
+                "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
+            },
+            assigneeId: {
+              type: "string",
+              description:
+                "Who owns the task. Takes a user id, or an agent identity such as \"ai-agent-claude\". Assigning to an agent mailbox ACTIVATES the hosted agent runtime, which will comment on the task — it is a trigger, not a passive queue.",
+            },
+            statusRole: {
+              type: ["string", "null"],
+              description:
+                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null means Inbox.",
+            },
+            isAllDay: {
+              type: "boolean",
+              description: "Treat dueDateTime as a day rather than a moment.",
+            },
+            reminderTime: {
+              type: "string",
+              format: "date-time",
+              description: "When to remind.",
+            },
+            reminderType: {
+              type: "string",
+              enum: ["push", "email", "both"],
+              description: "How to remind.",
+            },
+            isPrivate: {
+              type: "boolean",
+              description: "Private to you rather than visible to the list. Defaults to true.",
             },
           },
-          {
-            name: "add_comment",
-            description: "Add a comment to a task in a shared list",
-            inputSchema: {
+          required: ["title"],
+          // Anything not listed here is an error rather than a silent strip
+          // (task ba84653c). See mcp/schemas.ts for why.
+          additionalProperties: false,
+        },
+      },
+      {
+        name: "update_task",
+        description: "Update an existing task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task to update",
+            },
+            title: {
+              type: "string",
+              description: "New task title",
+            },
+            description: {
+              type: "string",
+              description: "New task description",
+            },
+            priority: {
+              type: "number",
+              minimum: 0,
+              maximum: 3,
+              description: `New priority (${MIN_TASK_PRIORITY}-${MAX_TASK_PRIORITY})`,
+            },
+            completed: {
+              type: "boolean",
+              description: "Mark as completed/incomplete",
+            },
+            dueDateTime: {
+              type: "string",
+              format: "date-time",
+              description: "New due date and time",
+            },
+            repeating: {
+              type: "string",
+              enum: ["never", "daily", "weekly", "monthly", "yearly", "custom"],
+              description:
+                "How the task repeats. Use this instead of scheduling a cron for recurring work.",
+            },
+            repeatingData: {
               type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list containing the task",
-                },
-                comment: {
-                  type: "object",
-                  properties: {
-                    taskId: { type: "string" },
-                    content: { type: "string" },
-                    type: { type: "string", enum: ["TEXT", "MARKDOWN"] },
-                  },
-                  required: ["taskId", "content"],
-                },
-              },
-              required: ["accessToken", "listId", "comment"],
+              description:
+                'Custom repeat pattern, required when repeating is "custom" and ignored otherwise. Shape is CustomRepeatingPattern from types/repeating.ts, e.g. { type: "custom", unit: "weeks", interval: 1, endCondition: "never", weekdays: ["monday"] }.',
+            },
+            repeatFrom: {
+              type: "string",
+              enum: ["DUE_DATE", "COMPLETION_DATE"],
+              description:
+                "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
+            },
+            assigneeId: {
+              type: "string",
+              description:
+                "Who owns the task. Takes a user id, or an agent identity such as \"ai-agent-claude\". Assigning to an agent mailbox ACTIVATES the hosted agent runtime, which will comment on the task — it is a trigger, not a passive queue.",
+            },
+            statusRole: {
+              type: ["string", "null"],
+              description:
+                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null moves it back to Inbox.",
+            },
+            isAllDay: {
+              type: "boolean",
+              description: "Treat dueDateTime as a day rather than a moment.",
+            },
+            reminderTime: {
+              type: "string",
+              format: "date-time",
+              description: "When to remind.",
+            },
+            reminderType: {
+              type: "string",
+              enum: ["push", "email", "both"],
+              description: "How to remind.",
+            },
+            isPrivate: {
+              type: "boolean",
+              description: "Private to you rather than visible to the list.",
             },
           },
-          {
-            name: "get_task_comments",
-            description: "Get all comments for a specific task",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list containing the task",
-                },
-                taskId: {
-                  type: "string",
-                  description: "ID of the task to get comments for",
-                },
-              },
-              required: ["accessToken", "listId", "taskId"],
+          required: ["taskId"],
+          // Anything not listed here is an error rather than a silent strip
+          // (task ba84653c). See mcp/schemas.ts for why.
+          additionalProperties: false,
+        },
+      },
+      {
+        name: "add_comment",
+        description: "Add a comment to a task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task",
+            },
+            content: {
+              type: "string",
+              description: "Comment content",
+            },
+            type: {
+              type: "string",
+              enum: ["TEXT", "MARKDOWN"],
+              description: "Comment type",
+              default: "TEXT",
             },
           },
-          {
-            name: "get_task_details",
-            description: "Get comprehensive details for a specific task including all fields",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list containing the task",
-                },
-                taskId: {
-                  type: "string",
-                  description: "ID of the task",
-                },
-                includeComments: {
-                  type: "boolean",
-                  description: "Include task comments in response",
-                  default: true,
-                },
-                includeAttachments: {
-                  type: "boolean",
-                  description: "Include task attachments in response",
-                  default: true,
-                },
-              },
-              required: ["accessToken", "listId", "taskId"],
+          required: ["taskId", "content"],
+        },
+      },
+      {
+        name: "get_task_comments",
+        description: "Get all comments for a specific task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: {
+              type: "string",
+              description: "ID of the task",
             },
           },
-          {
-            name: "add_task_attachment",
-            description: "Add an attachment to a task",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list containing the task",
-                },
-                taskId: {
-                  type: "string",
-                  description: "ID of the task",
-                },
-                attachment: {
-                  type: "object",
-                  properties: {
-                    name: { type: "string", description: "Original filename" },
-                    url: { type: "string", description: "URL where file is stored" },
-                    type: { type: "string", description: "MIME type" },
-                    size: { type: "number", description: "File size in bytes" },
-                  },
-                  required: ["name", "url", "type", "size"],
-                },
-              },
-              required: ["accessToken", "listId", "taskId", "attachment"],
-            },
-          },
-          {
-            name: "delete_task",
-            description: "Delete a task from a shared list",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list containing the task",
-                },
-                taskId: {
-                  type: "string",
-                  description: "ID of the task to delete",
-                },
-              },
-              required: ["accessToken", "listId", "taskId"],
-            },
-          },
-          {
-            name: "get_list_members",
-            description: "Get all members and their roles for a shared list",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for list access",
-                },
-                listId: {
-                  type: "string",
-                  description: "ID of the list",
-                },
-              },
-              required: ["accessToken", "listId"],
-            },
-          },
-          {
-            name: "get_repository_file",
-            description: "Read the contents of a file from a GitHub repository",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format (e.g., 'octocat/Hello-World')",
-                },
-                path: {
-                  type: "string",
-                  description: "File path in the repository (e.g., 'README.md', 'src/index.ts')",
-                },
-                ref: {
-                  type: "string",
-                  description: "Optional branch or commit ref (defaults to default branch)",
-                },
-              },
-              required: ["accessToken", "repository", "path"],
-            },
-          },
-          {
-            name: "list_repository_files",
-            description: "List all files and directories in a specific directory of a GitHub repository",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-                path: {
-                  type: "string",
-                  description: "Directory path to list (empty string or '/' for root)",
-                },
-                ref: {
-                  type: "string",
-                  description: "Optional branch or commit ref (defaults to default branch)",
-                },
-              },
-              required: ["accessToken", "repository"],
-            },
-          },
-          {
-            name: "create_branch",
-            description: "Create a new branch in a GitHub repository from a base branch",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-                baseBranch: {
-                  type: "string",
-                  description: "Base branch to create from (e.g., 'main', 'develop')",
-                },
-                newBranch: {
-                  type: "string",
-                  description: "Name of the new branch to create",
-                },
-              },
-              required: ["accessToken", "repository", "baseBranch", "newBranch"],
-            },
-          },
-          {
-            name: "commit_changes",
-            description: "Commit one or more file changes to a branch in a GitHub repository",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-                branch: {
-                  type: "string",
-                  description: "Branch to commit to",
-                },
-                changes: {
-                  type: "array",
-                  description: "Array of file changes to commit",
-                  items: {
-                    type: "object",
-                    properties: {
-                      path: { type: "string", description: "File path" },
-                      content: { type: "string", description: "File content" },
-                      mode: { type: "string", enum: ["create", "update", "delete"], description: "Change type" },
-                    },
-                    required: ["path", "content"],
-                  },
-                },
-                commitMessage: {
-                  type: "string",
-                  description: "Commit message",
-                },
-              },
-              required: ["accessToken", "repository", "branch", "changes", "commitMessage"],
-            },
-          },
-          {
-            name: "create_pull_request",
-            description: "Create a pull request in a GitHub repository",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-                headBranch: {
-                  type: "string",
-                  description: "Branch containing the changes",
-                },
-                baseBranch: {
-                  type: "string",
-                  description: "Base branch to merge into (e.g., 'main')",
-                },
-                title: {
-                  type: "string",
-                  description: "Pull request title",
-                },
-                body: {
-                  type: "string",
-                  description: "Pull request description/body",
-                },
-              },
-              required: ["accessToken", "repository", "headBranch", "baseBranch", "title", "body"],
-            },
-          },
-          {
-            name: "merge_pull_request",
-            description: "Merge a pull request in a GitHub repository",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-                prNumber: {
-                  type: "number",
-                  description: "Pull request number",
-                },
-                mergeMethod: {
-                  type: "string",
-                  enum: ["merge", "squash", "rebase"],
-                  description: "Merge method (default: squash)",
-                },
-              },
-              required: ["accessToken", "repository", "prNumber"],
-            },
-          },
-          {
-            name: "add_pull_request_comment",
-            description: "Add a comment to a pull request in a GitHub repository",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-                prNumber: {
-                  type: "number",
-                  description: "Pull request number",
-                },
-                comment: {
-                  type: "string",
-                  description: "Comment text (markdown supported)",
-                },
-              },
-              required: ["accessToken", "repository", "prNumber", "comment"],
-            },
-          },
-          {
-            name: "get_repository_info",
-            description: "Get information about a GitHub repository including default branch, visibility, etc.",
-            inputSchema: {
-              type: "object",
-              properties: {
-                accessToken: {
-                  type: "string",
-                  description: "Access token for MCP operations",
-                },
-                repository: {
-                  type: "string",
-                  description: "Repository in 'owner/repo' format",
-                },
-              },
-              required: ["accessToken", "repository"],
-            },
-          },
-]
-
-module.exports = { TOOL_DEFINITIONS }
-export {}
+          required: ["taskId"],
+        },
+      },
+] as const

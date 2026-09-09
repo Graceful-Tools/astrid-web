@@ -210,3 +210,113 @@ describe('buildAgentQueue — saying which condition is unmet', () => {
     expect(mockPrisma.task.count).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * AWTD-871 — the queue for someone who does not use the board.
+ *
+ * Ready is a board state. Someone who never opens a board never sets one, so every
+ * task they assign to their agent is `statusRole: null` and the queue reads as a
+ * quiet day forever — while the hint tells them to go and use the feature they do
+ * not use. `requireReady: false` is the way out, and it relaxes exactly one thing:
+ * the ABSENCE of a status stops disqualifying a task. A status that IS set still
+ * means what it says.
+ */
+describe('buildAgentQueue — requireReady', () => {
+  beforeEach(() => {
+    mockPrisma.user.findUnique.mockReset()
+    mockPrisma.task.findMany.mockReset()
+    mockPrisma.task.count.mockReset()
+    mockPrisma.user.findUnique.mockResolvedValue(AGENT)
+    mockPrisma.task.findMany.mockResolvedValue([])
+    mockPrisma.task.count.mockResolvedValue(0)
+  })
+
+  it('defaults to requiring Ready, so no existing loop changes behaviour', async () => {
+    await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+    const where = mockPrisma.task.findMany.mock.calls[0][0].where
+    expect(where.statusRole).toBe('ready')
+    expect(where.OR).toBeUndefined()
+  })
+
+  it('asks for Ready OR unstatused when Ready is not required', async () => {
+    await buildAgentQueue({ agent: 'claude', userId: 'user-1', requireReady: false })
+
+    const where = mockPrisma.task.findMany.mock.calls[0][0].where
+    // Null has to be named explicitly: `{ in: ['ready'] }` does not match NULL in
+    // SQL, and the whole population this flag exists for is NULL.
+    expect(where.OR).toEqual([{ statusRole: 'ready' }, { statusRole: null }])
+    // And the narrow filter must be GONE, not merely joined by an OR that a
+    // stricter top-level key would still AND away to nothing.
+    expect(where.statusRole).toBeUndefined()
+  })
+
+  it('still refuses Waiting and Doing when Ready is not required', async () => {
+    // The brake stays on. A blocked task parked in Waiting must not come back
+    // into the queue merely because its owner does not use the Ready column.
+    await buildAgentQueue({ agent: 'claude', userId: 'user-1', requireReady: false })
+    const where = mockPrisma.task.findMany.mock.calls[0][0].where
+    const matched = JSON.stringify(where.OR)
+    expect(matched).not.toContain('waiting')
+    expect(matched).not.toContain('doing')
+  })
+
+  it('keeps every other condition — assignment, visibility, board and the clock', async () => {
+    // Relaxing status must not relax the handshake. An unassigned task is still
+    // somebody's untriaged note, on any board, under either flag.
+    mockPrisma.task.findMany.mockResolvedValue([
+      task({ id: 'later', dueDateTime: new Date(Date.now() + 3600_000) }),
+    ])
+
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      listId: 'list-9',
+      requireReady: false,
+    })
+
+    const where = mockPrisma.task.findMany.mock.calls[0][0].where
+    expect(where.assigneeId).toBe('agent-claude')
+    expect(where.completed).toBe(false)
+    expect(where.lists.some.id).toBe('list-9')
+    expect(JSON.stringify(where.lists)).toContain('user-1')
+    // A dated task is still not work for today.
+    expect(result.queue).toEqual([])
+    expect(result.held.notDueCount).toBe(1)
+  })
+
+  it('offers requireReady:false as the second way out of a not-Ready queue', async () => {
+    // The old hint had one cure for this and it was "use the board". Someone who
+    // does not use the board needs to be told the other one exists.
+    mockPrisma.task.count.mockResolvedValue(12)
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+    expect(result.hint).toMatch(/Ready/)
+    expect(result.hint).toMatch(/requireReady/)
+  })
+
+  it('counts only DELIBERATELY parked work when Ready is already not required', async () => {
+    // With the flag off, an unstatused task is queued rather than held — so
+    // counting it as "not Ready" would report a hold that is not happening and
+    // send the caller to fix a status that is already fine.
+    mockPrisma.task.count.mockResolvedValue(0)
+    await buildAgentQueue({ agent: 'claude', userId: 'user-1', requireReady: false })
+
+    const where = mockPrisma.task.count.mock.calls[0][0].where
+    expect(where.OR).toBeUndefined()
+    expect(where.statusRole).toEqual({ not: null })
+  })
+
+  it('does not tell a caller who already passed requireReady:false to set Ready', async () => {
+    // They have opted out of the requirement. Naming it as the unmet condition
+    // would be advice to change something that is not stopping anything.
+    mockPrisma.task.count.mockResolvedValue(4)
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1', requireReady: false })
+
+    expect(result.empty).toBe(true)
+    expect(result.held.notReadyCount).toBe(4)
+    expect(result.hint).not.toMatch(/requireReady/)
+    expect(result.hint).toMatch(/Waiting|Doing|status/i)
+  })
+})

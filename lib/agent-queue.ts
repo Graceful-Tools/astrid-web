@@ -76,12 +76,64 @@ export interface AgentQueueOptions {
   userId: string
   /** Optional board scope, for accounts whose boards are worked by different harnesses. */
   listId?: string | null
+  /**
+   * Must a task carry `statusRole: "ready"` to queue? Defaults to TRUE — the rule
+   * every existing loop already runs under.
+   *
+   * `false` relaxes it by exactly one notch, for people who do not use the board
+   * (AWTD-871): a task with NO status queues too. A status that IS set still means
+   * what it says, so Waiting, Doing and a project's custom states stay out under
+   * either setting. `isQueueableStatusRole` owns that rule and says why.
+   */
+  requireReady?: boolean
+}
+
+/**
+ * The status half of the queue's WHERE clause.
+ *
+ * `isQueueableStatusRole` is the rule; this is the same rule expressed as a query,
+ * because the queue filters in the database rather than in memory. The two are kept
+ * next to each other on purpose — a Prisma filter that drifts from the predicate is
+ * the silent kind of wrong, since a queue that matches too little reads exactly like
+ * a quiet day.
+ *
+ * NULL has to be named explicitly. `{ in: ["ready"] }` does not match NULL in SQL,
+ * and NULL is the entire population this flag exists for.
+ */
+function queuedStatusFilter(requireReady: boolean) {
+  if (requireReady) return { statusRole: READY_STATUS_ROLE }
+  return { OR: [{ statusRole: READY_STATUS_ROLE }, { statusRole: null }] }
+}
+
+/**
+ * The complement: assigned to this agent but held OUT by its status. Only asked
+ * when the queue came back empty, to say which condition was the unmet one.
+ *
+ * It has to be the exact negation of `queuedStatusFilter`, or the explanation
+ * describes a different rule from the one that produced the emptiness:
+ *
+ *   - requiring Ready, the holds are every other status AND the unstatused. The
+ *     reported failure (AWTD-845) was `statusRole: NULL` on every task, so that
+ *     case is named rather than left to how NOT treats NULL — a filter that
+ *     quietly skipped the null rows would answer "nothing is assigned" for the
+ *     one situation this count exists to explain.
+ *   - not requiring Ready, an unstatused task is QUEUED, so counting it as held
+ *     would report a hold that is not happening and send the caller to fix a
+ *     status that is already fine. What is left is work somebody deliberately
+ *     parked: Waiting, Doing, or a project's own state.
+ */
+function heldByStatusFilter(requireReady: boolean) {
+  if (requireReady) {
+    return { OR: [{ statusRole: null }, { statusRole: { not: READY_STATUS_ROLE } }] }
+  }
+  return { statusRole: { not: null } }
 }
 
 export async function buildAgentQueue({
   agent,
   userId,
   listId = null,
+  requireReady = true,
 }: AgentQueueOptions): Promise<AgentQueueResult> {
   // No default identity, ever. A loop that guesses which agent it is claims
   // another harness's work — the one failure here that costs duplicated effort
@@ -147,7 +199,7 @@ export async function buildAgentQueue({
       assigneeId: agentUser.id,
       completed: false,
       // Ready is a FIELD on the task (AWTD-562), not membership in a list.
-      statusRole: READY_STATUS_ROLE,
+      ...queuedStatusFilter(requireReady),
       lists: listScope,
     },
     select: {
@@ -202,11 +254,7 @@ export async function buildAgentQueue({
         where: {
           assigneeId: agentUser.id,
           completed: false,
-          // The reported failure is statusRole: NULL, so name that case rather
-          // than leaning on how NOT treats NULL. A filter that quietly skipped
-          // the null rows would answer "nothing is assigned" for the one
-          // situation this count exists to explain.
-          OR: [{ statusRole: null }, { statusRole: { not: READY_STATUS_ROLE } }],
+          ...heldByStatusFilter(requireReady),
           lists: listScope,
         },
       })
@@ -217,7 +265,7 @@ export async function buildAgentQueue({
     mode,
     // An explicit flag, so a loop can stop without interpreting an array.
     empty,
-    hint: empty ? emptyQueueHint(mailbox, notReadyCount, scheduled) : undefined,
+    hint: empty ? emptyQueueHint(mailbox, notReadyCount, scheduled, requireReady) : undefined,
     queue: due.map(({ task }) => ({
       id: task.id,
       identifier: task.identifier,
@@ -261,18 +309,35 @@ export async function buildAgentQueue({
 function emptyQueueHint(
   mailbox: string,
   notReadyCount: number,
-  scheduled: Array<{ startsAt: string }>
+  scheduled: Array<{ startsAt: string }>,
+  requireReady: boolean
 ): string {
   if (scheduled.length > 0) {
     const waiting = `${scheduled.length} task(s) are queued for ${mailbox} but not due to start yet — the earliest begins ${scheduled[0].startsAt}.`
-    return notReadyCount > 0 ? `${waiting} ${notReadyHint(mailbox, notReadyCount)}` : waiting
+    return notReadyCount > 0
+      ? `${waiting} ${notReadyHint(mailbox, notReadyCount, requireReady)}`
+      : waiting
   }
-  if (notReadyCount > 0) return notReadyHint(mailbox, notReadyCount)
+  if (notReadyCount > 0) return notReadyHint(mailbox, notReadyCount, requireReady)
   return nothingAssignedHint(mailbox)
 }
 
-function notReadyHint(mailbox: string, count: number): string {
-  return `${count} task(s) are assigned to ${mailbox} but are not in Ready status, so the queue cannot see them. Set Ready from the task's … menu → Status, by dragging the card into the Ready column, or with update_task { statusRole: "ready" }.`
+/**
+ * The status hold, explained differently depending on which rule produced it.
+ *
+ * Under the default rule there are now TWO cures, and until AWTD-871 only one was
+ * ever offered: "set Ready". For someone who does not use the board that is advice
+ * to adopt a feature they have declined, so the second cure is named beside it.
+ *
+ * A caller who has ALREADY passed `requireReady: false` must not be told to set
+ * Ready or to pass the flag they just passed — everything still held is work they
+ * deliberately parked, so say that instead.
+ */
+function notReadyHint(mailbox: string, count: number, requireReady: boolean): string {
+  if (!requireReady) {
+    return `${count} task(s) are assigned to ${mailbox} but sit in a status the queue never takes — Waiting, Doing, or a project's own state. Those are deliberately parked; move one to Ready, or clear its status, to queue it.`
+  }
+  return `${count} task(s) are assigned to ${mailbox} but are not in Ready status, so the queue cannot see them. Set Ready from the task's … menu → Status, by dragging the card into the Ready column, or with update_task { statusRole: "ready" }. If you do not use the board at all, ask for the queue with requireReady: false instead and unstatused tasks will queue too.`
 }
 
 function nothingAssignedHint(mailbox: string): string {

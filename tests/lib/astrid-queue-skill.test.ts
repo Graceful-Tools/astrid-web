@@ -52,6 +52,17 @@ describe('canonical queue skill (AWTD-759)', () => {
     expect(skill).toContain('never retry silently')
   })
 
+  it('names the sanctioned way out for someone who does not use the board (AWTD-871)', () => {
+    // The Ready boundary says "never work around the filter", which is right — but
+    // for someone who never opens a board it read as "your queue is empty forever".
+    // Naming requireReady:false in the same breath is the difference between a
+    // rule and a dead end.
+    const skill = canonicalQueueSkill(OPTS)
+    expect(skill).toContain('requireReady: false')
+    // And it must not read as a way to grab Waiting work.
+    expect(skill).toMatch(/Waiting/)
+  })
+
   it('instructs an explicit board choice when no listId is pinned', () => {
     const skill = canonicalQueueSkill({ mailbox: 'claude' })
     expect(skill).toContain('pick ONE board with get_lists')

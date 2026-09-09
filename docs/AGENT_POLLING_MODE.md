@@ -85,14 +85,51 @@ every agent and made a user setting.
 
 ## The queue
 
-`GET /api/v1/agent-queue?agent=claude[&listId=…]`, and the MCP tool `get_agent_queue`
-that proxies it. Three conditions, all required, reusing the predicates in
+`GET /api/v1/agent-queue?agent=claude[&listId=…][&requireReady=false]`, and the MCP tool
+`get_agent_queue` that proxies it. Three conditions, all required, reusing the predicates in
 `lib/ready-queue-scope.ts` rather than restating them:
 
 - **Ready** — `statusRole`, a field on the task
 - **assigned to this identity** — assignment is the handshake
 - **due** — a task carrying a future date is not work for today, so a repeating chore
   re-queues itself on completion and reappears when it comes due
+
+### `requireReady: false`, for people who do not use the board (AWTD-871)
+
+Ready is a BOARD state, and the board is a Project-Mode-shaped feature. Someone who
+never opens one never sets a status, so every task they hand their agent is
+`statusRole: null` — and the queue answered `empty: true` on every poll forever while
+the hint told them to go and use the feature they had declined.
+
+`requireReady: false` relaxes that by **exactly one notch**: the *absence* of a status
+stops disqualifying a task, so assignment alone queues it. A status that IS set keeps
+meaning what it says, and `isQueueableStatusRole` in `lib/ready-queue-scope.ts` is the
+one place that decides:
+
+| `statusRole` | default | `requireReady: false` |
+|---|---|---|
+| `ready` | queued | queued |
+| `null` (Inbox) | held | **queued** |
+| `waiting` | held | held |
+| `doing` | held | held |
+| a project's custom state | held | held |
+
+Waiting staying out is the load-bearing part. It is the brake a scheduled loop depends
+on — park a blocked task there and the loop stops re-reading it — and a flag that swept
+it back in would recreate the no-op loop the lane exists to prevent. For the same
+reason a custom state stays out: `ready-for-review` merely *reads* as ready and belongs
+to the workflow that defined it. So this is deliberately **not** "any status except
+waiting and doing" — an unknown role is somebody's deliberate choice, and only nothing
+at all is the absence of one.
+
+Two details that follow from the same rule:
+
+- The endpoint **rejects** a `requireReady` it cannot parse rather than reading it as
+  `true`. `?requireReady=no` silently meaning "yes" would answer `empty: true` on every
+  poll of a queue the caller had just tried to open.
+- The empty-queue hint changes with the flag. With Ready required it now names both
+  cures (set Ready, *or* pass `requireReady: false`); with the flag already off it must
+  not name either, because everything still held was parked on purpose.
 
 Two deliberate differences from the local `/fixall` script:
 

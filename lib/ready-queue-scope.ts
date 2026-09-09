@@ -156,6 +156,39 @@ export function hasReadyStatus(task: StatusRoleTask): boolean {
 }
 
 /**
+ * May a queue take a task in this status — when Ready is not required (AWTD-871)?
+ *
+ * `Ready` is a BOARD state, and the board is a Project-Mode-shaped feature. Someone
+ * who never opens one never sets a status, so every task they hand their agent is
+ * `statusRole: null`, and a queue that requires Ready answers `empty: true` on every
+ * poll forever. The only advice it could offer them was "go and use the feature you
+ * do not use".
+ *
+ * So the requirement is relaxable by exactly one notch: with `requireReady: false`
+ * the ABSENCE of a status stops disqualifying a task. A status that IS set keeps
+ * meaning what it says —
+ *
+ *   - `waiting` is a task paused on a named condition. It is the brake a scheduled
+ *     loop depends on; if relaxing Ready also swept up Waiting, a blocked task would
+ *     be re-read every run forever, which is the no-op loop the lane exists to stop.
+ *   - `doing` is a task somebody — a person, or a peer session — is on right now.
+ *   - a project's custom state belongs to that project's workflow, for the same
+ *     reason `hasReadyStatus` matches the default role exactly: a state that merely
+ *     READS as ready ("ready-for-review") is not this queue's to claim.
+ *
+ * So this is deliberately NOT "any status except waiting and doing". An unknown role
+ * is somebody's deliberate choice; only nothing at all is an absence of one.
+ */
+export function isQueueableStatusRole(
+  statusRole: string | null | undefined,
+  requireReady: boolean,
+): boolean {
+  const role = (statusRole ?? '').trim().toLowerCase()
+  if (role === READY_STATUS_ROLE) return true
+  return !requireReady && role === ''
+}
+
+/**
  * A task that may carry a date.
  *
  * `dueDateTime` is the single date field the API returns; `isAllDay` says whether the time

@@ -145,6 +145,14 @@ export default function AgentLoopsDocsPage() {
               usual reason a correctly configured loop sees
               {' '}<code className="font-mono text-xs">empty: true</code> forever.
             </p>
+            <p className="pl-4">
+              <strong className="theme-text-primary">Don&rsquo;t use the board?</strong> Then ask for the
+              queue with
+              {' '}<code className="font-mono text-xs">requireReady: false</code> and assignment alone is
+              enough &mdash; a task with no status queues too. It relaxes only that: Waiting and Doing
+              are still never picked up, so parking something in Waiting still means the loop leaves
+              it alone.
+            </p>
             <p>
               <strong className="theme-text-primary">3.</strong> Your harness calls
               {' '}<code className="font-mono text-xs">get_agent_queue</code> on a schedule and works

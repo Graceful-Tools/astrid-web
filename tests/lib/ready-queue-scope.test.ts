@@ -13,6 +13,7 @@ import {
   FIXALL_HARNESS_MAILBOXES,
   describeSchedule,
   hasReadyStatus,
+  isQueueableStatusRole,
   isClaimableByAgent,
   isDueToStart,
   resolveReadyQueueOptions,
@@ -256,5 +257,65 @@ describe('describeSchedule', () => {
 
   it('has nothing to say about a task with no date', () => {
     expect(describeSchedule({}, now)).toBe('')
+  })
+})
+
+/**
+ * AWTD-871 — a queue for people who do not use the board.
+ *
+ * `Ready` is a board state, and the board is a Project-Mode-shaped feature. Someone
+ * who never opens one never sets a status, so every task they own is
+ * `statusRole: null` and a queue that requires Ready answers `empty: true` forever.
+ * The only advice the queue could give them was "go and use the feature you do not
+ * use".
+ *
+ * So the requirement is relaxable — but only by exactly one notch. `requireReady:
+ * false` makes the ABSENCE of a status stop disqualifying a task. It does not make a
+ * status you have set mean less than it says: `waiting` is a task paused on a named
+ * condition, `doing` is a task somebody is on, and a project's custom state belongs
+ * to that project's own workflow. If any of those queued, the Waiting lane would
+ * stop working as a brake, which is the one thing keeping a scheduled loop from
+ * re-reading a blocked task every fifteen minutes forever.
+ */
+describe('isQueueableStatusRole', () => {
+  it('queues Ready under either rule — the strict one is not being replaced', () => {
+    expect(isQueueableStatusRole('ready', true)).toBe(true)
+    expect(isQueueableStatusRole('ready', false)).toBe(true)
+  })
+
+  it('queues an unstatused task ONLY when Ready is not required', () => {
+    // The whole point of the flag: Inbox is where a non-board user's work lives.
+    expect(isQueueableStatusRole(null, false)).toBe(true)
+    expect(isQueueableStatusRole(undefined, false)).toBe(true)
+    expect(isQueueableStatusRole('', false)).toBe(true)
+    expect(isQueueableStatusRole('   ', false)).toBe(true)
+
+    expect(isQueueableStatusRole(null, true)).toBe(false)
+    expect(isQueueableStatusRole(undefined, true)).toBe(false)
+  })
+
+  it('never queues Waiting or Doing, however the flag is set', () => {
+    // A status that IS set means what it says. Waiting is the brake the loop
+    // relies on; if relaxing the Ready requirement also swept up Waiting, a
+    // blocked task would be re-read on every run — the no-op loop the whole
+    // Waiting lane exists to prevent.
+    for (const requireReady of [true, false]) {
+      expect(isQueueableStatusRole('waiting', requireReady)).toBe(false)
+      expect(isQueueableStatusRole('doing', requireReady)).toBe(false)
+    }
+  })
+
+  it("never queues a project's custom state, however the flag is set", () => {
+    // Same reason hasReadyStatus matches the default role exactly: a state that
+    // merely READS as ready belongs to the workflow that defined it.
+    for (const requireReady of [true, false]) {
+      expect(isQueueableStatusRole('ready-for-review', requireReady)).toBe(false)
+      expect(isQueueableStatusRole('triage', requireReady)).toBe(false)
+    }
+  })
+
+  it('is case- and whitespace-insensitive about Ready, like hasReadyStatus', () => {
+    expect(isQueueableStatusRole('  Ready  ', true)).toBe(true)
+    expect(isQueueableStatusRole('READY', false)).toBe(true)
   })
 })
