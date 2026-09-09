@@ -21,6 +21,11 @@ export default mergeConfig(
     environment: 'jsdom',
     include: [
       'tests/lib/api-auth-wrapper.test.ts',
+      // The middleware ITSELF, not just the wrapper around it. api-auth-wrapper
+      // mocks this module out entirely, so its green tests said nothing about
+      // the checks — which is how requireTaskAccess sat at 16% inside a gate
+      // reporting 68% (AWTD-866).
+      'tests/lib/api-auth-middleware.test.ts',
       'tests/lib/list-permissions.test.ts',
       'tests/lib/task-read-access.test.ts',
       'tests/lib/api-offline-queue-v1-urls.test.ts',
@@ -61,24 +66,31 @@ export default mergeConfig(
         'lib/api-agent-auth-wrapper.ts',
       ],
       /**
-       * Lowered 68/55 → 62/50 on 2026-09-09, and the number went DOWN because
-       * the measurement got honest, not because coverage did (task f5022e72).
+       * Raised 62/50/64/62 → 69/60/69/70 on 2026-09-09 (AWTD-866), and this time
+       * the number went UP because the coverage did.
        *
-       * The list above named `lib/task-read-access.ts`, which does not exist.
-       * A threshold over a missing file is met trivially, so the old 68% was
-       * computed over nine files while the module that actually holds
-       * requireTaskAccess / requireTaskReadAccess — api-auth-middleware, at
-       * 16.4% — was not in the gate at all.
+       * The previous entry explains why it had gone DOWN: the include list named
+       * `lib/task-read-access.ts`, which does not exist, and vitest treats an
+       * include matching nothing as nothing — so the old 68% was computed over
+       * nine files while `lib/api-auth-middleware.ts`, the module that actually
+       * holds requireTaskAccess and requireTaskReadAccess, sat outside the gate
+       * at 16.4%. AWTD-811 put it in and pinned the honest figure.
        *
-       * These are the real figures for the ten files now measured. Raising them
-       * means testing api-auth-middleware, which is filed separately rather
-       * than pretended about here.
+       * It is now at 100% statements / 98.5% branches, which is what lifts the
+       * ten-file surface past where the fiction used to sit.
+       *
+       * These are set a fraction BELOW the measured figures on purpose. Two runs
+       * of the identical tree reported 69.56/60.11/70.37/70.36 and
+       * 69.71/60.30/69.44/70.68 — v8 coverage is not bit-identical between runs,
+       * and functions moved almost a whole point. A threshold pinned to the exact
+       * observed number is a gate that fails on a green tree, and a gate that
+       * cries wolf gets raised rather than investigated.
        */
       thresholds: {
-        branches: 50,
-        functions: 64,
-        lines: 62,
-        statements: 62,
+        branches: 60,
+        functions: 69,
+        lines: 70,
+        statements: 69,
       },
     },
   },
