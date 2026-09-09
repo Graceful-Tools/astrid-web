@@ -93,6 +93,14 @@ const INTERNAL_PREFIXES = [
   '/api/mcp/',
   '/api/coding-workflow/',
   '/api/agent-workflow/',
+  // Server-to-server CI plumbing, the same category as the two above. The
+  // callers are this repository's OWN GitHub Actions — .github/workflows/
+  // fixstuff.yml:86, astrid-coding-agent.yml:95 and fixall.yml:135 — which is
+  // why the census showed 162 hits under client `unknown`: curl sends no
+  // user-agent it recognises. It has no v1 successor and should not get one;
+  // it was never part of the iOS migration, so counting it produces a number
+  // that can never reach zero (task 79195f81).
+  '/api/coding-agent/',
   '/api/assistant-workflow/',
   '/api/github/webhooks',
   '/api/sse',
@@ -148,6 +156,27 @@ const MIGRATABLE_AUTH_ROUTES = [
 const WEBAUTHN_PREFIX = '/api/auth/webauthn/'
 
 /**
+ * `/api/secure-files/*` — permanently exempt, because its URLs are DATA.
+ *
+ * Attachment links are persisted in comment and message content. Nothing in
+ * this repo builds the legacy path any anymore — `lib/task-attachments.ts`
+ * writes `/api/v1/secure-files/{id}` — so the residual traffic is old user
+ * content being rendered, not a client that has failed to migrate.
+ *
+ * Rewriting that stored content would mean editing users' words in order to
+ * change a URL, and it still would not finish: a link copied out into an email
+ * or another document keeps pointing here. `components/shared/MessageBubble.tsx`
+ * reached the same conclusion for task 641a7615 — "the stored data outlives the
+ * legacy route, so this is not a shim to remove later" — and `extractSecureFileId`
+ * accepts both forms on purpose.
+ *
+ * The decision was already made; it was only recorded in a component comment,
+ * where the census could not see it. Exempt means exempt from the CENSUS. The
+ * route is still served, and must be. (Task 79195f81.)
+ */
+const PERMANENT_ALIAS_PREFIXES = ['/api/secure-files/'] as const
+
+/**
  * True for `/api/auth/*` paths that are permanently exempt: the passkey routes
  * and anything the NextAuth catch-all serves (session, csrf, signin, signout,
  * callback/*, …).
@@ -181,6 +210,9 @@ export function isLegacyApiPath(pathname: string): boolean {
     if (prefix.endsWith('/') && pathname === prefix.slice(0, -1)) return false
   }
   if (isPermanentlyExemptAuthPath(pathname)) return false
+  for (const prefix of PERMANENT_ALIAS_PREFIXES) {
+    if (pathname.startsWith(prefix)) return false
+  }
   return true
 }
 
