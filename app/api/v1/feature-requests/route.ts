@@ -13,7 +13,11 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { parseFeatureRequest } from '@/lib/feature-access-requests'
+import {
+  featureRequestRecipient,
+  parseFeatureRequest,
+  shouldNotifyFeatureRequest,
+} from '@/lib/feature-access-requests'
 import { sendFeatureAccessRequestEmail } from '@/lib/email'
 
 const log = createLogger('v1.feature-requests')
@@ -62,8 +66,11 @@ export const POST = withAuth(
       select: { id: true, status: true, useCase: true, createdAt: true },
     })
 
-    // Only notify on a genuinely new request. An edited note is not worth an email.
-    if (!existing) {
+    // Whether this reaches a human is its own rule now — see
+    // shouldNotifyFeatureRequest. `!existing` silenced far more than the edited
+    // note it was aimed at: a declined person re-asking got a thank-you from the
+    // dialog and reached nobody, forever (AWTD-882).
+    if (shouldNotifyFeatureRequest(existing)) {
       const user = await prisma.user.findUnique({
         where: { id: auth.userId },
         select: { email: true, name: true },
@@ -71,6 +78,14 @@ export const POST = withAuth(
 
       // Best-effort: a mail failure must not lose the request, which is the
       // durable half of this feature.
+      //
+      // But it is not swallowed. This catch is the only thing standing between a
+      // provider rejection and total silence, and the request row records
+      // nothing about whether anyone was told — so if this line is not loud and
+      // complete, "did the email go out?" becomes unanswerable after the fact.
+      // Diagnosing AWTD-882 meant probing the live transport by hand for exactly
+      // that reason. The recipient is logged too: the address is env-overridable
+      // (FEATURE_REQUEST_EMAIL), so "sent, but where?" is a real question.
       try {
         await sendFeatureAccessRequestEmail({
           featureKey: parsed.featureKey,
@@ -79,7 +94,16 @@ export const POST = withAuth(
           userName: user?.name ?? null,
         })
       } catch (error) {
-        log.error({ err: error, featureKey: parsed.featureKey }, 'Feature request email failed')
+        log.error(
+          {
+            err: error,
+            featureKey: parsed.featureKey,
+            recipient: featureRequestRecipient(),
+            requesterId: auth.userId,
+            reRequestAfter: existing?.status ?? null,
+          },
+          'Feature request notification FAILED — nobody was told about this request',
+        )
       }
     }
 

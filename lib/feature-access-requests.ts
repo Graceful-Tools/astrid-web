@@ -128,6 +128,33 @@ export function summarizeFeatureDemand(
 }
 
 /**
+ * Does this request warrant telling a human?
+ *
+ * The route decided this inline with `if (!existing)`, which was written to
+ * suppress ONE thing: re-posting to edit the use-case note on a request the
+ * admin can already see in the queue. It does that. But a person has exactly one
+ * row per feature and rows are never deleted, so once any row existed the
+ * notification was off forever, whatever happened next (AWTD-882).
+ *
+ * The case that matters is DECLINED. A re-request deliberately does not
+ * resurrect a decision an admin already made — the row keeps its status — so
+ * somebody who was told no could rewrite their use case, submit, be thanked by
+ * the dialog, and reach nobody. The one route back after a "no" was a dead end
+ * that looked like it worked.
+ *
+ * GRANTED stays quiet because they already have the feature, and the UI does not
+ * offer them the button. An UNRECOGNISED status notifies: `status` is a String
+ * column rather than an enum, and a silence is indistinguishable from "nobody
+ * asked", which is the failure this exists to remove.
+ */
+export function shouldNotifyFeatureRequest(
+  existing: { status: string } | null | undefined,
+): boolean {
+  if (!existing) return true
+  return existing.status !== 'PENDING' && existing.status !== 'GRANTED'
+}
+
+/**
  * Where feature-request notifications go.
  *
  * Env-overridable because a whitelabel partner running their own deployment
