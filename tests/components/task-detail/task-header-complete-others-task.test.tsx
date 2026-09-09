@@ -3,20 +3,25 @@
  */
 
 /**
- * Task 43bcc76c, at the surface Jon actually reported it on.
+ * AWTD-877, at the surface Jon first reported the older half of it on.
  *
- * "in task details cannot complete tasks when user in list mode. Tapping on
- * profile should show popover with confirmation to complete."
+ * Task 43bcc76c: "in task details cannot complete tasks when user in list mode.
+ * Tapping on profile should show popover with confirmation to complete." The
+ * answer then was a confirm-on-tap that TaskHeader alone asked for, via a
+ * `surface="detail"` prop. AWTD-877 replaced it: the tap opens the options
+ * sheet on every surface, and the sheet's Complete button confirms.
  *
- * tests/components/task-leading-control-confirm.tsx pins the control's own
- * behaviour, but the control only asks for confirmation when it is told it is
- * on the detail surface. This file is what stops that wiring from being dropped
- * out of TaskHeader while every other test stays green — the bug was never in
- * the control alone, it was in details having no completion affordance.
+ * So the wiring this file protects has moved up one level. TaskHeader must hand
+ * the tap to `onOpenOptions`, and task-detail.tsx must SUPPLY that handler for
+ * someone else's task even in list mode. The bug was never in the control
+ * alone — it was details having no completion affordance at all — and it comes
+ * back the moment either half is dropped while the other stays green.
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, fireEvent } from '@testing-library/react'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import type { Task, User } from '@/types/task'
 
 vi.mock('@/contexts/feature-flag-context', () => ({
@@ -73,29 +78,39 @@ function renderHeader(overrides: Record<string, unknown> = {}) {
   )
 }
 
-describe('completing someone else\'s task from task details (task 43bcc76c)', () => {
+describe('completing someone else\'s task from task details (AWTD-877)', () => {
   it('offers a way to complete it at all — in list mode there was none', () => {
-    const { container } = renderHeader()
+    const { container } = renderHeader({ onOpenOptions: vi.fn() })
 
     expect(container.querySelector('[class*="cursor-pointer"][role="button"]')).toBeTruthy()
   })
 
-  it('confirms before completing, and completes when confirmed', () => {
+  it('routes the tap to the options sheet rather than completing outright', () => {
     const onToggleComplete = vi.fn()
-    const { container } = renderHeader({ onToggleComplete })
+    const onOpenOptions = vi.fn()
+    const { container } = renderHeader({ onToggleComplete, onOpenOptions })
 
     fireEvent.click(container.querySelector('[class*="cursor-pointer"][role="button"]')!)
-    expect(onToggleComplete).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Complete' }))
-    expect(onToggleComplete).toHaveBeenCalledTimes(1)
+    expect(onOpenOptions).toHaveBeenCalledTimes(1)
+    expect(onToggleComplete).not.toHaveBeenCalled()
+  })
+})
+
+describe('task-detail supplies that sheet in list mode (AWTD-877)', () => {
+  // Source-level, like project-board-display-mode.test.ts: rendering the whole
+  // panel would drag in its data layer to prove one prop. Without these two the
+  // header above is handed no handler, its avatar goes inert, and details is
+  // back to the dead end task 43bcc76c was filed about — with every other test
+  // still green, which is exactly why this assertion exists.
+  const src = readFileSync(join(process.cwd(), 'components/task-detail.tsx'), 'utf8')
+
+  it('decides whether the task is someone else\'s', () => {
+    expect(src).toMatch(/isSomeoneElsesTask\(\{/)
   })
 
-  it('names the assignee in the confirmation', () => {
-    const { container } = renderHeader()
-
-    fireEvent.click(container.querySelector('[class*="cursor-pointer"][role="button"]')!)
-
-    expect(screen.getByText(/Sam Smith/)).toBeInTheDocument()
+  it('opens the sheet for compact mode OR someone else\'s task', () => {
+    expect(src).toMatch(/onOpenOptions=\{compactTaskDetail \|\| taskIsSomeoneElses/)
+    expect(src).toMatch(/\(compactTaskDetail \|\| taskIsSomeoneElses\) && \(/)
   })
 })

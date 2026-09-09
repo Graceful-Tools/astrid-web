@@ -41,7 +41,12 @@ describe('the project board opts into project mode (task ffa5bbb5)', () => {
   })
 
   it('opens the options sheet from the leading control', () => {
-    expect(src).toMatch(/onOpenOptions=\{compact \?/)
+    // AWTD-877 widened the condition: compact mode OR the task being someone
+    // else's, since their card is the only route to reassign, reprioritise or
+    // complete-with-confirmation. Asserting the whole ternary would pin the
+    // formatting, so this pins the two conditions that decide it.
+    expect(src).toMatch(/onOpenOptions=\{\s*compact \|\|/)
+    expect(src).toMatch(/isSomeoneElsesTask\(\{/)
   })
 })
 

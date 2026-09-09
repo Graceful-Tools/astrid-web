@@ -1,18 +1,15 @@
 "use client"
 
 import React from "react"
-import { createPortal } from "react-dom"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { TaskCheckbox } from "@/components/task-checkbox"
 import { useTranslations } from "@/lib/i18n/client"
 import {
   getPriorityColor,
-  leadingControlConfirmsCompletion,
+  isSomeoneElsesTask,
   leadingControlOpensOptions,
   taskLeadingControlKind,
-  type TaskLeadingControlSurface,
 } from "@/lib/task-leading-control"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 
@@ -30,18 +27,18 @@ import { usesCompactTaskDetail } from "@/lib/task-display-mode"
  * 036ef139), where the tap opens the options popover so the board's states are
  * reachable from the row. The mark is untouched there: still the checkbox.
  *
- * IN TASK DETAILS someone else's avatar is tappable even in list mode (task
- * 43bcc76c), because there the control is the ONLY completion affordance and an
- * inert photo meant their task could not be completed at all. It asks first —
- * the row's objection to finishing another person's work on a stray tap still
- * stands, and the confirmation is what answers it.
+ * SOMEONE ELSE'S TASK opens that popover too, on every surface and in both
+ * modes (AWTD-877). Their avatar used to be inert on a row and grew a bespoke
+ * confirm-on-tap in details (task 43bcc76c), so one task behaved three ways
+ * depending on where you met it — and the row, being the safe one, also
+ * withheld reassign, reprioritise and move-column. The popover carries all of
+ * those, cannot finish anyone's work by accident, and asks before completing.
+ * The confirmation moved with the tap: it lives on the sheet's Complete button
+ * now (components/completion-confirmation.tsx), not here.
  *
  * In PROJECT mode both change (task ffa5bbb5). Your own task wears your photo,
  * and tapping ANY of the three opens the options popover — priority, assignee,
- * board state, complete — instead of completing outright. Someone else's avatar
- * becomes tappable here, which it never was in list mode: the popover is the
- * only route to assignee and state, so leaving it inert would make another
- * person's task uneditable from the board.
+ * board state, complete — instead of completing outright.
  */
 interface TaskLeadingControlProps {
   assigneeId?: string | null
@@ -73,11 +70,6 @@ interface TaskLeadingControlProps {
    * which is every call site that predates the task.
    */
   onBoard?: boolean
-  /**
-   * Which surface is rendering this. Absent means a row, so every call site
-   * that predates task 43bcc76c keeps today's behaviour.
-   */
-  surface?: TaskLeadingControlSurface
 }
 
 /** Priority-coloured square shared by the avatar and unassigned marks. */
@@ -94,10 +86,8 @@ export function TaskLeadingControl({
   displayMode,
   onOpenOptions,
   onBoard = false,
-  surface,
 }: TaskLeadingControlProps) {
   const { t } = useTranslations()
-  const [confirmingComplete, setConfirmingComplete] = React.useState(false)
   const borderColor = getPriorityColor(priority)
 
   // Project mode needs somewhere for the tap to GO. Without a popover handler
@@ -112,8 +102,10 @@ export function TaskLeadingControl({
   // disagree (task 036ef139): there the checkbox stays a checkbox — Jon asked
   // for "the checkbox when tapped" — while the tap opens the sheet.
   const compactMark = usesCompactTaskDetail(displayMode) && Boolean(onOpenOptions)
+  const isSomeoneElses = isSomeoneElsesTask({ assigneeId, currentUserId })
   const opensOptions =
-    leadingControlOpensOptions({ displayMode, onBoard }) && Boolean(onOpenOptions)
+    leadingControlOpensOptions({ displayMode, onBoard, isSomeoneElses }) &&
+    Boolean(onOpenOptions)
   const effectiveMode = compactMark ? 'project' : 'list'
   const kind = taskLeadingControlKind({
     assigneeId,
@@ -122,14 +114,6 @@ export function TaskLeadingControl({
     displayMode: effectiveMode,
   })
   const activate = opensOptions ? onOpenOptions! : onToggleComplete
-
-  // Someone else's task, in details, in list mode: the one case where the
-  // avatar has to do something and completing outright is not it.
-  const confirmsCompletion = leadingControlConfirmsCompletion({
-    kind,
-    opensOptions,
-    surface,
-  })
 
   if (kind === 'checkbox') {
     return (
@@ -146,11 +130,12 @@ export function TaskLeadingControl({
     // Someone else's task, or your own in project mode: a photo rather than a
     // checkbox you could mistake for your own.
     //
-    // Tappable in project mode, where it opens the options sheet, and in task
-    // DETAILS, where it asks to confirm completion (task 43bcc76c). On a ROW in
-    // list mode it stays inert: completing another person's task from the row
-    // was never an affordance and still is not.
-    const tappable = opensOptions || confirmsCompletion
+    // Tappable wherever the tap has a sheet to open — which, since AWTD-877, is
+    // every surface for someone else's task. It stays INERT when the call site
+    // passes no `onOpenOptions`: an avatar that silently completes another
+    // person's work on a stray tap is the hazard this control has always
+    // refused, and a mark that does nothing is the safer half of the trade.
+    const tappable = opensOptions
     return (
       <>
         <div
@@ -161,20 +146,16 @@ export function TaskLeadingControl({
             ? {
                 role: 'button' as const,
                 tabIndex: 0,
-                'aria-label': confirmsCompletion
-                  ? t('tasks.completeTask')
-                  : t('tasks.taskOptions'),
+                'aria-label': t('tasks.taskOptions'),
                 onClick: (e: React.MouseEvent) => {
                   e.stopPropagation()
-                  if (confirmsCompletion) setConfirmingComplete(true)
-                  else activate()
+                  activate()
                 },
                 onKeyDown: (e: React.KeyboardEvent) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
                     e.stopPropagation()
-                    if (confirmsCompletion) setConfirmingComplete(true)
-                    else activate()
+                    activate()
                   }
                 },
               }
@@ -187,16 +168,6 @@ export function TaskLeadingControl({
             </AvatarFallback>
           </Avatar>
         </div>
-        {confirmingComplete && (
-          <CompletionConfirmation
-            assigneeLabel={assignee?.name || assignee?.email || ''}
-            onCancel={() => setConfirmingComplete(false)}
-            onConfirm={() => {
-              setConfirmingComplete(false)
-              onToggleComplete()
-            }}
-          />
-        )}
       </>
     )
   }
@@ -225,74 +196,5 @@ export function TaskLeadingControl({
         </span>
       </div>
     </div>
-  )
-}
-
-/**
- * "Complete this task?" — the confirmation behind someone else's avatar in task
- * details (task 43bcc76c).
- *
- * Portalled to the body for the same reason the options sheet is
- * (components/priority-assignee-picker.tsx): the leading control sits inside a
- * task-detail panel that scrolls and clips, and a confirmation that can be cut
- * off by its own container is worse than none.
- *
- * It names the assignee. A dialog asking whether to complete "this task" over
- * an unlabelled photo is exactly the blind confirmation that trains people to
- * accept without reading.
- */
-function CompletionConfirmation({
-  assigneeLabel,
-  onCancel,
-  onConfirm,
-}: {
-  assigneeLabel: string
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  const { t } = useTranslations()
-
-  React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCancel()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
-
-  if (typeof document === 'undefined') return null
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      onClick={event => event.stopPropagation()}
-    >
-      <div
-        className="absolute inset-0 bg-black/40"
-        aria-hidden="true"
-        onClick={onCancel}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="relative w-full max-w-xs rounded-2xl bg-white p-4 shadow-xl dark:bg-gray-800"
-      >
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          {t('tasks.confirmCompleteTitle')}
-        </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          {t('tasks.confirmCompleteAssigned', { name: assigneeLabel })}
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onCancel}>
-            {t('common.cancel')}
-          </Button>
-          <Button size="sm" onClick={onConfirm}>
-            {t('common.complete')}
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
   )
 }

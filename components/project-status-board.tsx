@@ -26,6 +26,7 @@ import {
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
@@ -467,7 +468,19 @@ export function ProjectStatusBoard({
                         onToggleComplete={handleToggleComplete}
                         onCopyPublic={handleCopyPublic}
                         displayMode={taskDisplayMode}
-                        onOpenOptions={compact ? () => setOptionsTaskId(task.id) : undefined}
+                        /* Someone else's card opens the sheet too, in either
+                           display mode (AWTD-877) — it is the only route to
+                           reassign, reprioritise or move it, and to a
+                           completion that asks first. */
+                        onOpenOptions={
+                          compact ||
+                          isSomeoneElsesTask({
+                            assigneeId: task.assigneeId,
+                            currentUserId: currentUser?.id,
+                          })
+                            ? () => setOptionsTaskId(task.id)
+                            : undefined
+                        }
                       />
                     </div>
                   )
@@ -515,7 +528,7 @@ export function ProjectStatusBoard({
           Selection routes through moveTaskToColumn, the same function
           drag-and-drop uses, so a state set from the sheet and a card dragged
           into a column cannot disagree about what the move means. */}
-      {compact && optionsTaskId && (() => {
+      {optionsTaskId && (() => {
         const task = boardTasks.find(candidate => candidate.id === optionsTaskId)
         if (!task) return null
         return (
@@ -536,6 +549,7 @@ export function ProjectStatusBoard({
             availableUsers={[]}
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}
+            currentUser={currentUser ?? undefined}
             statusColumns={columns}
             selectedColumnId={getTaskProjectColumnId(task, columns)}
             onStatusSelect={columnId => {

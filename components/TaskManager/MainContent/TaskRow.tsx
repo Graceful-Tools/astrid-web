@@ -11,6 +11,10 @@ import {
   resolveProjectColumnMove,
 } from "@/lib/project-status"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import {
+  isSomeoneElsesTask,
+  leadingControlOpensOptions,
+} from "@/lib/task-leading-control"
 import type { Task, TaskList } from "@/types/task"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
@@ -134,10 +138,19 @@ function TaskRowImpl({
 
   // Project mode: tapping the leading control opens this sheet rather than
   // completing the task (task ffa5bbb5). A row on a BOARD opens it too, in
-  // every display mode (task 036ef139).
+  // every display mode (task 036ef139), and so does SOMEONE ELSE'S task
+  // (AWTD-877) — on a plain list row their avatar was inert, which was safe but
+  // also withheld reassign, reprioritise and move-column.
+  //
+  // The gate has to match `leadingControlOpensOptions`, because the control
+  // only opens what this renders: a mismatch is a dead avatar, not a fallback.
   const [optionsOpen, setOptionsOpen] = React.useState(false)
   const compact = usesCompactTaskDetail(taskDisplayMode)
-  const opensOptions = compact || Boolean(board)
+  const opensOptions = leadingControlOpensOptions({
+    displayMode: taskDisplayMode,
+    onBoard: Boolean(board),
+    isSomeoneElses: isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId }),
+  })
 
   // Columns from the module, never a local list — status is a state on the
   // task with per-project custom states (AWTD-562). `null` off a board, so the
@@ -386,6 +399,7 @@ function TaskRowImpl({
             availableUsers={[]}
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}
+            currentUserId={currentUserId}
             statusColumns={statusColumns}
             selectedColumnId={selectedColumnId}
             onStatusSelect={applyColumn}

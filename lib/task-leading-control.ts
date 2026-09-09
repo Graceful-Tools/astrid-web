@@ -32,6 +32,13 @@
  * tapping it opens the same sheet — the board's states are otherwise
  * unreachable from the row — but the mark stays the list-mode checkbox. See
  * `leadingControlOpensOptions` below for why the two are decided separately.
+ *
+ * SOMEONE ELSE'S TASK CHANGES THE ACTION EVERYWHERE (AWTD-877, with iOS
+ * AITD-375). Jon, for both platforms: "When not yours, always confirm before
+ * completing. On web and iOS it should give the popover to show assignment,
+ * complete, priority and status options just like in project mode." So the
+ * tap opens the sheet on every surface and in both modes, and completing from
+ * that sheet asks first. The mark is untouched: it was already their photo.
  */
 
 import { usesCompactTaskDetail, type TaskDisplayMode } from '@/lib/task-display-mode'
@@ -53,75 +60,103 @@ export interface TaskLeadingControlInput {
 }
 
 /**
+ * Is this task assigned to somebody who is not the person looking at it?
+ *
+ * The one question behind both of the rules below, so they cannot answer it
+ * differently. iOS keeps the same predicate in `TaskLeadingControlKind`, and the
+ * three traps it exists to avoid are all cases where a near-miss looks right:
+ *
+ *  1. "Is it an avatar" is NOT "is it theirs". In project mode your own task
+ *     wears your photo too (task ffa5bbb5), so keying anything off the MARK
+ *     makes people confirm their own completions. This compares ids.
+ *  2. Unassigned is nobody's, and `''` is how the API says unassigned — not
+ *     just null. There is no one whose work you would be finishing.
+ *  3. An unknown viewer counts as "not yours". If `currentUserId` is absent you
+ *     cannot show the task is theirs, and the safe answer is the one that asks.
+ */
+export function isSomeoneElsesTask({
+  assigneeId,
+  currentUserId,
+}: {
+  assigneeId?: string | null
+  currentUserId?: string | null
+}): boolean {
+  if (!assigneeId) return false
+  return assigneeId !== currentUserId
+}
+
+/**
  * Does tapping the leading control open the options sheet rather than
  * completing the task?
  *
- * TWO conditions, OR'd (task 036ef139):
+ * THREE conditions, OR'd (tasks 036ef139, AWTD-877):
  *
  *   project display mode  the user's own Appearance preference (task ffa5bbb5)
  *   the task is on a BOARD  Jon: "In board view, when in 'list' mode the
  *                         checkbox when tapped should provide the 'status'
  *                         picker (inbox, ready, doing, waiting, done, or
  *                         custom status)"
+ *   it is SOMEONE ELSE'S   Jon, for both platforms: "it should give the popover
+ *                         to show assignment, complete, priority and status
+ *                         options just like in project mode"
  *
- * Board membership had to be added rather than substituted. Until now the only
+ * Each was ADDED rather than substituted. Until boards were added the only
  * route to the sheet was the display-mode preference, so a board's own tasks
  * completed on tap for everyone who never opened Appearance — the board's
  * states were unreachable from the row that belongs to them. Substituting
  * would have taken the sheet away from project-mode users on a plain list,
  * which nothing asked for.
  *
+ * Someone else's task is the condition that holds on EVERY surface, which is
+ * why it is checked here rather than per-surface: the row offered nothing at
+ * all (its avatar was inert) and details had grown a confirm-on-tap of its own,
+ * so the same task behaved three different ways depending on where you met it.
+ *
  * ONLY THE ACTION. The MARK still comes from `taskLeadingControlKind` and its
  * display mode alone: "the checkbox when tapped" says the checkbox stays, so a
  * board must not swap in the project-mode avatar for a user who never chose it.
+ * Someone else's task needs no help here — it already wears their photo.
  */
 export function leadingControlOpensOptions({
   displayMode,
   onBoard = false,
+  isSomeoneElses = false,
 }: {
   displayMode?: TaskDisplayMode | string | null
   /** Is this task's list part of a project board? */
   onBoard?: boolean
+  /** From `isSomeoneElsesTask`. Absent means it is yours or nobody's. */
+  isSomeoneElses?: boolean
 }): boolean {
-  return usesCompactTaskDetail(displayMode) || onBoard
+  return usesCompactTaskDetail(displayMode) || onBoard || isSomeoneElses
 }
 
-/** Which surface is rendering the control. Absent means a row. */
-export type TaskLeadingControlSurface = 'row' | 'detail'
-
 /**
- * Does tapping someone else's avatar ask to confirm completing their task?
+ * Does completing this task ask for confirmation first?
  *
- * ONLY IN TASK DETAILS (task 43bcc76c). The mark for someone else's task is
- * their photo, and in list mode that photo carries no handler at all — on a row
- * that is the documented rule, since completing another person's task from the
- * row was never an affordance. In DETAILS the same inertness is a dead end:
- * the leading control is the only completion affordance there, so a task
- * assigned to anyone but you could not be completed from its own detail view.
+ * IT IS SOMEONE ELSE'S — that is the whole rule (AWTD-877). Jon: "When not
+ * yours, always confirm before completing."
  *
- * Jon: "in task details cannot complete tasks when user in list mode. Tapping
- * on profile should show popover with confirmation to complete."
+ * This replaces `leadingControlConfirmsCompletion({ kind, opensOptions,
+ * surface })` (task 43bcc76c), and the shrunken signature IS the fix. The old
+ * one asked where you were standing and which mark you were looking at, so it
+ * could only be true in task details, on an avatar, when the options sheet was
+ * not already claiming the tap — three coordinates for a question that has one.
+ * Whose work you are about to finish does not change with the surface.
  *
- * CONFIRMED RATHER THAN COMPLETED OUTRIGHT, because the objection the row
- * encodes is still real — this is someone else's work, and a stray tap on a
- * photo must not finish it. The confirmation is what lets details offer the
- * action at all without becoming that hazard.
- *
- * It yields to `leadingControlOpensOptions`: project mode and boards already
- * route the tap to the options sheet, which carries complete/reopen itself.
- * Two popovers competing for one tap is the bug this ordering avoids.
+ * It also stopped being a TAP OUTCOME. The tap opens the options sheet now, on
+ * every surface; the confirmation sits on that sheet's Complete button, where
+ * it also covers the project-mode and board completions that previously had
+ * none.
  */
-export function leadingControlConfirmsCompletion({
-  kind,
-  opensOptions,
-  surface = 'row',
+export function completionNeedsConfirmation({
+  assigneeId,
+  currentUserId,
 }: {
-  kind: TaskLeadingControlKind
-  /** Already decided by `leadingControlOpensOptions`, and it wins. */
-  opensOptions: boolean
-  surface?: TaskLeadingControlSurface
+  assigneeId?: string | null
+  currentUserId?: string | null
 }): boolean {
-  return surface === 'detail' && kind === 'avatar' && !opensOptions
+  return isSomeoneElsesTask({ assigneeId, currentUserId })
 }
 
 export function taskLeadingControlKind({

@@ -6,6 +6,8 @@ import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
+import { CompletionConfirmation } from "@/components/completion-confirmation"
+import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { useTranslations } from "@/lib/i18n/client"
 
 interface PriorityAssigneePickerProps {
@@ -16,6 +18,14 @@ interface PriorityAssigneePickerProps {
   selectedAssignee: User | null
   availableUsers: User[]
   currentUser?: User
+  /**
+   * The viewer, for callers that hold only an id.
+   *
+   * The task row has a session id and no `User` row to pass, and this sheet
+   * needs the viewer to know whether completing means finishing SOMEBODY ELSE'S
+   * work (AWTD-877). Read together with `currentUser`, never instead of it.
+   */
+  currentUserId?: string | null
   taskId?: string
   listIds?: string[]
   /**
@@ -65,6 +75,7 @@ export function PriorityAssigneePicker({
   selectedAssignee,
   availableUsers,
   currentUser,
+  currentUserId,
   taskId,
   listIds,
   statusColumns,
@@ -80,6 +91,29 @@ export function PriorityAssigneePicker({
   const [fetchedUsers, setFetchedUsers] = useState<(User & { isAIAgent?: boolean })[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
+  const [confirmingComplete, setConfirmingComplete] = useState(false)
+
+  /**
+   * Completing somebody else's task asks first (AWTD-877). Jon, for both
+   * platforms: "When not yours, always confirm before completing."
+   *
+   * Decided HERE rather than by each caller, because this sheet is now the only
+   * route to completion for someone else's task on every surface — a row, task
+   * details and a board card all open it. Three call sites deciding separately
+   * is how the row came to be inert while details grew a confirm of its own.
+   *
+   * The task's OWN assignee, not the sheet's unsaved `tempAssignee`: reassigning
+   * and completing in one visit still finishes the work of whoever holds it now.
+   *
+   * Reopening never asks. The rule is about finishing work, and undoing a
+   * completion takes nothing away from the person it belongs to.
+   */
+  const needsConfirmation =
+    !completed &&
+    completionNeedsConfirmation({
+      assigneeId: selectedAssignee?.id,
+      currentUserId: currentUser?.id ?? currentUserId,
+    })
 
   // Fetch list members and AI agents when picker opens
   useEffect(() => {
@@ -323,14 +357,18 @@ export function PriorityAssigneePicker({
             </>
           )}
 
-          {/* Complete / reopen — project mode's only route to completion. */}
+          {/* Complete / reopen — the only route to completion for a task in
+              project mode, on a board, or assigned to somebody else. */}
           {onToggleComplete && (
             <>
               <div className="px-4 py-4">
                 <button
                   type="button"
                   data-testid="task-options-complete"
-                  onClick={onToggleComplete}
+                  onClick={() => {
+                    if (needsConfirmation) setConfirmingComplete(true)
+                    else onToggleComplete()
+                  }}
                   className="w-full h-11 rounded-lg text-sm font-medium border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all duration-150 active:scale-95"
                 >
                   {completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
@@ -338,6 +376,16 @@ export function PriorityAssigneePicker({
               </div>
               <div className="h-px bg-gray-200 dark:bg-gray-700" />
             </>
+          )}
+          {confirmingComplete && onToggleComplete && (
+            <CompletionConfirmation
+              assigneeLabel={selectedAssignee?.name || selectedAssignee?.email || ''}
+              onCancel={() => setConfirmingComplete(false)}
+              onConfirm={() => {
+                setConfirmingComplete(false)
+                onToggleComplete()
+              }}
+            />
           )}
 
           {/* Assignee Section */}

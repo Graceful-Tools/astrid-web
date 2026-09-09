@@ -23,6 +23,7 @@ import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
@@ -690,6 +691,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   // detail view's own checkbox has to reach it too — compacting the rows away
   // without providing this would REMOVE access rather than relocate it.
   const compactTaskDetail = usesCompactTaskDetail(displayMode)
+  // Someone else's task routes its leading control to the options sheet on
+  // every surface (AWTD-877), so this panel renders that sheet in list mode
+  // too — where the control used to confirm completion by itself.
+  const taskIsSomeoneElses = isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser.id })
   const [optionsOpen, setOptionsOpen] = useState(false)
   const statusColumns = useMemo(() => boardColumnsFor(null), [])
 
@@ -1311,7 +1316,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         task={task}
         currentUser={currentUser}
         displayMode={displayMode}
-        onOpenOptions={compactTaskDetail ? () => setOptionsOpen(true) : undefined}
+        onOpenOptions={compactTaskDetail || taskIsSomeoneElses ? () => setOptionsOpen(true) : undefined}
         readOnly={readOnly}
         onClose={onClose}
         tempCompleted={tempCompleted}
@@ -1340,7 +1345,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
       />
-      {compactTaskDetail && (
+      {(compactTaskDetail || taskIsSomeoneElses) && (
         <PriorityAssigneePicker
           isOpen={optionsOpen}
           onClose={() => setOptionsOpen(false)}
@@ -1358,6 +1363,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           availableUsers={[]}
           taskId={task.id}
           listIds={task.lists?.map(list => list.id)}
+          currentUser={currentUser}
           statusColumns={statusColumns}
           selectedColumnId={taskColumnId(task)}
           onStatusSelect={columnId => {
