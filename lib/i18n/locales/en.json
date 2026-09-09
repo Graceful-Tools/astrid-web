@@ -104,7 +104,9 @@
     "status": "Status",
     "wontDoChip": "Won't do",
     "when": "When",
-    "createdBy": "Created by"
+    "createdBy": "Created by",
+    "confirmCompleteTitle": "Complete this task?",
+    "confirmCompleteAssigned": "Assigned to {name}"
   },
   "lists": {
     "list": "List",

@@ -104,7 +104,9 @@
     "status": "상태",
     "wontDoChip": "Won't do",
     "when": "일시",
-    "createdBy": "작성자"
+    "createdBy": "작성자",
+    "confirmCompleteTitle": "이 작업을 완료할까요?",
+    "confirmCompleteAssigned": "담당: {name}"
   },
   "lists": {
     "list": "목록",

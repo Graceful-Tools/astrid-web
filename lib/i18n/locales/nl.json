@@ -104,7 +104,9 @@
     "status": "Status",
     "wontDoChip": "Won't do",
     "when": "Wanneer",
-    "createdBy": "Gemaakt door"
+    "createdBy": "Gemaakt door",
+    "confirmCompleteTitle": "Deze taak voltooien?",
+    "confirmCompleteAssigned": "Toegewezen aan {name}"
   },
   "lists": {
     "list": "Lijst",

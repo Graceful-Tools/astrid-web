@@ -104,7 +104,9 @@
     "status": "Estado",
     "wontDoChip": "Won't do",
     "when": "Cuándo",
-    "createdBy": "Creado por"
+    "createdBy": "Creado por",
+    "confirmCompleteTitle": "¿Completar esta tarea?",
+    "confirmCompleteAssigned": "Asignada a {name}"
   },
   "lists": {
     "list": "Lista",
