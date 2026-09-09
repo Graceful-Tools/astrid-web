@@ -23,6 +23,7 @@
 
 import { readdirSync, readFileSync, statSync } from 'fs'
 import { join, dirname, normalize } from 'path'
+import { repoRelativePath } from './lib/repo-relative-path'
 
 const ROOT = process.cwd()
 const SKIP = new Set(['node_modules', '.next', '.git', 'archived', 'dist', '.vercel', 'coverage', 'public'])
@@ -72,7 +73,10 @@ function walk(dir: string, out: string[] = []): string[] {
     if (SKIP.has(entry) || entry.startsWith('.')) continue
     const full = join(dir, entry)
     if (statSync(full).isDirectory()) walk(full, out)
-    else if (/\.(ts|tsx|js|mjs|cjs)$/.test(entry)) out.push(full.replace(`${ROOT}/`, ''))
+    // repoRelativePath, not a hand-rolled replace: with a hardcoded `/` this
+    // was a silent no-op on Windows and left the path ABSOLUTE, so the read
+    // below joined the root onto itself and crashed with ENOENT (AWTD-865).
+    else if (/\.(ts|tsx|js|mjs|cjs)$/.test(entry)) out.push(repoRelativePath(ROOT, full))
   }
   return out
 }

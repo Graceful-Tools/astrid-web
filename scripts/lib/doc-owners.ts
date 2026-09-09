@@ -86,7 +86,13 @@ export function findDocumentationOwnerProblems(
 
   for (const owner of documentationOwners(root)) {
     const source = readFileSync(owner.path, 'utf8')
-    if (!source.startsWith(`${owner.heading}\n`)) {
+    // Compare the first LINE, not the first bytes. `startsWith(heading + '\n')`
+    // failed for every owner on a Windows checkout, where `core.autocrlf` makes
+    // each file open `# Astrid Architecture\r\n` — six lines of noise on every
+    // run, burying whatever the real documentation failure was (AWTD-865). The
+    // heading-uniqueness check just below already split on /\r?\n/, which is
+    // what made this a slip rather than a decision.
+    if (source.split(/\r?\n/, 1)[0] !== owner.heading) {
       problems.push(
         `${relative(root, owner.path)} -> ${owner.domain} owner must start with "${owner.heading}"`,
       )

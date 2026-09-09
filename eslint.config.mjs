@@ -10,6 +10,12 @@ const eslintConfig = [
     ignores: [
       "**/*.d.ts",
       ".next/**",
+      // Claude Code puts git worktrees INSIDE the repo here, each a full copy
+      // with its own .next/ build output. Without this, `eslint .` walked them
+      // and reported 129 errors from generated bundles like
+      // .claude/worktrees/<name>/.next/server/edge-runtime-webpack.js — a
+      // predeploy failure about code nobody wrote (AWTD-865).
+      ".claude/worktrees/**",
       "dist/**",
       "docs/**",
       "astrid-mcp/**",

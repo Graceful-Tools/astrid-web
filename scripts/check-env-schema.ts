@@ -23,6 +23,7 @@
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { ENV_BY_NAME, ENV_VARS, documentedVars } from '../lib/env'
+import { repoRelativePath } from './lib/repo-relative-path'
 
 const ROOT = process.cwd()
 
@@ -48,7 +49,12 @@ function walk(dir: string, out: string[] = []): string[] {
 function readsInSource(): Map<string, string> {
   const found = new Map<string, string>()
   for (const file of walk(ROOT)) {
-    const rel = file.replace(`${ROOT}/`, '')
+    // repoRelativePath, not a hand-rolled replace. On Windows the old line was
+    // a no-op, so `rel` stayed absolute and the `tests/` skip below never fired
+    // — which is why Windows reported five env vars as undeclared that are only
+    // ever read from test files, and counted 156 sources where macOS counts 151
+    // (AWTD-865). It never crashed; it just quietly checked the wrong set.
+    const rel = repoRelativePath(ROOT, file)
     // tests/ may reference anything while arranging a fixture.
     if (rel.startsWith('tests/')) continue
     const src = readFileSync(file, 'utf8')

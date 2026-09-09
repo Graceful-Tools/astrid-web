@@ -60,6 +60,11 @@ export const TEST_TIMEOUT_MS = 15_000
 /** Paths that are never test files, whichever config is running. */
 export const SHARED_EXCLUDE = [
   '**/node_modules/**',
+  // Git worktrees live inside the repo on some machines (Claude Code puts them
+  // in .claude/worktrees/). Each is a full copy, so without this vitest collects
+  // every test file two, three or ten times over — and a failure then reports a
+  // path in a worktree, which reads as a bug in a branch nobody is on (AWTD-865).
+  '**/.claude/worktrees/**',
   '**/dist/**',
   '**/e2e/**',
   '**/.{idea,git,cache,output,temp}/**',

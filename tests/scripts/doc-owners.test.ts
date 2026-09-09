@@ -19,26 +19,35 @@ import {
   findDocumentationOwnerProblems,
 } from '@/scripts/lib/doc-owners'
 
-/** A doc set with every owner correct, plus `filler` unrelated Markdown files. */
-function buildFixture(filler: number): { root: string; activeFiles: string[] } {
+/**
+ * A doc set with every owner correct, plus `filler` unrelated Markdown files.
+ *
+ * `eol` exists for AWTD-865: a checkout on Windows with `core.autocrlf` on has
+ * CRLF line endings, and the owner check must read the same doc set the same way.
+ */
+function buildFixture(
+  filler: number,
+  eol: '\n' | '\r\n' = '\n',
+): { root: string; activeFiles: string[] } {
+  const nl = (text: string) => text.split('\n').join(eol)
   const root = mkdtempSync(join(tmpdir(), 'doc-owners-'))
   mkdirSync(join(root, 'docs', 'context'), { recursive: true })
 
   const owners = documentationOwners(root)
   const activeFiles: string[] = []
   for (const owner of owners) {
-    writeFileSync(owner.path, `${owner.heading}\n\nBody.\n`)
+    writeFileSync(owner.path, nl(`${owner.heading}\n\nBody.\n`))
     activeFiles.push(owner.path)
   }
 
   writeFileSync(
     join(root, 'docs', 'README.md'),
-    owners.map(owner => `- [${owner.domain}]${owner.indexLink}`).join('\n'),
+    nl(owners.map(owner => `- [${owner.domain}]${owner.indexLink}`).join('\n')),
   )
 
   for (let index = 0; index < filler; index += 1) {
     const path = join(root, 'docs', `note-${index}.md`)
-    writeFileSync(path, `# Note ${index}\n\nUnrelated prose.\n`)
+    writeFileSync(path, nl(`# Note ${index}\n\nUnrelated prose.\n`))
     activeFiles.push(path)
   }
 
@@ -58,6 +67,19 @@ describe('findDocumentationOwnerProblems (task 293bdbdd)', () => {
 
   it('reports nothing when every owner is in order', () => {
     expect(findDocumentationOwnerProblems(fixture.root, fixture.activeFiles)).toEqual([])
+  })
+
+  it('reads a CRLF checkout the same as an LF one (AWTD-865)', () => {
+    // The heading check was `source.startsWith(`${heading}\n`)`, so on a Windows
+    // checkout every owner document begins `# Astrid Architecture\r\n` and ALL SIX
+    // owners failed on every run — six lines of noise burying whatever the real
+    // documentation problem was. The sibling check three lines below already split
+    // on /\r?\n/, which is what makes this a slip rather than a decision.
+    const crlf = buildFixture(40, '\r\n')
+    const problems = findDocumentationOwnerProblems(crlf.root, crlf.activeFiles)
+    rmSync(crlf.root, { recursive: true, force: true })
+
+    expect(problems).toEqual([])
   })
 
   it('reports a wrong owner heading once, not once per file in the doc set', () => {
