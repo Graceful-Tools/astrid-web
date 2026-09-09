@@ -43,12 +43,20 @@ someone's untriaged note.
 
 ## What is different here
 
-- **NEVER push, merge, or deploy. Not once, not "just this one".** On web,
-  `git push origin main` **is a production deploy**, and any Prisma migration on the branch
-  **runs against production during that build**. Committing locally is autonomous; everything
-  past that waits for an explicit go-ahead. Report what is ready to ship instead of shipping
-  it. (CLAUDE.md rule 1 — stated there because an agent once got this wrong and shipped five
-  migrations.)
+- **NEVER DEPLOY. Not once, not "just this one".** A production deploy is a manual
+  `workflow_dispatch` of `.github/workflows/production-deployment.yml`, and any pending Prisma
+  migration **runs against production during that build**. So deploying waits for an explicit
+  go-ahead; report what is ready to ship instead of shipping it. (CLAUDE.md rule 1 — stated
+  there because an agent once got this wrong and shipped five migrations.)
+- **Pushing is NOT deploying, and needs no permission.** This bullet said the opposite for a
+  long time — "`git push origin main` is a production deploy" — and the claim was wrong every
+  time it was written (AWTD-879, the fifth). Since #204 that workflow has one trigger,
+  `workflow_dispatch`, so a push to `main` ships nothing. Push finished work at the END of a
+  run, once, so Jon can review it without having to ask (CLAUDE.md rule 3;
+  docs/FIXALL_WORKFLOW.md → *Pushing is part of finishing*). Establish the fact by reading
+  the workflow file and `gh run list --workflow=production-deployment.yml`, never the Vercel
+  deployment list — an Actions deploy appears there as `source=cli` and reads as a human. The
+  ratchet is `tests/rules/pushing-main-does-not-deploy.test.ts`.
 - **A task is DONE when it is committed on its branch with `npm run predeploy` green.** Say in
   the completion report that it is ready to ship rather than that it shipped.
 - **One isolated branch/worktree per task.** In a Copilot app session, use the branch and
