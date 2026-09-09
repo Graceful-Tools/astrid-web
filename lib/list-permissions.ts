@@ -49,6 +49,10 @@ interface ListLike {
   // Distinguishes a status list (a board column) from a domain list. Only
   // status lists inherit access from sibling lists — see getProjectRole.
   listType?: string | null
+  // The list's agent config, as the Json column holds it. Read only by
+  // listAllowsMemberAgentAssignment, which treats absence as "not opted in", so
+  // a caller that did not select the column under-grants rather than over-grants.
+  aiAgentsEnabled?: unknown
   project?: {
     id?: string
     ownerId?: string
@@ -444,4 +448,71 @@ export function canEditListSettings(list: ListLike | null | undefined, userId?: 
   if (!list || !userId) return false
   if (isSystemListId(String(list.id))) return false
   return canUserManageList({ id: userId }, list)
+}
+
+/**
+ * May this user point an AI agent at this task?
+ *
+ * A stricter question than "may they edit it", and deliberately so (task
+ * 0672b69b). Assigning an agent spends the list's configured user's API key and,
+ * when that user runs Claude Code Remote, executes code on their machine. Task
+ * editing is open to every list member, so inheriting these rights from
+ * canUserEditTask is what let a member point an agent at a task they did not
+ * create and have someone else pay for the run.
+ *
+ * The rule, decided by Jon on 2026-09-08:
+ *
+ *  - the task's own creator may always assign, on a list they hold a role on;
+ *  - owners and admins may assign on anyone's task;
+ *  - a plain member may assign on someone else's task only where the list has
+ *    opted in (`aiAgentsEnabled.allowMemberAssignment`);
+ *  - viewers never may, opt-in or not.
+ *
+ * A task on NO list has no list to consent for it, and nobody but its creator
+ * can see it — so there it is the creator's own business.
+ */
+export function canUserAssignAgentToTask(
+  user: UserLike,
+  task: TaskLike,
+  list: ListLike | null | undefined,
+): boolean {
+  const isCreator = !!task.creatorId && task.creatorId === user.id
+
+  if (!list) return isCreator
+
+  const role = getUserRoleInList(user, list)
+  if (role === "owner" || role === "admin") return true
+  if (role !== "member") return false
+
+  if (isCreator) return true
+
+  return listAllowsMemberAgentAssignment(list)
+}
+
+/**
+ * Has this list opted its plain members into assigning agents on tasks they did
+ * not create?
+ *
+ * Stored as a key on the existing `aiAgentsEnabled` Json column rather than a
+ * new schema column: that column is already an object read through one
+ * normaliser, so the opt-in needs no Prisma migration running against
+ * production for a flag that nothing yet toggles. Absent means NOT opted in —
+ * the safe direction, and the one every existing row lands on.
+ */
+export function listAllowsMemberAgentAssignment(list: ListLike | null | undefined): boolean {
+  const stored = list?.aiAgentsEnabled
+  if (!stored) return false
+
+  const value = typeof stored === "string" ? safeJsonParse(stored) : stored
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false
+
+  return (value as Record<string, unknown>).allowMemberAssignment === true
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
 }

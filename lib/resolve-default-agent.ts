@@ -19,6 +19,15 @@ const log = createLogger('resolve-default-agent')
 export interface AgentEnabledConfig {
   enabledTypes: string[]
   defaultAgentId?: string | null
+  /**
+   * Have this list's plain members been opted in to assigning agents on tasks
+   * they did not create? Absent means no (task 0672b69b).
+   *
+   * Lives on this Json column rather than in its own schema column so the
+   * opt-in costs no Prisma migration against production. Read through
+   * `listAllowsMemberAgentAssignment` in lib/list-permissions.ts.
+   */
+  allowMemberAssignment?: boolean
 }
 
 /**
@@ -42,6 +51,7 @@ export function normalizeAgentEnabledConfig(value: unknown): AgentEnabledConfig 
         ? obj.enabledTypes.filter((v: unknown) => typeof v === 'string')
         : [],
       defaultAgentId: typeof obj.defaultAgentId === 'string' ? obj.defaultAgentId : null,
+      allowMemberAssignment: obj.allowMemberAssignment === true,
     }
   }
 

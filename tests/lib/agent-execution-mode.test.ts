@@ -98,7 +98,7 @@ describe('resolveAgentExecutionMode', () => {
 })
 
 describe('resolveAgentRunOwnerId', () => {
-  it('prefers the list owner configured for agents, then the creator, then the list owner', () => {
+  it('prefers the user who configured agents on the list, then the list owner', () => {
     expect(
       resolveAgentRunOwnerId({
         aiAgentConfiguredBy: 'configured',
@@ -107,8 +107,15 @@ describe('resolveAgentRunOwnerId', () => {
       })
     ).toBe('configured')
 
-    expect(resolveAgentRunOwnerId({ creatorId: 'creator', listOwnerId: 'owner' })).toBe('creator')
+    // The creator USED to come second here, and that was the vulnerability
+    // (task 0672b69b): any list member can edit a task, so the creator's key
+    // and self-hosted server were spendable by everyone the list is shared
+    // with. See tests/lib/agent-run-billing.test.ts for the full rule.
+    expect(resolveAgentRunOwnerId({ creatorId: 'creator', listOwnerId: 'owner' })).toBe('owner')
     expect(resolveAgentRunOwnerId({ listOwnerId: 'owner' })).toBe('owner')
+
+    // With no list at all, the creator is the only person exposed.
+    expect(resolveAgentRunOwnerId({ creatorId: 'creator' })).toBe('creator')
   })
 
   it('answers null rather than a blank string when nobody owns the run', () => {

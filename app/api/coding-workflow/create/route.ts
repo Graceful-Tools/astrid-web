@@ -120,6 +120,13 @@ export async function POST(request: NextRequest) {
         select: { id: true, name: true, email: true, aiAgentType: true }
       })
 
+      const { resolveAgentRunBilling } = await import('@/lib/ai/agent-execution-mode')
+      const billing = resolveAgentRunBilling({
+        aiAgentConfiguredBy: taskList?.aiAgentConfiguredBy,
+        listOwnerId: taskList?.ownerId,
+        creatorId: task.creatorId,
+      })
+
       const baseUrl = getBaseUrl()
       const webhookPayload = {
         event: 'task.assigned' as const,
@@ -157,11 +164,14 @@ export async function POST(request: NextRequest) {
           name: task.creator?.name || session.user.name || undefined,
           email: task.creator?.email || session.user.email || UNKNOWN_CREATOR_EMAIL,
         },
+        // The list's configured user pays and receives the run, never the task
+        // creator — see resolveAgentRunBilling and task 0672b69b.
+        billing,
       }
 
-      log.info(`🚀 [CodingWorkflow] Sending webhook for task ${taskId} to creator ${task.creatorId}`)
+      log.info(`🚀 [CodingWorkflow] Sending webhook for task ${taskId} to ${billing.userId} (billed via ${billing.source})`)
       const webhookResult = await aiAgentWebhookService.sendToUserWebhook(
-        task.creatorId || session.user.id,
+        billing.userId || session.user.id,
         'task.assigned',
         webhookPayload
       )

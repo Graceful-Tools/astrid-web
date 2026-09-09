@@ -154,12 +154,30 @@ export const GET = withAuth<RouteContext>(
 
 /**
  * What the `aiAgentsEnabled` column holds after any v1 write: the object form
- * with BOTH keys present, so the reader (lib/resolve-default-agent.ts) and the
+ * with EVERY key present, so the reader (lib/resolve-default-agent.ts) and the
  * serializer (serializeListAgentFields) see one shape, never `undefined`.
+ *
+ * `allowMemberAssignment` is carried through rather than rebuilt from the two
+ * keys this used to know about. It is a security opt-in with no UI yet, so
+ * dropping it here would mean any list edit silently REVOKED it — the failure
+ * would look like the setting never worked (task 0672b69b). It is the one key
+ * written only when set, since absence already means "not opted in".
  */
-function storedAgentConfig(value: unknown): { enabledTypes: string[]; defaultAgentId: string | null } {
+function storedAgentConfig(
+  value: unknown,
+  previous?: unknown,
+): { enabledTypes: string[]; defaultAgentId: string | null; allowMemberAssignment?: true } {
   const config = normalizeAgentEnabledConfig(value)
-  return { enabledTypes: config.enabledTypes, defaultAgentId: config.defaultAgentId ?? null }
+  const carried = normalizeAgentEnabledConfig(previous)
+  const allowMemberAssignment = config.allowMemberAssignment || carried.allowMemberAssignment
+  return {
+    enabledTypes: config.enabledTypes,
+    defaultAgentId: config.defaultAgentId ?? null,
+    // Written only when actually granted. Absent already means "not opted in"
+    // to normalizeAgentEnabledConfig, so persisting `false` would add a key to
+    // every list on the system to say what its absence already says.
+    ...(allowMemberAssignment ? { allowMemberAssignment: true as const } : {}),
+  }
 }
 
 /**
@@ -236,14 +254,14 @@ export const PUT = withAuth<RouteContext>(
       // field for the default agent, so its write must not wipe the one chosen
       // on the web. Only an explicit object/null clears it.
       if (body.aiAgentConfig !== undefined) {
-        updateData.aiAgentsEnabled = storedAgentConfig(body.aiAgentConfig)
+        updateData.aiAgentsEnabled = storedAgentConfig(body.aiAgentConfig, existingList.aiAgentsEnabled)
       } else if (Array.isArray(body.aiAgentsEnabled)) {
         updateData.aiAgentsEnabled = {
+          ...storedAgentConfig(existingList.aiAgentsEnabled),
           enabledTypes: storedAgentConfig(body.aiAgentsEnabled).enabledTypes,
-          defaultAgentId: storedAgentConfig(existingList.aiAgentsEnabled).defaultAgentId,
         }
       } else if (body.aiAgentsEnabled !== undefined) {
-        updateData.aiAgentsEnabled = storedAgentConfig(body.aiAgentsEnabled)
+        updateData.aiAgentsEnabled = storedAgentConfig(body.aiAgentsEnabled, existingList.aiAgentsEnabled)
       }
       // Attach / detach the list to a project status board. iOS's
       // "Create Board" flow POSTs a project then PUTs the list here

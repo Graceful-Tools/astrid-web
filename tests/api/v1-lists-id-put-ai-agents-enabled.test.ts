@@ -123,4 +123,42 @@ describe('PUT /api/v1/lists/[id] aiAgentsEnabled', () => {
 
     expect(data && 'aiAgentsEnabled' in data).toBe(false)
   })
+
+  // Task 0672b69b — the member-assignment opt-in shares this column.
+  describe('allowMemberAssignment', () => {
+    const optedIn = {
+      ...listRow,
+      aiAgentsEnabled: { enabledTypes: ['claude'], defaultAgentId: 'agent-1', allowMemberAssignment: true },
+    }
+
+    beforeEach(() => {
+      mockPrisma.taskList.findFirst.mockResolvedValue(optedIn as never)
+      mockPrisma.taskList.findUnique.mockResolvedValue(optedIn as never)
+    })
+
+    it('survives a write that does not mention it', async () => {
+      // This writer rebuilds the column from the keys it knows about, so a
+      // client picking a default agent would otherwise silently REVOKE a
+      // security opt-in — and the revocation would look like the setting
+      // never working, not like an edit.
+      const data = await put({ aiAgentConfig: { enabledTypes: ['claude'], defaultAgentId: 'agent-2' } })
+
+      expect(data?.aiAgentsEnabled).toMatchObject({ allowMemberAssignment: true })
+    })
+
+    it('survives a legacy string[] write from an old client', async () => {
+      const data = await put({ aiAgentsEnabled: ['claude'] })
+
+      expect(data?.aiAgentsEnabled).toMatchObject({ allowMemberAssignment: true })
+    })
+
+    it('is absent, not false, on a list that never opted in', async () => {
+      mockPrisma.taskList.findFirst.mockResolvedValue(listRow as never)
+      mockPrisma.taskList.findUnique.mockResolvedValue(listRow as never)
+
+      const data = await put({ aiAgentsEnabled: ['claude'] })
+
+      expect(data?.aiAgentsEnabled).not.toHaveProperty('allowMemberAssignment')
+    })
+  })
 })

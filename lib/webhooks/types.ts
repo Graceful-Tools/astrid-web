@@ -48,6 +48,18 @@ export interface TaskAssignmentWebhookPayload {
     name?: string
     email: string
   }
+  /**
+   * Who this run is charged to, and why that user was chosen.
+   *
+   * Recorded on the dispatch rather than re-derived by each consumer so what
+   * was charged is auditable after the fact — and so a receiver can tell a run
+   * paid for by the list's configured user from one that fell back to the list
+   * owner (task 0672b69b).
+   */
+  billing: {
+    userId: string | null
+    source: 'list-configured-by' | 'list-owner' | 'task-creator' | 'none'
+  }
   comment?: {
     id: string
     content: string

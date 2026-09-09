@@ -293,19 +293,64 @@ export interface AgentRunOwnerCandidates {
   listOwnerId?: string | null
 }
 
+/** Why a particular user is paying for this run. Rides on the dispatch. */
+export type AgentRunBillingSource =
+  | 'list-configured-by'
+  | 'list-owner'
+  | 'task-creator'
+  | 'none'
+
+export interface AgentRunBilling {
+  userId: string | null
+  source: AgentRunBillingSource
+}
+
+/** Trim so a whitespace-only column cannot become a user id. */
+function presentId(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
 /**
- * Whose settings govern a server-side agent run.
+ * Whose settings govern a server-side agent run, and who pays for it.
  *
- * The same order the orchestrator already uses to pick whose API key to spend
- * (`lib/comments/post-comment-side-effects.ts`): the list's configured owner, then
- * the task's creator, then the list owner. Stated once here so the mode check and
- * the billing cannot land on two different people — an agent that runs on Jon's
- * key while reading Ann's mode setting is the worst of both answers.
+ * **The creator is not consulted for a task that sits on a list** (task
+ * 0672b69b). It used to come first, and that was the vulnerability: editing a
+ * task needs only `requireTaskAccess`, which every list member passes, so a
+ * member could rewrite a victim-created task into an attacker-chosen prompt,
+ * assign an agent, and have the run execute on the victim's Claude Code Remote
+ * server and bill the victim's API key.
+ *
+ * The order is therefore:
+ *
+ *   1. `aiAgentConfiguredBy` — the user who opted this list into agents, and so
+ *      the one party who consented to pay for runs on it. Jon's decision,
+ *      2026-09-08.
+ *   2. the list owner — the list exists because they made it.
+ *   3. the task creator, and ONLY when the task is on no list at all, where
+ *      they are the only person who can see it and the only person exposed.
+ *
+ * Mode and billing read this one answer, so an agent cannot run on Jon's key
+ * while obeying Ann's mode setting.
  */
-export function resolveAgentRunOwnerId({
+export function resolveAgentRunBilling({
   aiAgentConfiguredBy,
   creatorId,
   listOwnerId,
-}: AgentRunOwnerCandidates): string | null {
-  return aiAgentConfiguredBy || creatorId || listOwnerId || null
+}: AgentRunOwnerCandidates): AgentRunBilling {
+  const configuredBy = presentId(aiAgentConfiguredBy)
+  if (configuredBy) return { userId: configuredBy, source: 'list-configured-by' }
+
+  const owner = presentId(listOwnerId)
+  if (owner) return { userId: owner, source: 'list-owner' }
+
+  const creator = presentId(creatorId)
+  if (creator) return { userId: creator, source: 'task-creator' }
+
+  return { userId: null, source: 'none' }
+}
+
+/** {@link resolveAgentRunBilling} without the reason. */
+export function resolveAgentRunOwnerId(candidates: AgentRunOwnerCandidates): string | null {
+  return resolveAgentRunBilling(candidates).userId
 }

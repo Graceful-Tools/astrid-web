@@ -24,7 +24,7 @@ import {
   isBrandAgentEmail,
   isOpenClawAgentEmail,
 } from '@/lib/brand/agent-emails'
-import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
+import { isPollingOnlyAgent, resolveAgentRunBilling } from '@/lib/ai/agent-execution-mode'
 import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
@@ -74,6 +74,7 @@ export async function notifyCommentOnAssignedTask(
             description: true,
             githubRepositoryId: true,
             ownerId: true,
+            aiAgentConfiguredBy: true,
             owner: { select: { id: true, email: true } },
           },
         },
@@ -125,6 +126,14 @@ export async function notifyCommentOnAssignedTask(
       })
     }
 
+    // The same rule the assignment path uses: a comment from any list member
+    // must not spend the task creator's key (task 0672b69b).
+    const billing = resolveAgentRunBilling({
+      aiAgentConfiguredBy: task.lists?.[0]?.aiAgentConfiguredBy,
+      listOwnerId: task.lists?.[0]?.ownerId,
+      creatorId: task.creatorId,
+    })
+
     const payload: TaskAssignmentWebhookPayload = {
       event: 'task.commented',
       timestamp: new Date().toISOString(),
@@ -174,6 +183,7 @@ export async function notifyCommentOnAssignedTask(
         name: task.creator?.name || 'Deleted User' || undefined,
         email: task.creator?.email || 'deleted@user.com',
       },
+      billing,
       comment: {
         id: comment.id,
         content: comment.content,
@@ -202,7 +212,7 @@ export async function notifyCommentOnAssignedTask(
     }
 
     // Whoever owns this run pays for it and therefore chooses how it runs.
-    const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
+    const webhookUserId = billing.userId ?? undefined
 
     // Polling mode: the user's own harness reads this comment off the task on its
     // next loop. Pushing anything here — a webhook, a provider call — would be the
@@ -259,7 +269,7 @@ export async function notifyCommentOnAssignedTask(
           const result = await runAssistantWorkflow({
             taskId: task.id,
             agentEmail: task.assignee.email,
-            creatorId: task.creatorId,
+            creatorId: billing.userId,
             isCommentResponse: true,
             userComment: commentContent,
           })

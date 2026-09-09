@@ -32,7 +32,7 @@ import { getBaseUrl, getTaskUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from './agent-type'
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
-import { isPollingOnlyAgent } from '@/lib/ai/agent-execution-mode'
+import { isPollingOnlyAgent, resolveAgentRunBilling } from '@/lib/ai/agent-execution-mode'
 import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
@@ -96,6 +96,7 @@ export async function notifyTaskAssignment(
             description: true,
             githubRepositoryId: true,
             ownerId: true,
+            aiAgentConfiguredBy: true,
             owner: { select: { id: true, email: true } },
           },
         },
@@ -164,6 +165,14 @@ export async function notifyTaskAssignment(
       }
     }
 
+    // Whose credentials this run spends. NOT the task creator for a task on a
+    // list — see resolveAgentRunBilling and task 0672b69b.
+    const billing = resolveAgentRunBilling({
+      aiAgentConfiguredBy: task.lists?.[0]?.aiAgentConfiguredBy,
+      listOwnerId: task.lists?.[0]?.ownerId,
+      creatorId: task.creatorId,
+    })
+
     const payload: TaskAssignmentWebhookPayload = {
       event,
       timestamp: new Date().toISOString(),
@@ -213,6 +222,7 @@ export async function notifyTaskAssignment(
         name: task.creator?.name || 'Deleted User' || undefined,
         email: task.creator?.email || 'deleted@user.com',
       },
+      billing,
       comments: task.comments?.map(c => ({
         id: c.id,
         content: c.content,
@@ -235,7 +245,7 @@ export async function notifyTaskAssignment(
     }
 
     // Whoever owns this run pays for it and therefore chooses how it runs.
-    const webhookUserId = task.creatorId || task.lists?.[0]?.ownerId
+    const webhookUserId = billing.userId ?? undefined
 
     // Polling mode: the assignment IS the notification. It lands in the agent's
     // queue and the user's own harness claims it on its next loop, so nothing is
@@ -248,7 +258,7 @@ export async function notifyTaskAssignment(
     }
 
     // FIRST: route through user-level Claude Code Remote webhook if configured.
-    log.info(`🔍 [WEBHOOK-TRACE] Checking user webhook for user ${webhookUserId} (creatorId: ${task.creatorId}, listOwner: ${task.lists?.[0]?.ownerId})...`)
+    log.info(`🔍 [WEBHOOK-TRACE] Checking user webhook for user ${webhookUserId} (billed via ${billing.source}; creatorId: ${task.creatorId}, listOwner: ${task.lists?.[0]?.ownerId})...`)
     if (webhookUserId) {
       const userWebhookResult = await sendToUserWebhook(webhookUserId, event, payload, agentType)
       log.info({ userWebhookResult }, `🔍 [WEBHOOK-TRACE] sendToUserWebhook result`)
@@ -310,7 +320,7 @@ export async function notifyTaskAssignment(
           const result = await runAssistantWorkflow({
             taskId: task.id,
             agentEmail: agentUser?.email || payload.aiAgent.email,
-            creatorId: task.creatorId,
+            creatorId: billing.userId,
             isCommentResponse: false,
           })
 

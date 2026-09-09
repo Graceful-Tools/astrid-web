@@ -72,17 +72,18 @@ async function handleTaskAssigneeChange(
       const firstList = task.lists?.[0]
       const {
         getAgentExecutionMode,
-        resolveAgentRunOwnerId,
+        resolveAgentRunBilling,
         shouldPostServerWorkflowComments,
       } = await import('@/lib/ai/agent-execution-mode')
-      const executionMode = await getAgentExecutionMode(
-        resolveAgentRunOwnerId({
-          aiAgentConfiguredBy: firstList?.aiAgentConfiguredBy,
-          creatorId: task.creatorId,
-          listOwnerId: firstList?.ownerId,
-        }),
-        assignee.email,
-      )
+      // One answer for whose mode governs the run, whose server receives it and
+      // whose key pays for it — never the task creator on a shared list (task
+      // 0672b69b).
+      const billing = resolveAgentRunBilling({
+        aiAgentConfiguredBy: firstList?.aiAgentConfiguredBy,
+        creatorId: task.creatorId,
+        listOwnerId: firstList?.ownerId,
+      })
+      const executionMode = await getAgentExecutionMode(billing.userId, assignee.email)
 
       if (shouldPostServerWorkflowComments(executionMode)) {
         // Avoid duplicates when the middleware is triggered multiple times.
@@ -152,16 +153,16 @@ async function handleTaskAssigneeChange(
           name: task.creator?.name || undefined,
           email: task.creator?.email || UNKNOWN_CREATOR_EMAIL,
         },
+        billing,
       }
 
-      // Fall back to list owner when creatorId is null
-      const webhookUserId = task.creatorId || firstList?.ownerId
+      const webhookUserId = billing.userId
       if (!webhookUserId) {
-        log.info(`📋 [PRISMA-MIDDLEWARE] Task has no creatorId or list owner, skipping webhook`)
+        log.info(`📋 [PRISMA-MIDDLEWARE] Task has no list owner or creator to bill, skipping webhook`)
         return
       }
 
-      log.info(`🚀 [PRISMA-MIDDLEWARE] Sending webhook for task ${taskId} to user ${webhookUserId} (creator: ${task.creatorId}, listOwner: ${firstList?.ownerId})`)
+      log.info(`🚀 [PRISMA-MIDDLEWARE] Sending webhook for task ${taskId} to user ${webhookUserId} (billed via ${billing.source}; creator: ${task.creatorId}, listOwner: ${firstList?.ownerId})`)
       const webhookResult = await aiAgentWebhookService.sendToUserWebhook(
         webhookUserId,
         'task.assigned',
@@ -178,7 +179,7 @@ async function handleTaskAssigneeChange(
           // Non-git task: trigger assistant workflow via API route (runs in its own request context)
           log.info(`📝 [PRISMA-MIDDLEWARE] No git repo, triggering assistant workflow API for task ${taskId}`)
 
-          const configuredByUserId = firstList?.aiAgentConfiguredBy || task.creatorId || firstList?.ownerId
+          const configuredByUserId = billing.userId
 
           if (configuredByUserId) {
             // Call the workflow directly. It used to be reached by fetching this

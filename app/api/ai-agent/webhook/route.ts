@@ -6,7 +6,7 @@
 
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
-import { aiAgentWebhookService, type TaskAssignmentWebhookPayload } from '@/lib/ai-agent-webhook-service'
+import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
 import { RATE_LIMITS, withRateLimitAsync } from '@/lib/rate-limiter'
 import { z } from 'zod'
 import { detectPortFromRequest } from '@/lib/runtime-port-detection'
@@ -94,7 +94,11 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json()
-    const payload: TaskAssignmentWebhookPayload = TaskAssignmentSchema.parse(body)
+    // NOT typed as TaskAssignmentWebhookPayload: this is INBOUND, and the
+    // outbound payload now carries `billing` — who pays for the run. A caller
+    // does not get to nominate that, so the schema does not accept it and the
+    // route re-derives everything from the task id below (task 0672b69b).
+    const payload = TaskAssignmentSchema.parse(body)
 
     log.info(`[AI Agent] Event: ${payload.event}`)
     log.info(`[AI Agent] Task: "${payload.task.title}"`)
