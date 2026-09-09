@@ -134,6 +134,10 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'BRAND_ENABLED_AGENTS', scope: 'optional', description: 'Comma-separated agent mailboxes this deployment offers. Unset means all of them.' },
   { name: 'CLAUDE_AGENT_EMAIL', scope: 'tooling', description: 'Agent mailbox used by local agent scripts.' },
   { name: 'CLAUDE_AGENT_ID', scope: 'tooling', description: 'Agent user id used by local agent scripts.' },
+  // Same idea as CLAUDE_AGENT_ID, but harness-agnostic: the MCP server is run by
+  // Claude, Codex and Copilot alike, and only ever needs this when it comments
+  // before it has polled — get_agent_queue tells it who it is for free (AWTD-878).
+  { name: 'ASTRID_AGENT_ID', scope: 'tooling', description: 'Agent user id the MCP server signs comments as before its first poll.' },
   { name: 'CLAUDE_REMOTE_URL', scope: 'optional', description: 'Endpoint for the remote Claude Code runner.' },
   { name: 'CLAUDE_REMOTE_WEBHOOK_URL', scope: 'optional', description: 'Callback URL the remote runner posts results to.' },
   { name: 'CLAUDE_REMOTE_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies callbacks from the remote Claude Code runner.' },

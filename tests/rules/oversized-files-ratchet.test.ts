@@ -74,7 +74,11 @@ const BUDGETS: Record<string, number> = {
   // OAUTH_MCP_TOOLS array moved to mcp/tool-definitions.ts instead of the
   // number moving — the tool schemas are pure declaration and the half that
   // gets edited most, so the next parameter now costs this budget nothing.
-  'mcp/mcp-server-oauth.ts': 688,
+  // 688 → 702: AWTD-878 taught this server to sign comments as the agent
+  // instead of as the OAuth client's owner. The identity itself lives in
+  // mcp/agent-identity.ts — what landed here is the field, the observe() call
+  // on the queue response, and the one spread in the comment body.
+  'mcp/mcp-server-oauth.ts': 702,
   'components/oauth-app-manager.tsx': 919,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.

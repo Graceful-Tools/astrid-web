@@ -11,6 +11,8 @@
  * - ASTRID_OAUTH_CLIENT_SECRET: OAuth client secret
  * - ASTRID_OAUTH_LIST_ID: Default list ID to operate on
  * - ASTRID_API_BASE_URL: API base URL (default: this brand's own origin)
+ * - ASTRID_AGENT_ID: agent user id to sign comments as before the first
+ *   get_agent_queue poll. Optional — polling declares the identity by itself.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js"
@@ -247,6 +249,7 @@ class OAuthAPIClient {
  * schema-parity test address this module, and a rename would have been a
  * second, unrelated change riding along with the extraction.
  */
+import { McpAgentIdentity } from './agent-identity'
 import { OAUTH_MCP_TOOLS } from './tool-definitions'
 export { OAUTH_MCP_TOOLS }
 
@@ -271,6 +274,8 @@ export default class AstridMCPServerOAuth {
   private server: Server
   private oauthClient: OAuthAPIClient
   private defaultListId: string | null = null
+  /** Who this server signs comments as — see mcp/agent-identity.ts (AWTD-878). */
+  private readonly agentIdentity = new McpAgentIdentity()
 
   constructor(options: AstridMCPServerOptions = {}) {
     const baseUrl = options.baseUrl || mcpDefaultBaseUrl()
@@ -428,6 +433,10 @@ export default class AstridMCPServerOAuth {
     const data = await this.oauthClient.makeRequest<unknown>(
       `/api/v1/agent-queue?${params.toString()}`
     )
+
+    // Polling as an identity IS the claim to be it, so the response is where
+    // this server learns whose name to sign its comments with (AWTD-878).
+    this.agentIdentity.observe(data)
 
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
@@ -593,6 +602,10 @@ export default class AstridMCPServerOAuth {
     // Validate comment data
     const commentData = CreateCommentSchema.parse(args)
 
+    // Absent rather than null when unknown: the route branches on the key
+    // being present, and a null would be read as a caller-chosen author.
+    const aiAgentId = this.agentIdentity.authorId()
+
     const data = await this.oauthClient.makeRequest<{ comment: Comment }>(
       `/api/v1/tasks/${commentData.taskId}/comments`,
       {
@@ -600,6 +613,7 @@ export default class AstridMCPServerOAuth {
         body: JSON.stringify({
           content: commentData.content,
           type: commentData.type,
+          ...(aiAgentId ? { aiAgentId } : {}),
         }),
       }
     )
