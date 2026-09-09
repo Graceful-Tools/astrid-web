@@ -1,15 +1,21 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React from "react"
 import { useTranslations } from "@/lib/i18n/client"
-import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card } from "@/components/ui/card"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { X, Settings, Filter, SortAsc } from "lucide-react"
+import { Filter } from "lucide-react"
+import { SettingsModalShell } from "./list-settings/SettingsModalShell"
+import {
+  COMPLETION_FILTER_OPTIONS,
+  DUE_DATE_FILTER_OPTIONS,
+  FilterSelectItems,
+  PRIORITY_FILTER_OPTIONS,
+  SORT_BY_OPTIONS,
+} from "./list-settings/filter-options"
 import type { User } from "../types/task"
 
 interface FixedListSettingsPopoverProps {
@@ -58,18 +64,6 @@ export function FixedListSettingsPopover({
   clearAllFilters = () => {}
 }: FixedListSettingsPopoverProps) {
   const { t } = useTranslations()
-  const [mounted, setMounted] = useState(false)
-
-  // Wait for component to mount before rendering portal
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onOpenChange(false)
-    }
-  }
 
   const getFixedListSpecificDefaults = () => {
     switch (listId) {
@@ -113,44 +107,19 @@ export function FixedListSettingsPopover({
 
   const defaults = getFixedListSpecificDefaults()
 
-  const modalContent = open && (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center md:items-center md:justify-center"
-      style={{ zIndex: 9999 }}
-      onKeyDown={handleKeyDown}
-      onClick={() => onOpenChange(false)}
-      tabIndex={-1}
+  return (
+    <SettingsModalShell
+      open={open}
+      onOpenChange={onOpenChange}
+      header={
+        <>
+          <Filter className="w-5 h-5 theme-text-muted" />
+          <h2 className="text-lg font-semibold theme-text-primary">{defaults.title}</h2>
+        </>
+      }
+      subtitle={<p className="theme-text-muted text-sm mt-2">{defaults.description}</p>}
     >
-      <Card
-        className="theme-bg-primary theme-border w-full h-full md:h-auto md:max-w-2xl md:mx-4 md:rounded-lg p-0 shadow-lg rounded-none md:shadow-lg flex flex-col"
-        style={{ position: 'relative', zIndex: 10000 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-4 border-b theme-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Filter className="w-5 h-5 theme-text-muted" />
-              <h2 className="text-lg font-semibold theme-text-primary">
-                {defaults.title}
-              </h2>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="theme-text-muted hover:theme-text-primary p-1"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          <p className="theme-text-muted text-sm mt-2">{defaults.description}</p>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 md:max-h-96 overflow-y-auto p-4 pb-40 md:pb-4 space-y-4">
+      <div className="p-4 pb-40 md:pb-4 space-y-4">
           {/* Fixed Due Date Display (for Today view) */}
           {defaults.fixedDueDate && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
@@ -174,14 +143,7 @@ export function FixedListSettingsPopover({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
-                <SelectItem value="auto">Auto</SelectItem>
-                <SelectItem value="priority">Priority</SelectItem>
-                <SelectItem value="when">Date</SelectItem>
-                <SelectItem value="assignee">Who</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="incomplete">Incomplete</SelectItem>
-                <SelectItem value="completedAt">{t('listSettings.sort.recentlyCompleted')}</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
+                <FilterSelectItems options={SORT_BY_OPTIONS} />
               </SelectContent>
             </Select>
           </div>
@@ -194,10 +156,7 @@ export function FixedListSettingsPopover({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
-                <SelectItem value="default">Incomplete + Recently completed</SelectItem>
-                <SelectItem value="all">{t('listSettings.show.allTasks')}</SelectItem>
-                <SelectItem value="completed">{t('listSettings.show.completedOnly')}</SelectItem>
-                <SelectItem value="incomplete">{t('listSettings.show.incompleteOnly')}</SelectItem>
+                <FilterSelectItems options={COMPLETION_FILTER_OPTIONS} />
               </SelectContent>
             </Select>
           </div>
@@ -219,11 +178,7 @@ export function FixedListSettingsPopover({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
-                <SelectItem value="all"><span className="text-blue-400">{t('listSettings.priority.all')}</span></SelectItem>
-                <SelectItem value="3"><span className="text-red-500">!!! Highest</span></SelectItem>
-                <SelectItem value="2"><span className="text-orange-500">!! High</span></SelectItem>
-                <SelectItem value="1"><span className="text-blue-500">! Medium</span></SelectItem>
-                <SelectItem value="0"><span className="text-gray-400">○ Low</span></SelectItem>
+                <FilterSelectItems options={PRIORITY_FILTER_OPTIONS} />
               </SelectContent>
             </Select>
           </div>
@@ -270,15 +225,7 @@ export function FixedListSettingsPopover({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[10100]">
-                  <SelectItem value="all">{t('listSettings.due.allDates')}</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                  <SelectItem value="this_week">Next 7 days</SelectItem>
-                  <SelectItem value="this_month">Next 30 days</SelectItem>
-                  <SelectItem value="this_calendar_week">{t('listSettings.due.thisCalendarWeek')}</SelectItem>
-                  <SelectItem value="this_calendar_month">{t('listSettings.due.thisCalendarMonth')}</SelectItem>
-                  <SelectItem value="no_date">{t('listSettings.due.noDate')}</SelectItem>
+                  <FilterSelectItems options={DUE_DATE_FILTER_OPTIONS} />
                 </SelectContent>
               </Select>
             </div>
@@ -298,18 +245,7 @@ export function FixedListSettingsPopover({
               </Button>
             </div>
           )}
-        </div>
-      </Card>
-    </div>
-  )
-
-  // Use portal to render modal at document.body level to avoid z-index issues
-  return (
-    <>
-      {mounted && modalContent && typeof document !== 'undefined'
-        ? createPortal(modalContent, document.body)
-        : null
-      }
-    </>
+      </div>
+    </SettingsModalShell>
   )
 }

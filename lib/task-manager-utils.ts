@@ -467,6 +467,18 @@ export function getMyTasksFilterText(filters: {
       case 'today':
         dateText = 'Today'
         break
+      // These three filter correctly but had no label here, so choosing one
+      // showed an ACTIVE filter with a blank summary — the header read as
+      // unfiltered while the list was filtered (task 9377bc2c).
+      case 'tomorrow':
+        dateText = 'Tomorrow'
+        break
+      case 'this_calendar_week':
+        dateText = 'This Calendar Week'
+        break
+      case 'this_calendar_month':
+        dateText = 'This Calendar Month'
+        break
       case 'this_week':
         dateText = 'This Week'
         break
