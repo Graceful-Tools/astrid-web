@@ -202,6 +202,7 @@ export function ListMembership({
           list={list}
           currentUser={currentUser}
           onUpdate={onUpdate}
+          onLeave={onLeave}
         />
       </div>
 
