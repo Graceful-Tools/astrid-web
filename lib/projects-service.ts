@@ -226,6 +226,36 @@ export type AddUserStatusResult =
       userIdsToInvalidate: Set<string>
     }
 
+export type BoardOwnerAuthorization =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { ok: true }
+
+/**
+ * Is this user the owner of this board?
+ *
+ * The four status verbs each take the board id from the caller, so each one
+ * has to authorize against THAT board rather than merely against being signed
+ * in. That check was written out five times — four in `/api/statuses` and once
+ * in `/api/v1/projects/[id]` — which is four opportunities for one of them to
+ * drift into `if (!project)` returning 403, or into no check at all.
+ *
+ * Kept deliberately narrow: it answers the ownership question and nothing
+ * else, so a caller that needs the project's data still reads it itself.
+ */
+export async function authorizeBoardOwner(
+  projectId: string,
+  userId: string,
+): Promise<BoardOwnerAuthorization> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true },
+  })
+  if (!project) return { error: 'not_found' }
+  if (project.ownerId !== userId) return { error: 'forbidden' }
+  return { ok: true }
+}
+
 /**
  * Add a custom status column to a board (board sub-task #5).
  *
