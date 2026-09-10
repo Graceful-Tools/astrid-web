@@ -71,7 +71,11 @@ const BUDGETS: Record<string, number> = {
   // this file precisely BECAUSE five write surfaces delegate through it — a
   // check anywhere else would cover one surface and look complete. The next
   // change to this file should take something out.
-  'services/task.service.ts': 1698,
+  // 1698 → 1638: AWTD-887 needed the assignee rule to distinguish a person from
+  // an agent, which would have grown this file by thirty lines. The whole
+  // decision went to services/assignee-authorization.ts instead, taking the
+  // forty lines that were already here with it.
+  'services/task.service.ts': 1638,
   'components/task-detail/TaskFieldEditors.tsx': 1078,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the

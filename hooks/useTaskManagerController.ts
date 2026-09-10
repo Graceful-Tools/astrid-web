@@ -16,7 +16,7 @@ import { shouldShowSubtasksInList } from "@/lib/list-subtask-visibility"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api"
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete, refusalReason } from "@/lib/api"
 import { applyVirtualListFilter, getListDisplayInfo } from "@/lib/virtual-list-utils"
 import { getColumnCount, getLayoutType } from "@/lib/layout-detection"
 import {
@@ -627,7 +627,7 @@ export function useTaskManagerController({
         ))
         toast({
           title: "Error",
-          description: "Failed to update task. Please try again.",
+          description: refusalReason(error) ?? "Failed to update task. Please try again.",
           variant: "destructive",
           duration: 1500,
         })

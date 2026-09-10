@@ -39,7 +39,7 @@ import {
   hasExplicitListRole,
 } from '@/lib/list-permissions'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
-import { assigneeCanBeAssigned } from '@/lib/task-assignee'
+import { authorizeAssigneeChange } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
@@ -980,50 +980,6 @@ export interface UpdateTaskIntent {
  * list AND a victim's shared list would otherwise be assignable on the strength
  * of the list the actor owns, while the run bills the other one.
  */
-async function denyAgentAssignmentIfUnauthorised(args: {
-  assigneeId: string
-  actorId: string
-  existingTask: { id: string; creatorId: string | null }
-  targetListIds: string[]
-}): Promise<{ ok: false; status: 403; error: string } | null> {
-  const { assigneeId, actorId, existingTask, targetListIds } = args
-
-  const assignee = await prisma.user.findUnique({
-    where: { id: assigneeId },
-    select: { isAIAgent: true },
-  })
-  if (!assignee?.isAIAgent) return null
-
-  const task = { id: existingTask.id, creatorId: existingTask.creatorId }
-  const refusal = {
-    ok: false as const,
-    status: 403 as const,
-    error: 'Only the task creator, or a list owner or admin, can assign an AI agent to this task',
-  }
-
-  if (targetListIds.length === 0) {
-    return canUserAssignAgentToTask({ id: actorId }, task, null) ? null : refusal
-  }
-
-  const lists = await prisma.taskList.findMany({
-    where: { id: { in: targetListIds } },
-    select: {
-      id: true,
-      ownerId: true,
-      privacy: true,
-      publicListType: true,
-      listType: true,
-      projectId: true,
-      aiAgentsEnabled: true,
-      listMembers: { select: { userId: true, role: true } },
-      ...PROJECT_ACCESS_INCLUDE,
-    },
-  })
-
-  const allowed = lists.every(list => canUserAssignAgentToTask({ id: actorId }, task, list as never))
-  return allowed ? null : refusal
-}
-
 export type UpdateTaskResult =
   | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
   | { ok: false; status: 400 | 403 | 404 | 412; error: string; code?: string; conflict?: any }
@@ -1224,36 +1180,20 @@ export async function updateTaskWithSideEffects(args: {
   // ── Assignee ──────────────────────────────────────────────────────────────
   if (has('assigneeId')) {
     const assigneeId = intent.assigneeId || null
-    if (requireAssigneeListMembership && assigneeId && assigneeId !== actorId) {
-      // lib/task-assignee.ts already answers exactly this, as a COUNT rather
-      // than a fetch-and-filter. It is the check v1 used before the extraction;
-      // re-deriving it here would be a third copy of the rule that exists to
-      // stop unsolicited task planting.
+    // Self-assignment needs no permission: the actor is already the one who can
+    // see the task, and nobody is being handed anything they did not ask for.
+    if (assigneeId && assigneeId !== actorId) {
       const currentListIds = (existingTask.lists ?? []).map((list: any) => list.id)
-      const targetListIds = validatedListIds ?? currentListIds
-      if (!(await assigneeCanBeAssigned(assigneeId, targetListIds))) {
-        return { ok: false, status: 400, error: 'Assignee must be a member of one of the task lists' }
-      }
-    }
-
-    // Pointing an AI agent at a task is a bigger privilege than editing one:
-    // the run spends the list's configured user's API key and, for a user on
-    // Claude Code Remote, executes code on their machine. Task edit rights are
-    // open to every list member, so inheriting from them let a member rewrite a
-    // victim's task into an attacker-chosen prompt and bill the victim
-    // (task 0672b69b).
-    //
-    // Only reached when the actor is assigning to SOMEONE ELSE'S task, which is
-    // the whole exposure — assigning an agent to your own task is what the rule
-    // permits — so the hot path pays for no extra query.
-    if (assigneeId && assigneeId !== existingTask.creatorId && existingTask.creatorId !== actorId) {
-      const denial = await denyAgentAssignmentIfUnauthorised({
+      const authorized = await authorizeAssigneeChange({
         assigneeId,
         actorId,
-        existingTask,
-        targetListIds: validatedListIds ?? (existingTask.lists ?? []).map((list: any) => list.id),
+        task: { id: existingTask.id, creatorId: existingTask.creatorId },
+        targetListIds: validatedListIds ?? currentListIds,
+        requireListMembership: requireAssigneeListMembership === true,
       })
-      if (denial) return denial
+      if (!authorized.ok) {
+        return { ok: false, status: authorized.status, error: authorized.error }
+      }
     }
 
     data.assigneeId = assigneeId

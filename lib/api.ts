@@ -51,6 +51,29 @@ export class ApiError<TError = unknown> extends Error {
   }
 }
 
+/**
+ * The server's own reason for refusing a write, when it gave one (AWTD-887).
+ *
+ * A refused update rolls the optimistic change back, so the field the user just
+ * set snaps to its previous value. Told only "Please try again", that reads as
+ * a glitch — which is exactly how an assignment refused by a rule went
+ * unexplained for as long as it did.
+ *
+ * Only 4xx answers are surfaced: a 4xx is the server telling the caller
+ * something actionable about THIS request, while a 5xx message is an internal
+ * detail and "try again" is genuinely the right advice.
+ */
+export function refusalReason(error: unknown): string | null {
+  if (!(error instanceof ApiError)) return null
+  if (error.status < 400 || error.status >= 500) return null
+
+  const detail = error.detail
+  if (!detail || typeof detail !== 'object') return null
+
+  const message = (detail as Record<string, unknown>).error
+  return typeof message === 'string' && message.trim() ? message : null
+}
+
 export const apiCall = async <TError = unknown>(
   endpoint: string,
   options: RequestInit = {},
