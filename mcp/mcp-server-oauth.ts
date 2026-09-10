@@ -24,6 +24,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod"
+import crypto from "crypto"
 import { BRAND, mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
 // Shared with mcp/schemas.ts and the v1 HTTP API — see lib/task-priority.ts
 // for why this stopped being a literal in four places (task 17fea642).
@@ -31,6 +32,33 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 import { createLogger } from "../lib/logger"
 
 const log = createLogger("mcp.server-oauth")
+
+/**
+ * Process-level token cache for the hosted Streamable HTTP path (task 11f578e0).
+ *
+ * pages/api/mcp/index.ts constructs a new AstridMCPServerOAuth per POST, so
+ * the per-instance cache in OAuthAPIClient never hit for Basic-auth
+ * sessions: every JSON-RPC request minted a fresh token via
+ * client_credentials. Keyed by SHA-256 of baseUrl + clientId + clientSecret
+ * (never by the raw credentials), with the same 5-minute early-expiry margin
+ * obtainAccessToken already used. Static-access-token sessions bypass this
+ * entirely — they never touch the token endpoint.
+ */
+interface HostedTokenEntry {
+  accessToken: string
+  expiry: number
+}
+
+const hostedTokenCache = new Map<string, HostedTokenEntry>()
+/** In-flight fetches, so concurrent POSTs coalesce onto one token request. */
+const hostedTokenInflight = new Map<string, Promise<string>>()
+
+function hostedTokenCacheKey(baseUrl: string, clientId: string, clientSecret: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(`${baseUrl}\n${clientId}\n${clientSecret}`, "utf8")
+    .digest("hex")
+}
 
 // OAuth API Client
 interface OAuthTokenResponse {
@@ -147,9 +175,13 @@ const CreateCommentSchema = z.object({
 })
 
 /**
- * OAuth API Client for Astrid
+ * OAuth API Client for Astrid.
+ *
+ * Exported for tests: the hosted /mcp endpoint builds one of these per
+ * request, and the process-level token cache (task 11f578e0) is what keeps
+ * that from minting a token per JSON-RPC call.
  */
-class OAuthAPIClient {
+export class OAuthAPIClient {
   private readonly baseUrl: string
   private readonly clientId: string
   private readonly clientSecret: string
@@ -177,7 +209,11 @@ class OAuthAPIClient {
   }
 
   /**
-   * Obtain an access token using client credentials flow
+   * Obtain an access token using client credentials flow.
+   *
+   * The per-instance fields are a fast path; the module-level cache is what
+   * makes Basic-auth sessions cheap on the hosted /mcp endpoint, where a new
+   * server (and client) is built per POST (task 11f578e0).
    */
   private async obtainAccessToken(): Promise<string> {
     if (this.staticAccessToken) {
@@ -189,6 +225,43 @@ class OAuthAPIClient {
       return this.accessToken
     }
 
+    const cacheKey = hostedTokenCacheKey(this.baseUrl, this.clientId, this.clientSecret)
+    const cached = hostedTokenCache.get(cacheKey)
+    if (cached && Date.now() < cached.expiry) {
+      this.accessToken = cached.accessToken
+      this.tokenExpiry = cached.expiry
+      return cached.accessToken
+    }
+
+    const inflight = hostedTokenInflight.get(cacheKey)
+    if (inflight) {
+      return this.adoptInflightToken(cacheKey, inflight)
+    }
+
+    const fetchPromise = this.fetchAccessToken(cacheKey)
+    hostedTokenInflight.set(cacheKey, fetchPromise)
+    try {
+      return await fetchPromise
+    } finally {
+      hostedTokenInflight.delete(cacheKey)
+    }
+  }
+
+  /**
+   * Share a token another request is already fetching. The fetcher stores the
+   * token in the process cache before its promise resolves, so the expiry is
+   * read back from there; if it is somehow missing, treat this instance's
+   * copy as already stale so the next call re-fetches.
+   */
+  private async adoptInflightToken(cacheKey: string, inflight: Promise<string>): Promise<string> {
+    const token = await inflight
+    const entry = hostedTokenCache.get(cacheKey)
+    this.accessToken = token
+    this.tokenExpiry = entry && entry.accessToken === token ? entry.expiry : Date.now()
+    return token
+  }
+
+  private async fetchAccessToken(cacheKey: string): Promise<string> {
     log.debug("Obtaining OAuth access token")
 
     const response = await fetch(`${this.baseUrl}/api/v1/oauth/token`, {
@@ -213,6 +286,10 @@ class OAuthAPIClient {
     this.accessToken = data.access_token
     // Set expiry to 5 minutes before actual expiry for safety
     this.tokenExpiry = Date.now() + (data.expires_in - 300) * 1000
+    hostedTokenCache.set(cacheKey, {
+      accessToken: this.accessToken,
+      expiry: this.tokenExpiry,
+    })
 
     log.debug("Access token obtained")
     return this.accessToken

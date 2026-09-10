@@ -108,7 +108,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "OPTIONS") {
     res.setHeader("Allow", "GET,POST,OPTIONS")
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-OAuth-Token")
+    // Task 1b4260ec: extractAuthContext reads the documented X-Astrid-*
+    // headers, so preflight must allow them or browser-based MCP clients
+    // fail before the first request.
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-OAuth-Token, X-Astrid-Access-Token, X-Astrid-Client-Id, X-Astrid-Client-Secret, X-Astrid-List-Id, X-Astrid-API-Base-URL"
+    )
     res.status(200).end()
     return
   }
