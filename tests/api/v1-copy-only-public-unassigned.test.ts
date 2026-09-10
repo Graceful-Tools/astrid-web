@@ -28,7 +28,7 @@ import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    taskList: { findMany: vi.fn(), findUnique: vi.fn() },
+    taskList: { findMany: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
     task: { create: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
   },
@@ -110,6 +110,11 @@ beforeEach(() => {
     id: 'task-1', title: 'T', lists: [], comments: [], attachments: [], assigneeId: null,
   } as never)
   mockPrisma.taskList.findUnique.mockResolvedValue(null as never)
+  // The assignee is a real person who holds a role on the list. The create
+  // path asks both questions for itself now (AWTD-891) instead of inferring
+  // them from the mocked `hasListAccess` above, so the rows have to be here.
+  mockPrisma.user.findUnique.mockResolvedValue({ id: ASSIGNEE, isAIAgent: false } as never)
+  ;(mockPrisma.taskList.count as never as ReturnType<typeof vi.fn>).mockResolvedValue(1 as never)
 })
 
 describe('POST /api/v1/tasks — copy-only public lists stay unassigned (task e0613ae5)', () => {

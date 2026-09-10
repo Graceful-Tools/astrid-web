@@ -101,7 +101,7 @@ describe('authorizeAssigneeChange — AI agents (AWTD-887)', () => {
       requireListMembership: true,
     })
 
-    expect(result).toEqual({ ok: true })
+    expect(result).toEqual({ ok: true, assigneeExists: true })
   })
 
   it('lets the creator assign an agent to a task on no list at all', async () => {
@@ -119,7 +119,7 @@ describe('authorizeAssigneeChange — AI agents (AWTD-887)', () => {
       requireListMembership: true,
     })
 
-    expect(result).toEqual({ ok: true })
+    expect(result).toEqual({ ok: true, assigneeExists: true })
     // No list to consult, so no list query either.
     expect(taskListFindMany).not.toHaveBeenCalled()
   })
@@ -151,7 +151,7 @@ describe('authorizeAssigneeChange — AI agents (AWTD-887)', () => {
       requireListMembership: true,
     })
 
-    expect(result).toEqual({ ok: true })
+    expect(result).toEqual({ ok: true, assigneeExists: true })
   })
 
   it('refuses someone with no role on the list, even on a task they created', async () => {
@@ -222,7 +222,7 @@ describe('authorizeAssigneeChange — people (AWTD-887)', () => {
       requireListMembership: true,
     })
 
-    expect(result).toEqual({ ok: true })
+    expect(result).toEqual({ ok: true, assigneeExists: true })
   })
 
   it('skips the membership rule entirely when the caller does not ask for it', async () => {
@@ -238,7 +238,7 @@ describe('authorizeAssigneeChange — people (AWTD-887)', () => {
       requireListMembership: false,
     })
 
-    expect(result).toEqual({ ok: true })
+    expect(result).toEqual({ ok: true, assigneeExists: true })
     expect(taskListCount).not.toHaveBeenCalled()
   })
 

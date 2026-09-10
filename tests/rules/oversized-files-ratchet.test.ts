@@ -75,7 +75,11 @@ const BUDGETS: Record<string, number> = {
   // an agent, which would have grown this file by thirty lines. The whole
   // decision went to services/assignee-authorization.ts instead, taking the
   // forty lines that were already here with it.
-  'services/task.service.ts': 1638,
+  // 1638 → 1626: AWTD-891 had to make the CREATE path apply the same assignee
+  // rules, which is more code here, not less. The gate went to
+  // assignee-authorization.ts as `authorizeNewTaskAssignee` and took create's
+  // hand-rolled people-check and its existence lookup with it.
+  'services/task.service.ts': 1626,
   'components/task-detail/TaskFieldEditors.tsx': 1078,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the

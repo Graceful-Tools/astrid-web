@@ -33,13 +33,13 @@
 
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import {
-  PROJECT_ACCESS_INCLUDE,
-  canUserAssignAgentToTask,
-  hasExplicitListRole,
-} from '@/lib/list-permissions'
+// The agent rule itself is deliberately NOT imported here: both write paths
+// reach it through services/assignee-authorization.ts, and a direct call would
+// be a third answer to one question (AWTD-891, ratcheted by
+// tests/rules/assignee-rule-reaches-both-write-paths.test.ts).
+import { PROJECT_ACCESS_INCLUDE, hasExplicitListRole } from '@/lib/list-permissions'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
-import { authorizeAssigneeChange } from '@/services/assignee-authorization'
+import { authorizeAssigneeChange, authorizeNewTaskAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
@@ -435,8 +435,6 @@ export async function createTaskWithSideEffects(args: {
   let lists: Array<Record<string, any>> = []
   let hasCopyOnlyPublicList = false
   let completed = input.completed === true
-  /** Set once the assignee is known to be a real user, to skip the lookup. */
-  let assigneeExists = false
 
   const requestedListIds = input.listIds ?? []
   if (requestedListIds.length > 0) {
@@ -481,16 +479,6 @@ export async function createTaskWithSideEffects(args: {
       }
     }
 
-    if (requireAssigneeListMembership && input.assigneeId && input.assigneeId !== actorId) {
-      const assigneeId = input.assigneeId
-      if (!lists.some(list => hasListAccess(list as never, assigneeId))) {
-        return { ok: false, status: 400, error: 'Assignee must be a member of one of the task lists' }
-      }
-      // Holding a role on a list is proof the user row exists, so the
-      // existence lookup below is redundant on this path.
-      assigneeExists = true
-    }
-
     // One copy-only public list in the set is enough: the task becomes
     // publicly visible through it whatever the other lists are.
     hasCopyOnlyPublicList = lists.some(
@@ -532,18 +520,18 @@ export async function createTaskWithSideEffects(args: {
     hasCopyOnlyPublicList,
   })
 
-  // A bad assignee id is the caller's mistake, so it gets a 400 rather than
-  // the foreign-key 500 Prisma would raise. Skipped when the actor is assigning
-  // to themselves, or when a list role has already proved the user exists —
-  // otherwise this would add a round-trip to the hottest create path there is.
-  if (finalAssigneeId && finalAssigneeId !== actorId && !assigneeExists) {
-    const assignee = await prisma.user.findUnique({
-      where: { id: finalAssigneeId },
-      select: { id: true },
-    })
-    if (!assignee) {
-      return { ok: false, status: 400, error: `Invalid assignee ID: ${finalAssigneeId}` }
-    }
+  // Who may be put on it — the same rules the update path applies, decided in
+  // the same place (AWTD-891). Create used to hand-roll the people-rule here
+  // and never apply the AGENT rule at all.
+  const assigneeAuthorized = await authorizeNewTaskAssignee({
+    requested: input.assigneeId,
+    resolved: finalAssigneeId,
+    actorId,
+    targetListIds: connectListIds,
+    requireListMembership: requireAssigneeListMembership === true,
+  })
+  if (!assigneeAuthorized.ok) {
+    return { ok: false, status: assigneeAuthorized.status, error: assigneeAuthorized.error }
   }
 
   // ── Dates ─────────────────────────────────────────────────────────────────
