@@ -72,7 +72,17 @@ const ROOT = process.cwd()
 // The members manager POSTed /leave itself and then handed the parent a flag
 // nothing read, so it never navigated anyone anywhere; it now delegates to the
 // caller's onLeave, which is the path that already worked.
-const CEILING = 96 // 115 → 107: task 1b381810 deleted the dead components
+// 96 → 94: AWTD-886. Account settings' resend-verification and
+// cancel-email-change were raw fetches posting the action as a JSON body, which
+// the route never reads — both buttons answered 400. Fixing them meant touching
+// the lines, and the guard is diff-scoped, so they moved onto apiPost rather
+// than being re-added as raw calls. Worth recording how NOT to lower this
+// number: routing the same fetch through a URL-builder helper took the count to
+// 93, because the detector matches a string literal containing "/api/" and a
+// helper call is not one. The calls had not stopped bypassing the offline
+// client; they had stopped being visible, which is strictly worse than a
+// higher number.
+const CEILING = 94 // 115 → 107: task 1b381810 deleted the dead components
 // (task-form and its picker subtree, ai-api-key-manager, sync-status,
 // public-task-browser, list-detail and the rest), taking their raw mutations
 // with them. Nothing was migrated to the offline client here — the count fell

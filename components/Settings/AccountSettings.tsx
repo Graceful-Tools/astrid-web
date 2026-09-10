@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dialog"
 import { signOut } from "next-auth/react"
 import { useTranslations } from "@/lib/i18n/client"
+import { apiPost } from "@/lib/api"
 import { EmailVerificationSection } from "./EmailVerificationSection"
 import { AccountInfoSection } from "./AccountInfoSection"
 import { DataExportSection } from "./DataExportSection"
@@ -120,11 +121,12 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
 
     setResendingVerification(true)
     try {
-      const response = await fetch("/api/v1/users/me/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "resend" }),
-      })
+      // The action is a QUERY parameter, not a body field: this endpoint also
+      // serves `?token=` from an email link, so the action sits beside the
+      // token rather than in a body the token flow has no use for. Sending it
+      // in the body left `searchParams.get('action')` null and the button dead
+      // (AWTD-886). The empty body is the point — nothing here reads one.
+      const response = await apiPost("/api/v1/users/me/verify-email?action=resend", {})
 
       if (response.ok) {
         toast({
@@ -156,11 +158,8 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
     if (!accountData) return
 
     try {
-      const response = await fetch("/api/v1/users/me/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel" }),
-      })
+      // Query parameter, for the same reason as the resend above (AWTD-886).
+      const response = await apiPost("/api/v1/users/me/verify-email?action=cancel", {})
 
       if (response.ok) {
         await loadAccountData()
