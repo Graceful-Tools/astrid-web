@@ -449,7 +449,12 @@
     },
     "apiAccess": {
       "title": "API Access",
-      "description": "OAuth applications and API integrations"
+      "description": "OAuth applications and API integrations",
+      "clientGuide": {
+        "title": "Do you need a client here?",
+        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
+        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      }
     },
     "chatgpt": {
       "title": "AI Assistant Integrations",

@@ -527,6 +527,18 @@ export function OAuthAppManager() {
         </Button>
       </div>
 
+      {/* Task 10f26dc6: say when a manual client is (not) needed, so OAuth-capable
+          assistants stop getting redundant Settings clients. Copy via i18n. */}
+      <Card>
+        <CardContent className="pt-6 text-sm space-y-2">
+          <p className="font-medium theme-text-primary">
+            {t('settingsPages.apiAccess.clientGuide.title')}
+          </p>
+          <p className="theme-text-muted">{t('settingsPages.apiAccess.clientGuide.dcrNote')}</p>
+          <p className="theme-text-muted">{t('settingsPages.apiAccess.clientGuide.manualNote')}</p>
+        </CardContent>
+      </Card>
+
       {/* Client List */}
       {clients.length === 0 ? (
         <Card>
