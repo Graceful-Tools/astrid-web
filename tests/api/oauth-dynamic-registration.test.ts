@@ -59,4 +59,23 @@ describe('POST /api/v1/oauth/register (task a0e0808c)', () => {
     }))
     expect(mockPrisma.oAuthClient.create).not.toHaveBeenCalled()
   })
+
+  it('rejects confidential registration with an actionable error (task 4b41ab22)', async () => {
+    const response = await POST(new NextRequest(`https://${BRAND.domain}/api/v1/oauth/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        client_name: 'Connector with a default confidential profile',
+        redirect_uris: ['https://vscode.dev/redirect'],
+        token_endpoint_auth_method: 'client_secret_post',
+      }),
+    }))
+
+    expect(response.status).toBe(400)
+    const payload = await response.json()
+    expect(payload.error).toBe('invalid_client_metadata')
+    expect(payload.error_description).toMatch(/token_endpoint_auth_method must be "none"/)
+    expect(payload.error_description).toMatch(/Settings → API Access/)
+    expect(mockPrisma.oAuthClient.create).not.toHaveBeenCalled()
+  })
 })
