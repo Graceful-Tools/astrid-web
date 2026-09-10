@@ -105,12 +105,13 @@ export interface V1List {
   // project (the common case for legacy lists). When `projectId` is set,
   // iOS treats the list as a project-domain list (listType "regular") or
   // a status-board column (listType "status").
+  //
+  // The four `status*` fields that used to sit here are gone (AWTD-853): a
+  // board column stopped being a list in AWTD-562, and the rows that carried
+  // them were deleted by `20260821000000_drop_status_lists`. `Task.statusRole`
+  // is a different field and is still the live one.
   projectId: string | null
   listType: 'regular' | 'status'
-  statusRole: 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'custom' | null
-  statusOrder: number | null
-  statusDescription: string | null
-  statusCompleted: boolean
   // Per-list "Recently completed" window config. null = legacy 24h default.
   // Shape mirrors lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow: unknown
@@ -167,8 +168,7 @@ export interface V1ListResponse {
  * `lists` is the project's domain lists (listType "regular") plus the
  * user's per-user global status columns (listType "status",
  * `projectId: null`, shared across every project board). The same V1List
- * shape is used for both so iOS doesn't need a second decoder. Sort by
- * `listType` then `statusOrder` for board column ordering.
+ * shape is used for both so iOS doesn't need a second decoder.
  */
 export interface V1Project {
   id: string

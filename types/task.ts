@@ -38,10 +38,6 @@ export interface TaskList {
   name: string
   projectId?: string | null
   listType?: "regular" | "status" | null
-  statusRole?: "inbox" | "ready" | "doing" | "waiting" | "done" | "custom" | null
-  statusOrder?: number | null
-  statusDescription?: string | null
-  statusCompleted?: boolean | null
   color?: string
   imageUrl?: string | null
   coverImageUrl?: string | null

@@ -35,9 +35,10 @@ const projectInclude = {
   members: { include: { user: { select: safeUserSelect } } },
   lists: {
     include: listInclude,
+    // No statusOrder key: it was null for every row once Stage D deleted the
+    // status lists, so it sorted nothing, and AWTD-853 retired it.
     orderBy: [
       { listType: 'asc' as const },
-      { statusOrder: 'asc' as const },
       { createdAt: 'asc' as const },
     ],
   },

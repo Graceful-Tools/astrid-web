@@ -1,8 +1,13 @@
 /**
  * Asserts /api/v1/lists and /api/v1/lists/:id include the project-board
- * fields (`projectId`, `listType`, `statusRole`, `statusOrder`,
- * `statusDescription`, `statusCompleted`, `recentlyCompletedWindow`)
- * for iOS to render boards and the per-list Recently-completed window.
+ * fields (`projectId`, `listType`, `recentlyCompletedWindow`) for iOS to
+ * render boards and the per-list Recently-completed window.
+ *
+ * The four `status*` fields were pinned here too until AWTD-853 retired them:
+ * a board column stopped being a list in AWTD-562, and the rows that carried
+ * them were deleted by `20260821000000_drop_status_lists`. That they are now
+ * ABSENT is pinned in tests/api/v1-list-status-fields-retired.ts, so this file
+ * pins what a list still carries rather than asserting a negative twice.
  *
  * v1-contract.test.ts pins the V1List *type* shape; this pins the
  * *route output* shape.
@@ -129,10 +134,6 @@ const statusList = {
 const BOARD_FIELDS = [
   'projectId',
   'listType',
-  'statusRole',
-  'statusOrder',
-  'statusDescription',
-  'statusCompleted',
   'recentlyCompletedWindow',
 ] as const
 
@@ -157,10 +158,6 @@ describe('GET /api/v1/lists — board fields', () => {
     }
     expect(list.projectId).toBe('proj-1')
     expect(list.listType).toBe('status')
-    expect(list.statusRole).toBe('ready')
-    expect(list.statusOrder).toBe(1)
-    expect(list.statusDescription).toBe('Time to get to work!')
-    expect(list.statusCompleted).toBe(false)
     expect(list.recentlyCompletedWindow).toEqual({ kind: 'duration', amount: 7, unit: 'day' })
   })
 
@@ -170,10 +167,6 @@ describe('GET /api/v1/lists — board fields', () => {
       id: 'legacy',
       projectId: null,
       listType: 'regular',
-      statusRole: null,
-      statusOrder: null,
-      statusDescription: null,
-      statusCompleted: false,
       recentlyCompletedWindow: null,
     }
     ;(mockPrisma.taskList.findMany as any).mockResolvedValue([legacyList])
@@ -186,10 +179,6 @@ describe('GET /api/v1/lists — board fields', () => {
     const list = json.lists[0]
     expect(list.projectId).toBeNull()
     expect(list.listType).toBe('regular')
-    expect(list.statusRole).toBeNull()
-    expect(list.statusOrder).toBeNull()
-    expect(list.statusDescription).toBeNull()
-    expect(list.statusCompleted).toBe(false)
     expect(list.recentlyCompletedWindow).toBeNull()
   })
 })

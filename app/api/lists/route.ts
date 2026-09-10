@@ -208,10 +208,7 @@ export async function POST(request: NextRequest) {
       ownerId: session.user.id,
       projectId: data.projectId || null,
       listType: data.listType || "regular",
-      statusRole: data.statusRole || null,
-      statusOrder: data.statusOrder ?? null,
-      statusDescription: data.statusDescription || null,
-      statusCompleted: data.statusCompleted ?? data.statusRole === "done",
+      // The four TaskList.status* fields are not seeded: AWTD-853 retired them.
     }
 
     // Only include optional fields if they have values

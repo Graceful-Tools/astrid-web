@@ -1,21 +1,22 @@
 /**
- * PUT /api/v1/lists/[id] must accept the status-board fields (task dc143ab2).
+ * PUT /api/v1/lists/[id] applies its allow-list — and no longer the four
+ * retired status fields (task dc143ab2, then AWTD-853).
  *
- * v1's PUT applies an allow-list of 27 fields. Legacy's applies `statusRole`,
- * `statusOrder`, `statusDescription`, `statusCompleted`, `listType` and
- * `publicListType` as well — and the web depends on it:
- * `ManageStatusesPanel` reorders status columns by PUTing `{ statusOrder }`.
+ * v1's PUT applies an allow-list, and the original finding was that it dropped
+ * fields legacy applied and the web depended on: `ManageStatusesPanel` reordered
+ * status columns by PUTing `{ statusOrder }`, so migrating that call site would
+ * have made reordering silently do nothing — 200 back, order unchanged. The
+ * pattern is worth keeping in mind: a v1 route written as an allow-list drops
+ * something a client needs, and it presents as a feature that quietly stopped
+ * working rather than an error anyone notices.
  *
- * Migrating that call site against the current allow-list would make column
- * reordering **silently do nothing**: the request succeeds, 200 comes back, the
- * order is unchanged. That is the fifth gap of this exact shape found under the
- * retirement, and the pattern is always the same — v1 routes written as
- * allow-lists or projections drop something a client depends on, and the
- * failure presents as a feature that quietly stopped working rather than an
- * error anyone would notice.
- *
- * Pinned per field rather than as one assertion so a future edit that trims the
- * allow-list names exactly what it broke.
+ * That specific worry is now moot from both ends. The panel writes
+ * `/api/statuses` (soon `/api/v1/projects/:id/statuses`), and AWTD-853 retired
+ * `statusRole` / `statusOrder` / `statusDescription` / `statusCompleted` off the
+ * list contract entirely. Their absence is pinned in
+ * tests/api/v1-list-status-fields-retired.ts; what remains here is the rest of
+ * the allow-list, and the guard that widening it never made the route a
+ * pass-through.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -101,28 +102,7 @@ beforeEach(() => {
   mockPrisma.user.findMany.mockResolvedValue([] as never)
 })
 
-describe('PUT /api/v1/lists/[id] status-board fields (task dc143ab2)', () => {
-  it('applies statusOrder', async () => {
-    // ManageStatusesPanel's reorder is exactly this call. Dropped, the columns
-    // spring back to their old order with no error shown.
-    const data = await put({ statusOrder: 3 })
-
-    expect(data?.statusOrder).toBe(3)
-  })
-
-  it('applies statusRole', async () => {
-    const data = await put({ statusRole: 'doing' })
-
-    expect(data?.statusRole).toBe('doing')
-  })
-
-  it('applies statusDescription and statusCompleted', async () => {
-    const data = await put({ statusDescription: 'In progress', statusCompleted: true })
-
-    expect(data?.statusDescription).toBe('In progress')
-    expect(data?.statusCompleted).toBe(true)
-  })
-
+describe('PUT /api/v1/lists/[id] allow-list (task dc143ab2, AWTD-853)', () => {
   it('applies publicListType', async () => {
     const data = await put({ publicListType: 'copy' })
 
@@ -133,7 +113,7 @@ describe('PUT /api/v1/lists/[id] status-board fields (task dc143ab2)', () => {
     // Widening the list must not turn it into a pass-through — the callers
     // spread the whole list object into the body, so anything accepted here is
     // accepted on every save.
-    const data = await put({ statusOrder: 1, ownerId: 'someone-else' })
+    const data = await put({ listType: 'regular', ownerId: 'someone-else' })
 
     expect(data?.ownerId).toBeUndefined()
   })

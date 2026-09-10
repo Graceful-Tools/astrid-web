@@ -65,7 +65,6 @@ export interface ProjectBoardColumn {
   name: string
   description: string
   kind: ProjectBoardColumnKind
-  statusList?: TaskList
 }
 
 const VIRTUAL_INBOX_COLUMN: Omit<ProjectBoardColumn, 'id'> & { id: typeof VIRTUAL_INBOX_COLUMN_ID } = {

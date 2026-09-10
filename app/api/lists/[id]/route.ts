@@ -190,10 +190,8 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       imageUrl: data.imageUrl,
       projectId: data.projectId,
       listType: data.listType,
-      statusRole: data.statusRole,
-      statusOrder: data.statusOrder,
-      statusDescription: data.statusDescription,
-      statusCompleted: data.statusCompleted,
+      // No statusRole/statusOrder/statusDescription/statusCompleted: AWTD-853
+      // retired them, and this is the route the web PUTs whole list objects to.
       privacy: data.privacy,
       publicListType: data.publicListType,
       defaultAssigneeId: data.defaultAssigneeId,

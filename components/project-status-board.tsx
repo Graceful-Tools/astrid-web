@@ -302,8 +302,11 @@ export function ProjectStatusBoard({
   const columnTestId = (column: ProjectBoardColumn) => {
     if (column.id === VIRTUAL_INBOX_COLUMN_ID) return 'status-column-inbox'
     if (column.id === VIRTUAL_DONE_COLUMN_ID) return 'status-column-done'
-    const role = column.statusList?.statusRole
-    return `status-column-${role || column.id}`
+    // A status column's id IS its role, so this reads `status-column-ready`
+    // the way it always has. It used to prefer `statusList.statusRole` — but
+    // nothing has assigned `statusList` since the status rows were deleted, so
+    // that branch was already unreachable, and AWTD-853 retired the field.
+    return `status-column-${column.id}`
   }
 
   return (

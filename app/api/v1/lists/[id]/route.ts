@@ -136,10 +136,6 @@ export const GET = withAuth<RouteContext>(
           preferredAiProvider: list.preferredAiProvider,
           projectId: list.projectId ?? null,
           listType: (list.listType ?? 'regular') as V1List['listType'],
-          statusRole: (list.statusRole ?? null) as V1List['statusRole'],
-          statusOrder: list.statusOrder ?? null,
-          statusDescription: list.statusDescription ?? null,
-          statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
           createdAt: list.createdAt,
@@ -280,16 +276,12 @@ export const PUT = withAuth<RouteContext>(
       // than resetting it.
       const showSubtasks = normalizeShowSubtasks(body.showSubtasks)
       if (showSubtasks !== undefined) updateData.showSubtasks = showSubtasks
-      // Status-board columns. Legacy applies all of these; v1 did not, and the
-      // web depends on it — ManageStatusesPanel reorders columns by PUTing
-      // { statusOrder }. Dropped, the request still answers 200 and the order
-      // simply springs back, which reads as a broken drag rather than a
-      // rejected write. (Task dc143ab2)
       if (body.listType !== undefined) updateData.listType = body.listType
-      if (body.statusRole !== undefined) updateData.statusRole = body.statusRole
-      if (body.statusOrder !== undefined) updateData.statusOrder = body.statusOrder
-      if (body.statusDescription !== undefined) updateData.statusDescription = body.statusDescription
-      if (body.statusCompleted !== undefined) updateData.statusCompleted = body.statusCompleted
+      // The four TaskList.status* fields used to be applied here (task
+      // dc143ab2, when ManageStatusesPanel reordered columns by PUTing
+      // { statusOrder }). The panel writes /api/statuses now, and AWTD-853
+      // retired the fields: an older client still sends them, and honouring
+      // them would store values nothing will ever read back.
       if (body.publicListType !== undefined) updateData.publicListType = body.publicListType
     }
 
@@ -418,10 +410,6 @@ export const PUT = withAuth<RouteContext>(
           preferredAiProvider: list.preferredAiProvider,
           projectId: list.projectId ?? null,
           listType: (list.listType ?? 'regular') as V1List['listType'],
-          statusRole: (list.statusRole ?? null) as V1List['statusRole'],
-          statusOrder: list.statusOrder ?? null,
-          statusDescription: list.statusDescription ?? null,
-          statusCompleted: list.statusCompleted ?? false,
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
           createdAt: list.createdAt,
