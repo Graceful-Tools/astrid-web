@@ -100,7 +100,8 @@ describe('MCP OAuth process-level token cache (task 11f578e0)', () => {
     // an entry per credential set that is never reclaimed is an unbounded
     // Map. Expired entries must not survive later writes.
     const fetchMock = mockTokenEndpoint(200) // under the 5-minute margin: stale on arrival
-    const { OAuthAPIClient, hostedTokenCacheSize } = await import('@/mcp/mcp-server-oauth')
+    const { OAuthAPIClient } = await import('@/mcp/mcp-server-oauth')
+    const { hostedTokenCacheSize } = await import('@/mcp/hosted-token-cache')
 
     for (let i = 0; i < 5; i++) {
       await new OAuthAPIClient('https://example.com', `client-${i}`, `secret-${i}`).makeRequest(

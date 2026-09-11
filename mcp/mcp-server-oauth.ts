@@ -24,68 +24,16 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod"
-import crypto from "crypto"
 import { BRAND, mcpDefaultBaseUrl, mcpServerName } from "../lib/brand/config"
 // Shared with mcp/schemas.ts and the v1 HTTP API — see lib/task-priority.ts
 // for why this stopped being a literal in four places (task 17fea642).
 import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 import { createLogger } from "../lib/logger"
+// The API client this server talks through — now in mcp/oauth-api-client.ts.
+// Re-exported below rather than moved-and-forgotten, as OAUTH_MCP_TOOLS was.
+import { OAuthAPIClient } from "./oauth-api-client"
 
 const log = createLogger("mcp.server-oauth")
-
-/**
- * Process-level token cache for the hosted Streamable HTTP path (task 11f578e0).
- *
- * pages/api/mcp/index.ts constructs a new AstridMCPServerOAuth per POST, so
- * the per-instance cache in OAuthAPIClient never hit for Basic-auth
- * sessions: every JSON-RPC request minted a fresh token via
- * client_credentials. Keyed by SHA-256 of baseUrl + clientId + clientSecret
- * (never by the raw credentials), with the same 5-minute early-expiry margin
- * obtainAccessToken already used. Static-access-token sessions bypass this
- * entirely — they never touch the token endpoint.
- */
-interface HostedTokenEntry {
-  accessToken: string
-  expiry: number
-}
-
-const hostedTokenCache = new Map<string, HostedTokenEntry>()
-/** In-flight fetches, so concurrent POSTs coalesce onto one token request. */
-const hostedTokenInflight = new Map<string, Promise<string>>()
-
-function hostedTokenCacheKey(baseUrl: string, clientId: string, clientSecret: string): string {
-  return crypto
-    .createHash("sha256")
-    .update(`${baseUrl}\n${clientId}\n${clientSecret}`, "utf8")
-    .digest("hex")
-}
-
-/**
- * Drop entries past their expiry. The hosted endpoint serves many users'
- * credentials from one process, and a credential set that stops connecting
- * is never looked up again — so without this the Map only ever grows. Called
- * on write, which is the only moment the map can gain an entry.
- */
-function sweepExpiredHostedTokens(now: number): void {
-  for (const [key, entry] of hostedTokenCache) {
-    if (now >= entry.expiry) {
-      hostedTokenCache.delete(key)
-    }
-  }
-}
-
-/** Test-only view of the cache's size (task 11f578e0). */
-export function hostedTokenCacheSize(): number {
-  return hostedTokenCache.size
-}
-
-// OAuth API Client
-interface OAuthTokenResponse {
-  access_token: string
-  token_type: string
-  expires_in: number
-  scope: string
-}
 
 interface Task {
   id: string
@@ -200,145 +148,6 @@ const CreateCommentSchema = z.object({
  * request, and the process-level token cache (task 11f578e0) is what keeps
  * that from minting a token per JSON-RPC call.
  */
-export class OAuthAPIClient {
-  private readonly baseUrl: string
-  private readonly clientId: string
-  private readonly clientSecret: string
-  private accessToken: string | null = null
-  private tokenExpiry: number = 0
-  private staticAccessToken: string | null
-
-  constructor(
-    baseUrl: string = mcpDefaultBaseUrl(),
-    clientId?: string,
-    clientSecret?: string,
-    staticAccessToken?: string | null
-  ) {
-    this.baseUrl = baseUrl
-    this.clientId = clientId || process.env.ASTRID_OAUTH_CLIENT_ID || ""
-    this.clientSecret = clientSecret || process.env.ASTRID_OAUTH_CLIENT_SECRET || ""
-    this.staticAccessToken = staticAccessToken || null
-
-    if (!this.staticAccessToken && (!this.clientId || !this.clientSecret)) {
-      log.error("OAuth credentials not configured")
-      throw new Error(
-        `Provide ASTRID_OAUTH_CLIENT_ID + ASTRID_OAUTH_CLIENT_SECRET or a valid ${BRAND.appName} access token`
-      )
-    }
-  }
-
-  /**
-   * Obtain an access token using client credentials flow.
-   *
-   * The per-instance fields are a fast path; the module-level cache is what
-   * makes Basic-auth sessions cheap on the hosted /mcp endpoint, where a new
-   * server (and client) is built per POST (task 11f578e0).
-   */
-  private async obtainAccessToken(): Promise<string> {
-    if (this.staticAccessToken) {
-      return this.staticAccessToken
-    }
-
-    // Check if we have a valid token
-    if (this.accessToken && Date.now() < this.tokenExpiry) {
-      return this.accessToken
-    }
-
-    const cacheKey = hostedTokenCacheKey(this.baseUrl, this.clientId, this.clientSecret)
-    const cached = hostedTokenCache.get(cacheKey)
-    if (cached && Date.now() < cached.expiry) {
-      this.accessToken = cached.accessToken
-      this.tokenExpiry = cached.expiry
-      return cached.accessToken
-    }
-
-    const inflight = hostedTokenInflight.get(cacheKey)
-    if (inflight) {
-      return this.adoptInflightToken(cacheKey, inflight)
-    }
-
-    const fetchPromise = this.fetchAccessToken(cacheKey)
-    hostedTokenInflight.set(cacheKey, fetchPromise)
-    try {
-      return await fetchPromise
-    } finally {
-      hostedTokenInflight.delete(cacheKey)
-    }
-  }
-
-  /**
-   * Share a token another request is already fetching. The fetcher stores the
-   * token in the process cache before its promise resolves, so the expiry is
-   * read back from there; if it is somehow missing, treat this instance's
-   * copy as already stale so the next call re-fetches.
-   */
-  private async adoptInflightToken(cacheKey: string, inflight: Promise<string>): Promise<string> {
-    const token = await inflight
-    const entry = hostedTokenCache.get(cacheKey)
-    this.accessToken = token
-    this.tokenExpiry = entry && entry.accessToken === token ? entry.expiry : Date.now()
-    return token
-  }
-
-  private async fetchAccessToken(cacheKey: string): Promise<string> {
-    log.debug("Obtaining OAuth access token")
-
-    const response = await fetch(`${this.baseUrl}/api/v1/oauth/token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        grant_type: "client_credentials",
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: OAuthTokenResponse = await response.json()
-
-    this.accessToken = data.access_token
-    // Set expiry to 5 minutes before actual expiry for safety
-    this.tokenExpiry = Date.now() + (data.expires_in - 300) * 1000
-    sweepExpiredHostedTokens(Date.now())
-    hostedTokenCache.set(cacheKey, {
-      accessToken: this.accessToken,
-      expiry: this.tokenExpiry,
-    })
-
-    log.debug("Access token obtained")
-    return this.accessToken
-  }
-
-  /**
-   * Make an authenticated API request
-   */
-  async makeRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = await this.obtainAccessToken()
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        ...options.headers,
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    return response.json()
-  }
-}
-
 /**
  * The tool schemas this server advertises — now in mcp/tool-definitions.ts.
  *
@@ -349,6 +158,7 @@ export class OAuthAPIClient {
 import { McpAgentIdentity } from './agent-identity'
 import { OAUTH_MCP_TOOLS } from './tool-definitions'
 export { OAUTH_MCP_TOOLS }
+export { OAuthAPIClient }
 
 /**
  * MCP Server V3 - OAuth-Enabled

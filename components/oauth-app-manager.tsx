@@ -18,6 +18,7 @@ import {
   OAUTH_REDIRECT_PRESETS,
 } from '@/lib/oauth/oauth-client-presets'
 import { useTranslations } from '@/lib/i18n/client'
+import { OAuthClientGuide, GRANT_TYPE_OPTIONS } from '@/components/oauth-client-guide'
 import type { GrantType } from '@/types/oauth'
 import { toast } from 'sonner'
 
@@ -38,27 +39,6 @@ interface OAuthClientWithSecret extends OAuthClient {
   clientSecret: string
 }
 
-const GRANT_TYPE_OPTIONS: Array<{
-  value: GrantType
-  label: string
-  description: string
-}> = [
-  {
-    value: 'client_credentials',
-    label: 'Client Credentials',
-    description: 'Server-to-server access (no user login required)',
-  },
-  {
-    value: 'authorization_code',
-    label: 'Authorization Code',
-    description: 'User consent via browser (ChatGPT, third-party apps)',
-  },
-  {
-    value: 'refresh_token',
-    label: 'Refresh Token',
-    description: 'Issue refresh tokens to keep sessions active',
-  },
-]
 
 export function OAuthAppManager() {
   const router = useRouter()
@@ -527,17 +507,7 @@ export function OAuthAppManager() {
         </Button>
       </div>
 
-      {/* Task 10f26dc6: say when a manual client is (not) needed, so OAuth-capable
-          assistants stop getting redundant Settings clients. Copy via i18n. */}
-      <Card>
-        <CardContent className="pt-6 text-sm space-y-2">
-          <p className="font-medium theme-text-primary">
-            {t('settingsPages.apiAccess.clientGuide.title')}
-          </p>
-          <p className="theme-text-muted">{t('settingsPages.apiAccess.clientGuide.dcrNote')}</p>
-          <p className="theme-text-muted">{t('settingsPages.apiAccess.clientGuide.manualNote')}</p>
-        </CardContent>
-      </Card>
+      <OAuthClientGuide />
 
       {/* Client List */}
       {clients.length === 0 ? (

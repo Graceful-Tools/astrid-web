@@ -91,8 +91,16 @@ const BUDGETS: Record<string, number> = {
   // instead of as the OAuth client's owner. The identity itself lives in
   // mcp/agent-identity.ts — what landed here is the field, the observe() call
   // on the queue response, and the one spread in the comment body.
-  'mcp/mcp-server-oauth.ts': 702,
-  'components/oauth-app-manager.tsx': 919,
+  // 702 → 609: the MCP OAuth fixes (tasks 11f578e0, 1ae5501e) added a
+  // process-level token cache here. Rather than raise the number, the
+  // transport moved out: mcp/oauth-api-client.ts holds OAuthAPIClient and
+  // mcp/hosted-token-cache.ts the cache, leaving this file the MCP protocol
+  // surface. Locking the gain in.
+  'mcp/mcp-server-oauth.ts': 609,
+  // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
+  // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
+  // asked as a form field — moved to components/oauth-client-guide.tsx.
+  'components/oauth-app-manager.tsx': 901,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.
   'lib/email-reminder-service.ts': 791,
