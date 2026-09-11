@@ -286,7 +286,6 @@ model ProjectMember {
   user      User     @relation("ProjectMembership", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
-  @@index([projectId])
   @@index([userId])
   @@index([projectId, role])
 }
@@ -386,7 +385,6 @@ model Task {
   @@index([updatedAt])
   @@index([completed, priority, createdAt])
   @@index([dueDateTime])
-  @@index([reminderTime])
   @@index([priority])
   @@index([assigneeId, completed])
   @@index([createdAt, completed])
@@ -565,9 +563,7 @@ model Invitation {
   receiver   User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
   sender     User?            @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
 
-  @@index([email])
   @@index([status])
-  @@index([senderId])
   @@index([receiverId])
   @@index([type])
   @@index([expiresAt])
@@ -620,7 +616,6 @@ model ListMember {
   user      User     @relation("ListMembership", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([listId, userId])
-  @@index([listId])
   @@index([userId])
   @@index([listId, role])
 }
