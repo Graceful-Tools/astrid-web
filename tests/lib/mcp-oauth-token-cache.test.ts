@@ -95,6 +95,23 @@ describe('MCP OAuth process-level token cache (task 11f578e0)', () => {
     expect(tokenCalls(fetchMock)).toHaveLength(2)
   })
 
+  it('does not retain expired entries for credentials that never return (task 11f578e0 follow-up)', async () => {
+    // The hosted endpoint serves many users' credentials from one process, so
+    // an entry per credential set that is never reclaimed is an unbounded
+    // Map. Expired entries must not survive later writes.
+    const fetchMock = mockTokenEndpoint(200) // under the 5-minute margin: stale on arrival
+    const { OAuthAPIClient, hostedTokenCacheSize } = await import('@/mcp/mcp-server-oauth')
+
+    for (let i = 0; i < 5; i++) {
+      await new OAuthAPIClient('https://example.com', `client-${i}`, `secret-${i}`).makeRequest(
+        '/api/v1/lists'
+      )
+    }
+
+    expect(tokenCalls(fetchMock)).toHaveLength(5)
+    expect(hostedTokenCacheSize()).toBeLessThanOrEqual(1)
+  })
+
   it('never hits the token endpoint for static access-token sessions', async () => {
     const fetchMock = mockTokenEndpoint()
     const { OAuthAPIClient } = await import('@/mcp/mcp-server-oauth')

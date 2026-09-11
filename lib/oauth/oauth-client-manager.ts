@@ -318,9 +318,17 @@ export async function validateOAuthClient(
     ) {
       return null
     }
+  } else if (client.clientSecret) {
+    // authMethod === 'none' with a STORED secret is a data inconsistency,
+    // not a client quirk — something wrote a confidential secret against a
+    // public auth method. Keep failing closed there: ignoring the parameter
+    // would let anyone holding only the clientId authenticate as a client
+    // whose secret was meant to be required.
+    return null
   }
-  // authMethod === 'none': public client. Any supplied client_secret is
-  // ignored — there is nothing to verify it against (task 1ae5501e).
+  // authMethod === 'none' with no stored secret: public client. A supplied
+  // client_secret is ignored — there is nothing to verify it against, and
+  // generic OAuth clients attach one anyway (task 1ae5501e).
 
   return { ...client, tokenEndpointAuthMethod: authMethod }
 }

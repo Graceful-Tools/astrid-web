@@ -60,6 +60,25 @@ function hostedTokenCacheKey(baseUrl: string, clientId: string, clientSecret: st
     .digest("hex")
 }
 
+/**
+ * Drop entries past their expiry. The hosted endpoint serves many users'
+ * credentials from one process, and a credential set that stops connecting
+ * is never looked up again — so without this the Map only ever grows. Called
+ * on write, which is the only moment the map can gain an entry.
+ */
+function sweepExpiredHostedTokens(now: number): void {
+  for (const [key, entry] of hostedTokenCache) {
+    if (now >= entry.expiry) {
+      hostedTokenCache.delete(key)
+    }
+  }
+}
+
+/** Test-only view of the cache's size (task 11f578e0). */
+export function hostedTokenCacheSize(): number {
+  return hostedTokenCache.size
+}
+
 // OAuth API Client
 interface OAuthTokenResponse {
   access_token: string
@@ -286,6 +305,7 @@ export class OAuthAPIClient {
     this.accessToken = data.access_token
     // Set expiry to 5 minutes before actual expiry for safety
     this.tokenExpiry = Date.now() + (data.expires_in - 300) * 1000
+    sweepExpiredHostedTokens(Date.now())
     hostedTokenCache.set(cacheKey, {
       accessToken: this.accessToken,
       expiry: this.tokenExpiry,

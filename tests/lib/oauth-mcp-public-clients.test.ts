@@ -101,6 +101,31 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     )
   })
 
+  it('fails closed when a public client row carries a stored secret (task 1ae5501e follow-up)', async () => {
+    // A row marked 'none' that nonetheless has a clientSecret is a data
+    // inconsistency, not a client quirk: something wrote a confidential
+    // secret against a public auth method. Ignoring the parameter there
+    // would let anyone holding only the clientId authenticate as a client
+    // whose secret was meant to be required, so this case stays rejected.
+    mockPrisma.oAuthClient.findUnique.mockResolvedValue({
+      id: 'db-client',
+      clientId: 'astrid_client_inconsistent',
+      clientSecret: 'hashed-secret-that-should-not-be-here',
+      tokenEndpointAuthMethod: 'none',
+      userId: null,
+      redirectUris: ['https://vscode.dev/redirect'],
+      grantTypes: ['authorization_code', 'refresh_token'],
+      scopes: ['tasks:read'],
+      isActive: true,
+      user: null,
+    })
+
+    await expect(validateOAuthClient('astrid_client_inconsistent')).resolves.toBeNull()
+    await expect(
+      validateOAuthClient('astrid_client_inconsistent', 'invented-secret'),
+    ).resolves.toBeNull()
+  })
+
   it('verifies S256 PKCE and rejects a wrong verifier', () => {
     const verifier = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~'
     const challenge = 'ImpiCd8pp4MveCNnbIS7-GXEtB0xF5HMIDoWqvGA5ig'
