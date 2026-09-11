@@ -94,7 +94,13 @@ export function validatePublicClientRegistration(
 
   const authMethod = body.token_endpoint_auth_method ?? 'none'
   if (authMethod !== 'none') {
-    throw new Error('MCP dynamic registration supports public clients only')
+    // Task 4b41ab22: the authorization-server metadata advertises
+    // client_secret_post, so connectors whose DCR default is confidential
+    // land here. Fail with an actionable next step, not an opaque rejection.
+    throw new Error(
+      'token_endpoint_auth_method must be "none" for dynamic registration; ' +
+        'create confidential clients in Settings → API Access'
+    )
   }
 
   const grantTypes = body.grant_types ?? ['authorization_code', 'refresh_token']
@@ -257,8 +263,12 @@ export async function validateClientCredentials(
 
 /**
  * Authenticate either a confidential client or an RFC 7591 public client.
- * Supplying a secret for a public client fails closed rather than silently
- * treating it as a different authentication method.
+ *
+ * A supplied client_secret is ignored for public clients (authMethod
+ * 'none'): there is no stored secret to verify against, and generic OAuth
+ * clients routinely attach the parameter anyway. S256 PKCE — mandatory at
+ * authorize time and verified with timingSafeEqual at redemption — is the
+ * real protection for public clients (task 1ae5501e).
  */
 export async function validateOAuthClient(
   clientId: string,
@@ -299,16 +309,18 @@ export async function validateOAuthClient(
   }
 
   const authMethod = client.tokenEndpointAuthMethod || 'client_secret_post'
-  if (authMethod === 'none') {
-    if (clientSecret || client.clientSecret) return null
-  } else if (
-    authMethod !== 'client_secret_post' ||
-    !clientSecret ||
-    !client.clientSecret ||
-    !verifyClientSecret(clientSecret, client.clientSecret)
-  ) {
-    return null
+  if (authMethod !== 'none') {
+    if (
+      authMethod !== 'client_secret_post' ||
+      !clientSecret ||
+      !client.clientSecret ||
+      !verifyClientSecret(clientSecret, client.clientSecret)
+    ) {
+      return null
+    }
   }
+  // authMethod === 'none': public client. Any supplied client_secret is
+  // ignored — there is nothing to verify it against (task 1ae5501e).
 
   return { ...client, tokenEndpointAuthMethod: authMethod }
 }

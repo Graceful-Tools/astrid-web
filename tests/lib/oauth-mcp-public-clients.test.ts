@@ -69,7 +69,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     expect(() => validatePublicClientRegistration({
       redirect_uris: ['https://vscode.dev/redirect'],
       token_endpoint_auth_method: 'client_secret_post',
-    })).toThrow(/public/i)
+    })).toThrow(/API Access/)
   })
 
   it('authenticates a registered public client without conflating it with a confidential client', async () => {
@@ -89,7 +89,16 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     await expect(validateOAuthClient('astrid_client_dynamic')).resolves.toEqual(
       expect.objectContaining({ tokenEndpointAuthMethod: 'none' }),
     )
-    await expect(validateOAuthClient('astrid_client_dynamic', 'invented-secret')).resolves.toBeNull()
+    // Regression (task 1ae5501e): generic OAuth clients attach a
+    // client_secret parameter even for public clients. There is no stored
+    // secret to verify against, so the parameter must be ignored — the
+    // exchange must not 401. PKCE is the real protection for public clients.
+    await expect(validateOAuthClient('astrid_client_dynamic', 'invented-secret')).resolves.toEqual(
+      expect.objectContaining({ tokenEndpointAuthMethod: 'none' }),
+    )
+    await expect(validateOAuthClient('astrid_client_dynamic', '')).resolves.toEqual(
+      expect.objectContaining({ tokenEndpointAuthMethod: 'none' }),
+    )
   })
 
   it('verifies S256 PKCE and rejects a wrong verifier', () => {
