@@ -137,4 +137,33 @@ describe('/mcp Streamable HTTP endpoint (task a0e0808c)', () => {
     expect(headers.Allow).toContain('POST')
     expect(headers.Allow).toContain('GET')
   })
+
+  it('lets the documented X-Astrid-* headers through preflight (task 1b4260ec)', async () => {
+    const req = Object.assign(Readable.from([]), { method: 'OPTIONS', headers: {}, query: {} })
+    const headers: Record<string, string> = {}
+    const res = {
+      status() { return this },
+      json() { return this },
+      end() { return this },
+      setHeader(k: string, v: string) { headers[k] = v },
+      get headersSent() { return false },
+    }
+
+    await handler(req as never, res as never)
+
+    // extractAuthContext reads these; a browser client fails preflight
+    // before the first request if any is missing.
+    const allowed = (headers['Access-Control-Allow-Headers'] || '')
+      .split(',')
+      .map(h => h.trim().toLowerCase())
+    for (const header of [
+      'x-astrid-access-token',
+      'x-astrid-client-id',
+      'x-astrid-client-secret',
+      'x-astrid-list-id',
+      'x-astrid-api-base-url',
+    ]) {
+      expect(allowed).toContain(header)
+    }
+  })
 })
