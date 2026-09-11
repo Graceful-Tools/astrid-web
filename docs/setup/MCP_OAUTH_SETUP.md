@@ -6,6 +6,15 @@
 
 The Astrid MCP Server V3 (OAuth) enables AI assistants like Claude Desktop and ChatGPT to interact with your Astrid tasks using OAuth 2.0 authentication. This eliminates the need for manual token provisioning and provides secure, scoped access to your task lists.
 
+## Which client do you need?
+
+| Client type | Connection | Create a client in Settings? |
+|---|---|---|
+| OAuth-capable assistant (VS Code / Copilot, ChatGPT, generic MCP connector) | Hosted MCP at `https://astrid.cc/mcp` with RFC 7591 dynamic client registration + S256 PKCE | **No** — the client registers itself on first connect |
+| Server integration with a static secret (scripts, the stdio MCP server, custom `X-Astrid-*` headers) | `client_credentials` grant | **Yes** — create it in Settings → API Access |
+
+If your assistant opens a browser to sign you in to Astrid, you are on the first row: stop here and skip client creation. Only the second row needs a manually created client.
+
 ## Architecture
 
 ```
@@ -138,58 +147,57 @@ never started; anything non-JSON on stdout will break a real client.
 
 ### For Claude Desktop
 
-**1. Locate Claude Desktop Configuration File**
+Claude Desktop launches the MCP server as a subprocess, so it uses the
+launcher (`mcp/astrid-mcp-launch.js`) — the same entry point Claude Code
+uses. **Credentials live in `.env.local`, never in the config JSON.**
 
-The configuration file location varies by platform:
+**1. Build the server and set up credentials**
+
+From your checkout:
+
+```bash
+npm run build:mcp:oauth   # required first — dist/ is gitignored
+```
+
+Create `.env.local` in the repo root (it is gitignored — secrets stay out of
+version control):
+
+```
+ASTRID_OAUTH_CLIENT_ID=astrid_client_xxxxxxxxxxxxx
+ASTRID_OAUTH_CLIENT_SECRET=your_secret_here
+ASTRID_OAUTH_LIST_ID=your-list-uuid-here
+ASTRID_API_BASE_URL=https://astrid.cc
+```
+
+**2. Locate the Claude Desktop configuration file**
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-**2. Add MCP Server Configuration**
-
-Edit the configuration file and add:
+**3. Add the MCP server entry** — no `env` block, no secrets:
 
 ```json
 {
   "mcpServers": {
-    "astrid-oauth": {
+    "astrid": {
       "command": "node",
-      "args": ["/absolute/path/to/your/project/dist/mcp/mcp-server-oauth.js"],
-      "env": {
-        "ASTRID_OAUTH_CLIENT_ID": "astrid_client_xxxxxxxxxxxxx",
-        "ASTRID_OAUTH_CLIENT_SECRET": "your_secret_here",
-        "ASTRID_OAUTH_LIST_ID": "your-list-uuid-here",
-        "ASTRID_API_BASE_URL": "https://astrid.cc"
-      }
+      "args": ["/absolute/path/to/astrid-web/mcp/astrid-mcp-launch.js"]
     }
   }
 }
 ```
+
+The launcher loads `.env.local`, points logging at stderr (stdout is the
+JSON-RPC channel), and fails with an actionable message when the build
+output is missing.
 
 **Important:**
-- Replace `/absolute/path/to/your/project` with the actual absolute path
+- Replace `/absolute/path/to/astrid-web` with the actual absolute path
 - Use forward slashes `/` even on Windows
-- Set `ASTRID_API_BASE_URL` to `http://localhost:3000` for local development
-
-**3. Example Configuration**
-
-```json
-{
-  "mcpServers": {
-    "astrid-oauth": {
-      "command": "node",
-      "args": ["/Users/jonparis/Documents/mycode/astrid-res/www/dist/mcp/mcp-server-oauth.js"],
-      "env": {
-        "ASTRID_OAUTH_CLIENT_ID": "astrid_client_abc123def456",
-        "ASTRID_OAUTH_CLIENT_SECRET": "secret_xyz789uvw012",
-        "ASTRID_OAUTH_LIST_ID": "a623f322-4c3c-49b5-8a94-d2d9f00c82ba",
-        "ASTRID_API_BASE_URL": "https://astrid.cc"
-      }
-    }
-  }
-}
-```
+- Do not paste credentials into the config JSON: the file is easy to leak
+  (backups, screenshots, dotfile repos), while `.env.local` is gitignored
+  and covered by the secret-rotation scripts
 
 **4. Restart Claude Desktop**
 
@@ -467,7 +475,9 @@ Get full details for task [task-id] including all comments
 
 ### Environment Variables
 
-All configuration is via environment variables in the `claude_desktop_config.json`:
+All configuration is via environment variables. Claude Desktop (and Claude
+Code) read them from `.env.local` through the launcher; other hosts may set
+them in the process environment directly:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -512,6 +522,23 @@ If you set `ASTRID_OAUTH_LIST_ID`:
 3. **Check scopes:**
    - Required: `tasks:read`, `tasks:write`, `lists:read`, `comments:read`, `comments:write`
 
+### Cloudflare 403 / error 1010 (`browser_signature_banned`)
+
+**Problem:** Token or API requests fail with HTTP 403 and the response body
+mentions `error code: 1010` or `browser_signature_banned`.
+
+**This is not invalid credentials.** It is Cloudflare's bot protection
+refusing your HTTP client's TLS fingerprint. Do not rotate your client
+secret — it will not help.
+
+**Solutions:**
+1. **Switch HTTP clients.** `curl` works where Python `urllib` fails, because
+   it is `urllib`'s fingerprint that is banned, not your account. If a script
+   fails, retry the same request with `curl` to confirm.
+2. **Run the validator:** `npm run validate:mcp:oauth` detects the 1010
+   signature and tells you so explicitly instead of reporting a generic
+   token failure.
+
 ### "No list ID provided and no default list configured"
 
 **Problem:** No list specified and no default configured
@@ -525,9 +552,18 @@ If you set `ASTRID_OAUTH_LIST_ID`:
 **Problem:** Token expired or invalid
 
 **Solution:**
-- Tokens are automatically refreshed
-- If issue persists, check OAuth client is still active
-- Restart Claude Desktop to clear token cache
+- Bearer access tokens expire after **one hour**.
+- The stdio MCP server refreshes automatically: it re-exchanges your client
+  credentials before the hour is up, so a long-running local server never
+  goes stale.
+- The **hosted** endpoint (`https://astrid.cc/mcp`) does *not* refresh a
+  Bearer token you pasted in — once the hour passes it stays expired.
+  Re-fetch a token from `/api/v1/oauth/token`, or send Basic auth
+  (`Authorization: Basic base64(client_id:client_secret)`) / the
+  `X-Astrid-Client-Id` + `X-Astrid-Client-Secret` headers instead: the server
+  exchanges those for a fresh token on demand.
+- If the issue persists, check the OAuth client is still active in
+  Settings → API Access.
 
 ### Claude Desktop not seeing the MCP server
 
@@ -579,7 +615,10 @@ Enable detailed logging:
 
 - **List-scoped:** Access is limited to specified list(s)
 - **OAuth scopes:** Further restricts what operations are allowed
-- **Token expiry:** Tokens expire and are refreshed automatically
+- **Token expiry:** Bearer access tokens expire after one hour. The stdio
+  MCP server re-exchanges client credentials automatically before expiry;
+  the hosted endpoint does not refresh a pasted Bearer token — re-fetch it
+  or use Basic auth for on-demand exchange.
 - **Revocation:** Disable OAuth client in Astrid to revoke access immediately
 
 ### Token Storage at Rest

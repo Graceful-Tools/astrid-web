@@ -31,6 +31,36 @@ interface OAuthTokenResponse {
   scope: string
 }
 
+/**
+ * Detect Cloudflare bot/TLS-fingerprint blocking (task e58bf2c1).
+ *
+ * A 403 carrying error code 1010 (browser_signature_banned) is Cloudflare
+ * refusing the client's TLS fingerprint — not invalid credentials. curl
+ * works where Python urllib fails, because it is urllib's fingerprint that
+ * is banned. Returns an actionable message, or null when this is not a
+ * Cloudflare block. Reads a clone so the caller's body stays intact.
+ */
+export async function detectCloudflareBlock(response: Response): Promise<string | null> {
+  if (response.status !== 403) return null
+  let body = ''
+  try {
+    body = await response.clone().text()
+  } catch {
+    return null
+  }
+  if (!/error code:\s*1010/i.test(body) && !/browser_signature_banned/i.test(body)) {
+    return null
+  }
+  const cfRay = response.headers.get('cf-ray')
+  return (
+    'Cloudflare blocked this request (error 1010, browser_signature_banned): ' +
+    'this is bot/TLS-fingerprint protection, not invalid credentials — ' +
+    'rotating your client secret will not help. ' +
+    (cfRay ? `cf-ray: ${cfRay}. ` : '') +
+    'Retry from a different HTTP client: curl works where Python urllib fails.'
+  )
+}
+
 async function validateEnvironmentVariables(): Promise<ValidationResult> {
   console.log('📋 Validating environment variables...\n')
 
@@ -121,6 +151,16 @@ async function validateOAuthConnection(): Promise<ValidationResult> {
     })
 
     if (!response.ok) {
+      // Task e58bf2c1: a 1010 is bot blocking, not bad credentials — say so
+      // explicitly instead of sending the user on a credential rotation chase.
+      const cloudflareBlock = await detectCloudflareBlock(response)
+      if (cloudflareBlock) {
+        return {
+          success: false,
+          message: 'Request blocked by Cloudflare bot protection',
+          details: cloudflareBlock,
+        }
+      }
       const error = await response.json()
       return {
         success: false,
