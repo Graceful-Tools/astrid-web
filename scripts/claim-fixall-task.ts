@@ -1,28 +1,24 @@
 #!/usr/bin/env tsx
 
 import { loadScriptEnv } from './lib/load-env'
+import { parseClaimArgs } from './lib/fixall-claim-args'
 
 loadScriptEnv()
 
-const positional = process.argv.slice(2).filter(arg => !arg.startsWith("--"))
-const [taskId, action, commentWatermark = ""] = positional
-
 /**
- * Which harness is claiming. Omitted means Copilot, because
- * .github/workflows/fixall.yml calls this with positional arguments only and is
- * deployed on its own schedule — the default has to keep meaning what it meant.
- * A local Claude Code or Codex loop passes its own mailbox so the task is
- * assigned to the harness that is actually going to do the work.
+ * Argv parsing lives in scripts/lib/fixall-claim-args.ts so it can be tested.
+ * It used to be a `filter(arg => !arg.startsWith("--"))` here, which dropped
+ * `--agent` but kept its value as the comment watermark — see AWTD-922.
  */
-const agentIndex = process.argv.indexOf("--agent")
-const agent = agentIndex === -1 ? undefined : process.argv[agentIndex + 1]
-
-if (!taskId || !action) {
-  console.error(
-    "Usage: claim-fixall-task.ts <task-id> <ready|recheck|review> [comment-watermark] [--agent <mailbox>]",
-  )
+let args
+try {
+  args = parseClaimArgs(process.argv.slice(2))
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error)
   process.exit(1)
 }
+
+const { taskId, action, commentWatermark, agent } = args
 
 const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
 const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -54,7 +50,7 @@ async function main() {
     },
     body: JSON.stringify({
       action,
-      commentWatermark: commentWatermark || null,
+      commentWatermark,
       ...(agent ? { agent } : {}),
     }),
   })
@@ -63,7 +59,17 @@ async function main() {
     // Exit 2, not 1: another session claimed it first. That is an ordinary
     // outcome of two loops sharing a board, and the caller should move to the
     // next task rather than treat it as a failure.
-    console.error(`CLAIM_CONFLICT ${taskId}: claimed by someone else, or no longer eligible`)
+    //
+    // Include the server's reason. The route returns 409 for TWO different
+    // things — a lost race, and "no active agent account for <mailbox>" — and
+    // printing one fixed sentence for both sent a /fixall run looking for a
+    // peer session that did not exist (AWTD-922).
+    const reason = await response.text().catch(() => "")
+    console.error(
+      `CLAIM_CONFLICT ${taskId}: claimed by someone else, or no longer eligible${
+        reason ? ` — server said: ${reason}` : ""
+      }`,
+    )
     process.exit(2)
   }
   if (!response.ok) {
