@@ -691,7 +691,7 @@
       "deleteMyAccount": "マイアカウントを削除",
       "confirmTitle": "アカウント削除の確認",
       "confirmDescription": "この操作は永続的で元に戻せません。",
-      "typeToConfirm": "確認のためにアカウントを削除と入力",
+      "typeToConfirm": "確認のために {phrase} と入力",
       "permanentlyDelete": "アカウントを完全に削除",
       "deleting": "削除中..."
     },

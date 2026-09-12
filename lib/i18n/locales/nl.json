@@ -691,7 +691,7 @@
       "deleteMyAccount": "Mijn Account Verwijderen",
       "confirmTitle": "Accountverwijdering Bevestigen",
       "confirmDescription": "Deze actie is permanent en kan niet ongedaan worden gemaakt.",
-      "typeToConfirm": "Typ VERWIJDER MIJN ACCOUNT om te bevestigen",
+      "typeToConfirm": "Typ {phrase} om te bevestigen",
       "permanentlyDelete": "Account Permanent Verwijderen",
       "deleting": "Verwijderen..."
     },

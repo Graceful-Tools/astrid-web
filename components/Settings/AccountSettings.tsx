@@ -48,6 +48,7 @@ import { DataExportSection } from "./DataExportSection"
 import { AccountDeletionSection } from "./AccountDeletionSection"
 import { PasskeyManagementSection } from "./PasskeyManagementSection"
 import { ProfileSection } from "./ProfileSection"
+import { ACCOUNT_DELETION_CONFIRMATION_PHRASE } from "@/lib/account-deletion"
 
 export interface AccountData {
   id: string
@@ -228,10 +229,10 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
   }
 
   const handleDeleteAccount = async (confirmationText: string) => {
-    if (confirmationText !== "DELETE MY ACCOUNT") {
+    if (confirmationText !== ACCOUNT_DELETION_CONFIRMATION_PHRASE) {
       toast({
         title: "Error",
-        description: "Please type 'DELETE MY ACCOUNT' to confirm.",
+        description: `Please type '${ACCOUNT_DELETION_CONFIRMATION_PHRASE}' to confirm.`,
         duration: 5000,
       })
       return

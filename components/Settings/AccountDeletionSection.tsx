@@ -16,8 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, RefreshCw, Trash2 } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
-
-const REQUIRED_CONFIRMATION_TEXT = "DELETE MY ACCOUNT"
+import { ACCOUNT_DELETION_CONFIRMATION_PHRASE } from "@/lib/account-deletion"
 
 /**
  * Stage 14c: account-deletion danger zone + confirmation dialog,
@@ -29,9 +28,12 @@ const REQUIRED_CONFIRMATION_TEXT = "DELETE MY ACCOUNT"
  * push after a successful delete, so the actual mutation has to stay
  * with the page-level component.
  *
- * The required confirmation text ("DELETE MY ACCOUNT") is enforced both
- * here (button disabled) and in the parent's onConfirmDelete handler
- * (defense in depth).
+ * The required confirmation text is enforced both here (button disabled)
+ * and in the parent's onConfirmDelete handler (defense in depth). It comes
+ * from lib/account-deletion rather than a literal, and the prompt
+ * interpolates that same value — every non-English locale had translated the
+ * token while the servers still required the English one, so the dialog was
+ * asking eleven languages for a phrase that could never work (AWTD-921).
  */
 export interface AccountDeletionSectionProps {
   deleting: boolean
@@ -49,7 +51,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
   }
 
   const handleConfirm = async () => {
-    if (deleteConfirmationText !== REQUIRED_CONFIRMATION_TEXT) return
+    if (deleteConfirmationText !== ACCOUNT_DELETION_CONFIRMATION_PHRASE) return
     await onConfirmDelete(deleteConfirmationText)
   }
 
@@ -112,13 +114,15 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
 
             <div>
               <Label htmlFor="deleteConfirmation" className="theme-text-secondary">
-                {t("settingsPages.deleteAccount.typeToConfirm")}
+                {t("settingsPages.deleteAccount.typeToConfirm", {
+                  phrase: ACCOUNT_DELETION_CONFIRMATION_PHRASE,
+                })}
               </Label>
               <Input
                 id="deleteConfirmation"
                 value={deleteConfirmationText}
                 onChange={e => setDeleteConfirmationText(e.target.value)}
-                placeholder={REQUIRED_CONFIRMATION_TEXT}
+                placeholder={ACCOUNT_DELETION_CONFIRMATION_PHRASE}
                 className="theme-input theme-text-primary font-mono"
               />
             </div>
@@ -135,7 +139,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
             <Button
               variant="destructive"
               onClick={handleConfirm}
-              disabled={deleting || deleteConfirmationText !== REQUIRED_CONFIRMATION_TEXT}
+              disabled={deleting || deleteConfirmationText !== ACCOUNT_DELETION_CONFIRMATION_PHRASE}
               className="bg-red-600 hover:bg-red-700"
             >
               {deleting ? (

@@ -3,6 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { deleteObject } from "@/lib/secure-storage"
 import { createLogger } from '@/lib/logger'
+import { ACCOUNT_DELETION_CONFIRMATION_PHRASE } from '@/lib/account-deletion'
 
 const log = createLogger('account.delete')
 
@@ -45,9 +46,9 @@ export async function POST(request: NextRequest) {
     const { confirmationText } = body
 
     // Validate confirmation text
-    if (confirmationText !== "DELETE MY ACCOUNT") {
+    if (confirmationText !== ACCOUNT_DELETION_CONFIRMATION_PHRASE) {
       return NextResponse.json(
-        { error: "Invalid confirmation text. Please type 'DELETE MY ACCOUNT' exactly." },
+        { error: `Invalid confirmation text. Please type '${ACCOUNT_DELETION_CONFIRMATION_PHRASE}' exactly.` },
         { status: 400 }
       )
     }

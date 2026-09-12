@@ -691,7 +691,7 @@
       "deleteMyAccount": "내 계정 삭제",
       "confirmTitle": "계정 삭제 확인",
       "confirmDescription": "이 작업은 영구적이며 취소할 수 없습니다.",
-      "typeToConfirm": "확인을 위해 계정 삭제 입력",
+      "typeToConfirm": "확인을 위해 {phrase} 입력",
       "permanentlyDelete": "계정 영구 삭제",
       "deleting": "삭제 중..."
     },

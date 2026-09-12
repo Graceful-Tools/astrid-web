@@ -691,7 +691,7 @@
       "deleteMyAccount": "Удалить мой аккаунт",
       "confirmTitle": "Подтвердите удаление аккаунта",
       "confirmDescription": "Это действие необратимо.",
-      "typeToConfirm": "Введите УДАЛИТЬ МОЙ АККАУНТ для подтверждения",
+      "typeToConfirm": "Введите {phrase} для подтверждения",
       "permanentlyDelete": "Удалить аккаунт навсегда",
       "deleting": "Удаление..."
     },

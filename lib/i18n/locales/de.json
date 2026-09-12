@@ -691,7 +691,7 @@
       "deleteMyAccount": "Mein Konto löschen",
       "confirmTitle": "Kontolöschung bestätigen",
       "confirmDescription": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
-      "typeToConfirm": "Geben Sie MEIN KONTO LÖSCHEN zur Bestätigung ein",
+      "typeToConfirm": "Geben Sie {phrase} zur Bestätigung ein",
       "permanentlyDelete": "Konto dauerhaft löschen",
       "deleting": "Löschen..."
     },
