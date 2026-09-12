@@ -431,6 +431,62 @@ Export account data.
 
 ---
 
+## App Release Endpoints
+
+### GET `/api/v1/app-version`
+What version of the iOS or Mac app is released on the App Store, for the
+in-app Update card (AWTD-920, iOS AITD-383).
+
+**Query parameters:**
+
+| Name | Required | Values |
+|------|----------|--------|
+| `platform` | yes | `ios`, `mac` |
+
+`platform` is required and never inferred. The two apps version independently,
+so answering the wrong one's number would prompt whichever app is behind the
+other to "update" on every launch.
+
+**Response:**
+```json
+{
+  "latestVersion": "1.9.2",
+  "minimumVersion": "1.5.0",
+  "updateUrl": "https://apps.apple.com/app/id123456789",
+  "releaseNotes": "..."
+}
+```
+
+Every field is optional and absent fields are **omitted rather than null**, so
+`{}` is a valid response meaning "no update known". Two fields are
+load-bearing on the client:
+
+- **`latestVersion`** — nothing happens without it. The client prompts only
+  when this is *strictly* newer than the running build, compared component-wise
+  and numerically, so `1.10.0` is newer than `1.9.2`. Internal TestFlight
+  builds routinely run ahead of the store, and anything looser would tell a
+  tester to downgrade.
+- **`updateUrl`** — **no `updateUrl`, no card**, even when `latestVersion` is
+  newer: the client will not offer an update it cannot send the user to. Only
+  `https`, `http`, `macappstore` and `itms-apps` are accepted, on both sides —
+  the value ends up in `openURL`. The server drops a URL with any other scheme
+  rather than serving it, so a bad value degrades to "no update known" instead
+  of a card with a dead button.
+
+The client checks once per launch, never polls, and remembers dismissal per
+version.
+
+**Errors:** `400` for a missing or unrecognised `platform` — never another
+platform's answer. `401` if unauthenticated.
+
+**Source of truth:** the hand-maintained table in `lib/app-version.ts`, which
+a release updates. It is **empty by default**, which is the safe state: the
+clients treat any failure or empty response as "no update known" and show
+nothing, so the endpoint is inert until someone fills in a real store version
+and a verified `updateUrl`.
+
+---
+
 ## File Upload
 
 ### POST `/api/upload`
@@ -588,3 +644,4 @@ X-RateLimit-Reset: 1640000000
 ### v1 (Current)
 - Initial stable API release
 - All endpoints documented above
+- Added `GET /api/v1/app-version` for the iOS/Mac Update card (AWTD-920)
