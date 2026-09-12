@@ -272,18 +272,26 @@ describe('v1 contract — AgentComment shape', () => {
 
 describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
   const EXPECTED_KEYS = [
-    'id', 'name', 'description', 'color', 'imageUrl', 'privacy',
+    'id', 'ownerId', 'name', 'description', 'color', 'imageUrl', 'privacy',
     'isFavorite', 'favoriteOrder', 'owner', 'listMembers', 'invitations',
     'taskCount', 'isVirtual', 'virtualListType', 'sortBy', 'manualSortOrder',
     'filterPriority', 'filterAssignee', 'filterDueDate', 'filterCompletion',
     'filterRepeating', 'filterAssignedBy', 'filterInLists',
     'defaultPriority', 'defaultRepeating', 'defaultAssigneeId',
-    'defaultIsPrivate', 'defaultDueDate',
+    'defaultAssignee', 'defaultIsPrivate', 'defaultDueDate', 'defaultDueTime',
+    'aiAgentsEnabled', 'aiAgentConfig', 'publicListType', 'showSubtasks',
     'githubRepositoryId', 'preferredAiProvider',
     // Board-related fields (added 2026-05-11). Required for iOS to render
     // project status boards and the per-list "Recently completed" window.
-    'projectId', 'listType', 'statusRole', 'statusOrder',
-    'statusDescription', 'statusCompleted', 'recentlyCompletedWindow',
+    //
+    // The four TaskList.status* keys used to be listed here and were removed
+    // from V1List by AWTD-853, which retired the fields: the v1 route no
+    // longer reads or writes them, and ManageStatusesPanel goes through
+    // /api/statuses instead. The pin kept them for weeks anyway — the
+    // `satisfies` below should have caught that the moment they left the
+    // interface, and did not, because nothing typechecked this file
+    // (AWTD-908). Per-list status now lives on the status columns themselves.
+    'projectId', 'listType', 'recentlyCompletedWindow',
     'createdAt', 'updatedAt',
   ] as const satisfies ReadonlyArray<keyof V1List>
 
@@ -294,7 +302,8 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
     // V1List, `satisfies` on EXPECTED_KEYS fails. Either way, the contract
     // change is forced through this test.
     const sample: V1List = {
-      id: 'l1', name: 'List', description: '', color: '#000', imageUrl: null,
+      id: 'l1', ownerId: 'u1', name: 'List', description: '', color: '#000',
+      imageUrl: null,
       privacy: 'PRIVATE', isFavorite: false, favoriteOrder: null,
       owner: null, listMembers: [], invitations: [],
       taskCount: 0, isVirtual: false, virtualListType: null,
@@ -303,11 +312,14 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
       filterCompletion: null, filterRepeating: null, filterAssignedBy: null,
       filterInLists: null,
       defaultPriority: null, defaultRepeating: null, defaultAssigneeId: null,
-      defaultIsPrivate: null, defaultDueDate: null,
+      defaultAssignee: null,
+      defaultIsPrivate: null, defaultDueDate: null, defaultDueTime: null,
+      aiAgentsEnabled: [],
+      aiAgentConfig: { enabledTypes: [], defaultAgentId: null },
+      publicListType: null, showSubtasks: false,
       githubRepositoryId: null, preferredAiProvider: null,
       projectId: null, listType: 'regular',
-      statusRole: null, statusOrder: null, statusDescription: null,
-      statusCompleted: false, recentlyCompletedWindow: null,
+      recentlyCompletedWindow: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }

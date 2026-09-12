@@ -211,6 +211,22 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false, // Type errors need manual fix
     },
     {
+      // The check above uses the root tsconfig.json, which EXCLUDES
+      // `tests/**/*` — so type errors in the test tree were reported by no
+      // gate at all (AWTD-908). Harmless for a test that asserts at runtime;
+      // not harmless for tests/api/v1-contract.test.ts, whose whole mechanism
+      // is `as const satisfies ReadonlyArray<keyof T>` — a compile-time
+      // assertion nothing was compiling. It sat green while four keys left
+      // V1List and seven more were added to it.
+      //
+      // Scoped narrowly on purpose: the whole tree reports ~1474 errors across
+      // ~347 files. See tsconfig.contract-tests.json.
+      name: 'Contract Test Types',
+      command: 'npm run typecheck:contract-tests',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false, // A drifted contract pin is a decision, not a fix
+    },
+    {
       name: 'ESLint',
       command: 'npm run lint',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,

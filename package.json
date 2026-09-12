@@ -71,6 +71,7 @@
     "docs:scripts": "tsx scripts/report-script-inventory.ts",
     "lint": "eslint . --cache",
     "typecheck": "tsc --noEmit",
+    "typecheck:contract-tests": "tsc -p tsconfig.contract-tests.json --noEmit",
     "start": "next start",
     "test": "vitest",
     "test:run": "vitest run",

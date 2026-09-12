@@ -1,0 +1,36 @@
+{
+  // Typechecks the tests whose job is a TYPE-LEVEL pin. (AWTD-908)
+  //
+  // The root tsconfig.json excludes `tests/**/*`, and nothing else compiled
+  // the test tree: `npm run typecheck`, the `tsc --noEmit` inside predeploy,
+  // and the lint-staged hook all use that same excluded config, and vitest
+  // does not enable its `typecheck` option. So TypeScript errors under
+  // `tests/` were reported by no gate at all.
+  //
+  // That is harmless for a test that asserts at runtime, and NOT harmless for
+  // one whose whole mechanism is the compiler. tests/api/v1-contract.test.ts
+  // pins the iOS-facing response shapes with
+  // `as const satisfies ReadonlyArray<keyof T>` — a compile-time assertion
+  // that nothing was compiling. It stayed green while four keys
+  // (statusRole, statusOrder, statusDescription, statusCompleted) were
+  // removed from V1List by AWTD-853, because the runtime half only compares
+  // the sample object against EXPECTED_KEYS, and both live in the test file
+  // and drifted together.
+  //
+  // Scope is deliberately NARROW. Turning the whole tree on reports ~1474
+  // errors across ~347 files — mostly `as any` fixtures, some of them real —
+  // which is a cleanup pass, not a gate you can land today. This config
+  // covers only the files where inertness actually costs something, and sits
+  // at zero errors. ADD a file here whenever its correctness depends on the
+  // compiler rather than on an assertion.
+  //
+  // `types/**/*.d.ts` is not optional: the module augmentation in
+  // types/next-auth.d.ts is what gives Session.user its `id`, and without it
+  // this config reports phantom errors in lib/ rather than in the test.
+  "extends": "./tsconfig.json",
+  "include": [
+    "types/**/*.d.ts",
+    "tests/api/v1-contract.test.ts"
+  ],
+  "exclude": ["node_modules"]
+}

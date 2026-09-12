@@ -15,6 +15,24 @@
  * to the test's expected-key array, which is the deliberate gate that
  * prevents accidental shape sprawl.
  *
+ * That guarantee is only as good as the typecheck behind it, and for a while
+ * there was none (AWTD-908). `satisfies` is a COMPILE-TIME assertion, and the
+ * root tsconfig.json excludes the whole `tests` tree, so nothing compiled that
+ * file: the
+ * runtime half only compares the sample object against EXPECTED_KEYS, and both
+ * live in the test and drifted together. It stayed green while four keys
+ * (statusRole, statusOrder, statusDescription, statusCompleted) were removed
+ * from V1List by AWTD-853 and seven more (ownerId, defaultAssignee,
+ * aiAgentsEnabled, aiAgentConfig, publicListType, defaultDueTime,
+ * showSubtasks) were added to it — drift in both directions, which is exactly
+ * what the paragraph above promises to prevent.
+ *
+ * It is enforced now, but ONLY for the files listed in
+ * `tsconfig.contract-tests.json` (the `typecheck:contract-tests` script, run by
+ * predeploy). The rest of the test tree is still uncompiled — ~1474 errors
+ * across ~347 files if you turn it on. So if you add a new type-level pin, add
+ * its file to that config or the pin is decoration.
+ *
  * Touching any of these shapes implies a coordinated iOS release. Don't
  * silence the tests; bump the iOS minimum version and ship the change in
  * lockstep.
