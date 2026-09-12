@@ -63,10 +63,29 @@ type Handler<TContext> = (
   context: TContext
 ) => Promise<NextResponse> | NextResponse
 
+/**
+ * The context argument is required only for a route that declares one.
+ *
+ * Next.js always passes a second argument, so `(req, context)` was faithful to
+ * the framework — but for a route with no dynamic segment `TContext` stays at
+ * its `unknown` default, and the signature then demanded an argument that the
+ * handler cannot read without a cast and that no caller has anything to put in.
+ * Every direct caller — 136 call sites across the test tree (AWTD-916) — had to
+ * invent one.
+ *
+ * So: optional when `TContext` is left unspecified, required the moment a route
+ * names its params. `unknown extends TContext` is true only for the default,
+ * which is what makes that distinction. A param route still cannot be called
+ * without its params.
+ */
+type ContextArg<TContext> = unknown extends TContext
+  ? [context?: TContext]
+  : [context: TContext]
+
 export function withAuth<TContext = unknown>(
   options: WithAuthOptions,
   handler: Handler<TContext>
-): (req: NextRequest, context: TContext) => Promise<NextResponse> {
+): (req: NextRequest, ...args: ContextArg<TContext>) => Promise<NextResponse> {
   const log = createLogger(options.tag ?? 'api')
 
   // Resolved once at module load: capabilities are build-time constants, so this costs
@@ -74,7 +93,12 @@ export function withAuth<TContext = unknown>(
   // strictly less work than the previous path, never more.
   const capabilityDisabled = options.capability ? !hasCapability(options.capability) : false
 
-  return async (req, context) => {
+  return async (req: NextRequest, ...args: ContextArg<TContext>) => {
+    // `args[0]` is the context Next.js passed, or undefined for a route that
+    // declares none — in which case TContext is `unknown` and the handler
+    // cannot read it anyway.
+    const context = args[0] as TContext
+
     if (capabilityDisabled) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
