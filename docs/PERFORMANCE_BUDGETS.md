@@ -5,10 +5,14 @@ sync clients. They are release gates, not production promises: measure before
 deployment and investigate any regression before raising a budget.
 
 **Every row below names the thing that produces its number.** A budget whose
-source is "none" is not a target, it is decoration — this document carried a
-Core Web Vitals row for eleven days after the only tool that could measure it
-was removed. Rows without a source are now marked as such, with the work to
-give them one filed, rather than stated as if they were being checked.
+source is "none" is not a target, it is decoration. Rows without a source are
+marked as such, with the work to give them one filed, rather than stated as if
+they were being checked.
+
+The converse matters too, and this document got it wrong once: a row marked
+"no source" when a source exists sends the next reader off to build one. The
+Core Web Vitals row said exactly that for five days while Vercel Speed
+Insights was collecting the numbers — see below.
 
 | Metric | Critical read budget | Source | Last measured |
 |---|---:|---|---|
@@ -20,7 +24,7 @@ give them one filed, rather than stated as if they were being checked.
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
 | Redis cache hit rate | >= 80% after warm-up | **no source in production** — see below | never |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
-| Core Web Vitals | *removed* — see below | **no source** | never |
+| Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights — dashboard only, see below | **not yet transcribed** |
 
 ## Compressed or decoded: say which, or the budget means nothing
 
@@ -82,15 +86,53 @@ everywhere.
 
 ## Rows without a source, stated plainly
 
-**Core Web Vitals — removed from the table.** PostHog went on 2026-09-06
-(`a0373f86`) and nothing replaced it. There is no `web-vitals` dependency and
-no `useReportWebVitals` call anywhere in `app/`, `lib/` or `components/`.
-Restoring the row needs more than a client hook: `AnalyticsEvent.userId` is
-non-nullable with an FK to `User`, so the existing first-party analytics table
-cannot store a vital for a logged-out visitor, which is exactly where LCP
-matters most. Filed as e586eff1 rather than left as a promised number.
-Note for whoever takes it: CWV is defined at **p75**, not the p50/p95 the rest
-of this document uses.
+**Core Web Vitals — collected, but the number has to be read by hand.**
+
+This section previously said CWV lost its source when PostHog was removed on
+2026-09-06 (`a0373f86`), and that nothing replaced it. **That was wrong**, and
+it is corrected here rather than quietly edited because the error nearly cost
+a duplicate collection pipeline: task e586eff1 was filed to build one.
+
+`app/[locale]/layout.tsx` mounts `<SpeedInsights />` from
+`@vercel/speed-insights` in the root locale layout, so Vercel's Core Web
+Vitals product samples **every** route, marketing and authenticated alike. The
+Vercel project API confirms it is live and has been throughout:
+
+```json
+"speedInsights": { "hasData": true, "enabledAt": 1755093272781 }
+```
+
+`enabledAt` is 2025-08-13 — thirteen months before PostHog was removed. LCP,
+INP and CLS were being collected before PostHog, during it, and after it. The
+absence of a `web-vitals` dependency or a `useReportWebVitals` call in this
+repo is real and is not evidence of anything: the Vercel component does not
+use either.
+
+**The real limitation is that Speed Insights has no public API.** The data is
+visible in the Vercel dashboard and nowhere a script can reach. Probed
+2026-09-11 with a `VERCEL_TOKEN` that authenticates fine against
+`/v9/projects`; every plausible endpoint 404s, including
+`/v1/speed-insights/vitals`, `/v1/speed-insights/<speedInsightsId>/vitals`,
+`/v1/projects/<projectId>/speed-insights/vitals` and `/v2/speed-insights/vitals`.
+
+So this row's procedure is manual, like the `vercel logs` rows above it:
+
+> Open the project's Speed Insights tab in the Vercel dashboard, read the
+> **p75** for LCP, INP and CLS over the last 28 days, and record them here
+> with the date.
+
+**Use p75.** CWV thresholds are defined at the 75th percentile; the rest of
+this document uses p50/p95, and copying that convention here would produce
+numbers that do not mean what the thresholds mean. The budgets in the row
+above are Google's "good" thresholds.
+
+The cells are marked *not yet transcribed* rather than filled with a guess.
+Whether the eventual source stays the dashboard or becomes a first-party
+pipeline (a client reporter, an unauthenticated ingest endpoint, and a
+`WebVitalSample` table, since `AnalyticsEvent.userId` is non-nullable and
+cannot hold a sample from a logged-out visitor) is the open question on
+e586eff1 — it buys scriptability, at the price of a second pipeline beside a
+working one and a new production table.
 
 **Redis cache hit rate — emitted, but not observable in production.** PR #260
 added structured outcome events (`Cache lookup` / `Cache load` in
