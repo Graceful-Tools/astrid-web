@@ -1,7 +1,7 @@
 {
   "name": "@gracefultools/astrid-sdk",
   "version": "0.9.0",
-  "description": "Astrid SDK \u2014 AI agent integration and channel plugin",
+  "description": "Astrid SDK — AI agent integration and channel plugin",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -60,6 +60,6 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
   }
 }
