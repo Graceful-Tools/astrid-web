@@ -72,6 +72,7 @@
     "lint": "eslint . --cache",
     "typecheck": "tsc --noEmit",
     "typecheck:contract-tests": "tsc -p tsconfig.contract-tests.json --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test-tree.json --noEmit",
     "start": "next start",
     "test": "vitest",
     "test:run": "vitest run",

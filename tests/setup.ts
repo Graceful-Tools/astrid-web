@@ -9,11 +9,13 @@ import { applyBrandToMessages } from '@/lib/brand/i18n-values'
 const enMessages = applyBrandToMessages(rawEnMessages)
 
 // Mock NextAuth
-global.jest = {
-  mock: (module: string, factory?: () => any) => {
+// Assigned through globalThis rather than `global.jest`, which TypeScript
+// rejects (TS7017) because `jest` is not a declared global under vitest.
+;(globalThis as Record<string, unknown>).jest = {
+  mock: (_module: string, _factory?: () => unknown) => {
     // Mock implementation for jest.mock in vitest
-  }
-} as any
+  },
+}
 
 // Mock environment variables - use existing env vars or fallback to test defaults
 process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'test-secret'

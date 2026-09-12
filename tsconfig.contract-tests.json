@@ -17,12 +17,15 @@
   // the sample object against EXPECTED_KEYS, and both live in the test file
   // and drifted together.
   //
-  // Scope is deliberately NARROW. Turning the whole tree on reports ~1474
-  // errors across ~347 files — mostly `as any` fixtures, some of them real —
-  // which is a cleanup pass, not a gate you can land today. This config
-  // covers only the files where inertness actually costs something, and sits
-  // at zero errors. ADD a file here whenever its correctness depends on the
-  // compiler rather than on an assertion.
+  // KEPT DELIBERATELY now that tsconfig.test-tree.json covers the whole tree
+  // (AWTD-916), and it is not redundant: that config works from a list of
+  // EXCLUDED files, so a future cleanup could switch this file's gate off by
+  // adding one line to it. This config names its files positively and cannot
+  // be disabled that way. Two locks on the one test whose mechanism IS the
+  // compiler.
+  //
+  // ADD a file here whenever its correctness depends on the compiler rather
+  // than on a runtime assertion.
   //
   // `types/**/*.d.ts` is not optional: the module augmentation in
   // types/next-auth.d.ts is what gives Session.user its `id`, and without it

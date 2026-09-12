@@ -27,11 +27,15 @@
  * showSubtasks) were added to it — drift in both directions, which is exactly
  * what the paragraph above promises to prevent.
  *
- * It is enforced now, but ONLY for the files listed in
- * `tsconfig.contract-tests.json` (the `typecheck:contract-tests` script, run by
- * predeploy). The rest of the test tree is still uncompiled — ~1474 errors
- * across ~347 files if you turn it on. So if you add a new type-level pin, add
- * its file to that config or the pin is decoration.
+ * It is enforced now, by two gates. `tsconfig.contract-tests.json` (the
+ * `typecheck:contract-tests` script) covers this pin specifically, and
+ * `tsconfig.test-tree.json` (`typecheck:tests`, AWTD-916) covers the test tree
+ * by default while naming the files that still fail — 485 of 678 test files
+ * today, and every new test file automatically. Both run in predeploy.
+ *
+ * So a new type-level pin is compiled the moment you write it, UNLESS its file
+ * is on that exclusion list. The remaining backlog is 1318 errors across 193
+ * files; the list only ever shrinks.
  *
  * Touching any of these shapes implies a coordinated iOS release. Don't
  * silence the tests; bump the iOS minimum version and ship the change in
