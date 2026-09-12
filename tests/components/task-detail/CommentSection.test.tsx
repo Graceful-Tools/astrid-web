@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildUser } from '../../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CommentSection } from '@/components/task-detail/CommentSection'
 import type { Task, User } from '@/types/task'
@@ -12,12 +13,12 @@ vi.mock('@/lib/layout-detection', () => ({
 }))
 
 describe('CommentSection', () => {
-  const mockCurrentUser: User = {
+  const mockCurrentUser: User = buildUser({
     id: 'user-1',
     email: 'test@example.com',
     name: 'Test User',
     image: null
-  }
+  })
 
   const mockTask: Task = {
     id: 'task-1',
@@ -394,7 +395,7 @@ describe('CommentSection', () => {
     })
 
     it('should not show Delete for other users comments', () => {
-      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Other User', image: null }
+      const otherUser: User = buildUser({ id: 'user-2', email: 'other@test.com', name: 'Other User', image: null })
       const taskWithOtherComment = {
         ...mockTask,
         comments: [{
@@ -529,7 +530,7 @@ describe('CommentSection', () => {
   describe('Theme Compatibility', () => {
     it('should use theme-text-muted for comment author in chat bubble meta', () => {
       // Use a different author so name is displayed (not "You")
-      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Other User', image: null }
+      const otherUser: User = buildUser({ id: 'user-2', email: 'other@test.com', name: 'Other User', image: null })
       const taskWithOtherComment = {
         ...mockTask,
         comments: [{
@@ -547,7 +548,7 @@ describe('CommentSection', () => {
     })
 
     it('should use theme-text-muted for reply author in chat bubble meta', () => {
-      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Reply User', image: null }
+      const otherUser: User = buildUser({ id: 'user-2', email: 'other@test.com', name: 'Reply User', image: null })
       const taskWithReplies = {
         ...mockTask,
         comments: [

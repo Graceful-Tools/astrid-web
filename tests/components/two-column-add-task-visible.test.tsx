@@ -12,6 +12,7 @@
  * DOM (jsdom keeps it) — we assert visibility, not mere presence.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
@@ -26,7 +27,7 @@ const mockUser: User = {
   updatedAt: new Date(),
 }
 
-const ownedList: TaskList = {
+const ownedList: TaskList = buildTaskList({
   id: 'list-1',
   name: 'Astrid Web To-do',
   description: 'Agent Workflow',
@@ -40,7 +41,7 @@ const ownedList: TaskList = {
   members: [],
   admins: [],
   tasks: [],
-}
+})
 
 const mockTask: Task = {
   id: 'task-1',
@@ -185,7 +186,7 @@ describe('Add-task input visibility across desktop layouts', () => {
   // array — should see the add-task input, not the "Copy List" button. The old
   // inline check (ownerId === / admins.some) got this wrong.
   it('shows add-task (not Copy List) for an admin whom the permission source approves on a public list', () => {
-    const publicListAdminViaMembers: TaskList = {
+    const publicListAdminViaMembers: TaskList = buildTaskList({
       ...ownedList,
       id: 'list-2',
       ownerId: 'someone-else',
@@ -193,7 +194,7 @@ describe('Add-task input visibility across desktop layouts', () => {
       publicListType: 'copy_only',
       admins: [], // legacy array does NOT list the user
       listMembers: [{ userId: 'user-1', role: 'admin', user: mockUser } as any],
-    }
+    })
 
     render(
       <MainContent

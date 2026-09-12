@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildUser } from '../fixtures/domain'
 import type { Task, TaskList, User } from '../../types/task'
 
 // Simple unit tests for auto-save logic without rendering components
 // This tests the API transformation logic that was the main bug
 
 describe('Task Auto-Save API Data Transformation', () => {
-  const mockUser: User = {
+  const mockUser: User = buildUser({
     id: 'user-1',
     name: 'Test User',
     email: 'test@example.com'
-  }
+  })
 
   const mockList: TaskList = {
     id: 'list-1',

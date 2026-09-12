@@ -11,6 +11,7 @@
  * title yields space and the buttons stay put.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
@@ -25,7 +26,7 @@ const mockUser: User = {
   updatedAt: new Date(),
 }
 
-const boardList: TaskList = {
+const boardList: TaskList = buildTaskList({
   id: 'list-1',
   name: 'Astrid Web To-do',
   description: 'Astrid Web — Agent Workflow',
@@ -39,7 +40,7 @@ const boardList: TaskList = {
   members: [],
   admins: [],
   tasks: [],
-}
+})
 
 const mockTask: Task = {
   id: 'task-1',

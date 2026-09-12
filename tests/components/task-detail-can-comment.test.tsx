@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskDetail } from '@/components/task-detail'
@@ -91,7 +92,7 @@ const mockUser: User = {
   emailVerified: null
 }
 
-const mockList: TaskList = {
+const mockList: TaskList = buildTaskList({
   id: 'list-1',
   name: 'Test List',
   color: '#3b82f6',
@@ -102,7 +103,7 @@ const mockList: TaskList = {
   listMembers: [],
   createdAt: new Date(),
   updatedAt: new Date()
-}
+})
 
 const mockTask: Task = {
   id: 'task-1',

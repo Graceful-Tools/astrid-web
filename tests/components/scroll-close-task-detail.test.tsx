@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
@@ -22,7 +23,7 @@ describe('Scroll-to-close task detail behavior', () => {
     updatedAt: new Date()
   }
 
-  const mockList: TaskList = {
+  const mockList: TaskList = buildTaskList({
     id: 'list-1',
     name: 'Test List',
     description: 'Test description',
@@ -36,7 +37,7 @@ describe('Scroll-to-close task detail behavior', () => {
     members: [],
     admins: [],
     tasks: []
-  }
+  })
 
   const mockTask: Task = {
     id: 'task-1',
