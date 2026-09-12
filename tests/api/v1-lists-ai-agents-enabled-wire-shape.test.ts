@@ -76,7 +76,7 @@ import { GET as getList, PUT as putList } from '@/app/api/v1/lists/[id]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 
 /** A row exactly as the PUT normalizer stores it — the shape that broke iOS. */

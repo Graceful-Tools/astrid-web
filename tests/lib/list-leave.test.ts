@@ -30,7 +30,7 @@ import { leaveList } from '@/lib/list-leave'
 import { prisma } from '@/lib/prisma'
 import { RedisCache } from '@/lib/redis'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockRedis = vi.mocked(RedisCache)
 
 const LIST = { id: 'list-1', name: 'Work', ownerId: 'owner-1' }

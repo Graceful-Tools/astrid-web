@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 import { BRAND } from '@/lib/brand/config'
@@ -10,12 +11,7 @@ const createMockRequest = (searchParams: Record<string, string> = {}, headers: R
     url.searchParams.set(key, value)
   })
 
-  const request = {
-    url: url.toString(),
-    headers: {
-      get: (name: string) => headers[name.toLowerCase()] || null
-    }
-  } as any as Request
+  const request = new NextRequest(url, { headers })
   return request
 }
 

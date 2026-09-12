@@ -36,7 +36,7 @@ vi.mock('@/lib/user-stats', () => ({ invalidateUserStats }))
 import { copyTaskForUser } from '@/lib/task-copy-flow'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const COPIER = 'copier-1'
 
 beforeEach(() => {

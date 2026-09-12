@@ -38,7 +38,7 @@ vi.mock('@/lib/email', () => ({ sendListInvitationEmail }))
 import { inviteToList } from '@/lib/list-invite'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 const inviter = { id: 'inviter-1', email: 'jon@example.com', name: 'Jon' }
 const base = { listId: 'list-1', inviter, email: 'new@example.com', role: 'member' }

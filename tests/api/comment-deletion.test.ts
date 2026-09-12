@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { DELETE } from '@/app/api/comments/[id]/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock NextRequest for DELETE requests
 const createMockDeleteRequest = () => {
-  const request = {
-    url: 'http://localhost:3000/api/comments/test-comment-id',
-  } as any as Request
+  const request = new NextRequest('http://localhost:3000/api/comments/test-comment-id', {
+    method: 'DELETE',
+  })
   return request
 }
 
@@ -120,7 +121,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.delete.mockResolvedValue(mockComment)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-comment-id' }
+      const params = Promise.resolve({ id: 'test-comment-id' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -156,7 +157,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.delete.mockResolvedValue(mockReply)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-reply-id' }
+      const params = Promise.resolve({ id: 'test-reply-id' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -187,7 +188,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.delete.mockResolvedValue(otherUserComment)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-comment-id' }
+      const params = Promise.resolve({ id: 'test-comment-id' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -223,7 +224,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.delete.mockResolvedValue(otherUserComment)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-comment-id' }
+      const params = Promise.resolve({ id: 'test-comment-id' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -241,7 +242,7 @@ describe('Comment Deletion API', () => {
       mockGetServerSession.mockResolvedValueOnce(null)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-comment-id' }
+      const params = Promise.resolve({ id: 'test-comment-id' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -257,7 +258,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.findUnique.mockResolvedValue(null)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'non-existent-comment' }
+      const params = Promise.resolve({ id: 'non-existent-comment' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -301,7 +302,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.findUnique.mockResolvedValue(unauthorizedComment)
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-comment-id' }
+      const params = Promise.resolve({ id: 'test-comment-id' })
 
       // Execute
       const response = await DELETE(request, { params })
@@ -317,7 +318,7 @@ describe('Comment Deletion API', () => {
       mockPrisma.comment.findUnique.mockRejectedValue(new Error('Database error'))
 
       const request = createMockDeleteRequest()
-      const params = { id: 'test-comment-id' }
+      const params = Promise.resolve({ id: 'test-comment-id' })
 
       // Execute
       const response = await DELETE(request, { params })

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/secure-upload/request-upload/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -39,13 +40,15 @@ const createMockRequestWithFile = (context?: any, fileName = 'test.jpg', fileTyp
     formData.append('context', JSON.stringify(context))
   }
 
+  // Cast kept deliberately (AWTD-916): `formData` is a vi.fn() so the tests can
+  // assert on it, and a real NextRequest would serialise the FormData instead.
   const request = {
     formData: vi.fn().mockResolvedValue(formData),
     url: 'http://localhost:3000/api/secure-upload/request-upload',
     cookies: {
       get: vi.fn().mockReturnValue(undefined)
     }
-  } as any as Request
+  } as unknown as NextRequest
   return request
 }
 
@@ -304,10 +307,12 @@ describe('Secure Upload API', () => {
       formData.append('file', largeFile)
       formData.append('context', JSON.stringify({ taskId: 'test-task-id' }))
 
+      // Cast kept deliberately (AWTD-916): the File's `size` is overridden by
+      // Object.defineProperty above, which a real serialised body would discard.
       const request = {
         formData: vi.fn().mockResolvedValue(formData),
         url: 'http://localhost:3000/api/secure-upload/request-upload',
-      } as any as Request
+      } as unknown as NextRequest
 
       const response = await POST(request)
       const data = await response.json()

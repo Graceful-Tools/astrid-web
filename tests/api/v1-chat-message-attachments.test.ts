@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 
 // Mock modules before importing route handlers
@@ -107,7 +108,7 @@ describe('v1 Chat Message Attachments', () => {
       ]
       mockPrisma.chatMessage.findMany.mockResolvedValue(messages)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`)
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`)
       const res = await GET(req, { params: Promise.resolve({ channelId: CHANNEL_ID }) })
       const data = await res.json()
 
@@ -123,7 +124,7 @@ describe('v1 Chat Message Attachments', () => {
     it('rejects access when user cannot access channel', async () => {
       mockCanAccessChatChannel.mockResolvedValue(false)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`)
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`)
       const res = await GET(req, { params: Promise.resolve({ channelId: CHANNEL_ID }) })
 
       expect(res.status).toBe(403)
@@ -132,7 +133,7 @@ describe('v1 Chat Message Attachments', () => {
     it('supports pagination with before cursor', async () => {
       mockPrisma.chatMessage.findMany.mockResolvedValue([])
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages?before=2026-03-29T10:00:00Z&limit=10`)
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages?before=2026-03-29T10:00:00Z&limit=10`)
       const res = await GET(req, { params: Promise.resolve({ channelId: CHANNEL_ID }) })
       const data = await res.json()
 
@@ -162,7 +163,7 @@ describe('v1 Chat Message Attachments', () => {
       mockPrisma.secureFile.update.mockResolvedValue({})
       mockPrisma.chatMessage.findUnique.mockResolvedValue(messageWithFile)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Hello world', fileId: 'file-1' }),
@@ -195,7 +196,7 @@ describe('v1 Chat Message Attachments', () => {
       mockPrisma.secureFile.update.mockResolvedValue({})
       mockPrisma.chatMessage.findUnique.mockResolvedValue(messageWithFile)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: '', fileId: 'file-1', type: 'ATTACHMENT' }),
@@ -212,7 +213,7 @@ describe('v1 Chat Message Attachments', () => {
       const msg = createMessage()
       mockPrisma.chatMessage.create.mockResolvedValue(msg)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Just text' }),
@@ -227,7 +228,7 @@ describe('v1 Chat Message Attachments', () => {
     })
 
     it('rejects message with no content and no fileId', async () => {
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: '' }),
@@ -246,7 +247,7 @@ describe('v1 Chat Message Attachments', () => {
 
       mockPrisma.chatMessage.findUnique.mockResolvedValue(existingMsg)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Hello', fileId: 'file-1', clientRequestId: 'req-123' }),
@@ -264,7 +265,7 @@ describe('v1 Chat Message Attachments', () => {
       const msg = createMessage()
       mockPrisma.chatMessage.create.mockResolvedValue(msg)
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Hello' }),
@@ -288,7 +289,7 @@ describe('v1 Chat Message Attachments', () => {
       mockPrisma.chatMessage.create.mockResolvedValue(msg)
       mockPrisma.secureFile.update.mockRejectedValue(new Error('File not found'))
 
-      const req = new Request(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
+      const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Hello', fileId: 'nonexistent-file' }),
@@ -308,7 +309,7 @@ describe('v1 Chat Message Attachments', () => {
       const msg = createMessage({ secureFiles: [file] })
       mockPrisma.chatMessage.findUnique.mockResolvedValue(msg)
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1')
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1')
       const res = await GET_MESSAGE(req, { params: Promise.resolve({ id: 'msg-1' }) })
       const data = await res.json()
 
@@ -320,7 +321,7 @@ describe('v1 Chat Message Attachments', () => {
     it('returns 404 for non-existent message', async () => {
       mockPrisma.chatMessage.findUnique.mockResolvedValue(null)
 
-      const req = new Request('http://localhost/api/v1/chat/messages/nonexistent')
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/nonexistent')
       const res = await GET_MESSAGE(req, { params: Promise.resolve({ id: 'nonexistent' }) })
 
       expect(res.status).toBe(404)
@@ -331,7 +332,7 @@ describe('v1 Chat Message Attachments', () => {
       mockPrisma.chatMessage.findUnique.mockResolvedValue(msg)
       mockCanAccessChatChannel.mockResolvedValue(false)
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1')
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1')
       const res = await GET_MESSAGE(req, { params: Promise.resolve({ id: 'msg-1' }) })
 
       expect(res.status).toBe(404)
@@ -351,7 +352,7 @@ describe('v1 Chat Message Attachments', () => {
         createMessage({ content: 'Updated content', secureFiles: [file] })
       )
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Updated content' }),
@@ -371,7 +372,7 @@ describe('v1 Chat Message Attachments', () => {
         channelId: CHANNEL_ID,
       })
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Hijack!' }),
@@ -384,7 +385,7 @@ describe('v1 Chat Message Attachments', () => {
     })
 
     it('rejects update with empty content', async () => {
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: '' }),
@@ -404,7 +405,7 @@ describe('v1 Chat Message Attachments', () => {
         createMessage({ content: 'Updated' })
       )
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Updated' }),
@@ -437,7 +438,7 @@ describe('v1 Chat Message Attachments', () => {
         },
       })
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
       })
 
@@ -462,7 +463,7 @@ describe('v1 Chat Message Attachments', () => {
         },
       })
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
       })
 
@@ -487,7 +488,7 @@ describe('v1 Chat Message Attachments', () => {
         },
       })
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
       })
 
@@ -512,7 +513,7 @@ describe('v1 Chat Message Attachments', () => {
         },
       })
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
       })
 
@@ -535,7 +536,7 @@ describe('v1 Chat Message Attachments', () => {
         },
       })
 
-      const req = new Request('http://localhost/api/v1/chat/messages/msg-1', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
       })
 
@@ -555,7 +556,7 @@ describe('v1 Chat Message Attachments', () => {
     it('returns 404 for non-existent message', async () => {
       mockPrisma.chatMessage.findUnique.mockResolvedValue(null)
 
-      const req = new Request('http://localhost/api/v1/chat/messages/nonexistent', {
+      const req = new NextRequest('http://localhost/api/v1/chat/messages/nonexistent', {
         method: 'DELETE',
       })
 

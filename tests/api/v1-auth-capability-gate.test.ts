@@ -47,7 +47,7 @@ import { POST as googlePOST } from '@/app/api/v1/auth/google/route'
 import { POST as applePOST } from '@/app/api/v1/auth/apple/route'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 const disabled = () =>
   new Response(JSON.stringify({ error: 'Not found' }), {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/lists/[id]/leave/route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -58,11 +59,11 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -97,11 +98,11 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -138,11 +139,11 @@ describe('POST /api/lists/[id]/leave', () => {
     
     // totalAdmins = 1 (admin count) + 0 (owner already counted) = 1
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -180,11 +181,11 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -217,11 +218,11 @@ describe('POST /api/lists/[id]/leave', () => {
       }) // ownerIsAdmin check
     mockPrisma.listMember.count.mockResolvedValue(1) // only 1 admin total
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -236,11 +237,11 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst.mockResolvedValue(null)
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -252,11 +253,11 @@ describe('POST /api/lists/[id]/leave', () => {
   it('returns 404 if list does not exist', async () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(null)
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -275,11 +276,11 @@ describe('POST /api/lists/[id]/leave', () => {
     })
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 0 }) // No records deleted
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -291,11 +292,11 @@ describe('POST /api/lists/[id]/leave', () => {
   it('returns 401 for unauthenticated users', async () => {
     mockGetServerSession.mockResolvedValue(null)
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
 
@@ -317,11 +318,11 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()

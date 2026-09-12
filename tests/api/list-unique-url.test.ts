@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/lists/[id]/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock NextRequest
 const createMockRequest = (listId: string) => {
-  const request = {
-    url: `http://localhost:3000/api/lists/${listId}`,
-  } as any as Request
+  const request = new NextRequest(`http://localhost:3000/api/lists/${listId}`)
   return request
 }
 
@@ -47,7 +46,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     })
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -71,7 +70,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     })
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(404)
@@ -102,7 +101,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     })
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(403)
@@ -133,7 +132,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     })
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -173,7 +172,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     })
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -213,7 +212,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     })
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -226,7 +225,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(401)

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { GET, POST, DELETE, PATCH } from '@/app/api/lists/[id]/members/route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -124,8 +125,8 @@ describe('GET /api/lists/[id]/members', () => {
     mockPrisma.listMember.findMany.mockResolvedValue(mockMembers)
     mockPrisma.invitation.findMany.mockResolvedValue(mockInvites)
 
-    const request = new Request('http://localhost/api/lists/list-1/members')
-    const params = { id: 'list-1' }
+    const request = new NextRequest('http://localhost/api/lists/list-1/members')
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -174,8 +175,8 @@ describe('GET /api/lists/[id]/members', () => {
     mockPrisma.listMember.findMany.mockResolvedValue(mockMembers)
     mockPrisma.invitation.findMany.mockResolvedValue(mockInvites)
 
-    const request = new Request('http://localhost/api/lists/list-1/members')
-    const params = { id: 'list-1' }
+    const request = new NextRequest('http://localhost/api/lists/list-1/members')
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -203,8 +204,8 @@ describe('GET /api/lists/[id]/members', () => {
       .mockResolvedValueOnce(null) // Not a member
       .mockResolvedValueOnce(null) // Not an admin either
 
-    const request = new Request('http://localhost/api/lists/list-1/members')
-    const params = { id: 'list-1' }
+    const request = new NextRequest('http://localhost/api/lists/list-1/members')
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await GET(request, { params })
 
@@ -214,8 +215,8 @@ describe('GET /api/lists/[id]/members', () => {
   it('returns 401 for unauthenticated users', async () => {
     mockGetServerSession.mockResolvedValue(null)
 
-    const request = new Request('http://localhost/api/lists/list-1/members')
-    const params = { id: 'list-1' }
+    const request = new NextRequest('http://localhost/api/lists/list-1/members')
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await GET(request, { params })
 
@@ -250,7 +251,7 @@ describe('POST /api/lists/[id]/members', () => {
     
     mockPrisma.invitation.create.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -258,7 +259,7 @@ describe('POST /api/lists/[id]/members', () => {
         role: 'member',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -287,7 +288,7 @@ describe('POST /api/lists/[id]/members', () => {
     mockPrisma.user.findUnique.mockResolvedValue(null) // New user
     mockPrisma.invitation.create.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -295,7 +296,7 @@ describe('POST /api/lists/[id]/members', () => {
         role: 'member',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -322,7 +323,7 @@ describe('POST /api/lists/[id]/members', () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(otherOwnerList)
     mockPrisma.listMember.findFirst.mockResolvedValue(null) // Not admin member
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -330,7 +331,7 @@ describe('POST /api/lists/[id]/members', () => {
         role: 'member',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
 
@@ -357,14 +358,14 @@ describe('DELETE /api/lists/[id]/members', () => {
     mockPrisma.user.findUnique.mockResolvedValue({ email: 'jane@example.com' })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         memberId: 'user-2',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -394,14 +395,14 @@ describe('DELETE /api/lists/[id]/members', () => {
     mockPrisma.listMember.count.mockResolvedValue(0) // 0 other admin members
     // Total admins = 0 (members) + 1 (owner) = 1, so removing would leave 0
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         memberId: 'user-1',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -419,7 +420,7 @@ describe('DELETE /api/lists/[id]/members', () => {
     
     mockPrisma.listInvite.deleteMany.mockResolvedValue({ count: 1 })
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -427,7 +428,7 @@ describe('DELETE /api/lists/[id]/members', () => {
         isInvitation: true,
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -447,7 +448,7 @@ describe('PATCH /api/lists/[id]/members', () => {
     
     mockPrisma.listMember.updateMany.mockResolvedValue({ count: 1 })
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -455,7 +456,7 @@ describe('PATCH /api/lists/[id]/members', () => {
         role: 'admin',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await PATCH(request, { params })
     const data = await response.json()
@@ -480,7 +481,7 @@ describe('PATCH /api/lists/[id]/members', () => {
     
     mockPrisma.listInvite.updateMany.mockResolvedValue({ count: 1 })
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -489,7 +490,7 @@ describe('PATCH /api/lists/[id]/members', () => {
         isInvitation: true,
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await PATCH(request, { params })
     const data = await response.json()
@@ -527,7 +528,7 @@ describe('PATCH /api/lists/[id]/members', () => {
     
     // totalAdmins = 1 (member) + 0 (no owner) = 1, so totalAdmins <= 1 should block this
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -535,7 +536,7 @@ describe('PATCH /api/lists/[id]/members', () => {
         role: 'member',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await PATCH(request, { params })
     const data = await response.json()
@@ -560,7 +561,7 @@ describe('PATCH /api/lists/[id]/members', () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(otherOwnerList)
     mockPrisma.listMember.findFirst.mockResolvedValue(null) // Not admin member
 
-    const request = new Request('http://localhost/api/lists/list-1/members', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/members', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -568,7 +569,7 @@ describe('PATCH /api/lists/[id]/members', () => {
         role: 'admin',
       }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await PATCH(request, { params })
 

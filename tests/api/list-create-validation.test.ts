@@ -72,7 +72,7 @@ import { prisma } from '@/lib/prisma'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockSession = vi.mocked(getUnifiedSession)
 const mockAuth = vi.mocked(authenticateAPI)
 

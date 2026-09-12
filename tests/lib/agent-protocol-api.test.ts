@@ -61,7 +61,7 @@ import { GET as getTasks } from '@/app/api/v1/agent/tasks/route'
 import { GET as getTask, PATCH as patchTask } from '@/app/api/v1/agent/tasks/[id]/route'
 import { GET as getComments, POST as postComment } from '@/app/api/v1/agent/tasks/[id]/comments/route'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 
 const AUTH_CONTEXT = { userId: 'agent-1', scopes: ['tasks:read', 'tasks:write', 'comments:read', 'comments:write'] }

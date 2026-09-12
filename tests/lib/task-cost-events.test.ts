@@ -19,7 +19,7 @@ import { recordTaskCost, getTaskActualCostMicrocents } from '@/lib/task-cost-eve
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 const valid = {
   taskId: 'task-1',

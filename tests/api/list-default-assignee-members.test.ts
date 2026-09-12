@@ -104,7 +104,7 @@ describe('List Default Assignee Member Management', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      const response = await PUT(request, { params: { id: 'list-1' } })
+      const response = await PUT(request, { params: Promise.resolve({ id: 'list-1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(200)
@@ -152,7 +152,7 @@ describe('List Default Assignee Member Management', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      const response = await PUT(request, { params: { id: 'list-1' } })
+      const response = await PUT(request, { params: Promise.resolve({ id: 'list-1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(200)
@@ -200,7 +200,7 @@ describe('List Default Assignee Member Management', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      const response = await PUT(request, { params: { id: 'list-1' } })
+      const response = await PUT(request, { params: Promise.resolve({ id: 'list-1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(200)
@@ -251,7 +251,7 @@ describe('List Default Assignee Member Management', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      const response = await PUT(request, { params: { id: 'list-1' } })
+      const response = await PUT(request, { params: Promise.resolve({ id: 'list-1' }) })
 
       expect(response.status).toBe(400)
       const result = await response.json()

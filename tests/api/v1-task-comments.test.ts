@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET, POST } from '@/app/api/v1/tasks/[id]/comments/route'
 import { authenticateAPI, requireScopes, getDeprecationWarning } from '@/lib/api-auth-middleware'
@@ -92,7 +93,7 @@ describe('API v1 task comments public access', () => {
     const mockComments = [createComment()]
     mockPrisma.comment.findMany.mockResolvedValue(mockComments)
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-public/comments')
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-public/comments')
     const response = await GET(request, { params: Promise.resolve({ id: 'task-public' }) })
     const data = await response.json()
 
@@ -154,7 +155,7 @@ describe('API v1 task comments public access', () => {
     mockPrisma.comment.create.mockResolvedValue(createdComment)
     mockPrisma.secureFile.update.mockResolvedValue(undefined as any)
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-collab/comments', {
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-collab/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: 'Excited to help!' }),
@@ -209,7 +210,7 @@ describe('API v1 task comments public access', () => {
     }
     mockPrisma.comment.findUnique.mockResolvedValue(existing)
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-id/comments', {
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-id/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: 'bam', clientRequestId: 'client-req-12345678' }),
@@ -247,7 +248,7 @@ describe('API v1 task comments public access', () => {
       lists: [createPublicList()],
     })
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-copy/comments', {
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-copy/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: 'Let me contribute' }),

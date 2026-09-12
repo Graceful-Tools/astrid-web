@@ -19,6 +19,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/tasks/[id]/comments/route'
 import { authenticateAPI, requireScopes, getDeprecationWarning } from '@/lib/api-auth-middleware'
@@ -53,7 +54,7 @@ const newestFirst = [
 
 async function get() {
   const response = await GET(
-    new Request('http://localhost:3000/api/v1/tasks/task-1/comments'),
+    new NextRequest('http://localhost:3000/api/v1/tasks/task-1/comments'),
     { params: Promise.resolve({ id: 'task-1' }) }
   )
   return { status: response.status, body: await response.json() }

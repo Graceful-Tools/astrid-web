@@ -41,7 +41,7 @@ import { GET, PUT } from '@/app/api/v1/users/me/default-due-time/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 
 const req = (method: 'GET' | 'PUT', body?: unknown) =>

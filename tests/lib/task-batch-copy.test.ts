@@ -21,7 +21,7 @@ vi.mock('@/lib/prisma', () => ({
 import { batchCopyTask } from '@/lib/task-batch-copy'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const USER = 'user-1'
 
 function baseArgs(overrides: Record<string, unknown> = {}) {

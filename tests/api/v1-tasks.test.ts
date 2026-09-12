@@ -39,7 +39,7 @@ import { GET } from '@/app/api/v1/tasks/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI, requireScopes, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 const mockRequireScopes = vi.mocked(requireScopes)
 

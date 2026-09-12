@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/invitations/route'
 import { GET as GetInvitation, POST as AcceptInvitation, DELETE as DeclineInvitation } from '@/app/api/invitations/[token]/route'
 import { prisma } from '@/lib/prisma'
@@ -94,7 +95,7 @@ describe('/api/invitations', () => {
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendInvitationEmail).mockResolvedValue(undefined)
 
-      const request = new Request('http://localhost:3000/api/invitations', {
+      const request = new NextRequest('http://localhost:3000/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,7 +147,7 @@ describe('/api/invitations', () => {
       vi.mocked(prisma.task.findFirst).mockResolvedValue({ id: 'task-123', creatorId: 'test-user-id' } as any) // User has task access
       vi.mocked(prisma.task.update).mockResolvedValue(mockTask as any)
 
-      const request = new Request('http://localhost:3000/api/invitations', {
+      const request = new NextRequest('http://localhost:3000/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +183,7 @@ describe('/api/invitations', () => {
       vi.mocked(prisma.taskList.findFirst).mockResolvedValue({ id: 'list-123', ownerId: 'test-user-id' } as any) // User has list access
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(existingInvitation as any)
 
-      const request = new Request('http://localhost:3000/api/invitations', {
+      const request = new NextRequest('http://localhost:3000/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -200,7 +201,7 @@ describe('/api/invitations', () => {
     })
 
     it('should require valid email', async () => {
-      const request = new Request('http://localhost:3000/api/invitations', {
+      const request = new NextRequest('http://localhost:3000/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +222,7 @@ describe('/api/invitations', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(null)
 
-      const request = new Request('http://localhost:3000/api/invitations', {
+      const request = new NextRequest('http://localhost:3000/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -259,7 +260,7 @@ describe('/api/invitations', () => {
 
       vi.mocked(prisma.invitation.findMany).mockResolvedValue(mockInvitations as any)
 
-      const request = new Request('http://localhost:3000/api/invitations')
+      const request = new NextRequest('http://localhost:3000/api/invitations')
       const response = await GET(request)
       const data = await response.json()
 
@@ -323,8 +324,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
 
       const response = await GetInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef'),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef'),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
       const data = await response.json()
 
@@ -345,8 +346,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
 
       const response = await GetInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef'),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef'),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
       const data = await response.json()
 
@@ -362,8 +363,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(null)
 
       const response = await GetInvitation(
-        new Request('http://localhost:3000/api/invitations/invalid-token'),
-        { params: { token: 'invalid-token' } }
+        new NextRequest('http://localhost:3000/api/invitations/invalid-token'),
+        { params: Promise.resolve({ token: 'invalid-token' }) }
       )
       const data = await response.json()
 
@@ -381,8 +382,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.update).mockResolvedValue(expiredInvitation as any)
 
       const response = await GetInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_expired'),
-        { params: { token: 'inv_expired' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_expired'),
+        { params: Promise.resolve({ token: 'inv_expired' }) }
       )
       const data = await response.json()
 
@@ -403,8 +404,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(processedInvitation as any)
 
       const response = await GetInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_processed'),
-        { params: { token: 'inv_processed' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_processed'),
+        { params: Promise.resolve({ token: 'inv_processed' }) }
       )
       const data = await response.json()
 
@@ -446,8 +447,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.$transaction).mockImplementation(transactionMock)
 
       const response = await AcceptInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
       const data = await response.json()
 
@@ -460,8 +461,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(getServerSession).mockResolvedValue(null)
 
       const response = await AcceptInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
       const data = await response.json()
 
@@ -476,8 +477,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
 
       const response = await AcceptInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
       const data = await response.json()
 
@@ -498,8 +499,8 @@ describe('/api/invitations/[token]', () => {
       } as any)
 
       const response = await DeclineInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
       const data = await response.json()
 
@@ -516,8 +517,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(getServerSession).mockResolvedValue(null)
 
       const response = await DeclineInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
 
       expect(response.status).toBe(401)
@@ -535,8 +536,8 @@ describe('/api/invitations/[token]', () => {
       } as any)
 
       const response = await DeclineInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
 
       expect(response.status).toBe(200)
@@ -549,8 +550,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(mockInvitation as any)
 
       const response = await DeclineInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
-        { params: { token: 'inv_1234567890_abcdef' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'DELETE' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
       )
 
       expect(response.status).toBe(403)
@@ -561,8 +562,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(null)
 
       const response = await DeclineInvitation(
-        new Request('http://localhost:3000/api/invitations/invalid-token', { method: 'DELETE' }),
-        { params: { token: 'invalid-token' } }
+        new NextRequest('http://localhost:3000/api/invitations/invalid-token', { method: 'DELETE' }),
+        { params: Promise.resolve({ token: 'invalid-token' }) }
       )
       const data = await response.json()
 
@@ -579,8 +580,8 @@ describe('/api/invitations/[token]', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue(processedInvitation as any)
 
       const response = await DeclineInvitation(
-        new Request('http://localhost:3000/api/invitations/inv_processed', { method: 'DELETE' }),
-        { params: { token: 'inv_processed' } }
+        new NextRequest('http://localhost:3000/api/invitations/inv_processed', { method: 'DELETE' }),
+        { params: Promise.resolve({ token: 'inv_processed' }) }
       )
       const data = await response.json()
 

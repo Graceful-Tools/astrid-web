@@ -52,7 +52,7 @@ import { GET, PUT, DELETE, POST } from '@/app/api/v1/users/me/webhook-settings/r
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 
 const req = (method: string, body?: unknown) =>

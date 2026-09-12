@@ -28,7 +28,7 @@ vi.mock('@/lib/github-client', () => ({
 import { listGitHubRepositories } from '@/lib/github-repositories'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 const UPDATED_AT = new Date('2026-08-10T12:00:00.000Z')
 

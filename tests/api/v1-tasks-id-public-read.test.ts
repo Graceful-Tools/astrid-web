@@ -50,7 +50,7 @@ import {
   requireTaskReadAccess,
 } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 const mockWriteCheck = vi.mocked(requireTaskAccess)
 const mockReadCheck = vi.mocked(requireTaskReadAccess)

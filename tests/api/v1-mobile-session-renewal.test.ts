@@ -30,7 +30,7 @@ import { GET } from '@/app/api/v1/auth/mobile-session/route'
 import { prisma } from '@/lib/prisma'
 import { SESSION_MAX_AGE_SECONDS } from '@/lib/mobile-session-renewal'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 function req() {
   const r = new NextRequest('http://localhost/api/v1/auth/mobile-session')

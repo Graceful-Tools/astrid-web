@@ -67,7 +67,7 @@ describe('Reminder API Endpoints', () => {
         headers: { 'Content-Type': 'application/json' },
       })
 
-      const response = await snoozeHandler(request, { params: { id: 'reminder1' } })
+      const response = await snoozeHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(200)
@@ -102,7 +102,7 @@ describe('Reminder API Endpoints', () => {
         headers: { 'Content-Type': 'application/json' },
       })
 
-      const response = await snoozeHandler(request, { params: { id: 'reminder1' } })
+      const response = await snoozeHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
 
       expect(response.status).toBe(403)
     })
@@ -124,7 +124,7 @@ describe('Reminder API Endpoints', () => {
         headers: { 'Content-Type': 'application/json' },
       })
 
-      const response = await snoozeHandler(request, { params: { id: 'reminder1' } })
+      const response = await snoozeHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(400)
@@ -152,7 +152,7 @@ describe('Reminder API Endpoints', () => {
           headers: { 'Content-Type': 'application/json' },
         })
 
-        const response = await snoozeHandler(request, { params: { id: 'reminder1' } })
+        const response = await snoozeHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
         expect(response.status).toBe(400)
       }
     })
@@ -175,7 +175,7 @@ describe('Reminder API Endpoints', () => {
         method: 'POST',
       })
 
-      const response = await dismissHandler(request, { params: { id: 'reminder1' } })
+      const response = await dismissHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(200)
@@ -208,7 +208,7 @@ describe('Reminder API Endpoints', () => {
         headers: { 'Content-Type': 'application/json' },
       })
 
-      const response = await dismissHandler(request, { params: { id: 'reminder1' } })
+      const response = await dismissHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
       const result = await response.json()
 
       expect(response.status).toBe(200)

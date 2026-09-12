@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/tasks/[id]/copy/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock NextRequest
-const createMockRequest = (data?: any) => {
-  const request = {
-    json: vi.fn().mockResolvedValue(data || {}),
-    url: 'http://localhost:3000/api/tasks/test-task-id/copy',
-  } as any as Request
+const createMockRequest = (data?: unknown) => {
+  const request = new NextRequest('http://localhost:3000/api/tasks/test-task-id/copy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data ?? {}),
+  })
   return request
 }
 
