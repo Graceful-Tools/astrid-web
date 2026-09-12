@@ -691,7 +691,7 @@
       "deleteMyAccount": "Supprimer mon compte",
       "confirmTitle": "Confirmer la suppression du compte",
       "confirmDescription": "Cette action est permanente et irréversible.",
-      "typeToConfirm": "Tapez SUPPRIMER MON COMPTE pour confirmer",
+      "typeToConfirm": "Tapez {phrase} pour confirmer",
       "permanentlyDelete": "Supprimer définitivement le compte",
       "deleting": "Suppression..."
     },

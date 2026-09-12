@@ -691,7 +691,7 @@
       "deleteMyAccount": "Delete My Account",
       "confirmTitle": "Confirm Account Deletion",
       "confirmDescription": "This action is permanent and cannot be reversed.",
-      "typeToConfirm": "Type DELETE MY ACCOUNT to confirm",
+      "typeToConfirm": "Type {phrase} to confirm",
       "permanentlyDelete": "Permanently Delete Account",
       "deleting": "Deleting..."
     },

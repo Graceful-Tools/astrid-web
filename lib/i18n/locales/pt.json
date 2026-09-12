@@ -691,7 +691,7 @@
       "deleteMyAccount": "Excluir Minha Conta",
       "confirmTitle": "Confirmar Exclusão da Conta",
       "confirmDescription": "Esta ação é permanente e não pode ser revertida.",
-      "typeToConfirm": "Digite EXCLUIR MINHA CONTA para confirmar",
+      "typeToConfirm": "Digite {phrase} para confirmar",
       "permanentlyDelete": "Excluir Conta Permanentemente",
       "deleting": "Excluindo..."
     },

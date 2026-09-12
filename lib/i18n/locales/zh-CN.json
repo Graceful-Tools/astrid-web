@@ -691,7 +691,7 @@
       "deleteMyAccount": "删除我的账户",
       "confirmTitle": "确认删除账户",
       "confirmDescription": "此操作是永久的，无法撤销。",
-      "typeToConfirm": "输入「删除我的账户」以确认",
+      "typeToConfirm": "输入「{phrase}」以确认",
       "permanentlyDelete": "永久删除账户",
       "deleting": "删除中..."
     },

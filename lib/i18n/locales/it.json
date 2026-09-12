@@ -691,7 +691,7 @@
       "deleteMyAccount": "Elimina Il Mio Account",
       "confirmTitle": "Conferma Eliminazione Account",
       "confirmDescription": "Questa azione è permanente e non può essere annullata.",
-      "typeToConfirm": "Digita ELIMINA IL MIO ACCOUNT per confermare",
+      "typeToConfirm": "Digita {phrase} per confermare",
       "permanentlyDelete": "Elimina Permanentemente Account",
       "deleting": "Eliminazione..."
     },

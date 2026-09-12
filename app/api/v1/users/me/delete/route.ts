@@ -11,6 +11,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { deleteObject } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
+import { ACCOUNT_DELETION_CONFIRMATION_PHRASE } from '@/lib/account-deletion'
 
 const log = createLogger('v1.users.me.delete')
 
@@ -21,9 +22,9 @@ export const POST = withAuth(
       const body = await req.json()
       const { confirmationText } = body
 
-      if (confirmationText !== 'DELETE MY ACCOUNT') {
+      if (confirmationText !== ACCOUNT_DELETION_CONFIRMATION_PHRASE) {
         return NextResponse.json(
-          { error: "Invalid confirmation text. Please type 'DELETE MY ACCOUNT' exactly." },
+          { error: `Invalid confirmation text. Please type '${ACCOUNT_DELETION_CONFIRMATION_PHRASE}' exactly.` },
           { status: 400 }
         )
       }

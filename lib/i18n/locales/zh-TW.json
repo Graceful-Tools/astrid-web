@@ -691,7 +691,7 @@
       "deleteMyAccount": "刪除我的帳戶",
       "confirmTitle": "確認刪除帳戶",
       "confirmDescription": "此操作是永久的，無法復原。",
-      "typeToConfirm": "輸入「刪除我的帳戶」以確認",
+      "typeToConfirm": "輸入「{phrase}」以確認",
       "permanentlyDelete": "永久刪除帳戶",
       "deleting": "刪除中..."
     },
