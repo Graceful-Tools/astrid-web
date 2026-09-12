@@ -233,7 +233,7 @@
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.4",
     "undici": "6.28.0",
-    "uuid": "^11.0.0",
+    "uuid": "^14.0.2",
     "vaul": "^1.1.2",
     "vite": "^8.0.13",
     "web-push": "^3.6.7",
