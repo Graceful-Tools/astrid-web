@@ -7,7 +7,7 @@
  * completion-only path, which is the path that had no enforcement at all
  * (`if (body.listIds !== undefined)` gated the whole block).
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -102,7 +102,7 @@ function putReq(body: unknown) {
 
 /** The `data` prisma.task.update was called with. */
 function updateData() {
-  const call = (mockPrisma.task.update as never as ReturnType<typeof vi.fn>).mock.calls[0]
+  const call = (mockPrisma.task.update as never as Mock).mock.calls[0]
   return call?.[0]?.data
 }
 
@@ -112,12 +112,12 @@ describe('PUT /api/v1/tasks/[id] — completion strips status membership (task d
     mockAuth.mockResolvedValue(auth as never)
     mockRequireScopes.mockReturnValue(undefined as never)
     mockRequireTaskAccess.mockResolvedValue(undefined as never)
-    ;(mockPrisma.task.update as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.update as never as Mock)
       .mockResolvedValue({ ...existing([WORK]), completed: true } as never)
   })
 
   it('disconnects the status list when the task is completed with no listIds in the body', async () => {
-    ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.findUnique as never as Mock)
       .mockResolvedValue(existing([READY, WORK]) as never)
 
     await PUT(putReq({ completed: true }) as never, { params: Promise.resolve({ id: 'task-1' }) } as never)
@@ -127,7 +127,7 @@ describe('PUT /api/v1/tasks/[id] — completion strips status membership (task d
   })
 
   it('leaves the non-status lists attached — completing a task does not unfile it', async () => {
-    ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.findUnique as never as Mock)
       .mockResolvedValue(existing([READY, WORK]) as never)
 
     await PUT(putReq({ completed: true }) as never, { params: Promise.resolve({ id: 'task-1' }) } as never)
@@ -138,7 +138,7 @@ describe('PUT /api/v1/tasks/[id] — completion strips status membership (task d
   })
 
   it('touches nothing when the completed task holds no status membership', async () => {
-    ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.findUnique as never as Mock)
       .mockResolvedValue(existing([WORK]) as never)
 
     await PUT(putReq({ completed: true }) as never, { params: Promise.resolve({ id: 'task-1' }) } as never)
@@ -148,7 +148,7 @@ describe('PUT /api/v1/tasks/[id] — completion strips status membership (task d
   })
 
   it('leaves status membership alone when the task is being REOPENED', async () => {
-    ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.findUnique as never as Mock)
       .mockResolvedValue({ ...existing([READY, WORK]), completed: true } as never)
 
     await PUT(putReq({ completed: false }) as never, { params: Promise.resolve({ id: 'task-1' }) } as never)
@@ -158,7 +158,7 @@ describe('PUT /api/v1/tasks/[id] — completion strips status membership (task d
   })
 
   it('leaves status membership alone for an update that is not about completion', async () => {
-    ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.findUnique as never as Mock)
       .mockResolvedValue(existing([READY, WORK]) as never)
 
     await PUT(putReq({ title: 'Renamed' }) as never, { params: Promise.resolve({ id: 'task-1' }) } as never)

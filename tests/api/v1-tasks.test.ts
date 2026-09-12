@@ -7,7 +7,7 @@
  * error-shape / status-code contract. A change to any of these would silently
  * break the iOS list, so it should break this test first.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -65,8 +65,8 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(auth as never)
     mockRequireScopes.mockReturnValue(undefined as never)
-    ;(mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mockResolvedValue(sampleTasks as never)
-    ;(mockPrisma.task.count as never as ReturnType<typeof vi.fn>).mockResolvedValue(2 as never)
+    ;(mockPrisma.task.findMany as never as Mock).mockResolvedValue(sampleTasks as never)
+    ;(mockPrisma.task.count as never as Mock).mockResolvedValue(2 as never)
   })
 
   it('returns the pinned envelope: { tasks, meta:{ total, limit, offset, apiVersion, authSource } }', async () => {
@@ -100,7 +100,7 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
     // written on create and resolvable by id, but no client could display
     // either one.
     await GET(makeReq(), {} as never)
-    const args = (mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const args = (mockPrisma.task.findMany as never as Mock).mock.calls[0][0]
 
     for (const field of [
       'id', 'title', 'completed', 'priority',
@@ -115,7 +115,7 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
 
   it('uses the stable default ordering (completed asc, priority desc, createdAt desc)', async () => {
     await GET(makeReq(), {} as never)
-    const args = (mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const args = (mockPrisma.task.findMany as never as Mock).mock.calls[0][0]
     expect(args.orderBy).toEqual([
       { completed: 'asc' },
       { priority: 'desc' },
@@ -125,14 +125,14 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
 
   it('defaults pagination to take 100 / skip 0', async () => {
     await GET(makeReq(), {} as never)
-    const args = (mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const args = (mockPrisma.task.findMany as never as Mock).mock.calls[0][0]
     expect(args.take).toBe(100)
     expect(args.skip).toBe(0)
   })
 
   it('honors limit/offset query params', async () => {
     await GET(makeReq('?limit=25&offset=50'), {} as never)
-    const args = (mockPrisma.task.findMany as never as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const args = (mockPrisma.task.findMany as never as Mock).mock.calls[0][0]
     expect(args.take).toBe(25)
     expect(args.skip).toBe(50)
   })

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskDetail } from '@/components/task-detail'
@@ -58,7 +58,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     assigneeId: 'user-1'
   }
 
-  let onUpdateMock: ReturnType<typeof vi.fn>
+  let onUpdateMock: Mock
 
   beforeEach(() => {
     onUpdateMock = vi.fn()

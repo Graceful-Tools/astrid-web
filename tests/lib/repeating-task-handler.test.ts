@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 
 // Mock Prisma before importing the handler
 vi.mock('@/lib/prisma', () => ({
@@ -15,8 +15,8 @@ import { prisma } from '@/lib/prisma'
 
 const mockPrisma = prisma as unknown as {
   task: {
-    findUnique: ReturnType<typeof vi.fn>
-    update: ReturnType<typeof vi.fn>
+    findUnique: Mock
+    update: Mock
   }
 }
 

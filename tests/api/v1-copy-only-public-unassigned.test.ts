@@ -23,7 +23,7 @@
  * public lists keep their assignees, because only members can add tasks there.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -96,7 +96,7 @@ function req(body: unknown) {
 
 /** The assigneeId prisma.task.create was called with. */
 function createdAssignee() {
-  const call = (mockPrisma.task.create as never as ReturnType<typeof vi.fn>).mock.calls[0]
+  const call = (mockPrisma.task.create as never as Mock).mock.calls[0]
   return call?.[0]?.data?.assigneeId
 }
 
@@ -106,7 +106,7 @@ beforeEach(() => {
     userId: USER, source: 'oauth', scopes: ['tasks:write'], isAIAgent: false,
     user: { id: USER, email: 'u@example.com', name: 'U', isAIAgent: false },
   } as never)
-  ;(mockPrisma.task.create as never as ReturnType<typeof vi.fn>).mockResolvedValue({
+  ;(mockPrisma.task.create as never as Mock).mockResolvedValue({
     id: 'task-1', title: 'T', lists: [], comments: [], attachments: [], assigneeId: null,
   } as never)
   mockPrisma.taskList.findUnique.mockResolvedValue(null as never)
@@ -114,7 +114,7 @@ beforeEach(() => {
   // path asks both questions for itself now (AWTD-891) instead of inferring
   // them from the mocked `hasListAccess` above, so the rows have to be here.
   mockPrisma.user.findUnique.mockResolvedValue({ id: ASSIGNEE, isAIAgent: false } as never)
-  ;(mockPrisma.taskList.count as never as ReturnType<typeof vi.fn>).mockResolvedValue(1 as never)
+  ;(mockPrisma.taskList.count as never as Mock).mockResolvedValue(1 as never)
 })
 
 describe('POST /api/v1/tasks — copy-only public lists stay unassigned (task e0613ae5)', () => {

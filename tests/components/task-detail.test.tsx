@@ -21,7 +21,7 @@ vi.mock('@/hooks/use-toast', () => ({
 // The props are spelled out (AWTD-916) rather than inferred from the
 // `vi.fn()` defaults: `vi.fn()` with no argument infers `Mock<Procedure>`,
 // which is narrower than the `Mock<Procedure | Constructable>` that
-// `ReturnType<typeof vi.fn>` produces, so every call site passing a mock in
+// `Mock` produces, so every call site passing a mock in
 // was a type error against a prop type nobody wrote on purpose.
 interface TaskDetailTestTask {
   id?: string
@@ -236,7 +236,7 @@ describe('TaskDetail Component', () => {
 
   let user: ReturnType<typeof userEvent.setup>
   // Typed to the props they are passed to (AWTD-916). Bare
-  // `ReturnType<typeof vi.fn>` is `Mock<Procedure | Constructable>`, which is
+  // `Mock` is `Mock<Procedure | Constructable>`, which is
   // not assignable to any specific callback type.
   let mockOnUpdate: Mock<(task: TaskDetailTestTask) => void>
   let mockOnClose: Mock<() => void>

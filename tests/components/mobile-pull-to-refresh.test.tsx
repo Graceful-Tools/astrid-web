@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useTaskManagerLayout } from '@/hooks/useTaskManagerLayout'
 
@@ -31,7 +31,7 @@ vi.mock('@/hooks/use-swipe-to-dismiss', () => ({
 }))
 
 describe('Mobile Pull-to-Refresh', () => {
-  let onRefreshMock: ReturnType<typeof vi.fn>
+  let onRefreshMock: Mock
 
   beforeEach(() => {
     onRefreshMock = vi.fn(() => Promise.resolve())

@@ -9,7 +9,7 @@
  * comments, the newest ones, in the same ascending order as before".
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/api-auth-wrapper', () => ({
@@ -61,7 +61,7 @@ const TASK = {
 
 const ctx = { params: Promise.resolve({ id: 'task-1' }) } as never
 
-const commentsArgOf = (mock: ReturnType<typeof vi.fn>) => {
+const commentsArgOf = (mock: Mock) => {
   // The identifier resolver issues its own select-only findUnique first, so
   // pick the call that actually embeds comments.
   const call = mock.mock.calls.find(

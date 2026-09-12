@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { isListAdminOrOwner } from '@/lib/list-member-utils'
 import type { TaskList } from '@/types/task'
 
@@ -52,7 +52,7 @@ describe('LeftSidebar Public List Filtering Logic', () => {
     const publicLists = [mockPublicListOwned, mockPublicListNotOwned]
 
     // Mock that user1 owns public-list-1 but not public-list-2
-    const mockIsListAdminOrOwner = isListAdminOrOwner as ReturnType<typeof vi.fn>
+    const mockIsListAdminOrOwner = isListAdminOrOwner as Mock
     mockIsListAdminOrOwner.mockImplementation((list: TaskList, userId: string) => {
       return list.id === 'public-list-1' && userId === 'user1'
     })
@@ -75,7 +75,7 @@ describe('LeftSidebar Public List Filtering Logic', () => {
     const publicLists = [mockPublicListOwned, mockPublicListNotOwned]
 
     // Mock that user1 owns no public lists
-    const mockIsListAdminOrOwner = isListAdminOrOwner as ReturnType<typeof vi.fn>
+    const mockIsListAdminOrOwner = isListAdminOrOwner as Mock
     mockIsListAdminOrOwner.mockReturnValue(false)
 
     // Apply the same filtering logic as in LeftSidebar.tsx
@@ -95,7 +95,7 @@ describe('LeftSidebar Public List Filtering Logic', () => {
     const publicLists = [mockPublicListOwned, mockPublicListNotOwned]
 
     // Mock that user1 owns all public lists
-    const mockIsListAdminOrOwner = isListAdminOrOwner as ReturnType<typeof vi.fn>
+    const mockIsListAdminOrOwner = isListAdminOrOwner as Mock
     mockIsListAdminOrOwner.mockReturnValue(true)
 
     // Apply the same filtering logic as in LeftSidebar.tsx

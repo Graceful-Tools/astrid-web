@@ -37,6 +37,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const sendEmailSpy = vi.spyOn(service as any, 'sendEmail')
@@ -59,6 +60,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -76,6 +78,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -94,6 +97,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [task],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -128,6 +132,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [overdueTask],
         dueTodayTasks: [todayTask],
         dueTomorrowTasks: [tomorrowTask],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -145,6 +150,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -162,6 +168,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -177,6 +184,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -196,6 +204,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [task],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -227,6 +236,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [overdueTask],
         dueTodayTasks: [todayTask],
         dueTomorrowTasks: [tomorrowTask],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -249,6 +259,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const text = (service as any).getDailyDigestText(data)
@@ -266,6 +277,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const text = (service as any).getDailyDigestText(data)
@@ -284,6 +296,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [task],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const text = (service as any).getDailyDigestText(data)
@@ -300,6 +313,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const text = (service as any).getDailyDigestText(data)
@@ -316,6 +330,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [createMockTask()],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const text = (service as any).getDailyDigestText(data)
@@ -388,6 +403,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [task],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)
@@ -414,6 +430,7 @@ describe('EmailReminderService - Email Format', () => {
         overdueTasks: [],
         dueTodayTasks: [task],
         dueTomorrowTasks: [],
+        upcomingTasks: [],
       }
 
       const html = (service as any).getDailyDigestHtml(data)

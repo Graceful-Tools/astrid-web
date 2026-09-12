@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { prisma } from '@/lib/prisma'
 
@@ -10,7 +10,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-const mockFindUnique = prisma.chatChannel.findUnique as ReturnType<typeof vi.fn>
+const mockFindUnique = prisma.chatChannel.findUnique as Mock
 
 describe('chat-access', () => {
   beforeEach(() => {

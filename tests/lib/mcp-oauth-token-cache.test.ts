@@ -10,7 +10,7 @@
  * builds — directly: two instances sharing credentials must mint one token.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
 
 function mockTokenEndpoint(expiresIn = 3600) {
   const fetchMock = vi.fn(async (url: string) => {
@@ -31,7 +31,7 @@ function mockTokenEndpoint(expiresIn = 3600) {
   return fetchMock
 }
 
-const tokenCalls = (fetchMock: ReturnType<typeof vi.fn>) =>
+const tokenCalls = (fetchMock: Mock) =>
   fetchMock.mock.calls.filter(([url]) => String(url).includes('/oauth/token'))
 
 beforeEach(() => {

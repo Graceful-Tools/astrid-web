@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useClickOutside } from '@/hooks/shared/useClickOutside'
 import { createRef } from 'react'
 
 describe('useClickOutside', () => {
-  let mockCallback: ReturnType<typeof vi.fn>
+  let mockCallback: Mock
 
   beforeEach(() => {
     mockCallback = vi.fn()

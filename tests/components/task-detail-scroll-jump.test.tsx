@@ -15,7 +15,7 @@
  * and a hand-rolled copy of that logic would pass no matter what the component
  * does.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
 import { render } from '@testing-library/react'
 import { TaskDetail } from '@/components/task-detail'
 import type { Task, User, TaskList, Comment } from '@/types/task'
@@ -85,7 +85,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 }
 
 describe('TaskDetail — scroll jump on edit (task 5e997cf9)', () => {
-  let scrollToSpy: ReturnType<typeof vi.fn>
+  let scrollToSpy: Mock
   let originalScrollTo: unknown
 
   beforeEach(() => {

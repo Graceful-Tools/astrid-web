@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach , type Mock } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('next-intl/middleware', () => ({
@@ -35,7 +35,7 @@ function fetchEvent() {
 }
 
 describe('legacy usage beacon (task 641a7615)', () => {
-  let fetchSpy: ReturnType<typeof vi.fn>
+  let fetchSpy: Mock
 
   beforeEach(() => {
     process.env.INTERNAL_API_SECRET = 'test-secret'
