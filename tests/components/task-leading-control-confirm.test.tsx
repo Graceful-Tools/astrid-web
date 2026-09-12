@@ -125,12 +125,45 @@ describe('what must not change (AWTD-877)', () => {
     expect(onOpenOptions).not.toHaveBeenCalled()
   })
 
-  it('completes an UNASSIGNED task on the tap — nobody\'s work is being finished', () => {
+  // SUPERSEDED BY AWTD-919 (iOS AITD-382). This block used to assert that an
+  // unassigned task COMPLETES on the tap, reasoning that "nobody's work is
+  // being finished" — true, and beside the point. The control draws "U" for a
+  // task nobody owns, a mark that exists precisely because such a task was
+  // otherwise depicted exactly like your own; completing on a tap is what a
+  // CHECKBOX means. The hazard AWTD-877 names above is a stray tap finishing
+  // something by accident, and an unassigned task is no more exempt from that
+  // than someone else's.
+  //
+  // Kept here, inverted, rather than moved to the AWTD-919 file: this is where
+  // the superseded expectation lived, and a reader who greps for it should
+  // find out what replaced it.
+  it('opens the options sheet on an UNASSIGNED task — "U" is not a checkbox (AWTD-919)', () => {
     const onToggleComplete = vi.fn()
     const onOpenOptions = vi.fn()
     const { container } = renderControl({
       assigneeId: null,
       assignee: null,
+      onToggleComplete,
+      onOpenOptions,
+    })
+
+    fireEvent.click(theTappableMark(container))
+
+    expect(onOpenOptions).toHaveBeenCalledTimes(1)
+    expect(onToggleComplete).not.toHaveBeenCalled()
+  })
+
+  it('still completes a COMPLETED unassigned task on the tap, so it can be un-ticked', () => {
+    // The web-only `completed -> checkbox` fallback: the "U" mark has no
+    // checked state, so a completed unassigned task draws a real checkbox and
+    // keeps the one-tap un-complete. Gating the action on the MARK rather than
+    // on the assignee id is what preserves this (AWTD-919).
+    const onToggleComplete = vi.fn()
+    const onOpenOptions = vi.fn()
+    const { container } = renderControl({
+      assigneeId: null,
+      assignee: null,
+      completed: true,
       onToggleComplete,
       onOpenOptions,
     })

@@ -103,16 +103,20 @@ export function TaskLeadingControl({
   // for "the checkbox when tapped" — while the tap opens the sheet.
   const compactMark = usesCompactTaskDetail(displayMode) && Boolean(onOpenOptions)
   const isSomeoneElses = isSomeoneElsesTask({ assigneeId, currentUserId })
-  const opensOptions =
-    leadingControlOpensOptions({ displayMode, onBoard, isSomeoneElses }) &&
-    Boolean(onOpenOptions)
   const effectiveMode = compactMark ? 'project' : 'list'
+  // The MARK is decided first now, because the ACTION depends on it: a tap
+  // completes a checkbox and nothing else (AWTD-919). These two lines used to
+  // be the other way round, which is precisely how the "U" glyph ended up
+  // completing the task it was drawn to distinguish.
   const kind = taskLeadingControlKind({
     assigneeId,
     currentUserId,
     completed,
     displayMode: effectiveMode,
   })
+  const opensOptions =
+    leadingControlOpensOptions({ displayMode, onBoard, isSomeoneElses, kind }) &&
+    Boolean(onOpenOptions)
   const activate = opensOptions ? onOpenOptions! : onToggleComplete
 
   if (kind === 'checkbox') {

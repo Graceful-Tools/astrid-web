@@ -39,6 +39,21 @@
  * complete, priority and status options just like in project mode." So the
  * tap opens the sheet on every surface and in both modes, and completing from
  * that sheet asks first. The mark is untouched: it was already their photo.
+ *
+ * A TAP COMPLETES ONLY WHAT IS DRAWN AS A CHECKBOX (AWTD-919, with iOS
+ * AITD-382). The three rules above are all about WHERE you are and WHOSE the
+ * task is, and between them they never asked about the mark on screen — so an
+ * unassigned task on a plain list row completed on a tap while displaying "U".
+ * That glyph exists BECAUSE a task nobody owns was being depicted exactly like
+ * a task you own; completing on a tap is what a checkbox means, and it is not
+ * what "U" means. The mark is now the first thing the action asks about.
+ *
+ * The three ownership states therefore agree at last: nobody's, an agent's and
+ * another person's task all open the sheet on a row. The first two had only
+ * ever agreed by accident — an agent is an avatar with an id that is not
+ * yours, so `isSomeoneElses` caught it, while unassigned fell through every
+ * clause. iOS collapsed its `.listRow` and `.detail` cases into one for the
+ * same reason: they had been disagreeing about the same task.
  */
 
 import { usesCompactTaskDetail, type TaskDisplayMode } from '@/lib/task-display-mode'
@@ -89,7 +104,10 @@ export function isSomeoneElsesTask({
  * Does tapping the leading control open the options sheet rather than
  * completing the task?
  *
- * THREE conditions, OR'd (tasks 036ef139, AWTD-877):
+ * FOUR conditions, OR'd (tasks 036ef139, AWTD-877, AWTD-919):
+ *
+ *   the mark is not a  a tap completes a CHECKBOX; "U" and an avatar are not
+ *   CHECKBOX           checkboxes and must not finish anyone's work (AWTD-919)
  *
  *   project display mode  the user's own Appearance preference (task ffa5bbb5)
  *   the task is on a BOARD  Jon: "In board view, when in 'list' mode the
@@ -116,18 +134,34 @@ export function isSomeoneElsesTask({
  * display mode alone: "the checkbox when tapped" says the checkbox stays, so a
  * board must not swap in the project-mode avatar for a user who never chose it.
  * Someone else's task needs no help here — it already wears their photo.
+ *
+ * The `kind` clause READS that decision without making it, which is why it
+ * takes the kind rather than an `assigneeId`. `taskLeadingControlKind` returns
+ * 'checkbox' for a COMPLETED unassigned task on purpose — the "U" mark has no
+ * checked state to show, and un-completing has to stay reachable in one tap —
+ * so asking about the mark preserves that by construction, where asking about
+ * the assignee would have quietly taken it away.
  */
 export function leadingControlOpensOptions({
   displayMode,
   onBoard = false,
   isSomeoneElses = false,
+  kind = 'checkbox',
 }: {
   displayMode?: TaskDisplayMode | string | null
   /** Is this task's list part of a project board? */
   onBoard?: boolean
   /** From `isSomeoneElsesTask`. Absent means it is yours or nobody's. */
   isSomeoneElses?: boolean
+  /**
+   * The mark `taskLeadingControlKind` actually drew. Absent means a checkbox,
+   * the same convention `displayMode` uses above: callers that predate
+   * AWTD-919 must not change behaviour, and every one of them was a checkbox.
+   */
+  kind?: TaskLeadingControlKind
 }): boolean {
+  // A tap completes a task only when the mark it lands on is a CHECKBOX.
+  if (kind !== 'checkbox') return true
   return usesCompactTaskDetail(displayMode) || onBoard || isSomeoneElses
 }
 
