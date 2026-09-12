@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
@@ -17,12 +17,37 @@ vi.mock('@/hooks/use-toast', () => ({
 }))
 
 // Create a simplified TaskDetail component for testing
-const TaskDetailTestComponent = ({ 
-  task, 
-  onUpdate = vi.fn(), 
+//
+// The props are spelled out (AWTD-916) rather than inferred from the
+// `vi.fn()` defaults: `vi.fn()` with no argument infers `Mock<Procedure>`,
+// which is narrower than the `Mock<Procedure | Constructable>` that
+// `ReturnType<typeof vi.fn>` produces, so every call site passing a mock in
+// was a type error against a prop type nobody wrote on purpose.
+interface TaskDetailTestTask {
+  id?: string
+  title?: string
+  description?: string | null
+  completed?: boolean
+  priority?: number
+  dueDate?: string | Date | null
+  deleted?: boolean
+  assignee?: { name?: string | null; email?: string | null } | null
+  lists?: Array<{ id?: string; name: string }>
+}
+
+interface TaskDetailTestComponentProps {
+  task: TaskDetailTestTask | null
+  onUpdate?: (task: TaskDetailTestTask) => void
+  onClose?: () => void
+  availableUsers?: Array<{ id: string; name?: string | null; email?: string | null }>
+}
+
+const TaskDetailTestComponent = ({
+  task,
+  onUpdate = vi.fn(),
   onClose = vi.fn(),
   availableUsers = []
-}) => {
+}: TaskDetailTestComponentProps) => {
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [editTitle, setEditTitle] = React.useState(task?.title || '')
@@ -210,8 +235,11 @@ describe('TaskDetail Component', () => {
   }
 
   let user: ReturnType<typeof userEvent.setup>
-  let mockOnUpdate: ReturnType<typeof vi.fn>
-  let mockOnClose: ReturnType<typeof vi.fn>
+  // Typed to the props they are passed to (AWTD-916). Bare
+  // `ReturnType<typeof vi.fn>` is `Mock<Procedure | Constructable>`, which is
+  // not assignable to any specific callback type.
+  let mockOnUpdate: Mock<(task: TaskDetailTestTask) => void>
+  let mockOnClose: Mock<() => void>
 
   beforeEach(() => {
     user = userEvent.setup()
