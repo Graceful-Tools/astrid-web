@@ -257,6 +257,105 @@ export class RedisCache {
     loadErrors: 0,
   }
 
+  /**
+   * How often one process may emit a cache-metrics snapshot (task 2b89739c).
+   *
+   * The budget document promises a >= 80% hit rate and had never sampled it.
+   * The per-lookup `Cache lookup` / `Cache load` events are the natural
+   * source, but they sit at `debug` on purpose (PR #260) because they are
+   * high-volume, and production runs at `info` — so every one of them is
+   * discarded before it reaches a log. Promoting them would trade a logging
+   * cost regression for a metric.
+   *
+   * So: one `info` event per process per window instead. The trigger is
+   * ELAPSED TIME, not lookup count, which is what bounds the volume no matter
+   * how hot the path gets — and is the whole reason this event can live at
+   * `info` when the per-lookup ones cannot.
+   */
+  private static readonly METRICS_WINDOW_MS = 60_000
+
+  /**
+   * Window counters, reset on every flush.
+   *
+   * These are DELTAS, and that is the decision that makes a fleet aggregate
+   * possible. `metrics` above is cumulative for the life of the process; a
+   * cumulative count logged repeatedly cannot be summed, because the same hits
+   * reappear in every event, so an aggregator would have to take the last
+   * event per instance and hope no instance died mid-window. Summing deltas is
+   * correct by construction, and losing a dying instance's partial window
+   * costs that window rather than everything it ever did.
+   */
+  private static window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0 }
+  private static windowStartedAt = Date.now()
+
+  /**
+   * Which process emitted a snapshot.
+   *
+   * The counters are statics, so they describe ONE serverless instance — that
+   * is precisely why `getMetrics()` read from a single request is not the
+   * fleet's hit rate. Stamping the instance lets an aggregate be checked
+   * against the number of reporting instances instead of taken on trust, and
+   * makes a fleet of one (the failure that would quietly look fine) visible.
+   */
+  private static readonly instanceId =
+    `${process.env.VERCEL_DEPLOYMENT_ID ?? 'local'}-${Math.random().toString(36).slice(2, 8)}`
+
+  /**
+   * Emit the window if it is due, then start a new one.
+   *
+   * Called after an outcome is recorded, on the request path — which is where
+   * it has to be. A cron's counters describe the cron process, whose cache
+   * usage is nearly nil, and a `setInterval` would not survive a serverless
+   * instance being frozen between invocations.
+   */
+  private static maybeFlushMetricsWindow(): void {
+    if (Date.now() - this.windowStartedAt < this.METRICS_WINDOW_MS) return
+    this.flushMetricsWindow()
+  }
+
+  private static flushMetricsWindow(): void {
+    const { hits, misses, loads, coalesced, errors } = this.window
+    const lookups = hits + misses
+    const elapsed = Date.now() - this.windowStartedAt
+
+    // An idle instance emits nothing. An all-zero row every minute from every
+    // warm lambda is noise that makes the real rows harder to find, and it
+    // changes no sum.
+    if (lookups === 0 && loads === 0 && errors === 0) {
+      this.windowStartedAt = Date.now()
+      return
+    }
+
+    log.info(
+      {
+        instanceId: this.instanceId,
+        windowMs: elapsed,
+        hits,
+        misses,
+        loads,
+        coalesced,
+        errors,
+        // Convenience for reading one line; the fleet rate must be recomputed
+        // from summed hits and misses, never averaged across these.
+        hitRate: lookups > 0 ? Number(((hits / lookups) * 100).toFixed(2)) : null,
+      },
+      'Cache metrics window',
+    )
+
+    this.window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0 }
+    this.windowStartedAt = Date.now()
+  }
+
+  /** Force the next recorded outcome to flush. Tests only. */
+  static __advanceMetricsWindowForTest(): void {
+    this.windowStartedAt = Date.now() - this.METRICS_WINDOW_MS - 1
+  }
+
+  /** Flush right now regardless of elapsed time. Tests only. */
+  static __flushMetricsWindowForTest(): void {
+    this.flushMetricsWindow()
+  }
+
   // Get cache metrics
   static getMetrics() {
     const total = this.metrics.hits + this.metrics.misses
@@ -280,6 +379,10 @@ export class RedisCache {
       coalesced: 0,
       loadErrors: 0,
     }
+    // The window travels with them: a reset that left it populated would leak
+    // one test's counts into the next one's first snapshot.
+    this.window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0 }
+    this.windowStartedAt = Date.now()
   }
 
   // Get cached data
@@ -290,14 +393,19 @@ export class RedisCache {
 
       if (cached) {
         this.metrics.hits++
+        this.window.hits++
+        this.maybeFlushMetricsWindow()
         return JSON.parse(cached)
       } else {
         this.metrics.misses++
+        this.window.misses++
+        this.maybeFlushMetricsWindow()
         return null
       }
     } catch (error) {
       log.error({ err: error }, 'Redis get error:')
       this.metrics.errors++
+      this.window.errors++
       return null // Fail silently, fall back to database
     }
   }
@@ -413,12 +521,14 @@ export class RedisCache {
     const existing = this.inFlight.get(key) as Promise<T> | undefined
     if (existing) {
       this.metrics.coalesced++
+      this.window.coalesced++
       log.debug({ cacheKey: key, outcome: 'coalesced' }, 'Cache load')
       return await existing
     }
 
     const promise = (async () => {
       this.metrics.loads++
+      this.window.loads++
       try {
         const data = await fetchFn()
         await this.set(key, data, ttl)
