@@ -22,7 +22,7 @@ Insights was collecting the numbers — see below.
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
-| Redis cache hit rate | >= 80% after warm-up | **no source in production** — see below | never |
+| Redis cache hit rate | >= 80% after warm-up | `scripts/measure-cache-hit-rate.ts` (needs the deploy carrying it) | **not yet sampled** |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights — dashboard only, see below | **not yet transcribed** |
 
@@ -46,6 +46,7 @@ resident on a phone, and 2.3 MiB of it is worth knowing about.
 ```bash
 npx tsx scripts/measure-api-latency.ts --samples 30      # latency + sizes
 npx tsx scripts/index-drop-evidence.ts --prod            # index plans (AWTD-855)
+npx tsx scripts/measure-cache-hit-rate.ts --hours 24     # Redis hit rate (2b89739c)
 ```
 
 `measure-api-latency.ts` times the critical reads against production over
@@ -134,16 +135,49 @@ cannot hold a sample from a logged-out visitor) is the open question on
 e586eff1 — it buys scriptability, at the price of a second pipeline beside a
 working one and a new production table.
 
-**Redis cache hit rate — emitted, but not observable in production.** PR #260
-added structured outcome events (`Cache lookup` / `Cache load` in
-`lib/redis.ts`), and they are correct. They are logged at `debug`.
-`lib/logger.ts` defaults production to `info`, and no `LOG_LEVEL` is set on the
-Vercel project, so these events are discarded before they reach a log. The
-counters behind `RedisCache.getMetrics()` are also process-local, so they
-describe one lambda instance rather than the fleet. Sampling the hit rate needs
-either `LOG_LEVEL=debug` in production (loud, and the reason the events were
-moved to debug in the first place) or a deliberate metrics surface. Filed as
-2b89739c.
+**Redis cache hit rate — a surface now exists; the sample waits on a deploy.**
+
+The problem was never that the outcomes were not recorded. PR #260's
+structured `Cache lookup` / `Cache load` events in `lib/redis.ts` are correct
+and are still there, still at `debug` — deliberately, because they are
+per-lookup and promoting them to `info` would trade a logging-cost regression
+for a metric. Production defaults to `info` and no `LOG_LEVEL` is set on the
+Vercel project, so those events never reach a log, and that stays true.
+
+`RedisCache` now also emits **one `info` event per process per 60s window**,
+`Cache metrics window`, carrying that window's counts. Three properties make
+it usable, and each is there to avoid a specific wrong number:
+
+- **It fires on elapsed time, not on lookup count**, so its volume is bounded
+  however hot the path gets. That is what lets it sit at `info` when the
+  per-lookup events cannot.
+- **It reports deltas, not lifetime totals.** `RedisCache`'s counters are
+  process statics, cumulative for the life of the instance; logging those
+  repeatedly makes them unsummable, because the same hits reappear in every
+  event. Deltas sum by construction.
+- **It is emitted from the request path**, not from a cron. A cron invocation
+  is its own process whose cache counters describe the cron, not the lambdas
+  serving `GET /api/v1/tasks` — the same reason reading `getMetrics()` from a
+  single request is not the fleet's hit rate.
+
+```bash
+npx tsx scripts/measure-cache-hit-rate.ts --hours 24
+```
+
+sums those windows and divides **once** at the end. The fleet rate is not the
+mean of the per-window rates: an instance that served three lookups and one
+that served thirty thousand each contribute one `hitRate` field, and averaging
+them weights them equally.
+
+**Not yet sampled, and the row says so.** The event only exists in code;
+production deploys are manual, so nothing has emitted one yet. Tracked on
+2b89739c, which is parked on that deploy.
+
+One thing for whoever takes the sample: the ~50-unique-row ceiling described
+under *Server error rate* applies here too. One event per instance per minute
+is far thinner than per-request rows and should fit, but the script refuses to
+report a rate from fewer than 20 windows rather than printing a confident
+percentage over four — which is how the error-rate row became unprovable.
 
 **Server error rate — sample too small to assert.** The Vercel CLI returns only
 ~50 unique log rows per query and pads beyond that, so walking windows across

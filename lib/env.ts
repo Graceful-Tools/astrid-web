@@ -273,6 +273,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'VERCEL_ENV', scope: 'platform', description: 'production | preview | development, set by Vercel.' },
   { name: 'VERCEL_URL', scope: 'platform', description: 'Deployment URL, set by Vercel.' },
   { name: 'VERCEL_GIT_COMMIT_SHA', scope: 'platform', description: 'Commit SHA, set by Vercel.' },
+  { name: 'VERCEL_DEPLOYMENT_ID', scope: 'platform', description: 'Deployment id, set by Vercel; stamps cache-metrics windows so a fleet aggregate can be attributed to a build.' },
   { name: 'NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA', scope: 'platform', description: 'Commit SHA exposed to the client, set by Vercel.' },
   { name: 'GIT_COMMIT_SHA', scope: 'platform', description: 'Commit SHA in non-Vercel builds.' },
   { name: '__NEXT_PRIVATE_ORIGIN', scope: 'platform', description: 'Internal Next.js value; read only as a fallback.' },
