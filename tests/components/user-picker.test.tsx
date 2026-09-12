@@ -128,6 +128,7 @@ describe('UserPicker', () => {
           selectedUser={null}
           onUserSelect={mockOnUserSelect}
           inline={true}
+          debounceMs={0}
         />
       )
 
@@ -193,6 +194,7 @@ describe('UserPicker', () => {
           selectedUser={null}
           onUserSelect={mockOnUserSelect}
           inline={true}
+          debounceMs={0}
         />
       )
 
@@ -228,6 +230,7 @@ describe('UserPicker', () => {
           onUserSelect={mockOnUserSelect}
           onInviteUser={mockOnInviteUser}
           inline={true}
+          debounceMs={0}
         />
       )
 
@@ -243,13 +246,22 @@ describe('UserPicker', () => {
       })
     })
 
-    it('should not show invite option for invalid email', () => {
+    it('should not show invite option for invalid email', async () => {
+      // Was synchronous, and therefore a FALSE PASS (AWTD-918): it asserted the
+      // absence of the invite option immediately after typing, before the 300ms
+      // debounce had fired or anything had rendered. Nothing was on screen yet,
+      // so it passed whether or not the component gated the invite correctly.
+      //
+      // Now it waits for the search to actually complete before asserting, so
+      // "absent" means "the component decided not to offer it" rather than
+      // "the component had not got round to rendering".
       render(
         <UserPicker
           selectedUser={null}
           onUserSelect={mockOnUserSelect}
           onInviteUser={mockOnInviteUser}
           inline={true}
+          debounceMs={0}
         />
       )
 
@@ -258,6 +270,12 @@ describe('UserPicker', () => {
       // Type an invalid email
       fireEvent.change(input, { target: { value: 'notanemail' } })
       fireEvent.focus(input)
+
+      // The search for this term has to have happened first — otherwise the
+      // assertion below is measuring an empty render.
+      await waitFor(() => {
+        expect((global.fetch as any).mock.calls.some((c: any[]) => String(c[0]).includes('q=notanemail'))).toBe(true)
+      })
 
       // Should NOT show invite option
       expect(screen.queryByText(/Invite notanemail/)).toBeNull()
@@ -272,6 +290,7 @@ describe('UserPicker', () => {
           onUserSelect={mockOnUserSelect}
           taskId="task-123"
           inline={true}
+          debounceMs={0}
         />
       )
 
@@ -292,6 +311,7 @@ describe('UserPicker', () => {
           onUserSelect={mockOnUserSelect}
           listIds={['list-1', 'list-2']}
           inline={true}
+          debounceMs={0}
         />
       )
 
@@ -460,6 +480,77 @@ describe('UserPicker', () => {
           name: 'First Tap User'
         })
       )
+    })
+  })
+
+  describe('search debounce is injectable (AWTD-918)', () => {
+    // The flake this fixes: `should handle keyboard navigation` failed one
+    // predeploy run with "Unable to find an element with the text: Keyboard
+    // User" while passing 8/8 in isolation. The component debounced the search
+    // by a hardcoded 300ms (components/user-picker.tsx) and the assertions used
+    // waitFor's default 1000ms timeout, so the margin was ~700ms of scheduler
+    // slack. A full run — 668 files across parallel workers, emitting
+    // MaxListenersExceededWarning — can eat that.
+    //
+    // The load-dependent failure cannot be reproduced on demand, so this pins
+    // the DEFECT instead: the delay must be injectable, so a test never has to
+    // out-wait a real timer. The budget below is deliberately under 300ms — it
+    // fails against the old hardcoded debounce and passes once the prop is
+    // honoured. Raising this timeout to make a failure go away would restore
+    // exactly the bug being fixed here.
+    const UNDER_THE_DEFAULT_DEBOUNCE = 150
+
+    it('resolves a search faster than the production debounce would allow', async () => {
+      ;(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({ users: [{ id: 'u-fast', name: 'Fast User', email: 'fast@example.com', image: null }] }),
+      })
+
+      render(
+        <UserPicker
+          selectedUser={null}
+          onUserSelect={mockOnUserSelect}
+          inline={true}
+          debounceMs={0}
+        />
+      )
+
+      const input = screen.getByPlaceholderText('Search users or enter email...')
+      fireEvent.focus(input)
+      fireEvent.change(input, { target: { value: 'Fast' } })
+
+      await waitFor(
+        () => { expect(screen.getByText('Fast User')).toBeDefined() },
+        { timeout: UNDER_THE_DEFAULT_DEBOUNCE }
+      )
+    })
+
+    it('still debounces by default, so production behaviour is unchanged', async () => {
+      ;(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({ users: [] }),
+      })
+
+      render(
+        <UserPicker
+          selectedUser={null}
+          onUserSelect={mockOnUserSelect}
+          inline={true}
+        />
+      )
+
+      const input = screen.getByPlaceholderText('Search users or enter email...')
+      fireEvent.focus(input)
+      fireEvent.change(input, { target: { value: 'ab' } })
+
+      // Immediately after typing, the debounce has not elapsed, so no request
+      // has gone out. This is what keeps the fix from silently becoming
+      // "debounce removed".
+      expect((global.fetch as any).mock.calls.filter((c: any[]) => String(c[0]).includes('q=ab'))).toHaveLength(0)
+
+      await waitFor(() => {
+        expect((global.fetch as any).mock.calls.some((c: any[]) => String(c[0]).includes('q=ab'))).toBe(true)
+      })
     })
   })
 })

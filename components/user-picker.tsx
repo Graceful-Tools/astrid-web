@@ -9,6 +9,21 @@ import type { User } from "../types/task"
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { useTranslations } from "@/lib/i18n/client"
 
+/**
+ * How long to wait after the last keystroke before searching.
+ *
+ * Named rather than inlined because a hardcoded literal here is what made
+ * tests/components/user-picker.test.tsx flaky under load (AWTD-918): every
+ * assertion about search results had to out-wait a real 300ms timer inside
+ * waitFor's 1000ms default, leaving ~700ms of scheduler slack that a full
+ * parallel suite run can consume.
+ *
+ * Deliberately NOT shared with useTaskSearch's identical constant: user search
+ * and task search being 300ms each is a coincidence today, not a contract, and
+ * one knob for both would couple two unrelated tuning decisions.
+ */
+const SEARCH_DEBOUNCE_MS = 300
+
 interface UserPickerProps {
   selectedUser?: User | null
   onUserSelect: (user: User | null, assigneeEmail?: string) => void
@@ -21,6 +36,8 @@ interface UserPickerProps {
   autoFocus?: boolean // When true, automatically focus input and show suggestions on mount
   allowEmailAssignment?: boolean // When true, allow direct email assignment (creates placeholder users)
   includeAIAgents?: boolean // When true, include AI agents based on user's configured API keys
+  /** Debounce before searching. Overridden only by tests, so they need not wait on a real timer. */
+  debounceMs?: number
 }
 
 interface SearchUser {
@@ -45,7 +62,8 @@ export function UserPicker({
   inline = false,
   autoFocus = false,
   allowEmailAssignment = true,
-  includeAIAgents = false
+  includeAIAgents = false,
+  debounceMs = SEARCH_DEBOUNCE_MS
 }: UserPickerProps) {
   const { t } = useTranslations()
   const [searchTerm, setSearchTerm] = useState("")
@@ -120,14 +138,14 @@ export function UserPicker({
 
     debounceRef.current = setTimeout(() => {
       searchUsers(searchTerm)
-    }, 300)
+    }, debounceMs)
 
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [searchTerm, searchUsers])
+  }, [searchTerm, searchUsers, debounceMs])
 
   // Initial load of list members when component mounts
   useEffect(() => {
