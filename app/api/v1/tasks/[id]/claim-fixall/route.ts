@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api-auth-wrapper"
 import { requireTaskAccess } from "@/lib/api-auth-middleware"
-import {
-  FIXALL_CLAIM_AGENT_EMAIL,
-  parseFixallClaimRequest,
-} from "@/lib/fixall-claim"
+import { parseFixallClaimRequest } from "@/lib/fixall-claim"
 import { claimFixallTask } from "@/services/fixall-claim.service"
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -27,7 +24,10 @@ export const POST = withAuth<RouteContext>(
 
     const result = await claimFixallTask(taskId, claim)
     if (result.status === "agent-unavailable") {
-      return NextResponse.json({ error: "Configured fixall agent is unavailable" }, { status: 409 })
+      return NextResponse.json(
+        { error: `No active agent account for ${claim.agent}` },
+        { status: 409 },
+      )
     }
     if (result.status === "conflict") {
       return NextResponse.json(
@@ -39,7 +39,11 @@ export const POST = withAuth<RouteContext>(
     return NextResponse.json({
       claimed: true,
       taskId,
-      assigneeEmail: FIXALL_CLAIM_AGENT_EMAIL,
+      // The identity actually written, not a constant — the claimant varies by
+      // harness now, and a caller that trusted a hardcoded answer would report
+      // the wrong owner.
+      assigneeEmail: result.assigneeEmail,
+      agent: claim.agent,
       action: claim.action,
     })
   },
