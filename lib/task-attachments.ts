@@ -3,7 +3,7 @@
  *
  * Files attached in the task form were written correctly — a `SecureFile` row
  * with `taskId` set — and then never read back: the form re-seeded itself from
- * the legacy `Attachment` model (whose only writers are the MCP handlers) and
+ * the `Attachment` model (whose only writers are the MCP handlers) and
  * the activity strip only walked comments. The file vanished from the product
  * the moment the form closed, which reads as data loss even though the row and
  * the blob were both still there.
@@ -21,17 +21,28 @@
  * stay classified exactly as they were.
  *
  * The third model (task AWTD-803): `Attachment`. Its only writers are the two
- * MCP handlers, and until now it had no reader in the product — the routes load
+ * MCP handlers, and until then it had no reader in the product — the routes load
  * it (`include: { attachments: true }`) and shipped it to a client that walked
  * `secureFiles` only. A file attached through MCP was in the database and in the
  * account export, and invisible everywhere a user could look.
  *
- * The two kinds are read back differently, which is why the view carries
- * `source`: a `SecureFile` resolves through `/api/v1/secure-files/{id}`, while
- * an `Attachment` row carries a plain `url` and has no such record. Only the
- * *read* path unions them. `taskLevelAttachments` — what the task form owns and
- * can remove — stays secure-file-only, because removal goes through the
- * secure-files endpoint, which knows nothing about a legacy row.
+ * `Attachment` is the model for EXTERNAL LINKS and is staying (AWTD-857). Jon,
+ * 2026-09-10: MCP links keep pointing at the external url unless we stored the
+ * bytes ourselves. So the two models split by KIND, not by age — a link versus a
+ * blob we host — and the `source` discrimination below is the design rather than
+ * a bridge waiting to be removed. It used to say `'legacy'`, which read as
+ * "finish removing this" and sent three sessions after a retirement that would
+ * have broken two working things: `blobUrl` is globally `@unique` (the same
+ * shared url on two tasks would start failing) and the secure-files route
+ * redirects to it (our domain would become an open redirector for an
+ * agent-supplied url). See the `Attachment` model in prisma/schema.prisma.
+ *
+ * The two kinds are therefore read back differently, which is why the view
+ * carries `source`: a `SecureFile` resolves through `/api/v1/secure-files/{id}`,
+ * while an `Attachment` row carries a plain `url` and has no such record. Only
+ * the *read* path unions them. `taskLevelAttachments` — what the task form owns
+ * and can remove — stays secure-file-only, because removal goes through the
+ * secure-files endpoint, which knows nothing about a link row.
  */
 
 import type { Task, SecureFile, Attachment } from "@/types/task"
@@ -49,11 +60,12 @@ export interface TaskAttachmentView {
   /** True when the file hangs off the task itself rather than off a comment. */
   isTaskLevel: boolean
   /**
-   * Which model the row came from, and therefore how `url` is served:
-   * `secure-file` needs the secure-files route, `legacy` is already a fetchable
-   * url. Consumers must not hand a `legacy` id to SecureAttachmentViewer.
+   * Which KIND of thing this is, and therefore how `url` is served:
+   * `secure-file` is a blob we host and needs the secure-files route, `link` is
+   * an external url that is already fetchable. Consumers must not hand a `link`
+   * id to SecureAttachmentViewer — there is no secure-files record to resolve.
    */
-  source: 'secure-file' | 'legacy'
+  source: 'secure-file' | 'link'
 }
 
 function toView(file: SecureFile, isTaskLevel: boolean, createdAt?: Date): TaskAttachmentView {
@@ -70,8 +82,8 @@ function toView(file: SecureFile, isTaskLevel: boolean, createdAt?: Date): TaskA
   }
 }
 
-/** A legacy `Attachment` row, which already carries the url it is served from. */
-function legacyToView(row: Attachment): TaskAttachmentView {
+/** An `Attachment` row — an external link, already carrying its own url. */
+function linkToView(row: Attachment): TaskAttachmentView {
   return {
     id: row.id,
     fileId: row.id,
@@ -81,7 +93,7 @@ function legacyToView(row: Attachment): TaskAttachmentView {
     size: row.size,
     createdAt: row.createdAt,
     isTaskLevel: true,
-    source: 'legacy',
+    source: 'link',
   }
 }
 
@@ -103,7 +115,7 @@ export function taskLevelAttachments(task: Pick<Task, 'secureFiles'>): TaskAttac
  * reshuffle a strip the user already knows.
  *
  * Task-level covers both models: the secure files the task form writes, then
- * the legacy rows MCP writes (task AWTD-803). MCP rows come second so adding
+ * the link rows MCP writes (task AWTD-803). MCP rows come second so adding
  * one does not reshuffle a strip somebody already knows.
  */
 export function collectTaskAttachments(task: Partial<Task>): TaskAttachmentView[] {
@@ -121,7 +133,7 @@ export function collectTaskAttachments(task: Partial<Task>): TaskAttachmentView[
   }
 
   taskLevelAttachments(task as Pick<Task, 'secureFiles'>).forEach(push)
-  ;(task.attachments || []).map(legacyToView).forEach(push)
+  ;(task.attachments || []).map(linkToView).forEach(push)
 
   for (const comment of task.comments || []) {
     for (const file of comment.secureFiles || []) {

@@ -491,6 +491,29 @@ model Comment {
   @@index([taskId, systemEventType])
 }
 
+/// An EXTERNAL LINK attached to a task — not a file we hold. (AWTD-857)
+///
+/// Written only by the two MCP attachment handlers, from `{ name, url, type,
+/// size }` supplied by the agent. Nothing uploads bytes: `size` is whatever the
+/// caller claims, and `url` points wherever the caller said.
+///
+/// This is the PERMANENT model for links, not a leftover. Jon, 2026-09-10:
+/// "mcp links to urls should not store in our blob store. they should continue
+/// to point to the external link UNLESS they were stored by us (e.g. user
+/// uploaded a file in Astrid)."
+///
+/// So the split is by KIND, not by age: `Attachment` is a link, `SecureFile` is
+/// a blob we host. Merging them breaks two things —
+///   1. `SecureFile.blobUrl` is `@unique` globally while `url` here has no
+///      constraint, so attaching one shared doc to two tasks would start
+///      failing where it works today; and
+///   2. `/api/v1/secure-files/{id}` redirects to `blobUrl`, which would turn
+///      our own domain into an open redirector for an agent-supplied url. A
+///      link is rendered client-side and never passes through us.
+///
+/// `collectTaskAttachments` unions both and discriminates on `source`
+/// ('link' vs 'secure-file'); that discrimination is the design. Ratcheted by
+/// tests/rules/mcp-attachments-are-links-not-files.test.ts.
 model Attachment {
   id        String   @id @default(cuid())
   name      String

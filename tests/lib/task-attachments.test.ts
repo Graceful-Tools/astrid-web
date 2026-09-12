@@ -3,7 +3,7 @@
  *
  * Attaching a file in the task form created a SecureFile row with `taskId` set,
  * and then nothing in the UI ever read it back: the form re-seeded from the
- * legacy `Attachment` model and the activity strip only walked comments. The
+ * `Attachment` model and the activity strip only walked comments. The
  * file was gone from the product the moment the form closed.
  *
  * The catch is that comment attachments ALSO carry `taskId` — the composer
@@ -145,15 +145,18 @@ describe('abandoned composer uploads (Task ded31696)', () => {
   })
 })
 
-describe('legacy MCP attachments (Task AWTD-803)', () => {
+describe('MCP link attachments (Task AWTD-803, AWTD-857)', () => {
   // The `Attachment` model has exactly two writers, both MCP
   // (mcp/handlers/tasks.ts, app/api/mcp/operations/handlers/task-operations.ts),
-  // and until now no reader in the product: collectTaskAttachments walked
+  // and until AWTD-803 no reader in the product: collectTaskAttachments walked
   // secureFiles only. The routes load the relation and ship it to the client
   // (`include: { attachments: true }`), where it was dropped on the floor — so
   // a file attached through MCP existed in the database, appeared in the
   // account export, and was invisible everywhere a user could look.
-  const legacy = (id: string, over: Record<string, unknown> = {}) => ({
+  //
+  // These rows are EXTERNAL LINKS and the model is staying (AWTD-857, Jon
+  // 2026-09-10) — hence `source: 'link'` rather than the old `'legacy'`.
+  const link = (id: string, over: Record<string, unknown> = {}) => ({
     id,
     name: `${id}.pdf`,
     url: `https://files.example/${id}.pdf`,
@@ -165,7 +168,7 @@ describe('legacy MCP attachments (Task AWTD-803)', () => {
   })
 
   it('surfaces a file attached through MCP', () => {
-    const task = { attachments: [legacy('a1')], secureFiles: [], comments: [] } as any
+    const task = { attachments: [link('a1')], secureFiles: [], comments: [] } as any
 
     expect(collectTaskAttachments(task)).toEqual([
       expect.objectContaining({
@@ -181,22 +184,22 @@ describe('legacy MCP attachments (Task AWTD-803)', () => {
 
   it('marks it as served by its own url, not through the secure-files route', () => {
     // The two kinds are fetched differently. A SecureFile resolves through
-    // /api/v1/secure-files/{id}?info=true; a legacy row carries a plain url and
-    // has no such record, so handing its id to SecureAttachmentViewer would
-    // trade an invisible attachment for a broken one.
-    const task = { attachments: [legacy('a1')], secureFiles: [secureFile('f1')], comments: [] } as any
+    // /api/v1/secure-files/{id}?info=true; a link row carries a plain external
+    // url and has no such record, so handing its id to SecureAttachmentViewer
+    // would trade an invisible attachment for a broken one.
+    const task = { attachments: [link('a1')], secureFiles: [secureFile('f1')], comments: [] } as any
 
-    const [legacyView, secureView] = collectTaskAttachments(task)
+    const [linkView, secureView] = collectTaskAttachments(task)
       .sort((a, b) => a.fileId.localeCompare(b.fileId))
 
-    expect(legacyView).toMatchObject({ fileId: 'a1', source: 'legacy' })
+    expect(linkView).toMatchObject({ fileId: 'a1', source: 'link' })
     expect(secureView).toMatchObject({ fileId: 'f1', source: 'secure-file' })
   })
 
   it('lists secure files first, then MCP attachments, then comment files', () => {
     const task = {
       secureFiles: [secureFile('direct')],
-      attachments: [legacy('mcp')],
+      attachments: [link('mcp')],
       comments: [{ id: 'c1', createdAt: new Date(), secureFiles: [secureFile('viaComment', { commentId: 'c1' })] }],
     } as any
 
@@ -206,8 +209,8 @@ describe('legacy MCP attachments (Task AWTD-803)', () => {
   it('does not offer an MCP attachment to the task form, which cannot delete it', () => {
     // taskLevelAttachments is "what the form owns and can remove", and removal
     // goes through the secure-files endpoint — which knows nothing about a
-    // legacy row. Listing one there would render a delete button that 404s.
-    const task = { attachments: [legacy('a1')], secureFiles: [], comments: [] } as any
+    // link row. Listing one there would render a delete button that 404s.
+    const task = { attachments: [link('a1')], secureFiles: [], comments: [] } as any
 
     expect(taskLevelAttachments(task)).toEqual([])
   })
