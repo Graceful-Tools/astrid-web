@@ -18,6 +18,12 @@ const DOCUMENT_PAGES = [
   '/docs/endpoints',
   '/docs/mcp',
   '/docs/integrate',
+  // AWTD-910: measured at 390x740 BEFORE its fix — 2,971px of content in a
+  // 740px viewport and six wheel gestures moved it 0px, so 2,231px was in the
+  // DOM and unreachable. After the fix the same probe moves 2,231px. It is the
+  // only page from that backlog that both overflows today and is reachable
+  // anonymously, which is what makes it worth a path here.
+  '/docs/custom-agents',
   '/auth/signin',
   '/astrid-coding',
   '/github-setup',

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { LoadingScreen } from "@/components/loading-screen"
 import { createLogger } from '@/lib/logger'
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 const log = createLogger('[locale].s.[code].page.tsx')
 
@@ -108,7 +109,7 @@ export default function ShortcodePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className={`${scrollShellClassName} bg-gray-900 flex items-center justify-center p-4`}>
         <div className="text-center">
           <div className="text-6xl mb-4">🔗</div>
           <h1 className="text-2xl font-bold text-white mb-2">Link Error</h1>

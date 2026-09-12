@@ -19,6 +19,7 @@ import { DesktopHandoffClient } from "./desktop-handoff-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertTriangle, Laptop, Lock } from "lucide-react"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 type SearchParamMap = Record<string, string | string[] | undefined>
 
@@ -32,7 +33,7 @@ function one(value: string | string[] | undefined): string | undefined {
 
 function InvalidLink({ reason }: { reason: string }) {
   return (
-    <div className="min-h-screen theme-bg-primary flex items-center justify-center p-4">
+    <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center p-4`}>
       <Card className="max-w-lg w-full theme-bg-secondary theme-border">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -87,7 +88,7 @@ export default async function DesktopHandoffPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen theme-bg-primary flex items-center justify-center p-4">
+    <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center p-4`}>
       <Card className="max-w-lg w-full theme-bg-secondary theme-border">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">

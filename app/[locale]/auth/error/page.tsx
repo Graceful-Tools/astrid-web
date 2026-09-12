@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Heart, AlertCircle, ArrowLeft } from "lucide-react"
 import { Suspense } from "react"
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 function AuthErrorContent() {
   const searchParams = useSearchParams()
@@ -27,7 +28,7 @@ function AuthErrorContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className={`${scrollShellClassName} bg-gray-900 flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -69,7 +70,7 @@ function AuthErrorContent() {
 
 export default function AuthError() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-900 flex items-center justify-center p-4"><div className="text-white">Loading...</div></div>}>
+    <Suspense fallback={<div className={`${scrollShellClassName} bg-gray-900 flex items-center justify-center p-4`}><div className="text-white">Loading...</div></div>}>
       <AuthErrorContent />
     </Suspense>
   )

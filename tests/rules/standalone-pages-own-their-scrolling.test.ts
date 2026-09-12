@@ -85,24 +85,38 @@ function aLayoutAboveOwnsScrolling(pageFile: string): boolean {
 }
 
 /**
- * Pages that render a full-height root of their own and own no scroll surface,
- * as of 2026-09-11 when this ratchet was added.
+ * EMPTY, and it should stay that way (AWTD-910).
  *
- * These are NOT known-good — they are the untriaged backlog this bug came out
- * of, recorded so the list can only shrink. Each needs the same look
- * /oauth/authorize got: does its content outgrow a phone viewport? If yes it
- * has the same bug; if no, it has it latently, one long error message away.
+ * This held five pages when the ratchet was added on 2026-09-11. All five were
+ * measured at a 390x740 viewport with real wheel gestures and then given the
+ * shell, so there is no backlog left to grade.
  *
- * Remove an entry when you fix the page. Do not add one: a new page here is a
- * new instance of a bug that has already been reported twice.
+ * What the measurement found, because the numbers are the useful part:
+ *
+ *   - docs/custom-agents was ALREADY BROKEN, exactly like /oauth/authorize:
+ *     2,971px of content in a 740px viewport, the lowest element at y=2971,
+ *     and six full wheel gestures moved it 0px. 2,231px unreachable.
+ *   - auth/desktop, auth/error and u/[userId] all fit 740px in the states an
+ *     anonymous visitor can reach, so they were latent rather than broken.
+ *   - s/[code] could not be measured directly: anonymous, it redirects to
+ *     /auth/signin, so the probe measures the sign-in page instead. That is the
+ *     same trap noted above for /oauth/authorize and the reason this file is a
+ *     static check rather than a list of paths to visit.
+ *
+ * One premise from the triage turned out to be wrong and is worth recording:
+ * auth/error does NOT echo an upstream message. It maps `?error=` through a
+ * switch to fixed strings, so a 1,100-character error param produced a page
+ * 2px different from `?error=Configuration`. Its growth risk was lower than
+ * the backlog assumed — but the shell is inert when content fits, so it got
+ * one anyway rather than an exemption nobody can re-verify cheaply.
+ *
+ * Do not add an entry here. A new page in this list is a new instance of a bug
+ * that has now been reported three times; give it `scrollShellClassName` or
+ * wrap it in `<ScrollShell>` instead. If you genuinely believe a page cannot
+ * overflow, note that the class costs nothing when content fits, which is a
+ * cheaper argument to win than an exemption.
  */
-const UNFIXED_BACKLOG = new Set([
-  'app/[locale]/auth/desktop/page.tsx',
-  'app/[locale]/auth/error/page.tsx',
-  'app/[locale]/docs/custom-agents/page.tsx',
-  'app/[locale]/s/[code]/page.tsx',
-  'app/[locale]/u/[userId]/page.tsx',
-])
+const UNFIXED_BACKLOG = new Set<string>([])
 
 function offenders(): string[] {
   return pagesUnder(LOCALE_ROOT)
