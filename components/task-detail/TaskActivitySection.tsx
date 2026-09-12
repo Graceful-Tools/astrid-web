@@ -46,10 +46,10 @@ export function TaskActivitySection({
                 fileId={attachment.fileId}
                 fileName={attachment.name}
                 showFileName={false}
-                // A legacy MCP attachment has no secure-files record to resolve
-                // — it carries its own url (task AWTD-803).
+                // A link attachment (MCP) has no secure-files record to
+                // resolve — it carries its own external url (AWTD-803/857).
                 directFile={
-                  attachment.source === 'legacy'
+                  attachment.source === 'link'
                     ? { url: attachment.url, mimeType: attachment.type, fileSize: attachment.size }
                     : undefined
                 }
