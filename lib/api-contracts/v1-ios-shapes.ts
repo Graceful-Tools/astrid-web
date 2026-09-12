@@ -18,6 +18,13 @@
  * Touching any of these shapes implies a coordinated iOS release. Don't
  * silence the tests; bump the iOS minimum version and ship the change in
  * lockstep.
+ *
+ * Note on `V1Project.customStates` (task 41c90fd3): iOS renders a board's
+ * custom columns from it, and decodes it leniently — a missing field reads
+ * as "no custom states" rather than as an error. So dropping it would not
+ * break a client loudly; every iOS and Mac board would just quietly fall
+ * back to the three defaults. If you are narrowing the projects query, that
+ * field has to survive the narrowing.
  */
 
 // ── Shared meta block ─────────────────────────────────────────────────
@@ -180,6 +187,21 @@ export interface V1Project {
   owner: V1UserSummary | null
   members: V1ProjectMember[]
   lists: V1List[]
+  /**
+   * The board's own custom columns, as stored on `Project.customStates`.
+   *
+   * `unknown` rather than a parsed `StatusState[]` on purpose: the column is
+   * free-form `Json?` and `parseCustomStates` is deliberately lenient about
+   * its contents, so a narrower type here would be a promise this side does
+   * not keep.
+   *
+   * It reaches the client because `projectInclude` (lib/projects-service.ts)
+   * uses Prisma `include`, which returns every scalar on `Project` —
+   * narrowing that to a `select` would drop it without touching a line that
+   * names it. `tests/lib/projects-service.test.ts` guards that at runtime;
+   * this declaration is what makes the field part of the contract at all.
+   */
+  customStates?: unknown
   createdAt: string | Date
   updatedAt: string | Date
 }
