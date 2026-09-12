@@ -14,6 +14,7 @@ import { getAllListMembers } from "@/lib/list-member-utils"
 import { shouldHideTaskWhen } from "@/lib/public-list-utils"
 import type { Task } from "@/types/task"
 import { createLogger } from '@/lib/logger'
+import { scrollShellClassName } from "@/components/scroll-shell"
 
 const log = createLogger('[locale].u.[userId].page.tsx')
 
@@ -83,7 +84,7 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen theme-bg-primary flex items-center justify-center">
+      <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="theme-text-muted">Loading profile...</p>
@@ -94,7 +95,7 @@ export default function UserProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen theme-bg-primary flex items-center justify-center p-4">
+      <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center p-4`}>
         <Card className="theme-bg-secondary theme-border border p-8 text-center max-w-md">
           <h1 className="text-2xl font-bold theme-text-primary mb-4">
             {error || "Profile not found"}
@@ -133,7 +134,7 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="min-h-screen theme-bg-primary">
+    <div className={`${scrollShellClassName} theme-bg-primary`}>
       {/* Header */}
       <div className="theme-header theme-border app-header">
         <div className="flex items-center space-x-4">
