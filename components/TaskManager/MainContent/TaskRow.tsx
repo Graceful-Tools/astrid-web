@@ -14,6 +14,7 @@ import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import {
   isSomeoneElsesTask,
   leadingControlOpensOptions,
+  taskLeadingControlKind,
 } from "@/lib/task-leading-control"
 import type { Task, TaskList } from "@/types/task"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
@@ -146,10 +147,27 @@ function TaskRowImpl({
   // only opens what this renders: a mismatch is a dead avatar, not a fallback.
   const [optionsOpen, setOptionsOpen] = React.useState(false)
   const compact = usesCompactTaskDetail(taskDisplayMode)
+  //
+  // The MARK is part of the gate since AWTD-919: a tap completes a checkbox and
+  // nothing else, so an unassigned task's "U" opens the sheet on a plain list
+  // row like everyone else's avatar already did.
+  //
+  // No circularity, though the control's own `effectiveMode` depends on whether
+  // it was given a handler. `taskLeadingControlKind`'s displayMode only decides
+  // the "your own task in project mode wears your photo" branch, and project
+  // mode already opens the sheet on its own — so the only answer the kind
+  // CHANGES here is 'unassigned', which is decided before displayMode is read.
+  const leadingKind = taskLeadingControlKind({
+    assigneeId: task.assigneeId,
+    currentUserId,
+    completed: task.completed,
+    displayMode: taskDisplayMode,
+  })
   const opensOptions = leadingControlOpensOptions({
     displayMode: taskDisplayMode,
     onBoard: Boolean(board),
     isSomeoneElses: isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId }),
+    kind: leadingKind,
   })
 
   // Columns from the module, never a local list — status is a state on the
