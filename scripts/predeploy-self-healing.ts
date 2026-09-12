@@ -219,12 +219,33 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // assertion nothing was compiling. It sat green while four keys left
       // V1List and seven more were added to it.
       //
-      // Scoped narrowly on purpose: the whole tree reports ~1474 errors across
-      // ~347 files. See tsconfig.contract-tests.json.
+      // KEPT DELIBERATELY alongside 'Test Tree Types' below, which now also
+      // covers this file (AWTD-916). It is a second lock on the one test whose
+      // mechanism IS the compiler: the broader gate works from a list of
+      // excluded files, and this one cannot be switched off by adding a line
+      // to that list. See tsconfig.contract-tests.json.
       name: 'Contract Test Types',
       command: 'npm run typecheck:contract-tests',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false, // A drifted contract pin is a decision, not a fix
+    },
+    {
+      // The rest of the test tree (AWTD-916), as a RATCHET: tsconfig.test-tree
+      // .json covers `tests/**` by default and enumerates the files that still
+      // fail, so 485 of 678 test files are gated today and every NEW test file
+      // is gated automatically.
+      //
+      // It is a ratchet because the whole tree reports 1318 errors across 193
+      // files — a cleanup pass nobody can land in one go, and the alternative
+      // to a ratchet was what we had before: no gate at all, under which a
+      // compile-time assertion silently stopped asserting.
+      //
+      // Progress is deleting lines from that config's exclude list. It only
+      // ever shrinks.
+      name: 'Test Tree Types',
+      command: 'npm run typecheck:tests',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
     },
     {
       name: 'ESLint',
