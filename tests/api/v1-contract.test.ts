@@ -319,6 +319,10 @@ describe('v1 contract — V1Project shape (projects/[id] + projects[].element)',
   const EXPECTED_KEYS = [
     'id', 'name', 'description', 'color', 'imageUrl',
     'ownerId', 'owner', 'members', 'lists',
+    // Task 41c90fd3: iOS renders a board's custom columns from this. It was
+    // on the wire for months without being declared here, which meant nothing
+    // promised to keep sending it.
+    'customStates',
     'createdAt', 'updatedAt',
   ] as const satisfies ReadonlyArray<keyof V1Project>
 
@@ -327,10 +331,36 @@ describe('v1 contract — V1Project shape (projects/[id] + projects[].element)',
       id: 'p1', name: 'Project', description: null, color: '#3b82f6',
       imageUrl: null, ownerId: 'u1', owner: null,
       members: [], lists: [],
+      customStates: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  /**
+   * `customStates` is `Json?` on the column and `parseCustomStates` reads it
+   * leniently, so the contract has to admit whatever the column holds —
+   * including the null a board with no custom columns carries. Typing it as
+   * a parsed `StatusState[]` would be a promise this side does not keep.
+   */
+  it('V1Project.customStates admits null, absent, and a parsed array (task 41c90fd3)', () => {
+    const base = {
+      id: 'p1', name: 'Project', description: null, color: '#3b82f6',
+      imageUrl: null, ownerId: 'u1', owner: null,
+      members: [], lists: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const withNull: V1Project = { ...base, customStates: null }
+    const absent: V1Project = base
+    const withStates: V1Project = {
+      ...base,
+      customStates: [{ role: 'blocked', name: 'Blocked', order: 4 }],
+    }
+    expect(withNull.customStates).toBeNull()
+    expect(absent.customStates).toBeUndefined()
+    expect(withStates.customStates).toHaveLength(1)
   })
 
   it('V1ProjectsResponse has { projects, meta }', () => {

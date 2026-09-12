@@ -88,6 +88,55 @@ describe('listProjectsForUser', () => {
     expect(projects[1].lists).toEqual([])
   })
 
+  /**
+   * Task 41c90fd3 — `GET /api/v1/projects` must keep returning
+   * `Project.customStates`.
+   *
+   * iOS renders a board's custom columns from this field
+   * (`parseProjectCustomStates`), and it decodes leniently in both
+   * directions: a missing field and a malformed one both degrade to "no
+   * custom states" rather than failing the project. So if this side stopped
+   * sending it, every iOS and Mac board would silently fall back to the three
+   * defaults — cards in a custom column landing in Inbox, with no error
+   * anywhere to notice.
+   *
+   * Nothing in the route names the field: it arrives because `projectInclude`
+   * uses Prisma `include`, which returns every scalar on `Project`. Narrowing
+   * that to a `select` — the ordinary way someone would trim an
+   * over-fetching query — would drop it without touching a line that mentions
+   * `customStates`. These two assertions are what goes red in that case; the
+   * key-set test in tests/api/v1-contract.test.ts is compile-time and would
+   * still pass.
+   */
+  it('asks for every Project scalar, so customStates stays on the wire (task 41c90fd3)', async () => {
+    mockProjectFindMany.mockResolvedValue([] as any)
+
+    await listProjectsForUser('user-1')
+
+    const args = mockProjectFindMany.mock.calls[0][0] as Record<string, unknown>
+    expect(args).toHaveProperty('include')
+    // A top-level `select` returns ONLY the named fields. If a future change
+    // needs one, it must name `customStates` explicitly rather than silently
+    // dropping it.
+    if ('select' in args) {
+      expect(args.select).toHaveProperty('customStates', true)
+    }
+  })
+
+  it('passes customStates through to the caller untouched (task 41c90fd3)', async () => {
+    // Free-form Json on the column, and `parseCustomStates` is deliberately
+    // lenient about its contents — the service must not narrow or normalise
+    // it on the way out.
+    const states = [{ role: 'blocked', name: 'Blocked', order: 4 }]
+    mockProjectFindMany.mockResolvedValue([
+      { id: 'p1', name: 'Board A', lists: [], customStates: states },
+    ] as any)
+
+    const projects = await listProjectsForUser('user-1')
+
+    expect((projects[0] as any).customStates).toEqual(states)
+  })
+
   it('never writes on a plain read', async () => {
     // The lazy backfill that used to live here re-seeded the status rows on an
     // ordinary "list my projects" call — which would have undone the migration
