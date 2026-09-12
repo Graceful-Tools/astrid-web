@@ -16,6 +16,7 @@ import { agentEmail } from "@/lib/brand/agent-emails"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { scrollShellClassName } from "@/components/scroll-shell"
 import { AlertTriangle, CheckCircle, Lock, Shield } from "lucide-react"
 
 type SearchParamMap = Record<string, string | string[] | undefined>
@@ -78,7 +79,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
 
   if (validationError || !context) {
     return (
-      <div className="min-h-screen theme-bg-primary flex items-center justify-center p-4">
+      <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center p-4`}>
         <Card className="max-w-lg w-full theme-bg-secondary theme-border">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -168,7 +169,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   const consentAgentMailbox = resolveConsentAgentMailbox(context.client)
 
   return (
-    <div className="min-h-screen theme-bg-primary">
+    <div className={`${scrollShellClassName} theme-bg-primary`}>
       <div className="theme-header theme-border app-header">
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
