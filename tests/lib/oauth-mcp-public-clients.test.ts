@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { AuthorizationContext } from '@/lib/oauth/oauth-authorization'
 import { row } from '../fixtures/prisma-rows'
 import { mockPrisma } from '../setup'
 import {
@@ -191,7 +192,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
 
   it('binds the authorization code to the PKCE challenge and verifier', async () => {
     mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue(row({ id: 'code-row' }))
-    const context = {
+    const context: AuthorizationContext = {
       client: {
         id: 'db-client',
         clientId: 'astrid_client_dynamic',
@@ -199,12 +200,12 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
         description: null,
         redirectUris: ['https://vscode.dev/redirect'],
         grantTypes: ['authorization_code', 'refresh_token'],
-        scopes: ['tasks:read'] as const,
+        scopes: ['tasks:read'],
         tokenEndpointAuthMethod: 'none',
         owner: null,
       },
       redirectUri: 'https://vscode.dev/redirect',
-      scopes: ['tasks:read'] as const,
+      scopes: ['tasks:read'],
       codeChallenge: 'ImpiCd8pp4MveCNnbIS7-GXEtB0xF5HMIDoWqvGA5ig',
       codeChallengeMethod: 'S256' as const,
     }
@@ -242,7 +243,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
 
   it('AWTD-755 preserves explicit agent authorship consent through code exchange and refresh', async () => {
     mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue(row({ id: 'code-row' }))
-    const context = {
+    const context: AuthorizationContext = {
       client: {
         id: 'db-client',
         clientId: 'astrid_client_dynamic',
@@ -251,12 +252,12 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
         description: null,
         redirectUris: ['https://vscode.dev/redirect'],
         grantTypes: ['authorization_code', 'refresh_token'],
-        scopes: ['tasks:read'] as const,
+        scopes: ['tasks:read'],
         tokenEndpointAuthMethod: 'none',
         owner: null,
       },
       redirectUri: 'https://vscode.dev/redirect',
-      scopes: ['tasks:read'] as const,
+      scopes: ['tasks:read'],
       codeChallenge: 'ImpiCd8pp4MveCNnbIS7-GXEtB0xF5HMIDoWqvGA5ig',
       codeChallengeMethod: 'S256' as const,
     }
@@ -306,7 +307,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
   })
 
   it('AWTD-755 rejects agent consent for a confidential OAuth client', async () => {
-    const context = {
+    const context: AuthorizationContext = {
       client: {
         id: 'db-client',
         clientId: 'astrid_client_confidential',
@@ -314,12 +315,12 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
         description: null,
         redirectUris: ['https://example.com/callback'],
         grantTypes: ['authorization_code'],
-        scopes: ['tasks:read'] as const,
+        scopes: ['tasks:read'],
         tokenEndpointAuthMethod: 'client_secret_post',
         owner: { id: 'owner-1', name: 'Owner', email: 'owner@example.com' },
       },
       redirectUri: 'https://example.com/callback',
-      scopes: ['tasks:read'] as const,
+      scopes: ['tasks:read'],
     }
 
     await expect(
@@ -328,7 +329,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
   })
 
   it('AWTD-755 rejects agent consent for an owned public OAuth client', async () => {
-    const context = {
+    const context: AuthorizationContext = {
       client: {
         id: 'db-client',
         clientId: 'astrid_client_owned',
@@ -336,12 +337,12 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
         description: null,
         redirectUris: ['https://example.com/callback'],
         grantTypes: ['authorization_code'],
-        scopes: ['tasks:read'] as const,
+        scopes: ['tasks:read'],
         tokenEndpointAuthMethod: 'none',
         owner: { id: 'owner-1', name: 'Owner', email: 'owner@example.com' },
       },
       redirectUri: 'https://example.com/callback',
-      scopes: ['tasks:read'] as const,
+      scopes: ['tasks:read'],
     }
 
     await expect(
