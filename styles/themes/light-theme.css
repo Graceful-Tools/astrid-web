@@ -101,8 +101,8 @@
 
 /* Speech bubble arrow fill - matches theme-bg-secondary */
 .light .speech-bubble-arrow-fill { border-right-color: rgb(var(--theme-bg-secondary)); }
-.light .hover\\:theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
-.light .hover\\:theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
+.light .hover\:theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
+.light .hover\:theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
 
 .light .theme-panel {
   background-color: rgb(var(--theme-panel-bg));
@@ -254,8 +254,8 @@
 .lite .theme-bg-hover:hover { background-color: rgb(var(--theme-bg-hover)); }
 .lite .theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
 .lite .theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
-.lite .hover\\:theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
-.lite .hover\\:theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
+.lite .hover\:theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
+.lite .hover\:theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
 
 .lite .theme-panel {
   background-color: rgb(var(--theme-panel-bg));
