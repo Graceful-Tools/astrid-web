@@ -26,7 +26,9 @@ vi.mock('@/lib/api-auth-wrapper', () => ({
       handler(req, { userId: 'user-1', scopes: ['user:read'], source: 'oauth' }, ctx),
 }))
 
-const hasValidApiKey = vi.hoisted(() => vi.fn(async () => false))
+const hasValidApiKey = vi.hoisted(() =>
+  vi.fn(async (_userId: string, _service: string) => false),
+)
 vi.mock('@/lib/api-key-cache', () => ({ hasValidApiKey }))
 
 const getAgentExecutionModes = vi.hoisted(() => vi.fn(async () => ({}) as Record<string, string>))

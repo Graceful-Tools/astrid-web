@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { row } from '../fixtures/prisma-rows'
 import { render, screen } from '@testing-library/react'
 import { TaskManagerHeader } from '@/components/TaskManager/Header/TaskManagerHeader'
@@ -32,28 +33,22 @@ beforeEach(() => {
 
 describe('TaskManagerHeader - List Name Truncation', () => {
   const mockLists: TaskList[] = [
-    {
+    buildTaskList({
       id: 'short-list',
       name: 'Short',
       createdAt: new Date(),
       updatedAt: new Date(),
       ownerId: 'user1',
-      listImageUrl: null,
-      backgroundImageUrl: null,
-      listImageStorageId: null,
-      backgroundImageStorageId: null,
-    },
-    {
+      imageUrl: null,
+    }),
+    buildTaskList({
       id: 'long-list',
       name: 'This is a very long list name that should definitely truncate with ellipsis instead of wrapping',
       createdAt: new Date(),
       updatedAt: new Date(),
       ownerId: 'user1',
-      listImageUrl: null,
-      backgroundImageUrl: null,
-      listImageStorageId: null,
-      backgroundImageStorageId: null,
-    },
+      imageUrl: null,
+    }),
   ]
 
   // Mock session matching list owner for settings access
@@ -177,17 +172,14 @@ describe('TaskManagerHeader - List Name Truncation', () => {
 
   it('should handle empty list name gracefully', () => {
     const listsWithEmpty: TaskList[] = [
-      {
+      buildTaskList({
         id: 'empty-list',
         name: '',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'user1',
-        listImageUrl: null,
-        backgroundImageUrl: null,
-        listImageStorageId: null,
-        backgroundImageStorageId: null,
-      },
+        imageUrl: null,
+      }),
     ]
 
     const { container } = render(<TaskManagerHeader {...defaultProps} lists={listsWithEmpty} selectedListId="empty-list" />)
@@ -482,17 +474,14 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
     }))
 
     const listsWithRegular: TaskList[] = [
-      {
+      buildTaskList({
         id: 'regular-list',
         name: 'Regular List',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'user1',
-        listImageUrl: null,
-        backgroundImageUrl: null,
-        listImageStorageId: null,
-        backgroundImageStorageId: null,
-      },
+        imageUrl: null,
+      }),
     ]
 
     render(<TaskManagerHeader {...defaultProps} lists={listsWithRegular} selectedListId="regular-list" />)

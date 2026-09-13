@@ -24,6 +24,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
 import { row } from '../fixtures/prisma-rows'
 
 const broadcastToUsers = vi.fn()
@@ -42,7 +43,7 @@ vi.mock('@/lib/api-auth-wrapper', () => ({
 }))
 
 const patch = (body: Record<string, unknown>) =>
-  ({ json: async () => body }) as unknown as Request
+  ({ json: async () => body }) as unknown as NextRequest
 
 beforeEach(() => {
   vi.clearAllMocks()

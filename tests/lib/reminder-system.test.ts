@@ -19,7 +19,6 @@ const mockTask: Task = {
     email: 'test@example.com',
     image: null,
     createdAt: new Date(),
-    verified: true
   },
   creatorId: 'user-123',
   isPrivate: false,
@@ -34,7 +33,6 @@ const mockTask: Task = {
       email: 'test@example.com',
       image: null,
       createdAt: new Date(),
-      verified: true
     },
     listMembers: [
       {
@@ -42,13 +40,14 @@ const mockTask: Task = {
         listId: 'list-123',
         userId: 'user-456',
         role: 'member' as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         user: {
           id: 'user-456',
           name: 'Team Member',
           email: 'member@example.com',
           image: null,
           createdAt: new Date(),
-          verified: true
         }
       }
     ],
@@ -70,7 +69,6 @@ const mockUser: User = {
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-  verified: true
 }
 
 describe('Reminder System Tests', () => {
