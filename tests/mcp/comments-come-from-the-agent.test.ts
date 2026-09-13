@@ -14,7 +14,7 @@
  * `agent: { mailbox, email, id, name }`, and that id is the author.
  */
 
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi , type Mock } from 'vitest'
 import AstridMCPServerOAuth from '@/mcp/mcp-server-oauth'
 import { agentEmail } from '@/lib/brand/agent-emails'
 
@@ -33,7 +33,7 @@ function queueResponse() {
   }
 }
 
-function commentBodyFrom(fetchMock: ReturnType<typeof vi.fn>) {
+function commentBodyFrom(fetchMock: Mock) {
   const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/comments'))
   if (!call) throw new Error('no comment POST was made')
   return JSON.parse((call[1] as RequestInit).body as string)

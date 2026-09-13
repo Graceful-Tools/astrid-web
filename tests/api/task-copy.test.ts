@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rowWith } from '../fixtures/prisma-rows'
+import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/tasks/[id]/copy/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock NextRequest
-const createMockRequest = (data?: any) => {
-  const request = {
-    json: vi.fn().mockResolvedValue(data || {}),
-    url: 'http://localhost:3000/api/tasks/test-task-id/copy',
-  } as any as Request
+const createMockRequest = (data?: unknown) => {
+  const request = new NextRequest('http://localhost:3000/api/tasks/test-task-id/copy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data ?? {}),
+  })
   return request
 }
 
@@ -20,7 +23,7 @@ describe('Task Copy API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Mock user exists in database
-    mockPrisma.user.findUnique.mockResolvedValue({
+    mockPrisma.user.findUnique.mockResolvedValue(row({
       id: 'test-user-id',
       name: 'Test User',
       email: 'test@example.com',
@@ -28,15 +31,15 @@ describe('Task Copy API', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       emailVerified: null
-    })
+    }))
 
     // Mock list access validation - user has access to target list
-    mockPrisma.taskList.findFirst.mockResolvedValue({
+    mockPrisma.taskList.findFirst.mockResolvedValue(row({
       id: 'target-list-id',
       name: 'Target List',
       ownerId: 'test-user-id',
       privacy: 'PRIVATE'
-    })
+    }))
   })
 
   describe('POST /api/tasks/[id]/copy', () => {
@@ -90,7 +93,7 @@ describe('Task Copy API', () => {
       // Mock the copyTask utility flow
       mockPrisma.task.findUnique
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility fetches original
-        .mockResolvedValueOnce({ creatorId: 'other-user-id' }) // Second call: stats invalidation fetches creator
+        .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation fetches creator
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: API fetches with relations
 
       mockPrisma.task.create.mockResolvedValue(copiedTask)
@@ -182,7 +185,7 @@ describe('Task Copy API', () => {
 
       mockPrisma.task.findUnique
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility
-        .mockResolvedValueOnce({ creatorId: 'other-user-id' }) // Second call: stats invalidation
+        .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
 
       mockPrisma.task.create.mockResolvedValue(copiedTask)
@@ -231,7 +234,7 @@ describe('Task Copy API', () => {
 
       mockPrisma.task.findUnique
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility
-        .mockResolvedValueOnce({ creatorId: 'other-user-id' }) // Second call: stats invalidation
+        .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
 
       mockPrisma.task.create.mockResolvedValue(copiedTask)
@@ -284,11 +287,11 @@ describe('Task Copy API', () => {
 
       mockPrisma.task.findUnique
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility
-        .mockResolvedValueOnce({ creatorId: 'other-user-id' }) // Second call: stats invalidation
+        .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
 
       mockPrisma.task.create.mockResolvedValue(copiedTask)
-      mockPrisma.comment.createMany.mockResolvedValue({ count: 1 })
+      mockPrisma.comment.createMany.mockResolvedValue(row({ count: 1 }))
 
       const requestData = {
         targetListId: 'target-list-id',

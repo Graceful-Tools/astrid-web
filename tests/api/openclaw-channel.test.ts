@@ -50,7 +50,7 @@ import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockCreateOAuthClient = vi.mocked(createOAuthClient)
 const mockAuthenticateAPI = vi.mocked(authenticateAPI)
 

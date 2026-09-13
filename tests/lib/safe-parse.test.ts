@@ -10,43 +10,43 @@ describe('Safe Parse Utilities', () => {
 
   describe('safeJsonParse', () => {
     it('should parse valid JSON', () => {
-      const result = safeJsonParse<{ name: string }>('{"name":"John"}', null)
+      const result = safeJsonParse<{ name: string } | null>('{"name":"John"}', null)
       expect(result).toEqual({ name: 'John' })
     })
 
     it('should return fallback for empty string', () => {
-      const result = safeJsonParse<{ name: string }>('', null)
+      const result = safeJsonParse<{ name: string } | null>('', null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for whitespace-only string', () => {
-      const result = safeJsonParse<{ name: string }>('   ', null)
+      const result = safeJsonParse<{ name: string } | null>('   ', null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for null', () => {
-      const result = safeJsonParse<{ name: string }>(null, null)
+      const result = safeJsonParse<{ name: string } | null>(null, null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for undefined', () => {
-      const result = safeJsonParse<{ name: string }>(undefined, null)
+      const result = safeJsonParse<{ name: string } | null>(undefined, null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for malformed JSON', () => {
-      const result = safeJsonParse<{ name: string }>('invalid json', null)
+      const result = safeJsonParse<{ name: string } | null>('invalid json', null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for incomplete JSON', () => {
-      const result = safeJsonParse<{ name: string }>('{name:', null)
+      const result = safeJsonParse<{ name: string } | null>('{name:', null)
       expect(result).toBeNull()
     })
 
     it('should parse nested objects', () => {
       const json = '{"user":{"name":"John","age":30}}'
-      const result = safeJsonParse<{ user: { name: string; age: number } }>(json, null)
+      const result = safeJsonParse<{ user: { name: string; age: number } } | null>(json, null)
       expect(result).toEqual({ user: { name: 'John', age: 30 } })
     })
 
@@ -69,7 +69,7 @@ describe('Safe Parse Utilities', () => {
         headers: { 'content-type': 'application/json' }
       })
 
-      const result = await safeResponseJson<{ name: string }>(response, null)
+      const result = await safeResponseJson<{ name: string } | null>(response, null)
       expect(result).toEqual({ name: 'John' })
     })
 
@@ -78,21 +78,21 @@ describe('Safe Parse Utilities', () => {
         headers: { 'content-length': '0' }
       })
 
-      const result = await safeResponseJson<{ name: string }>(response, null)
+      const result = await safeResponseJson<{ name: string } | null>(response, null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for whitespace-only Response', async () => {
       const response = new Response('   ')
 
-      const result = await safeResponseJson<{ name: string }>(response, null)
+      const result = await safeResponseJson<{ name: string } | null>(response, null)
       expect(result).toBeNull()
     })
 
     it('should return fallback for malformed JSON Response', async () => {
       const response = new Response('invalid json')
 
-      const result = await safeResponseJson<{ name: string }>(response, null)
+      const result = await safeResponseJson<{ name: string } | null>(response, null)
       expect(result).toBeNull()
     })
 
@@ -102,7 +102,7 @@ describe('Safe Parse Utilities', () => {
       // Consume the body
       await response.text()
 
-      const result = await safeResponseJson<{ name: string }>(response, null)
+      const result = await safeResponseJson<{ name: string } | null>(response, null)
       expect(result).toBeNull()
     })
 
@@ -111,7 +111,7 @@ describe('Safe Parse Utilities', () => {
         user: { name: 'John', age: 30 }
       }))
 
-      const result = await safeResponseJson<{ user: { name: string; age: number } }>(response, null)
+      const result = await safeResponseJson<{ user: { name: string; age: number } } | null>(response, null)
       expect(result).toEqual({ user: { name: 'John', age: 30 } })
     })
 
@@ -136,14 +136,14 @@ describe('Safe Parse Utilities', () => {
         statusText: 'Not Found'
       })
 
-      const result = await safeResponseJson<{ error: string }>(response, null)
+      const result = await safeResponseJson<{ error: string } | null>(response, null)
       expect(result).toEqual({ error: 'Not found' })
     })
 
     it('should handle Response without content-length header', async () => {
       const response = new Response(JSON.stringify({ name: 'John' }))
 
-      const result = await safeResponseJson<{ name: string }>(response, null)
+      const result = await safeResponseJson<{ name: string } | null>(response, null)
       expect(result).toEqual({ name: 'John' })
     })
   })
@@ -151,7 +151,7 @@ describe('Safe Parse Utilities', () => {
   describe('safeEventParse', () => {
     it('should parse valid SSE event data', () => {
       const eventData = '{"type":"update","data":{"id":1}}'
-      const result = safeEventParse<{ type: string; data: { id: number } }>(eventData, null)
+      const result = safeEventParse<{ type: string; data: { id: number } } | null>(eventData, null)
       expect(result).toEqual({ type: 'update', data: { id: 1 } })
     })
 
@@ -196,7 +196,7 @@ describe('Safe Parse Utilities', () => {
         type: string
         timestamp: string
         data: { taskId: string }
-      }>(eventData, null)
+      } | null>(eventData, null)
 
       expect(result).toEqual({
         type: 'task.updated',
@@ -219,7 +219,7 @@ describe('Safe Parse Utilities', () => {
     })
 
     it('should return false when a required field is missing', () => {
-      const obj = { id: '123' }
+      const obj: { id: string; name?: string } = { id: '123' }
       expect(hasRequiredFields(obj, ['id', 'name'])).toBe(false)
     })
 
@@ -234,11 +234,11 @@ describe('Safe Parse Utilities', () => {
     })
 
     it('should return false for null object', () => {
-      expect(hasRequiredFields(null, ['id'])).toBe(false)
+      expect(hasRequiredFields<{ id: string }>(null, ['id'])).toBe(false)
     })
 
     it('should return false for undefined object', () => {
-      expect(hasRequiredFields(undefined, ['id'])).toBe(false)
+      expect(hasRequiredFields<{ id: string }>(undefined, ['id'])).toBe(false)
     })
 
     it('should return true for empty required fields array', () => {

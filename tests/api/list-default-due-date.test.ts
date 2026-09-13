@@ -180,7 +180,7 @@ describe('List Default Due Date API', () => {
         })
       })
 
-      const response = await PUT(request, { params: { id: 'list-123' } })
+      const response = await PUT(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -216,7 +216,7 @@ describe('List Default Due Date API', () => {
         })
       })
 
-      const response = await PUT(request, { params: { id: 'list-123' } })
+      const response = await PUT(request, { params: Promise.resolve({ id: 'list-123' }) })
 
       expect(response.status).toBe(403)
     })

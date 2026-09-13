@@ -20,7 +20,7 @@ vi.mock('@/lib/prisma', () => ({
 import { checkShortcodeTargetAccess } from '@/lib/shortcode-target-access'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const USER = 'user-1'
 
 beforeEach(() => {

@@ -55,7 +55,11 @@ export interface UseClickOutsideOptions {
  * ```
  */
 export function useClickOutside(
-  refs: RefObject<HTMLElement> | RefObject<HTMLElement>[],
+  // `RefObject<HTMLElement | null>`, not `RefObject<HTMLElement>`: React 19
+  // types `useRef<T>(null)` as `RefObject<T | null>`, so the narrower form
+  // rejected every ref a caller can actually produce — including the two in
+  // this function's own docstring. (AWTD-916)
+  refs: RefObject<HTMLElement | null> | RefObject<HTMLElement | null>[],
   options: UseClickOutsideOptions
 ) {
   const {

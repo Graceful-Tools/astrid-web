@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { detectTaskStateChanges, formatStateChangesAsComment, TaskWithRelations } from '@/lib/task-state-change-tracker'
 
 describe('Task State Change Tracker', () => {
-  const baseTask: TaskWithRelations = {
+  // TaskWithRelations extends the PRISMA Task, so this is a partial row.
+  const baseTask: TaskWithRelations = row({
     id: 'task-1',
     title: 'Test Task',
     description: 'Description',
@@ -28,79 +30,13 @@ describe('Task State Change Tracker', () => {
     assignee: {
       id: 'user-1',
       name: 'Alice',
-      email: 'alice@example.com',
-      emailVerified: null,
-      image: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true,
-      pendingEmail: null,
-      emailVerificationToken: null,
-      emailTokenExpiresAt: null,
-      password: null,
-      aiAssistantSettings: null,
-      defaultDueTime: null,
-      mcpEnabled: true,
-      mcpSettings: null,
-      aiAgentConfig: null,
-      aiAgentType: null,
-      isAIAgent: false,
-      webhookUrl: null,
-      defaultNewListMcpAccessLevel: 'WRITE',
-      defaultNewListMcpEnabled: true,
-      defaultTaskDueOffset: null,
-      emailToTaskEnabled: true,
-      emailToTaskListId: null,
-      invitedBy: null,
-      isPlaceholder: false,
-      statsCompletedTasks: 0,
-      statsInspiredTasks: 0,
-      statsSupportedTasks: 0,
-      statsLastCalculated: null,
-    },
+      email: 'alice@example.com',    },
     lists: [
       {
         id: 'list-1',
-        name: 'Work Tasks',
-        description: null,
-        color: '#3b82f6',
-        imageUrl: null,
-        privacy: 'PRIVATE',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ownerId: 'owner-1',
-        defaultAssigneeId: null,
-        defaultPriority: 0,
-        defaultRepeating: 'never',
-        defaultIsPrivate: true,
-        defaultDueDate: 'none',
-        aiAstridEnabled: false,
-        copyCount: 0,
-        defaultDueTime: null,
-        favoriteOrder: null,
-        filterAssignedBy: null,
-        filterAssignee: null,
-        filterCompletion: null,
-        filterDueDate: null,
-        filterInLists: null,
-        filterPriority: null,
-        filterRepeating: null,
-        isFavorite: false,
-        isVirtual: false,
-        sortBy: null,
-        virtualListType: null,
-        mcpAccessLevel: 'WRITE',
-        mcpEnabled: false,
-        aiAgentsEnabled: [],
-        fallbackAiProvider: null,
-        githubRepositoryId: null,
-        preferredAiProvider: null,
-        aiAgentConfiguredBy: null,
-        manualSortOrder: null,
-        publicListType: null,
-      }
+        name: 'Work Tasks',      }
     ],
-  }
+  })
 
   describe('detectTaskStateChanges', () => {
     it('should detect priority change', () => {

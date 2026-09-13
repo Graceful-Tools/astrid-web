@@ -13,7 +13,7 @@
  */
 
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ListNameSection } from '@/components/list-admin/ListNameSection'
 import { AgentInstructionsSection } from '@/components/list-admin/AgentInstructionsSection'
@@ -90,7 +90,7 @@ describe('list editors share one session (task 7b60c7c5)', () => {
         expect.objectContaining({ method: 'PUT' }),
       ),
     )
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
+    const body = JSON.parse((global.fetch as Mock).mock.calls[0][1].body)
     expect(body.name).toBe('Renamed')
   })
 })

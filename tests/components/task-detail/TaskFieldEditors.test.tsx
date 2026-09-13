@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TaskFieldEditors } from '@/components/task-detail/TaskFieldEditors'
 import type { Task, TaskList, User } from '@/types/task'
+import type { CustomRepeatingPattern } from '@/types/repeating'
 import { useRef } from 'react'
+import { buildTask, buildTaskList, buildUser } from '../../fixtures/domain'
 
 // Mock components that have complex dependencies
 vi.mock('@/components/user-picker', () => ({
@@ -36,39 +38,33 @@ vi.mock('@/hooks/shared/useMobileKeyboard', () => ({
 }))
 
 describe('TaskFieldEditors', () => {
-  const mockCurrentUser: User = {
+  const mockCurrentUser: User = buildUser({
     id: 'user-1',
     email: 'test@example.com',
     name: 'Test User',
-    image: null
-  }
+  })
 
-  const mockTask: Task = {
+  // `when` is `Date | undefined`, never null — the literal here used to say
+  // `when: null`, which is one of the things nothing was compiling (AWTD-916).
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: 'Test description',
     priority: 1,
-    completed: false,
-    lists: [],
+    creator: mockCurrentUser,
     creatorId: 'user-1',
     assigneeId: null,
     assignee: null,
-    when: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    repeating: 'never'
-  }
+  })
 
   const mockLists: TaskList[] = [
-    {
+    buildTaskList({
       id: 'list-1',
       name: 'Work Tasks',
       color: '#3b82f6',
-      privacy: 'PRIVATE' as const,
+      owner: mockCurrentUser,
       ownerId: 'user-1',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
+    }),
   ]
 
   const defaultProps = {
@@ -129,7 +125,10 @@ describe('TaskFieldEditors', () => {
 
     // Assignee
     tempAssignee: null,
-    setTempAssignee: vi.fn()
+    setTempAssignee: vi.fn(),
+    // Required by TaskFieldEditorsProps and never passed (AWTD-916). The
+    // component calls it when a repeating field changes.
+    setLastRepeatingUpdate: vi.fn(),
   }
 
   beforeEach(() => {
@@ -267,16 +266,14 @@ describe('TaskFieldEditors', () => {
 
     it('shows label lists in suggestions and allows selecting them', () => {
       const setTempLists = vi.fn()
-      const labelList: TaskList = {
+      const labelList: TaskList = buildTaskList({
         id: 'label-1',
         name: 'Bug',
         color: '#ef4444',
-        privacy: 'PRIVATE' as const,
+        owner: mockCurrentUser,
         ownerId: 'user-1',
-        listType: 'label' as any,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
+        listType: 'label' as TaskList['listType'],
+      })
 
       render(
         <TaskFieldEditors
@@ -344,12 +341,12 @@ describe('TaskFieldEditors', () => {
         isAllDay: false,
         repeating: 'custom' as const,
         repeatingData: {
-          type: 'custom' as const,
-          unit: 'weeks' as const,
+          type: 'custom',
+          unit: 'weeks',
           interval: 2,
           weekdays: ['monday', 'wednesday', 'friday'],
-          endCondition: 'never' as const
-        }
+          endCondition: 'never',
+        } satisfies CustomRepeatingPattern
       }
 
       render(<TaskFieldEditors

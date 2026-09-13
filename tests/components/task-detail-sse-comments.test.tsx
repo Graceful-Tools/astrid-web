@@ -365,7 +365,10 @@ describe('TaskDetail SSE Comment Handling - Regression', () => {
       let sseEventProcessed = false
 
       // Simulate SSE event handler
-      const handleSSEEvent = (event: { type: string; data: { task?: { comments?: unknown[] } } }) => {
+      const handleSSEEvent = (event: {
+        type: string
+        data: { task?: { comments?: unknown[]; title?: string } }
+      }) => {
         // Skip SSE updates for comment events while refresh is in progress
         if (isRefreshingCommentsRef.current &&
             (event.type === 'comment_created' || event.type === 'comment_updated' || event.type === 'comment_deleted' ||

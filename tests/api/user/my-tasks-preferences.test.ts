@@ -4,6 +4,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../../fixtures/prisma-rows'
+import { NextRequest } from 'next/server'
 import { GET, PATCH } from '@/app/api/user/my-tasks-preferences/route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -45,12 +47,12 @@ describe('My Tasks Preferences API', () => {
 
   describe('GET /api/user/my-tasks-preferences', () => {
     it('should return default preferences when none are set', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: null,
-      } as any)
+      }))
 
-      const response = await GET()
+      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -74,12 +76,12 @@ describe('My Tasks Preferences API', () => {
         sortBy: 'when',
       }
 
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(savedPrefs),
-      } as any)
+      }))
 
-      const response = await GET()
+      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -93,7 +95,7 @@ describe('My Tasks Preferences API', () => {
       vi.mocked(prisma.session.findUnique).mockResolvedValue(null)
 
       // Create a proper Request object with headers
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'GET',
         headers: {
           'cookie': 'next-auth.session-token=invalid-token'
@@ -110,7 +112,7 @@ describe('My Tasks Preferences API', () => {
     it('should return 404 when user not found', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const response = await GET()
+      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(404)
@@ -133,19 +135,19 @@ describe('My Tasks Preferences API', () => {
         sortBy: 'priority',
       }
 
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(currentPrefs),
-      } as any)
+      }))
 
       const updatedPrefs = { ...currentPrefs, ...newPrefs }
 
-      vi.mocked(prisma.user.update).mockResolvedValue({
+      vi.mocked(prisma.user.update).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(updatedPrefs),
-      } as any)
+      }))
 
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPrefs),
@@ -168,7 +170,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterPriority is an array', async () => {
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterPriority: 'invalid' }),
@@ -182,7 +184,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterAssignee is an array', async () => {
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterAssignee: 'invalid' }),
@@ -196,7 +198,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterDueDate values', async () => {
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterDueDate: 'invalid_value' }),
@@ -210,7 +212,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterCompletion values', async () => {
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterCompletion: 'invalid_value' }),
@@ -224,7 +226,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate sortBy values', async () => {
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sortBy: 'invalid_value' }),
@@ -246,10 +248,10 @@ describe('My Tasks Preferences API', () => {
         sortBy: 'priority',
       }
 
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(currentPrefs),
-      } as any)
+      }))
 
       const partialUpdate = {
         filterDueDate: 'today',
@@ -260,12 +262,12 @@ describe('My Tasks Preferences API', () => {
         ...partialUpdate,
       }
 
-      vi.mocked(prisma.user.update).mockResolvedValue({
+      vi.mocked(prisma.user.update).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(expectedMerged),
-      } as any)
+      }))
 
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(partialUpdate),
@@ -281,7 +283,7 @@ describe('My Tasks Preferences API', () => {
     it('should return 401 when not authenticated', async () => {
       vi.mocked(getServerSession).mockResolvedValue(null)
 
-      const request = new Request('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterDueDate: 'today' }),

@@ -30,7 +30,7 @@ export interface AuthorizationRequestParams {
   codeChallengeMethod?: string
 }
 
-interface AuthorizationClient {
+export interface AuthorizationClient {
   id: string
   clientId: string
   name: string

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { Task, TaskList } from '@/types/task'
+import { buildTask, buildTaskList, buildUser } from '../fixtures/domain'
 import { renderHook, act } from '@testing-library/react'
 import { useFilterState } from '@/hooks/useFilterState'
 
@@ -18,23 +20,29 @@ vi.mock('@/hooks/useLocalStorage', () => ({
   })
 }))
 
-const mockTasks = [
-  {
+const johnUser = buildUser({ id: 'user-1', name: 'John' })
+const listOne = buildTaskList({ id: 'list-1', name: 'List 1', ownerId: 'user-1' })
+const listTwo = buildTaskList({ id: 'list-2', name: 'List 2', ownerId: 'user-1' })
+
+// `dueDate` is `Date | null`; this fixture used an ISO string, which the
+// filter code survives only because it re-parses whatever it is given.
+// (AWTD-916)
+const mockTasks: Task[] = [
+  buildTask({
     id: '1',
     title: 'High priority task',
     description: 'Important task',
-    completed: false,
     priority: 3,
-    assignee: { id: 'user-1', name: 'John' },
+    assignee: johnUser,
     assigneeId: 'user-1',
     creatorId: 'user-1',
-    dueDate: '2024-12-01T00:00:00Z',
+    dueDate: new Date('2024-12-01T00:00:00Z'),
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
-    lists: [{ id: 'list-1', name: 'List 1' }]
-  },
-  {
-    id: '2', 
+    lists: [listOne],
+  }),
+  buildTask({
+    id: '2',
     title: 'Completed task',
     description: 'Done task',
     completed: true,
@@ -45,20 +53,11 @@ const mockTasks = [
     dueDate: null,
     createdAt: new Date('2024-01-02'),
     updatedAt: new Date('2024-01-02'),
-    lists: [{ id: 'list-1', name: 'List 1' }]
-  }
+    lists: [listOne],
+  }),
 ]
 
-const mockLists = [
-  {
-    id: 'list-1',
-    name: 'List 1',
-    privacy: 'PRIVATE',
-    ownerId: 'user-1',
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01')
-  }
-]
+const mockLists: TaskList[] = [listOne]
 
 describe('useFilterState', () => {
   beforeEach(() => {
@@ -168,7 +167,7 @@ describe('useFilterState', () => {
     const twentyFiveHoursAgo = new Date(now.getTime() - 25 * 60 * 60 * 1000)
 
     const mockTasksWithTiming = [
-      {
+      buildTask({
         id: '1',
         title: 'Incomplete task',
         description: 'Active task',
@@ -180,9 +179,9 @@ describe('useFilterState', () => {
         dueDate: null,
         createdAt: now,
         updatedAt: now,
-        lists: [{ id: 'list-1', name: 'List 1' }]
-      },
-      {
+        lists: [listOne],
+      }),
+      buildTask({
         id: '2',
         title: 'Recently completed task',
         description: 'Just finished',
@@ -194,9 +193,9 @@ describe('useFilterState', () => {
         dueDate: null,
         createdAt: fiveMinutesAgo,
         updatedAt: fiveMinutesAgo,
-        lists: [{ id: 'list-1', name: 'List 1' }]
-      },
-      {
+        lists: [listOne],
+      }),
+      buildTask({
         id: '3',
         title: 'Completed 2 hours ago',
         description: 'Finished a while ago',
@@ -208,9 +207,9 @@ describe('useFilterState', () => {
         dueDate: null,
         createdAt: twoHoursAgo,
         updatedAt: twoHoursAgo,
-        lists: [{ id: 'list-1', name: 'List 1' }]
-      },
-      {
+        lists: [listOne],
+      }),
+      buildTask({
         id: '4',
         title: 'Old completed task',
         description: 'Completed long ago',
@@ -222,8 +221,8 @@ describe('useFilterState', () => {
         dueDate: null,
         createdAt: twentyFiveHoursAgo,
         updatedAt: twentyFiveHoursAgo,
-        lists: [{ id: 'list-1', name: 'List 1' }]
-      }
+        lists: [listOne],
+      })
     ]
 
     it('should show incomplete tasks with default filter', () => {
@@ -318,7 +317,7 @@ describe('useFilterState', () => {
   describe('Auto Sort', () => {
     it('should put completed tasks at the bottom with auto sort', () => {
       const tasksForSorting = [
-        {
+        buildTask({
           id: '1',
           title: 'Incomplete low priority',
           description: '',
@@ -330,9 +329,9 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-01'),
           updatedAt: new Date('2024-01-01'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '2',
           title: 'Completed high priority',
           description: '',
@@ -344,9 +343,9 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-02'),
           updatedAt: new Date('2024-01-02'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '3',
           title: 'Incomplete high priority',
           description: '',
@@ -358,8 +357,8 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-03'),
           updatedAt: new Date('2024-01-03'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        }
+          lists: [listOne],
+        })
       ]
 
       const { result } = renderHook(() => useFilterState({
@@ -383,7 +382,7 @@ describe('useFilterState', () => {
 
     it('should sort by priority within incomplete tasks', () => {
       const tasksForSorting = [
-        {
+        buildTask({
           id: '1',
           title: 'Low priority',
           description: '',
@@ -395,9 +394,9 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-01'),
           updatedAt: new Date('2024-01-01'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '2',
           title: 'High priority',
           description: '',
@@ -409,9 +408,9 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-02'),
           updatedAt: new Date('2024-01-02'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '3',
           title: 'Medium priority',
           description: '',
@@ -423,8 +422,8 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-03'),
           updatedAt: new Date('2024-01-03'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        }
+          lists: [listOne],
+        })
       ]
 
       const { result } = renderHook(() => useFilterState({
@@ -445,7 +444,7 @@ describe('useFilterState', () => {
 
     it('should sort by due date within same priority', () => {
       const tasksForSorting = [
-        {
+        buildTask({
           id: '1',
           title: 'Later due date',
           description: '',
@@ -454,12 +453,12 @@ describe('useFilterState', () => {
           assignee: null,
           assigneeId: null,
           creatorId: 'user-1',
-          dueDateTime: '2024-12-31T00:00:00Z',
+          dueDateTime: new Date('2024-12-31T00:00:00Z'),
           createdAt: new Date('2024-01-01'),
           updatedAt: new Date('2024-01-01'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '2',
           title: 'Earlier due date',
           description: '',
@@ -468,12 +467,12 @@ describe('useFilterState', () => {
           assignee: null,
           assigneeId: null,
           creatorId: 'user-1',
-          dueDateTime: '2024-06-15T00:00:00Z',
+          dueDateTime: new Date('2024-06-15T00:00:00Z'),
           createdAt: new Date('2024-01-02'),
           updatedAt: new Date('2024-01-02'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '3',
           title: 'No due date',
           description: '',
@@ -485,8 +484,8 @@ describe('useFilterState', () => {
           dueDateTime: null,
           createdAt: new Date('2024-01-03'),
           updatedAt: new Date('2024-01-03'),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        }
+          lists: [listOne],
+        })
       ]
 
       const { result } = renderHook(() => useFilterState({
@@ -548,7 +547,7 @@ describe('useFilterState', () => {
 
     it('should search across all accessible tasks, not just current list', () => {
       const tasksInMultipleLists = [
-        {
+        buildTask({
           id: '1',
           title: 'Task in list 1',
           description: '',
@@ -558,40 +557,20 @@ describe('useFilterState', () => {
           creatorId: 'user-1',
           createdAt: new Date(),
           updatedAt: new Date(),
-          lists: [{ id: 'list-1', name: 'List 1' }]
-        },
-        {
+          lists: [listOne],
+        }),
+        buildTask({
           id: '2',
           title: 'Task in list 2',
           description: '',
-          completed: false,
           priority: 1,
           assigneeId: 'user-1',
           creatorId: 'user-1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lists: [{ id: 'list-2', name: 'List 2' }]
-        }
+          lists: [listTwo],
+        }),
       ]
 
-      const multipleLists = [
-        {
-          id: 'list-1',
-          name: 'List 1',
-          privacy: 'PRIVATE',
-          ownerId: 'user-1',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 'list-2',
-          name: 'List 2',
-          privacy: 'PRIVATE',
-          ownerId: 'user-1',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ]
+      const multipleLists = [listOne, listTwo]
 
       const { result } = renderHook(() => useFilterState({
         selectedListId: 'list-1'
@@ -611,18 +590,17 @@ describe('useFilterState', () => {
     })
 
     it('should include old completed tasks in universal search', () => {
-      const oldCompletedTask = {
+      const oldCompletedTask = buildTask({
         id: '3',
         title: 'Old completed task',
-        description: '',
         completed: true,
         priority: 1,
         assigneeId: 'user-1',
         creatorId: 'user-1',
         createdAt: new Date('2020-01-01'),
         updatedAt: new Date('2020-01-01'), // Very old completed task
-        lists: [{ id: 'list-1', name: 'List 1' }]
-      }
+        lists: [listOne],
+      })
 
       const tasksWithOldCompleted = [...mockTasks, oldCompletedTask]
 

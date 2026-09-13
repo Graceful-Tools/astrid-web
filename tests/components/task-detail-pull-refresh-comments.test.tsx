@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
+import { buildTask } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import React from 'react'
@@ -31,8 +32,8 @@ vi.mock('@/lib/offline-db', () => ({
 describe('CommentSection - Pull to Refresh', () => {
   let mockTask: Task
   let mockCurrentUser: User
-  let mockOnUpdate: ReturnType<typeof vi.fn>
-  let mockOnRefreshComments: ReturnType<typeof vi.fn>
+  let mockOnUpdate: Mock
+  let mockOnRefreshComments: Mock
   let isMobileDeviceMock: any
 
   beforeEach(async () => {
@@ -48,7 +49,7 @@ describe('CommentSection - Pull to Refresh', () => {
       email: 'test@example.com',
     } as User
 
-    mockTask = {
+    mockTask = buildTask({
       id: 'task-1',
       title: 'Test Task',
       completed: false,
@@ -68,7 +69,7 @@ describe('CommentSection - Pull to Refresh', () => {
         },
       ],
       lists: [],
-    } as Task
+    })
 
     mockOnUpdate = vi.fn()
     mockOnRefreshComments = vi.fn().mockResolvedValue(undefined)

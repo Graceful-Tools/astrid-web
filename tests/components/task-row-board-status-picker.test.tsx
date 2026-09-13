@@ -22,7 +22,7 @@
  */
 
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/components/TaskManager/MainContent/TaskRow'
 import { getBoardRowContext, getProjectBoardColumns } from '@/lib/project-status'
@@ -153,7 +153,7 @@ describe('a board list in list view (task 036ef139)', () => {
     fireEvent.click(within(group).getByRole('button', { name: 'Doing' }))
 
     expect(controller.handleUpdateTask).toHaveBeenCalledTimes(1)
-    const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const updated = (controller.handleUpdateTask as Mock).mock.calls[0][0]
     expect(updated.statusRole).toBe('doing')
     expect(updated.completed).toBe(false)
     // Routed through resolveProjectColumnMove, so the row and a drag leave the
@@ -170,7 +170,7 @@ describe('a board list in list view (task 036ef139)', () => {
     const group = screen.getByRole('group', { name: 'tasks.boardState' })
     fireEvent.click(within(group).getByRole('button', { name: 'Done' }))
 
-    const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const updated = (controller.handleUpdateTask as Mock).mock.calls[0][0]
     expect(updated.completed).toBe(true)
     expect(updated.statusRole).toBeNull()
   })
@@ -202,7 +202,7 @@ describe('a custom state with no backing list (task 9ddf4a6f)', () => {
     const group = screen.getByRole('group', { name: 'tasks.boardState' })
     fireEvent.click(within(group).getByRole('button', { name: 'Blocked' }))
 
-    const updated = (controller.handleUpdateTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const updated = (controller.handleUpdateTask as Mock).mock.calls[0][0]
     expect(updated.statusRole).toBe('custom-blocked')
     // No row backs the state, so there is no status membership to add — the
     // board membership must survive on its own.

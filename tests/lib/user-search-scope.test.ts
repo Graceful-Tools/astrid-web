@@ -25,7 +25,7 @@ vi.mock('@/lib/prisma', () => ({
 import { resolveSearchListIds } from '@/lib/user-search-scope'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const USER = 'user-1'
 
 beforeEach(() => {

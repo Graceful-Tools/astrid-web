@@ -1,10 +1,16 @@
 /**
- * Unit tests for ensureUserStatusLists — the per-user global status-list
- * seeder. Status lists (Ready/Doing/Waiting) are per-user singletons
- * (projectId = null), not duplicated per project. This helper is the
- * idempotent get-or-create for that set.
+ * Unit tests for lib/projects-service.
+ *
+ * This header used to describe `ensureUserStatusLists`, the per-user
+ * status-list seeder. That function is gone — Stage D (task b7b0c2f5) deleted
+ * status rows and moved the field to `Task.statusRole` — but the import of it
+ * survived, naming an export that does not exist. Nothing compiled the test
+ * tree, and esbuild drops an unused import rather than failing on it, so the
+ * suite stayed green while importing a function that had been deleted.
+ * (AWTD-916)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rows, rowsWith } from '../fixtures/prisma-rows'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -40,7 +46,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, addUserStatus, collectProjectMemberUserIds, createProjectFromList } from '@/lib/projects-service'
+import { listProjectsForUser, addUserStatus, collectProjectMemberUserIds, createProjectFromList } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)
@@ -76,10 +82,10 @@ describe('listProjectsForUser', () => {
     // to every project, so each board carried its columns as list rows. Stage
     // D (task b7b0c2f5) made columns config, so there is nothing to merge —
     // and, critically, this read no longer writes.
-    mockProjectFindMany.mockResolvedValue([
+    mockProjectFindMany.mockResolvedValue(rowsWith([
       { id: 'p1', name: 'Board A', lists: [{ id: 'domain-a', listType: 'regular' }] },
       { id: 'p2', name: 'Board B', lists: [] },
-    ] as any)
+    ]))
 
     const projects = await listProjectsForUser('user-1')
 
@@ -109,7 +115,7 @@ describe('listProjectsForUser', () => {
    * still pass.
    */
   it('asks for every Project scalar, so customStates stays on the wire (task 41c90fd3)', async () => {
-    mockProjectFindMany.mockResolvedValue([] as any)
+    mockProjectFindMany.mockResolvedValue(rows([]))
 
     await listProjectsForUser('user-1')
 
@@ -128,9 +134,9 @@ describe('listProjectsForUser', () => {
     // lenient about its contents — the service must not narrow or normalise
     // it on the way out.
     const states = [{ role: 'blocked', name: 'Blocked', order: 4 }]
-    mockProjectFindMany.mockResolvedValue([
+    mockProjectFindMany.mockResolvedValue(rowsWith([
       { id: 'p1', name: 'Board A', lists: [], customStates: states },
-    ] as any)
+    ]))
 
     const projects = await listProjectsForUser('user-1')
 
@@ -141,7 +147,7 @@ describe('listProjectsForUser', () => {
     // The lazy backfill that used to live here re-seeded the status rows on an
     // ordinary "list my projects" call — which would have undone the migration
     // within minutes of the deploy.
-    mockProjectFindMany.mockResolvedValue([{ id: 'p1', name: 'Board A', lists: [] }] as any)
+    mockProjectFindMany.mockResolvedValue(rowsWith([{ id: 'p1', name: 'Board A', lists: [] }]))
 
     await listProjectsForUser('user-1')
 
@@ -161,13 +167,13 @@ describe('addUserStatus (task 1c7817f9 — project board #5)', () => {
    * legacy row and the JSON in lockstep.
    */
   beforeEach(() => {
-    vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: null } as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue(row({ customStates: null }))
+    vi.mocked(prisma.project.update).mockResolvedValue(row({}))
   })
 
   /** The `customStates` the writer will be handed for this board. */
   const boardWith = (...states: Array<{ role: string; name: string; order: number }>) => {
-    vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: states } as never)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue(row({ customStates: states }))
   }
 
   /** What was written to `Project.customStates`. */
@@ -275,10 +281,10 @@ describe('collectProjectMemberUserIds', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('returns owner + members across all given projects, deduped', async () => {
-    mockProjectFindMany.mockResolvedValue([
+    mockProjectFindMany.mockResolvedValue(rowsWith([
       { ownerId: 'owner-a', members: [{ userId: 'm1' }, { userId: 'm2' }] },
       { ownerId: 'owner-b', members: [{ userId: 'm2' }, { userId: 'm3' }] },
-    ] as never)
+    ]))
     const ids = await collectProjectMemberUserIds(['proj-a', 'proj-b'])
     expect(ids.sort()).toEqual(['m1', 'm2', 'm3', 'owner-a', 'owner-b'].sort())
   })
@@ -290,9 +296,9 @@ describe('collectProjectMemberUserIds', () => {
   })
 
   it('queries only the valid project ids', async () => {
-    mockProjectFindMany.mockResolvedValue([
+    mockProjectFindMany.mockResolvedValue(rowsWith([
       { ownerId: 'owner-a', members: [] },
-    ] as never)
+    ]))
     await collectProjectMemberUserIds([null, 'proj-a'])
     expect(mockProjectFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: { in: ['proj-a'] } } })
@@ -334,21 +340,21 @@ describe('createProjectFromList', () => {
   })
 
   it('creates the project and attaches the list atomically', async () => {
-    const projectCreate = vi.fn().mockResolvedValue({ id: 'p1' })
-    const listUpdate = vi.fn().mockResolvedValue({ id: 'l1', projectId: 'p1', listType: 'regular' })
+    const projectCreate = vi.fn().mockResolvedValue(row({ id: 'p1' }))
+    const listUpdate = vi.fn().mockResolvedValue(row({ id: 'l1', projectId: 'p1', listType: 'regular' }))
     const tx: any = {
       taskList: {
-        findUnique: vi.fn().mockResolvedValue({ id: 'l1', ownerId: USER, name: 'Career', description: null, color: '#fff', imageUrl: null, listType: 'regular', projectId: null }),
+        findUnique: vi.fn().mockResolvedValue(row({ id: 'l1', ownerId: USER, name: 'Career', description: null, color: '#fff', imageUrl: null, listType: 'regular', projectId: null })),
         update: listUpdate,
         findMany: vi.fn()
-          .mockResolvedValueOnce([]) // ensureUserStatusLists: existing
-          .mockResolvedValueOnce([]) // ensureUserStatusLists: final
-          .mockResolvedValueOnce([]), // fetchUserStatusLists
+          .mockResolvedValueOnce(rows([])) // ensureUserStatusLists: existing
+          .mockResolvedValueOnce(rows([])) // ensureUserStatusLists: final
+          .mockResolvedValueOnce(rows([])), // fetchUserStatusLists
         createMany: vi.fn(),
       },
       project: {
         create: projectCreate,
-        findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'p1', name: 'Career', lists: [{ id: 'l1' }] }),
+        findUniqueOrThrow: vi.fn().mockResolvedValue(row({ id: 'p1', name: 'Career', lists: [{ id: 'l1' }] })),
       },
     }
     vi.mocked(prisma.$transaction).mockImplementation(((cb: any) => cb(tx)) as any)

@@ -101,7 +101,7 @@ describe('SSE Subscription Hooks', () => {
     it('should re-subscribe when event types change', () => {
       const callback = vi.fn()
       const unsubscribeMock = vi.fn()
-      SSEManager.subscribe.mockReturnValue(unsubscribeMock)
+      vi.mocked(SSEManager.subscribe).mockReturnValue(unsubscribeMock)
 
       const { rerender } = renderHook(
         ({ eventTypes }) => useSSESubscription(eventTypes, callback),

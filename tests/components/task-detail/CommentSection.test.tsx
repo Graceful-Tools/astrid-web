@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../../fixtures/prisma-rows'
+import { buildTask, buildUser } from '../../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CommentSection } from '@/components/task-detail/CommentSection'
 import type { Task, User } from '@/types/task'
@@ -12,23 +14,26 @@ vi.mock('@/lib/layout-detection', () => ({
 }))
 
 describe('CommentSection', () => {
-  const mockCurrentUser: User = {
+  const mockCurrentUser: User = buildUser({
     id: 'user-1',
     email: 'test@example.com',
     name: 'Test User',
     image: null
-  }
+  })
 
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: '',
     priority: 1,
     completed: false,
     lists: [],
+    // creatorId is 'user-1', so the creator IS the current user. The literal
+    // omitted `creator` entirely — a required field — and the builder's
+    // stand-in put a second person in the mention list. (AWTD-916)
+    creator: mockCurrentUser,
     creatorId: 'user-1',
     assigneeId: null,
-    when: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     comments: [
@@ -44,7 +49,7 @@ describe('CommentSection', () => {
         replies: []
       }
     ]
-  }
+  })
 
   const defaultProps = {
     task: mockTask,
@@ -72,10 +77,10 @@ describe('CommentSection', () => {
     vi.clearAllMocks()
     // Default fetch mock returns empty JSON for any unhandled requests
     // (e.g., /api/user/ai-assistant-settings called in useEffect)
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(row({
       ok: true,
       json: async () => ({})
-    })
+    }))
   })
 
   describe('Rendering', () => {
@@ -115,7 +120,7 @@ describe('CommentSection', () => {
     })
 
     it('should add comment on Enter key', { timeout: 15000 }, async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue(row({
         ok: true,
         json: async () => ({
           id: 'new-comment',
@@ -127,7 +132,7 @@ describe('CommentSection', () => {
           createdAt: new Date(),
           updatedAt: new Date()
         })
-      })
+      }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -247,7 +252,7 @@ describe('CommentSection', () => {
     })
 
     it('should add reply on Enter key', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue(row({
         ok: true,
         json: async () => ({
           id: 'new-reply',
@@ -260,7 +265,7 @@ describe('CommentSection', () => {
           createdAt: new Date(),
           updatedAt: new Date()
         })
-      })
+      }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -371,7 +376,7 @@ describe('CommentSection', () => {
     })
 
     it('should delete comment when Delete is clicked', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+      const mockFetch = vi.fn().mockResolvedValue(row({ ok: true }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -394,7 +399,7 @@ describe('CommentSection', () => {
     })
 
     it('should not show Delete for other users comments', () => {
-      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Other User', image: null }
+      const otherUser: User = buildUser({ id: 'user-2', email: 'other@test.com', name: 'Other User', image: null })
       const taskWithOtherComment = {
         ...mockTask,
         comments: [{
@@ -460,7 +465,7 @@ describe('CommentSection', () => {
         }]
       }
 
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+      const mockFetch = vi.fn().mockResolvedValue(row({ ok: true }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -479,10 +484,10 @@ describe('CommentSection', () => {
 
   describe('Error Handling', () => {
     it('should rollback optimistic update on comment add failure', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue(row({
         ok: false,
         statusText: 'Server Error'
-      })
+      }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -529,7 +534,7 @@ describe('CommentSection', () => {
   describe('Theme Compatibility', () => {
     it('should use theme-text-muted for comment author in chat bubble meta', () => {
       // Use a different author so name is displayed (not "You")
-      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Other User', image: null }
+      const otherUser: User = buildUser({ id: 'user-2', email: 'other@test.com', name: 'Other User', image: null })
       const taskWithOtherComment = {
         ...mockTask,
         comments: [{
@@ -547,7 +552,7 @@ describe('CommentSection', () => {
     })
 
     it('should use theme-text-muted for reply author in chat bubble meta', () => {
-      const otherUser: User = { id: 'user-2', email: 'other@test.com', name: 'Reply User', image: null }
+      const otherUser: User = buildUser({ id: 'user-2', email: 'other@test.com', name: 'Reply User', image: null })
       const taskWithReplies = {
         ...mockTask,
         comments: [

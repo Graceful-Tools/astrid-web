@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rowWith, rows, rowsWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 
 // Mock prisma
@@ -61,12 +62,17 @@ import { GET as getTasks } from '@/app/api/v1/agent/tasks/route'
 import { GET as getTask, PATCH as patchTask } from '@/app/api/v1/agent/tasks/[id]/route'
 import { GET as getComments, POST as postComment } from '@/app/api/v1/agent/tasks/[id]/comments/route'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 
 const AUTH_CONTEXT = { userId: 'agent-1', scopes: ['tasks:read', 'tasks:write', 'comments:read', 'comments:write'] }
 
-function makeReq(url: string, opts?: RequestInit) {
+// NextRequest's constructor takes Next's own RequestInit, not the DOM one —
+// they differ on `signal` (nullable in the DOM type). Derive it rather than
+// guessing. (AWTD-916)
+type NextRequestInit = ConstructorParameters<typeof NextRequest>[1]
+
+function makeReq(url: string, opts?: NextRequestInit) {
   return new NextRequest(`http://localhost${url}`, opts)
 }
 
@@ -97,7 +103,7 @@ beforeEach(() => {
 
 describe('GET /api/v1/agent/tasks', () => {
   it('returns tasks assigned to agent', async () => {
-    mockPrisma.task.findMany.mockResolvedValue([sampleTask] as any)
+    mockPrisma.task.findMany.mockResolvedValue(rows([sampleTask]))
     const res = await getTasks(makeReq('/api/v1/agent/tasks'))
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -106,7 +112,7 @@ describe('GET /api/v1/agent/tasks', () => {
   })
 
   it('passes completed filter', async () => {
-    mockPrisma.task.findMany.mockResolvedValue([])
+    mockPrisma.task.findMany.mockResolvedValue(rows([]))
     await getTasks(makeReq('/api/v1/agent/tasks?completed=true'))
     expect(mockPrisma.task.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ completed: true }) })
@@ -140,7 +146,7 @@ describe('GET /api/v1/agent/tasks/:id', () => {
 describe('PATCH /api/v1/agent/tasks/:id', () => {
   it('completes a task', async () => {
     mockPrisma.task.findFirst.mockResolvedValue(sampleTask as any)
-    mockPrisma.task.update.mockResolvedValue({ ...sampleTask, completed: true } as any)
+    mockPrisma.task.update.mockResolvedValue(row({ ...sampleTask, completed: true }))
     const res = await patchTask(
       makeReq('/api/v1/agent/tasks/task-1', { method: 'PATCH', body: JSON.stringify({ completed: true }) }),
       makeContext('task-1')
@@ -153,7 +159,7 @@ describe('PATCH /api/v1/agent/tasks/:id', () => {
 
   it('updates priority', async () => {
     mockPrisma.task.findFirst.mockResolvedValue(sampleTask as any)
-    mockPrisma.task.update.mockResolvedValue({ ...sampleTask, priority: 3 } as any)
+    mockPrisma.task.update.mockResolvedValue(row({ ...sampleTask, priority: 3 }))
     const res = await patchTask(
       makeReq('/api/v1/agent/tasks/task-1', { method: 'PATCH', body: JSON.stringify({ priority: 3 }) }),
       makeContext('task-1')
@@ -173,11 +179,11 @@ describe('PATCH /api/v1/agent/tasks/:id', () => {
 
 describe('GET /api/v1/agent/tasks/:id/comments', () => {
   it('returns comments in order', async () => {
-    mockPrisma.task.findFirst.mockResolvedValue({ id: 'task-1' } as any)
-    mockPrisma.comment.findMany.mockResolvedValue([
+    mockPrisma.task.findFirst.mockResolvedValue(row({ id: 'task-1' }))
+    mockPrisma.comment.findMany.mockResolvedValue(rowsWith([
       { id: 'c1', content: 'First', authorId: 'u1', createdAt: new Date('2026-02-10T00:00:00Z'), author: { id: 'u1', name: 'Jon', email: 'j@e.com', isAIAgent: false } },
       { id: 'c2', content: 'Second', authorId: 'agent-1', createdAt: new Date('2026-02-11T00:00:00Z'), author: { id: 'agent-1', name: 'Agent', email: 'a@e.com', isAIAgent: true } },
-    ] as any)
+    ]))
     const res = await getComments(makeReq('/api/v1/agent/tasks/task-1/comments'), makeContext('task-1'))
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -195,11 +201,11 @@ describe('GET /api/v1/agent/tasks/:id/comments', () => {
 
 describe('POST /api/v1/agent/tasks/:id/comments', () => {
   it('creates a comment', async () => {
-    mockPrisma.task.findFirst.mockResolvedValue({ ...sampleTask, lists: [] } as any)
-    mockPrisma.comment.create.mockResolvedValue({
+    mockPrisma.task.findFirst.mockResolvedValue(rowWith({ ...sampleTask, lists: [] }))
+    mockPrisma.comment.create.mockResolvedValue(rowWith({
       id: 'c-new', content: 'Hello', authorId: 'agent-1', createdAt: new Date('2026-02-16T00:00:00Z'),
       author: { id: 'agent-1', name: 'Agent', email: 'a@e.com', isAIAgent: true },
-    } as any)
+    }))
     const res = await postComment(
       makeReq('/api/v1/agent/tasks/task-1/comments', { method: 'POST', body: JSON.stringify({ content: 'Hello' }) }),
       makeContext('task-1')
@@ -211,7 +217,7 @@ describe('POST /api/v1/agent/tasks/:id/comments', () => {
   })
 
   it('validates content is required', async () => {
-    mockPrisma.task.findFirst.mockResolvedValue({ ...sampleTask, lists: [] } as any)
+    mockPrisma.task.findFirst.mockResolvedValue(rowWith({ ...sampleTask, lists: [] }))
     const res = await postComment(
       makeReq('/api/v1/agent/tasks/task-1/comments', { method: 'POST', body: JSON.stringify({}) }),
       makeContext('task-1')

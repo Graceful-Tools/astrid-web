@@ -1,4 +1,5 @@
 import { getUserRoleInList } from '@/lib/list-permissions'
+import { buildUser } from '../fixtures/domain'
 import { describe, it, expect } from 'vitest'
 import {
   getAllListMembers,
@@ -11,23 +12,23 @@ import {
 import type { TaskList, User } from '@/types/task'
 
 describe('List Member Utils - getAllListMembers', () => {
-  const mockOwner: User = {
+  const mockOwner: User = buildUser({
     id: 'owner-1',
     email: 'owner@example.com',
     name: 'Owner User',
-  }
+  })
 
-  const mockAdmin: User = {
+  const mockAdmin: User = buildUser({
     id: 'admin-1',
     email: 'admin@example.com',
     name: 'Admin User',
-  }
+  })
 
-  const mockMember: User = {
+  const mockMember: User = buildUser({
     id: 'member-1',
     email: 'member@example.com',
     name: 'Member User',
-  }
+  })
 
   describe('Owner field', () => {
     it('should return owner from owner field', () => {
@@ -213,29 +214,29 @@ describe('List Member Utils - getAllListMembers', () => {
 })
 
 describe('List Member Utils - Permission Checks', () => {
-  const mockOwner: User = {
+  const mockOwner: User = buildUser({
     id: 'owner-1',
     email: 'owner@example.com',
     name: 'Owner User',
-  }
+  })
 
-  const mockAdmin: User = {
+  const mockAdmin: User = buildUser({
     id: 'admin-1',
     email: 'admin@example.com',
     name: 'Admin User',
-  }
+  })
 
-  const mockMember: User = {
+  const mockMember: User = buildUser({
     id: 'member-1',
     email: 'member@example.com',
     name: 'Member User',
-  }
+  })
 
-  const mockNonMember: User = {
+  const mockNonMember: User = buildUser({
     id: 'non-member-1',
     email: 'nonmember@example.com',
     name: 'Non Member',
-  }
+  })
 
   describe('isListAdminOrOwner', () => {
     it('should return true for owner', () => {

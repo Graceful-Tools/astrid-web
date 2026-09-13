@@ -34,7 +34,7 @@ import { setListFavorite } from '@/lib/list-favorite'
 import { prisma } from '@/lib/prisma'
 import { toggleFavorite, hydrateSingleListFavorite } from '@/lib/favorites'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockToggle = vi.mocked(toggleFavorite)
 const mockHydrate = vi.mocked(hydrateSingleListFavorite)
 

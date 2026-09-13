@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi , type Mock } from 'vitest'
 import AstridMCPServerOAuth, { OAUTH_MCP_TOOLS } from '@/mcp/mcp-server-oauth'
 
 /**
@@ -17,7 +17,7 @@ function stubFetch(json: unknown) {
   return fetchMock
 }
 
-function bodyOf(fetchMock: ReturnType<typeof vi.fn>, callIndex = 0) {
+function bodyOf(fetchMock: Mock, callIndex = 0) {
   return JSON.parse(fetchMock.mock.calls[callIndex][1].body)
 }
 

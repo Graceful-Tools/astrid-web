@@ -18,7 +18,7 @@
  */
 
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ManageStatusesPanel } from '@/components/list-admin/ManageStatusesPanel'
 import type { ProjectBoardColumn } from '@/lib/project-status'
@@ -42,7 +42,7 @@ function okFetch() {
   ) as typeof fetch
 }
 
-const calls = () => (global.fetch as ReturnType<typeof vi.fn>).mock.calls
+const calls = () => (global.fetch as Mock).mock.calls
 
 describe('ManageStatusesPanel', () => {
   beforeEach(() => vi.clearAllMocks())

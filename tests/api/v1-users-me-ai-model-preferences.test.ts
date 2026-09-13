@@ -38,7 +38,7 @@ import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { DEFAULT_MODELS } from '@/lib/ai/agent-config'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 
 const req = (method: string, body?: unknown) =>

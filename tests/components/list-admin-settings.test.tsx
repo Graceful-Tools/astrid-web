@@ -3,6 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildUser } from '../fixtures/domain'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ListAdminSettings } from '@/components/list-admin-settings'
 import type { TaskList, User } from '@/types/task'
@@ -25,22 +27,15 @@ vi.mock('@/lib/layout-detection', () => ({
 }))
 
 describe('ListAdminSettings - Delete List Modal', () => {
-  const mockCurrentUser: User = {
+  const mockCurrentUser: User = buildUser({
     id: 'user-1',
     name: 'Test User',
     email: 'test@example.com',
     image: null,
     createdAt: new Date(),
-    updatedAt: new Date(),
-    emailVerified: null,
-    isActive: true,
-    pendingEmail: null,
-    emailVerificationToken: null,
-    emailTokenExpiresAt: null,
-    password: null
-  }
+  })
 
-  const mockList: TaskList = {
+  const mockList: TaskList = buildTaskList({
     id: 'list-1',
     name: 'Test List',
     color: '#3b82f6',
@@ -51,7 +46,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
     members: [],
     admins: [],
     tasks: []
-  }
+  })
 
   const mockOnUpdate = vi.fn()
   const mockOnDelete = vi.fn()

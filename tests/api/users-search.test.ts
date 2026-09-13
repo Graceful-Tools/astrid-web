@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
+import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -9,12 +11,7 @@ const createMockRequest = (searchParams: Record<string, string> = {}, headers: R
     url.searchParams.set(key, value)
   })
 
-  const request = {
-    url: url.toString(),
-    headers: {
-      get: (name: string) => headers[name.toLowerCase()] || null
-    }
-  } as any as Request
+  const request = new NextRequest(url, { headers })
   return request
 }
 
@@ -28,7 +25,7 @@ describe('Users Search API', () => {
     Object.values(mockPrisma.taskList).forEach((mock: any) => mock.mockReset())
     
     // Mock current user exists in database
-    mockPrisma.user.findUnique.mockResolvedValue({
+    mockPrisma.user.findUnique.mockResolvedValue(row({
       id: 'test-user-id',
       name: 'Test User',
       email: 'test@example.com',
@@ -36,7 +33,7 @@ describe('Users Search API', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       emailVerified: null
-    })
+    }))
     
     // taskList.findMany now serves TWO different queries in this route:
     //   1. the ASTRID-enabled-lists lookup (wants [] here, as before)
@@ -124,7 +121,7 @@ describe('Users Search API', () => {
       mockPrisma.task.findUnique.mockResolvedValue(mockTask)
       mockPrisma.user.findMany
         .mockResolvedValueOnce(mockListMembers) // List members query
-        .mockResolvedValueOnce([]) // AI agents query (none are list members)
+        .mockResolvedValueOnce(rows([])) // AI agents query (none are list members)
 
       const request = createMockRequest({ taskId: 'task-1', q: '' })
       const response = await GET(request)
@@ -171,7 +168,7 @@ describe('Users Search API', () => {
 
     it('should handle non-existent task gracefully', async () => {
       mockPrisma.task.findUnique.mockResolvedValue(null)
-      mockPrisma.user.findMany.mockResolvedValue([])
+      mockPrisma.user.findMany.mockResolvedValue(rows([]))
 
       const request = createMockRequest({ taskId: 'non-existent-task', q: '' })
       const response = await GET(request)
@@ -201,7 +198,7 @@ describe('Users Search API', () => {
       mockPrisma.task.findUnique.mockResolvedValue(mockTask)
       mockPrisma.user.findMany
         .mockResolvedValueOnce(mockListMembers) // List members query with filter
-        .mockResolvedValueOnce([]) // AI agents query
+        .mockResolvedValueOnce(rows([])) // AI agents query
 
       const request = createMockRequest({ taskId: 'task-1', q: 'alice' })
       const response = await GET(request)
@@ -256,7 +253,7 @@ describe('Users Search API', () => {
 
       mockPrisma.user.findMany
         .mockResolvedValueOnce(mockListMembers) // List members query
-        .mockResolvedValueOnce([]) // AI agents query
+        .mockResolvedValueOnce(rows([])) // AI agents query
 
       const request = createMockRequest({ listIds: 'list-1,list-2', q: '' })
       const response = await GET(request)
@@ -321,7 +318,7 @@ describe('Users Search API', () => {
 
       mockPrisma.user.findMany
         .mockResolvedValueOnce(mockListMembers) // List members query
-        .mockResolvedValueOnce([]) // AI agents query
+        .mockResolvedValueOnce(rows([])) // AI agents query
 
       const request = createMockRequest({ listIds: 'list-1', q: '' })
       const response = await GET(request)
@@ -349,7 +346,7 @@ describe('Users Search API', () => {
 
       mockPrisma.user.findMany
         .mockResolvedValueOnce(mockListMembers) // List members query returns 15 users
-        .mockResolvedValueOnce([]) // AI agents query
+        .mockResolvedValueOnce(rows([])) // AI agents query
 
       const request = createMockRequest({ listIds: 'list-1', q: '' })
       const response = await GET(request)
@@ -370,7 +367,7 @@ describe('Users Search API', () => {
       mockPrisma.task.findUnique.mockResolvedValue(mockTask)
       mockPrisma.user.findMany
         .mockRejectedValueOnce(new Error('Database error')) // List members query fails
-        .mockResolvedValueOnce([]) // AI agents query succeeds
+        .mockResolvedValueOnce(rows([])) // AI agents query succeeds
 
       const request = createMockRequest({ taskId: 'task-1', q: 'search' })
       const response = await GET(request)
@@ -397,8 +394,8 @@ describe('Users Search API', () => {
     it('should handle invalid listIds format', async () => {
       // When list IDs are provided (even if invalid UUIDs), the code queries for list members
       mockPrisma.user.findMany
-        .mockResolvedValueOnce([]) // List members query (no results for invalid IDs)
-        .mockResolvedValueOnce([]) // AI agents query (no results for invalid IDs)
+        .mockResolvedValueOnce(rows([])) // List members query (no results for invalid IDs)
+        .mockResolvedValueOnce(rows([])) // AI agents query (no results for invalid IDs)
 
       const request = createMockRequest({ listIds: 'invalid,,format,', q: 'search' })
       const response = await GET(request)

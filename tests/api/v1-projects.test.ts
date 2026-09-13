@@ -77,7 +77,7 @@ const mockAuth = vi.mocked(authenticateAPI)
 const mockList = vi.mocked(listProjectsForUser)
 const mockCreate = vi.mocked(createProjectForUser)
 const mockDelete = vi.mocked(deleteProjectAndDetachLists)
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 const ownerAuth = {
   userId: 'owner-1',

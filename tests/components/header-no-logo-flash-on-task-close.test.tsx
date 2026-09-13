@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { buildTask, buildTaskList } from '../fixtures/domain'
 import { render } from '@testing-library/react'
 import { TaskManagerHeader } from '@/components/TaskManager/Header/TaskManagerHeader'
 
@@ -12,10 +13,10 @@ const mobileBaseProps = {
   showHamburgerMenu: true,
   mobileView: 'task' as const,
   lists: [
-    { id: 'list-1', name: 'My List', color: '#3b82f6', privacy: 'PRIVATE' as const, taskCount: 1 },
+    buildTaskList({ id: 'list-1', name: 'My List', color: '#3b82f6' }),
   ],
   selectedListId: 'list-1',
-  selectedTask: { id: 't1', title: 'A task', listIds: ['list-1'] },
+  selectedTask: buildTask({ id: 't1', title: 'A task', lists: [buildTaskList({ id: 'list-1', name: 'My List' })] }),
   effectiveSession: { user: { id: 'user-1', email: 'test@example.com' } },
   mobileSearchMode: false,
   searchValue: '',

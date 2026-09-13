@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 
 const findMany = vi.hoisted(() => vi.fn())
 const update = vi.hoisted(() => vi.fn())
@@ -63,7 +64,7 @@ const etl = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  githubRequest.mockResolvedValue({ status: 200, json: { updated_at: '2026-08-15T10:00:05Z' } })
+  githubRequest.mockResolvedValue(row({ status: 200, json: { updated_at: '2026-08-15T10:00:05Z' } }))
 })
 
 describe('direction decides which legs run (task d8de37c1)', () => {
@@ -91,7 +92,7 @@ describe('direction decides which legs run (task d8de37c1)', () => {
 
 describe('pushTasksForLink (task d8de37c1)', () => {
   it('PATCHes an issue whose task changed since the last push', async () => {
-    findMany.mockResolvedValue([etl()])
+    findMany.mockResolvedValue(rows([etl()]))
 
     const result = await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -105,7 +106,7 @@ describe('pushTasksForLink (task d8de37c1)', () => {
   it("writes the PATCH response's updated_at back, which is what closes the loop", async () => {
     // Without this the pull sees a newer remote timestamp than it recorded and
     // applies our own push back inbound, forever.
-    findMany.mockResolvedValue([etl()])
+    findMany.mockResolvedValue(rows([etl()]))
 
     await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -121,7 +122,7 @@ describe('pushTasksForLink (task d8de37c1)', () => {
 
   it('SEEDS rather than pushes when it has never pushed before', async () => {
     // The first-run clobber: null means "no baseline", not "send everything".
-    findMany.mockResolvedValue([etl({ astridUpdatedAt: null })])
+    findMany.mockResolvedValue(rows([etl({ astridUpdatedAt: null })]))
 
     const result = await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -133,7 +134,7 @@ describe('pushTasksForLink (task d8de37c1)', () => {
   })
 
   it('skips a task that has not changed since the last push', async () => {
-    findMany.mockResolvedValue([etl({ astridUpdatedAt: NEW })])
+    findMany.mockResolvedValue(rows([etl({ astridUpdatedAt: NEW })]))
 
     expect(await pushTasksForLink({ link: LINK, token: 't' })).toMatchObject({
       skipped: 1,
@@ -143,9 +144,9 @@ describe('pushTasksForLink (task d8de37c1)', () => {
   })
 
   it('closes the issue with the right state_reason when the task is canceled', async () => {
-    findMany.mockResolvedValue([
+    findMany.mockResolvedValue(rows([
       etl({ task: { ...etl().task, completed: true, closedReason: 'canceled' } }),
-    ])
+    ]))
 
     await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -157,8 +158,8 @@ describe('pushTasksForLink (task d8de37c1)', () => {
 
   it('leaves watermarks untouched when GitHub rejects the push', async () => {
     // A failed push must be retried next run, not silently marked as done.
-    githubRequest.mockResolvedValue({ status: 422, json: { message: 'nope' } })
-    findMany.mockResolvedValue([etl()])
+    githubRequest.mockResolvedValue(row({ status: 422, json: { message: 'nope' } }))
+    findMany.mockResolvedValue(rows([etl()]))
 
     const result = await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -167,7 +168,7 @@ describe('pushTasksForLink (task d8de37c1)', () => {
   })
 
   it('skips a malformed remoteId rather than PATCHing a wrong issue number', async () => {
-    findMany.mockResolvedValue([etl({ remoteId: 'owner/repo#not-a-number' })])
+    findMany.mockResolvedValue(rows([etl({ remoteId: 'owner/repo#not-a-number' })]))
 
     expect(await pushTasksForLink({ link: LINK, token: 't' })).toMatchObject({ skipped: 1 })
     expect(githubRequest).not.toHaveBeenCalled()
@@ -195,7 +196,7 @@ describe('pushTasksForLink bounds and rotates its scan (task f9ba26b3)', () => {
     )
 
   it('asks for a bounded page instead of the whole container', async () => {
-    findMany.mockResolvedValue([])
+    findMany.mockResolvedValue(rows([]))
 
     await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -205,7 +206,7 @@ describe('pushTasksForLink bounds and rotates its scan (task f9ba26b3)', () => {
   })
 
   it('orders the scan so it ROTATES rather than re-reading one prefix forever', async () => {
-    findMany.mockResolvedValue([])
+    findMany.mockResolvedValue(rows([]))
 
     await pushTasksForLink({ link: LINK, token: 't' })
 
@@ -235,7 +236,7 @@ describe('pushTasksForLink bounds and rotates its scan (task f9ba26b3)', () => {
     // would push them behind the links we just handled and strand them exactly
     // as the missing `take` did.
     const stamped = updateMany.mock.calls.flatMap(
-      ([arg]: [{ where: { id: { in: string[] } } }]) => arg.where.id.in,
+      (call) => (call[0] as { where: { id: { in: string[] } } }).where.id.in,
     )
     expect(stamped).not.toContain(`etl-${MAX_PUSHES_PER_PASS + 5}`)
   })
@@ -262,7 +263,7 @@ describe('pushTasksForLink bounds and rotates its scan (task f9ba26b3)', () => {
     // A permanently failing push must not re-consume the budget at the front of
     // every pass. lastSyncedAt is safe to move because nothing reads it —
     // astridUpdatedAt and remoteUpdatedAt are the watermarks, and they stay put.
-    githubRequest.mockResolvedValue({ status: 422, json: { message: 'nope' } })
+    githubRequest.mockResolvedValue(row({ status: 422, json: { message: 'nope' } }))
     findMany.mockResolvedValue(manyLinks(1))
 
     await pushTasksForLink({ link: LINK, token: 't' })
@@ -274,7 +275,7 @@ describe('pushTasksForLink bounds and rotates its scan (task f9ba26b3)', () => {
   })
 
   it('does not issue a stamping query when there is nothing to stamp', async () => {
-    findMany.mockResolvedValue([])
+    findMany.mockResolvedValue(rows([]))
 
     await pushTasksForLink({ link: LINK, token: 't' })
 

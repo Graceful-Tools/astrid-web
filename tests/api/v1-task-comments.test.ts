@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
+import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET, POST } from '@/app/api/v1/tasks/[id]/comments/route'
 import { authenticateAPI, requireScopes, getDeprecationWarning } from '@/lib/api-auth-middleware'
@@ -22,7 +24,7 @@ vi.mock('@/lib/sse-utils', () => ({
 }))
 
 vi.mock('@/lib/list-member-utils', () => ({
-  getListMemberIds: vi.fn().mockReturnValue([]),
+  getListMemberIds: vi.fn().mockReturnValue(rows([])),
 }))
 
 const mockAuthenticateAPI = vi.mocked(authenticateAPI)
@@ -71,28 +73,28 @@ describe('API v1 task comments public access', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireScopes.mockImplementation(() => {})
-    mockGetDeprecationWarning.mockReturnValue(undefined)
-    mockGetListMemberIds.mockReturnValue(['owner-id'])
+    mockGetDeprecationWarning.mockReturnValue(null)
+    mockGetListMemberIds.mockReturnValue(rows(['owner-id']))
   })
 
   it('allows viewing comments on public lists without membership', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'viewer-id',
       source: 'oauth',
       scopes: ['comments:read'],
-    } as any)
+    }))
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-public',
       creatorId: 'owner-id',
       assigneeId: null,
       lists: [createPublicList()],
-    })
+    }))
 
     const mockComments = [createComment()]
     mockPrisma.comment.findMany.mockResolvedValue(mockComments)
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-public/comments')
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-public/comments')
     const response = await GET(request, { params: Promise.resolve({ id: 'task-public' }) })
     const data = await response.json()
 
@@ -120,13 +122,13 @@ describe('API v1 task comments public access', () => {
   })
 
   it('allows collaborative public list viewers to add comments', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'viewer-id',
       source: 'oauth',
       scopes: ['comments:write'],
-    } as any)
+    }))
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-collab',
       creatorId: 'owner-id',
       assigneeId: null,
@@ -136,7 +138,7 @@ describe('API v1 task comments public access', () => {
           publicListType: 'collaborative',
         }),
       ],
-    })
+    }))
 
     const createdComment = {
       ...createComment(),
@@ -154,7 +156,7 @@ describe('API v1 task comments public access', () => {
     mockPrisma.comment.create.mockResolvedValue(createdComment)
     mockPrisma.secureFile.update.mockResolvedValue(undefined as any)
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-collab/comments', {
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-collab/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: 'Excited to help!' }),
@@ -193,11 +195,11 @@ describe('API v1 task comments public access', () => {
   })
 
   it('returns existing comment when clientRequestId matches a prior submit (offline retry)', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'author-id',
       source: 'oauth',
       scopes: ['comments:write'],
-    } as any)
+    }))
 
     const existing = {
       ...createComment(),
@@ -209,7 +211,7 @@ describe('API v1 task comments public access', () => {
     }
     mockPrisma.comment.findUnique.mockResolvedValue(existing)
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-id/comments', {
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-id/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: 'bam', clientRequestId: 'client-req-12345678' }),
@@ -217,12 +219,12 @@ describe('API v1 task comments public access', () => {
 
     // Even though we don't set up task.findUnique, the idempotency lookup happens
     // AFTER the access check, so we still need the task mock
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-id',
       creatorId: 'author-id',
       assigneeId: null,
       lists: [createPublicList({ id: 'list-id', publicListType: 'collaborative' })],
-    })
+    }))
 
     const response = await POST(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
@@ -234,20 +236,20 @@ describe('API v1 task comments public access', () => {
   })
 
   it('rejects copy-only public list comments from non-members', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'viewer-id',
       source: 'oauth',
       scopes: ['comments:write'],
-    } as any)
+    }))
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-copy',
       creatorId: 'owner-id',
       assigneeId: null,
       lists: [createPublicList()],
-    })
+    }))
 
-    const request = new Request('http://localhost:3000/api/v1/tasks/task-copy/comments', {
+    const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-copy/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: 'Let me contribute' }),

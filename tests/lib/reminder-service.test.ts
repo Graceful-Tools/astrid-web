@@ -38,7 +38,7 @@ const mockPrisma = {
   shortcode: {
     findFirst: vi.fn(),
   },
-} as unknown as PrismaClient
+}
 
 // Mock email service
 const mockEmailService = {
@@ -66,7 +66,7 @@ describe('ReminderService', () => {
     vi.useFakeTimers()
     vi.setSystemTime(mockDate)
     
-    reminderService = new ReminderService(mockPrisma, mockEmailService, mockPushService)
+    reminderService = new ReminderService(mockPrisma as unknown as PrismaClient, mockEmailService, mockPushService)
   })
 
   afterEach(() => {
@@ -84,6 +84,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'America/New_York', // EST/EDT
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),
@@ -159,6 +161,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'UTC',
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: '22:00', // 10 PM
         quietHoursEnd: '08:00',   // 8 AM
         createdAt: new Date(),
@@ -222,6 +226,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'Asia/Tokyo', // JST (UTC+9)
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),
@@ -278,6 +284,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00', // 9 AM
         dailyDigestTimezone: 'America/Los_Angeles', // PST/PDT
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),
@@ -359,6 +367,8 @@ describe('ReminderService', () => {
         enableDailyDigest: false, // Disabled
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'UTC',
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),
@@ -389,6 +399,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'UTC',
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),
@@ -583,6 +595,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'UTC',
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),
@@ -638,6 +652,8 @@ describe('ReminderService', () => {
         enableDailyDigest: true,
         dailyDigestTime: '09:00',
         dailyDigestTimezone: 'UTC',
+        enableCalendarSync: false,
+        calendarSyncType: 'all',
         quietHoursStart: null,
         quietHoursEnd: null,
         createdAt: new Date(),

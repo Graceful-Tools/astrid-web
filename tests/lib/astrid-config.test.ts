@@ -17,7 +17,7 @@ import {
   getInitialGlobPattern,
 } from '../../lib/ai/config'
 import { CONFIG_DEFAULTS as DEFAULT_CONFIG } from '../../lib/ai/config/defaults'
-import type { AstridConfig } from '../../lib/ai/config/schema'
+import type { AstridConfig, ResolvedAstridConfig } from '../../lib/ai/config/schema'
 
 describe('Astrid Config Loader', () => {
   beforeEach(() => {
@@ -57,7 +57,11 @@ describe('Astrid Config Loader', () => {
   })
 
   describe('detectPlatform', () => {
-    const configWithPlatforms: AstridConfig = {
+    // detectPlatform takes a RESOLVED config, so build on CONFIG_DEFAULTS
+    // rather than a bare AstridConfig, which is missing every required
+    // sub-config. (AWTD-916)
+    const configWithPlatforms: ResolvedAstridConfig = {
+      ...DEFAULT_CONFIG,
       version: '1.0',
       platforms: [
         {
@@ -82,7 +86,7 @@ describe('Astrid Config Loader', () => {
     }
 
     it('should detect iOS platform from title', () => {
-      const platform = detectPlatform(configWithPlatforms, 'iOS: Fix bug in settings', null)
+      const platform = detectPlatform(configWithPlatforms, 'iOS: Fix bug in settings', '')
 
       expect(platform).not.toBeNull()
       expect(platform?.name).toBe('ios')
@@ -96,33 +100,33 @@ describe('Astrid Config Loader', () => {
     })
 
     it('should detect Android platform', () => {
-      const platform = detectPlatform(configWithPlatforms, 'Android: Add feature', null)
+      const platform = detectPlatform(configWithPlatforms, 'Android: Add feature', '')
 
       expect(platform).not.toBeNull()
       expect(platform?.name).toBe('android')
     })
 
     it('should detect web platform', () => {
-      const platform = detectPlatform(configWithPlatforms, 'Update React component', null)
+      const platform = detectPlatform(configWithPlatforms, 'Update React component', '')
 
       expect(platform).not.toBeNull()
       expect(platform?.name).toBe('web')
     })
 
     it('should return null when no platform matches', () => {
-      const platform = detectPlatform(configWithPlatforms, 'Update documentation', null)
+      const platform = detectPlatform(configWithPlatforms, 'Update documentation', '')
 
       expect(platform).toBeNull()
     })
 
     it('should return null when config has no platforms', () => {
-      const platform = detectPlatform({ version: '1.0' }, 'iOS task', null)
+      const platform = detectPlatform({ ...DEFAULT_CONFIG, version: '1.0' }, 'iOS task', '')
 
       expect(platform).toBeNull()
     })
 
     it('should be case-insensitive', () => {
-      const platform = detectPlatform(configWithPlatforms, 'IOS: SWIFT CODE', null)
+      const platform = detectPlatform(configWithPlatforms, 'IOS: SWIFT CODE', '')
 
       expect(platform).not.toBeNull()
       expect(platform?.name).toBe('ios')
@@ -131,7 +135,7 @@ describe('Astrid Config Loader', () => {
 
   describe('generateStructurePrompt', () => {
     it('should return empty string when no structure defined', () => {
-      const prompt = generateStructurePrompt({ version: '1.0' })
+      const prompt = generateStructurePrompt({ ...DEFAULT_CONFIG, version: '1.0' })
 
       expect(prompt).toBe('')
     })
@@ -217,13 +221,13 @@ describe('Astrid Config Loader', () => {
         filePatterns: ['ios-app/**/*.swift'],
       }
 
-      const pattern = getInitialGlobPattern({ version: '1.0' }, platform)
+      const pattern = getInitialGlobPattern({ ...DEFAULT_CONFIG, version: '1.0' }, platform)
 
       expect(pattern).toBe('ios-app/**/*.swift')
     })
 
     it('should return default TypeScript pattern when no platform', () => {
-      const pattern = getInitialGlobPattern({ version: '1.0' }, null)
+      const pattern = getInitialGlobPattern({ ...DEFAULT_CONFIG, version: '1.0' }, null)
 
       expect(pattern).toBe('**/*.ts')
     })
@@ -235,7 +239,7 @@ describe('Astrid Config Loader', () => {
         filePatterns: [],
       }
 
-      const pattern = getInitialGlobPattern({ version: '1.0' }, platform)
+      const pattern = getInitialGlobPattern({ ...DEFAULT_CONFIG, version: '1.0' }, platform)
 
       expect(pattern).toBe('**/*.ts')
     })
@@ -283,7 +287,7 @@ describe('Config Integration', () => {
 
     const config = await loadAstridConfig(repoPath)
     // Test web platform detection (iOS is now in separate repo)
-    const platform = detectPlatform(config, 'Fix React component rendering', null)
+    const platform = detectPlatform(config, 'Fix React component rendering', '')
 
     expect(platform).not.toBeNull()
     expect(platform?.name).toBe('web')

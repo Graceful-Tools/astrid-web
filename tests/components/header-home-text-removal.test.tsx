@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render } from '@testing-library/react'
 import { TaskManagerHeader } from '@/components/TaskManager/Header/TaskManagerHeader'
 
@@ -8,7 +9,7 @@ const mockProps = {
   showHamburgerMenu: false,
   mobileView: 'list' as const,
   lists: [
-    { id: 'list-1', name: 'Test List', color: '#blue', privacy: 'PRIVATE' as const, taskCount: 5 }
+    buildTaskList({ id: 'list-1', name: 'Test List', color: '#blue' })
   ],
   selectedListId: 'list-1',
   selectedTask: null,

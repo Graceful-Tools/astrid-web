@@ -1,8 +1,8 @@
-import { ReactElement } from 'react'
+import { ReactElement, ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
 
 interface TestSessionProviderProps {
-  children: ReactElement
+  children: ReactNode
   session?: any
 }
 
@@ -36,7 +36,7 @@ export const renderWithProviders = (
   ui: ReactElement,
   { session, ...renderOptions }: CustomRenderOptions = {}
 ) => {
-  const Wrapper = ({ children }: { children: ReactElement }) => (
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <TestSessionProvider session={session}>
       {children}
     </TestSessionProvider>

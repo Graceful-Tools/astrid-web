@@ -12,21 +12,21 @@
  * DOM (jsdom keeps it) — we assert visibility, not mere presence.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTask, buildUser } from '../fixtures/domain'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
 
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-1',
   email: 'test@example.com',
   name: 'Test User',
   image: null,
-  emailVerified: null,
   createdAt: new Date(),
-  updatedAt: new Date(),
-}
+})
 
-const ownedList: TaskList = {
+const ownedList: TaskList = buildTaskList({
   id: 'list-1',
   name: 'Astrid Web To-do',
   description: 'Agent Workflow',
@@ -40,15 +40,14 @@ const ownedList: TaskList = {
   members: [],
   admins: [],
   tasks: [],
-}
+})
 
-const mockTask: Task = {
+const mockTask: Task = buildTask({
   id: 'task-1',
   title: 'Test Task',
-  description: null,
+  description: '',
   completed: false,
   priority: 2,
-  when: null,
   repeating: 'never',
   assigneeId: null,
   assignee: null,
@@ -59,7 +58,7 @@ const mockTask: Task = {
   attachments: [],
   createdAt: new Date(),
   updatedAt: new Date(),
-}
+})
 
 const baseProps: any = {
   isMobile: false,
@@ -185,7 +184,7 @@ describe('Add-task input visibility across desktop layouts', () => {
   // array — should see the add-task input, not the "Copy List" button. The old
   // inline check (ownerId === / admins.some) got this wrong.
   it('shows add-task (not Copy List) for an admin whom the permission source approves on a public list', () => {
-    const publicListAdminViaMembers: TaskList = {
+    const publicListAdminViaMembers: TaskList = buildTaskList({
       ...ownedList,
       id: 'list-2',
       ownerId: 'someone-else',
@@ -193,7 +192,7 @@ describe('Add-task input visibility across desktop layouts', () => {
       publicListType: 'copy_only',
       admins: [], // legacy array does NOT list the user
       listMembers: [{ userId: 'user-1', role: 'admin', user: mockUser } as any],
-    }
+    })
 
     render(
       <MainContent

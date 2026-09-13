@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
@@ -33,6 +34,14 @@ import {
   resetEmailTransportForTests,
 } from '@/lib/email-transport'
 
+// NODE_ENV is declared readonly by Next's env types. These suites set it on
+// purpose and restore the whole `process.env` object around each test, so the
+// write is scoped — it just needs to get past the readonly declaration.
+// (AWTD-916)
+function setNodeEnv(value: string) {
+  ;(process.env as Record<string, string | undefined>).NODE_ENV = value
+}
+
 const ORIGINAL_ENV = { ...process.env }
 
 beforeEach(() => {
@@ -47,21 +56,21 @@ afterEach(() => {
 
 describe('isEmailTransportLive', () => {
   it('is false in development, so a local run logs rather than mails real people', () => {
-    process.env.NODE_ENV = 'development'
+    setNodeEnv('development')
     process.env.RESEND_API_KEY = 'key'
 
     expect(isEmailTransportLive()).toBe(false)
   })
 
   it('is false with no API key, whatever the environment', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     delete process.env.RESEND_API_KEY
 
     expect(isEmailTransportLive()).toBe(false)
   })
 
   it('is true in production with a key', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.RESEND_API_KEY = 'key'
 
     expect(isEmailTransportLive()).toBe(true)
@@ -70,12 +79,12 @@ describe('isEmailTransportLive', () => {
 
 describe('sendTransportEmail', () => {
   beforeEach(() => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.RESEND_API_KEY = 'key'
   })
 
   it('normalises a single recipient to the provider’s array form', async () => {
-    send.mockResolvedValue({ data: { id: 'msg-1' }, error: null })
+    send.mockResolvedValue(row({ data: { id: 'msg-1' }, error: null }))
 
     await sendTransportEmail({
       from: 'a@b.com',
@@ -92,7 +101,7 @@ describe('sendTransportEmail', () => {
     // The provider reports failure in the RESULT, not by rejecting. Four call
     // sites each destructured `{ data, error }` and checked it by hand; this is
     // that check, made once.
-    send.mockResolvedValue({ data: null, error: { message: 'domain not verified' } })
+    send.mockResolvedValue(row({ data: null, error: { message: 'domain not verified' } }))
 
     await expect(
       sendTransportEmail({ from: 'a@b.com', to: 'c@d.com', subject: 's', html: 'h', text: 't' })

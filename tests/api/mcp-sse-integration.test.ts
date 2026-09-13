@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { row, rowWith, rows, rowsWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/mcp/operations/route'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -130,12 +131,12 @@ describe('MCP SSE Integration', () => {
       const { prisma } = await import('@/lib/prisma')
 
       // Mock Prisma operations
-      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(mockMcpToken)
-      vi.mocked(prisma.taskList.findMany).mockResolvedValue([mockMcpToken.list])
-      vi.mocked(prisma.task.create).mockResolvedValue(mockTask)
+      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(rowWith(mockMcpToken))
+      vi.mocked(prisma.taskList.findMany).mockResolvedValue(rows([mockMcpToken.list]))
+      vi.mocked(prisma.task.create).mockResolvedValue(rowWith(mockTask))
 
       // Mock list member retrieval
-      vi.mocked(prisma.taskList.findFirst).mockResolvedValue({
+      vi.mocked(prisma.taskList.findFirst).mockResolvedValue(rowWith({
         ...mockMcpToken.list,
         owner: { id: 'list-owner-id' },
         listMembers: [
@@ -154,7 +155,7 @@ describe('MCP SSE Integration', () => {
             user: { id: 'member-user-id' }
           }
         ],
-      } as any)
+      }))
 
       const request = new NextRequest('http://localhost:3000/api/mcp/operations', {
         method: 'POST',
@@ -204,12 +205,12 @@ describe('MCP SSE Integration', () => {
       const { prisma } = await import('@/lib/prisma')
 
       // Mock Prisma operations
-      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(mockMcpToken)
-      vi.mocked(prisma.task.findFirst).mockResolvedValue(mockTask)
-      vi.mocked(prisma.task.update).mockResolvedValue(mockTask)
+      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(rowWith(mockMcpToken))
+      vi.mocked(prisma.task.findFirst).mockResolvedValue(rowWith(mockTask))
+      vi.mocked(prisma.task.update).mockResolvedValue(rowWith(mockTask))
 
       // Mock list member retrieval
-      vi.mocked(prisma.taskList.findFirst).mockResolvedValue({
+      vi.mocked(prisma.taskList.findFirst).mockResolvedValue(rowWith({
         ...mockMcpToken.list,
         owner: { id: 'list-owner-id' },
         listMembers: [
@@ -228,7 +229,7 @@ describe('MCP SSE Integration', () => {
             user: { id: 'member-user-id' }
           }
         ],
-      } as any)
+      }))
 
       const request = new NextRequest('http://localhost:3000/api/mcp/operations', {
         method: 'POST',
@@ -275,7 +276,7 @@ describe('MCP SSE Integration', () => {
       const mockComment = {
         id: 'test-comment-id',
         content: 'Test comment content',
-        type: 'TEXT',
+        type: 'TEXT' as const,
         createdAt: new Date(),
         author: {
           id: 'test-user-id',
@@ -288,15 +289,15 @@ describe('MCP SSE Integration', () => {
       const { prisma } = await import('@/lib/prisma')
 
       // Mock Prisma operations
-      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(mockMcpToken)
-      vi.mocked(prisma.task.findFirst).mockResolvedValue({
+      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(rowWith(mockMcpToken))
+      vi.mocked(prisma.task.findFirst).mockResolvedValue(rowWith({
         ...mockTask,
         lists: [{ id: 'test-list-id', name: 'Test List' }],
-      })
-      vi.mocked(prisma.comment.create).mockResolvedValue(mockComment)
+      }))
+      vi.mocked(prisma.comment.create).mockResolvedValue(rowWith(mockComment))
 
       // Mock list member retrieval
-      vi.mocked(prisma.taskList.findFirst).mockResolvedValue({
+      vi.mocked(prisma.taskList.findFirst).mockResolvedValue(rowWith({
         ...mockMcpToken.list,
         owner: { id: 'list-owner-id' },
         listMembers: [
@@ -315,7 +316,7 @@ describe('MCP SSE Integration', () => {
             user: { id: 'member-user-id' }
           }
         ],
-      } as any)
+      }))
 
       const request = new NextRequest('http://localhost:3000/api/mcp/operations', {
         method: 'POST',
@@ -358,7 +359,7 @@ describe('MCP SSE Integration', () => {
       const { prisma } = await import('@/lib/prisma')
 
       // Mock Prisma operations
-      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(mockMcpToken)
+      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(rowWith(mockMcpToken))
 
       const taskWithLists = {
         ...mockTask,
@@ -372,12 +373,12 @@ describe('MCP SSE Integration', () => {
       }
 
       // Mock both findUnique (used to check if task exists) and findFirst (used for access check)
-      vi.mocked(prisma.task.findUnique).mockResolvedValue(taskWithLists)
-      vi.mocked(prisma.task.findFirst).mockResolvedValue(taskWithLists)
-      vi.mocked(prisma.task.delete).mockResolvedValue(mockTask)
+      vi.mocked(prisma.task.findUnique).mockResolvedValue(rowWith(taskWithLists))
+      vi.mocked(prisma.task.findFirst).mockResolvedValue(rowWith(taskWithLists))
+      vi.mocked(prisma.task.delete).mockResolvedValue(rowWith(mockTask))
 
       // Mock list member retrieval - this is called by getListMemberIdsByListId
-      vi.mocked(prisma.taskList.findFirst).mockResolvedValue({
+      vi.mocked(prisma.taskList.findFirst).mockResolvedValue(rowWith({
         ...mockMcpToken.list,
         id: 'test-list-id',
         owner: { id: 'list-owner-id' },
@@ -385,7 +386,7 @@ describe('MCP SSE Integration', () => {
           { id: 'lm-1', listId: 'test-list-id', userId: 'admin-user-id', role: 'admin', user: { id: 'admin-user-id' } },
           { id: 'lm-2', listId: 'test-list-id', userId: 'member-user-id', role: 'member', user: { id: 'member-user-id' } }
         ],
-      } as any)
+      }))
 
       const request = new NextRequest('http://localhost:3000/api/mcp/operations', {
         method: 'POST',
@@ -429,9 +430,9 @@ describe('MCP SSE Integration', () => {
       const { prisma } = await import('@/lib/prisma')
 
       // Mock Prisma operations for successful task creation
-      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(mockMcpToken)
-      vi.mocked(prisma.taskList.findMany).mockResolvedValue([mockMcpToken.list])
-      vi.mocked(prisma.task.create).mockResolvedValue(mockTask)
+      vi.mocked(prisma.mCPToken.findFirst).mockResolvedValue(rowWith(mockMcpToken))
+      vi.mocked(prisma.taskList.findMany).mockResolvedValue(rows([mockMcpToken.list]))
+      vi.mocked(prisma.task.create).mockResolvedValue(rowWith(mockTask))
 
       const request = new NextRequest('http://localhost:3000/api/mcp/operations', {
         method: 'POST',

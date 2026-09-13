@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { buildUser } from '../fixtures/domain'
+import { buildTask } from '../fixtures/domain'
 import { reminderManager } from '@/lib/reminder-manager'
 import { getRandomReminderString, getSocialAccountabilityMessage, REMINDER_STRINGS } from '@/lib/reminder-constants'
 import type { Task, User } from '@/types/task'
 
 // Mock task data
-const mockTask: Task = {
+const mockTask: Task = buildTask({
   id: 'test-task-123',
   title: 'Test Task for Reminders',
   description: 'A test task to verify reminder functionality',
@@ -18,10 +20,7 @@ const mockTask: Task = {
     name: 'Test User',
     email: 'test@example.com',
     image: null,
-    emailVerified: null,
     createdAt: new Date(),
-    updatedAt: new Date(),
-    verified: true
   },
   creatorId: 'user-123',
   isPrivate: false,
@@ -35,10 +34,7 @@ const mockTask: Task = {
       name: 'Test User',
       email: 'test@example.com',
       image: null,
-      emailVerified: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
-      verified: true
     },
     listMembers: [
       {
@@ -46,15 +42,14 @@ const mockTask: Task = {
         listId: 'list-123',
         userId: 'user-456',
         role: 'member' as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         user: {
           id: 'user-456',
           name: 'Team Member',
           email: 'member@example.com',
           image: null,
-          emailVerified: null,
           createdAt: new Date(),
-          updatedAt: new Date(),
-          verified: true
         }
       }
     ],
@@ -68,18 +63,15 @@ const mockTask: Task = {
   comments: [],
   createdAt: new Date(),
   updatedAt: new Date()
-}
+})
 
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-123',
   name: 'Test User',
   email: 'test@example.com',
   image: null,
-  emailVerified: null,
   createdAt: new Date(),
-  updatedAt: new Date(),
-  verified: true
-}
+})
 
 describe('Reminder System Tests', () => {
   beforeEach(() => {

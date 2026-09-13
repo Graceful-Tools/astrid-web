@@ -20,6 +20,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn() }))
@@ -36,7 +37,9 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
-const getPopularPublicLists = vi.hoisted(() => vi.fn(async () => []))
+const getPopularPublicLists = vi.hoisted(() =>
+  vi.fn(async (_limit?: number, _options?: { ownerId?: string | null }) => []),
+)
 const getRecentPublicLists = vi.hoisted(() => vi.fn(async () => []))
 const searchPublicLists = vi.hoisted(() => vi.fn(async () => []))
 vi.mock('@/lib/copy-utils', () => ({
@@ -67,10 +70,10 @@ function req(qs: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockSession.mockResolvedValue({ user: { id: 'user-1' } } as never)
-  getPopularPublicLists.mockResolvedValue([] as never)
-  getRecentPublicLists.mockResolvedValue([] as never)
-  searchPublicLists.mockResolvedValue([] as never)
+  mockSession.mockResolvedValue(row({ user: { id: 'user-1', email: 'user@example.com', name: null, image: null } }))
+  getPopularPublicLists.mockResolvedValue(rows([]))
+  getRecentPublicLists.mockResolvedValue(rows([]))
+  searchPublicLists.mockResolvedValue(rows([]))
 })
 
 /** The limit the route actually passed downstream. */

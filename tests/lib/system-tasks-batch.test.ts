@@ -15,6 +15,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 
 const userFindMany = vi.hoisted(() => vi.fn())
 const taskCreateMany = vi.hoisted(() => vi.fn())
@@ -65,7 +66,7 @@ const users = (count: number, prefix = 'u') =>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  userFindMany.mockResolvedValue([])
+  userFindMany.mockResolvedValue(rows([]))
   taskCreateMany.mockImplementation(async ({ data }: { data: unknown[] }) => ({ count: data.length }))
 })
 
@@ -95,7 +96,7 @@ describe('the sweep only asks for users who need work (task f9ba26b3)', () => {
   })
 
   it('writes a page in ONE query instead of three per user', async () => {
-    userFindMany.mockResolvedValueOnce(users(4)).mockResolvedValue([])
+    userFindMany.mockResolvedValueOnce(users(4)).mockResolvedValue(rows([]))
 
     const stats = await createVerifyEmailTasksForUnverifiedUsers()
 
@@ -116,7 +117,7 @@ describe('the sweep only asks for users who need work (task f9ba26b3)', () => {
     userFindMany
       .mockResolvedValueOnce(users(VERIFY_EMAIL_BATCH_SIZE, 'a'))
       .mockResolvedValueOnce(users(3, 'b'))
-      .mockResolvedValue([])
+      .mockResolvedValue(rows([]))
 
     const stats = await createVerifyEmailTasksForUnverifiedUsers()
 
@@ -129,7 +130,7 @@ describe('the sweep cannot spin (task f9ba26b3)', () => {
     // The re-query hazard: the page is chosen by a predicate, so if the write
     // failed to change anything the identical page comes back forever.
     userFindMany.mockResolvedValue(users(5))
-    taskCreateMany.mockResolvedValue({ count: 0 })
+    taskCreateMany.mockResolvedValue(row({ count: 0 }))
 
     const stats = await createVerifyEmailTasksForUnverifiedUsers()
 
@@ -162,7 +163,7 @@ describe('the sweep cannot spin (task f9ba26b3)', () => {
     await createVerifyEmailTasksForUnverifiedUsers()
 
     const requested = userFindMany.mock.calls.reduce(
-      (sum: number, [arg]: [{ take: number }]) => sum + arg.take,
+      (sum: number, call) => sum + (call[0] as { take: number }).take,
       0,
     )
     expect(requested).toBeLessThanOrEqual(MAX_VERIFY_EMAIL_USERS_PER_RUN)
@@ -176,8 +177,8 @@ describe('single and batch paths build the SAME task (task f9ba26b3)', () => {
     // shared instead — otherwise a user swept in by the cron would get a
     // different task from one created at signup.
     taskFindFirst.mockResolvedValue(null)
-    userFindUnique.mockResolvedValue({ emailVerified: null, accounts: [] })
-    taskCreate.mockResolvedValue({ id: 'task-1' })
+    userFindUnique.mockResolvedValue(row({ emailVerified: null, accounts: [] }))
+    taskCreate.mockResolvedValue(row({ id: 'task-1' }))
 
     await createVerifyEmailTask('u-single')
     const singleData = taskCreate.mock.calls[0][0].data
@@ -198,7 +199,7 @@ describe('single and batch paths build the SAME task (task f9ba26b3)', () => {
   it('still refuses to create a duplicate on the single path', async () => {
     // The batch query now filters these out, but the single path is called from
     // signup and verification flows where nothing has pre-filtered.
-    taskFindFirst.mockResolvedValue({ id: 'existing' })
+    taskFindFirst.mockResolvedValue(row({ id: 'existing' }))
 
     expect(await createVerifyEmailTask('u-single')).toEqual({
       created: false,

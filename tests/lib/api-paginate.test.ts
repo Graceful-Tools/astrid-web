@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { fetchAllPages } from '@/lib/api-paginate'
 
 const page = (items: unknown[], total: number, offset: number, limit: number) => ({
@@ -47,7 +48,7 @@ describe('fetchAllPages (task 641a7615)', () => {
       fetchImpl: fetchImpl as never,
     })
 
-    expect(result.items.map((t: never) => (t as { id: string }).id)).toEqual(['t1', 't2', 't3', 't4'])
+    expect((result.items as { id: string }[]).map(t => t.id)).toEqual(['t1', 't2', 't3', 't4'])
   })
 
   it('stops after a single request when everything fits', async () => {
@@ -77,9 +78,9 @@ describe('fetchAllPages (task 641a7615)', () => {
   it('stops when the meta envelope is missing entirely', async () => {
     // A legacy-shaped response has no `meta`. One page and out, rather than
     // paging blindly against an endpoint that does not paginate.
-    const fetchImpl = vi.fn().mockResolvedValueOnce({
+    const fetchImpl = vi.fn().mockResolvedValueOnce(row({
       ok: true, status: 200, json: async () => ({ tasks: [task(1)] }),
-    })
+    }))
 
     const result = await fetchAllPages('/api/v1/tasks', 'tasks', { fetchImpl: fetchImpl as never })
 
@@ -115,7 +116,7 @@ describe('fetchAllPages (task 641a7615)', () => {
   it('surfaces a failed page instead of returning a partial list as complete', async () => {
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(page([task(1)], 10, 0, 1))
-      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
+      .mockResolvedValueOnce(row({ ok: false, status: 500, json: async () => ({}) }))
 
     await expect(
       fetchAllPages('/api/v1/tasks', 'tasks', { pageSize: 1, fetchImpl: fetchImpl as never }),

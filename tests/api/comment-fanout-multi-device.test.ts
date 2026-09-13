@@ -19,6 +19,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -105,7 +106,7 @@ const createdComment = (over: Record<string, unknown> = {}) => ({
 })
 
 const postRequest = (body: Record<string, unknown>) =>
-  new Request('http://localhost:3000/api/v1/tasks/task-1/comments', {
+  new NextRequest('http://localhost:3000/api/v1/tasks/task-1/comments', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -199,7 +200,7 @@ describe('DELETE /api/v1/comments/:id keeps the deleter in the SSE audience (tas
     // until a refresh — the "comments get deleted with repeat refreshing" half
     // of the report, seen from the other end.
     await DELETE(
-      new Request('http://localhost:3000/api/v1/comments/comment-1', { method: 'DELETE' }) as never,
+      new NextRequest('http://localhost:3000/api/v1/comments/comment-1', { method: 'DELETE' }) as never,
       { params: Promise.resolve({ id: 'comment-1' }) } as never
     )
 
@@ -212,7 +213,7 @@ describe('DELETE /api/v1/comments/:id keeps the deleter in the SSE audience (tas
 
   it('names the actor in the payload, like comment_updated does', async () => {
     await DELETE(
-      new Request('http://localhost:3000/api/v1/comments/comment-1', { method: 'DELETE' }) as never,
+      new NextRequest('http://localhost:3000/api/v1/comments/comment-1', { method: 'DELETE' }) as never,
       { params: Promise.resolve({ id: 'comment-1' }) } as never
     )
 

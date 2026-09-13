@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { buildTask, buildUser } from '../fixtures/domain'
+import { row } from '../fixtures/prisma-rows'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskDetail } from '@/components/task-detail'
@@ -25,10 +28,10 @@ import type { Task, User, TaskList } from '@/types/task'
 // Mock fetch for upload tests
 // Default implementation returns empty JSON for any unhandled requests
 // (e.g., /api/user/ai-assistant-settings called by CommentSection useEffect)
-const mockFetch = vi.fn().mockResolvedValue({
+const mockFetch = vi.fn().mockResolvedValue(row({
   ok: true,
   json: () => Promise.resolve({})
-})
+}))
 global.fetch = mockFetch
 
 // Mock layout detection
@@ -81,17 +84,15 @@ vi.mock('@/lib/reminder-manager', () => ({
 }))
 
 // Create test data
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-1',
   name: 'Test User',
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-  updatedAt: new Date(),
-  emailVerified: null
-}
+})
 
-const mockList: TaskList = {
+const mockList: TaskList = buildTaskList({
   id: 'list-1',
   name: 'Test List',
   color: '#3b82f6',
@@ -102,18 +103,16 @@ const mockList: TaskList = {
   listMembers: [],
   createdAt: new Date(),
   updatedAt: new Date()
-}
+})
 
-const mockTask: Task = {
+const mockTask: Task = buildTask({
   id: 'task-1',
   title: 'Test Task',
   description: 'Test description',
   completed: false,
   priority: 1,
-  when: null,
   dueDateTime: null,
   repeating: 'never',
-  repeatingData: null,
   creatorId: 'user-1',
   assigneeId: null,
   assignee: null,
@@ -123,7 +122,7 @@ const mockTask: Task = {
   lists: [mockList],
   comments: [],
   attachments: []
-}
+})
 
 const mockProps = {
   task: mockTask,

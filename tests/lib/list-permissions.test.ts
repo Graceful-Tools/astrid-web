@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { buildUser } from '../fixtures/domain'
 import {
   getUserRoleInList,
   canUserEditTasks,
@@ -15,23 +16,23 @@ import { isListAdminOrOwner, hasListAccess, isListOwner } from '@/lib/list-membe
 import type { TaskList, User } from '@/types/task'
 
 describe('List Permissions - getUserRoleInList', () => {
-  const mockUser: User = {
+  const mockUser: User = buildUser({
     id: 'user-1',
     email: 'test@example.com',
     name: 'Test User',
-  }
+  })
 
-  const mockOtherUser: User = {
+  const mockOtherUser: User = buildUser({
     id: 'user-2',
     email: 'other@example.com',
     name: 'Other User',
-  }
+  })
 
-  const mockAdminUser: User = {
+  const mockAdminUser: User = buildUser({
     id: 'user-admin',
     email: 'admin@example.com',
     name: 'Admin User',
-  }
+  })
 
   describe('Owner role', () => {
     it('should return owner for list owner', () => {
@@ -232,17 +233,17 @@ describe('List Permissions - getUserRoleInList', () => {
 })
 
 describe('List Permissions - Permission Functions', () => {
-  const mockUser: User = {
+  const mockUser: User = buildUser({
     id: 'user-1',
     email: 'test@example.com',
     name: 'Test User',
-  }
+  })
 
-  const mockAdminUserViaNewSystem: User = {
+  const mockAdminUserViaNewSystem: User = buildUser({
     id: 'admin-1',
     email: 'admin@example.com',
     name: 'Admin User',
-  }
+  })
 
   describe('canUserManageList', () => {
     it('should allow owner to manage list', () => {
@@ -283,11 +284,11 @@ describe('List Permissions - Permission Functions', () => {
     })
 
     it('should NOT allow regular member to manage list', () => {
-      const memberUser: User = {
+      const memberUser: User = buildUser({
         id: 'member-1',
         email: 'member@example.com',
         name: 'Member User',
-      }
+      })
 
       const list: TaskList = {
         id: 'list-1',

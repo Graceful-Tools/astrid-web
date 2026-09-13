@@ -65,7 +65,6 @@ function makeProps(overrides: Partial<TaskRowProps> = {}): TaskRowProps {
     isMobile: false,
     isTouchManualSort: false,
     dragCapability: { touchDrag: touchOnly, html5Drag: !touchOnly },
-    getPriorityColor: () => 'gray',
     draggingTaskMetrics: null,
     registerTaskRow: () => () => {},
     taskMeasurementsRef: { current: new Map() },

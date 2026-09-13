@@ -22,7 +22,7 @@
  * So this now locks the REST contract instead: the Copilot base URL, the
  * integration headers Copilot requires, and per-user token auth.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
 
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
 import { dispatchToolCall, type ProviderCallers } from '@/lib/astrid-agent/dispatch-ai-service'
@@ -73,7 +73,7 @@ describe('GitHub Copilot end-to-end routing (task eed98c5f)', () => {
   })
 
   describe('provider: Copilot REST API', () => {
-    let fetchSpy: ReturnType<typeof vi.fn>
+    let fetchSpy: Mock
 
     beforeEach(() => {
       fetchSpy = vi.fn().mockResolvedValue(completion('Hello from Copilot'))

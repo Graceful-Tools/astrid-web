@@ -28,7 +28,7 @@ vi.mock('@/lib/prisma', () => ({
 import { dismissReminder } from '@/lib/reminder-dismiss'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 
 const REMINDER = { id: 'rem-1', userId: 'owner-1', taskId: 'task-1' }
 

@@ -25,7 +25,7 @@ import { GET, POST } from '@/app/api/settings/reminders/unsubscribe/route'
 import { prisma } from '@/lib/prisma'
 import { createUnsubscribeToken } from '@/lib/unsubscribe-token'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const ORIGINAL = process.env.NEXTAUTH_SECRET
 const USER = 'user-1'
 

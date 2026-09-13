@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rowWith } from '../fixtures/prisma-rows'
+import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/lists/[id]/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock NextRequest
 const createMockRequest = (listId: string) => {
-  const request = {
-    url: `http://localhost:3000/api/lists/${listId}`,
-  } as any as Request
+  const request = new NextRequest(`http://localhost:3000/api/lists/${listId}`)
   return request
 }
 
@@ -42,12 +42,12 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -66,12 +66,12 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     const listId = 'non-existent-list'
     
     mockPrisma.taskList.findUnique.mockResolvedValue(null)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(404)
@@ -97,12 +97,12 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(403)
@@ -128,12 +128,12 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -168,12 +168,12 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -208,12 +208,12 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -226,7 +226,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const request = createMockRequest(listId)
-    const response = await GET(request, { params: { id: listId } })
+    const response = await GET(request, { params: Promise.resolve({ id: listId }) })
     const data = await response.json()
 
     expect(response.status).toBe(401)

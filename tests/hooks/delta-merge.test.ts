@@ -12,9 +12,23 @@
  * optimistic (temp-) rows and locally-loaded comments.
  */
 import { describe, it, expect } from 'vitest'
+import type { Comment, Task } from '@/types/task'
+import { buildComment, buildTask } from '../fixtures/domain'
 import { mergeTasks, mergeLists } from '@/hooks/task-manager/merge-tasks'
 
-const t = (id: string, extra: Record<string, unknown> = {}) => ({ id, title: id, ...extra }) as never
+// A real Task, not `{ id, title } as never`. The cast made mergeLists's `T`
+// infer as `never`, so every `.id` read off a result was an error, and
+// mergeTasks wants Task[] outright. (AWTD-916)
+const t = (id: string, extra: Partial<Task> = {}) => {
+  const task = buildTask({ id, title: id, ...extra })
+  // These tests turn on the difference between "the delta omitted comments"
+  // and "the server sent an empty list", so the key must be ABSENT unless the
+  // caller asked for it — which is exactly what a delta payload looks like.
+  if (!('comments' in extra)) {
+    delete (task as { comments?: Comment[] }).comments
+  }
+  return task
+}
 
 describe('full reconcile', () => {
   it('replaces state — a task the server omitted is gone', () => {
@@ -62,7 +76,7 @@ describe('delta reconcile', () => {
   it('keeps locally loaded comments when the delta omits them', () => {
     // Comments are fetched on demand in the detail view; a list-level sync must
     // not wipe them.
-    const prev = [t('a', { comments: [{ id: 'c1' }] })]
+    const prev = [t('a', { comments: [buildComment({ id: 'c1' })] })]
 
     const merged = mergeTasks(prev, [t('a')], { isDelta: true, deletedIds: [] })
 
@@ -70,7 +84,7 @@ describe('delta reconcile', () => {
   })
 
   it('lets the server drop comments when it actually sends them', () => {
-    const prev = [t('a', { comments: [{ id: 'c1' }] })]
+    const prev = [t('a', { comments: [buildComment({ id: 'c1' })] })]
 
     const merged = mergeTasks(prev, [t('a', { comments: [] })], { isDelta: true, deletedIds: [] })
 

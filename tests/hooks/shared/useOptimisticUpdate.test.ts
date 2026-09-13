@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useOptimisticUpdate } from '@/hooks/shared/useOptimisticUpdate'
 
@@ -9,10 +9,10 @@ interface TestData {
 
 describe('useOptimisticUpdate', () => {
   let mockData: TestData
-  let mockSetData: ReturnType<typeof vi.fn>
-  let mockUpdateFn: ReturnType<typeof vi.fn>
-  let mockOnSuccess: ReturnType<typeof vi.fn>
-  let mockOnError: ReturnType<typeof vi.fn>
+  let mockSetData: Mock
+  let mockUpdateFn: Mock
+  let mockOnSuccess: Mock
+  let mockOnError: Mock
 
   beforeEach(() => {
     mockData = { id: '1', value: 'original' }

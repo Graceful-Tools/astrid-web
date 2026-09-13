@@ -29,7 +29,7 @@ import { getGitHubStatus } from '@/lib/github-status'
 import { prisma } from '@/lib/prisma'
 import { hasCopilotCredential } from '@/lib/copilot/oauth'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockCopilot = vi.mocked(hasCopilotCredential)
 
 beforeEach(() => {

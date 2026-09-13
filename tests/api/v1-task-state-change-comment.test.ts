@@ -18,7 +18,7 @@
  * without a refetch; v1 must do the same or the comment appears only on the
  * next load.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -125,9 +125,9 @@ beforeEach(() => {
   mockAuth.mockResolvedValue(auth as never)
   vi.mocked(requireScopes).mockReturnValue(undefined as never)
   vi.mocked(requireTaskAccess).mockResolvedValue(undefined as never)
-  ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>)
+  ;(mockPrisma.task.findUnique as never as Mock)
     .mockResolvedValue(EXISTING as never)
-  ;(mockPrisma.task.update as never as ReturnType<typeof vi.fn>)
+  ;(mockPrisma.task.update as never as Mock)
     .mockResolvedValue({ ...EXISTING, completed: true, comments: [] } as never)
   mockRecordComment.mockResolvedValue(null as never)
 })
@@ -148,8 +148,8 @@ describe('PUT /api/v1/tasks/[id] — state-change comment (task efecc4b8)', () =
 
     vi.clearAllMocks()
     mockAuth.mockResolvedValue({ ...auth, user: { ...auth.user, name: null } } as never)
-    ;(mockPrisma.task.findUnique as never as ReturnType<typeof vi.fn>).mockResolvedValue(EXISTING as never)
-    ;(mockPrisma.task.update as never as ReturnType<typeof vi.fn>)
+    ;(mockPrisma.task.findUnique as never as Mock).mockResolvedValue(EXISTING as never)
+    ;(mockPrisma.task.update as never as Mock)
       .mockResolvedValue({ ...EXISTING, completed: true, comments: [] } as never)
     mockRecordComment.mockResolvedValue(null as never)
 
@@ -160,7 +160,7 @@ describe('PUT /api/v1/tasks/[id] — state-change comment (task efecc4b8)', () =
   it('prepends the new comment to the response so the client shows it without a refetch', async () => {
     const comment = { id: 'c-new', content: 'Jon marked this as complete', systemEventType: 'COMPLETED' }
     mockRecordComment.mockResolvedValue(comment as never)
-    ;(mockPrisma.task.update as never as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(mockPrisma.task.update as never as Mock).mockResolvedValue({
       ...EXISTING, completed: true, comments: [{ id: 'c-old' }],
     } as never)
 

@@ -29,7 +29,7 @@ afterEach(() => {
 
 /** Token exchange first, then the actual call — this returns both. */
 function mockFetch() {
-  const fetchMock = vi.fn(async (url: string) => {
+  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
     if (String(url).includes('/oauth/token')) {
       return {
         ok: true,

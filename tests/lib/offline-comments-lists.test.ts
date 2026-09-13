@@ -197,10 +197,10 @@ describe('Offline Comments and Lists', () => {
         favoriteOrder: null,
         listMembers: [],
         defaultAssigneeId: null,
-        defaultPriority: 0,
+        defaultPriority: 0 as const,
         defaultRepeating: 'never' as any,
         defaultIsPrivate: true,
-        defaultDueDate: 'none'
+        defaultDueDate: 'none' as const
       }
 
       await OfflineListOperations.saveList(tempList)

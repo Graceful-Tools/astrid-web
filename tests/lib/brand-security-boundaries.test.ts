@@ -10,6 +10,15 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// NODE_ENV is declared readonly by Next's env types. These suites set it on
+// purpose and restore the whole `process.env` object around each test, so the
+// write is scoped — it just needs to get past the readonly declaration.
+// (AWTD-916)
+function setNodeEnv(value: string) {
+  ;(process.env as Record<string, string | undefined>).NODE_ENV = value
+}
+
+
 describe('auth-host redirect boundary (task 97208a72)', () => {
   it('accepts the brand domain and its subdomains', async () => {
     const { isAstridSubdomainUrl } = await import('@/lib/auth-host')
@@ -82,7 +91,7 @@ describe('WebAuthn relying party (task 97208a72)', () => {
   })
 
   it('treats only real subdomains of the brand domain as expected origins', async () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     const { getExpectedOrigins } = await import('@/lib/webauthn')
 
     expect(getExpectedOrigins('https://preview.astrid.cc')).toContain('https://preview.astrid.cc')

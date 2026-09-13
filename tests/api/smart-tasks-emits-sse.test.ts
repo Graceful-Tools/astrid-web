@@ -24,6 +24,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+import { row } from '../fixtures/prisma-rows'
 
 const broadcastToUsers = vi.fn()
 const userUpdate = vi.fn()
@@ -41,11 +43,11 @@ vi.mock('@/lib/api-auth-wrapper', () => ({
 }))
 
 const patch = (body: Record<string, unknown>) =>
-  ({ json: async () => body }) as unknown as Request
+  ({ json: async () => body }) as unknown as NextRequest
 
 beforeEach(() => {
   vi.clearAllMocks()
-  userUpdate.mockResolvedValue({ subtaskDisplay: 'indented', taskDisplayMode: 'list' })
+  userUpdate.mockResolvedValue(row({ subtaskDisplay: 'indented', taskDisplayMode: 'list' }))
 })
 
 describe('PATCH smart-tasks notifies the user (task 9523d634)', () => {
@@ -62,7 +64,7 @@ describe('PATCH smart-tasks notifies the user (task 9523d634)', () => {
   })
 
   it('sends the saved values, so a listener can apply them without refetching', async () => {
-    userUpdate.mockResolvedValue({ subtaskDisplay: 'under_parent', taskDisplayMode: 'project' })
+    userUpdate.mockResolvedValue(row({ subtaskDisplay: 'under_parent', taskDisplayMode: 'project' }))
     const { PATCH } = await import('@/app/api/v1/users/me/smart-tasks/route')
     await PATCH(patch({ subtaskDisplay: 'under_parent' }))
 

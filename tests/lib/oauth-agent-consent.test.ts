@@ -7,10 +7,15 @@
  * grant for any identity other than the one that client resolves to.
  */
 import { describe, expect, it, vi } from 'vitest'
+import type {
+  AuthorizationClient,
+  AuthorizationContext,
+} from '@/lib/oauth/oauth-authorization'
+import { row } from '../fixtures/prisma-rows'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    oAuthAuthorizationCode: { create: vi.fn().mockResolvedValue({ id: 'code-row' }) },
+    oAuthAuthorizationCode: { create: vi.fn().mockResolvedValue(row({ id: 'code-row' })) },
   },
 }))
 
@@ -21,7 +26,7 @@ import {
 } from '@/lib/oauth/agent-consent'
 import { createAuthorizationRedirect } from '@/lib/oauth/oauth-authorization'
 
-function publicClient(name: string) {
+function publicClient(name: string): AuthorizationClient {
   return {
     id: 'db-client',
     clientId: 'astrid_client_dynamic',
@@ -29,17 +34,17 @@ function publicClient(name: string) {
     description: null,
     redirectUris: ['http://127.0.0.1:51000/callback'],
     grantTypes: ['authorization_code', 'refresh_token'],
-    scopes: ['tasks:read'] as const,
+    scopes: ['tasks:read'],
     tokenEndpointAuthMethod: 'none',
     owner: null,
   }
 }
 
-function contextFor(name: string) {
+function contextFor(name: string): AuthorizationContext {
   return {
     client: publicClient(name),
     redirectUri: 'http://127.0.0.1:51000/callback',
-    scopes: ['tasks:read'] as const,
+    scopes: ['tasks:read'],
     codeChallenge: 'ImpiCd8pp4MveCNnbIS7-GXEtB0xF5HMIDoWqvGA5ig',
     codeChallengeMethod: 'S256' as const,
   }

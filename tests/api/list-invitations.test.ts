@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/lists/[id]/invite/route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -97,7 +98,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockResolvedValue(undefined)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,7 +108,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -167,7 +168,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockResolvedValue(undefined)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -176,7 +177,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -222,7 +223,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(listWithMembers as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(existingMember as any)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -231,7 +232,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(400)
@@ -251,7 +252,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(existingInvitation as any)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -260,7 +261,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(400)
@@ -270,7 +271,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should require valid email format', async () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(mockList as any)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -279,7 +280,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(400)
@@ -289,7 +290,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should require valid role', async () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(mockList as any)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -298,7 +299,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(400)
@@ -308,7 +309,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should return 404 for non-existent list', async () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(null)
 
-      const request = new Request('http://localhost:3000/api/lists/nonexistent/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/nonexistent/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -317,7 +318,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'nonexistent' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'nonexistent' }) })
       const data = await response.json()
 
       expect(response.status).toBe(404)
@@ -327,7 +328,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should require authentication', async () => {
       vi.mocked(getServerSession).mockResolvedValue(null)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -336,7 +337,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(401)
@@ -347,7 +348,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(mockList as any)
       vi.mocked(canUserManageMembers).mockReturnValue(false)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -356,7 +357,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(403)
@@ -368,7 +369,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(canUserManageMembers).mockReturnValue(true)
       vi.mocked(canAssignRole).mockReturnValue(false)
 
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -377,7 +378,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(403)
@@ -404,7 +405,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockRejectedValue(new Error('Email service down'))
-      const request = new Request('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -413,7 +414,7 @@ describe('/api/lists/[id]/invite', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'list-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'list-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)

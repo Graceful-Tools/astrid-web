@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { emailToTaskService, type ParsedEmail } from '@/lib/email-to-task-service'
 import { prisma } from '@/lib/prisma'
 import { placeholderUserService } from '@/lib/placeholder-user-service'
@@ -103,10 +104,10 @@ describe('EmailToTaskService', () => {
         body: 'Test',
       }
 
-      vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue({
+      vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(row({
         id: 'user-1',
         emailToTaskEnabled: false,
-      } as any)
+      }))
 
       const result = await emailToTaskService.processEmail(email)
 
@@ -136,7 +137,7 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockResolvedValue({ id: 'task-1', title: 'Original Task' } as any)
+      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1', title: 'Original Task' }))
 
       await emailToTaskService.processEmail(email)
 
@@ -176,7 +177,7 @@ describe('EmailToTaskService', () => {
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
       vi.mocked(placeholderUserService.findOrCreatePlaceholderUser).mockResolvedValue(mockAssignee as any)
-      vi.mocked(prisma.task.create).mockResolvedValue({ id: 'task-1' } as any)
+      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
 
       const result = await emailToTaskService.processEmail(email)
 
@@ -230,7 +231,7 @@ describe('EmailToTaskService', () => {
       vi.mocked(placeholderUserService.findOrCreateMultiplePlaceholderUsers).mockResolvedValue(mockRecipients as any)
       vi.mocked(prisma.taskList.create).mockResolvedValue(mockList as any)
       vi.mocked(prisma.taskList.update).mockResolvedValue(mockList as any)
-      vi.mocked(prisma.task.create).mockResolvedValue({ id: 'task-1' } as any)
+      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
 
       const result = await emailToTaskService.processEmail(email)
 
@@ -295,9 +296,9 @@ describe('EmailToTaskService', () => {
         expect(emails).toEqual(['user1@example.com'])
         return [{ id: 'user-1', email: 'user1@example.com' }] as any
       })
-      vi.mocked(prisma.taskList.create).mockResolvedValue({ id: 'list-1' } as any)
-      vi.mocked(prisma.taskList.update).mockResolvedValue({ id: 'list-1' } as any)
-      vi.mocked(prisma.task.create).mockResolvedValue({ id: 'task-1' } as any)
+      vi.mocked(prisma.taskList.create).mockResolvedValue(row({ id: 'list-1' }))
+      vi.mocked(prisma.taskList.update).mockResolvedValue(row({ id: 'list-1' }))
+      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
 
       await emailToTaskService.processEmail(email)
 
@@ -337,9 +338,9 @@ describe('EmailToTaskService', () => {
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
       vi.mocked(placeholderUserService.findOrCreateMultiplePlaceholderUsers).mockResolvedValue(mockRecipients as any)
-      vi.mocked(prisma.taskList.create).mockResolvedValue({ id: 'list-1' } as any)
-      vi.mocked(prisma.taskList.update).mockResolvedValue({ id: 'list-1' } as any)
-      vi.mocked(prisma.task.create).mockResolvedValue({ id: 'task-1' } as any)
+      vi.mocked(prisma.taskList.create).mockResolvedValue(row({ id: 'list-1' }))
+      vi.mocked(prisma.taskList.update).mockResolvedValue(row({ id: 'list-1' }))
+      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
 
       await emailToTaskService.processEmail(email)
 
@@ -379,21 +380,21 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockImplementation(async (args: any) => {
+      vi.mocked(prisma.task.create).mockImplementation((async (args: { data: Record<string, unknown> }) => {
         const dueDate = args.data.dueDateTime
         expect(dueDate).toBeTruthy()
 
         // Should be ~1 day from now at 9 AM
         const now = new Date()
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-        const dueDateObj = new Date(dueDate)
+        const dueDateObj = new Date(dueDate as string | number | Date)
 
         expect(dueDateObj.getHours()).toBe(9)
         expect(dueDateObj.getMinutes()).toBe(0)
         expect(dueDateObj.getDate()).toBe(tomorrow.getDate())
 
         return { id: 'task-1' } as any
-      })
+      }) as never)
 
       await emailToTaskService.processEmail(email)
     })
@@ -420,10 +421,10 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockImplementation(async (args: any) => {
+      vi.mocked(prisma.task.create).mockImplementation((async (args: { data: Record<string, unknown> }) => {
         expect(args.data.dueDateTime).toBeNull()
         return { id: 'task-1' } as any
-      })
+      }) as never)
 
       await emailToTaskService.processEmail(email)
     })

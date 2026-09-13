@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
+import { row } from '../fixtures/prisma-rows'
 import { render, screen } from '@testing-library/react'
 import { TaskManagerHeader } from '@/components/TaskManager/Header/TaskManagerHeader'
 import type { TaskList } from '@/types/task'
@@ -13,7 +15,7 @@ vi.mock('@/hooks/useMyTasksPreferences', () => ({
 
 // Set default mock return value
 beforeEach(() => {
-  mockUseMyTasksPreferences.mockReturnValue({
+  mockUseMyTasksPreferences.mockReturnValue(row({
     filters: {
       priority: [],
       assignee: [],
@@ -26,37 +28,27 @@ beforeEach(() => {
     hasActiveFilters: false,
     clearAllFilters: vi.fn(),
     isLoading: false
-  })
+  }))
 })
 
 describe('TaskManagerHeader - List Name Truncation', () => {
   const mockLists: TaskList[] = [
-    {
+    buildTaskList({
       id: 'short-list',
       name: 'Short',
       createdAt: new Date(),
       updatedAt: new Date(),
       ownerId: 'user1',
-      isPublic: false,
-      color: null,
-      listImageUrl: null,
-      backgroundImageUrl: null,
-      listImageStorageId: null,
-      backgroundImageStorageId: null,
-    },
-    {
+      imageUrl: null,
+    }),
+    buildTaskList({
       id: 'long-list',
       name: 'This is a very long list name that should definitely truncate with ellipsis instead of wrapping',
       createdAt: new Date(),
       updatedAt: new Date(),
       ownerId: 'user1',
-      isPublic: false,
-      color: null,
-      listImageUrl: null,
-      backgroundImageUrl: null,
-      listImageStorageId: null,
-      backgroundImageStorageId: null,
-    },
+      imageUrl: null,
+    }),
   ]
 
   // Mock session matching list owner for settings access
@@ -180,19 +172,14 @@ describe('TaskManagerHeader - List Name Truncation', () => {
 
   it('should handle empty list name gracefully', () => {
     const listsWithEmpty: TaskList[] = [
-      {
+      buildTaskList({
         id: 'empty-list',
         name: '',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'user1',
-        isPublic: false,
-        color: null,
-        listImageUrl: null,
-        backgroundImageUrl: null,
-        listImageStorageId: null,
-        backgroundImageStorageId: null,
-      },
+        imageUrl: null,
+      }),
     ]
 
     const { container } = render(<TaskManagerHeader {...defaultProps} lists={listsWithEmpty} selectedListId="empty-list" />)
@@ -363,7 +350,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   }
 
   it('should show "My Tasks" without filters when no filters are active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [],
         dueDate: 'all',
@@ -374,7 +361,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: false,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     render(<TaskManagerHeader {...defaultProps} />)
     const titleElement = screen.getByText('My Tasks')
@@ -382,7 +369,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should show "My Tasks - This Week" when date filter is active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [],
         dueDate: 'this_week',
@@ -393,7 +380,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     render(<TaskManagerHeader {...defaultProps} />)
     const titleElement = screen.getByText(/My Tasks - This Week/)
@@ -401,7 +388,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should show "My Tasks - !! Only" when priority filter is active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [2],
         dueDate: 'all',
@@ -412,7 +399,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
@@ -424,7 +411,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should show "My Tasks - Today !!! Only" when both filters are active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [3],
         dueDate: 'today',
@@ -435,7 +422,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
@@ -448,7 +435,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should apply priority colors to priority indicators', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [3],
         dueDate: 'all',
@@ -459,7 +446,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
@@ -473,7 +460,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should not show filter indicators for non-my-tasks lists', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [3],
         dueDate: 'today',
@@ -484,22 +471,17 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const listsWithRegular: TaskList[] = [
-      {
+      buildTaskList({
         id: 'regular-list',
         name: 'Regular List',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'user1',
-        isPublic: false,
-        color: null,
-        listImageUrl: null,
-        backgroundImageUrl: null,
-        listImageStorageId: null,
-        backgroundImageStorageId: null,
-      },
+        imageUrl: null,
+      }),
     ]
 
     render(<TaskManagerHeader {...defaultProps} lists={listsWithRegular} selectedListId="regular-list" />)

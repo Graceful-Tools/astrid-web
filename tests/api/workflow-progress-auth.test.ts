@@ -49,7 +49,7 @@ import { GET } from '@/app/api/coding-workflow/progress/[taskId]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI, ForbiddenError } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const ctx = { params: Promise.resolve({ taskId: 'task-1' }) }
 
 function req() {

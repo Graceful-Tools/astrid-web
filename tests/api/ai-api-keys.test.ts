@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rowWith } from '../fixtures/prisma-rows'
 import { GET, PUT, DELETE } from '@/app/api/user/ai-api-keys/route'
 import { POST } from '@/app/api/user/ai-api-keys/test/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -48,9 +49,9 @@ describe('AI API Keys API', () => {
     Object.values(mockPrisma.user).forEach((mock: any) => mock.mockReset())
 
     // Mock authenticated session
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
   })
 
   describe('GET /api/user/ai-api-keys', () => {
@@ -65,10 +66,10 @@ describe('AI API Keys API', () => {
     })
 
     it('should return empty keys for user with no mcpSettings', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: null
-      })
+      }))
 
       const response = await GET(createMockRequest())
       const data = await response.json()
@@ -78,10 +79,10 @@ describe('AI API Keys API', () => {
     })
 
     it('should return empty keys for user with empty apiKeys', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: JSON.stringify({ apiKeys: {} })
-      })
+      }))
 
       const response = await GET(createMockRequest())
       const data = await response.json()
@@ -114,11 +115,11 @@ describe('AI API Keys API', () => {
     })
 
     it('should save Claude API key', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: null
-      })
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+      }))
+      mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
       const request = createMockRequest({ serviceId: 'claude', apiKey: 'sk-ant-test123' })
       const response = await PUT(request)
@@ -135,11 +136,11 @@ describe('AI API Keys API', () => {
     })
 
     it('should save OpenAI API key', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: null
-      })
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+      }))
+      mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
       const request = createMockRequest({ serviceId: 'openai', apiKey: 'sk-test123' })
       const response = await PUT(request)
@@ -156,11 +157,11 @@ describe('AI API Keys API', () => {
     })
 
     it('should save Gemini API key', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: null
-      })
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+      }))
+      mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
       const request = createMockRequest({ serviceId: 'gemini', apiKey: 'AIzaTest123' })
       const response = await PUT(request)
@@ -200,11 +201,11 @@ describe('AI API Keys API', () => {
           claude: { encrypted: 'existing', iv: 'iv', isValid: true }
         }
       }
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: JSON.stringify(existingSettings)
-      })
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+      }))
+      mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
       const request = createMockRequest({ serviceId: 'openai', apiKey: 'sk-new' })
       const response = await PUT(request)
@@ -240,11 +241,11 @@ describe('AI API Keys API', () => {
           openai: { encrypted: 'test2', iv: 'iv2', isValid: true }
         }
       }
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: JSON.stringify(existingSettings)
-      })
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+      }))
+      mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
       const request = createMockRequest({ serviceId: 'claude' })
       const response = await DELETE(request)
@@ -266,11 +267,11 @@ describe('AI API Keys API', () => {
           gemini: { encrypted: 'test', iv: 'iv', isValid: true }
         }
       }
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: JSON.stringify(existingSettings)
-      })
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+      }))
+      mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
       const request = createMockRequest({ serviceId: 'gemini' })
       const response = await DELETE(request)
@@ -307,10 +308,10 @@ describe('AI API Keys API', () => {
     })
 
     it('should return 404 when no API key configured', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         ...mockUser,
         mcpSettings: JSON.stringify({ apiKeys: {} })
-      })
+      }))
 
       const request = createMockRequest({ serviceId: 'claude' })
       const response = await POST(request)
@@ -335,17 +336,17 @@ describe('AI API Keys API', () => {
 describe('AI API Keys - All Three Services', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
   })
 
   it('should support all three AI services: claude, openai, gemini', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({
+    mockPrisma.user.findUnique.mockResolvedValue(row({
       ...mockUser,
       mcpSettings: null
-    })
-    mockPrisma.user.update.mockResolvedValue({ ...mockUser })
+    }))
+    mockPrisma.user.update.mockResolvedValue(row({ ...mockUser }))
 
     // Test each service
     for (const serviceId of ['claude', 'openai', 'gemini']) {
@@ -366,10 +367,10 @@ describe('AI API Keys - All Three Services', () => {
         gemini: { encrypted: 'g1', iv: 'iv3', isValid: true }
       }
     }
-    mockPrisma.user.findUnique.mockResolvedValue({
+    mockPrisma.user.findUnique.mockResolvedValue(row({
       ...mockUser,
       mcpSettings: JSON.stringify(existingSettings)
-    })
+    }))
 
     const response = await GET(createMockRequest())
     const data = await response.json()

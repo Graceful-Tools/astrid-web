@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
+import { buildTask } from '../fixtures/domain'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from '@/hooks/useKeyboardShortcuts'
 
@@ -27,7 +28,11 @@ describe('useKeyboardShortcuts', () => {
       onEditTaskDescription: vi.fn(),
       onAddTaskComment: vi.fn(),
       onAssignToNoOne: vi.fn(),
-      onShowHotkeyMenu: vi.fn()
+      onShowHotkeyMenu: vi.fn(),
+      // Required by KeyboardShortcutHandlers and never supplied (AWTD-916).
+      onOutdentTask: vi.fn(),
+      onIndentTask: vi.fn(),
+      onShowCommandPalette: vi.fn()
     }
 
     addEventListenerSpy = vi.spyOn(document, 'addEventListener')
@@ -70,7 +75,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   describe('Keyboard Shortcuts', () => {
-    const mockTask = { id: 'task-1', title: 'Test Task' }
+    const mockTask = buildTask({ id: 'task-1', title: 'Test Task' })
 
     const simulateKeypress = (key: string, options: Partial<KeyboardEvent> = {}) => {
       const event = new KeyboardEvent('keydown', {

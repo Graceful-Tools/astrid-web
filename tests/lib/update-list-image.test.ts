@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 
 const mockPrisma = vi.hoisted(() => ({
   taskList: {
@@ -16,6 +17,11 @@ const mockPrisma = vi.hoisted(() => ({
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
 
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import type {
+  ListDeleteClient,
+  ListUpdateClient,
+} from '@/lib/images/update-list-image'
 import {
   createListWithImageOwnership,
   deleteListWithImageRelease,
@@ -27,20 +33,20 @@ import {
 describe('updateListWithImageOwnership', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockPrisma.taskList.update.mockResolvedValue({ id: 'list-1' })
-    mockPrisma.taskList.create.mockResolvedValue({ id: 'list-1' })
-    mockPrisma.taskList.findUnique.mockResolvedValue({ imageUrl: null })
-    mockPrisma.taskList.findMany.mockResolvedValue([])
-    mockPrisma.taskList.deleteMany.mockResolvedValue({ count: 0 })
+    mockPrisma.taskList.update.mockResolvedValue(row({ id: 'list-1' }))
+    mockPrisma.taskList.create.mockResolvedValue(row({ id: 'list-1' }))
+    mockPrisma.taskList.findUnique.mockResolvedValue(row({ imageUrl: null }))
+    mockPrisma.taskList.findMany.mockResolvedValue(rows([]))
+    mockPrisma.taskList.deleteMany.mockResolvedValue(row({ count: 0 }))
     mockPrisma.secureFile.findUnique.mockResolvedValue(null)
-    mockPrisma.secureFile.updateMany.mockResolvedValue({ count: 1 })
+    mockPrisma.secureFile.updateMany.mockResolvedValue(row({ count: 1 }))
     mockPrisma.$transaction.mockImplementation(
       (operation: (client: typeof mockPrisma) => unknown) => operation(mockPrisma),
     )
     update.mockClear()
   })
 
-  const update = vi.fn((client: typeof mockPrisma) =>
+  const update = vi.fn((client: ListUpdateClient) =>
     client.taskList.update({
       where: { id: 'list-1' },
       data: { imageUrl: 'https://blob/new' },
@@ -48,12 +54,12 @@ describe('updateListWithImageOwnership', () => {
   )
 
   it('claims a generated image before updating the list', async () => {
-    mockPrisma.secureFile.findUnique.mockResolvedValue({
+    mockPrisma.secureFile.findUnique.mockResolvedValue(row({
       id: 'file-1',
       uploadedBy: 'user-1',
       attachTarget: 'list-image',
       listId: null,
-    })
+    }))
 
     await updateListWithImageOwnership({
       listId: 'list-1',
@@ -74,17 +80,17 @@ describe('updateListWithImageOwnership', () => {
   it('claims a generated image in the list creation transaction', async () => {
     const imageUrl =
       'https://store.public.blob.vercel-storage.com/uploads/user-1/generated-123e4567-e89b-12d3-a456-426614174000.png'
-    mockPrisma.secureFile.findUnique.mockResolvedValue({
+    mockPrisma.secureFile.findUnique.mockResolvedValue(row({
       id: 'file-1',
       uploadedBy: 'user-1',
       attachTarget: 'list-image',
       listId: null,
-    })
+    }))
 
     await createListWithImageOwnership(
       imageUrl,
       'user-1',
-      client => client.taskList.create({ data: { name: 'List', ownerId: 'user-1' } }),
+      client => client.taskList.create({ data: { name: 'List', ownerId: 'user-1', color: DEFAULT_LIST_COLOR } }),
     )
 
     expect(mockPrisma.secureFile.updateMany).toHaveBeenCalledWith({
@@ -112,12 +118,12 @@ describe('updateListWithImageOwnership', () => {
   })
 
   it('rejects a generated image owned by another user or list', async () => {
-    mockPrisma.secureFile.findUnique.mockResolvedValue({
+    mockPrisma.secureFile.findUnique.mockResolvedValue(row({
       id: 'file-1',
       uploadedBy: 'other-user',
       attachTarget: 'list-image',
       listId: null,
-    })
+    }))
 
     await expect(
       updateListWithImageOwnership({
@@ -134,7 +140,7 @@ describe('updateListWithImageOwnership', () => {
   it('allows a copied list to retain its unchanged shared image', async () => {
     const sharedUrl =
       'https://store.public.blob.vercel-storage.com/uploads/source/generated-123e4567-e89b-12d3-a456-426614174000.png'
-    mockPrisma.taskList.findUnique.mockResolvedValue({ imageUrl: sharedUrl })
+    mockPrisma.taskList.findUnique.mockResolvedValue(row({ imageUrl: sharedUrl }))
 
     await updateListWithImageOwnership({
       listId: 'copy-list',
@@ -163,12 +169,12 @@ describe('updateListWithImageOwnership', () => {
   })
 
   it('keeps only the winning generated image claim', async () => {
-    mockPrisma.secureFile.findUnique.mockResolvedValue({
+    mockPrisma.secureFile.findUnique.mockResolvedValue(row({
       id: 'file-new',
       uploadedBy: 'user-1',
       attachTarget: 'list-image',
       listId: null,
-    })
+    }))
 
     await updateListWithImageOwnership({
       listId: 'list-1',
@@ -202,7 +208,7 @@ describe('updateListWithImageOwnership', () => {
   })
 
   it('releases generated images before deleting their list', async () => {
-    const remove = vi.fn((client: typeof mockPrisma) =>
+    const remove = vi.fn((client: ListDeleteClient) =>
       client.taskList.update({ where: { id: 'list-1' }, data: {} }),
     )
 
@@ -219,9 +225,9 @@ describe('updateListWithImageOwnership', () => {
   it('releases generated images before bulk list deletion', async () => {
     const where = { ownerId: 'user-1', isVirtual: true }
     mockPrisma.taskList.findMany
-      .mockResolvedValueOnce([{ id: 'list-1' }, { id: 'list-2' }])
-      .mockResolvedValueOnce([{ id: 'list-1' }, { id: 'list-2' }])
-    mockPrisma.taskList.deleteMany.mockResolvedValue({ count: 2 })
+      .mockResolvedValueOnce(rows([{ id: 'list-1' }, { id: 'list-2' }]))
+      .mockResolvedValueOnce(rows([{ id: 'list-1' }, { id: 'list-2' }]))
+    mockPrisma.taskList.deleteMany.mockResolvedValue(row({ count: 2 }))
 
     await deleteListsWithImageRelease(where)
 

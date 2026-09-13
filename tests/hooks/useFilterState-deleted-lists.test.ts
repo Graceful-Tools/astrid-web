@@ -1,76 +1,58 @@
 import { renderHook, act } from '@testing-library/react'
+import { buildTask, buildTaskList, buildUser } from '../fixtures/domain'
 import { useFilterState } from '@/hooks/useFilterState'
 import type { Task, TaskList } from '@/types/task'
 
 describe('useFilterState - Deleted List References', () => {
   const mockUserId = 'user-1'
 
+  // Rebuilt on the builder (AWTD-916). The literal it replaces carried four
+  // kinds of drift: `filterAssignee`/`filterPriority`/`filterInLists` are
+  // `string | null` and were given `[]`; `aiAgentsEnabled` is `string[] | null`
+  // and was given `false`; `mcpAccessLevel` and `defaultDueDate` are optional
+  // unions with no null member; and `aiAstridEnabled`, `aiAgentConfiguredBy`
+  // and `_count` are not fields of TaskList at all. Only `privacy` and `id`
+  // matter to applyFiltersToTasks, which is what these tests exercise.
   const mockLists: TaskList[] = [
-    {
+    buildTaskList({
       id: 'list-1',
       name: 'Active List',
       description: '',
       color: '#4f46e5',
       privacy: 'PRIVATE',
       ownerId: mockUserId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      imageUrl: null,
-      defaultAssigneeId: null,
+      owner: buildUser({ id: mockUserId, name: 'User', email: 'user@test.com' }),
       defaultPriority: 0,
       defaultRepeating: 'never',
       defaultIsPrivate: false,
-      defaultDueDate: null,
-      defaultDueTime: null,
       filterCompletion: 'default',
       filterDueDate: 'all',
-      filterAssignee: [],
+      filterAssignee: null,
       filterAssignedBy: null,
       filterRepeating: 'all',
-      filterPriority: [],
-      filterInLists: [],
+      filterPriority: null,
+      filterInLists: null,
       sortBy: 'auto',
-      virtualListType: null,
       isVirtual: false,
-      owner: { id: mockUserId, name: 'User', email: 'user@test.com' },
       admins: [],
       members: [],
       listMembers: [],
-      aiAstridEnabled: false,
       mcpEnabled: false,
-      mcpAccessLevel: null,
-      preferredAiProvider: null,
-      fallbackAiProvider: null,
-      githubRepositoryId: null,
-      aiAgentsEnabled: false,
-      aiAgentConfiguredBy: null,
-      _count: { tasks: 0 }
-    }
+      aiAgentsEnabled: null,
+    }),
   ]
 
-  const createMockTask = (overrides: Partial<Task> = {}): Task => ({
-    id: 'task-1',
-    title: 'Test Task',
-    description: '',
-    priority: 0,
-    completed: false,
-    creatorId: mockUserId,
-    assigneeId: null,
-    when: null,
-    dueDateTime: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    repeating: 'never',
-    repeatingData: null,
-    isPrivate: false,
-    aiAgentId: null,
-    creator: { id: mockUserId, name: 'User', email: 'user@test.com' },
-    assignee: null,
-    lists: [],
-    comments: [],
-    attachments: [],
-    ...overrides
-  })
+  const createMockTask = (overrides: Partial<Task> = {}): Task =>
+    buildTask({
+      id: 'task-1',
+      title: 'Test Task',
+      creatorId: mockUserId,
+      assigneeId: null,
+      dueDateTime: null,
+      creator: buildUser({ id: mockUserId, name: 'User', email: 'user@test.com' }),
+      assignee: null,
+      ...overrides,
+    })
 
   describe('Filtering tasks with deleted list references', () => {
     it('should handle tasks with null list references without crashing', () => {

@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
+import { buildUser } from '../fixtures/domain'
+import { buildTaskList } from '../fixtures/domain'
+import { buildTask } from '../fixtures/domain'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskDetail } from '@/components/task-detail'
@@ -24,22 +27,21 @@ vi.mock('@/lib/reminder-manager', () => ({
 }))
 
 describe('TaskDetail Optimistic Checkbox Update', () => {
-  const mockUser: User = {
+  const mockUser: User = buildUser({
     id: 'user-1',
     name: 'Test User',
     email: 'test@example.com',
-    avatarUrl: null
-  }
+  })
 
-  const mockList: TaskList = {
+  const mockList: TaskList = buildTaskList({
     id: 'list-1',
     name: 'Test List',
     color: '#3b82f6',
     privacy: 'PRIVATE',
     ownerId: 'user-1'
-  }
+  })
 
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: '',
@@ -50,15 +52,14 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     isAllDay: false,
     lists: [mockList],
     comments: [],
-    createdAt: new Date().toISOString(),
-    userId: 'user-1',
+    createdAt: new Date(),
     // Assigned to the viewer so the leading control is the checkbox these
     // tests are about. Leaving it unassigned renders the "U" mark instead
     // (task 2bb1b196) — a different control, exercised in its own test.
     assigneeId: 'user-1'
-  }
+  })
 
-  let onUpdateMock: ReturnType<typeof vi.fn>
+  let onUpdateMock: Mock
 
   beforeEach(() => {
     onUpdateMock = vi.fn()

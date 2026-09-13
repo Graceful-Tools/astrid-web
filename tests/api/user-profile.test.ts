@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { GET } from '@/app/api/users/[userId]/profile/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -40,10 +41,10 @@ describe('User Profile API', () => {
     vi.clearAllMocks()
 
     // Mock authenticated session (with id for authenticateAPI)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'current-user-id', email: 'current@example.com', name: 'Current User' },
       expires: new Date(Date.now() + 86400000).toISOString(),
-    })
+    }))
 
     // Mock current user lookup
     mockPrisma.user.findUnique.mockImplementation(({ where }: any) => {
@@ -60,7 +61,7 @@ describe('User Profile API', () => {
     })
 
     // Default mock for tasks
-    mockPrisma.task.findMany.mockResolvedValue([])
+    mockPrisma.task.findMany.mockResolvedValue(rows([]))
     mockPrisma.task.count.mockResolvedValue(0)
     mockPrisma.comment.count.mockResolvedValue(0)
   })
@@ -145,7 +146,7 @@ describe('User Profile API', () => {
         ],
       }
 
-      mockPrisma.task.findMany.mockResolvedValue([publicTask])
+      mockPrisma.task.findMany.mockResolvedValue(rows([publicTask]))
 
       const response = await GET(
         createMockRequest(),
@@ -198,7 +199,7 @@ describe('User Profile API', () => {
         ],
       }
 
-      mockPrisma.task.findMany.mockResolvedValue([publicTask])
+      mockPrisma.task.findMany.mockResolvedValue(rows([publicTask]))
 
       const response = await GET(
         createMockRequest(),
@@ -231,7 +232,7 @@ describe('User Profile API', () => {
     })
 
     it('should exclude tasks in SHARED lists from profile', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
 
       const response = await GET(
         createMockRequest(),
@@ -261,7 +262,7 @@ describe('User Profile API', () => {
     })
 
     it('should exclude tasks in PRIVATE lists from profile', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
 
       const response = await GET(
         createMockRequest(),
@@ -291,7 +292,7 @@ describe('User Profile API', () => {
     })
 
     it('should exclude tasks with isPrivate=true', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
 
       const response = await GET(
         createMockRequest(),
@@ -331,7 +332,7 @@ describe('User Profile API', () => {
         ],
       }
 
-      mockPrisma.task.findMany.mockResolvedValue([createdTask])
+      mockPrisma.task.findMany.mockResolvedValue(rows([createdTask]))
 
       const response = await GET(
         createMockRequest(),
@@ -378,7 +379,7 @@ describe('User Profile API', () => {
         ],
       }
 
-      mockPrisma.task.findMany.mockResolvedValue([assignedTask])
+      mockPrisma.task.findMany.mockResolvedValue(rows([assignedTask]))
 
       const response = await GET(
         createMockRequest(),
@@ -407,7 +408,7 @@ describe('User Profile API', () => {
 
   describe('User Statistics', () => {
     it('should return user statistics in response', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
       // Mock the count queries used by calculateUserStats (called via getUserStats with forceRefresh=true)
       mockPrisma.task.count
         .mockResolvedValueOnce(5) // completedTasks: tasks assigned to user and completed
@@ -428,7 +429,7 @@ describe('User Profile API', () => {
     })
 
     it('should include user profile information', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
 
       const response = await GET(
         createMockRequest(),
@@ -447,7 +448,7 @@ describe('User Profile API', () => {
     })
 
     it('should indicate when viewing own profile', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
 
       const response = await GET(
         createMockRequest(),
@@ -460,7 +461,7 @@ describe('User Profile API', () => {
     })
 
     it('should indicate when viewing another user profile', async () => {
-      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValue(rows([]))
 
       const response = await GET(
         createMockRequest(),
@@ -489,10 +490,10 @@ describe('User Profile API', () => {
 
     it('should handle current user not found', async () => {
       // Mock session to pass auth
-      mockGetServerSession.mockResolvedValue({
+      mockGetServerSession.mockResolvedValue(row({
         user: { id: 'current-user-id', email: 'current@example.com', name: 'Current User' },
         expires: new Date(Date.now() + 86400000).toISOString(),
-      })
+      }))
 
       // Sequence of user lookups:
       // 1st call: authenticateAPI looks up session user - return it

@@ -87,11 +87,20 @@ describe('v1 request contract — comments', () => {
 
   const UPDATE_KEYS = ['content'] as const satisfies ReadonlyArray<keyof V1CommentUpdateRequest>
 
-  it('allows an attachment-only comment', () => {
-    // `content` is optional on create precisely because a comment may be a
-    // file and nothing else; the route enforces "content OR fileId".
-    const attachmentOnly: V1CommentCreateRequest = { fileId: 'file-1' }
-    expect(attachmentOnly.content).toBeUndefined()
+  it('requires content even for an attachment, unlike its two siblings', () => {
+    // This test used to claim the opposite — that `content` is optional
+    // "because a comment may be a file and nothing else" — and construct
+    // `{ fileId: 'file-1' }` with no content. That is a request POST
+    // /api/v1/tasks/:id/comments REJECTS: it answers 400 "content must be a
+    // string" before the fileId branch is reached, which is exactly what
+    // V1CommentCreateRequest's own docstring says it typed `content` as
+    // required to describe. Nothing compiled this file, so the assertion sat
+    // here contradicting the contract it was written to pin. (AWTD-916)
+    //
+    // Legacy POST /api/tasks/:id/comments and the v1 chat message route DO
+    // accept an attachment-only body. This route does not.
+    const withAttachment: V1CommentCreateRequest = { content: 'see file', fileId: 'file-1' }
+    expect(withAttachment.content).toBe('see file')
     expect(CREATE_KEYS).toContain('fileId')
   })
 

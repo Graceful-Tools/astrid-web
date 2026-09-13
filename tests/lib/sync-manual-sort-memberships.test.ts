@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { rows } from '../fixtures/prisma-rows'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { prisma } from '@/lib/prisma'
 import { RedisCache } from '@/lib/redis'
@@ -28,16 +29,22 @@ vi.mock('@/lib/sse-utils', () => ({
 describe('syncManualSortMemberships', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(prisma.taskList.findMany).mockResolvedValue([
+    vi.mocked(prisma.taskList.findMany).mockResolvedValue(rows([
       { id: 'old-list', manualSortOrder: ['task-1', 'other'] },
       { id: 'new-list', manualSortOrder: ['other'] },
-    ] as never)
-    vi.mocked(prisma.taskList.update).mockImplementation(async ({ where, data }) => ({
+    ]))
+    vi.mocked(prisma.taskList.update).mockImplementation((async ({
+      where,
+      data,
+    }: {
+      where: { id: string }
+      data: Record<string, unknown>
+    }) => ({
       id: where.id,
       ownerId: 'owner-1',
       listMembers: [{ userId: 'member-1', role: 'member' }],
       ...data,
-    }) as never)
+    })) as never)
     vi.mocked(RedisCache.invalidate.userListsAllVersions).mockResolvedValue(undefined)
     vi.mocked(broadcastToUsers).mockResolvedValue(undefined)
   })

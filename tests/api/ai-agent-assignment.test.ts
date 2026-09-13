@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
+import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 import { BRAND } from '@/lib/brand/config'
@@ -10,12 +12,7 @@ const createMockRequest = (searchParams: Record<string, string> = {}, headers: R
     url.searchParams.set(key, value)
   })
 
-  const request = {
-    url: url.toString(),
-    headers: {
-      get: (name: string) => headers[name.toLowerCase()] || null
-    }
-  } as any as Request
+  const request = new NextRequest(url, { headers })
   return request
 }
 
@@ -68,7 +65,7 @@ describe('AI Agent Assignment Fix', () => {
     Object.values(mockPrisma.taskList).forEach((mock: any) => mock.mockReset())
 
     // Mock current user authentication
-    mockGetServerSession.mockResolvedValue({ user: mockUser })
+    mockGetServerSession.mockResolvedValue(row({ user: mockUser }))
 
     // Mock current user exists in database (for the findUnique call)
     mockPrisma.user.findUnique.mockResolvedValue(mockUser)
@@ -91,15 +88,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock no AI agents found (they're not list members)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no users are members)
-      .mockResolvedValueOnce([]) // For AI agents query (no AI agents are members)
+      .mockResolvedValueOnce(rows([])) // For list members query (no users are members)
+      .mockResolvedValueOnce(rows([])) // For AI agents query (no AI agents are members)
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -115,15 +112,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock only Claude agent found (it's a list member)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no regular users)
-      .mockResolvedValueOnce([claudeAgent]) // For AI agents query (Claude is a member)
+      .mockResolvedValueOnce(rows([])) // For list members query (no regular users)
+      .mockResolvedValueOnce(rows([claudeAgent])) // For AI agents query (Claude is a member)
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -142,15 +139,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock only OpenAI agent found (it's a list member)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no regular users)
-      .mockResolvedValueOnce([openaiAgent]) // For AI agents query (OpenAI is a member)
+      .mockResolvedValueOnce(rows([])) // For list members query (no regular users)
+      .mockResolvedValueOnce(rows([openaiAgent])) // For AI agents query (OpenAI is a member)
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -169,15 +166,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock both agents found (they're both list members)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no regular users)
-      .mockResolvedValueOnce([claudeAgent, openaiAgent]) // For AI agents query
+      .mockResolvedValueOnce(rows([])) // For list members query (no regular users)
+      .mockResolvedValueOnce(rows([claudeAgent, openaiAgent])) // For AI agents query
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -198,15 +195,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock only Claude agent found when searching for "claude"
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query with search (no regular users)
-      .mockResolvedValueOnce([claudeAgent]) // For AI agents query with search
+      .mockResolvedValueOnce(rows([])) // For list members query with search (no regular users)
+      .mockResolvedValueOnce(rows([claudeAgent])) // For AI agents query with search
 
     const request = createMockRequest({ taskId: testTaskId, q: 'claude' })
     const response = await GET(request)
@@ -224,8 +221,8 @@ describe('AI Agent Assignment Fix', () => {
 
     // Mock Claude agent found (it's a list member)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no regular users)
-      .mockResolvedValueOnce([claudeAgent]) // For AI agents query
+      .mockResolvedValueOnce(rows([])) // For list members query (no regular users)
+      .mockResolvedValueOnce(rows([claudeAgent])) // For AI agents query
 
     const request = createMockRequest({ listIds: testListId, q: '' })
     const response = await GET(request)
@@ -243,15 +240,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock only Gemini agent found (it's a list member)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no regular users)
-      .mockResolvedValueOnce([geminiAgent]) // For AI agents query
+      .mockResolvedValueOnce(rows([])) // For list members query (no regular users)
+      .mockResolvedValueOnce(rows([geminiAgent])) // For AI agents query
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -270,15 +267,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock all agents found (they're all list members)
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query (no regular users)
-      .mockResolvedValueOnce([claudeAgent, openaiAgent, geminiAgent]) // For AI agents query
+      .mockResolvedValueOnce(rows([])) // For list members query (no regular users)
+      .mockResolvedValueOnce(rows([claudeAgent, openaiAgent, geminiAgent])) // For AI agents query
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -300,15 +297,15 @@ describe('AI Agent Assignment Fix', () => {
     const testListId = 'test-list-id'
 
     // Mock the task query to return a task with list associations
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock only Gemini agent found when searching for "gemini"
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([]) // For list members query with search (no regular users)
-      .mockResolvedValueOnce([geminiAgent]) // For AI agents query with search
+      .mockResolvedValueOnce(rows([])) // For list members query with search (no regular users)
+      .mockResolvedValueOnce(rows([geminiAgent])) // For AI agents query with search
 
     const request = createMockRequest({ taskId: testTaskId, q: 'gemini' })
     const response = await GET(request)
@@ -357,7 +354,7 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
     Object.values(mockPrisma.taskList).forEach((mock: any) => mock.mockReset())
 
     // Mock current user authentication
-    mockGetServerSession.mockResolvedValue({ user: mockUser })
+    mockGetServerSession.mockResolvedValue(row({ user: mockUser }))
 
     // Mock current user exists in database
     mockPrisma.user.findUnique.mockResolvedValue(mockUser)
@@ -375,15 +372,15 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
     const testTaskId = 'test-task-id'
     const testListId = 'test-list-id'
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Mock regular users and AI agent together
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([regularUser1, regularUser2]) // Regular users
-      .mockResolvedValueOnce([claudeAgent]) // AI agent
+      .mockResolvedValueOnce(rows([regularUser1, regularUser2])) // Regular users
+      .mockResolvedValueOnce(rows([claudeAgent])) // AI agent
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -402,13 +399,13 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
     const testTaskId = 'task-no-lists'
 
     // Task exists but has no lists
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: []
-    })
+    }))
 
     // No users when no lists
-    mockPrisma.user.findMany.mockResolvedValue([])
+    mockPrisma.user.findMany.mockResolvedValue(rows([]))
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -424,7 +421,7 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
 
     // Task doesn't exist
     mockPrisma.task.findUnique.mockResolvedValue(null)
-    mockPrisma.user.findMany.mockResolvedValue([])
+    mockPrisma.user.findMany.mockResolvedValue(rows([]))
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -439,15 +436,15 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
     const testTaskId = 'test-task-id'
     const testListId = 'test-list-id'
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Only regular users in the list
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([regularUser1, regularUser2])
-      .mockResolvedValueOnce([]) // No AI agents
+      .mockResolvedValueOnce(rows([regularUser1, regularUser2]))
+      .mockResolvedValueOnce(rows([])) // No AI agents
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -464,14 +461,14 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
   it('should handle empty search query with multiple lists', async () => {
     const testTaskId = 'test-task-id'
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: 'list-1' }, { id: 'list-2' }, { id: 'list-3' }]
-    })
+    }))
 
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([regularUser1])
-      .mockResolvedValueOnce([claudeAgent, openaiAgent])
+      .mockResolvedValueOnce(rows([regularUser1]))
+      .mockResolvedValueOnce(rows([claudeAgent, openaiAgent]))
 
     const request = createMockRequest({ taskId: testTaskId, q: '' })
     const response = await GET(request)
@@ -490,15 +487,15 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
     const testTaskId = 'test-task-id'
     const testListId = 'test-list-id'
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Search for "agent" should match all AI agents
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([claudeAgent, openaiAgent, geminiAgent])
+      .mockResolvedValueOnce(rows([]))
+      .mockResolvedValueOnce(rows([claudeAgent, openaiAgent, geminiAgent]))
 
     const request = createMockRequest({ taskId: testTaskId, q: 'agent' })
     const response = await GET(request)
@@ -519,15 +516,15 @@ describe('AI Agent Assignment - Non-Coding Flows', () => {
     const testTaskId = 'test-task-id'
     const testListId = 'test-list-id'
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: testTaskId,
       lists: [{ id: testListId }]
-    })
+    }))
 
     // Search for "CLAUDE" (uppercase) should find claude agent
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([claudeAgent])
+      .mockResolvedValueOnce(rows([]))
+      .mockResolvedValueOnce(rows([claudeAgent]))
 
     const request = createMockRequest({ taskId: testTaskId, q: 'CLAUDE' })
     const response = await GET(request)

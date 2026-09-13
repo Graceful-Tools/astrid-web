@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { parseTaskInput } from '@/lib/task-manager-utils'
 import type { TaskList } from '@/types/task'
 
 describe('Repeating Pattern Parsing', () => {
   const mockLists: TaskList[] = [
-    {
+    buildTaskList({
       id: 'list-1',
       name: 'Shopping',
       ownerId: 'user-1',
@@ -13,7 +14,7 @@ describe('Repeating Pattern Parsing', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       isVirtual: false,
-    },
+    }),
   ]
 
   const mockSession = {

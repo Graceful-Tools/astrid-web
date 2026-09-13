@@ -33,7 +33,7 @@ import {
 } from '@/lib/mobile-mcp-token'
 import { prisma } from '@/lib/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const USER = 'user-1'
 
 function reqWithCookie(name?: string, value = 'session-abc') {

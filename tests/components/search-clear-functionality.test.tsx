@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TaskManagerHeader } from '@/components/TaskManager/Header/TaskManagerHeader'
 
@@ -13,7 +14,7 @@ vi.mock('@/hooks/useMyTasksPreferences', () => ({
 
 // Mock the task types
 const mockLists = [
-  { id: 'list-1', name: 'Test List', description: '', ownerId: 'user-1' }
+  buildTaskList({ id: 'list-1', name: 'Test List', description: '', ownerId: 'user-1' }),
 ]
 
 const mockProps = {

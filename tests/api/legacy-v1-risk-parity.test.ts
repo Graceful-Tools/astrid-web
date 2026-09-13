@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { buildAuthContext } from '@/tests/fixtures/auth'
 
@@ -18,7 +19,12 @@ vi.mock('@/lib/api-auth-middleware', async () => {
     authenticateAPI: vi.fn(async () =>
       buildAuthContext({
         userId: 'owner-1',
-        user: { id: 'owner-1', email: 'owner@example.test', name: 'Owner' },
+        user: {
+          id: 'owner-1',
+          email: 'owner@example.test',
+          name: 'Owner',
+          isAIAgent: false,
+        },
       })
     ),
     requireScopes: vi.fn(),
@@ -43,7 +49,7 @@ import {
 describe('legacy/v1 critical adapter behavior table', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    inviteToList.mockResolvedValue({
+    inviteToList.mockResolvedValue(row({
       ok: true,
       invitation: {
         id: 'invite-1',
@@ -52,7 +58,7 @@ describe('legacy/v1 critical adapter behavior table', () => {
         type: 'LIST_SHARING',
         createdAt: new Date('2026-01-01T00:00:00Z'),
       },
-    })
+    }))
   })
 
   it.each([

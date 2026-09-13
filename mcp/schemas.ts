@@ -113,4 +113,15 @@ module.exports = {
 // Force this file to be a module (not a script) so its top-level `const`s
 // don't collide with same-named consts in sibling mcp/*.ts files under the
 // project's CommonJS-style require/module.exports usage.
-export {}
+//
+// The names are listed rather than left as a bare `export {}` so a TypeScript
+// importer can see them: `module.exports` above is what mcp-server-v2.ts
+// require()s, and it tells the compiler nothing. The runtime shape is
+// unchanged — this clause adds no code. (AWTD-916)
+export {
+  RepeatingDataSchema,
+  CreateTaskSchema,
+  UpdateTaskSchema,
+  CreateCommentSchema,
+  CreateAttachmentSchema,
+}

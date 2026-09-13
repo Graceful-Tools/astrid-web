@@ -6,6 +6,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { BRAND } from '@/lib/brand/config'
 
+// NODE_ENV is declared readonly by Next's env types. This suite sets it on
+// purpose and restores the whole `process.env` object in afterEach, so the
+// write is scoped — but it still needs to get past the readonly declaration.
+// (AWTD-916)
+function setNodeEnv(value: string) {
+  ;(process.env as Record<string, string | undefined>).NODE_ENV = value
+}
+
 describe('base-url utilities', () => {
   const originalEnv = process.env
   const originalWindow = global.window
@@ -50,7 +58,7 @@ describe('base-url utilities', () => {
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
 
       const { getBaseUrl } = await import('@/lib/base-url')
       const url = getBaseUrl()
@@ -64,7 +72,7 @@ describe('base-url utilities', () => {
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
 
       const { getBaseUrl } = await import('@/lib/base-url')
       expect(getBaseUrl()).toBe(`https://${BRAND.domain}`)
@@ -74,7 +82,7 @@ describe('base-url utilities', () => {
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
-      process.env.NODE_ENV = 'development'
+      setNodeEnv('development')
 
       const { getBaseUrl } = await import('@/lib/base-url')
       const url = getBaseUrl()
@@ -85,27 +93,25 @@ describe('base-url utilities', () => {
 
     it('should use window.location on client side', async () => {
       // Mock window object
-      // @ts-ignore
       global.window = {
         location: {
           protocol: 'https:',
           host: 'example.com'
-        }
-      }
+        },
+      } as unknown as Window & typeof globalThis
 
       const { getBaseUrl } = await import('@/lib/base-url')
       expect(getBaseUrl()).toBe('https://example.com')
     })
 
     it('should detect HTTPS from window.location in production', async () => {
-      process.env.NODE_ENV = 'production'
-      // @ts-ignore
+      setNodeEnv('production')
       global.window = {
         location: {
           protocol: 'https:',
           host: `${BRAND.domain}`
-        }
-      }
+        },
+      } as unknown as Window & typeof globalThis
 
       const { getBaseUrl } = await import('@/lib/base-url')
       const url = getBaseUrl()
@@ -117,7 +123,7 @@ describe('base-url utilities', () => {
 
   describe('getTaskUrl', () => {
     it('should generate task URL with HTTPS in production', async () => {
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
       process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
 
       const { getTaskUrl } = await import('@/lib/base-url')
@@ -131,7 +137,7 @@ describe('base-url utilities', () => {
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
 
       const { getTaskUrl } = await import('@/lib/base-url')
       const taskUrl = getTaskUrl('task-123')
@@ -143,7 +149,7 @@ describe('base-url utilities', () => {
 
   describe('getAIAgentWebhookUrl', () => {
     it('should generate webhook URL with HTTPS in production', async () => {
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
       process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
 
       const { getAIAgentWebhookUrl } = await import('@/lib/base-url')
@@ -157,7 +163,7 @@ describe('base-url utilities', () => {
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
 
       const { getAIAgentWebhookUrl } = await import('@/lib/base-url')
       const webhookUrl = getAIAgentWebhookUrl()
@@ -169,27 +175,27 @@ describe('base-url utilities', () => {
 
   describe('isProduction', () => {
     it('should detect production from NODE_ENV', async () => {
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
       const { isProduction } = await import('@/lib/base-url')
       expect(isProduction()).toBe(true)
     })
 
     it(`should detect production from ${BRAND.domain} domain`, async () => {
-      process.env.NODE_ENV = 'development'
+      setNodeEnv('development')
       process.env.NEXTAUTH_URL = `https://${BRAND.domain}`
       const { isProduction } = await import('@/lib/base-url')
       expect(isProduction()).toBe(true)
     })
 
     it('should detect production from vercel.app domain', async () => {
-      process.env.NODE_ENV = 'development'
+      setNodeEnv('development')
       process.env.VERCEL_URL = 'my-app.vercel.app'
       const { isProduction } = await import('@/lib/base-url')
       expect(isProduction()).toBe(true)
     })
 
     it('should not detect production for localhost', async () => {
-      process.env.NODE_ENV = 'development'
+      setNodeEnv('development')
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
@@ -248,7 +254,7 @@ describe('base-url utilities', () => {
     })
 
     it('should use HTTPS in production environment', async () => {
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL
@@ -284,7 +290,7 @@ describe('base-url utilities', () => {
 
   describe('Mixed Content Prevention', () => {
     it('should prevent mixed content warnings by always using HTTPS in production', async () => {
-      process.env.NODE_ENV = 'production'
+      setNodeEnv('production')
       delete process.env.NEXTAUTH_URL
       delete process.env.NEXT_PUBLIC_BASE_URL
       delete process.env.VERCEL_URL

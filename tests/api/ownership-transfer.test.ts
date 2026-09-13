@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/lists/[id]/transfer-ownership/route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -75,16 +76,16 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
         findFirst: vi.fn().mockResolvedValue(mockOldOwnerMembership),
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback) => {
+    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
       return callback(mockTx)
-    })
+    }) as never)
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -131,16 +132,16 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
         findFirst: vi.fn().mockResolvedValue(null), // No old owner membership found
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback) => {
+    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
       return callback(mockTx)
-    })
+    }) as never)
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -156,12 +157,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
   it('returns 401 for unauthenticated users', async () => {
     mockGetServerSession.mockResolvedValue(null)
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -171,12 +172,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
   })
 
   it('returns 400 when newOwnerId is missing', async () => {
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -188,12 +189,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
   it('returns 404 when list does not exist', async () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(null)
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -213,12 +214,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
     mockGetServerSession.mockResolvedValue(nonOwnerSession)
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -233,12 +234,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
     mockPrisma.listMember.findFirst.mockReset()
     mockPrisma.listMember.findFirst.mockResolvedValue(null) // New owner not found as member
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'non-member-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -254,12 +255,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
     mockPrisma.$transaction.mockReset()
     mockPrisma.$transaction.mockRejectedValue(new Error('Database error'))
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -291,16 +292,16 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
         findFirst: vi.fn().mockResolvedValue(mockOldOwnerMembership),
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback) => {
+    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
       return callback(mockTx)
-    })
+    }) as never)
 
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     const data = await response.json()
@@ -326,12 +327,12 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst.mockResolvedValue(selfTransferMember)
     
-    const request = new Request('http://localhost/api/lists/list-1/transfer-ownership', {
+    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newOwnerId: 'owner-id' }),
     })
-    const params = { id: 'list-1' }
+    const params = Promise.resolve({ id: 'list-1' })
 
     const response = await POST(request, { params })
     

@@ -37,7 +37,7 @@ import { GET, PUT } from '@/app/api/v1/users/me/settings/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, true)
 const mockAuthenticateAPI = vi.mocked(authenticateAPI)
 
 function makeReq(method: 'GET' | 'PUT', body?: unknown): NextRequest {
