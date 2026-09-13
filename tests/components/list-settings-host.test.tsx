@@ -55,7 +55,7 @@ function renderHost(overrides: Record<string, unknown> = {}) {
     onListDelete: vi.fn(),
     ...overrides,
   }
-  return render(<ListSettingsHost {...(props as never)} />)
+  return render(<ListSettingsHost {...(props as unknown as React.ComponentProps<typeof ListSettingsHost>)} />)
 }
 
 describe('ListSettingsHost (task ecf56cd3)', () => {

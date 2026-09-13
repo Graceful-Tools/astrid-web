@@ -53,7 +53,7 @@ describe('Public List Task Count Accuracy', () => {
         id: 'public-list-1',
         name: 'Public Development Tasks',
         description: 'A public list for development tasks',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'owner-1',
           name: 'John Doe',
@@ -63,13 +63,13 @@ describe('Public List Task Count Accuracy', () => {
           tasks: 3 // Should only count non-private tasks
         },
         copyCount: 5,
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: new Date('2025-01-01T00:00:00Z')
       },
       {
         id: 'public-list-2',
         name: 'Public Bug Reports',
         description: 'Public bug tracking list',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'owner-2',
           name: 'Jane Smith',
@@ -79,7 +79,7 @@ describe('Public List Task Count Accuracy', () => {
           tasks: 2 // Should only count non-private tasks
         },
         copyCount: 1,
-        createdAt: '2025-01-02T00:00:00Z'
+        createdAt: new Date('2025-01-02T00:00:00Z')
       }
     ]
 
@@ -113,7 +113,7 @@ describe('Public List Task Count Accuracy', () => {
         id: 'search-list-1',
         name: 'Development Tasks',
         description: 'Tasks for app development',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'dev-owner',
           name: 'Dev Team',
@@ -123,7 +123,7 @@ describe('Public List Task Count Accuracy', () => {
           tasks: 5 // Accurate count excluding private tasks
         },
         copyCount: 8,
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: new Date('2025-01-01T00:00:00Z')
       }
     ]
 
@@ -146,7 +146,7 @@ describe('Public List Task Count Accuracy', () => {
         id: 'recent-list-1',
         name: 'Recent Project',
         description: 'A recently created project',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'recent-owner',
           name: 'Project Manager',
@@ -156,7 +156,7 @@ describe('Public List Task Count Accuracy', () => {
           tasks: 7 // Should reflect accurate count
         },
         copyCount: 0,
-        createdAt: '2025-01-20T00:00:00Z'
+        createdAt: new Date('2025-01-20T00:00:00Z')
       }
     ]
 
@@ -220,7 +220,7 @@ describe('Sidebar List Count Integration', () => {
       {
         id: 'regular-list-1',
         name: 'My Regular List',
-        privacy: 'PRIVATE',
+        privacy: 'PRIVATE' as const,
         ownerId: 'test-user-123',
         _count: {
           tasks: 5 // 5 incomplete tasks (3 completed tasks should be excluded)
@@ -229,7 +229,7 @@ describe('Sidebar List Count Integration', () => {
       {
         id: 'shared-list-1',
         name: 'Shared Work List',
-        privacy: 'SHARED',
+        privacy: 'SHARED' as const,
         ownerId: 'other-user',
         _count: {
           tasks: 3 // 3 incomplete tasks (1 completed task should be excluded)
@@ -238,7 +238,7 @@ describe('Sidebar List Count Integration', () => {
       {
         id: 'public-list-1',
         name: 'Public Project',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         ownerId: 'other-user',
         _count: {
           tasks: 7 // 7 incomplete tasks (4 completed tasks should be excluded)
@@ -268,7 +268,7 @@ describe('Featured List Display Integration', () => {
         id: 'featured-list-1',
         name: 'Popular Project Management',
         description: 'Widely used project management templates',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'owner-1',
           name: 'Project Lead',
@@ -278,13 +278,13 @@ describe('Featured List Display Integration', () => {
           tasks: 15 // Actual task count from API
         },
         copyCount: 25,
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: new Date('2025-01-01T00:00:00Z')
       },
       {
         id: 'featured-list-2',
         name: 'Development Workflow',
         description: 'Standard development processes',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'owner-2',
           name: 'Tech Lead',
@@ -294,7 +294,7 @@ describe('Featured List Display Integration', () => {
           tasks: 8 // Actual task count from API
         },
         copyCount: 12,
-        createdAt: '2025-01-05T00:00:00Z'
+        createdAt: new Date('2025-01-05T00:00:00Z')
       }
     ]
 
@@ -385,7 +385,7 @@ describe('Task Count Utilities Integration', () => {
         id: 'public-list-incomplete',
         name: 'Public List with Mixed Tasks',
         description: 'Test list with completed and incomplete tasks',
-        privacy: 'PUBLIC',
+        privacy: 'PUBLIC' as const,
         owner: {
           id: 'owner-1',
           name: 'Test Owner',
@@ -395,7 +395,7 @@ describe('Task Count Utilities Integration', () => {
           tasks: 3 // Should only count incomplete tasks (not the 2 completed ones)
         },
         copyCount: 10,
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: new Date('2025-01-01T00:00:00Z')
       }
     ]
 

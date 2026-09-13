@@ -38,14 +38,27 @@ type Handler<TContext> = (
   context: TContext
 ) => Promise<NextResponse> | NextResponse
 
+/**
+ * The context argument is required only for a route that declares one — the
+ * same rule as withAuth in lib/api-auth-wrapper.ts, and for the same reason:
+ * with `TContext` at its `unknown` default there is nothing meaningful for a
+ * caller to pass, and the handler cannot read it without a cast. Required the
+ * moment a route names its params. (AWTD-916)
+ */
+type ContextArg<TContext> = unknown extends TContext
+  ? [context?: TContext]
+  : [context: TContext]
+
 export function withAgentAuth<TContext = unknown>(
   options: WithAgentAuthOptions,
   handler: Handler<TContext>
-): (req: NextRequest, context: TContext) => Promise<NextResponse> {
+): (req: NextRequest, ...args: ContextArg<TContext>) => Promise<NextResponse> {
   const log = createLogger(options.tag ?? 'agent.api')
   const requiredScopes = options.requiredScopes ?? ['tasks:read']
 
-  return async (req, context) => {
+  return async (req: NextRequest, ...args: ContextArg<TContext>) => {
+    const context = args[0] as TContext
+
     let auth: AuthContext
     try {
       auth = await authenticateAgentRequest(req, requiredScopes)

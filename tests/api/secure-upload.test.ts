@@ -15,7 +15,7 @@ vi.mock('@vercel/blob', () => ({
 
 // Mock crypto
 vi.mock('crypto', async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import('crypto')>()
   return {
     ...actual,
     randomUUID: vi.fn().mockReturnValue('test-file-id')

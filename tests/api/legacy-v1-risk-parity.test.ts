@@ -19,7 +19,12 @@ vi.mock('@/lib/api-auth-middleware', async () => {
     authenticateAPI: vi.fn(async () =>
       buildAuthContext({
         userId: 'owner-1',
-        user: { id: 'owner-1', email: 'owner@example.test', name: 'Owner' },
+        user: {
+          id: 'owner-1',
+          email: 'owner@example.test',
+          name: 'Owner',
+          isAIAgent: false,
+        },
       })
     ),
     requireScopes: vi.fn(),

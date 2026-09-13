@@ -67,7 +67,12 @@ const mockAuth = vi.mocked(authenticateAPI)
 
 const AUTH_CONTEXT = { userId: 'agent-1', scopes: ['tasks:read', 'tasks:write', 'comments:read', 'comments:write'] }
 
-function makeReq(url: string, opts?: RequestInit) {
+// NextRequest's constructor takes Next's own RequestInit, not the DOM one —
+// they differ on `signal` (nullable in the DOM type). Derive it rather than
+// guessing. (AWTD-916)
+type NextRequestInit = ConstructorParameters<typeof NextRequest>[1]
+
+function makeReq(url: string, opts?: NextRequestInit) {
   return new NextRequest(`http://localhost${url}`, opts)
 }
 

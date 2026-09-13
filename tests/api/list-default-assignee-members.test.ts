@@ -231,11 +231,11 @@ describe('List Default Assignee Member Management', () => {
       }
 
       // Mock empty members list - no members in this list
-      const mockListMembers = []
+      const mockListMembers: never[] = []
 
       vi.mocked(authModule.getServerSession).mockResolvedValue(mockSession)
       vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(rowWith(mockList))
-      vi.mocked(prismaModule.prisma.listMember.findMany).mockResolvedValue(mockListMembers)
+      vi.mocked(prismaModule.prisma.listMember.findMany).mockResolvedValue(rowsWith(mockListMembers))
       vi.mocked(prismaModule.prisma.listMember.findFirst).mockResolvedValue(null) // User not found in members
       vi.mocked(prismaModule.prisma.user.findUnique).mockResolvedValue(row({
         id: 'non-member-user',
