@@ -45,7 +45,7 @@ const ownedList: TaskList = buildTaskList({
 const mockTask: Task = buildTask({
   id: 'task-1',
   title: 'Test Task',
-  description: null,
+  description: '',
   completed: false,
   priority: 2,
   repeating: 'never',

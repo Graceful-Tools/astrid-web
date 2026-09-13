@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buildTask, buildTaskList } from '../../fixtures/domain'
+import { buildComment, buildTask, buildTaskList, buildUser } from '../../fixtures/domain'
 import { row } from '../../fixtures/prisma-rows'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskModals } from '@/components/task-detail/TaskModals'
@@ -16,13 +16,12 @@ describe('TaskModals', () => {
     repeating: 'never',
     lists: [],
     comments: [
-      { id: 'comment-1', content: 'Test comment', author: { id: '1', name: 'User 1', email: 'user1@test.com' }, createdAt: new Date(), updatedAt: new Date(), taskId: 'task-1' },
-      { id: 'comment-2', content: 'Test comment 2', author: { id: '2', name: 'User 2', email: 'user2@test.com' }, createdAt: new Date(), updatedAt: new Date(), taskId: 'task-1' }
+      buildComment({ id: 'comment-1', content: 'Test comment', author: buildUser({ id: '1', name: 'User 1', email: 'user1@test.com' }), taskId: 'task-1' }),
+      buildComment({ id: 'comment-2', content: 'Test comment 2', author: buildUser({ id: '2', name: 'User 2', email: 'user2@test.com' }), taskId: 'task-1' })
     ],
     isPrivate: false,
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: 'user-1'
   })
 
   const mockLists: TaskList[] = [
@@ -205,7 +204,7 @@ describe('TaskModals', () => {
     it('should show singular comment text for 1 comment', () => {
       const taskWithOneComment = {
         ...mockTask,
-        comments: [{ id: 'comment-1', content: 'Test comment', author: { id: '1', name: 'User 1', email: 'user1@test.com' }, createdAt: new Date(), updatedAt: new Date(), taskId: 'task-1' }]
+        comments: [buildComment({ id: 'comment-1', content: 'Test comment', author: buildUser({ id: '1', name: 'User 1', email: 'user1@test.com' }), taskId: 'task-1' })]
       }
       render(<TaskModals {...defaultProps} task={taskWithOneComment} showCopyConfirmation={true} />)
 

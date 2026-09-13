@@ -52,8 +52,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     isAllDay: false,
     lists: [mockList],
     comments: [],
-    createdAt: new Date().toISOString(),
-    userId: 'user-1',
+    createdAt: new Date(),
     // Assigned to the viewer so the leading control is the checkbox these
     // tests are about. Leaving it unassigned renders the "U" mark instead
     // (task 2bb1b196) — a different control, exercised in its own test.
