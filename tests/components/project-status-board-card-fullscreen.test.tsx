@@ -20,6 +20,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProjectStatusBoard } from '@/components/project-status-board'
@@ -60,25 +61,19 @@ const owner = {
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
 } as unknown as User
 
+// Rebuilt on tests/fixtures/domain (AWTD-916). The literal these replace
+// passed `id`/`name` through twice, carried fields the app-facing types do not
+// have, and was held together by `as unknown as` — which is what let all of
+// that through.
 function makeList(overrides: Partial<TaskList> & { id: string; name: string }): TaskList {
-  return {
-    id: overrides.id,
-    name: overrides.name,
-    privacy: 'PRIVATE',
-    owner,
-    ownerId: 'user-1',
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-    lists: [],
-    ...overrides,
-  } as unknown as TaskList
+  return buildTaskList({ owner, ownerId: owner.id, ...overrides })
 }
 
 const projectId = 'project-1'
 const domain = makeList({ id: 'domain', name: 'Astrid Web', projectId, listType: 'regular' })
 const status = makeList({
   id: 'ready', name: 'Ready', projectId,
-  listType: 'status', statusRole: 'ready', statusOrder: 0,
+  listType: 'status',
 })
 
 const task = {
@@ -111,7 +106,7 @@ function renderBoard() {
         currentUser={owner}
         onUpdateTask={() => {}}
         onDeleteTask={() => {}}
-        onCreateTask={async () => {}}
+        onCreateTask={async () => null}
       />
       </SettingsProvider>
     </ThemeProvider>,
