@@ -41,6 +41,7 @@ and stack versions with `npm run check:docs`.
 - **[Cloudflare Email Setup](./setup/CLOUDFLARE_EMAIL_SETUP.md)** - Complete Cloudflare email routing setup
 - **[Cloudflare Email Quickstart](./setup/CLOUDFLARE_EMAIL_QUICKSTART.md)** - Quick reference for Cloudflare email
 - **[Cloudflare + Resend Status](./setup/CLOUDFLARE_RESEND_STATUS.md)** - Current email system status and SPF configuration
+- **[Cloudflare Proxy](./setup/CLOUDFLARE_PROXY.md)** - Which hosts are proxied, why, the dashboard checklist, and how to roll back
 - **[Vercel Setup](./setup/VERCEL_SETUP.md)** - Deployment to Vercel
 - **[Deployment Guide](./setup/DEPLOYMENT_GUIDE.md)** - General deployment instructions
 
