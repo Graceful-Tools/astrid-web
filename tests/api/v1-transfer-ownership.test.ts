@@ -1,5 +1,6 @@
 /**
- * Task 359ca48f — `POST /api/v1/lists/:id/transfer-ownership`.
+ * `/api/v1/lists/:id/transfer-ownership` — the POST (task 359ca48f) and the
+ * successor picker GET (task f4b40af3).
  *
  * The route existed only on the legacy, unversioned path. The iOS and Mac apps
  * call `/api/v1/...` exclusively (ASTRID.md rule 5), so a list owner on Mac saw
@@ -16,7 +17,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const transferListOwnership = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/list-ownership-transfer', () => ({ transferListOwnership }))
+const listEligibleNewOwners = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/list-ownership-transfer', () => ({
+  transferListOwnership,
+  listEligibleNewOwners,
+}))
 
 vi.mock('@/lib/api-auth-middleware', () => {
   class UnauthorizedError extends Error {
@@ -34,7 +39,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
-import { POST } from '@/app/api/v1/lists/[id]/transfer-ownership/route'
+import { GET, POST } from '@/app/api/v1/lists/[id]/transfer-ownership/route'
 import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
 
 const mockAuth = vi.mocked(authenticateAPI)
@@ -62,6 +67,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockAuth.mockResolvedValue(auth as never)
   transferListOwnership.mockResolvedValue({ ok: true })
+  listEligibleNewOwners.mockResolvedValue({ ok: true, eligibleOwners: [] })
 })
 
 describe('POST /api/v1/lists/:id/transfer-ownership (task 359ca48f)', () => {
@@ -145,5 +151,80 @@ describe('POST /api/v1/lists/:id/transfer-ownership (task 359ca48f)', () => {
     expect(transferListOwnership).toHaveBeenCalledWith(
       expect.objectContaining({ newOwnerId: '' })
     )
+  })
+})
+
+/**
+ * Task f4b40af3 — the successor picker half of this route.
+ *
+ * The eligibility rule itself (agents excluded, invitees excluded, owner-only)
+ * is tested in tests/lib/list-ownership-transfer.test.ts. What belongs here is
+ * that the handler asks the shared rule and reports its answer faithfully.
+ */
+describe('GET /api/v1/lists/:id/transfer-ownership (task f4b40af3)', () => {
+  const ALICE = {
+    id: 'alice',
+    name: 'Alice',
+    email: 'alice@example.com',
+    image: null,
+    isAIAgent: false,
+    aiAgentType: null,
+  }
+
+  const get = () =>
+    GET(makeReq(), { params: Promise.resolve({ id: 'list-1' }) } as never)
+
+  it('returns the eligible successors for the list', async () => {
+    listEligibleNewOwners.mockResolvedValue({ ok: true, eligibleOwners: [ALICE] })
+
+    const res = await get()
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.eligibleOwners).toEqual([ALICE])
+    expect(listEligibleNewOwners).toHaveBeenCalledWith({
+      listId: 'list-1',
+      currentUserId: 'owner-1',
+    })
+  })
+
+  it('carries the v1 meta envelope', async () => {
+    const body = await (await get()).json()
+
+    expect(body.meta).toEqual({ apiVersion: 'v1', authSource: 'oauth' })
+  })
+
+  it('requires only lists:read, matching GET .../members', async () => {
+    await get()
+
+    expect(mockRequireScopes).toHaveBeenCalledWith(expect.anything(), ['lists:read'])
+  })
+
+  it('403s a non-owner, so a client can use it as the button probe', async () => {
+    listEligibleNewOwners.mockResolvedValue({
+      ok: false,
+      status: 403,
+      error: 'Only the owner can transfer ownership',
+    })
+
+    const res = await get()
+
+    expect(res.status).toBe(403)
+  })
+
+  it('404s an unknown list', async () => {
+    listEligibleNewOwners.mockResolvedValue({ ok: false, status: 404, error: 'List not found' })
+
+    expect((await get()).status).toBe(404)
+  })
+
+  it('answers an owner with nobody to hand the list to with an empty array, not an error', async () => {
+    // "Nobody to transfer to" and "you may not transfer" are different states
+    // and the client renders different things for them.
+    const res = await get()
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.eligibleOwners).toEqual([])
   })
 })

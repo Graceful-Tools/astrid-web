@@ -27,7 +27,8 @@ vi.mock('@/lib/redis', () => ({
   RedisCache: { invalidate: { userListsAllVersions: vi.fn() } },
 }))
 
-import { transferListOwnership } from '@/lib/list-ownership-transfer'
+import { listEligibleNewOwners, transferListOwnership } from '@/lib/list-ownership-transfer'
+import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { RedisCache } from '@/lib/redis'
 
@@ -35,7 +36,15 @@ const mockPrisma = vi.mocked(prisma, true)
 const mockRedis = vi.mocked(RedisCache, true)
 
 const LIST = { id: 'list-1', ownerId: 'owner-1' }
-const NEW_OWNER_MEMBER = { id: 'member-1', listId: 'list-1', userId: 'new-owner-1', role: 'admin' }
+// Carries `user` because the real query selects it: eligibility turns on
+// whether the successor is an AI agent (task f4b40af3).
+const NEW_OWNER_MEMBER = {
+  id: 'member-1',
+  listId: 'list-1',
+  userId: 'new-owner-1',
+  role: 'admin',
+  user: { isAIAgent: false },
+}
 
 type MockTx = {
   taskList: { update: ReturnType<typeof vi.fn> }
@@ -194,6 +203,148 @@ describe('transferListOwnership (task 359ca48f)', () => {
     })
 
     expect(result).toEqual({ ok: true })
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * Task f4b40af3 — the successor picker, and the rule it shares with the
+ * transfer above.
+ *
+ * The point of putting this on the server is that the eligibility rule exists
+ * ONCE. So the tests that matter are not just "the GET filters agents out" but
+ * "the POST refuses the one the GET hid" — two answers that could drift apart
+ * are the failure this route exists to prevent.
+ */
+describe('listEligibleNewOwners (task f4b40af3)', () => {
+  const person = (id: string) => ({
+    userId: id,
+    role: 'member',
+    user: {
+      id,
+      name: id,
+      email: `${id}@example.com`,
+      image: null,
+      isAIAgent: false,
+      aiAgentType: null,
+    },
+  })
+
+  const agent = (id: string) => ({
+    userId: id,
+    role: 'member',
+    user: {
+      id,
+      name: id,
+      email: `${id}@${BRAND.agentEmailDomain}`,
+      image: null,
+      isAIAgent: true,
+      aiAgentType: 'claude',
+    },
+  })
+
+  function listWithMembers(members: unknown[]) {
+    mockPrisma.taskList.findUnique.mockResolvedValue({ ...LIST, listMembers: members } as never)
+  }
+
+  it('returns the members the owner may hand the list to', async () => {
+    listWithMembers([person('alice'), person('bob')])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'owner-1' })
+
+    expect(result).toMatchObject({ ok: true })
+    expect((result as { eligibleOwners: Array<{ id: string }> }).eligibleOwners.map(u => u.id))
+      .toEqual(['alice', 'bob'])
+  })
+
+  it('carries the fields a picker needs to render a row', async () => {
+    listWithMembers([person('alice')])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'owner-1' })
+
+    expect((result as { eligibleOwners: unknown[] }).eligibleOwners[0]).toEqual({
+      id: 'alice',
+      name: 'alice',
+      email: 'alice@example.com',
+      image: null,
+      isAIAgent: false,
+      aiAgentType: null,
+    })
+  })
+
+  it('excludes AI-agent members, which cannot answer for a list they own', async () => {
+    listWithMembers([person('alice'), agent('ai-agent-claude')])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'owner-1' })
+
+    expect((result as { eligibleOwners: Array<{ id: string }> }).eligibleOwners.map(u => u.id))
+      .toEqual(['alice'])
+  })
+
+  it('excludes pending invitees by reading membership only', async () => {
+    // Someone invited but not yet joined has no listMembers row, so there is no
+    // filter to forget here — the query cannot see them in the first place.
+    listWithMembers([person('alice')])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'owner-1' })
+
+    expect((result as { eligibleOwners: Array<{ id: string }> }).eligibleOwners.map(u => u.id))
+      .toEqual(['alice'])
+    expect(mockPrisma.taskList.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'list-1' } })
+    )
+  })
+
+  it('excludes the owner themselves — a transfer to yourself is not an option', async () => {
+    listWithMembers([person('owner-1'), person('alice')])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'owner-1' })
+
+    expect((result as { eligibleOwners: Array<{ id: string }> }).eligibleOwners.map(u => u.id))
+      .toEqual(['alice'])
+  })
+
+  it('403s an admin who is not the owner, so it doubles as the button probe', async () => {
+    listWithMembers([person('alice')])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'admin-1' })
+
+    expect(result).toMatchObject({ ok: false, status: 403 })
+  })
+
+  it('404s a list that does not exist', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue(null as never)
+
+    const result = await listEligibleNewOwners({ listId: 'nope', currentUserId: 'owner-1' })
+
+    expect(result).toMatchObject({ ok: false, status: 404 })
+  })
+
+  it('returns an empty list, not an error, when the owner is the only member', async () => {
+    // The client needs to tell "you have nobody to hand this to" apart from
+    // "you may not do this", and render a different thing for each.
+    listWithMembers([])
+
+    const result = await listEligibleNewOwners({ listId: 'list-1', currentUserId: 'owner-1' })
+
+    expect(result).toEqual({ ok: true, eligibleOwners: [] })
+  })
+
+  it('refuses on TRANSFER the agent member it hid from the picker', async () => {
+    // The two must not disagree: a successor the picker excludes must not be
+    // accepted by the transfer, or the rule is only advisory.
+    mockPrisma.listMember.findFirst.mockResolvedValue({
+      id: 'member-ai',
+      user: { isAIAgent: true },
+    } as never)
+
+    const result = await transferListOwnership({
+      listId: 'list-1',
+      currentUserId: 'owner-1',
+      newOwnerId: 'ai-agent-claude',
+    })
+
+    expect(result).toMatchObject({ ok: false, status: 400 })
     expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
 })

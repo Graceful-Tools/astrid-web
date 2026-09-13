@@ -114,11 +114,14 @@ beforeEach(() => {
   vi.clearAllMocks()
   signIn(OWNER)
   mockPrisma.taskList.findUnique.mockResolvedValue({ ...LIST } as never)
+  // `user` is selected by the real query: eligibility turns on whether the
+  // successor is an AI agent (task f4b40af3).
   mockPrisma.listMember.findFirst.mockResolvedValue({
     id: 'member-1',
     listId: 'list-1',
     userId: NEW_OWNER,
     role: 'admin',
+    user: { isAIAgent: false },
   } as never)
   mockRedis.invalidate.userListsAllVersions.mockResolvedValue(undefined as never)
 
@@ -196,6 +199,7 @@ describe.each(Object.keys(DOORS) as Array<keyof typeof DOORS>)(
         listId: 'list-1',
         userId: NEW_OWNER,
         role: 'member',
+        user: { isAIAgent: false },
       } as never)
 
       const res = await post({ newOwnerId: NEW_OWNER })
@@ -222,6 +226,7 @@ describe.each(Object.keys(DOORS) as Array<keyof typeof DOORS>)(
         listId: 'list-1',
         userId: OWNER,
         role: 'admin',
+        user: { isAIAgent: false },
       } as never)
 
       const res = await post({ newOwnerId: OWNER })
