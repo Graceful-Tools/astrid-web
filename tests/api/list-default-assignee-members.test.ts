@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row } from '../fixtures/prisma-rows'
+import { row, rowWith, rowsWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { PUT } from '@/app/api/lists/[id]/route'
 import * as authModule from 'next-auth'
@@ -82,8 +82,8 @@ describe('List Default Assignee Member Management', () => {
       ]
 
       vi.mocked(authModule.getServerSession).mockResolvedValue(mockSession)
-      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(mockList)
-      vi.mocked(prismaModule.prisma.listMember.findMany).mockResolvedValue(mockListMembers)
+      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(rowWith(mockList))
+      vi.mocked(prismaModule.prisma.listMember.findMany).mockResolvedValue(rowsWith(mockListMembers))
       vi.mocked(prismaModule.prisma.listMember.findFirst).mockResolvedValue(row({
         userId: 'member-2',
         listId: 'list-1',
@@ -94,7 +94,7 @@ describe('List Default Assignee Member Management', () => {
         name: 'John Doe',
         email: 'john@test.com'
       }))
-      vi.mocked(prismaModule.prisma.taskList.update).mockResolvedValue(mockUpdatedList)
+      vi.mocked(prismaModule.prisma.taskList.update).mockResolvedValue(rowWith(mockUpdatedList))
 
       const request = new NextRequest('http://localhost/api/lists/list-1', {
         method: 'PUT',
@@ -141,8 +141,8 @@ describe('List Default Assignee Member Management', () => {
       }
 
       vi.mocked(authModule.getServerSession).mockResolvedValue(mockSession)
-      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(mockList)
-      vi.mocked(prismaModule.prisma.taskList.update).mockResolvedValue(mockUpdatedList)
+      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(rowWith(mockList))
+      vi.mocked(prismaModule.prisma.taskList.update).mockResolvedValue(rowWith(mockUpdatedList))
 
       const request = new NextRequest('http://localhost/api/lists/list-1', {
         method: 'PUT',
@@ -189,8 +189,8 @@ describe('List Default Assignee Member Management', () => {
       }
 
       vi.mocked(authModule.getServerSession).mockResolvedValue(mockSession)
-      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(mockList)
-      vi.mocked(prismaModule.prisma.taskList.update).mockResolvedValue(mockUpdatedList)
+      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(rowWith(mockList))
+      vi.mocked(prismaModule.prisma.taskList.update).mockResolvedValue(rowWith(mockUpdatedList))
 
       const request = new NextRequest('http://localhost/api/lists/list-1', {
         method: 'PUT',
@@ -234,7 +234,7 @@ describe('List Default Assignee Member Management', () => {
       const mockListMembers = []
 
       vi.mocked(authModule.getServerSession).mockResolvedValue(mockSession)
-      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(mockList)
+      vi.mocked(prismaModule.prisma.taskList.findUnique).mockResolvedValue(rowWith(mockList))
       vi.mocked(prismaModule.prisma.listMember.findMany).mockResolvedValue(mockListMembers)
       vi.mocked(prismaModule.prisma.listMember.findFirst).mockResolvedValue(null) // User not found in members
       vi.mocked(prismaModule.prisma.user.findUnique).mockResolvedValue(row({

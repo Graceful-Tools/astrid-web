@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row } from '../fixtures/prisma-rows'
+import { row, rowWith } from '../fixtures/prisma-rows'
 import { mockPrisma, mockGetServerSession } from '../setup'
 import {
   createOAuthClient,
@@ -35,7 +35,7 @@ describe('OAuth Authentication', () => {
     vi.clearAllMocks()
 
     // Disable session authentication for these tests
-    mockGetServerSession.mockResolvedValue(null)
+    mockGetServerSession.mockResolvedValue(rowWith(null))
 
     // Set up test data
     testUserId = 'test-user-id'
@@ -467,7 +467,7 @@ describe('OAuth Authentication', () => {
       vi.clearAllMocks()
 
       // Disable session auth for MCP test
-      mockGetServerSession.mockResolvedValue(null)
+      mockGetServerSession.mockResolvedValue(rowWith(null))
 
       mockPrisma.mCPToken.findFirst.mockResolvedValue(row({
         id: 'mcp-token-id',

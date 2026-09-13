@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { GET } from '@/app/api/github/integration/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -219,7 +219,7 @@ describe('GitHub Integration - Multi-Installation Support', () => {
   })
 
   it('should return 401 for unauthenticated requests', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockGetServerSession.mockResolvedValue(rowWith(null))
 
     const request = createMockRequest()
     const response = await GET(request)

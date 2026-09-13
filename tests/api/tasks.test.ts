@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -237,7 +237,7 @@ describe('Tasks API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const response = await GET()
       const data = await response.json()

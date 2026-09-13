@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/lists/route'
 import { authenticateAPI, requireScopes, getDeprecationWarning } from '@/lib/api-auth-middleware'
@@ -49,7 +49,7 @@ beforeEach(() => {
     scopes: ['lists:read'],
   }))
   mockRequireScopes.mockImplementation(() => {})
-  mockGetDeprecationWarning.mockReturnValue(undefined)
+  mockGetDeprecationWarning.mockReturnValue(rowWith(undefined))
   mockPrisma.taskList.findMany.mockResolvedValue(rows([]))
 })
 

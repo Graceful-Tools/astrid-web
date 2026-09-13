@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rows, rowsWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/lists/public/route'
 import { prisma } from '@/lib/prisma'
@@ -85,7 +85,7 @@ describe('Public List Task Count Accuracy', () => {
 
     // Mock copy-utils functions to return our test data
     const { getPopularPublicLists } = await import('@/lib/copy-utils')
-    vi.mocked(getPopularPublicLists).mockResolvedValue(mockPublicLists)
+    vi.mocked(getPopularPublicLists).mockResolvedValue(rowsWith(mockPublicLists))
 
     // Create test request
     const request = new NextRequest('http://localhost:3000/api/lists/public?limit=10')
@@ -128,7 +128,7 @@ describe('Public List Task Count Accuracy', () => {
     ]
 
     const { searchPublicLists } = await import('@/lib/copy-utils')
-    vi.mocked(searchPublicLists).mockResolvedValue(mockSearchResults)
+    vi.mocked(searchPublicLists).mockResolvedValue(rowsWith(mockSearchResults))
 
     const request = new NextRequest('http://localhost:3000/api/lists/public?q=development&limit=10')
     const response = await GET(request)
@@ -161,7 +161,7 @@ describe('Public List Task Count Accuracy', () => {
     ]
 
     const { getRecentPublicLists } = await import('@/lib/copy-utils')
-    vi.mocked(getRecentPublicLists).mockResolvedValue(mockRecentLists)
+    vi.mocked(getRecentPublicLists).mockResolvedValue(rowsWith(mockRecentLists))
 
     const request = new NextRequest('http://localhost:3000/api/lists/public?sortBy=recent&limit=5')
     const response = await GET(request)
@@ -400,7 +400,7 @@ describe('Task Count Utilities Integration', () => {
     ]
 
     const { getPopularPublicLists } = await import('@/lib/copy-utils')
-    vi.mocked(getPopularPublicLists).mockResolvedValue(mockPublicLists)
+    vi.mocked(getPopularPublicLists).mockResolvedValue(rowsWith(mockPublicLists))
 
     const request = new NextRequest('http://localhost:3000/api/lists/public?limit=10')
     const response = await GET(request)

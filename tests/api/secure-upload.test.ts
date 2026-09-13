@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row } from '../fixtures/prisma-rows'
+import { row, rowWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/secure-upload/request-upload/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -176,7 +176,7 @@ describe('Secure Upload API', () => {
 
     it('should reject unauthorized upload', async () => {
       // Mock no session
-      mockGetServerSession.mockResolvedValue(null)
+      mockGetServerSession.mockResolvedValue(rowWith(null))
 
       const request = createMockRequestWithFile({ taskId: 'test-task-id' })
       const response = await POST(request)

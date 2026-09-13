@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -52,7 +52,7 @@ describe('Users Search API', () => {
 
   describe('Authentication', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const request = createMockRequest({ q: 'search' })
       const response = await GET(request)

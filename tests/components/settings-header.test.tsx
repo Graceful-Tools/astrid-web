@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { rowWith } from '../fixtures/prisma-rows'
 import { render, screen, act } from '@testing-library/react'
 import { SessionProvider } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -125,7 +126,7 @@ const mockRouter = {
 describe('Settings Pages Header - Profile Icon Removal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useRouter).mockReturnValue(mockRouter)
+    vi.mocked(useRouter).mockReturnValue(rowWith(mockRouter))
   })
 
   it('account settings page should not have UserMenu component', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row } from '../fixtures/prisma-rows'
+import { row, rowWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/lists/[id]/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -223,7 +223,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
   it('should return 401 for unauthenticated user', async () => {
     const listId = 'test-list-id'
     
-    mockGetServerSession.mockResolvedValue(null)
+    mockGetServerSession.mockResolvedValue(rowWith(null))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })

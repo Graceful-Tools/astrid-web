@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 
@@ -91,7 +91,7 @@ describe('v1 Chat Message Attachments', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireScopes.mockImplementation(() => {})
-    mockGetDeprecationWarning.mockReturnValue(undefined)
+    mockGetDeprecationWarning.mockReturnValue(rowWith(undefined))
     mockAuthenticateAPI.mockResolvedValue(createAuth() as any)
     mockCanAccessChatChannel.mockResolvedValue(true)
     mockGetChatChannelRecipients.mockResolvedValue(rows([USER_ID, OTHER_USER_ID]))

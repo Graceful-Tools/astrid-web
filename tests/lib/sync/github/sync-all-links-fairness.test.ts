@@ -25,7 +25,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { row } from '../../../fixtures/prisma-rows'
+import { row, rowWith } from '../../../fixtures/prisma-rows'
 
 /** In-memory stand-in for the externalListLink table. */
 interface Row {
@@ -168,7 +168,7 @@ describe('syncAllGithubLinks fairness', () => {
 
   it('stamps lastReconciledAt when a link is skipped for missing credentials', async () => {
     seed(1)
-    githubTokenFor.mockResolvedValueOnce(null)
+    githubTokenFor.mockResolvedValueOnce(rowWith(null))
 
     await syncAllGithubLinks()
 

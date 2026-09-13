@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row, rows } from '../fixtures/prisma-rows'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET, POST } from '@/app/api/v1/tasks/[id]/comments/route'
@@ -73,7 +73,7 @@ describe('API v1 task comments public access', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireScopes.mockImplementation(() => {})
-    mockGetDeprecationWarning.mockReturnValue(undefined)
+    mockGetDeprecationWarning.mockReturnValue(rowWith(undefined))
     mockGetListMemberIds.mockReturnValue(rows(['owner-id']))
   })
 

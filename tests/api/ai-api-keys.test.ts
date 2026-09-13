@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row } from '../fixtures/prisma-rows'
+import { row, rowWith } from '../fixtures/prisma-rows'
 import { GET, PUT, DELETE } from '@/app/api/user/ai-api-keys/route'
 import { POST } from '@/app/api/user/ai-api-keys/test/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -56,7 +56,7 @@ describe('AI API Keys API', () => {
 
   describe('GET /api/user/ai-api-keys', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const response = await GET(createMockRequest())
       const data = await response.json()
@@ -104,7 +104,7 @@ describe('AI API Keys API', () => {
 
   describe('PUT /api/user/ai-api-keys', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const request = createMockRequest({ serviceId: 'claude', apiKey: 'sk-ant-test' })
       const response = await PUT(request)
@@ -224,7 +224,7 @@ describe('AI API Keys API', () => {
 
   describe('DELETE /api/user/ai-api-keys', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const request = createMockRequest({ serviceId: 'claude' })
       const response = await DELETE(request)
@@ -297,7 +297,7 @@ describe('AI API Keys API', () => {
 
   describe('POST /api/user/ai-api-keys/test', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const request = createMockRequest({ serviceId: 'claude' })
       const response = await POST(request)

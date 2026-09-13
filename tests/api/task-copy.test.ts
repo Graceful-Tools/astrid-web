@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { row } from '../fixtures/prisma-rows'
+import { row, rowWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/tasks/[id]/copy/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -125,7 +125,7 @@ describe('Task Copy API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
 
       const request = createMockRequest({})
       const context = createMockContext('original-task-id')
