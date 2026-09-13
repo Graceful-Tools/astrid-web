@@ -97,6 +97,7 @@ The native iOS app is maintained in a separate repository:
 - **[iOS Timezone Date Handling Fix](./fixes/IOS_TIMEZONE_DATE_HANDLING_FIX.md)** - ⚠️ **Critical**: API date/time handling patterns for mobile clients
 - **[Insecure Connection Warnings Fix](./fixes/INSECURE-CONNECTION-WARNINGS-FIX.md)** - Resolving HTTPS connection warnings
 - **[Local Testing Guide](./fixes/LOCAL_TESTING_GUIDE.md)** - Guide for testing locally
+- **[Dev Server 500s: Corrupt `.next` Cache](./fixes/DEV_SERVER_500_CORRUPT_NEXT_CACHE.md)** - Why every `npm run dev` route can 500 while the build stays green
 - **[AI Agent Consolidation Analysis](./fixes/AI_AGENT_CONSOLIDATION_ANALYSIS.md)** - Analysis of AI agent system
 
 ### 📦 Archive

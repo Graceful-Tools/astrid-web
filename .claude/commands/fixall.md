@@ -104,6 +104,12 @@ Two traps worth knowing: a folder starting with `_` is a Next private folder and
 swapping files under a running dev server corrupts its HMR state — restart it rather than
 debugging the 500.
 
+A 500 on **every** route, with `application-code` at ~1ms and a `SyntaxError: Unexpected
+non-whitespace character after JSON` naming no file, is a corrupt `.next` manifest, not your
+component — `npm run dev` repairs it via its `predev` guard, and
+[docs/fixes/DEV_SERVER_500_CORRUPT_NEXT_CACHE.md](../../docs/fixes/DEV_SERVER_500_CORRUPT_NEXT_CACHE.md)
+explains why it reads as unrelated to the cache (AWTD-934).
+
 ## Environment gotchas
 
 - `GET /api/v1/tasks/[id]` returns `{ task, meta }` — `body.lists` is undefined, and a script
@@ -112,6 +118,9 @@ debugging the 500.
   `.env` instead and silently yields undefined ids.
 - `vercel` may not be on PATH, so `monitor:vercel` and `deploy-preview.sh` can fail. That does
   not block local work; note it rather than fighting it.
+- `next-env.d.ts` is generated and flips between `./.next/types/…` and `./.next/dev/types/…`
+  depending on whether `next dev` or `next build` ran last, so it shows up modified after any
+  dev session. Revert it; do not commit the flip.
 - **This file must exist on the branch you are working.** It lived only on an unmerged feature
   branch once, so it vanished on every checkout and the loop ran on whatever happened to be
   loaded in memory. If `/fixall` behaves unlike this document, check

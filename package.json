@@ -64,6 +64,7 @@
     "deploy:staging": "tsx scripts/deploy-production.ts --staging",
     "deploy:trigger": "tsx scripts/trigger-workflow.ts",
     "setup:github-secrets": "./scripts/setup-github-secrets.sh",
+    "predev": "tsx scripts/check-next-cache.ts",
     "dev": "next dev -H 0.0.0.0",
     "dev:local": "node scripts/dev-local.js",
     "docs:review": "tsx scripts/review-docs-after-changes.ts",
