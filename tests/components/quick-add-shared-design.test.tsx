@@ -11,8 +11,10 @@
  * job, two designs, two files. This asserts one control in two placements.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen } from '@testing-library/react'
 import { AddTaskInput } from '@/components/add-task-input'
+import type { AddTaskInputProps } from '@/components/add-task-input'
 
 // jsdom has no ResizeObserver and lays everything out at zero width, so the
 // component can never measure a real column here. Report a width we control.
@@ -34,9 +36,9 @@ afterEach(() => {
   globalThis.ResizeObserver = realResizeObserver
 })
 
-const base = {
+const base: Omit<AddTaskInputProps, 'variant'> = {
   selectedListId: 'list-1',
-  availableLists: [{ id: 'list-1', name: 'Groceries' }],
+  availableLists: [buildTaskList({ id: 'list-1', name: 'Groceries' })],
   availableUsers: [],
   quickTaskInput: '',
   setQuickTaskInput: vi.fn(),
@@ -48,7 +50,7 @@ const base = {
 describe('The add-task control is one design in two placements (task f699462a)', () => {
   it('gives the inline placement the same expanding textarea as the 1-column bar', () => {
     const { container } = render(
-      <AddTaskInput variant="inline" layoutType="3-column" {...(base as never)} />,
+      <AddTaskInput {...base} variant="inline" layoutType="3-column" />,
     )
 
     expect(container.querySelector('textarea')).toBeTruthy()
@@ -57,41 +59,41 @@ describe('The add-task control is one design in two placements (task f699462a)',
   })
 
   it('gives the inline placement the same priority/assignee control as the 1-column bar', () => {
-    render(<AddTaskInput variant="inline" layoutType="3-column" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="inline" layoutType="3-column" />)
     expect(screen.getByLabelText(/priority or assignee/i)).toBeTruthy()
   })
 
   it('keeps the inline placement in the flow so it sits above the list', () => {
     const { container } = render(
-      <AddTaskInput variant="inline" layoutType="3-column" {...(base as never)} />,
+      <AddTaskInput {...base} variant="inline" layoutType="3-column" />,
     )
     // The 1-column bar floats over the list; a column header must not.
     expect(container.querySelector('.fixed')).toBeNull()
   })
 
   it('still pins the footer placement to the bottom of the 1-column view', () => {
-    const { container } = render(<AddTaskInput variant="footer" {...(base as never)} />)
+    const { container } = render(<AddTaskInput {...base} variant="footer" />)
     expect(container.querySelector('.fixed')).toBeTruthy()
   })
 
   it('labels the button "Add task" when the column is wide enough for the words', () => {
     observedWidth = 600
-    render(<AddTaskInput variant="inline" layoutType="2-column" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="inline" layoutType="2-column" />)
     expect(screen.getByRole('button', { name: /add task/i }).textContent).toMatch(/add task/i)
   })
 
   it('drops back to the icon-only button in a narrow column', () => {
     observedWidth = 260
-    render(<AddTaskInput variant="inline" layoutType="3-column" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="inline" layoutType="3-column" />)
     expect(screen.getByRole('button', { name: /add task/i }).textContent?.trim()).toBe('')
   })
 
   it('keeps the hashtag autocomplete the retired desktop input owned', () => {
     render(
       <AddTaskInput
+        {...base}
         variant="inline"
         layoutType="3-column"
-        {...(base as never)}
         quickTaskInput="buy milk #groc"
       />,
     )

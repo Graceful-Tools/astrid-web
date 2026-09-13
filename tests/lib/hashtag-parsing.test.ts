@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { parseTaskInput } from '@/lib/task-manager-utils'
 import type { TaskList } from '@/types/task'
 
 describe('Hashtag Parsing', () => {
   const mockLists: TaskList[] = [
-    {
+    buildTaskList({
       id: 'list-1',
       name: 'Shopping',
       ownerId: 'user-1',
@@ -13,8 +14,8 @@ describe('Hashtag Parsing', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       isVirtual: false,
-    },
-    {
+    }),
+    buildTaskList({
       id: 'list-2',
       name: 'Work Tasks',
       ownerId: 'user-1',
@@ -23,8 +24,8 @@ describe('Hashtag Parsing', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       isVirtual: false,
-    },
-    {
+    }),
+    buildTaskList({
       id: 'list-3',
       name: 'Personal',
       ownerId: 'user-1',
@@ -33,8 +34,8 @@ describe('Hashtag Parsing', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       isVirtual: false,
-    },
-    {
+    }),
+    buildTaskList({
       id: 'virtual-1',
       name: 'My Tasks',
       ownerId: 'user-1',
@@ -43,7 +44,7 @@ describe('Hashtag Parsing', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       isVirtual: true,
-    },
+    }),
   ]
 
   const mockSession = {
@@ -240,7 +241,7 @@ describe('Hashtag Parsing', () => {
 
   describe('Special characters in hashtags', () => {
     const specialCharLists: TaskList[] = [
-      {
+      buildTaskList({
         id: 'list-special-1',
         name: "Mom's Tasks",
         ownerId: 'user-1',
@@ -249,8 +250,8 @@ describe('Hashtag Parsing', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         isVirtual: false,
-      },
-      {
+      }),
+      buildTaskList({
         id: 'list-special-2',
         name: 'Work & Life',
         ownerId: 'user-1',
@@ -259,8 +260,8 @@ describe('Hashtag Parsing', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         isVirtual: false,
-      },
-      {
+      }),
+      buildTaskList({
         id: 'list-special-3',
         name: '50/50 Split',
         ownerId: 'user-1',
@@ -269,8 +270,8 @@ describe('Hashtag Parsing', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         isVirtual: false,
-      },
-      {
+      }),
+      buildTaskList({
         id: 'list-special-4',
         name: 'C++ Projects',
         ownerId: 'user-1',
@@ -279,8 +280,8 @@ describe('Hashtag Parsing', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         isVirtual: false,
-      },
-      {
+      }),
+      buildTaskList({
         id: 'list-special-5',
         name: 'Budget (2024)',
         ownerId: 'user-1',
@@ -289,7 +290,7 @@ describe('Hashtag Parsing', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         isVirtual: false,
-      },
+      }),
     ]
 
     it('should handle apostrophes in hashtags', () => {

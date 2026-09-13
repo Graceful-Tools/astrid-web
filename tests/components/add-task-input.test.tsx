@@ -14,6 +14,7 @@ import fs from 'fs'
 import path from 'path'
 import { render, screen } from '@testing-library/react'
 import { AddTaskInput } from '@/components/add-task-input'
+import type { AddTaskInputProps } from '@/components/add-task-input'
 
 vi.mock('@/components/quick-add', () => ({
   QuickAdd: (props: Record<string, unknown>) => (
@@ -26,7 +27,7 @@ vi.mock('@/components/quick-add', () => ({
   ),
 }))
 
-const base = {
+const base: Omit<AddTaskInputProps, 'variant'> = {
   selectedListId: 'list-1',
   availableLists: [],
   quickTaskInput: '',
@@ -38,29 +39,29 @@ const base = {
 
 describe('AddTaskInput (tasks 5fac84e8, f699462a)', () => {
   it('places variant="inline" in the flow, above the list', () => {
-    render(<AddTaskInput variant="inline" layoutType="3-column" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="inline" layoutType="3-column" />)
     expect(screen.getByTestId('quick-add').getAttribute('data-placement')).toBe('inline')
   })
 
   it('pins variant="footer" to the bottom of the 1-column view', () => {
-    render(<AddTaskInput variant="footer" availableUsers={[]} {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="footer" availableUsers={[]} />)
     expect(screen.getByTestId('quick-add').getAttribute('data-placement')).toBe('fixed-bottom')
   })
 
   it('passes the layout through so the contextual placeholder still works', () => {
-    render(<AddTaskInput variant="inline" layoutType="3-column" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="inline" layoutType="3-column" />)
     expect(screen.getByTestId('quick-add').getAttribute('data-layout')).toBe('3-column')
   })
 
   it('defaults the variant-only props rather than passing undefined through', () => {
     // Callers of one variant should not have to know the other's props exist.
-    render(<AddTaskInput variant="inline" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="inline" />)
     expect(screen.getByTestId('quick-add').getAttribute('data-layout')).toBe('1-column')
     expect(screen.getByTestId('quick-add').getAttribute('data-users')).toBe('0')
   })
 
   it('does not give the fixed-bottom bar a column layout it has no use for', () => {
-    render(<AddTaskInput variant="footer" layoutType="3-column" {...(base as never)} />)
+    render(<AddTaskInput {...base} variant="footer" layoutType="3-column" />)
     expect(screen.getByTestId('quick-add').getAttribute('data-layout')).toBe('undefined')
   })
 
