@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buildUser } from '../fixtures/domain'
+import { buildTask, buildTaskList, buildUser } from '../fixtures/domain'
 import type { Task, TaskList, User } from '../../types/task'
 
 // Simple unit tests for auto-save logic without rendering components
@@ -12,18 +12,15 @@ describe('Task Auto-Save API Data Transformation', () => {
     email: 'test@example.com'
   })
 
-  const mockList: TaskList = {
+  const mockList: TaskList = buildTaskList({
     id: 'list-1',
     name: 'Test List',
     description: 'Test Description',
     ownerId: 'user-1',
     owner: mockUser,
-    privacy: 'PRIVATE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
+  })
 
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: 'Test Description',
@@ -32,16 +29,9 @@ describe('Task Auto-Save API Data Transformation', () => {
     assignee: mockUser,
     creatorId: 'user-1',
     creator: mockUser,
-    repeating: 'never',
-    isPrivate: false,
-    completed: false,
     when: new Date(),
     lists: [mockList],
-    comments: [],
-    attachments: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
+  })
 
   describe('List Assignment Data Transformation', () => {
     it('transforms task.lists to listIds for API', () => {
@@ -68,7 +58,7 @@ describe('Task Auto-Save API Data Transformation', () => {
     it('handles empty lists array', () => {
       const taskWithNoLists = {
         ...mockTask,
-        lists: []
+        lists: [] as TaskList[],
       }
 
       const apiData = {
@@ -84,7 +74,7 @@ describe('Task Auto-Save API Data Transformation', () => {
     it('handles undefined lists', () => {
       const taskWithUndefinedLists = {
         ...mockTask,
-        lists: undefined
+        lists: undefined as TaskList[] | undefined,
       }
 
       const apiData = {

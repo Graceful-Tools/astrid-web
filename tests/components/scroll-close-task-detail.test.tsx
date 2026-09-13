@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buildTaskList } from '../fixtures/domain'
+import { buildTask, buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
@@ -19,7 +19,6 @@ describe('Scroll-to-close task detail behavior', () => {
     name: 'Test User',
     image: null,
     createdAt: new Date(),
-    updatedAt: new Date()
   }
 
   const mockList: TaskList = buildTaskList({
@@ -38,10 +37,10 @@ describe('Scroll-to-close task detail behavior', () => {
     tasks: []
   })
 
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
-    description: null,
+    description: '',
     completed: false,
     priority: 2,
     repeating: 'never',
@@ -54,7 +53,7 @@ describe('Scroll-to-close task detail behavior', () => {
     attachments: [],
     createdAt: new Date(),
     updatedAt: new Date()
-  }
+  })
 
   const mockTasks: Task[] = [
     mockTask,
@@ -151,7 +150,15 @@ describe('Scroll-to-close task detail behavior', () => {
     taskManagerRef: { current: null },
     isKeyboardScrollingRef: { current: false },
     onListUpdate: vi.fn(),
-    onListDelete: vi.fn()
+    onListDelete: vi.fn(),
+    // Required by MainContentProps and never supplied (AWTD-916).
+    allTasks: [],
+    handleUpdateTask: vi.fn(),
+    handleLocalUpdateTask: vi.fn(),
+    handleDeleteTask: vi.fn(),
+    taskDisplayMode: 'list',
+    promoteTargetVisible: false,
+    handleTaskDropOnPromoteTarget: vi.fn(),
   }
 
   beforeEach(() => {

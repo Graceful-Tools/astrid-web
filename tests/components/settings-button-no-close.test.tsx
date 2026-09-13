@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { buildTask, buildTaskList } from '../fixtures/domain'
 import { vi, describe, it, expect, beforeEach , type Mock } from 'vitest'
 import { TaskManagerView } from '@/components/TaskManagerView'
 import type { Task, TaskList } from '@/types/task'
@@ -81,24 +82,17 @@ vi.mock('@/contexts/theme-context', () => ({
 }))
 
 describe('TaskManagerView - Settings Button Behavior', () => {
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
-    description: '',
-    completed: false,
-    priority: 0,
     creatorId: 'user-1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
+  })
 
-  const mockList: TaskList = {
+  const mockList: TaskList = buildTaskList({
     id: 'list-1',
     name: 'Test List',
     description: '',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
+  })
 
   let mockCloseTaskDetail: Mock
 
@@ -120,9 +114,26 @@ describe('TaskManagerView - Settings Button Behavior', () => {
     availableUsers: [],
     isSessionReady: true,
     effectiveSession: { user: { id: 'user-1', name: 'Test User' } },
+    // The whole useFilterState return, not just setSearch (AWTD-916).
     newFilterState: {
-      filters: { search: '', completed: 'incomplete', priority: [], assignee: [], dueDate: 'all', sortBy: 'auto' },
-      setSearch: vi.fn()
+      filters: {
+        search: '',
+        completed: 'incomplete' as const,
+        priority: [] as number[],
+        assignee: [] as string[],
+        dueDate: 'all' as const,
+        sortBy: 'auto' as const,
+      },
+      hasActiveFilters: false,
+      setSearch: vi.fn(),
+      setCompleted: vi.fn(),
+      setPriority: vi.fn(),
+      setAssignee: vi.fn(),
+      setDueDate: vi.fn(),
+      setSortBy: vi.fn(),
+      clearAllFilters: vi.fn(),
+      applyFiltersToTasks: vi.fn((tasks: Task[]) => tasks),
+      isMyTasks: false,
     },
     isViewingFromFeatured: false,
 
@@ -148,7 +159,7 @@ describe('TaskManagerView - Settings Button Behavior', () => {
     taskManagerRef: { current: null },
 
     // Layout data (2-column desktop with task open)
-    layoutType: 'desktop-2-column' as const,
+    layoutType: 'computer-2-column' as const,
     columnCount: 2 as const,
     is1Column: false,
     is2Column: true,
@@ -289,6 +300,43 @@ describe('TaskManagerView - Settings Button Behavior', () => {
       onTouchMove: vi.fn(),
       onTouchEnd: vi.fn(),
     },
+  
+    // Required by TaskManagerViewModel and never supplied (AWTD-916). This
+    // suite renders TaskManagerView as a pure controlled component, so each
+    // of these is a prop the real caller passes.
+    collaborativePublicLists: [],
+    suggestedPublicLists: [],
+    activeView: 'list' as const,
+    settingsPage: null,
+    isSettingsActive: false,
+    settingsSubPage: null,
+    isSearchActive: false,
+    onNavigateSettings: vi.fn(),
+    onExitSettings: vi.fn(),
+    onCloseSettingsSubPage: vi.fn(),
+    onSelectSearch: vi.fn(),
+    onExitSearch: vi.fn(),
+    taskDisplayMode: 'list' as const,
+    handleToggleListFavorite: vi.fn(),
+    handleTaskDragHover: vi.fn(),
+    handleTaskDragLeaveTask: vi.fn(),
+    handleTaskDragHoverEnd: vi.fn(),
+    dragTargetTaskId: null,
+    dragTargetPosition: null,
+    manualSortActive: false,
+    manualSortPreviewActive: false,
+    promoteTargetVisible: false,
+    handleTaskDropOnPromoteTarget: vi.fn(),
+    handleOutdentTask: vi.fn(),
+    handleIndentTask: vi.fn(),
+    handleShowCommandPalette: vi.fn(),
+    showCommandPalette: false,
+    setShowCommandPalette: vi.fn(),
+    handleExecuteCommand: vi.fn(),
+    activePanel: 'tasks' as const,
+    setActivePanel: vi.fn(),
+    chatChannelId: null,
+    chatListMembers: [],
   })
 
   it('should NOT close task panel when clicking settings button in header with task open (2-column)', async () => {
