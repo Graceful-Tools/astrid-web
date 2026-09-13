@@ -236,7 +236,7 @@ describe('pushTasksForLink bounds and rotates its scan (task f9ba26b3)', () => {
     // would push them behind the links we just handled and strand them exactly
     // as the missing `take` did.
     const stamped = updateMany.mock.calls.flatMap(
-      ([arg]: [{ where: { id: { in: string[] } } }]) => arg.where.id.in,
+      (call) => (call[0] as { where: { id: { in: string[] } } }).where.id.in,
     )
     expect(stamped).not.toContain(`etl-${MAX_PUSHES_PER_PASS + 5}`)
   })

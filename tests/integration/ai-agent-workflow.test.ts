@@ -490,7 +490,10 @@ Install the latest build on your device to test the changes.`
 
   describe('Deployment State Handling', () => {
     it('should show building status when not ready', () => {
-      const deploymentState = 'BUILDING'
+      // The annotation alone is not enough: control-flow analysis still
+      // narrows a const to its literal initialiser, which makes the ternary
+      // below a comparison the compiler knows the answer to. (AWTD-916)
+      const deploymentState = 'BUILDING' as 'BUILDING' | 'READY'
       const statusEmoji = deploymentState === 'READY' ? '✅' : '🔄'
       const statusText = deploymentState === 'READY' ? 'Ready' : 'Building'
 

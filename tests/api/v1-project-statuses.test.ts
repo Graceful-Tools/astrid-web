@@ -79,13 +79,20 @@ const shipped = { role: 'custom-shipped', name: 'Shipped', order: 1 }
 
 /** The customStates the board answers with, plus its owner for the guard read. */
 function boardIs(customStates: unknown, ownerId = OWNER, lists: { id: string }[] = [{ id: 'list-1' }]) {
-  mockPrisma.project.findUnique.mockImplementation(async ({ select }: never) => {
+  // The cast belongs on the implementation, not on a parameter typed `never`
+  // — `never` made every `select` read need a second cast and still did not
+  // satisfy the delegate's overloads. (AWTD-916)
+  mockPrisma.project.findUnique.mockImplementation((async ({
+    select,
+  }: {
+    select?: Record<string, unknown>
+  }) => {
     const record: Record<string, unknown> = {}
-    if ((select as Record<string, unknown>)?.ownerId) record.ownerId = ownerId
-    if ((select as Record<string, unknown>)?.customStates) record.customStates = customStates
-    if ((select as Record<string, unknown>)?.lists) record.lists = lists
+    if (select?.ownerId) record.ownerId = ownerId
+    if (select?.customStates) record.customStates = customStates
+    if (select?.lists) record.lists = lists
     return record
-  })
+  }) as never)
 }
 
 /** The customStates the route wrote, whichever verb wrote them. */

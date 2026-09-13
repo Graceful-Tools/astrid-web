@@ -33,12 +33,18 @@ describe('syncManualSortMemberships', () => {
       { id: 'old-list', manualSortOrder: ['task-1', 'other'] },
       { id: 'new-list', manualSortOrder: ['other'] },
     ]))
-    vi.mocked(prisma.taskList.update).mockImplementation(async ({ where, data }) => ({
+    vi.mocked(prisma.taskList.update).mockImplementation((async ({
+      where,
+      data,
+    }: {
+      where: { id: string }
+      data: Record<string, unknown>
+    }) => ({
       id: where.id,
       ownerId: 'owner-1',
       listMembers: [{ userId: 'member-1', role: 'member' }],
       ...data,
-    }) as never)
+    })) as never)
     vi.mocked(RedisCache.invalidate.userListsAllVersions).mockResolvedValue(undefined)
     vi.mocked(broadcastToUsers).mockResolvedValue(undefined)
   })

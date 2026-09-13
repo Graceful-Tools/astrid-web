@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { buildTask } from '../fixtures/domain'
 import {
   isTaskDueToday,
   isTaskOverdue,
@@ -28,7 +29,7 @@ import type { Task } from '@/types/task'
 
 // Helper to create a mock task
 function createMockTask(dueDateTime: string | null, isAllDay: boolean): Task {
-  return {
+  return buildTask({
     id: 'test-task-id',
     title: 'Test Task',
     description: '',
@@ -36,12 +37,13 @@ function createMockTask(dueDateTime: string | null, isAllDay: boolean): Task {
     repeating: 'never',
     isPrivate: true,
     completed: false,
-    dueDateTime: dueDateTime,
+    // `dueDateTime` is a Date on Task; the helper takes an ISO string because
+    // that is what these cases are written as, so convert here rather than
+    // pretending the field is a string. (AWTD-916)
+    dueDateTime: dueDateTime === null ? null : new Date(dueDateTime),
     isAllDay: isAllDay,
     lists: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  } as Task
+  })
 }
 
 describe('Date Filter Utils - Google Calendar Specification', () => {

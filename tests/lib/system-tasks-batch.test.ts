@@ -163,7 +163,7 @@ describe('the sweep cannot spin (task f9ba26b3)', () => {
     await createVerifyEmailTasksForUnverifiedUsers()
 
     const requested = userFindMany.mock.calls.reduce(
-      (sum: number, [arg]: [{ take: number }]) => sum + arg.take,
+      (sum: number, call) => sum + (call[0] as { take: number }).take,
       0,
     )
     expect(requested).toBeLessThanOrEqual(MAX_VERIFY_EMAIL_USERS_PER_RUN)

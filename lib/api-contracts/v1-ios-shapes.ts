@@ -29,13 +29,11 @@
  *
  * It is enforced now, by two gates. `tsconfig.contract-tests.json` (the
  * `typecheck:contract-tests` script) covers this pin specifically, and
- * `tsconfig.test-tree.json` (`typecheck:tests`, AWTD-916) covers the test tree
- * by default while naming the files that still fail — 485 of 678 test files
- * today, and every new test file automatically. Both run in predeploy.
+ * `tsconfig.test-tree.json` (`typecheck:tests`, AWTD-916) covers the WHOLE
+ * test tree — every file, no exclusions. Both run in predeploy.
  *
- * So a new type-level pin is compiled the moment you write it, UNLESS its file
- * is on that exclusion list. The remaining backlog is 1318 errors across 193
- * files; the list only ever shrinks.
+ * So a new type-level pin is compiled the moment you write it, with no
+ * exception. AWTD-916 emptied what began as a 193-file exclusion list.
  *
  * Touching any of these shapes implies a coordinated iOS release. Don't
  * silence the tests; bump the iOS minimum version and ship the change in

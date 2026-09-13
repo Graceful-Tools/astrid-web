@@ -230,18 +230,12 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false, // A drifted contract pin is a decision, not a fix
     },
     {
-      // The rest of the test tree (AWTD-916), as a RATCHET: tsconfig.test-tree
-      // .json covers `tests/**` by default and enumerates the files that still
-      // fail, so 485 of 678 test files are gated today and every NEW test file
-      // is gated automatically.
+      // The rest of the test tree (AWTD-916). tsconfig.test-tree.json now
+      // covers `tests/**` with NO exclusions — this began as a ratchet around
+      // 1318 errors in 193 files, and that list is empty.
       //
-      // It is a ratchet because the whole tree reports 1318 errors across 193
-      // files — a cleanup pass nobody can land in one go, and the alternative
-      // to a ratchet was what we had before: no gate at all, under which a
-      // compile-time assertion silently stopped asserting.
-      //
-      // Progress is deleting lines from that config's exclude list. It only
-      // ever shrinks.
+      // A failure here is a test whose fixtures are not the shapes it claims.
+      // Fix the test; do not add an exclusion.
       name: 'Test Tree Types',
       command: 'npm run typecheck:tests',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,

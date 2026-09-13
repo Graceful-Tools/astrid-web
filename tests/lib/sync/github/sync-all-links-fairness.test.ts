@@ -65,7 +65,7 @@ const update = vi.fn(async ({ where, data }: any) => {
   return row
 })
 
-const githubTokenFor = vi.fn(async () => 'token')
+const githubTokenFor = vi.fn(async (): Promise<string | null> => 'token')
 const pullIssuesForLink = vi.fn(async () => ({ items: [], cursor: null, truncated: false }))
 const pushTasksForLink = vi.fn(async () => ({ pushed: 0, seeded: false }))
 

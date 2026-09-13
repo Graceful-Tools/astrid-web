@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { buildTask } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CommandPaletteDialog } from '@/components/command-palette-dialog'
@@ -167,22 +168,14 @@ describe('CommandPaletteDialog (8b622f2e)', () => {
   })
 
   it('enables task-dependent actions when task is selected', () => {
-    const mockTask = {
+    // An API-shaped literal (boardId/listIds/ISO stamps) passed where the
+    // component wants the client Task. (AWTD-916)
+    const mockTask = buildTask({
       id: 'task-1',
       title: 'Test task',
-      description: '',
-      boardId: 'board-1',
-      boardTitle: '',
-      listIds: [],
       assigneeId: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      completedAt: null,
-      dueDate: null,
       priority: 0,
-      comments: [],
-      lineage: [],
-    }
+    })
 
     render(
       <CommandPaletteDialog

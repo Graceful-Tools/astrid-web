@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
+import { buildTask } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import React from 'react'
@@ -48,7 +49,7 @@ describe('CommentSection - Pull to Refresh', () => {
       email: 'test@example.com',
     } as User
 
-    mockTask = {
+    mockTask = buildTask({
       id: 'task-1',
       title: 'Test Task',
       completed: false,
@@ -68,7 +69,7 @@ describe('CommentSection - Pull to Refresh', () => {
         },
       ],
       lists: [],
-    } as Task
+    })
 
     mockOnUpdate = vi.fn()
     mockOnRefreshComments = vi.fn().mockResolvedValue(undefined)
