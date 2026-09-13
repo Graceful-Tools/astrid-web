@@ -5,6 +5,11 @@ import { Prisma } from "@prisma/client"
 import { getAllListMembers, hasListAccess } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
 import { hydrateSingleListFavorite } from "@/lib/favorites"
+import {
+  hydrateSingleListViewPreferences,
+  saveListViewPreferences,
+  splitListViewPreferences,
+} from "@/lib/list-view-preferences"
 import type { RouteContextParams } from "@/types/next"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { createLogger } from '@/lib/logger'
@@ -147,8 +152,16 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       }
     }
 
+    // Seeding the shared arrangement from creation order is a FIRST-USE step,
+    // not something choosing manual sort should redo. `sortBy` is now per-user
+    // (task aa4e7eb0) while the arrangement stays shared, so without this guard
+    // one member picking "manual" would reset an order someone else arranged.
+    const existingManualOrder = existingList.manualSortOrder
+    const hasArrangement =
+      Array.isArray(existingManualOrder) && existingManualOrder.length > 0
+
     let manualSortOrderUpdate: string[] | undefined
-    if (data.sortBy === 'manual') {
+    if (data.sortBy === 'manual' && !hasArrangement) {
       const tasksInList = await prisma.task.findMany({
         where: {
           lists: {
@@ -200,16 +213,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       defaultIsPrivate: data.defaultIsPrivate,
       defaultDueDate: data.defaultDueDate,
       defaultDueTime: data.defaultDueTime,
-      // Filter settings
-      filterCompletion: data.filterCompletion,
+      // Sort and filters are NOT here: they belong to the caller, not the
+      // list, and are written to this user's own row below (task aa4e7eb0).
       recentlyCompletedWindow: data.recentlyCompletedWindow ?? null,
-      filterDueDate: data.filterDueDate,
-      filterAssignee: data.filterAssignee,
-      filterAssignedBy: data.filterAssignedBy,
-      filterRepeating: data.filterRepeating,
-      filterPriority: data.filterPriority,
-      filterInLists: data.filterInLists,
-      sortBy: data.sortBy,
       virtualListType: data.virtualListType,
       isVirtual: data.isVirtual,
       aiAstridEnabled: data.aiAstridEnabled,
@@ -230,7 +236,19 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
     const showSubtasks = normalizeShowSubtasks(data.showSubtasks)
     if (showSubtasks !== undefined) updateData.showSubtasks = showSubtasks
 
-    if (data.sortBy === 'manual' && manualSortOrderUpdate) {
+    // The caller's own view of this list. This is the route the web client PUTs
+    // its whole TaskList object to, so only keys actually present are written —
+    // an absent key must not clear a filter the client never knew about.
+    const { viewPreferences } = splitListViewPreferences(data)
+    if (Object.keys(viewPreferences).length > 0) {
+      await saveListViewPreferences({
+        userId: session.user.id,
+        listId,
+        preferences: viewPreferences,
+      })
+    }
+
+    if (manualSortOrderUpdate) {
       updateData.manualSortOrder = manualSortOrderUpdate as Prisma.JsonArray
     }
 
@@ -371,6 +389,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
     // Hydrate per-user favorite state for the calling user's response
     await hydrateSingleListFavorite(updatedListWithDefaultAssignee, session.user.id)
+    await hydrateSingleListViewPreferences(updatedListWithDefaultAssignee, session.user.id)
 
     // Track analytics event (fire-and-forget)
     trackEventFromRequest(request, session.user.id, AnalyticsEventType.LIST_EDITED, { listId })

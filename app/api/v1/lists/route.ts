@@ -14,6 +14,7 @@ import { getMultipleListTaskCounts } from '@/lib/task-count-utils'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateListFavorites } from '@/lib/favorites'
+import { hydrateListViewPreferences } from '@/lib/list-view-preferences'
 import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
@@ -88,6 +89,10 @@ export const GET = withAuth(
         )
 
     await hydrateListFavorites(lists, auth.userId)
+    // Sort/filters belong to the viewer, not the list (task aa4e7eb0).
+    // After the cache read, like favorites: the cached payload is the shared
+    // row, so merging before caching would serve one user's view to another.
+    await hydrateListViewPreferences(lists, auth.userId)
 
     const listIds = lists.map(list => list.id)
     const taskCounts = await getMultipleListTaskCounts(listIds, { includeCompleted: false })

@@ -12,6 +12,11 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { hydrateSingleListFavorite, toggleFavorite } from '@/lib/favorites'
+import {
+  hydrateSingleListViewPreferences,
+  saveListViewPreferences,
+  splitListViewPreferences,
+} from '@/lib/list-view-preferences'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
@@ -85,6 +90,7 @@ export const GET = withAuth<RouteContext>(
     }
 
     await hydrateSingleListFavorite(list, auth.userId)
+    await hydrateSingleListViewPreferences(list, auth.userId)
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -290,16 +296,19 @@ export const PUT = withAuth<RouteContext>(
       await toggleFavorite(auth.userId, id, body.isFavorite)
     }
 
-    // Filter fields — allowed for any member
-    if (body.sortBy !== undefined) updateData.sortBy = body.sortBy
+    // The hand-arranged order stays on the shared row: people arrange a shared
+    // list together. Only the decision to sort BY it is personal, so `sortBy`
+    // is a view preference below and this is not. (Jon, 2026-09-13.)
     if (body.manualSortOrder !== undefined) updateData.manualSortOrder = body.manualSortOrder
-    if (body.filterPriority !== undefined) updateData.filterPriority = body.filterPriority
-    if (body.filterAssignee !== undefined) updateData.filterAssignee = body.filterAssignee
-    if (body.filterDueDate !== undefined) updateData.filterDueDate = body.filterDueDate
-    if (body.filterCompletion !== undefined) updateData.filterCompletion = body.filterCompletion
-    if (body.filterRepeating !== undefined) updateData.filterRepeating = body.filterRepeating
-    if (body.filterAssignedBy !== undefined) updateData.filterAssignedBy = body.filterAssignedBy
-    if (body.filterInLists !== undefined) updateData.filterInLists = body.filterInLists
+
+    // Sort and filters are the CALLER'S, not the list's — they go to this
+    // user's own row rather than the shared column, which is what stops one
+    // member's filter changing everyone's view (task aa4e7eb0). Allowed for any
+    // member, as before: it is their own view they are changing.
+    const { viewPreferences } = splitListViewPreferences(body)
+    if (Object.keys(viewPreferences).length > 0) {
+      await saveListViewPreferences({ userId: auth.userId, listId: id, preferences: viewPreferences })
+    }
 
     let list
     try {
@@ -335,6 +344,7 @@ export const PUT = withAuth<RouteContext>(
     }
 
     await hydrateSingleListFavorite(list, auth.userId)
+    await hydrateSingleListViewPreferences(list, auth.userId)
 
     // If this PUT attached/detached the list to a project (board sub-task #3),
     // project members gain or lose access to it — evict their cached list sets

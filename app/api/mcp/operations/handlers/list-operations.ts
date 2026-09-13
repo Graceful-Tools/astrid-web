@@ -7,6 +7,12 @@ import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { hydrateListFavorites, hydrateSingleListFavorite, toggleFavorite } from "@/lib/favorites"
+import {
+  hydrateListViewPreferences,
+  hydrateSingleListViewPreferences,
+  saveListViewPreferences,
+  splitListViewPreferences,
+} from "@/lib/list-view-preferences"
 import { createLogger } from '@/lib/logger'
 import {
   createListWithImageOwnership,
@@ -66,6 +72,8 @@ export async function getSharedLists(accessToken: string, userId: string) {
 
   // Hydrate per-user favorite state
   await hydrateListFavorites(lists, mcpToken.userId)
+  // Sort/filters belong to the viewer, not the list (task aa4e7eb0).
+  await hydrateListViewPreferences(lists, mcpToken.userId)
 
   return {
     lists: lists.map((list) => ({
@@ -292,16 +300,11 @@ export async function updateList(accessToken: string, listId: string, updates: a
       // Virtual list (saved filter) settings
       ...(updates.isVirtual !== undefined && { isVirtual: updates.isVirtual }),
       ...(updates.virtualListType !== undefined && { virtualListType: updates.virtualListType }),
-      // Sort and filter settings
-      ...(updates.sortBy !== undefined && { sortBy: updates.sortBy }),
+      // The arrangement is shared; the sort choice and the filters are the
+      // caller's and are written to its own row after this update
+      // (task aa4e7eb0). An MCP caller is a principal like any other — for an
+      // AI agent this is exactly what gives it its own saved filter.
       ...(updates.manualSortOrder !== undefined && { manualSortOrder: updates.manualSortOrder }),
-      ...(updates.filterPriority !== undefined && { filterPriority: updates.filterPriority }),
-      ...(updates.filterAssignee !== undefined && { filterAssignee: updates.filterAssignee }),
-      ...(updates.filterDueDate !== undefined && { filterDueDate: updates.filterDueDate }),
-      ...(updates.filterCompletion !== undefined && { filterCompletion: updates.filterCompletion }),
-      ...(updates.filterRepeating !== undefined && { filterRepeating: updates.filterRepeating }),
-      ...(updates.filterAssignedBy !== undefined && { filterAssignedBy: updates.filterAssignedBy }),
-      ...(updates.filterInLists !== undefined && { filterInLists: updates.filterInLists }),
       // Default task settings
       ...(updates.defaultPriority !== undefined && { defaultPriority: updates.defaultPriority }),
       ...(updates.defaultDueDate !== undefined && { defaultDueDate: updates.defaultDueDate }),
@@ -335,7 +338,17 @@ export async function updateList(accessToken: string, listId: string, updates: a
   })
 
   // Hydrate per-user favorite state
+  const { viewPreferences } = splitListViewPreferences(updates as Record<string, unknown>)
+  if (Object.keys(viewPreferences).length > 0) {
+    await saveListViewPreferences({
+      userId: mcpToken.userId,
+      listId: updatedList.id,
+      preferences: viewPreferences,
+    })
+  }
+
   await hydrateSingleListFavorite(updatedList, mcpToken.userId)
+  await hydrateSingleListViewPreferences(updatedList, mcpToken.userId)
 
   return {
     success: true,

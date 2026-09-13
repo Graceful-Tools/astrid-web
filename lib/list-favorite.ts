@@ -11,6 +11,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { toggleFavorite, hydrateSingleListFavorite } from '@/lib/favorites'
+import { hydrateSingleListViewPreferences } from '@/lib/list-view-preferences'
 
 /** `defaultAssigneeId` may hold this sentinel instead of a user id. */
 const UNASSIGNED = 'unassigned'
@@ -65,6 +66,7 @@ export async function setListFavorite(args: {
 
   const updatedListWithDefaultAssignee = { ...updatedList, defaultAssignee }
   await hydrateSingleListFavorite(updatedListWithDefaultAssignee, userId)
+  await hydrateSingleListViewPreferences(updatedListWithDefaultAssignee, userId)
 
   return { ok: true, list: updatedListWithDefaultAssignee, isFavorite }
 }

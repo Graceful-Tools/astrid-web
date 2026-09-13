@@ -11,6 +11,7 @@ import { getListMemberIds } from "@/lib/list-member-utils"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
 import { hydrateListFavorites } from "@/lib/favorites"
+import { hydrateListViewPreferences } from "@/lib/list-view-preferences"
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import {
@@ -111,6 +112,8 @@ export async function GET(request: NextRequest) {
 
     // Hydrate per-user favorite state
     await hydrateListFavorites(lists, session.user.id)
+    // Sort/filters belong to the viewer, not the list (task aa4e7eb0).
+    await hydrateListViewPreferences(lists, session.user.id)
 
     // Sort: favorites first by order, then non-favorites by createdAt desc
     lists.sort((a: any, b: any) => {

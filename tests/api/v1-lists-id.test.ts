@@ -16,6 +16,11 @@ vi.mock('@/lib/prisma', () => ({
     listMember: {
       findFirst: vi.fn(),
     },
+    userListViewPreference: {
+      upsert: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
     $transaction: vi.fn(),
     $queryRaw: vi.fn(),
   },
@@ -219,7 +224,7 @@ describe('PUT /api/v1/lists/:id', () => {
     expect(updateCall.data.projectId).toBeUndefined()
   })
 
-  it('non-admin member cannot update content fields, but filter fields go through', async () => {
+  it('non-admin member cannot update content fields, but their own sort goes through', async () => {
     mockAuth.mockResolvedValue(memberAuth as any)
     ;(mockPrisma.taskList.findFirst as any).mockResolvedValue({ ...baseList, ownerId: 'someone-else' })
     ;(mockPrisma.listMember.findFirst as any).mockResolvedValue(null) // not admin
@@ -231,7 +236,32 @@ describe('PUT /api/v1/lists/:id', () => {
     expect(res.status).toBe(200)
     const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
     expect(updateCall.data.name).toBeUndefined()
-    expect(updateCall.data.sortBy).toBe('priority')
+
+    // `sortBy` lands on this member's OWN row, not the shared list — same shape
+    // as isFavorite below. A member may still change their own view of a list
+    // they cannot administer; they just no longer change everyone's
+    // (task aa4e7eb0).
+    expect(updateCall.data.sortBy).toBeUndefined()
+    expect(mockPrisma.userListViewPreference.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId_listId: { userId: 'member-1', listId: 'list-1' } },
+        update: { sortBy: 'priority' },
+      })
+    )
+  })
+
+  it('a filter written by one member does not touch the shared list row', async () => {
+    // The bug this task fixes, at the route: two people on a shared list were
+    // writing the same column, so whoever saved last decided what the other saw.
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+
+    await PUT(makeReq('PUT', { filterCompletion: 'hide' }), { params } as any)
+
+    const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
+    expect(updateCall.data.filterCompletion).toBeUndefined()
+    expect(mockPrisma.userListViewPreference.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: { filterCompletion: 'hide' } })
+    )
   })
 
   it('isFavorite goes through toggleFavorite, not the TaskList row', async () => {
