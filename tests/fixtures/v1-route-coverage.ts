@@ -14,6 +14,7 @@ export const V1_ROUTE_FAMILY_COVERAGE = {
   agent: { mode: 'direct', tests: ['tests/api/ai-agent-assignment.test.ts'] },
   'agent-icon': { mode: 'direct', tests: ['tests/api/agent-icon.test.ts'] },
   'agent-queue': { mode: 'shared-domain', tests: ['tests/lib/agent-queue.test.ts'] },
+  'app-version': { mode: 'direct', tests: ['tests/api/v1-app-version.test.ts'] },
   auth: { mode: 'direct', tests: ['tests/api/v1-auth-capability-gate.test.ts'] },
   capabilities: { mode: 'shared-domain', tests: ['tests/lib/capabilities.test.ts'] },
   chat: { mode: 'direct', tests: ['tests/api/v1-chat-message-attachments.test.ts'] },

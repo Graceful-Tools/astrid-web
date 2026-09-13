@@ -262,6 +262,22 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false,
     },
     {
+      // The STATIC half of the risk gate: every top-level v1 route family has a
+      // coverage decision, the manifests point at files that exist, and no test
+      // is skipped indefinitely. Seconds, because it globs and parses rather
+      // than running anything.
+      //
+      // It lives here because it used to run ONLY in CI, inside
+      // `test:risk-coverage` alongside a full coverage run. So adding a v1
+      // route family without triaging it left predeploy green and turned the
+      // E2E workflow red afterwards — which is how `app-version` shipped
+      // untriaged. The expensive coverage half stays in CI.
+      name: 'Risk Controls',
+      command: 'npm run check:risk-controls',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false, // Triaging a new route family is a decision, not a fix
+    },
+    {
       name: 'API Breaking Changes',
       command: 'npm run check:api-breaking',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
