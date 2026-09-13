@@ -1,4 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import type { Task } from '@/types/task'
+import { buildTask } from '../fixtures/domain'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { TaskManagerView } from '@/components/TaskManagerView'
 
@@ -73,9 +75,27 @@ describe('TaskManagerView', () => {
     availableUsers: [],
     isSessionReady: true,
     effectiveSession: { user: { id: 'user-1', name: 'Test User' } },
+    // The whole useFilterState return, not just setSearch: the other nine
+    // members are required and were never supplied (AWTD-916).
     newFilterState: {
-      filters: { search: '', completed: 'incomplete', priority: [], assignee: [], dueDate: 'all', sortBy: 'auto' },
-      setSearch: vi.fn()
+      filters: {
+        search: '',
+        completed: 'incomplete' as const,
+        priority: [] as number[],
+        assignee: [] as string[],
+        dueDate: 'all' as const,
+        sortBy: 'auto' as const,
+      },
+      hasActiveFilters: false,
+      setSearch: vi.fn(),
+      setCompleted: vi.fn(),
+      setPriority: vi.fn(),
+      setAssignee: vi.fn(),
+      setDueDate: vi.fn(),
+      setSortBy: vi.fn(),
+      clearAllFilters: vi.fn(),
+      applyFiltersToTasks: vi.fn((tasks: Task[]) => tasks),
+      isMyTasks: false,
     },
 
     // Task panel animation
@@ -109,8 +129,8 @@ describe('TaskManagerView', () => {
     isMobileTaskDetailClosing: false,
     isMobileTaskDetailOpen: false,
     taskDetailDragOffset: 0,
-    layoutType: 'three-column' as const,
-    columnCount: 3,
+    layoutType: 'computer-3-column' as const,
+    columnCount: 3 as const,
     is1Column: false,
     is2Column: false,
     is3Column: true,
@@ -230,6 +250,70 @@ describe('TaskManagerView', () => {
       onTouchMove: vi.fn(),
       onTouchEnd: vi.fn(),
     },
+
+    // ---------------------------------------------------------------------
+    // Required by TaskManagerViewModel and never supplied (AWTD-916). The
+    // suite renders TaskManagerView as a pure controlled component, so every
+    // one of these is a prop the real caller passes and the test did not.
+    // ---------------------------------------------------------------------
+
+    // Public lists
+    publicLists: [],
+    collaborativePublicLists: [],
+    suggestedPublicLists: [],
+    isViewingFromFeatured: false,
+
+    // Settings / search navigation
+    activeView: 'list' as const,
+    settingsPage: null,
+    isSettingsActive: false,
+    settingsSubPage: null,
+    isSearchActive: false,
+    onNavigateSettings: vi.fn(),
+    onExitSettings: vi.fn(),
+    onCloseSettingsSubPage: vi.fn(),
+    onSelectSearch: vi.fn(),
+    onExitSearch: vi.fn(),
+
+    // Swipe
+    swipeHandlers: {
+      onTouchStart: vi.fn(),
+      onTouchMove: vi.fn(),
+      onTouchEnd: vi.fn(),
+    },
+    sidebarSwipeToDismiss: {
+      onTouchStart: vi.fn(),
+      onTouchMove: vi.fn(),
+      onTouchEnd: vi.fn(),
+    },
+    taskDetailSwipeToDismiss: {
+      onTouchStart: vi.fn(),
+      onTouchMove: vi.fn(),
+      onTouchEnd: vi.fn(),
+    },
+
+    // Display mode
+    taskDisplayMode: 'list' as const,
+    handleToggleListFavorite: vi.fn(),
+
+    // Drag and manual sort
+    handleTaskDragHover: vi.fn(),
+    handleTaskDragLeaveTask: vi.fn(),
+    handleTaskDragHoverEnd: vi.fn(),
+    dragTargetTaskId: null,
+    dragTargetPosition: null,
+    manualSortActive: false,
+    manualSortPreviewActive: false,
+    promoteTargetVisible: false,
+    handleTaskDropOnPromoteTarget: vi.fn(),
+    handleOutdentTask: vi.fn(),
+    handleIndentTask: vi.fn(),
+
+    // Chat panel
+    activePanel: 'tasks' as const,
+    setActivePanel: vi.fn(),
+    chatChannelId: null,
+    chatListMembers: [],
   }
 
   beforeEach(() => {
@@ -283,7 +367,7 @@ describe('TaskManagerView', () => {
           is1Column
           is2Column={false}
           is3Column={false}
-          layoutType="one-column"
+          layoutType="computer-1-column"
           showHotkeyMenu={false}
         />,
       )
@@ -404,7 +488,7 @@ describe('TaskManagerView', () => {
     it('should be framework agnostic in terms of business logic', () => {
       // The component should work with any data structure passed as props
       const customTasks = [
-        { id: '1', title: 'Custom Task', completed: false }
+        buildTask({ id: '1', title: 'Custom Task', completed: false }),
       ]
 
       render(<TaskManagerView {...mockProps} tasks={customTasks} />)

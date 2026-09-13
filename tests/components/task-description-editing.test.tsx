@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTask } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskFieldEditors } from '@/components/task-detail/TaskFieldEditors'
@@ -25,21 +26,16 @@ describe('Task Description Editing', () => {
     createdAt: new Date()
   }
 
-  const mockTask: Task = {
+  // `when` is `Date | undefined`, never null (AWTD-916).
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: 'Original description',
     priority: 1,
-    completed: false,
-    lists: [],
     creatorId: 'user-1',
     assigneeId: null,
     assignee: null,
-    when: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    repeating: 'never'
-  }
+  })
 
   const mockOnUpdate = vi.fn()
   const mockOnInviteUser = vi.fn()
@@ -94,7 +90,9 @@ describe('Task Description Editing', () => {
     listSearchRef: { current: null },
     listInputRef: { current: null },
     tempAssignee: null,
-    setTempAssignee: vi.fn()
+    setTempAssignee: vi.fn(),
+    // Required by TaskFieldEditorsProps and never passed (AWTD-916).
+    setLastRepeatingUpdate: vi.fn(),
   }
 
   beforeEach(() => {
@@ -267,7 +265,11 @@ describe('Task Description Editing', () => {
           editingDescription={false}
           task={{
             ...mockTask,
-            description: null
+            // '' , not null: the column is `String @default("")`, so an empty
+            // description is the empty string and null never reaches here.
+            // The test named the right behaviour and fed it an unreachable
+            // value (AWTD-916).
+            description: '',
           }}
         />
       )
