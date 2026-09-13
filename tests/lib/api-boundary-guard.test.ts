@@ -75,4 +75,103 @@ describe('internal API boundary guard (task d59a8024)', () => {
       }),
     ])
   })
+
+  /**
+   * Task aa5a35f0. The apps call `/api/v1/...` only (ASTRID.md rule 5), so
+   * adding a v1 twin of a legacy route is routine and correct work — and the
+   * right way to do it is a shared rule in `lib/` with each route keeping just
+   * its own auth and envelope (lib/list-leave.ts, task e0613ae5).
+   *
+   * The guard used to flag that on the path alone, which meant the correct
+   * answer needed an exemption entry — the failure mode
+   * lib/api-boundary-exemptions.ts warns about at its head.
+   */
+  describe('a legacy/v1 pair that shares one implementation', () => {
+    const pair = (legacy: string, v1: string): ApiBoundaryChanges => ({
+      addedLines: [],
+      addedFiles: ['app/api/v1/widgets/[id]/route.ts'],
+      existingFiles: new Set([
+        'app/api/widgets/[id]/route.ts',
+        'app/api/v1/widgets/[id]/route.ts',
+      ]),
+      readFile: file =>
+        file === 'app/api/widgets/[id]/route.ts'
+          ? legacy
+          : file === 'app/api/v1/widgets/[id]/route.ts'
+            ? v1
+            : null,
+    })
+
+    const DELEGATING_LEGACY = `
+      import { getUnifiedSession } from "@/lib/session-utils"
+      import { updateWidget } from "@/lib/widget-update"
+      export async function POST() { return updateWidget({}) }
+    `
+    const DELEGATING_V1 = `
+      import { withAuth } from '@/lib/api-auth-wrapper'
+      import { updateWidget } from '@/lib/widget-update'
+      export const POST = withAuth({}, async () => updateWidget({}))
+    `
+
+    it('is not a duplicate: both delegate to the same lib', () => {
+      const changes = pair(DELEGATING_LEGACY, DELEGATING_V1)
+
+      expect(findAddedApiBoundaryViolations(changes, [])).toEqual([])
+    })
+
+    it('is still a duplicate when one route keeps its own database logic', () => {
+      // Importing the shared module is not enough. A handler that still runs
+      // its own queries owns a second implementation whatever else it imports,
+      // and that is exactly the drift this guard is for.
+      const changes = pair(
+        `
+          import { getUnifiedSession } from "@/lib/session-utils"
+          import { updateWidget } from "@/lib/widget-update"
+          import { prisma } from "@/lib/prisma"
+          export async function POST() {
+            await prisma.widget.update({ where: { id: '1' }, data: {} })
+          }
+        `,
+        DELEGATING_V1
+      )
+
+      expect(findAddedApiBoundaryViolations(changes, [])).toEqual([
+        expect.objectContaining({ kind: 'duplicate-route' }),
+      ])
+    })
+
+    it('is still a duplicate when the only shared imports are infrastructure', () => {
+      // Every route imports the logger and the auth wrapper. If those counted,
+      // the check would pass for any pair of routes in the repo.
+      const changes = pair(
+        `
+          import { getUnifiedSession } from "@/lib/session-utils"
+          import { createLogger } from '@/lib/logger'
+          export async function POST() { return null }
+        `,
+        `
+          import { withAuth } from '@/lib/api-auth-wrapper'
+          import { createLogger } from '@/lib/logger'
+          export const POST = withAuth({}, async () => null)
+        `
+      )
+
+      expect(findAddedApiBoundaryViolations(changes, [])).toEqual([
+        expect.objectContaining({ kind: 'duplicate-route' }),
+      ])
+    })
+
+    it('reports the duplicate when a source cannot be read', () => {
+      // Only positive evidence clears a violation; an unreadable counterpart
+      // must not read as "shared".
+      const changes: ApiBoundaryChanges = {
+        ...pair(DELEGATING_LEGACY, DELEGATING_V1),
+        readFile: () => null,
+      }
+
+      expect(findAddedApiBoundaryViolations(changes, [])).toEqual([
+        expect.objectContaining({ kind: 'duplicate-route' }),
+      ])
+    })
+  })
 })

@@ -8,6 +8,13 @@ export interface ApiBoundaryChanges {
   addedLines: AddedSourceLine[]
   addedFiles: string[]
   existingFiles?: ReadonlySet<string>
+  /**
+   * Reads a repo file, or returns null when it cannot be read. Supplied by the
+   * caller so this module stays a pure function of its input; the duplicate
+   * route check needs both routes' sources to tell a shared implementation
+   * from two copies of one.
+   */
+  readFile?: (file: string) => string | null
 }
 
 export type ApiBoundaryExemption =
@@ -103,6 +110,85 @@ function duplicateCounterpart(file: string): string | null {
     return file.replace('app/api/v1/', 'app/api/')
   }
   return file.replace('app/api/', 'app/api/v1/')
+}
+
+/**
+ * Modules essentially every route imports: auth, logging, the Prisma client,
+ * the cache, the typed client. Two routes both importing these have shown
+ * nothing — so they never count as a shared implementation, or the check below
+ * would pass for any pair of routes at all.
+ */
+const ROUTE_INFRASTRUCTURE_MODULES: ReadonlySet<string> = new Set([
+  '@/lib/api',
+  '@/lib/api-auth-middleware',
+  '@/lib/api-auth-wrapper',
+  '@/lib/logger',
+  '@/lib/prisma',
+  '@/lib/redis',
+  '@/lib/session-utils',
+])
+
+/** `@/lib/...` modules a source file imports. */
+function importedLibModules(source: string): Set<string> {
+  const modules = new Set<string>()
+  for (const match of source.matchAll(/from\s+['"](@\/lib\/[^'"]+)['"]/g)) {
+    modules.add(match[1])
+  }
+  return modules
+}
+
+/**
+ * Direct database access — the thing a delegating handler must no longer
+ * contain. Scoped to Prisma on purpose: the queries and the transaction ARE the
+ * implementation, whereas a route that merely invalidates a cache key is still
+ * delegating the rule.
+ */
+const DIRECT_DATA_ACCESS = /\b(?:prisma|tx)\s*\.\s*\w/
+
+/**
+ * True when a legacy/v1 route pair genuinely shares one implementation rather
+ * than holding two copies of it.
+ *
+ * The check is deliberately two-sided, because either half alone is cheap to
+ * satisfy while still leaving the duplication this guard exists to catch:
+ *
+ * 1. **Both import a common `@/lib/` module** that is not infrastructure — the
+ *    shared rule itself, e.g. both `leave` routes importing `@/lib/list-leave`.
+ * 2. **Neither reaches the database directly.** A handler that still calls
+ *    `prisma.` owns logic, whatever else it also imports, and two handlers that
+ *    both own logic are two implementations no matter how much they share.
+ *
+ * What is left in each route is then only what genuinely differs: legacy's
+ * session auth and bare response, v1's OAuth scopes and `meta` envelope. That
+ * is the arrangement this repo settled on in task e0613ae5 and it is the
+ * arrangement the guard's message asks for, so the guard should recognise it.
+ *
+ * Without this, adding the v1 twin the iOS and Mac apps require (ASTRID.md rule
+ * 5) meant an exemption entry for writing the CORRECT code — the exact failure
+ * mode lib/api-boundary-exemptions.ts documents at its head, where an exemption
+ * list that blesses right answers stops being read. (Tasks 359ca48f, aa5a35f0.)
+ *
+ * Unreadable sources fall back to reporting the duplicate: this is allowed to
+ * clear a violation only on positive evidence.
+ */
+function sharesImplementation(
+  file: string,
+  counterpart: string,
+  readFile: ApiBoundaryChanges['readFile']
+): boolean {
+  if (!readFile) return false
+  const source = readFile(file)
+  const counterpartSource = readFile(counterpart)
+  if (!source || !counterpartSource) return false
+
+  if (DIRECT_DATA_ACCESS.test(source) || DIRECT_DATA_ACCESS.test(counterpartSource)) {
+    return false
+  }
+
+  const counterpartModules = importedLibModules(counterpartSource)
+  return [...importedLibModules(source)].some(
+    module => counterpartModules.has(module) && !ROUTE_INFRASTRUCTURE_MODULES.has(module)
+  )
 }
 
 function isExempt(
@@ -209,6 +295,7 @@ export function findAddedApiBoundaryViolations(
   for (const file of changes.addedFiles) {
     const counterpart = duplicateCounterpart(file)
     if (!counterpart || !existingFiles.has(counterpart)) continue
+    if (sharesImplementation(file, counterpart, changes.readFile)) continue
     const violation: ApiBoundaryViolation = {
       kind: 'duplicate-route',
       file,

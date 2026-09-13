@@ -66,7 +66,18 @@ for (const file of untracked) {
 const allAddedFiles = [...new Set([...addedFiles, ...untracked])]
 const existingFiles = new Set(git(['ls-files', '--cached', '--others', '--exclude-standard']).split('\n'))
 const violations = findAddedApiBoundaryViolations(
-  { addedLines, addedFiles: allAddedFiles, existingFiles },
+  {
+    addedLines,
+    addedFiles: allAddedFiles,
+    existingFiles,
+    readFile: file => {
+      try {
+        return readFileSync(file, 'utf8')
+      } catch {
+        return null
+      }
+    },
+  },
   API_BOUNDARY_EXEMPTIONS,
 )
 

@@ -1,342 +1,254 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/lists/[id]/transfer-ownership/route'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+/**
+ * Ownership transfer, through BOTH doors — task aa5a35f0.
+ *
+ * `POST /api/lists/:id/transfer-ownership` and `POST
+ * /api/v1/lists/:id/transfer-ownership` are two handlers over one rule
+ * (lib/list-ownership-transfer.ts). Each owns only what genuinely differs:
+ * legacy has session auth and a bare response, v1 has OAuth scopes and a `meta`
+ * envelope.
+ *
+ * Every behavioural case below therefore runs through BOTH routes against the
+ * same mocked database, and asserts the same end state — so a future change to
+ * one path cannot silently skip the other. That is the whole point of the
+ * refactor: the legacy handler used to own its own copy, inlining its owner
+ * check as `existingList.ownerId !== session.user.id` rather than going through
+ * lib/list-permissions.ts (CLAUDE.md rule 6), and hand-rolling the membership
+ * deletes.
+ *
+ * This file used to assert the legacy route's internal Prisma call sequence.
+ * Those assertions moved to tests/lib/list-ownership-transfer.test.ts, where
+ * the rule now lives; what belongs here is that both routes agree.
+ */
 
-// Mock dependencies
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    taskList: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
-    listMember: {
-      findFirst: vi.fn(),
-      delete: vi.fn(),
-    },
+    taskList: { findUnique: vi.fn() },
+    listMember: { findFirst: vi.fn() },
     $transaction: vi.fn(),
   },
 }))
 
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
+vi.mock('@/lib/redis', () => ({
+  RedisCache: { invalidate: { userListsAllVersions: vi.fn() } },
 }))
 
-const mockPrisma = prisma as any
-const mockGetServerSession = getServerSession as any
+vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn() }))
 
-const mockOwnerSession = {
-  user: {
-    id: 'owner-id',
-    email: 'owner@example.com',
-    name: 'List Owner',
-  },
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(),
+    requireScopes: vi.fn(),
+    UnauthorizedError,
+    ForbiddenError,
+    getDeprecationWarning: vi.fn(() => null),
+  }
+})
+
+import { POST as legacyPOST } from '@/app/api/lists/[id]/transfer-ownership/route'
+import { POST as v1POST } from '@/app/api/v1/lists/[id]/transfer-ownership/route'
+import { prisma } from '@/lib/prisma'
+import { RedisCache } from '@/lib/redis'
+import { getUnifiedSession } from '@/lib/session-utils'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
+
+const mockPrisma = vi.mocked(prisma, true)
+const mockRedis = vi.mocked(RedisCache, true)
+const mockSession = vi.mocked(getUnifiedSession)
+const mockApiAuth = vi.mocked(authenticateAPI)
+
+const OWNER = 'owner-id'
+const NEW_OWNER = 'new-owner-id'
+const LIST = { id: 'list-1', ownerId: OWNER }
+
+type MockTx = {
+  taskList: { update: ReturnType<typeof vi.fn> }
+  listMember: { deleteMany: ReturnType<typeof vi.fn> }
 }
 
-const mockList = {
-  id: 'list-1',
-  ownerId: 'owner-id',
+let tx: MockTx
+
+/** Drives one route, hiding only the auth plumbing that differs between them. */
+const DOORS = {
+  legacy: (body?: unknown) =>
+    legacyPOST(makeReq('http://localhost/api/lists/list-1/transfer-ownership', body), {
+      params: Promise.resolve({ id: 'list-1' }),
+    } as never),
+  v1: (body?: unknown) =>
+    v1POST(makeReq('http://localhost/api/v1/lists/list-1/transfer-ownership', body), {
+      params: Promise.resolve({ id: 'list-1' }),
+    } as never),
+} as const
+
+function makeReq(url: string, body?: unknown): NextRequest {
+  return new NextRequest(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  })
 }
 
-const mockNewOwnerMember = {
-  id: 'member-1',
-  userId: 'new-owner-id',
-  listId: 'list-1',
-  role: 'admin',
-}
-
-const mockOldOwnerMembership = {
-  id: 'member-2',
-  userId: 'owner-id',
-  listId: 'list-1',
-  role: 'admin',
+/** Signs in `userId` on BOTH auth mechanisms, so either door can be driven. */
+function signIn(userId: string) {
+  mockSession.mockResolvedValue({
+    user: { id: userId, email: `${userId}@example.com`, name: userId },
+  } as never)
+  mockApiAuth.mockResolvedValue({
+    userId,
+    source: 'oauth' as const,
+    scopes: ['lists:read', 'lists:write', 'lists:manage_members'],
+    isAIAgent: false,
+    user: { id: userId, email: `${userId}@example.com`, name: userId, isAIAgent: false },
+  } as never)
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockGetServerSession.mockResolvedValue(mockOwnerSession)
+  signIn(OWNER)
+  mockPrisma.taskList.findUnique.mockResolvedValue({ ...LIST } as never)
+  mockPrisma.listMember.findFirst.mockResolvedValue({
+    id: 'member-1',
+    listId: 'list-1',
+    userId: NEW_OWNER,
+    role: 'admin',
+  } as never)
+  mockRedis.invalidate.userListsAllVersions.mockResolvedValue(undefined as never)
+
+  tx = {
+    taskList: { update: vi.fn() },
+    listMember: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
+  }
+  mockPrisma.$transaction.mockImplementation((async (cb: (t: MockTx) => unknown) => cb(tx)) as never)
 })
 
-describe('POST /api/lists/[id]/transfer-ownership', () => {
-  it('successfully transfers ownership and removes old owner from all access paths', async () => {
-    // Setup mocks
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockPrisma.listMember.findFirst
-      .mockResolvedValueOnce(mockNewOwnerMember) // New owner member check
-      .mockResolvedValueOnce(mockOldOwnerMembership) // Old owner membership check
-    
-    // Mock the transaction
-    const mockTx = {
-      taskList: {
-        update: vi.fn(),
-      },
-      listMember: {
-        delete: vi.fn(),
-        findFirst: vi.fn().mockResolvedValue(mockOldOwnerMembership),
-      },
-    }
-    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
-      return callback(mockTx)
-    }) as never)
+describe.each(Object.keys(DOORS) as Array<keyof typeof DOORS>)(
+  'POST transfer-ownership — %s route (task aa5a35f0)',
+  door => {
+    const post = (body?: unknown) => DOORS[door](body)
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
+    it('transfers ownership and removes both membership rows in one transaction', async () => {
+      const res = await post({ newOwnerId: NEW_OWNER })
 
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(data.message).toBe('Ownership transferred successfully')
-
-    // Verify transaction was called
-    expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
-
-    // Verify all operations within the transaction
-    // 1. Transfer ownership (single update to change ownerId)
-    expect(mockTx.taskList.update).toHaveBeenCalledTimes(1)
-    expect(mockTx.taskList.update).toHaveBeenCalledWith({
-      where: { id: 'list-1' },
-      data: { ownerId: 'new-owner-id' },
+      expect(res.status).toBe(200)
+      expect((await res.json()).message).toBe('Ownership transferred successfully')
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
+      expect(tx.taskList.update).toHaveBeenCalledWith({
+        where: { id: 'list-1' },
+        data: { ownerId: NEW_OWNER },
+      })
+      expect(tx.listMember.deleteMany).toHaveBeenCalledWith({
+        where: { listId: 'list-1', userId: { in: [NEW_OWNER, OWNER] } },
+      })
     })
 
-    // 2. Remove new owner from listMembers (since they're now the owner)
-    expect(mockTx.listMember.delete).toHaveBeenNthCalledWith(1, {
-      where: { id: mockNewOwnerMember.id },
+    it('invalidates the lists cache for both the old and the new owner', async () => {
+      await post({ newOwnerId: NEW_OWNER })
+
+      expect(mockRedis.invalidate.userListsAllVersions).toHaveBeenCalledWith(OWNER)
+      expect(mockRedis.invalidate.userListsAllVersions).toHaveBeenCalledWith(NEW_OWNER)
     })
 
-    // 3. Remove old owner from listMembers
-    expect(mockTx.listMember.delete).toHaveBeenNthCalledWith(2, {
-      where: { id: mockOldOwnerMembership.id },
+    it('400s a missing newOwnerId', async () => {
+      const res = await post({})
+
+      expect(res.status).toBe(400)
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled()
     })
+
+    it('404s a list that does not exist', async () => {
+      mockPrisma.taskList.findUnique.mockResolvedValue(null as never)
+
+      const res = await post({ newOwnerId: NEW_OWNER })
+
+      expect(res.status).toBe(404)
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled()
+    })
+
+    it('403s a caller who is not the owner', async () => {
+      signIn('not-the-owner')
+
+      const res = await post({ newOwnerId: NEW_OWNER })
+
+      expect(res.status).toBe(403)
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled()
+    })
+
+    it('400s a successor who is not already a member', async () => {
+      mockPrisma.listMember.findFirst.mockResolvedValue(null as never)
+
+      const res = await post({ newOwnerId: 'stranger-id' })
+
+      expect(res.status).toBe(400)
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled()
+    })
+
+    it('transfers to a plain member, not only to an admin', async () => {
+      mockPrisma.listMember.findFirst.mockResolvedValue({
+        id: 'member-9',
+        listId: 'list-1',
+        userId: NEW_OWNER,
+        role: 'member',
+      } as never)
+
+      const res = await post({ newOwnerId: NEW_OWNER })
+
+      expect(res.status).toBe(200)
+      expect(tx.taskList.update).toHaveBeenCalledWith({
+        where: { id: 'list-1' },
+        data: { ownerId: NEW_OWNER },
+      })
+    })
+
+    it('500s when the transaction fails, rather than reporting a transfer that did not happen', async () => {
+      mockPrisma.$transaction.mockRejectedValue(new Error('db down') as never)
+
+      const res = await post({ newOwnerId: NEW_OWNER })
+
+      expect(res.status).toBe(500)
+      expect(mockRedis.invalidate.userListsAllVersions).not.toHaveBeenCalled()
+    })
+
+    it('answers a transfer-to-self with 200 and writes nothing', async () => {
+      mockPrisma.listMember.findFirst.mockResolvedValue({
+        id: 'member-1',
+        listId: 'list-1',
+        userId: OWNER,
+        role: 'admin',
+      } as never)
+
+      const res = await post({ newOwnerId: OWNER })
+
+      // 200 is the long-standing contract here, and it is the right answer —
+      // you do own the list. What used to happen underneath was not: it deleted
+      // the owner's own membership row.
+      expect(res.status).toBe(200)
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled()
+    })
+  }
+)
+
+describe('POST transfer-ownership — what differs between the doors', () => {
+  it('401s the legacy route with no session', async () => {
+    mockSession.mockResolvedValue(null as never)
+
+    const res = await DOORS.legacy({ newOwnerId: NEW_OWNER })
+
+    expect(res.status).toBe(401)
   })
 
-  it('successfully transfers ownership when old owner has no listMember record', async () => {
-    // Setup mocks - old owner not in listMembers table
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockPrisma.listMember.findFirst
-      .mockResolvedValueOnce(mockNewOwnerMember) // New owner member check
-      .mockResolvedValueOnce(null) // Old owner has no listMember record
-    
-    // Mock the transaction
-    const mockTx = {
-      taskList: {
-        update: vi.fn(),
-      },
-      listMember: {
-        delete: vi.fn(),
-        findFirst: vi.fn().mockResolvedValue(null), // No old owner membership found
-      },
-    }
-    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
-      return callback(mockTx)
-    }) as never)
+  it('carries the v1 meta envelope on v1 only', async () => {
+    const v1Body = await (await DOORS.v1({ newOwnerId: NEW_OWNER })).json()
+    const legacyBody = await (await DOORS.legacy({ newOwnerId: NEW_OWNER })).json()
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(data.message).toBe('Ownership transferred successfully')
-
-    // Should transfer ownership and remove new owner from listMembers
-    expect(mockTx.taskList.update).toHaveBeenCalledTimes(1)
-    expect(mockTx.listMember.delete).toHaveBeenCalledTimes(1) // Only new owner removal (old owner had no listMember record)
-  })
-
-  it('returns 401 for unauthenticated users', async () => {
-    mockGetServerSession.mockResolvedValue(null)
-
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(401)
-    expect(data.error).toBe('Unauthorized')
-  })
-
-  it('returns 400 when newOwnerId is missing', async () => {
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(400)
-    expect(data.error).toBe('New owner ID is required')
-  })
-
-  it('returns 404 when list does not exist', async () => {
-    mockPrisma.taskList.findUnique.mockResolvedValue(null)
-
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(404)
-    expect(data.error).toBe('List not found')
-  })
-
-  it('returns 403 when user is not the owner', async () => {
-    const nonOwnerSession = {
-      user: {
-        id: 'non-owner-id',
-        email: 'nonowner@example.com',
-        name: 'Non Owner',
-      },
-    }
-    mockGetServerSession.mockResolvedValue(nonOwnerSession)
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(403)
-    expect(data.error).toBe('Only the owner can transfer ownership')
-  })
-
-  it('returns 400 when new owner is not a member of the list', async () => {
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    // Clear any previous mocks and explicitly set to return null
-    mockPrisma.listMember.findFirst.mockReset()
-    mockPrisma.listMember.findFirst.mockResolvedValue(null) // New owner not found as member
-
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'non-member-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(400)
-    expect(data.error).toBe('New owner must be a current member of the list')
-  })
-
-  it('returns 500 when database transaction fails', async () => {
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockPrisma.listMember.findFirst.mockReset()
-    mockPrisma.listMember.findFirst.mockResolvedValue(mockNewOwnerMember) // New owner member check passes
-    mockPrisma.$transaction.mockReset()
-    mockPrisma.$transaction.mockRejectedValue(new Error('Database error'))
-
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(500)
-    expect(data.error).toBe('Failed to transfer ownership')
-  })
-
-  it('handles transfer when new owner is a regular member (not admin)', async () => {
-    const regularMember = {
-      id: 'member-1',
-      userId: 'new-owner-id',
-      listId: 'list-1',
-      role: 'member', // Regular member, not admin
-    }
-
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockPrisma.listMember.findFirst
-      .mockResolvedValueOnce(regularMember) // New owner member check
-      .mockResolvedValueOnce(mockOldOwnerMembership) // Old owner membership check
-    
-    // Mock the transaction
-    const mockTx = {
-      taskList: {
-        update: vi.fn(),
-      },
-      listMember: {
-        delete: vi.fn(),
-        findFirst: vi.fn().mockResolvedValue(mockOldOwnerMembership),
-      },
-    }
-    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
-      return callback(mockTx)
-    }) as never)
-
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'new-owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(data.message).toBe('Ownership transferred successfully')
-
-    // Should still work for regular members who will become owners
-    expect(mockTx.listMember.delete).toHaveBeenNthCalledWith(1, {
-      where: { id: regularMember.id },
-    })
-  })
-
-  it('handles edge case where owner tries to transfer to themselves', async () => {
-    // Owner trying to transfer to themselves
-    const selfTransferMember = {
-      id: 'member-1',
-      userId: 'owner-id', // Same as current owner
-      listId: 'list-1',
-      role: 'admin',
-    }
-
-    mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockPrisma.listMember.findFirst.mockResolvedValue(selfTransferMember)
-    
-    const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newOwnerId: 'owner-id' }),
-    })
-    const params = Promise.resolve({ id: 'list-1' })
-
-    const response = await POST(request, { params })
-    
-    // This should still work technically, though it's a no-op
-    expect(response.status).toBe(200)
+    expect(v1Body.meta).toEqual({ apiVersion: 'v1', authSource: 'oauth' })
+    expect(legacyBody.meta).toBeUndefined()
   })
 })

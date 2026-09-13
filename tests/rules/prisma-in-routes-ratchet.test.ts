@@ -37,7 +37,7 @@ const ROOT = process.cwd()
  * import out of that route. The slack check is what noticed — a ceiling left
  * above the real number stops ratcheting.
  */
-const CEILING = 147 // 149 → 147: both available-agents routes moved onto lib/ai/available-agents (task 9dbe0b17)
+const CEILING = 146 // 147 → 146: legacy transfer-ownership now delegates to lib/list-ownership-transfer (task aa5a35f0)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
