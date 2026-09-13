@@ -76,9 +76,9 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
         findFirst: vi.fn().mockResolvedValue(mockOldOwnerMembership),
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback) => {
+    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
       return callback(mockTx)
-    })
+    }) as never)
 
     const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
@@ -132,9 +132,9 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
         findFirst: vi.fn().mockResolvedValue(null), // No old owner membership found
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback) => {
+    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
       return callback(mockTx)
-    })
+    }) as never)
 
     const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',
@@ -292,9 +292,9 @@ describe('POST /api/lists/[id]/transfer-ownership', () => {
         findFirst: vi.fn().mockResolvedValue(mockOldOwnerMembership),
       },
     }
-    mockPrisma.$transaction.mockImplementation(async (callback) => {
+    mockPrisma.$transaction.mockImplementation((async (callback: (tx: typeof mockTx) => unknown) => {
       return callback(mockTx)
-    })
+    }) as never)
 
     const request = new NextRequest('http://localhost/api/lists/list-1/transfer-ownership', {
       method: 'POST',

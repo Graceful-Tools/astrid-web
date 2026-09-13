@@ -49,7 +49,7 @@ beforeEach(() => {
     scopes: ['lists:read'],
   }))
   mockRequireScopes.mockImplementation(() => {})
-  mockGetDeprecationWarning.mockReturnValue(undefined)
+  mockGetDeprecationWarning.mockReturnValue(null)
   mockPrisma.taskList.findMany.mockResolvedValue(rows([]))
 })
 

@@ -52,7 +52,7 @@ describe('My Tasks Preferences API', () => {
         myTasksPreferences: null,
       }))
 
-      const response = await GET()
+      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -81,7 +81,7 @@ describe('My Tasks Preferences API', () => {
         myTasksPreferences: JSON.stringify(savedPrefs),
       }))
 
-      const response = await GET()
+      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -112,7 +112,7 @@ describe('My Tasks Preferences API', () => {
     it('should return 404 when user not found', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const response = await GET()
+      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(404)
