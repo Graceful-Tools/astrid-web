@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "관리자 설정",
+    "sortAndFilters": "정렬 및 필터",
+    "sortAndFiltersAreYours": "나에게만 적용됩니다. 다른 구성원의 목록은 바뀌지 않습니다.",
     "sortBy": "정렬 기준",
     "showTasks": "작업 표시",
     "priorityFilter": "우선순위 필터",

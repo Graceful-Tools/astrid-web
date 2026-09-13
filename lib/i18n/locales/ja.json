@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "管理者設定",
+    "sortAndFilters": "並び替えとフィルター",
+    "sortAndFiltersAreYours": "これはあなたにのみ適用されます。他のメンバーのリストは変わりません。",
     "sortBy": "並べ替え",
     "showTasks": "タスクの表示",
     "priorityFilter": "優先度フィルター",

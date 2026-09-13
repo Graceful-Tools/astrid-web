@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "Beheerdersinstellingen",
+    "sortAndFilters": "Sorteren en filters",
+    "sortAndFiltersAreYours": "Alleen jij ziet dit — het verandert de lijst voor niemand anders.",
     "sortBy": "Sorteren op",
     "showTasks": "Taken tonen",
     "priorityFilter": "Prioriteitsfilter",

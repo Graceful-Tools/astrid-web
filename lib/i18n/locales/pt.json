@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "Configurações de administrador",
+    "sortAndFilters": "Ordenação e filtros",
+    "sortAndFiltersAreYours": "Só você vê isto — não altera a lista para mais ninguém.",
     "sortBy": "Ordenar por",
     "showTasks": "Mostrar tarefas",
     "priorityFilter": "Filtro de prioridade",

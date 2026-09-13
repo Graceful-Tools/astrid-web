@@ -80,10 +80,20 @@ describe('ListSettingsPopover Admin Access Control', () => {
     // Admin Settings tab should be visible
     expect(screen.getByRole('tab', { name: /admin settings/i })).toBeInTheDocument()
 
-    // All three tabs should be present
-    expect(screen.getByRole('tab', { name: /sort & filters/i })).toBeInTheDocument()
+    // Both remaining tabs. Sort & Filters is no longer one of them — it moved
+    // to its own control when it became per-user (task aa4e7eb0).
     expect(screen.getByRole('tab', { name: /membership/i })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /admin settings/i })).toBeInTheDocument()
+  })
+
+  it('does not offer Sort & Filters here — it is not the list\u2019s, it is yours', () => {
+    // Task aa4e7eb0. Sort and filters became per-user, so they moved out to
+    // their own control. Everything left in this modal changes the list for
+    // everyone who can see it, which is what makes the modal legible. If this
+    // tab ever comes back, the modal is lying about ownership again.
+    render(<ListSettingsPopover {...defaultProps} canEditSettings={true} />)
+
+    expect(screen.queryByRole('tab', { name: /sort & filters/i })).not.toBeInTheDocument()
   })
 
   it('should hide Admin Settings tab for users without admin access', () => {
@@ -97,9 +107,10 @@ describe('ListSettingsPopover Admin Access Control', () => {
     // Admin Settings tab should NOT be visible
     expect(screen.queryByRole('tab', { name: /admin settings/i })).not.toBeInTheDocument()
 
-    // Only two tabs should be present
-    expect(screen.getByRole('tab', { name: /sort & filters/i })).toBeInTheDocument()
+    // Membership is all that is left for a viewer who cannot edit settings,
+    // now that Sort & Filters has its own control (task aa4e7eb0).
     expect(screen.getByRole('tab', { name: /membership/i })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /sort & filters/i })).not.toBeInTheDocument()
   })
 
   it('should not render AdminSettings component for non-admin users', () => {
@@ -140,9 +151,10 @@ describe('ListSettingsPopover Admin Access Control', () => {
       />
     )
 
-    // With admin access, should use 3-column grid
+    // Membership + Admin Settings. One fewer than before, since Sort &
+    // Filters moved out (task aa4e7eb0).
     let tabsList = screen.getByRole('tablist')
-    expect(tabsList).toHaveClass('grid-cols-3')
+    expect(tabsList).toHaveClass('grid-cols-2')
 
     rerender(
       <ListSettingsPopover
@@ -151,9 +163,9 @@ describe('ListSettingsPopover Admin Access Control', () => {
       />
     )
 
-    // Without admin access, should use 2-column grid
+    // Membership alone, rendered full width rather than as a stranded half.
     tabsList = screen.getByRole('tablist')
-    expect(tabsList).toHaveClass('grid-cols-2')
+    expect(tabsList).toHaveClass('grid-cols-1')
   })
 
   it('should show correct header title based on admin access', () => {

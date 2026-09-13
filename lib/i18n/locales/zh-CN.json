@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "管理员设置",
+    "sortAndFilters": "排序和筛选",
+    "sortAndFiltersAreYours": "仅你可见，不会改变其他成员看到的列表。",
     "sortBy": "排序方式",
     "showTasks": "显示任务",
     "priorityFilter": "优先级筛选",

@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "Настройки администратора",
+    "sortAndFilters": "Сортировка и фильтры",
+    "sortAndFiltersAreYours": "Это видите только вы — для других участников список не меняется.",
     "sortBy": "Сортировать по",
     "showTasks": "Показывать задачи",
     "priorityFilter": "Фильтр по приоритету",

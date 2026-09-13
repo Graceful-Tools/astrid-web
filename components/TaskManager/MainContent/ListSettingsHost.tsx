@@ -12,10 +12,18 @@
  * user lists get ListSettingsPopover — so callers just place it. The `variant`
  * only distinguishes the React keys of the two mount positions, which are kept
  * because desktop and mobile render in different parts of the tree.
+ *
+ * Since task aa4e7eb0 it also hosts ListSortAndFiltersPopover, which is a
+ * SEPARATE control from List Settings rather than a tab inside it: sort and
+ * filters are per-user now, and everything left in List Settings is shared by
+ * everyone who can see the list. The two open independently, so the host can
+ * render either, both or neither. System lists are unaffected — their popover
+ * has only ever been a filter panel.
  */
 
 import { ListSettingsPopover } from "../../list-settings-popover"
 import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
+import { ListSortAndFiltersPopover } from "../../list-sort-and-filters-popover"
 
 // Lists Astrid provides itself get the fixed (filter-only) popover. The id set
 // is owned by lib/list-permissions (task e2803305) — do not re-spell it here.
@@ -55,6 +63,17 @@ export interface ListSettingsHostProps {
   /** Open when this equals the list id. */
   showSettingsPopover: string | null
   setShowSettingsPopover: (listId: string | null) => void
+  /**
+   * Sort & Filters, which is a SEPARATE control from List Settings now that it
+   * is per-user state rather than the list's own (task aa4e7eb0). Two open
+   * flags rather than one tab index, because they are two different things
+   * owned by two different people — you, and everyone.
+   *
+   * System lists need neither: FixedListSettingsPopover has only ever been a
+   * filter panel, so for those the settings flag already means this.
+   */
+  showSortFiltersPopover?: string | null
+  setShowSortFiltersPopover?: (listId: string | null) => void
   canEditListSettings: (list: never) => boolean
   isViewingFromFeatured?: boolean
   selectedListInfo: { name: string; description?: string }
@@ -73,7 +92,8 @@ export interface ListSettingsHostProps {
 export function ListSettingsHost(props: ListSettingsHostProps) {
   const {
     variant, selectedListId, lists, listMetadata, currentUser, availableUsers,
-    showSettingsPopover, setShowSettingsPopover, canEditListSettings,
+    showSettingsPopover, setShowSettingsPopover,
+    showSortFiltersPopover, setShowSortFiltersPopover, canEditListSettings,
     isViewingFromFeatured, selectedListInfo, filterState, statuses,
     onEditImage, onLeave, onListUpdate, onFavoriteToggle, onProjectBoardCreated,
     onProjectBoardRemoved, onStatusesChanged, onListDelete,
@@ -112,31 +132,50 @@ export function ListSettingsHost(props: ListSettingsHostProps) {
 
   const currentList = lists.find(list => list.id === selectedListId) || listMetadata
   if (!currentList) return null
-  if (showSettingsPopover !== currentList.id) return null
+
+  const settingsOpen = showSettingsPopover === currentList.id
+  const sortFiltersOpen = showSortFiltersPopover === currentList.id
+  if (!settingsOpen && !sortFiltersOpen) return null
 
   return (
-    <ListSettingsPopover
-      key={`settings-current${keySuffix}-${currentList.id}`}
-      list={currentList as never}
-      currentUser={currentUser as never}
-      availableUsers={availableUsers as never}
-      canEditSettings={canEditListSettings(currentList as never) && !isViewingFromFeatured}
-      open={showSettingsPopover === selectedListId}
-      onOpenChange={(open: boolean) => setShowSettingsPopover(open ? selectedListId : null)}
-      onEditImage={() => onEditImage(currentList.id)}
-      onLeave={onLeave as never}
-      onUpdate={onListUpdate as never}
-      onFavoriteToggle={onFavoriteToggle as never}
-      onProjectBoardCreated={onProjectBoardCreated as never}
-      onProjectBoardRemoved={onProjectBoardRemoved as never}
-      statuses={statuses as never}
-      onStatusesChanged={onStatusesChanged as never}
-      onDelete={(listId: string) => {
-        onListDelete(listId)
-        setShowSettingsPopover(null)
-      }}
-    >
-      <div />
-    </ListSettingsPopover>
+    <>
+      {sortFiltersOpen && (
+        <ListSortAndFiltersPopover
+          key={`sort-filters${keySuffix}-${currentList.id}`}
+          list={currentList as never}
+          currentUser={currentUser as never}
+          open
+          onOpenChange={(open: boolean) =>
+            setShowSortFiltersPopover?.(open ? currentList.id : null)}
+          onUpdate={onListUpdate as never}
+          onFavoriteToggle={onFavoriteToggle as never}
+          canEditSettings={canEditListSettings(currentList as never) && !isViewingFromFeatured}
+        />
+      )}
+      {settingsOpen && (
+        <ListSettingsPopover
+          key={`settings-current${keySuffix}-${currentList.id}`}
+          list={currentList as never}
+          currentUser={currentUser as never}
+          availableUsers={availableUsers as never}
+          canEditSettings={canEditListSettings(currentList as never) && !isViewingFromFeatured}
+          open={showSettingsPopover === selectedListId}
+          onOpenChange={(open: boolean) => setShowSettingsPopover(open ? selectedListId : null)}
+          onEditImage={() => onEditImage(currentList.id)}
+          onLeave={onLeave as never}
+          onUpdate={onListUpdate as never}
+          onProjectBoardCreated={onProjectBoardCreated as never}
+          onProjectBoardRemoved={onProjectBoardRemoved as never}
+          statuses={statuses as never}
+          onStatusesChanged={onStatusesChanged as never}
+          onDelete={(listId: string) => {
+            onListDelete(listId)
+            setShowSettingsPopover(null)
+          }}
+        >
+          <div />
+        </ListSettingsPopover>
+      )}
+    </>
   )
 }

@@ -37,6 +37,8 @@ import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images
 import { getAllListMembers } from "@/lib/list-member-utils"
 import type { Task, TaskList } from "@/types/task"
 import { canUserManageList } from "@/lib/list-permissions"
+import { useTranslations } from "@/lib/i18n/client"
+import { ListHeaderActions } from "./ListHeaderActions"
 
 interface MainContentProps {
   // Layout and responsive props
@@ -261,7 +263,13 @@ export function MainContent({
   // Description viewer/editor dialog state
   const descriptionDialogRef = React.useRef<DescriptionDialogHandle>(null)
 
+  const { t } = useTranslations()
   const [draggingTaskMetrics, setDraggingTaskMetrics] = React.useState<{ taskId: string; height: number } | null>(null)
+
+  // Sort & Filters is its own control now, not a tab in List Settings
+  // (task aa4e7eb0). Local state rather than threaded from TaskManager like
+  // showSettingsPopover, because nothing outside this file opens it.
+  const [showSortFiltersFor, setShowSortFiltersFor] = React.useState<string | null>(null)
   const taskMeasurementsRef = React.useRef<Map<string, number>>(new Map())
   const taskListContainerRef = React.useRef<HTMLDivElement | null>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -735,36 +743,14 @@ export function MainContent({
                           onToggleActivePanel={undefined}
                         />
                       )}
-                      {(() => {
-                        const isPublicList = currentList?.privacy === 'PUBLIC'
-                        const isUserOwnerOrAdmin = !!effectiveSession?.user?.id &&
-                          canUserManageList({ id: effectiveSession.user.id }, currentList as never)
-
-                        // If viewing from featured lists, don't show settings regardless of ownership
-                        // Or if it's a public list and user is not owner/admin
-                        if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
-                          return null
-                        }
-
-                        // Always show settings button that opens the full popover
-                        return (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowSettingsPopover(selectedListId)
-                            }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation()
-                            }}
-                            className="theme-text-muted hover:theme-text-primary p-2"
-                            data-settings-button="true"
-                          >
-                            <Settings className="w-5 h-5" />
-                          </Button>
-                        )
-                      })()}
+                      <ListHeaderActions
+                        listId={selectedListId}
+                        list={currentList as never}
+                        currentUserId={effectiveSession?.user?.id}
+                        isViewingFromFeatured={isViewingFromFeatured}
+                        onOpenSortFilters={setShowSortFiltersFor}
+                        onOpenSettings={setShowSettingsPopover}
+                      />
                     </div>
                   </div>
                 )
@@ -814,7 +800,7 @@ export function MainContent({
           </div>
 
           {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
-          {showSettingsPopover === selectedListId && <LazyListSettingsHost
+          {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="desktop"
               selectedListId={selectedListId}
               lists={lists}
@@ -823,6 +809,8 @@ export function MainContent({
               availableUsers={availableUsers}
               showSettingsPopover={showSettingsPopover}
               setShowSettingsPopover={setShowSettingsPopover}
+              showSortFiltersPopover={showSortFiltersFor}
+              setShowSortFiltersPopover={setShowSortFiltersFor}
               canEditListSettings={canEditListSettingsMemo}
               isViewingFromFeatured={isViewingFromFeatured}
               selectedListInfo={getSelectedListInfo()}
@@ -1086,7 +1074,7 @@ export function MainContent({
       </div>
 
       {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
-      {showSettingsPopover === selectedListId && <LazyListSettingsHost
+      {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="mobile"
               selectedListId={selectedListId}
               lists={lists}
@@ -1095,6 +1083,8 @@ export function MainContent({
               availableUsers={availableUsers}
               showSettingsPopover={showSettingsPopover}
               setShowSettingsPopover={setShowSettingsPopover}
+              showSortFiltersPopover={showSortFiltersFor}
+              setShowSortFiltersPopover={setShowSortFiltersFor}
               canEditListSettings={canEditListSettingsMemo}
               isViewingFromFeatured={isViewingFromFeatured}
               selectedListInfo={getSelectedListInfo()}

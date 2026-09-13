@@ -4,13 +4,12 @@ import React, { useState } from "react"
 import { useTranslations } from "@/lib/i18n/client"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { SettingsModalShell } from "./list-settings/SettingsModalShell"
-import { ListSortAndFilters } from "./list-sort-and-filters"
 import { ListMembership } from "./list-membership"
 import { ListAdminSettings } from "./list-admin-settings"
 import type { ProjectBoardColumn } from "@/lib/project-status"
 import { ManageStatusesPanel } from "./list-admin/ManageStatusesPanel"
 import type { TaskList, User } from "../types/task"
-import { Lock, Unlock, Filter, Users, Settings, KanbanSquare } from "lucide-react"
+import { Lock, Unlock, Users, Settings, KanbanSquare } from "lucide-react"
 
 interface ListSettingsPopoverProps {
   list: TaskList
@@ -18,7 +17,6 @@ interface ListSettingsPopoverProps {
   availableUsers: User[]
   canEditSettings: boolean
   onUpdate: (list: TaskList) => void
-  onFavoriteToggle?: (listId: string) => void
   onDelete: (listId: string) => void
   onLeave?: (list: TaskList, isOwnerLeaving?: boolean) => void
   onEditName?: () => void
@@ -41,7 +39,6 @@ export function ListSettingsPopover({
   availableUsers,
   canEditSettings,
   onUpdate,
-  onFavoriteToggle,
   onDelete,
   onLeave,
   onEditName,
@@ -56,7 +53,10 @@ export function ListSettingsPopover({
   // No longer need local filter props
 }: ListSettingsPopoverProps) {
   const { t } = useTranslations()
-  const [activeTab, setActiveTab] = useState("sort-filters")
+  // Membership is the first tab now that Sort & Filters has moved out to its
+  // own control: what remains in this modal is what the list IS, shared by
+  // everyone who can see it. (Task aa4e7eb0.)
+  const [activeTab, setActiveTab] = useState("membership")
 
   // The Statuses tab manages board columns — only relevant when this list has a
   // board enabled and the viewer can edit settings.
@@ -65,10 +65,10 @@ export function ListSettingsPopover({
   // Ensure activeTab is valid for non-admin users
   React.useEffect(() => {
     if (!canEditSettings && activeTab === "admin") {
-      setActiveTab("sort-filters")
+      setActiveTab("membership")
     }
     if (!showStatusesTab && activeTab === "statuses") {
-      setActiveTab("sort-filters")
+      setActiveTab("membership")
     }
   }, [canEditSettings, showStatusesTab, activeTab])
 
@@ -88,11 +88,11 @@ export function ListSettingsPopover({
       }
     >
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className={`grid w-full ${showStatusesTab ? 'grid-cols-4' : canEditSettings ? 'grid-cols-3' : 'grid-cols-2'} theme-bg-secondary`}>
-                <TabsTrigger value="sort-filters" className="flex items-center space-x-1 text-xs">
-                  <Filter className="w-3 h-3" />
-                  <span>Sort & Filters</span>
-                </TabsTrigger>
+              {/* One fewer column than before: Sort & Filters moved out to its
+                  own popover (task aa4e7eb0). With only Membership left for a
+                  viewer who cannot edit settings, the list still renders as a
+                  single full-width tab rather than a stranded half. */}
+              <TabsList className={`grid w-full ${showStatusesTab ? 'grid-cols-3' : canEditSettings ? 'grid-cols-2' : 'grid-cols-1'} theme-bg-secondary`}>
                 <TabsTrigger value="membership" className="flex items-center space-x-1 text-xs">
                   <Users className="w-3 h-3" />
                   <span>Membership</span>
@@ -112,16 +112,6 @@ export function ListSettingsPopover({
               </TabsList>
 
               <div className="p-4 pb-40 md:pb-4">
-                <TabsContent value="sort-filters" className="mt-0">
-                  <ListSortAndFilters
-                    list={list}
-                    currentUser={currentUser}
-                    onUpdate={onUpdate}
-                    onFavoriteToggle={onFavoriteToggle}
-                    canEditSettings={canEditSettings}
-                  />
-                </TabsContent>
-
                 <TabsContent value="membership" className="mt-0">
                   <ListMembership
                     list={list}

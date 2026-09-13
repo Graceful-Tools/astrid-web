@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "Paramètres d’administration",
+    "sortAndFilters": "Tri et filtres",
+    "sortAndFiltersAreYours": "Vous seul voyez ces réglages : ils ne modifient la liste pour personne d'autre.",
     "sortBy": "Trier par",
     "showTasks": "Afficher les tâches",
     "priorityFilter": "Filtre de priorité",

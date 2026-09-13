@@ -53,7 +53,9 @@ const BUDGETS: Record<string, number> = {
   'components/task-detail.tsx': 1591,
   'lib/ai-orchestrator.ts': 1547,
   'components/TaskManagerView.tsx': 1212,
-  'components/TaskManager/MainContent/MainContent.tsx': 1125,
+  // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
+  // when Sort & Filters gained its own control (task aa4e7eb0).
+  'components/TaskManager/MainContent/MainContent.tsx': 1115,
   'lib/cache-manager.ts': 935,
   'lib/astrid-agent-runtime.ts': 835,
 

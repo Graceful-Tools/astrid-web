@@ -899,6 +899,8 @@
   },
   "listSettings": {
     "adminSettings": "Admin Settings",
+    "sortAndFilters": "Sort & Filters",
+    "sortAndFiltersAreYours": "Only you see these — they don't change the list for anyone else.",
     "sortBy": "Sort by",
     "showTasks": "Show tasks",
     "priorityFilter": "Priority filter",
