@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
 
 function mockTokenEndpoint(expiresIn = 3600) {
-  const fetchMock = vi.fn(async (url: string) => {
+  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
     if (String(url).includes('/oauth/token')) {
       return {
         ok: true,

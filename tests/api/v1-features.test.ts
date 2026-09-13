@@ -47,15 +47,24 @@ describe('GET /api/v1/features', () => {
 
   it('returns only effective values for the current user', async () => {
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
-    mockFeatures.mockResolvedValue(row({ version: 42, features: { google_tasks: false } }))
+    mockFeatures.mockResolvedValue(row({
+      version: 42,
+      features: { google_tasks: false, project_mode: false, task_cost: false },
+    }))
     const response = await GET(new NextRequest('http://localhost/api/v1/features') as never, {} as never)
-    expect(await response.json()).toEqual({ version: 42, features: { google_tasks: false } })
+    expect(await response.json()).toEqual({
+      version: 42,
+      features: { google_tasks: false, project_mode: false, task_cost: false },
+    })
     expect(mockFeatures).toHaveBeenCalledWith('user-1')
   })
 
   it('uses ETags to avoid sending unchanged configuration', async () => {
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
-    mockFeatures.mockResolvedValue(row({ version: 42, features: { google_tasks: false } }))
+    mockFeatures.mockResolvedValue(row({
+      version: 42,
+      features: { google_tasks: false, project_mode: false, task_cost: false },
+    }))
     const first = await GET(new NextRequest('http://localhost/api/v1/features') as never, {} as never)
     const etag = first.headers.get('etag')!
     const second = await GET(new NextRequest('http://localhost/api/v1/features', { headers: { 'If-None-Match': etag } }))

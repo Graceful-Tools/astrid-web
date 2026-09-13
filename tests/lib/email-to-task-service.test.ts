@@ -380,21 +380,21 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockImplementation(async (args: any) => {
+      vi.mocked(prisma.task.create).mockImplementation((async (args: { data: Record<string, unknown> }) => {
         const dueDate = args.data.dueDateTime
         expect(dueDate).toBeTruthy()
 
         // Should be ~1 day from now at 9 AM
         const now = new Date()
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-        const dueDateObj = new Date(dueDate)
+        const dueDateObj = new Date(dueDate as string | number | Date)
 
         expect(dueDateObj.getHours()).toBe(9)
         expect(dueDateObj.getMinutes()).toBe(0)
         expect(dueDateObj.getDate()).toBe(tomorrow.getDate())
 
         return { id: 'task-1' } as any
-      })
+      }) as never)
 
       await emailToTaskService.processEmail(email)
     })
@@ -421,10 +421,10 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockImplementation(async (args: any) => {
+      vi.mocked(prisma.task.create).mockImplementation((async (args: { data: Record<string, unknown> }) => {
         expect(args.data.dueDateTime).toBeNull()
         return { id: 'task-1' } as any
-      })
+      }) as never)
 
       await emailToTaskService.processEmail(email)
     })

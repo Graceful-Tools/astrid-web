@@ -94,9 +94,11 @@ describe('nothing re-creates the status lists (task b7b0c2f5)', () => {
       },
       taskList: { findMany: vi.fn().mockResolvedValue(rows([])), createMany: vi.fn(), create: vi.fn() },
     }
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) =>
-      (fn as unknown as (t: typeof tx) => unknown)(tx),
-    )
+    // The implementation's own signature cannot match the $transaction
+    // overloads, so the cast belongs on the function, not its parameter.
+    vi.mocked(prisma.$transaction).mockImplementation((async (
+      fn: (t: typeof tx) => unknown,
+    ) => fn(tx)) as never)
 
     await projectsService.createProjectForUser('user-1', { name: 'Board' })
 
@@ -153,7 +155,10 @@ describe('a board move writes no list membership (task b7b0c2f5)', () => {
     const readyColumn = getProjectBoardColumns().find(c => c.name === 'Ready')!
 
     expect(readyColumn.id).toBe('ready')
-    expect(readyColumn.statusList).toBeUndefined()
+    // No `expect(readyColumn.statusList).toBeUndefined()`: Stage D removed
+    // that field from ProjectBoardColumn, so the type now forbids it outright
+    // — a stronger guarantee than a runtime assertion, and the runtime one no
+    // longer compiles. (AWTD-916)
   })
 
   it('still strips a stale status membership the task is carrying', () => {

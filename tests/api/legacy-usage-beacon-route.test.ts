@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const recordMock = vi.fn(async () => {})
+const recordMock = vi.fn(async (..._args: unknown[]) => {})
 vi.mock('@/lib/legacy-api-usage-service', () => ({
   recordLegacyApiHit: (...args: unknown[]) => recordMock(...args),
   getLegacyUsageReport: vi.fn(),
