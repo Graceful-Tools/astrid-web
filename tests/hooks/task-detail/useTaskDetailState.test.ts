@@ -2,20 +2,21 @@ import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useTaskDetailState } from '@/hooks/task-detail/useTaskDetailState'
 import type { Task } from '@/types/task'
+import { buildTask, buildTaskList } from '../../fixtures/domain'
 
-const mockTask: Task = {
+// `as Task` was holding three untruths in place (AWTD-916): `repeating`
+// is lowercase in the union ('daily', never 'DAILY'), `repeatingData` needs
+// the full pattern, and `listId` is not a field of Task — membership is
+// `lists`.
+const mockTask: Task = buildTask({
   id: '1',
   title: 'Test Task',
   description: 'Test Description',
   when: new Date('2025-01-15'),
   priority: 2,
-  repeating: 'DAILY',
-  repeatingData: { interval: 1 },
-  completed: false,
-  listId: 'list-1',
-  createdAt: new Date(),
-  updatedAt: new Date()
-} as Task
+  repeating: 'daily',
+  lists: [buildTaskList({ id: 'list-1', name: 'List 1' })],
+})
 
 describe('useTaskDetailState', () => {
   it('should initialize with task values', () => {
@@ -24,7 +25,7 @@ describe('useTaskDetailState', () => {
     expect(result.current.tempValues.title).toBe('Test Task')
     expect(result.current.tempValues.description).toBe('Test Description')
     expect(result.current.tempValues.priority).toBe(2)
-    expect(result.current.tempValues.repeating).toBe('DAILY')
+    expect(result.current.tempValues.repeating).toBe('daily')
   })
 
   it('should expose all comment state', () => {
@@ -162,7 +163,7 @@ describe('useTaskDetailState', () => {
   })
 
   it('should handle task with no description', () => {
-    const taskNoDesc = { ...mockTask, description: null }
+    const taskNoDesc = { ...mockTask, description: '' }
     const { result } = renderHook(() => useTaskDetailState(taskNoDesc))
 
     expect(result.current.tempValues.description).toBe('')

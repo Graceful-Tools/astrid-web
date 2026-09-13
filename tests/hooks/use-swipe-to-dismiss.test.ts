@@ -12,7 +12,7 @@ describe('useSwipeToDismiss', () => {
     // Mock touch event
     const mockTouchEvent = {
       touches: [{ clientX: 100, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     // Start touch
     act(() => {
@@ -22,7 +22,7 @@ describe('useSwipeToDismiss', () => {
     // Move touch right by 60 pixels (above threshold)
     const mockMoveEvent = {
       touches: [{ clientX: 160, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchMove(mockMoveEvent)
@@ -44,7 +44,7 @@ describe('useSwipeToDismiss', () => {
 
     const mockTouchEvent = {
       touches: [{ clientX: 100, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchStart(mockTouchEvent)
@@ -53,7 +53,7 @@ describe('useSwipeToDismiss', () => {
     // Move touch right by only 30 pixels (below threshold)
     const mockMoveEvent = {
       touches: [{ clientX: 130, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchMove(mockMoveEvent)
@@ -74,7 +74,7 @@ describe('useSwipeToDismiss', () => {
 
     const mockTouchEvent = {
       touches: [{ clientX: 100, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchStart(mockTouchEvent)
@@ -83,7 +83,7 @@ describe('useSwipeToDismiss', () => {
     // Move touch left instead of right
     const mockMoveEvent = {
       touches: [{ clientX: 40, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchMove(mockMoveEvent)
@@ -104,7 +104,7 @@ describe('useSwipeToDismiss', () => {
 
     const mockTouchEvent = {
       touches: [{ clientX: 100, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchStart(mockTouchEvent)
@@ -113,7 +113,7 @@ describe('useSwipeToDismiss', () => {
     // Move touch down by 90 pixels (above threshold)
     const mockMoveEvent = {
       touches: [{ clientX: 100, clientY: 190 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchMove(mockMoveEvent)
@@ -134,7 +134,7 @@ describe('useSwipeToDismiss', () => {
 
     const mockTouchEvent = {
       touches: [{ clientX: 100, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchStart(mockTouchEvent)
@@ -142,7 +142,7 @@ describe('useSwipeToDismiss', () => {
 
     const mockMoveEvent = {
       touches: [{ clientX: 160, clientY: 100 }],
-    } as React.TouchEvent
+    } as unknown as React.TouchEvent
 
     act(() => {
       result.current.onTouchMove(mockMoveEvent)

@@ -18,7 +18,7 @@
  * `tests/fixtures/prisma.ts` and `tests/fixtures/auth.ts`. Those build Prisma
  * INPUT types; these build the client-side models, which is a different job.
  */
-import type { Task, TaskList, User } from '@/types/task'
+import type { Comment, Task, TaskList, User } from '@/types/task'
 
 let sequence = 0
 const next = () => (sequence += 1)
@@ -71,6 +71,22 @@ export function buildTask(overrides: Partial<Task> = {}): Task {
     completed: false,
     attachments: [],
     comments: [],
+    createdAt: FIXTURE_DATE,
+    updatedAt: FIXTURE_DATE,
+    ...overrides,
+  }
+}
+
+export function buildComment(overrides: Partial<Comment> = {}): Comment {
+  const n = next()
+  const author = overrides.author ?? buildUser()
+  return {
+    id: `comment-${n}`,
+    content: `Fixture comment ${n}`,
+    type: 'TEXT',
+    author,
+    authorId: author?.id ?? null,
+    taskId: 'task-1',
     createdAt: FIXTURE_DATE,
     updatedAt: FIXTURE_DATE,
     ...overrides,

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { buildTask, buildTaskList } from '../fixtures/domain'
 import { renderHook, act } from '@testing-library/react'
 import { useFilterState } from '@/hooks/useFilterState'
 import type { Task } from '@/types/task'
@@ -23,20 +24,19 @@ function createMockTask(
   isAllDay: boolean,
   completed = false
 ): Task {
-  return {
+  // `as Task` was hiding ISO strings where `dueDateTime`, `createdAt` and
+  // `updatedAt` are all `Date` (AWTD-916). These tests are ABOUT timezone
+  // handling, so the difference between a Date and a string it re-parses is
+  // exactly the thing they should not be vague on.
+  return buildTask({
     id,
     title: `Test Task ${id}`,
-    description: '',
-    priority: 0,
-    repeating: 'never',
     isPrivate: true,
     completed,
-    dueDateTime,
+    dueDateTime: dueDateTime === null ? null : new Date(dueDateTime),
     isAllDay,
-    lists: [{ id: 'test-list', name: 'Test List' }],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  } as Task
+    lists: [buildTaskList({ id: 'test-list', name: 'Test List' })],
+  })
 }
 
 describe('useFilterState - Timezone Regression Tests', () => {

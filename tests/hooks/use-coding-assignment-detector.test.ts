@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { buildTask, buildUser } from '../fixtures/domain'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCodingAssignmentDetector } from '@/hooks/use-coding-assignment-detector'
 import type { Task, User } from '@/types/task'
@@ -17,8 +18,10 @@ vi.mock('@/hooks/use-toast', () => {
   }
 })
 
-// Get the mocked toast for assertions
-const { toast: mockToast } = await import('@/hooks/use-toast')
+// Get the mocked toast for assertions. `vi.mocked` is what carries the mock
+// type across the dynamic import — the bare binding is typed as the real
+// function, so `.mockClear()` did not exist on it. (AWTD-916)
+const mockToast = vi.mocked((await import('@/hooks/use-toast')).toast)
 
 // Mock isCodingAgent
 vi.mock('@/lib/ai-agent-utils', () => ({
@@ -26,36 +29,27 @@ vi.mock('@/lib/ai-agent-utils', () => ({
 }))
 
 describe('useCodingAssignmentDetector', () => {
-  const mockTask: Task = {
+  // `repeating: 'none'` was not a value of the union at all — it is 'never'
+  // (AWTD-916). `description` was null where the type says string, and
+  // `aiAgentId` is not a field of Task.
+  const mockTask: Task = buildTask({
     id: 'test-task-id',
     title: 'Test Task',
-    description: null,
-    completed: false,
     priority: 1,
     creatorId: 'user-1',
     assigneeId: null,
     assignee: null,
-    creator: { id: 'user-1', name: 'User', email: 'user@test.com' } as User,
-    lists: [],
-    comments: [],
-    attachments: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    when: null,
+    creator: buildUser({ id: 'user-1', name: 'User', email: 'user@test.com' }),
     dueDateTime: null,
-    isPrivate: false,
-    repeating: 'none',
-    repeatingData: null,
-    aiAgentId: null
-  }
+  })
 
-  const mockCodingAgent: User = {
+  const mockCodingAgent: User = buildUser({
     id: 'agent-1',
     name: 'Claude Agent',
     email: `claude@${BRAND.agentEmailDomain}`,
     isAIAgent: true,
-    aiAgentType: 'coding_agent'
-  } as User
+    aiAgentType: 'coding_agent',
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()
