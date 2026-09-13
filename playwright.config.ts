@@ -49,12 +49,13 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     // Unauthenticated tests (auth flows, public pages, locale navigation,
-    // and the layout-regression matrix where the device's natural width
-    // produces a computer-3-column layout).
+    // the layout-regression matrix where the device's natural width produces a
+    // computer-3-column layout, and hover behaviour — which only exists on a
+    // pointer device, so it lives here and not in the mobile projects).
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-text)\.spec\.ts/,
     },
 
     {
