@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { SSESubscription } from '@/lib/sse-manager'
 import { row } from '../fixtures/prisma-rows'
 import { getSession } from 'next-auth/react'
 
@@ -132,7 +133,7 @@ describe('SSE Manager', () => {
       const unsubscribe = SSEManager.subscribe(eventTypes, callback, 'TestComponent')
 
       expect(SSEManager.subscriptions.size).toBe(1)
-      const subscription = Array.from(SSEManager.subscriptions.values())[0]
+      const subscription = Array.from(SSEManager.subscriptions.values())[0] as SSESubscription
       expect(subscription.eventTypes).toEqual(eventTypes)
 
       unsubscribe()
@@ -144,7 +145,7 @@ describe('SSE Manager', () => {
 
       const unsubscribe = SSEManager.subscribe(eventType, callback, 'TestComponent')
 
-      const subscription = Array.from(SSEManager.subscriptions.values())[0]
+      const subscription = Array.from(SSEManager.subscriptions.values())[0] as SSESubscription
       expect(subscription.eventTypes).toEqual([eventType])
 
       unsubscribe()

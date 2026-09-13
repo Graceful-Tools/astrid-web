@@ -69,9 +69,9 @@ describe('OpenClaw Event Enrichment', () => {
         description: null,
         priority: 'MEDIUM',
         dueDateTime: null,
-        lists: [],
+        lists: [] as { id: string; name: string; githubRepositoryId?: string | null }[],
         creator: { id: 'user-1', name: null, email: 'anon@example.com' },
-        comments: [],
+        comments: [] as { id: string }[],
       }
 
       const payload = {

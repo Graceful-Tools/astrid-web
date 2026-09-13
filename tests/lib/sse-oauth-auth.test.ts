@@ -40,7 +40,10 @@ describe('SSE OAuth Authentication', () => {
     })
 
     it('session auth still works when no Bearer token present', () => {
-      const header: string | null = null
+      // Typed through a function so the `string | null` annotation survives:
+      // assigning `null` directly narrows the const to `null`, and then
+      // `?.toLowerCase()` has nothing to call. (AWTD-916)
+      const header = (null as string | null)
       const hasBearerToken = header?.toLowerCase().startsWith('bearer ') ?? false
       expect(hasBearerToken).toBe(false)
       // When no bearer token, should fall through to session auth

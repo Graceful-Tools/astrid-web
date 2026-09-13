@@ -48,7 +48,7 @@ describe('fetchAllPages (task 641a7615)', () => {
       fetchImpl: fetchImpl as never,
     })
 
-    expect(result.items.map((t: never) => (t as { id: string }).id)).toEqual(['t1', 't2', 't3', 't4'])
+    expect((result.items as { id: string }[]).map(t => t.id)).toEqual(['t1', 't2', 't3', 't4'])
   })
 
   it('stops after a single request when everything fits', async () => {

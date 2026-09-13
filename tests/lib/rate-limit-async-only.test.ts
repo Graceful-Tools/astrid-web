@@ -26,7 +26,7 @@ function walk(dir: string, out: string[] = []): string[] {
 
 describe('rate limiter has no synchronous path (task c2fbe8e4)', () => {
   it('does not expose a sync checkRateLimit', () => {
-    expect((RateLimiter.prototype as Record<string, unknown>).checkRateLimit).toBeUndefined()
+    expect((RateLimiter.prototype as unknown as Record<string, unknown>).checkRateLimit).toBeUndefined()
   })
 
   it('does not export the sync middleware helpers', () => {
