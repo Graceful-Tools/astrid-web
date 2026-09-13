@@ -6,6 +6,7 @@ import {
   buildFixallClaimData,
   fixallClaimAgentEmail,
   parseFixallClaimRequest,
+  DEFAULT_FIXALL_CLAIM_MAILBOX,
 } from "@/lib/fixall-claim"
 import { BRAND } from "@/lib/brand/config"
 
@@ -18,7 +19,7 @@ describe("buildAtomicFixallClaimWhere", () => {
     expect(buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
-      claim: { action: "ready", commentWatermark: null },
+      claim: { action: "ready", commentWatermark: null, agent: DEFAULT_FIXALL_CLAIM_MAILBOX },
       now,
     })).toEqual(expect.objectContaining({
       id: "task-1",
@@ -36,7 +37,7 @@ describe("buildAtomicFixallClaimWhere", () => {
     const where = buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
-      claim: { action: "ready", commentWatermark: null },
+      claim: { action: "ready", commentWatermark: null, agent: DEFAULT_FIXALL_CLAIM_MAILBOX },
       now,
     })
 
@@ -48,7 +49,7 @@ describe("buildAtomicFixallClaimWhere", () => {
     expect(buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
-      claim: { action: "recheck", commentWatermark: watermark },
+      claim: { action: "recheck", commentWatermark: watermark, agent: DEFAULT_FIXALL_CLAIM_MAILBOX },
       now,
     })).toEqual(expect.objectContaining({
       statusRole: "waiting",
@@ -61,7 +62,7 @@ describe("buildAtomicFixallClaimWhere", () => {
     const where = buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
-      claim: { action: "recheck", commentWatermark: null },
+      claim: { action: "recheck", commentWatermark: null, agent: DEFAULT_FIXALL_CLAIM_MAILBOX },
       now,
     })
 

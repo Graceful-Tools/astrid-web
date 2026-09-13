@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { applyVirtualListFilter } from '@/lib/virtual-list-utils'
 import { Task, TaskList } from '@/types/task'
+import { buildTask } from '../fixtures/domain'
 
 describe('My Tasks Filtering', () => {
   const currentUserId = 'user-123'
@@ -36,7 +37,7 @@ describe('My Tasks Filtering', () => {
 
     // Create mock tasks with different assignee scenarios
     mockTasks = [
-      {
+      buildTask({
         id: 'task-1',
         title: 'Task assigned to current user',
         description: '',
@@ -49,8 +50,8 @@ describe('My Tasks Filtering', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
-      },
-      {
+      }),
+      buildTask({
         id: 'task-2',
         title: 'Task assigned to another user',
         description: '',
@@ -63,8 +64,8 @@ describe('My Tasks Filtering', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
-      },
-      {
+      }),
+      buildTask({
         id: 'task-3',
         title: 'Unassigned task',
         description: '',
@@ -77,8 +78,8 @@ describe('My Tasks Filtering', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
-      },
-      {
+      }),
+      buildTask({
         id: 'task-4',
         title: 'Another task assigned to current user',
         description: '',
@@ -91,7 +92,7 @@ describe('My Tasks Filtering', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
-      }
+      })
     ]
   })
 

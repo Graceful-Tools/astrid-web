@@ -31,7 +31,7 @@ interface Task {
   title: string
   description?: string | null
   priority: number
-  isCompleted: boolean
+  completed: boolean
   dueDateTime?: string | null
   createdAt: string
   updatedAt: string
@@ -64,7 +64,7 @@ interface UpdateTaskData {
   title?: string
   description?: string
   priority?: number
-  isCompleted?: boolean
+  completed?: boolean
   dueDateTime?: string
 }
 
