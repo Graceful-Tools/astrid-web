@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { buildTask, buildTaskList } from '../fixtures/domain'
 import {
   DEFAULT_PROJECT_STATUSES,
   VIRTUAL_DONE_COLUMN_ID,
@@ -21,43 +22,33 @@ const owner = {
 }
 
 function list(overrides: Partial<TaskList> & { id: string; name: string }): TaskList {
-  return {
-    id: overrides.id,
-    name: overrides.name,
-    privacy: 'PRIVATE',
-    owner,
-    ownerId: owner.id,
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-    lists: [],
-    ...overrides,
-  } as unknown as TaskList
+  // `id`/`name` came from `overrides` twice, and a `lists: []` that TaskList
+  // has no such property for was held in place by `as unknown as TaskList`.
+  // (AWTD-916)
+  return buildTaskList({ owner, ownerId: owner.id, ...overrides })
 }
 
 function task(overrides: Partial<Task> & { lists: TaskList[] }): Task {
-  return {
+  return buildTask({
     id: 'task-1',
     title: 'Task',
-    description: '',
     creator: owner,
     creatorId: owner.id,
-    priority: 0,
-    lists: overrides.lists,
     isPrivate: true,
-    completed: false,
-    attachments: [],
-    comments: [],
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-    repeating: 'never',
     repeatFrom: 'COMPLETION_DATE',
-    occurrenceCount: 0,
     ...overrides,
-  }
+  })
 }
 
 // Status lists are now per-user globals: projectId = null, shared across
 // every project board. Domain lists keep their project id.
+//
+// These fixtures carry no `statusRole`/`statusOrder`: those belonged to the
+// pre-AWTD-562 model where a status WAS a row, Stage D deleted the rows, and
+// the field moved to `Task.statusRole`. A stale status row is identified by
+// its `listType`, which is what lib/project-status.ts actually reads (line
+// 93). The expected results below still assert on `statusRole` — that one is
+// the field on the TASK, and it is the whole point. (AWTD-916)
 function statusList(overrides: Partial<TaskList> & { id: string; name: string }): TaskList {
   return list({ projectId: null, listType: 'status', ...overrides })
 }
@@ -124,7 +115,7 @@ describe('project status', () => {
     // A stale status row is still in the client's list set; the move must drop
     // that membership and add no new one. The status goes in `statusRole`.
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
-    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
+    const ready = statusList({ id: 'ready', name: 'Ready' })
     const taskInReady = task({ lists: [ios, ready] })
 
     const doingColumn = getProjectBoardColumns().find(column => column.id === 'doing')!
@@ -135,8 +126,8 @@ describe('project status', () => {
 
   it('moves to virtual Done by stripping statuses and setting completed', () => {
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
-    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
-    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
+    const ready = statusList({ id: 'ready', name: 'Ready' })
+    const doing = statusList({ id: 'doing', name: 'Doing' })
     const taskInReady = task({ lists: [ios, ready] })
 
     const doneColumn = getProjectBoardColumns().find(column => column.id === VIRTUAL_DONE_COLUMN_ID)!
@@ -147,7 +138,7 @@ describe('project status', () => {
 
   it('moves back to virtual Inbox by stripping statuses and clearing completed', () => {
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
-    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
+    const doing = statusList({ id: 'doing', name: 'Doing' })
     const completedTask = task({ lists: [ios, doing], completed: true })
 
     const inboxColumn = getProjectBoardColumns().find(column => column.id === VIRTUAL_INBOX_COLUMN_ID)!
@@ -158,8 +149,8 @@ describe('project status', () => {
 
   it('normalizes direct list updates to a single global status and forces completed=false', () => {
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
-    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
-    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing' })
+    const ready = statusList({ id: 'ready', name: 'Ready' })
+    const doing = statusList({ id: 'doing', name: 'Doing' })
 
     expect(normalizeProjectStatusListIds(['ios', 'ready', 'doing'], [ios, ready, doing])).toEqual({
       listIds: ['ios', 'doing'],
@@ -169,7 +160,7 @@ describe('project status', () => {
 
   it('strips every status when the task is being completed', () => {
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
-    const ready = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
+    const ready = statusList({ id: 'ready', name: 'Ready' })
 
     expect(
       normalizeProjectStatusListIds(['ios', 'ready'], [ios, ready], { completed: true }),
@@ -178,7 +169,7 @@ describe('project status', () => {
 
   it('does not auto-add a status when a project task is created without one', () => {
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId: 'project-1', listType: 'regular' })
-    const doing = statusList({ id: 'doing', name: 'Doing', statusRole: 'doing', statusOrder: 1 })
+    const doing = statusList({ id: 'doing', name: 'Doing' })
 
     expect(normalizeProjectStatusListIds(['ios'], [ios, doing])).toEqual({
       listIds: ['ios'],
@@ -189,7 +180,7 @@ describe('project status', () => {
     const projectId = 'project-1'
     const ios = list({ id: 'ios', name: 'Astrid iOS To-do', projectId, listType: 'regular' })
     const otherProjectList = list({ id: 'web', name: 'Web', projectId: 'project-2', listType: 'regular' })
-    const status = statusList({ id: 'ready', name: 'Ready', statusRole: 'ready' })
+    const status = statusList({ id: 'ready', name: 'Ready' })
     const inProject = task({ id: 't-1', lists: [ios] })
     const onlyStatus = task({ id: 't-2', lists: [status] })
     const outsideProject = task({ id: 't-3', lists: [otherProjectList] })

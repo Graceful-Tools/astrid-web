@@ -96,7 +96,6 @@ describe('TaskManagerView - Settings Button Behavior', () => {
     id: 'list-1',
     name: 'Test List',
     description: '',
-    userId: 'user-1',
     createdAt: new Date(),
     updatedAt: new Date(),
   }

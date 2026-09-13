@@ -40,7 +40,6 @@ const mockUser: User = {
   id: 'user-1',
   name: 'Test User',
   email: 'test@example.com',
-  avatarUrl: null
 }
 
 const mockList: TaskList = {

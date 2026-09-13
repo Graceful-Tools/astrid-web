@@ -18,7 +18,6 @@ const mockTask: Task = {
     name: 'Test User',
     email: 'test@example.com',
     image: null,
-    emailVerified: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     verified: true
@@ -35,7 +34,6 @@ const mockTask: Task = {
       name: 'Test User',
       email: 'test@example.com',
       image: null,
-      emailVerified: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       verified: true
@@ -51,7 +49,6 @@ const mockTask: Task = {
           name: 'Team Member',
           email: 'member@example.com',
           image: null,
-          emailVerified: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           verified: true
@@ -75,7 +72,6 @@ const mockUser: User = {
   name: 'Test User',
   email: 'test@example.com',
   image: null,
-  emailVerified: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   verified: true

@@ -49,7 +49,6 @@ const mockCurrentUser: User = {
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-  updatedAt: new Date(),
   emailVerified: null,
   isActive: true,
   pendingEmail: null,

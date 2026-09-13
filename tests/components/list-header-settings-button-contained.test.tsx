@@ -21,7 +21,6 @@ const mockUser: User = {
   email: 'test@example.com',
   name: 'Test User',
   image: null,
-  emailVerified: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 }
