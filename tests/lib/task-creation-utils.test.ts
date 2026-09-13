@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { applyListDefaults, mapTaskDataForApi } from '@/lib/task-creation-utils'
 import type { TaskList } from '@/types/task'
 
@@ -6,27 +7,13 @@ describe('applyListDefaults', () => {
   const userId = 'user-123'
 
   // Helper to create a list with specific defaults
+  // The literal this replaces was missing `owner`, which TaskList requires.
   const createList = (
     id: string,
     name: string,
     defaults: Partial<TaskList> = {}
-  ): TaskList => ({
-    id,
-    name,
-    ownerId: userId,
-    color: '#3b82f6',
-    privacy: 'PRIVATE',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    isVirtual: false,
-    defaultPriority: defaults.defaultPriority,
-    defaultAssigneeId: defaults.defaultAssigneeId,
-    defaultIsPrivate: defaults.defaultIsPrivate,
-    defaultRepeating: defaults.defaultRepeating as any,
-    defaultDueDate: defaults.defaultDueDate,
-    defaultDueTime: defaults.defaultDueTime,
-    ...defaults,
-  })
+  ): TaskList =>
+    buildTaskList({ id, name, ownerId: userId, color: '#3b82f6', ...defaults })
 
   describe('Default Due Time Application', () => {
     it('should apply defaultDueTime when defaultDueDate is set', () => {
@@ -283,7 +270,9 @@ describe('mapTaskDataForApi', () => {
     expect(apiData.dueDateTime).toEqual(testDate.toISOString())
 
     // Verify time is preserved
-    const dueDateTime = apiData.dueDateTime instanceof Date ? apiData.dueDateTime : new Date(apiData.dueDateTime!)
+    // `dueDateTime` on the API payload is an ISO string — the assertion two
+    // lines up says so — so the `instanceof Date` branch was unreachable.
+    const dueDateTime = new Date(apiData.dueDateTime!)
     expect(dueDateTime.getHours()).toBe(14)
     expect(dueDateTime.getMinutes()).toBe(30)
   })

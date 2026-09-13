@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { buildTaskList } from '../fixtures/domain'
 import { applyTaskDefaultsWithPriority, SYSTEM_DEFAULTS } from '@/lib/task-defaults-priority'
 import type { TaskList } from '@/types/task'
 
@@ -6,27 +7,13 @@ describe('Task Defaults Priority Logic', () => {
   const userId = 'user-123'
 
   // Helper to create a list with specific defaults
+  // The literal this replaces was missing `owner`, which TaskList requires.
   const createList = (
     id: string,
     name: string,
     defaults: Partial<TaskList> = {}
-  ): TaskList => ({
-    id,
-    name,
-    ownerId: userId,
-    color: '#3b82f6',
-    privacy: 'PRIVATE',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    isVirtual: false,
-    defaultPriority: defaults.defaultPriority,
-    defaultAssigneeId: defaults.defaultAssigneeId,
-    defaultIsPrivate: defaults.defaultIsPrivate,
-    defaultRepeating: defaults.defaultRepeating as any,
-    defaultDueDate: defaults.defaultDueDate,
-    defaultDueTime: defaults.defaultDueTime,
-    ...defaults,
-  })
+  ): TaskList =>
+    buildTaskList({ id, name, ownerId: userId, color: '#3b82f6', ...defaults })
 
   describe('System Defaults (No Customization)', () => {
     it('should use system defaults when no lists or explicit values', () => {

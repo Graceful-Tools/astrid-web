@@ -1,8 +1,13 @@
 /**
- * Unit tests for ensureUserStatusLists — the per-user global status-list
- * seeder. Status lists (Ready/Doing/Waiting) are per-user singletons
- * (projectId = null), not duplicated per project. This helper is the
- * idempotent get-or-create for that set.
+ * Unit tests for lib/projects-service.
+ *
+ * This header used to describe `ensureUserStatusLists`, the per-user
+ * status-list seeder. That function is gone — Stage D (task b7b0c2f5) deleted
+ * status rows and moved the field to `Task.statusRole` — but the import of it
+ * survived, naming an export that does not exist. Nothing compiled the test
+ * tree, and esbuild drops an unused import rather than failing on it, so the
+ * suite stayed green while importing a function that had been deleted.
+ * (AWTD-916)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { row, rows, rowsWith } from '../fixtures/prisma-rows'
@@ -41,7 +46,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { ensureUserStatusLists, listProjectsForUser, addUserStatus, collectProjectMemberUserIds, createProjectFromList } from '@/lib/projects-service'
+import { listProjectsForUser, addUserStatus, collectProjectMemberUserIds, createProjectFromList } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 
 const mockFindMany = vi.mocked(prisma.taskList.findMany)

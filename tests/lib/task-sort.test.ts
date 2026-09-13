@@ -1,26 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import { buildTask, buildUser } from '../fixtures/domain'
 import { sortTasksForList } from '@/lib/task-sort'
 import type { Task } from '@/types/task'
 
-const baseTask = (overrides: Partial<Task> & { id: string }): Task => ({
-  id: overrides.id,
-  title: overrides.title ?? overrides.id,
-  description: '',
-  creator: { id: 'u', email: 'u@e', name: 'U', createdAt: new Date('2026-01-01') } as Task['creator'],
-  creatorId: 'u',
-  priority: 0,
-  lists: [],
-  isPrivate: false,
-  completed: false,
-  attachments: [],
-  comments: [],
-  createdAt: new Date('2026-01-01T00:00:00Z'),
-  updatedAt: new Date('2026-01-01T00:00:00Z'),
-  repeating: 'never',
-  repeatFrom: 'COMPLETION_DATE',
-  occurrenceCount: 0,
-  ...overrides,
-})
+// `id` came through `overrides` twice, and the creator was cast rather than
+// built. (AWTD-916)
+const baseTask = (overrides: Partial<Task> & { id: string }): Task =>
+  buildTask({
+    title: overrides.id,
+    creator: buildUser({ id: 'u', email: 'u@e', name: 'U' }),
+    creatorId: 'u',
+    ...overrides,
+  })
 
 describe('sortTasksForList', () => {
   it('priority: highest first', () => {
