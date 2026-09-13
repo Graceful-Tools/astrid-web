@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { LookupAddress } from 'dns'
 import { row, rows } from '../fixtures/prisma-rows'
 import { POST } from '@/app/api/images/store/route'
 import { getUnifiedSession } from '@/lib/session-utils'
@@ -33,16 +34,24 @@ vi.mock('node:dns/promises', () => ({
   lookup: lookupMock,
 }))
 
+/**
+ * `lookup` is overloaded. Production calls the `{ all: true }` form
+ * (lib/security/remote-image.ts:93), which resolves an ARRAY — but `vi.mocked`
+ * resolves to the single-address overload, so a correct array fixture reads as
+ * a type error. Name the shape production uses, once. (AWTD-916)
+ */
+const mockLookup = vi.mocked(lookup) as unknown as {
+  mockResolvedValue: (value: LookupAddress[]) => void
+}
+
 describe('POST /api/images/store security', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     delete process.env.REMOTE_IMAGE_ALLOWED_HOSTS
     vi.mocked(getUnifiedSession).mockResolvedValue(row({
-      user: { id: 'user-1', email: 'user@example.com' },
+      user: { id: 'user-1', email: 'user@example.com', name: null, image: null },
     }))
-    vi.mocked(lookup).mockResolvedValue(rows([
-      { address: '93.184.216.34', family: 4 },
-    ]))
+    mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
     vi.mocked(prisma.secureFile.create).mockResolvedValue(row({}))
   })
 
@@ -74,9 +83,7 @@ describe('POST /api/images/store security', () => {
 
   it('AWTD-security rejects approved hosts that resolve to private addresses', async () => {
     process.env.REMOTE_IMAGE_ALLOWED_HOSTS = 'images.example.test'
-    vi.mocked(lookup).mockResolvedValue(rows([
-      { address: '10.0.0.4', family: 4 },
-    ]))
+    mockLookup.mockResolvedValue([{ address: '10.0.0.4', family: 4 }])
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 

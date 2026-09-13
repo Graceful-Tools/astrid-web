@@ -37,7 +37,9 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
-const getPopularPublicLists = vi.hoisted(() => vi.fn(async () => []))
+const getPopularPublicLists = vi.hoisted(() =>
+  vi.fn(async (_limit?: number, _options?: { ownerId?: string | null }) => []),
+)
 const getRecentPublicLists = vi.hoisted(() => vi.fn(async () => []))
 const searchPublicLists = vi.hoisted(() => vi.fn(async () => []))
 vi.mock('@/lib/copy-utils', () => ({
@@ -68,7 +70,7 @@ function req(qs: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockSession.mockResolvedValue(row({ user: { id: 'user-1' } }))
+  mockSession.mockResolvedValue(row({ user: { id: 'user-1', email: 'user@example.com', name: null, image: null } }))
   getPopularPublicLists.mockResolvedValue(rows([]))
   getRecentPublicLists.mockResolvedValue(rows([]))
   searchPublicLists.mockResolvedValue(rows([]))

@@ -97,7 +97,9 @@ function v1Req(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockSession.mockResolvedValue(row({ user: { id: USER, email: 'jon@example.com' } }))
+  mockSession.mockResolvedValue(
+    row({ user: { id: USER, email: 'jon@example.com', name: null, image: null } }),
+  )
   mockAuth.mockResolvedValue(row({
     userId: USER,
     source: 'oauth' as const,
@@ -177,7 +179,7 @@ describe('legacy POST /api/lists batches list creation members', () => {
       { id: 'email-user-1', email: 'one@example.com' },
       { id: 'email-user-2', email: 'two@example.com' },
     ]))
-    mockPrisma.user.findUnique.mockImplementation(async ({ where }) => {
+    mockPrisma.user.findUnique.mockImplementation((async ({ where }: { where: { email?: string } }) => {
       if (where.email === 'one@example.com') {
         return { id: 'email-user-1', email: where.email } as never
       }
@@ -185,7 +187,7 @@ describe('legacy POST /api/lists batches list creation members', () => {
         return { id: 'email-user-2', email: where.email } as never
       }
       return null
-    })
+    }) as never)
     mockPrisma.listMember.create.mockResolvedValue(row({ id: 'membership' }))
     mockPrisma.listInvite.create.mockResolvedValue(row({ id: 'invite' }))
 
