@@ -8,12 +8,12 @@ export class ListImageClaimError extends Error {
   }
 }
 
-type ListUpdateClient = Pick<
+export type ListUpdateClient = Pick<
   Prisma.TransactionClient,
   'taskList' | 'listMember' | 'task'
 >
-type ListDeleteClient = Pick<Prisma.TransactionClient, 'taskList'>
-type ListCreateClient = Pick<Prisma.TransactionClient, 'taskList'>
+export type ListDeleteClient = Pick<Prisma.TransactionClient, 'taskList'>
+export type ListCreateClient = Pick<Prisma.TransactionClient, 'taskList'>
 
 interface UpdateListImageInput<T> {
   listId: string

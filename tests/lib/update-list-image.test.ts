@@ -17,6 +17,11 @@ const mockPrisma = vi.hoisted(() => ({
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
 
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import type {
+  ListDeleteClient,
+  ListUpdateClient,
+} from '@/lib/images/update-list-image'
 import {
   createListWithImageOwnership,
   deleteListWithImageRelease,
@@ -41,7 +46,7 @@ describe('updateListWithImageOwnership', () => {
     update.mockClear()
   })
 
-  const update = vi.fn((client: typeof mockPrisma) =>
+  const update = vi.fn((client: ListUpdateClient) =>
     client.taskList.update({
       where: { id: 'list-1' },
       data: { imageUrl: 'https://blob/new' },
@@ -85,7 +90,7 @@ describe('updateListWithImageOwnership', () => {
     await createListWithImageOwnership(
       imageUrl,
       'user-1',
-      client => client.taskList.create({ data: { name: 'List', ownerId: 'user-1' } }),
+      client => client.taskList.create({ data: { name: 'List', ownerId: 'user-1', color: DEFAULT_LIST_COLOR } }),
     )
 
     expect(mockPrisma.secureFile.updateMany).toHaveBeenCalledWith({
@@ -203,7 +208,7 @@ describe('updateListWithImageOwnership', () => {
   })
 
   it('releases generated images before deleting their list', async () => {
-    const remove = vi.fn((client: typeof mockPrisma) =>
+    const remove = vi.fn((client: ListDeleteClient) =>
       client.taskList.update({ where: { id: 'list-1' }, data: {} }),
     )
 
