@@ -30,7 +30,6 @@ describe('CommentSection', () => {
     lists: [],
     creatorId: 'user-1',
     assigneeId: null,
-    when: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     comments: [

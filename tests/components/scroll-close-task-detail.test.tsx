@@ -44,7 +44,6 @@ describe('Scroll-to-close task detail behavior', () => {
     description: null,
     completed: false,
     priority: 2,
-    when: null,
     repeating: 'never',
     assigneeId: null,
     assignee: null,

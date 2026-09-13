@@ -34,6 +34,14 @@ import {
   resetEmailTransportForTests,
 } from '@/lib/email-transport'
 
+// NODE_ENV is declared readonly by Next's env types. These suites set it on
+// purpose and restore the whole `process.env` object around each test, so the
+// write is scoped — it just needs to get past the readonly declaration.
+// (AWTD-916)
+function setNodeEnv(value: string) {
+  ;(process.env as Record<string, string | undefined>).NODE_ENV = value
+}
+
 const ORIGINAL_ENV = { ...process.env }
 
 beforeEach(() => {
@@ -48,21 +56,21 @@ afterEach(() => {
 
 describe('isEmailTransportLive', () => {
   it('is false in development, so a local run logs rather than mails real people', () => {
-    process.env.NODE_ENV = 'development'
+    setNodeEnv('development')
     process.env.RESEND_API_KEY = 'key'
 
     expect(isEmailTransportLive()).toBe(false)
   })
 
   it('is false with no API key, whatever the environment', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     delete process.env.RESEND_API_KEY
 
     expect(isEmailTransportLive()).toBe(false)
   })
 
   it('is true in production with a key', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.RESEND_API_KEY = 'key'
 
     expect(isEmailTransportLive()).toBe(true)
@@ -71,7 +79,7 @@ describe('isEmailTransportLive', () => {
 
 describe('sendTransportEmail', () => {
   beforeEach(() => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.RESEND_API_KEY = 'key'
   })
 

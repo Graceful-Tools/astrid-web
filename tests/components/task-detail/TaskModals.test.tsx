@@ -12,7 +12,6 @@ describe('TaskModals', () => {
     description: 'Test description',
     completed: false,
     priority: 1,
-    when: null,
     repeating: 'never',
     lists: [],
     comments: [

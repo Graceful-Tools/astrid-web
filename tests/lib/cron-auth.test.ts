@@ -30,6 +30,15 @@ import { NextRequest } from 'next/server'
 import { requireCronSecret } from '@/lib/cron-auth'
 import { BRAND } from '@/lib/brand/config'
 
+// NODE_ENV is declared readonly by Next's env types. These suites set it on
+// purpose and restore the whole `process.env` object around each test, so the
+// write is scoped — it just needs to get past the readonly declaration.
+// (AWTD-916)
+function setNodeEnv(value: string) {
+  ;(process.env as Record<string, string | undefined>).NODE_ENV = value
+}
+
+
 const ORIGINAL_ENV = { ...process.env }
 
 function request(headers: Record<string, string> = {}) {
@@ -81,14 +90,14 @@ describe('requireCronSecret', () => {
   })
 
   it('allows the explicit local-dev opt-out outside production', () => {
-    process.env.NODE_ENV = 'development'
+    setNodeEnv('development')
     process.env.ALLOW_UNAUTHENTICATED_CRON = 'true'
 
     expect(requireCronSecret(request())).toBeNull()
   })
 
   it('IGNORES the opt-out in production — the hole cannot be opened where it matters', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.ALLOW_UNAUTHENTICATED_CRON = 'true'
 
     expect(
@@ -98,7 +107,7 @@ describe('requireCronSecret', () => {
   })
 
   it('does not treat any truthy-looking opt-out value as consent', () => {
-    process.env.NODE_ENV = 'development'
+    setNodeEnv('development')
     process.env.ALLOW_UNAUTHENTICATED_CRON = '1'
 
     expect(requireCronSecret(request())?.status).toBe(401)

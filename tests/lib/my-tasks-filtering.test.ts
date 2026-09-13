@@ -46,7 +46,6 @@ describe('My Tasks Filtering', () => {
         creatorId: currentUserId,
         dueDateTime: null,
         isPrivate: false,
-        when: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
@@ -61,7 +60,6 @@ describe('My Tasks Filtering', () => {
         creatorId: currentUserId,
         dueDateTime: null,
         isPrivate: false,
-        when: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
@@ -76,7 +74,6 @@ describe('My Tasks Filtering', () => {
         creatorId: currentUserId,
         dueDateTime: null,
         isPrivate: false,
-        when: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
@@ -91,7 +88,6 @@ describe('My Tasks Filtering', () => {
         creatorId: otherUserId,
         dueDateTime: null,
         isPrivate: false,
-        when: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lists: []
