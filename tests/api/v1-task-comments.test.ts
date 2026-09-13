@@ -73,7 +73,7 @@ describe('API v1 task comments public access', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireScopes.mockImplementation(() => {})
-    mockGetDeprecationWarning.mockReturnValue(rowWith(undefined))
+    mockGetDeprecationWarning.mockReturnValue(undefined)
     mockGetListMemberIds.mockReturnValue(rows(['owner-id']))
   })
 

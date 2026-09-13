@@ -168,7 +168,7 @@ describe('syncAllGithubLinks fairness', () => {
 
   it('stamps lastReconciledAt when a link is skipped for missing credentials', async () => {
     seed(1)
-    githubTokenFor.mockResolvedValueOnce(rowWith(null))
+    githubTokenFor.mockResolvedValueOnce(null)
 
     await syncAllGithubLinks()
 

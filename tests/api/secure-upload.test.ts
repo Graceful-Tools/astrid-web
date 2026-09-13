@@ -176,7 +176,7 @@ describe('Secure Upload API', () => {
 
     it('should reject unauthorized upload', async () => {
       // Mock no session
-      mockGetServerSession.mockResolvedValue(rowWith(null))
+      mockGetServerSession.mockResolvedValue(null)
 
       const request = createMockRequestWithFile({ taskId: 'test-task-id' })
       const response = await POST(request)

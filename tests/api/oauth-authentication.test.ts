@@ -35,7 +35,7 @@ describe('OAuth Authentication', () => {
     vi.clearAllMocks()
 
     // Disable session authentication for these tests
-    mockGetServerSession.mockResolvedValue(rowWith(null))
+    mockGetServerSession.mockResolvedValue(null)
 
     // Set up test data
     testUserId = 'test-user-id'
@@ -467,7 +467,7 @@ describe('OAuth Authentication', () => {
       vi.clearAllMocks()
 
       // Disable session auth for MCP test
-      mockGetServerSession.mockResolvedValue(rowWith(null))
+      mockGetServerSession.mockResolvedValue(null)
 
       mockPrisma.mCPToken.findFirst.mockResolvedValue(row({
         id: 'mcp-token-id',

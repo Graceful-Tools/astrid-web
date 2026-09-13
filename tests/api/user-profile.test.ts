@@ -68,7 +68,7 @@ describe('User Profile API', () => {
 
   describe('Authentication', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
+      mockGetServerSession.mockResolvedValueOnce(null)
 
       const response = await GET(
         createMockRequest(),

@@ -64,7 +64,7 @@ async function get() {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(requireScopes).mockImplementation(() => {})
-  vi.mocked(getDeprecationWarning).mockReturnValue(rowWith(undefined))
+  vi.mocked(getDeprecationWarning).mockReturnValue(undefined)
   vi.mocked(authenticateAPI).mockResolvedValue(row({ userId: 'owner-id', source: 'oauth', scopes: ['comments:read'] }))
   mockPrisma.task.findUnique.mockResolvedValue(task as never)
 })

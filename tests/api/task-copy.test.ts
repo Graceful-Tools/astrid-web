@@ -125,7 +125,7 @@ describe('Task Copy API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
+      mockGetServerSession.mockResolvedValueOnce(null)
 
       const request = createMockRequest({})
       const context = createMockContext('original-task-id')

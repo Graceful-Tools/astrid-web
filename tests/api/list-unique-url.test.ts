@@ -223,7 +223,7 @@ describe('List Unique URL API (/api/lists/[id])', () => {
   it('should return 401 for unauthenticated user', async () => {
     const listId = 'test-list-id'
     
-    mockGetServerSession.mockResolvedValue(rowWith(null))
+    mockGetServerSession.mockResolvedValue(null)
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })

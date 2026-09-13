@@ -237,7 +237,7 @@ describe('Tasks API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(rowWith(null))
+      mockGetServerSession.mockResolvedValueOnce(null)
 
       const response = await GET()
       const data = await response.json()

@@ -91,7 +91,7 @@ describe('v1 Chat Message Attachments', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireScopes.mockImplementation(() => {})
-    mockGetDeprecationWarning.mockReturnValue(rowWith(undefined))
+    mockGetDeprecationWarning.mockReturnValue(undefined)
     mockAuthenticateAPI.mockResolvedValue(createAuth() as any)
     mockCanAccessChatChannel.mockResolvedValue(true)
     mockGetChatChannelRecipients.mockResolvedValue(rows([USER_ID, OTHER_USER_ID]))

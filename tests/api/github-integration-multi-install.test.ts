@@ -219,7 +219,7 @@ describe('GitHub Integration - Multi-Installation Support', () => {
   })
 
   it('should return 401 for unauthenticated requests', async () => {
-    mockGetServerSession.mockResolvedValue(rowWith(null))
+    mockGetServerSession.mockResolvedValue(null)
 
     const request = createMockRequest()
     const response = await GET(request)

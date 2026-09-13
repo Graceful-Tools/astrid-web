@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import type { Session } from 'next-auth'
 import 'fake-indexeddb/auto'
 import rawEnMessages from '@/lib/i18n/locales/en.json'
 import { applyBrandToMessages } from '@/lib/brand/i18n-values'
@@ -257,14 +258,22 @@ export const mockPrisma = {
 }
 
 // Mock next-auth with proper mocks
-const mockGetServerSession = vi.fn(() => Promise.resolve({
-  user: {
-    id: 'test-user-id',
-    name: 'Test User',
-    email: 'test@example.com',
-    image: 'test-image-url',
-  }
-}))
+// Typed as what getServerSession really returns, rather than letting the
+// default implementation pin it. Inferred, the resolved type was exactly this
+// four-field user, so a test could not mock a session with fewer fields — nor
+// `null`, which is the unauthenticated case several suites are about.
+// (AWTD-916)
+const mockGetServerSession = vi.fn<() => Promise<Session | null>>(() =>
+  Promise.resolve({
+    user: {
+      id: 'test-user-id',
+      name: 'Test User',
+      email: 'test@example.com',
+      image: 'test-image-url',
+    },
+    expires: '2099-01-01T00:00:00.000Z',
+  })
+)
 
 vi.mock('next-auth', () => ({
   default: vi.fn(),

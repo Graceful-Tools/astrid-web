@@ -53,7 +53,7 @@ function buildTask(overrides: Record<string, unknown> = {}) {
         description: null,
         githubRepositoryId: null,
         ownerId: 'list-owner',
-        aiAgentConfiguredBy: 'configuring-user',
+        aiAgentConfiguredBy: 'configuring-user' as string | null,
         owner: { id: 'list-owner', email: 'owner@example.com' },
       },
     ],
@@ -63,7 +63,14 @@ function buildTask(overrides: Record<string, unknown> = {}) {
 }
 
 function buildDeps(task: Record<string, unknown>) {
-  const sendToUserWebhook = vi.fn(async () => ({ sent: true, status: 200 }))
+  const sendToUserWebhook = vi.fn(
+    async (
+      _userId: string,
+      _event: string,
+      _payload: { billing?: { userId: string | null; source: string } },
+      _agentType?: string | null,
+    ) => ({ sent: true, status: 200 }),
+  )
   const prisma = {
     task: { findFirst: vi.fn(async () => task) },
     mCPToken: {
