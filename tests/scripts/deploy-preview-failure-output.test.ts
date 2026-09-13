@@ -31,10 +31,11 @@ function stubVercel(body: string) {
   fs.chmodSync(npx, 0o755)
 }
 
-function runProduction(): { status: number; output: string } {
+function runProduction(options: { cwd?: string } = {}): { status: number; output: string } {
   try {
     const stdout = execFileSync('bash', [SCRIPT, '--production'], {
       encoding: 'utf8',
+      cwd: options.cwd,
       env: {
         ...process.env,
         PATH: `${binDir}:${process.env.PATH}`,
@@ -47,6 +48,22 @@ function runProduction(): { status: number; output: string } {
     const e = error as { status: number; stdout?: string; stderr?: string }
     return { status: e.status ?? 1, output: `${e.stdout ?? ''}${e.stderr ?? ''}` }
   }
+}
+
+/**
+ * A git repo sitting on a detached HEAD — `git branch --show-current` prints
+ * nothing there. That is what a GitHub Actions checkout looks like, and it is
+ * also what you get by following docs/CLI_OPERATIONS.md §0's own instruction to
+ * "check out the commit you mean to ship".
+ */
+function detachedHeadRepo(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'detached-head-'))
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
+  git('init', '-q')
+  git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'root')
+  git('checkout', '-q', '--detach', 'HEAD')
+  return dir
 }
 
 beforeEach(() => {
@@ -88,6 +105,29 @@ describe('deploy-preview.sh --production', () => {
     expect(status).not.toBe(0)
     expect(output).not.toContain('sup3rs3cr3ttoken')
     expect(output).toContain('REDACTED')
+  })
+
+  it('deploys from a detached HEAD, where there is no current branch', () => {
+    // Production goes to astrid.cc regardless of branch, and the script never
+    // reads BRANCH on this path — but it demanded one anyway and died with
+    // "Could not determine branch" before reaching the deploy.
+    //
+    // That made every one of these tests fail on GitHub Actions (which checks
+    // out a detached HEAD), which is why the authenticated-critical and
+    // Build & Test PR jobs were red while the same tests passed locally on a
+    // branch. It also blocked the documented way to ship a specific commit.
+    const repo = detachedHeadRepo()
+    try {
+      stubVercel('echo "https://astrid-abc123-gracefultools.vercel.app"; exit 0')
+
+      const { status, output } = runProduction({ cwd: repo })
+
+      expect(output).not.toContain('Could not determine branch')
+      expect(status).toBe(0)
+      expect(output).toContain('https://astrid-abc123-gracefultools.vercel.app')
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true })
+    }
   })
 
   it('reports the deployment URL on success', () => {

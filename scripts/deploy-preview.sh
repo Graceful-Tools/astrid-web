@@ -58,7 +58,14 @@ if [[ -z "$BRANCH" ]]; then
   BRANCH="$(git branch --show-current)"
 fi
 
-if [[ -z "$BRANCH" ]]; then
+# Only the PREVIEW path needs a branch — it becomes the <subdomain>.astrid.cc
+# alias. Production always goes to astrid.cc and never reads BRANCH, but this
+# guard used to run for both, so `--production` died with "Could not determine
+# branch" wherever HEAD is detached: every GitHub Actions checkout (which is why
+# the deploy-preview tests were red in CI and green locally), and the very
+# workflow docs/CLI_OPERATIONS.md §0 prescribes — "check out the commit you mean
+# to ship" leaves you detached by definition.
+if [[ "$PRODUCTION" != true && -z "$BRANCH" ]]; then
   fail "Could not determine branch. Pass branch name as argument."
 fi
 

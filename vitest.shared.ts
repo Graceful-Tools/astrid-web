@@ -57,6 +57,16 @@ export const MAX_TEST_WORKERS = Math.max(2, Math.floor(os.cpus().length / 2))
  */
 export const TEST_TIMEOUT_MS = 15_000
 
+/**
+ * The one test that needs a real Postgres, named once.
+ *
+ * It appears in two configs with opposite intent — SHARED_EXCLUDE skips it so
+ * the mocked-Prisma suites never touch a database, and vitest.postgres.config.ts
+ * includes it as its entire suite. Two spellings of the same path is how one of
+ * them silently stops matching, so there is only one.
+ */
+export const POSTGRES_ONLY_TEST = 'tests/integration/postgres-risk.test.ts'
+
 /** Paths that are never test files, whichever config is running. */
 export const SHARED_EXCLUDE = [
   '**/node_modules/**',
@@ -71,7 +81,7 @@ export const SHARED_EXCLUDE = [
   '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
   'packages/openclaw-astrid-channel/tests/**',
   // Needs a real Postgres; vitest.postgres.config.ts runs it on its own.
-  'tests/integration/postgres-risk.test.ts',
+  POSTGRES_ONLY_TEST,
 ]
 
 /** The `@/…` alias every config resolves identically. */

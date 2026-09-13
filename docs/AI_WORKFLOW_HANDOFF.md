@@ -27,7 +27,7 @@ implementation state, review findings, pushed branches, and dependency order.
 | P1 — Discoverability | `c1c77de4-9dd0-4651-9847-5ef96dd14a34` | **Accepted and complete** | [`jonparis-ai-workflows-p1-discoverability`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-ai-workflows-p1-discoverability), tip `4d1a5f74fdb801e04a2bd6804cf620b981c86a9e` | Use as the P3 base. Includes follow-up capability gate; do not use `88b17d8` alone. |
 | P2 — Guided connection | `dec2fb0f-b420-43d3-bc5d-64f6dbaa6268` | **Review rejected; reopened** | [`jonparis-ai-workflows-p2-connection`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-ai-workflows-p2-connection), pushed RED-test tip `bf74b73` on implementation commit `1f78b326299c526aaa7402fac33724a0846a2f05` | Run the preserved RED tests, fix the two findings below, rerun gates, and obtain review acceptance. |
 | P3 — Cross-harness queue skill | `5f402837-da48-43f8-9e5d-b8cac847f8dd` | **Not started; blocked by P2** | none | Branch from accepted P1, incorporate accepted P2 exactly, then implement the canonical skill and generated adapters. |
-| P4 — Ready/Waiting lifecycle | `a1f6e610-5fd4-42cc-8f41-4c382810d341` | **WIP; not accepted** | [`jonparis-productize-ready-waiting-lifecycle`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-productize-ready-waiting-lifecycle), pushed handoff tip `53b491563dfa20c667fadf385fce5a31621a6ef9`; implementation checkpoint parent `24d7805cbd1baf9ece377f7596fa370cbf14a8fe` | Finish validation and security/idempotency review; details below. |
+| P4 — Ready/Waiting lifecycle | `a1f6e610-5fd4-42cc-8f41-4c382810d341` | **Abandoned 2026-09-12; branch deleted** | none on the remote — [PR #279 (closed)](https://github.com/Graceful-Tools/astrid-web/pull/279) holds the diff; handoff tip was `53b491563dfa20c667fadf385fce5a31621a6ef9`, checkpoint parent `24d7805cbd1baf9ece377f7596fa370cbf14a8fe` | Nothing. `scripts/ready-tasks.ts` remains the owner of Ready/Waiting. Restart from PR #279's diff only if that changes; details below. |
 | P5 — Custom Agents | `53540b6d-0a0d-4a8b-8a2a-4b49beb73726` | **Implemented; pending final review/closure** | [`jonparis-custom-agents-rebrand`](https://github.com/Graceful-Tools/astrid-web/tree/jonparis-custom-agents-rebrand), tip `dedd30a603d7256e207c06a2b345acf94a9a776f` | Review compatibility and reconcile shared files with P1 before acceptance. |
 | P6 — Agent hub ownership | `215b6c11-42eb-444c-b82b-63971ffa9dab` | **Not started; blocked by P5** | none | Start only after P5 acceptance; base directly on accepted P5. |
 | P7 — Documentation consolidation | `ca847e4c-0766-4fb0-b225-b8dedc98cd09` | **Not started; blocked by P3 + P5** | none | Start after P3 and P5 are accepted; incorporate both exact tips. |
@@ -56,10 +56,27 @@ regressions in `tests/components/agent-loop-recipes-tabs.test.tsx` and
 `tests/api/oauth-authentication.test.ts`; start by confirming they fail for the intended
 reasons.
 
-## P4 WIP status and risks
+## P4 status: abandoned 2026-09-12
 
-The WIP commit includes an opt-in `TaskList.agentLifecycleEnabled` flag, a nullable cursor,
-an additive/default-off migration, a centralized mutation boundary in
+**Closed unmerged, branch deleted (Jon, 2026-09-12).** The diff survives on
+[PR #279](https://github.com/Graceful-Tools/astrid-web/pull/279); the tips above are only
+reachable through it. The client-side sweep in `scripts/ready-tasks.ts` keeps ownership of
+Ready/Waiting — that sweep is still live and was never removed, so nothing regressed by
+dropping this.
+
+Three findings decided it, and any restart must answer them:
+
+1. **13 merge conflicts.** Since the branch was cut, `main` moved comment creation into
+   `lib/comments/create-comment.ts` and list membership into a service; most hooks below
+   now belong in those services rather than in the routes.
+2. **Bypasses the comment service.** The reconciler wrote its audit comment with a raw
+   `tx.comment.create`, so it never reached SSE fan-out or notifications.
+3. **Uncaught on the request path.** Every task/comment PUT awaited a serializable
+   transaction that throws after three `P2034` retries — a conflict would 500 the user's
+   request *after* their own update had already committed.
+
+What it contained, for anyone reviving it: an opt-in `TaskList.agentLifecycleEnabled` flag,
+a nullable cursor, an additive/default-off migration, a centralized mutation boundary in
 `lib/agent-lifecycle-mutations.ts`, a CRON-secret-protected reconciliation route, mutation
 hooks, and lifecycle tests.
 
@@ -74,7 +91,7 @@ Completed:
 - Rerun of the 17 previously failing files reached 157/158; the last
   `comment.taskId` hook-source failure was fixed and its focused rerun passed.
 
-Still required:
+Was still required at the time it was dropped:
 
 1. Rerun full `npm run predeploy` after the final fix.
 2. Run `npm run check:reuse`.
