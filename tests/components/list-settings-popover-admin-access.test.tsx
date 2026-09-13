@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+import { buildUser } from '../fixtures/domain'
+import { buildTaskList } from '../fixtures/domain'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ListSettingsPopover } from '@/components/list-settings-popover'
@@ -18,7 +20,7 @@ vi.mock('@/components/list-membership', () => ({
   ListMembership: () => <div data-testid="membership-content">Membership Content</div>
 }))
 
-const mockList: TaskList = {
+const mockList: TaskList = buildTaskList({
   id: 'test-list-123',
   name: 'Test List',
   description: 'A test list',
@@ -34,9 +36,9 @@ const mockList: TaskList = {
   defaultIsPrivate: true,
   defaultRepeating: 'never',
   defaultDueDate: 'none'
-}
+})
 
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-123',
   name: 'Test User',
   email: 'test@example.com',
@@ -47,9 +49,9 @@ const mockUser: User = {
   emailVerificationToken: null,
   emailTokenExpiresAt: null,
   password: null
-}
+})
 
-const mockOwnerUser: User = {
+const mockOwnerUser: User = buildUser({
   id: 'owner-123',
   name: 'Owner User',
   email: 'owner@example.com',
@@ -60,7 +62,7 @@ const mockOwnerUser: User = {
   emailVerificationToken: null,
   emailTokenExpiresAt: null,
   password: null
-}
+})
 
 const defaultProps = {
   list: mockList,

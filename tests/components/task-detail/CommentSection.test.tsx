@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { row } from '../../fixtures/prisma-rows'
-import { buildUser } from '../../fixtures/domain'
+import { buildTask, buildUser } from '../../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CommentSection } from '@/components/task-detail/CommentSection'
 import type { Task, User } from '@/types/task'
@@ -21,13 +21,17 @@ describe('CommentSection', () => {
     image: null
   })
 
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: '',
     priority: 1,
     completed: false,
     lists: [],
+    // creatorId is 'user-1', so the creator IS the current user. The literal
+    // omitted `creator` entirely — a required field — and the builder's
+    // stand-in put a second person in the mention list. (AWTD-916)
+    creator: mockCurrentUser,
     creatorId: 'user-1',
     assigneeId: null,
     createdAt: new Date(),
@@ -45,7 +49,7 @@ describe('CommentSection', () => {
         replies: []
       }
     ]
-  }
+  })
 
   const defaultProps = {
     task: mockTask,

@@ -12,18 +12,19 @@
  * DOM (jsdom keeps it) — we assert visibility, not mere presence.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTask, buildUser } from '../fixtures/domain'
 import { buildTaskList } from '../fixtures/domain'
 import { render, screen } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
 
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-1',
   email: 'test@example.com',
   name: 'Test User',
   image: null,
   createdAt: new Date(),
-}
+})
 
 const ownedList: TaskList = buildTaskList({
   id: 'list-1',
@@ -41,7 +42,7 @@ const ownedList: TaskList = buildTaskList({
   tasks: [],
 })
 
-const mockTask: Task = {
+const mockTask: Task = buildTask({
   id: 'task-1',
   title: 'Test Task',
   description: null,
@@ -57,7 +58,7 @@ const mockTask: Task = {
   attachments: [],
   createdAt: new Date(),
   updatedAt: new Date(),
-}
+})
 
 const baseProps: any = {
   isMobile: false,

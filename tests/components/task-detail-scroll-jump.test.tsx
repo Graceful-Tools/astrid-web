@@ -16,6 +16,8 @@
  * does.
  */
 import { describe, it, expect, vi, beforeEach, afterEach , type Mock } from 'vitest'
+import { buildUser } from '../fixtures/domain'
+import { buildTaskList } from '../fixtures/domain'
 import { render } from '@testing-library/react'
 import { TaskDetail } from '@/components/task-detail'
 import type { Task, User, TaskList, Comment } from '@/types/task'
@@ -36,19 +38,19 @@ vi.mock('@/lib/reminder-manager', () => ({
   }))
 }))
 
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-1',
   name: 'Test User',
   email: 'test@example.com',
-}
+})
 
-const mockList: TaskList = {
+const mockList: TaskList = buildTaskList({
   id: 'list-1',
   name: 'Test List',
   color: '#3b82f6',
   privacy: 'PRIVATE',
   ownerId: 'user-1'
-}
+})
 
 function makeComment(id: string): Comment {
   return {

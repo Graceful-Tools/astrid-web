@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { buildTask, buildUser } from '../fixtures/domain'
 import { row } from '../fixtures/prisma-rows'
 import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
@@ -83,13 +84,13 @@ vi.mock('@/lib/reminder-manager', () => ({
 }))
 
 // Create test data
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-1',
   name: 'Test User',
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-}
+})
 
 const mockList: TaskList = buildTaskList({
   id: 'list-1',
@@ -104,7 +105,7 @@ const mockList: TaskList = buildTaskList({
   updatedAt: new Date()
 })
 
-const mockTask: Task = {
+const mockTask: Task = buildTask({
   id: 'task-1',
   title: 'Test Task',
   description: 'Test description',
@@ -121,7 +122,7 @@ const mockTask: Task = {
   lists: [mockList],
   comments: [],
   attachments: []
-}
+})
 
 const mockProps = {
   task: mockTask,

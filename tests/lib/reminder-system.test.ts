@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { buildUser } from '../fixtures/domain'
+import { buildTask } from '../fixtures/domain'
 import { reminderManager } from '@/lib/reminder-manager'
 import { getRandomReminderString, getSocialAccountabilityMessage, REMINDER_STRINGS } from '@/lib/reminder-constants'
 import type { Task, User } from '@/types/task'
 
 // Mock task data
-const mockTask: Task = {
+const mockTask: Task = buildTask({
   id: 'test-task-123',
   title: 'Test Task for Reminders',
   description: 'A test task to verify reminder functionality',
@@ -61,15 +63,15 @@ const mockTask: Task = {
   comments: [],
   createdAt: new Date(),
   updatedAt: new Date()
-}
+})
 
-const mockUser: User = {
+const mockUser: User = buildUser({
   id: 'user-123',
   name: 'Test User',
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-}
+})
 
 describe('Reminder System Tests', () => {
   beforeEach(() => {

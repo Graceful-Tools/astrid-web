@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buildTaskList } from '../../fixtures/domain'
+import { buildTask, buildTaskList } from '../../fixtures/domain'
 import { row } from '../../fixtures/prisma-rows'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskModals } from '@/components/task-detail/TaskModals'
@@ -7,7 +7,7 @@ import type { Task, TaskList } from '@/types/task'
 import { BRAND } from '@/lib/brand/config'
 
 describe('TaskModals', () => {
-  const mockTask: Task = {
+  const mockTask: Task = buildTask({
     id: 'task-1',
     title: 'Test Task',
     description: 'Test description',
@@ -23,7 +23,7 @@ describe('TaskModals', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     userId: 'user-1'
-  }
+  })
 
   const mockLists: TaskList[] = [
     buildTaskList({ id: 'list-1', name: 'List 1', color: '#ff0000', privacy: 'PRIVATE', ownerId: 'user-1' }),
