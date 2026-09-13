@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { GET } from '@/app/api/github/integration/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -93,15 +94,15 @@ describe('GitHub Integration - Multi-Installation Support', () => {
     Object.values(mockPrisma.gitHubIntegration).forEach((mock: any) => mock.mockReset())
 
     // Mock authenticated user
-    mockGetServerSession.mockResolvedValue({ user: mockUser })
+    mockGetServerSession.mockResolvedValue(row({ user: mockUser }))
   })
 
   it('should aggregate repositories from multiple GitHub installations', async () => {
     // User has two GitHub integrations (personal + org)
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([
       personalIntegration,
       orgIntegration
-    ])
+    ]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -133,10 +134,10 @@ describe('GitHub Integration - Multi-Installation Support', () => {
   })
 
   it('should return multiple installation IDs', async () => {
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([
       personalIntegration,
       orgIntegration
-    ])
+    ]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -154,7 +155,7 @@ describe('GitHub Integration - Multi-Installation Support', () => {
 
   it('should maintain backward compatibility with single installation', async () => {
     // User has only one integration
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([personalIntegration])
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([personalIntegration]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -169,7 +170,7 @@ describe('GitHub Integration - Multi-Installation Support', () => {
   })
 
   it('should return 404 when user has no integrations', async () => {
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([])
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -185,10 +186,10 @@ describe('GitHub Integration - Multi-Installation Support', () => {
       repositories: []
     }
 
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([
       emptyIntegration,
       orgIntegration
-    ])
+    ]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -204,10 +205,10 @@ describe('GitHub Integration - Multi-Installation Support', () => {
       repositories: null
     }
 
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([
       nullReposIntegration,
       orgIntegration
-    ])
+    ]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -230,10 +231,10 @@ describe('GitHub Integration - Multi-Installation Support', () => {
 
   it('should order integrations by createdAt', async () => {
     // Older integration first
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([
+    mockPrisma.gitHubIntegration.findMany.mockResolvedValue(rows([
       personalIntegration, // created 2024-01-01
       orgIntegration       // created 2024-02-01
-    ])
+    ]))
 
     const request = createMockRequest()
     const response = await GET(request)
@@ -249,7 +250,7 @@ describe('GitHub Integration - Repository Refresh', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     Object.values(mockPrisma.gitHubIntegration).forEach((mock: any) => mock.mockReset())
-    mockGetServerSession.mockResolvedValue({ user: mockUser })
+    mockGetServerSession.mockResolvedValue(row({ user: mockUser }))
   })
 
   it('refresh endpoint should be accessible (POST method)', async () => {

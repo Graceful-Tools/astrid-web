@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { render, screen } from '@testing-library/react'
 import { TaskManagerHeader } from '@/components/TaskManager/Header/TaskManagerHeader'
 import type { TaskList } from '@/types/task'
@@ -13,7 +14,7 @@ vi.mock('@/hooks/useMyTasksPreferences', () => ({
 
 // Set default mock return value
 beforeEach(() => {
-  mockUseMyTasksPreferences.mockReturnValue({
+  mockUseMyTasksPreferences.mockReturnValue(row({
     filters: {
       priority: [],
       assignee: [],
@@ -26,7 +27,7 @@ beforeEach(() => {
     hasActiveFilters: false,
     clearAllFilters: vi.fn(),
     isLoading: false
-  })
+  }))
 })
 
 describe('TaskManagerHeader - List Name Truncation', () => {
@@ -363,7 +364,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   }
 
   it('should show "My Tasks" without filters when no filters are active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [],
         dueDate: 'all',
@@ -374,7 +375,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: false,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     render(<TaskManagerHeader {...defaultProps} />)
     const titleElement = screen.getByText('My Tasks')
@@ -382,7 +383,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should show "My Tasks - This Week" when date filter is active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [],
         dueDate: 'this_week',
@@ -393,7 +394,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     render(<TaskManagerHeader {...defaultProps} />)
     const titleElement = screen.getByText(/My Tasks - This Week/)
@@ -401,7 +402,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should show "My Tasks - !! Only" when priority filter is active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [2],
         dueDate: 'all',
@@ -412,7 +413,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
@@ -424,7 +425,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should show "My Tasks - Today !!! Only" when both filters are active', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [3],
         dueDate: 'today',
@@ -435,7 +436,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
@@ -448,7 +449,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should apply priority colors to priority indicators', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [3],
         dueDate: 'all',
@@ -459,7 +460,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
@@ -473,7 +474,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
   })
 
   it('should not show filter indicators for non-my-tasks lists', () => {
-    mockUseMyTasksPreferences.mockReturnValue({
+    mockUseMyTasksPreferences.mockReturnValue(row({
       filters: {
         priority: [3],
         dueDate: 'today',
@@ -484,7 +485,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
       hasActiveFilters: true,
       clearAllFilters: vi.fn(),
       isLoading: false,
-    })
+    }))
 
     const listsWithRegular: TaskList[] = [
       {

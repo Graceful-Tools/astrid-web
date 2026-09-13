@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { buildAuthContext } from '@/tests/fixtures/auth'
 
@@ -43,7 +44,7 @@ import {
 describe('legacy/v1 critical adapter behavior table', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    inviteToList.mockResolvedValue({
+    inviteToList.mockResolvedValue(row({
       ok: true,
       invitation: {
         id: 'invite-1',
@@ -52,7 +53,7 @@ describe('legacy/v1 critical adapter behavior table', () => {
         type: 'LIST_SHARING',
         createdAt: new Date('2026-01-01T00:00:00Z'),
       },
-    })
+    }))
   })
 
   it.each([

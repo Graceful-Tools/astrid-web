@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../../fixtures/prisma-rows'
 import { buildUser } from '../../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CommentSection } from '@/components/task-detail/CommentSection'
@@ -73,10 +74,10 @@ describe('CommentSection', () => {
     vi.clearAllMocks()
     // Default fetch mock returns empty JSON for any unhandled requests
     // (e.g., /api/user/ai-assistant-settings called in useEffect)
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(row({
       ok: true,
       json: async () => ({})
-    })
+    }))
   })
 
   describe('Rendering', () => {
@@ -116,7 +117,7 @@ describe('CommentSection', () => {
     })
 
     it('should add comment on Enter key', { timeout: 15000 }, async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue(row({
         ok: true,
         json: async () => ({
           id: 'new-comment',
@@ -128,7 +129,7 @@ describe('CommentSection', () => {
           createdAt: new Date(),
           updatedAt: new Date()
         })
-      })
+      }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -248,7 +249,7 @@ describe('CommentSection', () => {
     })
 
     it('should add reply on Enter key', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue(row({
         ok: true,
         json: async () => ({
           id: 'new-reply',
@@ -261,7 +262,7 @@ describe('CommentSection', () => {
           createdAt: new Date(),
           updatedAt: new Date()
         })
-      })
+      }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -372,7 +373,7 @@ describe('CommentSection', () => {
     })
 
     it('should delete comment when Delete is clicked', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+      const mockFetch = vi.fn().mockResolvedValue(row({ ok: true }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -461,7 +462,7 @@ describe('CommentSection', () => {
         }]
       }
 
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+      const mockFetch = vi.fn().mockResolvedValue(row({ ok: true }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()
@@ -480,10 +481,10 @@ describe('CommentSection', () => {
 
   describe('Error Handling', () => {
     it('should rollback optimistic update on comment add failure', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue(row({
         ok: false,
         statusText: 'Server Error'
-      })
+      }))
       global.fetch = mockFetch
 
       const onUpdate = vi.fn()

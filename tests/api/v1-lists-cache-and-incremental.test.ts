@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/lists/route'
 import { authenticateAPI, requireScopes, getDeprecationWarning } from '@/lib/api-auth-middleware'
@@ -42,14 +43,14 @@ const mockGetOrSet = vi.mocked(RedisCache.getOrSet)
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockAuthenticateAPI.mockResolvedValue({
+  mockAuthenticateAPI.mockResolvedValue(row({
     userId: 'user-1',
     source: 'oauth',
     scopes: ['lists:read'],
-  } as any)
+  }))
   mockRequireScopes.mockImplementation(() => {})
   mockGetDeprecationWarning.mockReturnValue(undefined)
-  mockPrisma.taskList.findMany.mockResolvedValue([])
+  mockPrisma.taskList.findMany.mockResolvedValue(rows([]))
 })
 
 describe('GET /api/v1/lists — cache + incremental sync', () => {

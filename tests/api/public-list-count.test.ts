@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/lists/public/route'
 import { prisma } from '@/lib/prisma'
@@ -40,9 +41,9 @@ describe('Public List Task Count Accuracy', () => {
     vi.clearAllMocks()
 
     // Mock authenticated session
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-123', email: 'test@example.com' }
-    })
+    }))
   })
 
   it('should exclude private tasks from public list task counts', async () => {
@@ -174,7 +175,7 @@ describe('Public List Task Count Accuracy', () => {
 
   it('should filter by owner correctly', async () => {
     const { getPopularPublicLists } = await import('@/lib/copy-utils')
-    vi.mocked(getPopularPublicLists).mockResolvedValue([])
+    vi.mocked(getPopularPublicLists).mockResolvedValue(rows([]))
 
     const request = new NextRequest('http://localhost:3000/api/lists/public?ownerId=specific-owner&limit=10')
     const response = await GET(request)

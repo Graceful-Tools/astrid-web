@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { getSession } from 'next-auth/react'
 
 // We need to test the actual implementation, not the mock
@@ -74,13 +75,13 @@ describe('SSE Manager', () => {
     vi.clearAllMocks()
 
     // Mock successful session
-    vi.mocked(getSession).mockResolvedValue({
+    vi.mocked(getSession).mockResolvedValue(row({
       user: {
         id: 'test-user-123',
         name: 'Test User',
         email: 'test@example.com'
       }
-    } as any)
+    }))
 
     // Clear any existing event sources
     mockEventSource = null as any

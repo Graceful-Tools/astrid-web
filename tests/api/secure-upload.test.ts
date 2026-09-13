@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/secure-upload/request-upload/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock Vercel Blob
 vi.mock('@vercel/blob', () => ({
-  put: vi.fn().mockResolvedValue({
+  put: vi.fn().mockResolvedValue(row({
     url: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.jpg'
-  }),
+  })),
   del: vi.fn(),
   getDownloadUrl: vi.fn()
 }))
@@ -23,10 +24,10 @@ vi.mock('crypto', async (importOriginal) => {
 
 // Mock secure storage module
 vi.mock('@/lib/secure-storage', () => ({
-  uploadFileToBlob: vi.fn().mockResolvedValue({
+  uploadFileToBlob: vi.fn().mockResolvedValue(row({
     blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.jpg',
     fileId: 'test-file-id'
-  }),
+  })),
   generateSignedDownloadUrl: vi.fn(),
   deleteFile: vi.fn()
 }))
@@ -57,23 +58,23 @@ describe('Secure Upload API', () => {
     vi.clearAllMocks()
 
     // Mock authenticated session
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
   })
 
   describe('POST /api/secure-upload/request-upload', () => {
     it('should upload file with task context', async () => {
       // Mock task permission check
-      mockPrisma.task.findFirst.mockResolvedValue({
+      mockPrisma.task.findFirst.mockResolvedValue(row({
         id: 'test-task-id',
         title: 'Test Task',
         creatorId: 'test-user-id',
         lists: []
-      })
+      }))
 
       // Mock secure file creation
-      mockPrisma.secureFile.create.mockResolvedValue({
+      mockPrisma.secureFile.create.mockResolvedValue(row({
         id: 'test-file-id',
         blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.jpg',
         originalName: 'test.jpg',
@@ -85,7 +86,7 @@ describe('Secure Upload API', () => {
         commentId: null,
         createdAt: new Date(),
         updatedAt: new Date()
-      })
+      }))
 
       const request = createMockRequestWithFile({ taskId: 'test-task-id' })
       const response = await POST(request)
@@ -128,17 +129,17 @@ describe('Secure Upload API', () => {
 
     it('should upload file with list context', async () => {
       // Mock list permission check
-      mockPrisma.taskList.findFirst.mockResolvedValue({
+      mockPrisma.taskList.findFirst.mockResolvedValue(row({
         id: 'test-list-id',
         name: 'Test List',
         ownerId: 'test-user-id',
         admins: [],
         members: [],
         listMembers: []
-      })
+      }))
 
       // Mock secure file creation
-      mockPrisma.secureFile.create.mockResolvedValue({
+      mockPrisma.secureFile.create.mockResolvedValue(row({
         id: 'test-file-id',
         blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.jpg',
         originalName: 'test.jpg',
@@ -150,7 +151,7 @@ describe('Secure Upload API', () => {
         commentId: null,
         createdAt: new Date(),
         updatedAt: new Date()
-      })
+      }))
 
       const request = createMockRequestWithFile({ listId: 'test-list-id' })
       const response = await POST(request)
@@ -229,12 +230,12 @@ describe('Secure Upload API', () => {
 
     it('should validate file types', async () => {
       // Mock task permission check
-      mockPrisma.task.findFirst.mockResolvedValue({
+      mockPrisma.task.findFirst.mockResolvedValue(row({
         id: 'test-task-id',
         title: 'Test Task',
         creatorId: 'test-user-id',
         lists: []
-      })
+      }))
 
       const request = createMockRequestWithFile(
         { taskId: 'test-task-id' },
@@ -252,15 +253,15 @@ describe('Secure Upload API', () => {
 
     it('should upload video file', async () => {
       // Mock task permission check
-      mockPrisma.task.findFirst.mockResolvedValue({
+      mockPrisma.task.findFirst.mockResolvedValue(row({
         id: 'test-task-id',
         title: 'Test Task',
         creatorId: 'test-user-id',
         lists: []
-      })
+      }))
 
       // Mock secure file creation
-      mockPrisma.secureFile.create.mockResolvedValue({
+      mockPrisma.secureFile.create.mockResolvedValue(row({
         id: 'test-file-id',
         blobUrl: 'https://test-blob-url.vercel-storage.com/files/test-user-id/test-file-id.mp4',
         originalName: 'test.mp4',
@@ -272,7 +273,7 @@ describe('Secure Upload API', () => {
         commentId: null,
         createdAt: new Date(),
         updatedAt: new Date()
-      })
+      }))
 
       const request = createMockRequestWithFile({ taskId: 'test-task-id' }, 'test.mp4', 'video/mp4')
       const response = await POST(request)
@@ -290,12 +291,12 @@ describe('Secure Upload API', () => {
 
     it('should validate file size', async () => {
       // Mock task permission check
-      mockPrisma.task.findFirst.mockResolvedValue({
+      mockPrisma.task.findFirst.mockResolvedValue(row({
         id: 'test-task-id',
         title: 'Test Task',
         creatorId: 'test-user-id',
         lists: []
-      })
+      }))
 
       // Create a mock file with fake large size (don't actually allocate 101MB)
       const smallContent = new Blob(['test'], { type: 'image/jpeg' })

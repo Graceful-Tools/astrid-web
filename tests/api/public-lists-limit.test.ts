@@ -20,6 +20,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn() }))
@@ -67,10 +68,10 @@ function req(qs: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockSession.mockResolvedValue({ user: { id: 'user-1' } } as never)
-  getPopularPublicLists.mockResolvedValue([] as never)
-  getRecentPublicLists.mockResolvedValue([] as never)
-  searchPublicLists.mockResolvedValue([] as never)
+  mockSession.mockResolvedValue(row({ user: { id: 'user-1' } }))
+  getPopularPublicLists.mockResolvedValue(rows([]))
+  getRecentPublicLists.mockResolvedValue(rows([]))
+  searchPublicLists.mockResolvedValue(rows([]))
 })
 
 /** The limit the route actually passed downstream. */

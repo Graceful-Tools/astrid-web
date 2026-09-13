@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -96,20 +97,20 @@ function v1Req(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockSession.mockResolvedValue({ user: { id: USER, email: 'jon@example.com' } } as never)
-  mockAuth.mockResolvedValue({
+  mockSession.mockResolvedValue(row({ user: { id: USER, email: 'jon@example.com' } }))
+  mockAuth.mockResolvedValue(row({
     userId: USER,
     source: 'oauth' as const,
     scopes: ['lists:read', 'lists:write'],
     isAIAgent: false,
     user: { id: USER, email: 'jon@example.com', name: 'Jon', isAIAgent: false },
-  } as never)
-  mockPrisma.taskList.create.mockResolvedValue({
+  }))
+  mockPrisma.taskList.create.mockResolvedValue(rowWith({
     id: 'list-1', name: 'Work', ownerId: USER, owner: {}, listMembers: [],
-  } as never)
-  mockPrisma.taskList.findMany.mockResolvedValue([] as never)
-  mockPrisma.taskList.update.mockResolvedValue({ id: 'list-1', name: 'Work', owner: {}, listMembers: [] } as never)
-  mockPrisma.listMember.createMany.mockResolvedValue({ count: 0 } as never)
+  }))
+  mockPrisma.taskList.findMany.mockResolvedValue(rows([]))
+  mockPrisma.taskList.update.mockResolvedValue(rowWith({ id: 'list-1', name: 'Work', owner: {}, listMembers: [] }))
+  mockPrisma.listMember.createMany.mockResolvedValue(row({ count: 0 }))
 })
 
 describe('legacy POST /api/lists rejects an invalid privacy (task e0613ae5)', () => {
@@ -172,10 +173,10 @@ describe('v1 POST /api/v1/lists trims the name (task e0613ae5)', () => {
 
 describe('legacy POST /api/lists batches list creation members', () => {
   it('loads email members once and inserts all memberships in one batch', async () => {
-    mockPrisma.user.findMany.mockResolvedValue([
+    mockPrisma.user.findMany.mockResolvedValue(rows([
       { id: 'email-user-1', email: 'one@example.com' },
       { id: 'email-user-2', email: 'two@example.com' },
-    ] as never)
+    ]))
     mockPrisma.user.findUnique.mockImplementation(async ({ where }) => {
       if (where.email === 'one@example.com') {
         return { id: 'email-user-1', email: where.email } as never
@@ -185,8 +186,8 @@ describe('legacy POST /api/lists batches list creation members', () => {
       }
       return null
     })
-    mockPrisma.listMember.create.mockResolvedValue({ id: 'membership' } as never)
-    mockPrisma.listInvite.create.mockResolvedValue({ id: 'invite' } as never)
+    mockPrisma.listMember.create.mockResolvedValue(row({ id: 'membership' }))
+    mockPrisma.listInvite.create.mockResolvedValue(row({ id: 'invite' }))
 
     const res = await legacyPOST(legacyReq({
       name: 'Work',
@@ -215,12 +216,12 @@ describe('legacy POST /api/lists batches list creation members', () => {
 
   it('creates missing email users in one race-safe batch and deduplicates invitations', async () => {
     mockPrisma.user.findMany
-      .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([
+      .mockResolvedValueOnce(rows([]))
+      .mockResolvedValueOnce(rows([
         { id: 'new-user', email: 'new@example.com' },
-      ] as never)
-    mockPrisma.user.createMany.mockResolvedValue({ count: 1 } as never)
-    mockPrisma.listInvite.create.mockResolvedValue({ id: 'invite' } as never)
+      ]))
+    mockPrisma.user.createMany.mockResolvedValue(row({ count: 1 }))
+    mockPrisma.listInvite.create.mockResolvedValue(row({ id: 'invite' }))
 
     const res = await legacyPOST(legacyReq({
       name: 'Work',

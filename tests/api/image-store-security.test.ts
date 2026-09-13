@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { POST } from '@/app/api/images/store/route'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { del, put } from '@vercel/blob'
@@ -36,13 +37,13 @@ describe('POST /api/images/store security', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     delete process.env.REMOTE_IMAGE_ALLOWED_HOSTS
-    vi.mocked(getUnifiedSession).mockResolvedValue({
+    vi.mocked(getUnifiedSession).mockResolvedValue(row({
       user: { id: 'user-1', email: 'user@example.com' },
-    } as never)
-    vi.mocked(lookup).mockResolvedValue([
+    }))
+    vi.mocked(lookup).mockResolvedValue(rows([
       { address: '93.184.216.34', family: 4 },
-    ] as never)
-    vi.mocked(prisma.secureFile.create).mockResolvedValue({} as never)
+    ]))
+    vi.mocked(prisma.secureFile.create).mockResolvedValue(row({}))
   })
 
   it('AWTD-security rejects non-HTTPS URLs without fetching them', async () => {
@@ -73,9 +74,9 @@ describe('POST /api/images/store security', () => {
 
   it('AWTD-security rejects approved hosts that resolve to private addresses', async () => {
     process.env.REMOTE_IMAGE_ALLOWED_HOSTS = 'images.example.test'
-    vi.mocked(lookup).mockResolvedValue([
+    vi.mocked(lookup).mockResolvedValue(rows([
       { address: '10.0.0.4', family: 4 },
-    ] as never)
+    ]))
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
@@ -149,13 +150,13 @@ describe('POST /api/images/store security', () => {
       new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
       { status: 200, headers: { 'content-type': 'image/png', 'content-length': '4' } },
     )))
-    vi.mocked(put).mockResolvedValue({
+    vi.mocked(put).mockResolvedValue(row({
       url: 'https://blob.example.test/generated.png',
       downloadUrl: 'https://blob.example.test/generated.png?download=1',
       pathname: 'uploads/user-1/generated.png',
       contentType: 'image/png',
       contentDisposition: 'inline',
-    })
+    }))
 
     const response = await POST(new Request('http://localhost/api/images/store', {
       method: 'POST',
@@ -191,13 +192,13 @@ describe('POST /api/images/store security', () => {
       new Uint8Array([0x89]),
       { status: 200, headers: { 'content-type': 'image/png' } },
     )))
-    vi.mocked(put).mockResolvedValue({
+    vi.mocked(put).mockResolvedValue(row({
       url: 'https://blob.example.test/generated.png',
       downloadUrl: 'https://blob.example.test/generated.png?download=1',
       pathname: 'uploads/user-1/generated.png',
       contentType: 'image/png',
       contentDisposition: 'inline',
-    })
+    }))
     vi.mocked(prisma.secureFile.create).mockRejectedValue(new Error('database unavailable'))
     vi.mocked(del).mockResolvedValue(undefined)
 

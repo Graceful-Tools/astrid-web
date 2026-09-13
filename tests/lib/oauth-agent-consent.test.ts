@@ -7,10 +7,11 @@
  * grant for any identity other than the one that client resolves to.
  */
 import { describe, expect, it, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    oAuthAuthorizationCode: { create: vi.fn().mockResolvedValue({ id: 'code-row' }) },
+    oAuthAuthorizationCode: { create: vi.fn().mockResolvedValue(row({ id: 'code-row' })) },
   },
 }))
 

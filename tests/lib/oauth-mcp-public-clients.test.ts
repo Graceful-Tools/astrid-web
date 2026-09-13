@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { mockPrisma } from '../setup'
 import {
   createPublicOAuthClient,
@@ -18,7 +19,7 @@ import {
 
 describe('MCP OAuth public clients (task a0e0808c)', () => {
   it('registers a public authorization-code client without issuing a secret', async () => {
-    mockPrisma.oAuthClient.create.mockResolvedValue({
+    mockPrisma.oAuthClient.create.mockResolvedValue(row({
       id: 'db-client',
       clientId: 'astrid_client_dynamic',
       clientSecret: null,
@@ -33,7 +34,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       createdAt: new Date('2026-08-16T00:00:00Z'),
       updatedAt: new Date('2026-08-16T00:00:00Z'),
       lastUsedAt: null,
-    })
+    }))
 
     const client = await createPublicOAuthClient({
       name: 'GitHub Copilot',
@@ -73,7 +74,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
   })
 
   it('authenticates a registered public client without conflating it with a confidential client', async () => {
-    mockPrisma.oAuthClient.findUnique.mockResolvedValue({
+    mockPrisma.oAuthClient.findUnique.mockResolvedValue(row({
       id: 'db-client',
       clientId: 'astrid_client_dynamic',
       clientSecret: null,
@@ -84,7 +85,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       scopes: ['tasks:read'],
       isActive: true,
       user: null,
-    })
+    }))
 
     await expect(validateOAuthClient('astrid_client_dynamic')).resolves.toEqual(
       expect.objectContaining({ tokenEndpointAuthMethod: 'none' }),
@@ -107,7 +108,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     // secret against a public auth method. Ignoring the parameter there
     // would let anyone holding only the clientId authenticate as a client
     // whose secret was meant to be required, so this case stays rejected.
-    mockPrisma.oAuthClient.findUnique.mockResolvedValue({
+    mockPrisma.oAuthClient.findUnique.mockResolvedValue(row({
       id: 'db-client',
       clientId: 'astrid_client_inconsistent',
       clientSecret: 'hashed-secret-that-should-not-be-here',
@@ -118,7 +119,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       scopes: ['tasks:read'],
       isActive: true,
       user: null,
-    })
+    }))
 
     await expect(validateOAuthClient('astrid_client_inconsistent')).resolves.toBeNull()
     await expect(
@@ -136,7 +137,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
   })
 
   it('requires PKCE when a public client starts authorization', async () => {
-    mockPrisma.oAuthClient.findFirst.mockResolvedValue({
+    mockPrisma.oAuthClient.findFirst.mockResolvedValue(row({
       id: 'db-client',
       clientId: 'astrid_client_dynamic',
       tokenEndpointAuthMethod: 'none',
@@ -146,7 +147,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       grantTypes: ['authorization_code', 'refresh_token'],
       scopes: ['tasks:read'],
       user: null,
-    })
+    }))
 
     await expect(validateAuthorizationRequest({
       clientId: 'astrid_client_dynamic',
@@ -189,7 +190,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
   })
 
   it('binds the authorization code to the PKCE challenge and verifier', async () => {
-    mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue({ id: 'code-row' })
+    mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue(row({ id: 'code-row' }))
     const context = {
       client: {
         id: 'db-client',
@@ -216,7 +217,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       }),
     })
 
-    mockPrisma.oAuthAuthorizationCode.findFirst.mockResolvedValue({
+    mockPrisma.oAuthAuthorizationCode.findFirst.mockResolvedValue(row({
       id: 'code-row',
       code: 'astrid_code_x',
       clientId: 'db-client',
@@ -228,7 +229,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       expiresAt: new Date(Date.now() + 60_000),
       usedAt: null,
       createdAt: new Date(),
-    })
+    }))
 
     await expect(exchangeAuthorizationCode(
       'astrid_code_x',
@@ -240,7 +241,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
   })
 
   it('AWTD-755 preserves explicit agent authorship consent through code exchange and refresh', async () => {
-    mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue({ id: 'code-row' })
+    mockPrisma.oAuthAuthorizationCode.create.mockResolvedValue(row({ id: 'code-row' }))
     const context = {
       client: {
         id: 'db-client',
@@ -265,7 +266,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       data: expect.objectContaining({ agentMailbox: 'copilot' }),
     })
 
-    mockPrisma.oAuthAuthorizationCode.findFirst.mockResolvedValue({
+    mockPrisma.oAuthAuthorizationCode.findFirst.mockResolvedValue(row({
       id: 'code-row',
       code: 'astrid_code_x',
       clientId: 'db-client',
@@ -278,8 +279,8 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       expiresAt: new Date(Date.now() + 60_000),
       usedAt: null,
       createdAt: new Date(),
-    })
-    mockPrisma.oAuthToken.create.mockResolvedValue({ id: 'token-row' })
+    }))
+    mockPrisma.oAuthToken.create.mockResolvedValue(row({ id: 'token-row' }))
 
     await exchangeAuthorizationCode(
       'astrid_code_x',
@@ -291,13 +292,13 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
       data: expect.objectContaining({ agentMailbox: 'copilot' }),
     })
 
-    mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+    mockPrisma.oAuthToken.findFirst.mockResolvedValue(row({
       id: 'token-row',
       clientId: 'db-client',
       userId: 'user-1',
       scopes: ['tasks:read'],
       agentMailbox: 'copilot',
-    })
+    }))
     await refreshAccessToken('astrid_refresh_x', 'db-client')
     expect(mockPrisma.oAuthToken.create).toHaveBeenLastCalledWith({
       data: expect.objectContaining({ agentMailbox: 'copilot' }),

@@ -25,6 +25,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../../../fixtures/prisma-rows'
 
 /** In-memory stand-in for the externalListLink table. */
 interface Row {
@@ -113,8 +114,8 @@ function seed(count: number) {
 beforeEach(() => {
   vi.clearAllMocks()
   githubTokenFor.mockResolvedValue('token')
-  pullIssuesForLink.mockResolvedValue({ items: [], cursor: null, truncated: false })
-  pushTasksForLink.mockResolvedValue({ pushed: 0, seeded: false })
+  pullIssuesForLink.mockResolvedValue(row({ items: [], cursor: null, truncated: false }))
+  pushTasksForLink.mockResolvedValue(row({ pushed: 0, seeded: false }))
 })
 
 describe('syncAllGithubLinks fairness', () => {

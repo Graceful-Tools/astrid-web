@@ -19,6 +19,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/tasks/[id]/comments/route'
@@ -37,7 +38,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
-vi.mock('@/lib/list-member-utils', () => ({ getListMemberIds: vi.fn().mockReturnValue([]) }))
+vi.mock('@/lib/list-member-utils', () => ({ getListMemberIds: vi.fn().mockReturnValue(rows([])) }))
 
 const task = {
   id: 'task-1',
@@ -64,7 +65,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(requireScopes).mockImplementation(() => {})
   vi.mocked(getDeprecationWarning).mockReturnValue(undefined)
-  vi.mocked(authenticateAPI).mockResolvedValue({ userId: 'owner-id', source: 'oauth', scopes: ['comments:read'] } as never)
+  vi.mocked(authenticateAPI).mockResolvedValue(row({ userId: 'owner-id', source: 'oauth', scopes: ['comments:read'] }))
   mockPrisma.task.findUnique.mockResolvedValue(task as never)
 })
 

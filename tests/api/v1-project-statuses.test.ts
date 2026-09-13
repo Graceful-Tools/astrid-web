@@ -25,6 +25,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -95,9 +96,9 @@ function writtenStates() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockAuth.mockResolvedValue({ userId: OWNER, source: 'oauth', scopes: ['*'], clientId: 'c1' } as never)
-  mockPrisma.project.update.mockResolvedValue({} as never)
-  mockPrisma.task.updateMany.mockResolvedValue({ count: 0 } as never)
+  mockAuth.mockResolvedValue(row({ userId: OWNER, source: 'oauth', scopes: ['*'], clientId: 'c1' }))
+  mockPrisma.project.update.mockResolvedValue(row({}))
+  mockPrisma.task.updateMany.mockResolvedValue(row({ count: 0 }))
   boardIs([])
 })
 

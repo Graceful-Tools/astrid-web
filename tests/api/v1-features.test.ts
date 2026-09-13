@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 
 // The route moved from session-only auth to withAuth, which accepts an OAuth
@@ -46,7 +47,7 @@ describe('GET /api/v1/features', () => {
 
   it('returns only effective values for the current user', async () => {
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
-    mockFeatures.mockResolvedValue({ version: 42, features: { google_tasks: false } })
+    mockFeatures.mockResolvedValue(row({ version: 42, features: { google_tasks: false } }))
     const response = await GET(new NextRequest('http://localhost/api/v1/features') as never, {} as never)
     expect(await response.json()).toEqual({ version: 42, features: { google_tasks: false } })
     expect(mockFeatures).toHaveBeenCalledWith('user-1')
@@ -54,7 +55,7 @@ describe('GET /api/v1/features', () => {
 
   it('uses ETags to avoid sending unchanged configuration', async () => {
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
-    mockFeatures.mockResolvedValue({ version: 42, features: { google_tasks: false } })
+    mockFeatures.mockResolvedValue(row({ version: 42, features: { google_tasks: false } }))
     const first = await GET(new NextRequest('http://localhost/api/v1/features') as never, {} as never)
     const etag = first.headers.get('etag')!
     const second = await GET(new NextRequest('http://localhost/api/v1/features', { headers: { 'If-None-Match': etag } }))

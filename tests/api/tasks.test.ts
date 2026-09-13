@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 
 import { mockPrisma, mockGetServerSession } from '../setup'
 
@@ -41,7 +42,7 @@ describe('Tasks API', () => {
 
     vi.clearAllMocks()
     // Mock user exists in database
-    mockPrisma.user.findUnique.mockResolvedValue({
+    mockPrisma.user.findUnique.mockResolvedValue(row({
       id: 'test-user-id',
       name: 'Test User',
       email: 'test@example.com',
@@ -49,7 +50,7 @@ describe('Tasks API', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       emailVerified: null
-    })
+    }))
   })
 
   describe('GET /api/tasks', () => {
@@ -270,7 +271,7 @@ describe('Tasks API', () => {
 
       mockPrisma.task.create.mockResolvedValue(createdTask)
       // Mock list validation with listMembers including user relation
-      mockPrisma.taskList.findMany.mockResolvedValue([{
+      mockPrisma.taskList.findMany.mockResolvedValue(rows([{
         id: 'list-1',
         isVirtual: false,
         privacy: 'PRIVATE',
@@ -285,15 +286,15 @@ describe('Tasks API', () => {
             email: 'test@example.com'
           }
         }]
-      }])
+      }]))
       // Mock list findUnique for default assignee check
       // List has no defaultAssigneeId set (undefined) - tasks should be unassigned
-      mockPrisma.taskList.findUnique.mockResolvedValue({
+      mockPrisma.taskList.findUnique.mockResolvedValue(row({
         id: 'list-1',
         defaultAssigneeId: undefined  // No default assignee set
-      })
+      }))
       // Mock assignee validation
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'test-user-id' })
+      mockPrisma.user.findUnique.mockResolvedValue(row({ id: 'test-user-id' }))
 
       const request = createMockRequest(newTaskData)
       const response = await POST(request)
@@ -522,7 +523,7 @@ describe('Tasks API', () => {
   describe('PUT /api/tasks/[id]', () => {
     beforeEach(() => {
       // Mock an existing task for PUT and DELETE tests
-      mockPrisma.task.findUnique.mockResolvedValue({
+      mockPrisma.task.findUnique.mockResolvedValue(row({
         id: 'task-to-update',
         title: 'Original Task Title',
         description: 'Original Description',
@@ -554,9 +555,9 @@ describe('Tasks API', () => {
         repeating: 'never',
         repeatFrom: null,
         repeatingData: null,
-      });
+      }));
       // Mock user.findUnique for assignee check in PUT route
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue(row({
         id: 'test-user-id',
         name: 'Test User',
         email: 'test@example.com',
@@ -565,7 +566,7 @@ describe('Tasks API', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         emailVerified: null
-      });
+      }));
 
     });
 
@@ -704,10 +705,10 @@ describe('Tasks API', () => {
       mockPrisma.task.update.mockResolvedValue(updatedTask)
 
       // Mock list access validation - user has access to target lists
-      mockPrisma.taskList.findMany.mockResolvedValue([
+      mockPrisma.taskList.findMany.mockResolvedValue(rows([
         { id: 'list-3', name: 'List 3', ownerId: 'test-user-id', privacy: 'PRIVATE', isVirtual: false, owner: { id: 'test-user-id' }, listMembers: [] },
         { id: 'list-4', name: 'List 4', ownerId: 'test-user-id', privacy: 'PRIVATE', isVirtual: false, owner: { id: 'test-user-id' }, listMembers: [] }
-      ])
+      ]))
 
       const request = createMockRequest(updateData)
       const response = await PUT(request, { params: { id: 'task-1' } })
@@ -894,7 +895,7 @@ describe('Tasks API', () => {
   describe('DELETE /api/tasks/[id]', () => {
     beforeEach(() => {
       // Mock an existing task for DELETE tests
-      mockPrisma.task.findUnique.mockResolvedValue({
+      mockPrisma.task.findUnique.mockResolvedValue(row({
         id: 'task-to-delete',
         title: 'Task to Delete',
         description: 'Description to Delete',
@@ -925,7 +926,7 @@ describe('Tasks API', () => {
         repeating: 'never',
         repeatFrom: null,
         repeatingData: null,
-      });
+      }));
 
     });
 

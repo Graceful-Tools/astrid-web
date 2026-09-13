@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 import { GET, POST } from '@/app/api/v1/tasks/[id]/comments/route'
@@ -23,7 +24,7 @@ vi.mock('@/lib/sse-utils', () => ({
 }))
 
 vi.mock('@/lib/list-member-utils', () => ({
-  getListMemberIds: vi.fn().mockReturnValue([]),
+  getListMemberIds: vi.fn().mockReturnValue(rows([])),
 }))
 
 const mockAuthenticateAPI = vi.mocked(authenticateAPI)
@@ -73,22 +74,22 @@ describe('API v1 task comments public access', () => {
     vi.clearAllMocks()
     mockRequireScopes.mockImplementation(() => {})
     mockGetDeprecationWarning.mockReturnValue(undefined)
-    mockGetListMemberIds.mockReturnValue(['owner-id'])
+    mockGetListMemberIds.mockReturnValue(rows(['owner-id']))
   })
 
   it('allows viewing comments on public lists without membership', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'viewer-id',
       source: 'oauth',
       scopes: ['comments:read'],
-    } as any)
+    }))
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-public',
       creatorId: 'owner-id',
       assigneeId: null,
       lists: [createPublicList()],
-    })
+    }))
 
     const mockComments = [createComment()]
     mockPrisma.comment.findMany.mockResolvedValue(mockComments)
@@ -121,13 +122,13 @@ describe('API v1 task comments public access', () => {
   })
 
   it('allows collaborative public list viewers to add comments', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'viewer-id',
       source: 'oauth',
       scopes: ['comments:write'],
-    } as any)
+    }))
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-collab',
       creatorId: 'owner-id',
       assigneeId: null,
@@ -137,7 +138,7 @@ describe('API v1 task comments public access', () => {
           publicListType: 'collaborative',
         }),
       ],
-    })
+    }))
 
     const createdComment = {
       ...createComment(),
@@ -194,11 +195,11 @@ describe('API v1 task comments public access', () => {
   })
 
   it('returns existing comment when clientRequestId matches a prior submit (offline retry)', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'author-id',
       source: 'oauth',
       scopes: ['comments:write'],
-    } as any)
+    }))
 
     const existing = {
       ...createComment(),
@@ -218,12 +219,12 @@ describe('API v1 task comments public access', () => {
 
     // Even though we don't set up task.findUnique, the idempotency lookup happens
     // AFTER the access check, so we still need the task mock
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-id',
       creatorId: 'author-id',
       assigneeId: null,
       lists: [createPublicList({ id: 'list-id', publicListType: 'collaborative' })],
-    })
+    }))
 
     const response = await POST(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
@@ -235,18 +236,18 @@ describe('API v1 task comments public access', () => {
   })
 
   it('rejects copy-only public list comments from non-members', async () => {
-    mockAuthenticateAPI.mockResolvedValue({
+    mockAuthenticateAPI.mockResolvedValue(row({
       userId: 'viewer-id',
       source: 'oauth',
       scopes: ['comments:write'],
-    } as any)
+    }))
 
-    mockPrisma.task.findUnique.mockResolvedValue({
+    mockPrisma.task.findUnique.mockResolvedValue(row({
       id: 'task-copy',
       creatorId: 'owner-id',
       assigneeId: null,
       lists: [createPublicList()],
-    })
+    }))
 
     const request = new NextRequest('http://localhost:3000/api/v1/tasks/task-copy/comments', {
       method: 'POST',

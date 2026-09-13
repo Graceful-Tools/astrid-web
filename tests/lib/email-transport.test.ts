@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
@@ -75,7 +76,7 @@ describe('sendTransportEmail', () => {
   })
 
   it('normalises a single recipient to the provider’s array form', async () => {
-    send.mockResolvedValue({ data: { id: 'msg-1' }, error: null })
+    send.mockResolvedValue(row({ data: { id: 'msg-1' }, error: null }))
 
     await sendTransportEmail({
       from: 'a@b.com',
@@ -92,7 +93,7 @@ describe('sendTransportEmail', () => {
     // The provider reports failure in the RESULT, not by rejecting. Four call
     // sites each destructured `{ data, error }` and checked it by hand; this is
     // that check, made once.
-    send.mockResolvedValue({ data: null, error: { message: 'domain not verified' } })
+    send.mockResolvedValue(row({ data: null, error: { message: 'domain not verified' } }))
 
     await expect(
       sendTransportEmail({ from: 'a@b.com', to: 'c@d.com', subject: 's', html: 'h', text: 't' })

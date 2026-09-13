@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { BRAND } from '@/lib/brand/config'
 
 // ============================================================================
@@ -22,7 +23,7 @@ import { BRAND } from '@/lib/brand/config'
 
 // Mock the comment service
 vi.mock('@/lib/ai-agent-comment-service', () => ({
-  createAIAgentComment: vi.fn().mockResolvedValue({ success: true, comment: { id: 'comment-1' } })
+  createAIAgentComment: vi.fn().mockResolvedValue(row({ success: true, comment: { id: 'comment-1' } }))
 }))
 
 // Mock prisma

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../../fixtures/prisma-rows'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskModals } from '@/components/task-detail/TaskModals'
 import type { Task, TaskList } from '@/types/task'
@@ -187,10 +188,10 @@ describe('TaskModals', () => {
     })
 
     it('should handle copy without onCopy callback (fallback to API)', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue(row({
         ok: true,
         json: async () => ({ task: { id: 'new-task-id' } })
-      })
+      }))
 
       render(<TaskModals {...defaultProps} showCopyConfirmation={true} onCopy={undefined} />)
 

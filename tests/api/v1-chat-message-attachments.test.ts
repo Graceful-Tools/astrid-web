@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { mockPrisma } from '../setup'
 
@@ -21,7 +22,7 @@ vi.mock('@/lib/api-auth-middleware', () => {
 
 vi.mock('@/lib/chat-access', () => ({
   canAccessChatChannel: vi.fn(),
-  getChatChannelRecipients: vi.fn().mockResolvedValue([]),
+  getChatChannelRecipients: vi.fn().mockResolvedValue(rows([])),
 }))
 
 vi.mock('@/lib/sse-utils', () => ({
@@ -93,7 +94,7 @@ describe('v1 Chat Message Attachments', () => {
     mockGetDeprecationWarning.mockReturnValue(undefined)
     mockAuthenticateAPI.mockResolvedValue(createAuth() as any)
     mockCanAccessChatChannel.mockResolvedValue(true)
-    mockGetChatChannelRecipients.mockResolvedValue([USER_ID, OTHER_USER_ID])
+    mockGetChatChannelRecipients.mockResolvedValue(rows([USER_ID, OTHER_USER_ID]))
   })
 
   // ─── GET /api/v1/chat/channels/:channelId/messages ───
@@ -131,7 +132,7 @@ describe('v1 Chat Message Attachments', () => {
     })
 
     it('supports pagination with before cursor', async () => {
-      mockPrisma.chatMessage.findMany.mockResolvedValue([])
+      mockPrisma.chatMessage.findMany.mockResolvedValue(rows([]))
 
       const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages?before=2026-03-29T10:00:00Z&limit=10`)
       const res = await GET(req, { params: Promise.resolve({ channelId: CHANNEL_ID }) })
@@ -160,7 +161,7 @@ describe('v1 Chat Message Attachments', () => {
       const messageWithFile = createMessage({ secureFiles: [file] })
 
       mockPrisma.chatMessage.create.mockResolvedValue(messageWithoutFile)
-      mockPrisma.secureFile.update.mockResolvedValue({})
+      mockPrisma.secureFile.update.mockResolvedValue(row({}))
       mockPrisma.chatMessage.findUnique.mockResolvedValue(messageWithFile)
 
       const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
@@ -193,7 +194,7 @@ describe('v1 Chat Message Attachments', () => {
       const messageWithFile = createMessage({ content: '', secureFiles: [file] })
 
       mockPrisma.chatMessage.create.mockResolvedValue(createMessage({ content: '' }))
-      mockPrisma.secureFile.update.mockResolvedValue({})
+      mockPrisma.secureFile.update.mockResolvedValue(row({}))
       mockPrisma.chatMessage.findUnique.mockResolvedValue(messageWithFile)
 
       const req = new NextRequest(`http://localhost/api/v1/chat/channels/${CHANNEL_ID}/messages`, {
@@ -344,10 +345,10 @@ describe('v1 Chat Message Attachments', () => {
   describe('PUT message', () => {
     it('updates message content and preserves secureFiles', async () => {
       const file = createSecureFile()
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         authorId: USER_ID,
         channelId: CHANNEL_ID,
-      })
+      }))
       mockPrisma.chatMessage.update.mockResolvedValue(
         createMessage({ content: 'Updated content', secureFiles: [file] })
       )
@@ -367,10 +368,10 @@ describe('v1 Chat Message Attachments', () => {
     })
 
     it('rejects update by non-author', async () => {
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         authorId: OTHER_USER_ID,
         channelId: CHANNEL_ID,
-      })
+      }))
 
       const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'PUT',
@@ -397,10 +398,10 @@ describe('v1 Chat Message Attachments', () => {
     })
 
     it('broadcasts update to other channel members', async () => {
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         authorId: USER_ID,
         channelId: CHANNEL_ID,
-      })
+      }))
       mockPrisma.chatMessage.update.mockResolvedValue(
         createMessage({ content: 'Updated' })
       )
@@ -426,7 +427,7 @@ describe('v1 Chat Message Attachments', () => {
 
   describe('DELETE message', () => {
     it('allows author to delete their message', async () => {
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         id: 'msg-1',
         authorId: USER_ID,
         channelId: CHANNEL_ID,
@@ -436,7 +437,7 @@ describe('v1 Chat Message Attachments', () => {
             listMembers: [],
           },
         },
-      })
+      }))
 
       const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
@@ -451,7 +452,7 @@ describe('v1 Chat Message Attachments', () => {
     it('allows list owner to delete any message', async () => {
       mockAuthenticateAPI.mockResolvedValue(createAuth(OTHER_USER_ID) as any)
 
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         id: 'msg-1',
         authorId: USER_ID,
         channelId: CHANNEL_ID,
@@ -461,7 +462,7 @@ describe('v1 Chat Message Attachments', () => {
             listMembers: [],
           },
         },
-      })
+      }))
 
       const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
@@ -476,7 +477,7 @@ describe('v1 Chat Message Attachments', () => {
       const adminId = 'admin-user'
       mockAuthenticateAPI.mockResolvedValue(createAuth(adminId) as any)
 
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         id: 'msg-1',
         authorId: USER_ID,
         channelId: CHANNEL_ID,
@@ -486,7 +487,7 @@ describe('v1 Chat Message Attachments', () => {
             listMembers: [{ userId: adminId, role: 'admin' }],
           },
         },
-      })
+      }))
 
       const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
@@ -501,7 +502,7 @@ describe('v1 Chat Message Attachments', () => {
       const randomUser = 'random-user'
       mockAuthenticateAPI.mockResolvedValue(createAuth(randomUser) as any)
 
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         id: 'msg-1',
         authorId: USER_ID,
         channelId: CHANNEL_ID,
@@ -511,7 +512,7 @@ describe('v1 Chat Message Attachments', () => {
             listMembers: [{ userId: randomUser, role: 'member' }],
           },
         },
-      })
+      }))
 
       const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',
@@ -524,7 +525,7 @@ describe('v1 Chat Message Attachments', () => {
     })
 
     it('broadcasts deletion to other channel members', async () => {
-      mockPrisma.chatMessage.findUnique.mockResolvedValue({
+      mockPrisma.chatMessage.findUnique.mockResolvedValue(row({
         id: 'msg-1',
         authorId: USER_ID,
         channelId: CHANNEL_ID,
@@ -534,7 +535,7 @@ describe('v1 Chat Message Attachments', () => {
             listMembers: [],
           },
         },
-      })
+      }))
 
       const req = new NextRequest('http://localhost/api/v1/chat/messages/msg-1', {
         method: 'DELETE',

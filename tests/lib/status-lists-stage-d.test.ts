@@ -22,6 +22,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row, rows } from '../fixtures/prisma-rows'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -88,10 +89,10 @@ describe('nothing re-creates the status lists (task b7b0c2f5)', () => {
   it('creates a board without writing a single status row', async () => {
     const tx = {
       project: {
-        create: vi.fn().mockResolvedValue({ id: 'new-project' }),
-        findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'new-project', lists: [] }),
+        create: vi.fn().mockResolvedValue(row({ id: 'new-project' })),
+        findUniqueOrThrow: vi.fn().mockResolvedValue(row({ id: 'new-project', lists: [] })),
       },
-      taskList: { findMany: vi.fn().mockResolvedValue([]), createMany: vi.fn(), create: vi.fn() },
+      taskList: { findMany: vi.fn().mockResolvedValue(rows([])), createMany: vi.fn(), create: vi.fn() },
     }
     vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) =>
       (fn as unknown as (t: typeof tx) => unknown)(tx),
@@ -104,8 +105,8 @@ describe('nothing re-creates the status lists (task b7b0c2f5)', () => {
   })
 
   it('adds a custom status to Project.customStates and writes no list row', async () => {
-    vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: null } as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue(row({ customStates: null }))
+    vi.mocked(prisma.project.update).mockResolvedValue(row({}))
 
     const result = await projectsService.addUserStatus('user-1', 'Blocked', PROJECT)
 
@@ -123,7 +124,7 @@ describe('nothing re-creates the status lists (task b7b0c2f5)', () => {
     // that survives is `validateName`, which compares against the NAME:
     // "Ready" slugs to `custom-ready` and collides with no role, but would put
     // a second column called Ready on the board.
-    vi.mocked(prisma.project.findUnique).mockResolvedValue({ customStates: null } as never)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue(row({ customStates: null }))
 
     const result = await projectsService.addUserStatus('user-1', 'ready', PROJECT)
 

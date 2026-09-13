@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { buildTaskList } from '../fixtures/domain'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -8,10 +9,10 @@ import type { Task, User, TaskList } from '@/types/task'
 // Mock fetch for upload tests
 // Default implementation returns empty JSON for any unhandled requests
 // (e.g., /api/user/ai-assistant-settings called by CommentSection useEffect)
-const mockFetch = vi.fn().mockResolvedValue({
+const mockFetch = vi.fn().mockResolvedValue(row({
   ok: true,
   json: () => Promise.resolve({})
-})
+}))
 global.fetch = mockFetch
 
 // Mock layout detection

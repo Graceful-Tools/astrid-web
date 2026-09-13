@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { mockPrisma, mockGetServerSession } from '../setup'
 import {
   createOAuthClient,
@@ -66,7 +67,7 @@ describe('OAuth Authentication', () => {
     }
 
     // Mock user
-    mockPrisma.user.findUnique.mockResolvedValue({
+    mockPrisma.user.findUnique.mockResolvedValue(row({
       id: testUserId,
       name: 'Test User',
       email: 'test@example.com',
@@ -75,7 +76,7 @@ describe('OAuth Authentication', () => {
       updatedAt: new Date(),
       emailVerified: null,
       isAIAgent: false,
-    })
+    }))
   })
 
   describe('OAuth Client Management', () => {
@@ -126,7 +127,7 @@ describe('OAuth Authentication', () => {
   describe('OAuth Token Generation', () => {
     it('should generate access token', async () => {
       mockPrisma.oAuthClient.findUnique.mockResolvedValue(mockOAuthClient)
-      mockPrisma.oAuthToken.create.mockResolvedValue({
+      mockPrisma.oAuthToken.create.mockResolvedValue(row({
         id: 'token-id',
         accessToken: mockAccessToken,
         tokenType: 'Bearer',
@@ -137,7 +138,7 @@ describe('OAuth Authentication', () => {
         createdAt: new Date(),
         refreshToken: null,
         isRevoked: false,
-      })
+      }))
 
       const tokenResponse = await generateAccessToken(
         mockOAuthClient.id,
@@ -250,7 +251,7 @@ describe('OAuth Authentication', () => {
         'comments:write',
         'user:read',
       ]
-      mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+      mockPrisma.oAuthToken.findFirst.mockResolvedValue(row({
         id: 'actions-token-id',
         accessToken: mockAccessToken,
         tokenType: 'Bearer',
@@ -267,7 +268,7 @@ describe('OAuth Authentication', () => {
           isAIAgent: false,
           name: 'Test User',
         },
-      })
+      }))
 
       const request = new Request('http://localhost:3000/api/v1/agent-queue', {
         headers: { 'X-OAuth-Token': mockAccessToken },
@@ -282,7 +283,7 @@ describe('OAuth Authentication', () => {
     })
 
     it('AWTD-755 keeps the human OAuth principal while exposing explicit Copilot authorship', async () => {
-      mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+      mockPrisma.oAuthToken.findFirst.mockResolvedValue(row({
         id: 'token-id',
         accessToken: mockAccessToken,
         tokenType: 'Bearer',
@@ -300,13 +301,13 @@ describe('OAuth Authentication', () => {
           isAIAgent: false,
           name: 'Test User',
         },
-      })
-      mockPrisma.user.findFirst.mockResolvedValue({
+      }))
+      mockPrisma.user.findFirst.mockResolvedValue(row({
         id: 'copilot-agent-id',
         email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         image: null,
-      })
+      }))
 
       const headers = new Headers()
       headers.set('authorization', ['Bearer', mockAccessToken].join(' '))
@@ -324,7 +325,7 @@ describe('OAuth Authentication', () => {
     })
 
     it('AWTD-755 fails closed when a consent-bound Copilot identity cannot resolve', async () => {
-      mockPrisma.oAuthToken.findFirst.mockResolvedValue({
+      mockPrisma.oAuthToken.findFirst.mockResolvedValue(row({
         id: 'token-id',
         accessToken: mockAccessToken,
         clientId: mockOAuthClient.id,
@@ -339,7 +340,7 @@ describe('OAuth Authentication', () => {
           isAIAgent: false,
           name: 'Test User',
         },
-      })
+      }))
       mockPrisma.user.findFirst.mockResolvedValue(null)
       mockPrisma.user.create.mockRejectedValue(new Error('agent unavailable'))
 
@@ -354,7 +355,7 @@ describe('OAuth Authentication', () => {
     it('should authenticate with legacy MCP token', async () => {
       const mcpToken = 'astrid_mcp_test123'
 
-      mockPrisma.mCPToken.findFirst.mockResolvedValue({
+      mockPrisma.mCPToken.findFirst.mockResolvedValue(row({
         id: 'mcp-token-id',
         token: mcpToken,
         userId: testUserId,
@@ -373,13 +374,13 @@ describe('OAuth Authentication', () => {
           isAIAgent: false,
         },
         agentUser: null,
-      })
-      mockPrisma.user.findFirst.mockResolvedValue({
+      }))
+      mockPrisma.user.findFirst.mockResolvedValue(row({
         id: 'copilot-agent-id',
         email: `copilot@${BRAND.agentEmailDomain}`,
         name: 'GitHub Copilot Agent',
         image: null,
-      })
+      }))
 
       // Create mock request with MCP token and cookies object
       const mockRequest = new Request('http://localhost:3000/api/mcp/operations', {
@@ -468,7 +469,7 @@ describe('OAuth Authentication', () => {
       // Disable session auth for MCP test
       mockGetServerSession.mockResolvedValue(null)
 
-      mockPrisma.mCPToken.findFirst.mockResolvedValue({
+      mockPrisma.mCPToken.findFirst.mockResolvedValue(row({
         id: 'mcp-token-id',
         token: mcpToken,
         userId: testUserId,
@@ -484,7 +485,7 @@ describe('OAuth Authentication', () => {
           name: 'Test User',
           isAIAgent: false,
         },
-      })
+      }))
 
       // Test MCP request
       const mcpRequest = new Request('http://localhost:3000/api/mcp/operations', {

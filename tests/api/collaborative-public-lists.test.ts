@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import type { User, TaskList } from '@prisma/client'
 import type { PrismaClient } from '@prisma/client'
 
@@ -17,6 +18,18 @@ try {
   // Database not available, tests will be skipped
 }
 
+/**
+ * The suite skips itself when DATABASE_URL is unset, but the compiler cannot
+ * see that from `dbAvailable`, so every `db().` was an 18047. This narrows
+ * it in one place and throws if a test ever runs past the guard. (AWTD-916)
+ */
+function db(): PrismaClient {
+  if (!prisma) {
+    throw new Error('DATABASE_URL not set - this suite should have been skipped')
+  }
+  return prisma
+}
+
 describe('Collaborative Public Lists - Task Creation and Editing', () => {
   let testUser: User
   let otherUser: User
@@ -33,17 +46,17 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
 
     try {
       // Check if database is available
-      await prisma.$connect()
+      await db().$connect()
 
       // Create test users
-      testUser = await prisma.user.create({
+      testUser = await db().user.create({
         data: {
           email: `collab-test-${Date.now()}@example.com`,
           name: 'Collab Test User',
         },
       })
 
-      otherUser = await prisma.user.create({
+      otherUser = await db().user.create({
         data: {
           email: `collab-other-${Date.now()}@example.com`,
           name: 'Other User',
@@ -51,26 +64,28 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       })
 
       // Create collaborative public list
-      collaborativeList = await prisma.taskList.create({
+      collaborativeList = await db().taskList.create({
         data: {
           name: 'Collaborative Public List',
           privacy: 'PUBLIC',
           publicListType: 'collaborative',
+          color: DEFAULT_LIST_COLOR,
           ownerId: testUser.id,
         },
       })
 
       // Create copy-only public list
-      copyOnlyList = await prisma.taskList.create({
+      copyOnlyList = await db().taskList.create({
         data: {
           name: 'Copy-Only Public List',
           privacy: 'PUBLIC',
           publicListType: 'copy_only',
+          color: DEFAULT_LIST_COLOR,
           ownerId: testUser.id,
         },
       })
     } catch (error) {
-      console.warn('Database not available for integration tests, skipping:', error.message)
+      console.warn('Database not available for integration tests, skipping:', error)
       dbAvailable = false
       // Don't throw - let tests skip gracefully
     }
@@ -82,7 +97,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
     try {
       // Clean up test data
       if (testUser?.id || otherUser?.id) {
-        await prisma.task.deleteMany({
+        await db().task.deleteMany({
           where: {
             OR: [
               ...(testUser?.id ? [{ creatorId: testUser.id }] : []),
@@ -93,7 +108,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       }
 
       if (collaborativeList?.id || copyOnlyList?.id) {
-        await prisma.taskList.deleteMany({
+        await db().taskList.deleteMany({
           where: {
             id: {
               in: [collaborativeList?.id, copyOnlyList?.id].filter(Boolean) as string[],
@@ -103,7 +118,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       }
 
       if (testUser?.id || otherUser?.id) {
-        await prisma.user.deleteMany({
+        await db().user.deleteMany({
           where: {
             id: {
               in: [testUser?.id, otherUser?.id].filter(Boolean) as string[],
@@ -123,7 +138,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
         return
       }
 
-      const task = await prisma.task.create({
+      const task = await db().task.create({
         data: {
           title: 'Test Task on Collaborative List',
           creatorId: otherUser.id,
@@ -144,13 +159,13 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       expect(task.lists[0].publicListType).toBe('collaborative')
 
       // Cleanup
-      await prisma.task.delete({ where: { id: task.id } })
+      await db().task.delete({ where: { id: task.id } })
     })
 
     it('should track task creator for permission checking', async () => {
       if (!dbAvailable) return
 
-      const task = await prisma.task.create({
+      const task = await db().task.create({
         data: {
           title: 'Task with Creator',
           creatorId: otherUser.id,
@@ -168,13 +183,13 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       expect(task.creatorId).toBe(otherUser.id)
 
       // Cleanup
-      await prisma.task.delete({ where: { id: task.id } })
+      await db().task.delete({ where: { id: task.id } })
     })
 
     it('should allow assignees on collaborative public lists', async () => {
       if (!dbAvailable) return
 
-      const task = await prisma.task.create({
+      const task = await db().task.create({
         data: {
           title: 'Assigned Task on Collaborative List',
           creatorId: otherUser.id,
@@ -192,7 +207,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       expect(task.assignee?.id).toBe(testUser.id)
 
       // Cleanup
-      await prisma.task.delete({ where: { id: task.id } })
+      await db().task.delete({ where: { id: task.id } })
     })
   })
 
@@ -200,7 +215,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
     it('should require unassigned tasks for copy-only public lists', async () => {
       if (!dbAvailable) return
 
-      const task = await prisma.task.create({
+      const task = await db().task.create({
         data: {
           title: 'Unassigned Task on Copy-Only List',
           creatorId: testUser.id,
@@ -214,7 +229,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       expect(task.assigneeId).toBeNull()
 
       // Cleanup
-      await prisma.task.delete({ where: { id: task.id } })
+      await db().task.delete({ where: { id: task.id } })
     })
   })
 
@@ -222,7 +237,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
     it('should allow creator to identify their tasks for editing', async () => {
       if (!dbAvailable) return
 
-      const task = await prisma.task.create({
+      const task = await db().task.create({
         data: {
           title: 'Creator Owned Task',
           creatorId: otherUser.id,
@@ -259,14 +274,14 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       expect(canEdit).toBe(true)
 
       // Cleanup
-      await prisma.task.delete({ where: { id: task.id } })
+      await db().task.delete({ where: { id: task.id } })
     })
 
     it('should allow list admins to edit any task', async () => {
       if (!dbAvailable) return
 
       // Add otherUser as admin to the collaborative list using listMembers
-      await prisma.listMember.create({
+      await db().listMember.create({
         data: {
           listId: collaborativeList.id,
           userId: otherUser.id,
@@ -274,7 +289,7 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
         },
       })
 
-      const task = await prisma.task.create({
+      const task = await db().task.create({
         data: {
           title: 'Task Created by Someone Else',
           creatorId: testUser.id, // Created by owner
@@ -306,8 +321,8 @@ describe('Collaborative Public Lists - Task Creation and Editing', () => {
       expect(canEdit).toBe(true)
 
       // Cleanup
-      await prisma.task.delete({ where: { id: task.id } })
-      await prisma.listMember.deleteMany({
+      await db().task.delete({ where: { id: task.id } })
+      await db().listMember.deleteMany({
         where: {
           listId: collaborativeList.id,
           userId: otherUser.id,

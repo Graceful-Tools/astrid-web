@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { row } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/lists/[id]/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
@@ -41,9 +42,9 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })
@@ -65,9 +66,9 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     const listId = 'non-existent-list'
     
     mockPrisma.taskList.findUnique.mockResolvedValue(null)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })
@@ -96,9 +97,9 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })
@@ -127,9 +128,9 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })
@@ -167,9 +168,9 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })
@@ -207,9 +208,9 @@ describe('List Unique URL API (/api/lists/[id])', () => {
     }
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
-    mockGetServerSession.mockResolvedValue({
+    mockGetServerSession.mockResolvedValue(row({
       user: { id: 'test-user-id', email: 'test@example.com' }
-    })
+    }))
 
     const request = createMockRequest(listId)
     const response = await GET(request, { params: Promise.resolve({ id: listId }) })

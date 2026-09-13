@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { row } from '../../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { GET, PATCH } from '@/app/api/user/my-tasks-preferences/route'
 import { prisma } from '@/lib/prisma'
@@ -46,10 +47,10 @@ describe('My Tasks Preferences API', () => {
 
   describe('GET /api/user/my-tasks-preferences', () => {
     it('should return default preferences when none are set', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: null,
-      } as any)
+      }))
 
       const response = await GET()
       const data = await response.json()
@@ -75,10 +76,10 @@ describe('My Tasks Preferences API', () => {
         sortBy: 'when',
       }
 
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(savedPrefs),
-      } as any)
+      }))
 
       const response = await GET()
       const data = await response.json()
@@ -134,17 +135,17 @@ describe('My Tasks Preferences API', () => {
         sortBy: 'priority',
       }
 
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(currentPrefs),
-      } as any)
+      }))
 
       const updatedPrefs = { ...currentPrefs, ...newPrefs }
 
-      vi.mocked(prisma.user.update).mockResolvedValue({
+      vi.mocked(prisma.user.update).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(updatedPrefs),
-      } as any)
+      }))
 
       const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
@@ -247,10 +248,10 @@ describe('My Tasks Preferences API', () => {
         sortBy: 'priority',
       }
 
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(currentPrefs),
-      } as any)
+      }))
 
       const partialUpdate = {
         filterDueDate: 'today',
@@ -261,10 +262,10 @@ describe('My Tasks Preferences API', () => {
         ...partialUpdate,
       }
 
-      vi.mocked(prisma.user.update).mockResolvedValue({
+      vi.mocked(prisma.user.update).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: JSON.stringify(expectedMerged),
-      } as any)
+      }))
 
       const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
         method: 'PATCH',
