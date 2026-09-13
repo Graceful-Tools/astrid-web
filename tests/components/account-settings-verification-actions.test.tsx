@@ -113,7 +113,7 @@ beforeEach(() => {
 
 describe('AccountSettings verification actions (AWTD-886)', () => {
   it('sends resend as a query parameter, which is where the route reads it', async () => {
-    render(<AccountSettings />)
+    render(<AccountSettings onNavigate={vi.fn()} />)
     await waitFor(() => expect(fetchedUrls()).toContain('/api/v1/users/me'))
 
     await userEvent.click(screen.getByRole('button', { name: 'resend' }))
@@ -124,7 +124,7 @@ describe('AccountSettings verification actions (AWTD-886)', () => {
   })
 
   it('sends cancel as a query parameter too', async () => {
-    render(<AccountSettings />)
+    render(<AccountSettings onNavigate={vi.fn()} />)
     await waitFor(() => expect(fetchedUrls()).toContain('/api/v1/users/me'))
 
     await userEvent.click(screen.getByRole('button', { name: 'cancel' }))
@@ -137,7 +137,7 @@ describe('AccountSettings verification actions (AWTD-886)', () => {
   it('does not put the action in the body, where nothing reads it', async () => {
     // The original bug exactly: a body-only action is invisible to the route,
     // which answers 400 and hands the user a developer's error string.
-    render(<AccountSettings />)
+    render(<AccountSettings onNavigate={vi.fn()} />)
     await waitFor(() => expect(fetchedUrls()).toContain('/api/v1/users/me'))
 
     await userEvent.click(screen.getByRole('button', { name: 'resend' }))

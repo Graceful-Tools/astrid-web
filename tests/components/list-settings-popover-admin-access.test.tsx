@@ -44,11 +44,6 @@ const mockUser: User = buildUser({
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-  isActive: true,
-  pendingEmail: null,
-  emailVerificationToken: null,
-  emailTokenExpiresAt: null,
-  password: null
 })
 
 const mockOwnerUser: User = buildUser({
@@ -57,11 +52,6 @@ const mockOwnerUser: User = buildUser({
   email: 'owner@example.com',
   image: null,
   createdAt: new Date(),
-  isActive: true,
-  pendingEmail: null,
-  emailVerificationToken: null,
-  emailTokenExpiresAt: null,
-  password: null
 })
 
 const defaultProps = {

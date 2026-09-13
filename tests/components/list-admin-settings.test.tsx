@@ -33,11 +33,6 @@ describe('ListAdminSettings - Delete List Modal', () => {
     email: 'test@example.com',
     image: null,
     createdAt: new Date(),
-    isActive: true,
-    pendingEmail: null,
-    emailVerificationToken: null,
-    emailTokenExpiresAt: null,
-    password: null
   })
 
   const mockList: TaskList = buildTaskList({

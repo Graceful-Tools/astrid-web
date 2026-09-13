@@ -50,11 +50,6 @@ const mockCurrentUser: User = buildUser({
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-  isActive: true,
-  pendingEmail: null,
-  emailVerificationToken: null,
-  emailTokenExpiresAt: null,
-  password: null,
 })
 
 function makeList(overrides: Partial<TaskList> = {}): TaskList {
