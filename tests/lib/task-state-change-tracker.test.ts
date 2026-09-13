@@ -29,7 +29,6 @@ describe('Task State Change Tracker', () => {
       id: 'user-1',
       name: 'Alice',
       email: 'alice@example.com',
-      image: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: true,
@@ -61,7 +60,6 @@ describe('Task State Change Tracker', () => {
       {
         id: 'list-1',
         name: 'Work Tasks',
-        color: '#3b82f6',
         imageUrl: null,
         privacy: 'PRIVATE',
         createdAt: new Date(),

@@ -89,7 +89,6 @@ const mockUser: User = {
   email: 'test@example.com',
   image: null,
   createdAt: new Date(),
-  emailVerified: null
 }
 
 const mockList: TaskList = buildTaskList({

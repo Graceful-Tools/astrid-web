@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { buildTaskList } from '../../fixtures/domain'
 import { row } from '../../fixtures/prisma-rows'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskModals } from '@/components/task-detail/TaskModals'
@@ -25,8 +26,8 @@ describe('TaskModals', () => {
   }
 
   const mockLists: TaskList[] = [
-    { id: 'list-1', name: 'List 1', color: '#ff0000', privacy: 'PRIVATE', ownerId: 'user-1', createdAt: new Date(), updatedAt: new Date(), userId: 'user-1' },
-    { id: 'list-2', name: 'List 2', color: '#00ff00', privacy: 'SHARED', ownerId: 'user-1', createdAt: new Date(), updatedAt: new Date(), userId: 'user-1' }
+    buildTaskList({ id: 'list-1', name: 'List 1', color: '#ff0000', privacy: 'PRIVATE', ownerId: 'user-1' }),
+    buildTaskList({ id: 'list-2', name: 'List 2', color: '#00ff00', privacy: 'SHARED', ownerId: 'user-1' }),
   ]
 
   const defaultProps = {

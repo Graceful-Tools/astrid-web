@@ -22,7 +22,6 @@ const mockUser: User = {
   name: 'Test User',
   image: null,
   createdAt: new Date(),
-  updatedAt: new Date(),
 }
 
 const boardList: TaskList = buildTaskList({

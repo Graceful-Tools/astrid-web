@@ -32,7 +32,6 @@ describe('ListAdminSettings - Delete List Modal', () => {
     email: 'test@example.com',
     image: null,
     createdAt: new Date(),
-    emailVerified: null,
     isActive: true,
     pendingEmail: null,
     emailVerificationToken: null,
