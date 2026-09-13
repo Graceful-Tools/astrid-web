@@ -22,6 +22,8 @@ import {
   canAssignRole,
   getUserRoleInList,
   prismaToTaskList,
+  isSavedFilterList,
+  SAVED_FILTER_MEMBER_ERROR,
 } from '@/lib/list-permissions'
 import { sendListInvitationEmail } from '@/lib/email'
 import { createLogger } from '@/lib/logger'
@@ -114,6 +116,14 @@ export async function inviteToList(args: {
 
   if (!canUserManageMembers(currentUser, taskList)) {
     return { ok: false, status: 403, error: 'Access denied' }
+  }
+
+  // An invitation is always to a person, and a saved filter accepts AI agents
+  // only: its contents come from the recipient's OWN filters applied to what
+  // they can already see, so inviting someone to one promises a shared view it
+  // cannot produce. (Task aa4e7eb0.)
+  if (isSavedFilterList(list)) {
+    return { ok: false, status: 400, error: SAVED_FILTER_MEMBER_ERROR }
   }
 
   // Separate from the check above on purpose: an admin may invite members but

@@ -49,6 +49,11 @@ interface ListLike {
   // Distinguishes a status list (a board column) from a domain list. Only
   // status lists inherit access from sibling lists — see getProjectRole.
   listType?: string | null
+  // A saved filter, whose contents are derived from filters rather than from
+  // membership. Read only by isSavedFilterList / canUserBeAddedAsMember, which
+  // treat absence as "a real list" — the permissive direction for reads, and
+  // the one every caller that did not select the column lands on.
+  isVirtual?: boolean | null
   // The list's agent config, as the Json column holds it. Read only by
   // listAllowsMemberAgentAssignment, which treats absence as "not opted in", so
   // a caller that did not select the column under-grants rather than over-grants.
@@ -508,6 +513,50 @@ export function listAllowsMemberAgentAssignment(list: ListLike | null | undefine
 
   return (value as Record<string, unknown>).allowMemberAssignment === true
 }
+
+/**
+ * Is this list a SAVED FILTER (a "virtual" list) rather than a real list of
+ * tasks people were added to?
+ *
+ * A saved filter has no membership of its own — its contents are derived by
+ * applying its filters to everything the viewer can already see
+ * (lib/virtual-list-utils.ts).
+ */
+export function isSavedFilterList(list: { isVirtual?: boolean | null } | null | undefined): boolean {
+  return list?.isVirtual === true
+}
+
+/**
+ * May this principal be added as a member of this list?
+ *
+ * **A saved filter accepts AI agents only** (Jon, 2026-09-13, task aa4e7eb0:
+ * "disable adding non-AI members to saved filters").
+ *
+ * The reason is what per-user filters did to the meaning of sharing one. A
+ * saved filter's contents come from the VIEWER's own filters applied to the
+ * tasks the viewer can see, so adding a person to one promises something it
+ * cannot deliver: they would not see the list you see, and nothing about
+ * their membership would make them. Adding them is therefore not a
+ * restriction worth explaining — it is an operation with no coherent result.
+ *
+ * AI agents stay eligible because agent membership is not about seeing a
+ * shared view: it is how an agent is granted access to act on a list at all,
+ * which is exactly the `ai-agent-*` principal the queue and the MCP server
+ * depend on.
+ *
+ * Says nothing about members a saved filter already has — this gates ADDING.
+ */
+export function canUserBeAddedAsMember(
+  candidate: { isAIAgent?: boolean | null } | null | undefined,
+  list: { isVirtual?: boolean | null } | null | undefined
+): boolean {
+  if (!isSavedFilterList(list)) return true
+  return candidate?.isAIAgent === true
+}
+
+/** One phrasing of the refusal, so the three call sites cannot drift. */
+export const SAVED_FILTER_MEMBER_ERROR =
+  'A saved filter shows each person the results of their own filters, so people cannot be added to one. Only AI agents can be added to a saved filter.'
 
 function safeJsonParse(value: string): unknown {
   try {

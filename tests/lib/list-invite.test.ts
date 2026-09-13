@@ -30,6 +30,10 @@ const getUserRoleInList = vi.hoisted(() => vi.fn(() => null))
 vi.mock('@/lib/list-permissions', () => ({
   canUserManageMembers, canAssignRole, getUserRoleInList,
   prismaToTaskList: vi.fn((l: unknown) => l),
+  // A saved filter accepts AI agents only, so invitations to one are refused
+  // (task aa4e7eb0). These fixtures are ordinary lists.
+  isSavedFilterList: vi.fn(() => false),
+  SAVED_FILTER_MEMBER_ERROR: 'Only AI agents can be added to a saved filter.',
 }))
 
 const sendListInvitationEmail = vi.hoisted(() => vi.fn())

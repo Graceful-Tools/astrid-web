@@ -8,7 +8,8 @@
 import { NextResponse } from 'next/server'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
-import { addListMember } from '@/services/list-member.service'
+import { addListMember, SavedFilterMembershipError } from '@/services/list-member.service'
+import { isSavedFilterList, SAVED_FILTER_MEMBER_ERROR } from '@/lib/list-permissions'
 import { isListAdminOrOwner } from '@/lib/list-member-utils'
 import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
@@ -206,6 +207,14 @@ export const POST = withAuth<RouteContext>(
       select: { id: true, name: true, email: true, image: true, isAIAgent: true }
     })
 
+    // A saved filter accepts AI agents only, and an email invitation can only
+    // ever be a person — nobody invites an agent to an address. Refused here
+    // because this branch does not go through the member service, which is
+    // where the same rule is enforced for an existing user. (Task aa4e7eb0.)
+    if (isSavedFilterList(list)) {
+      return NextResponse.json({ error: SAVED_FILTER_MEMBER_ERROR }, { status: 400 })
+    }
+
     // No existing user → create an invitation instead
     if (!user) {
       const inviter = await prisma.user.findUnique({
@@ -296,12 +305,27 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    await addListMember({
-      list,
-      member: { id: user.id, name: user.name, email: user.email, image: user.image },
-      role,
-      actor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
-    })
+    try {
+      await addListMember({
+        list,
+        // isAIAgent decides whether a saved filter accepts them (task
+        // aa4e7eb0); the service refuses when absent, so it must be passed.
+        member: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          isAIAgent: user.isAIAgent,
+        },
+        role,
+        actor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
+      })
+    } catch (error) {
+      if (error instanceof SavedFilterMembershipError) {
+        return NextResponse.json({ error: error.message }, { status: 400 })
+      }
+      throw error
+    }
 
 
     const headers: Record<string, string> = {}

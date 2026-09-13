@@ -8,6 +8,7 @@ import {
   addListMember,
   changeListMemberRole,
   removeListMember as removeListMemberService,
+  SavedFilterMembershipError,
 } from "@/services/list-member.service"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { RedisCache } from "@/lib/redis"
@@ -19,7 +20,12 @@ import {
 } from "@/lib/list-member-operations"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
-import { getUserRoleInList, canUserManageList } from "@/lib/list-permissions"
+import {
+  getUserRoleInList,
+  canUserManageList,
+  isSavedFilterList,
+  SAVED_FILTER_MEMBER_ERROR,
+} from "@/lib/list-permissions"
 import { deleteListWithImageRelease } from "@/lib/images/update-list-image"
 
 const log = createLogger('api.lists.members')
@@ -215,7 +221,9 @@ export async function POST(
     // Get list details
     const list = await prisma.taskList.findUnique({
       where: { id: listId },
-      select: { id: true, name: true }
+      // isVirtual: a saved filter accepts AI agents only (task aa4e7eb0), and
+      // the service refuses when it is absent, so it has to be selected here.
+      select: { id: true, name: true, isVirtual: true }
     })
     if (!list) {
       return NextResponse.json({ error: "List not found" }, { status: 404 })
@@ -225,6 +233,13 @@ export async function POST(
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
+
+    // A saved filter accepts AI agents only (task aa4e7eb0). An email
+    // invitation is always a person, so it is refused outright; an existing
+    // user is judged by the member service, which owns the same rule.
+    if (!existingUser && isSavedFilterList(list)) {
+      return NextResponse.json({ error: SAVED_FILTER_MEMBER_ERROR }, { status: 400 })
+    }
 
     if (existingUser) {
       // Check if user is already a member
@@ -249,6 +264,7 @@ export async function POST(
           name: existingUser.name,
           email: existingUser.email,
           image: (existingUser as { image?: string | null }).image ?? null,
+          isAIAgent: existingUser.isAIAgent,
         },
         role,
         actor: { id: session.user.id, name: session.user.name, email: session.user.email },
@@ -326,6 +342,12 @@ export async function POST(
       })
     }
   } catch (error) {
+    // The member service's deliberate refusal, not a failure: a saved filter
+    // accepts AI agents only (task aa4e7eb0). Its message is written for the
+    // caller, so it is returned rather than sanitised.
+    if (error instanceof SavedFilterMembershipError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     log.error({ err: error }, "Error adding member:")
     return NextResponse.json({ error: "Failed to add member" }, { status: 500 })
   }

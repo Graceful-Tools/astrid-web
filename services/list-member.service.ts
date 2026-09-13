@@ -29,6 +29,7 @@
  */
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { canUserBeAddedAsMember, SAVED_FILTER_MEMBER_ERROR } from '@/lib/list-permissions'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { invalidateMemberCache, invalidateMemberCaches } from '@/lib/list-member-operations'
@@ -42,6 +43,13 @@ export interface MemberListContext {
   color?: string | null
   ownerId?: string | null
   listMembers?: Array<{ userId: string }> | null
+  /**
+   * Whether the list is a saved filter. REQUIRED, not optional: a saved filter
+   * accepts AI agents only (task aa4e7eb0), and making this nullable would let
+   * a caller that forgot it bypass that silently. Required instead makes the
+   * compiler name every call site — the same reasoning as TaskList.color.
+   */
+  isVirtual: boolean | null
 }
 
 export interface MemberActor {
@@ -55,6 +63,13 @@ export interface AffectedMember {
   name?: string | null
   email?: string | null
   image?: string | null
+  /**
+   * Whether this principal is an AI agent. Only consulted when adding someone
+   * to a saved filter, where absence is read as "not an agent" — so a caller
+   * that does not select the column gets a refusal rather than a silent
+   * bypass. (Task aa4e7eb0.)
+   */
+  isAIAgent?: boolean | null
 }
 
 function actorLabel(actor: MemberActor): string {
@@ -91,6 +106,20 @@ function audience(list: MemberListContext): string[] {
  * The audience is computed AFTER the write so the new member is in it — they
  * are the one person who most needs the event, and v1 computed it before.
  */
+/**
+ * Adding a person to a saved filter, which is refused.
+ *
+ * A class rather than a string so each surface can map it to its own 400
+ * without string-matching, and so lib/api-boundary-guard.ts recognises the
+ * message as one deliberately written for the caller. (Task aa4e7eb0.)
+ */
+export class SavedFilterMembershipError extends Error {
+  constructor(message = SAVED_FILTER_MEMBER_ERROR) {
+    super(message)
+    this.name = 'SavedFilterMembershipError'
+  }
+}
+
 export async function addListMember(args: {
   list: MemberListContext
   member: AffectedMember
@@ -98,6 +127,13 @@ export async function addListMember(args: {
   actor: MemberActor
 }): Promise<void> {
   const { list, member, role, actor } = args
+
+  // Enforced HERE rather than at each route, because this is the one place all
+  // three surfaces (v1, legacy, MCP) funnel through — a fourth caller inherits
+  // the rule instead of having to remember it.
+  if (!canUserBeAddedAsMember(member, list)) {
+    throw new SavedFilterMembershipError()
+  }
 
   await prisma.listMember.create({
     data: { listId: list.id, userId: member.id, role },

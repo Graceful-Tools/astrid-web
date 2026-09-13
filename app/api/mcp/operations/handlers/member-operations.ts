@@ -129,6 +129,8 @@ export async function addListMember(accessToken: string, listId: string, email: 
         name: existingUser.name,
         email: existingUser.email,
         image: (existingUser as { image?: string | null }).image ?? null,
+        // Decides whether a saved filter accepts them (task aa4e7eb0).
+        isAIAgent: (existingUser as { isAIAgent?: boolean | null }).isAIAgent ?? false,
       },
       role: memberRole,
       actor: { id: mcpToken.userId, name: mcpToken.user?.name, email: mcpToken.user?.email },
