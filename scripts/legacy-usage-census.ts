@@ -33,6 +33,7 @@
  */
 
 import { loadScriptEnv } from './lib/load-env'
+import { applyDatabaseTarget } from './lib/database-target'
 
 loadScriptEnv()
 
@@ -43,15 +44,13 @@ async function main() {
   const useProd = args.includes('--prod')
   const safeOnly = args.includes('--safe-only')
 
-  if (useProd) {
-    const prodUrl = process.env.DATABASE_URL_PROD
-    if (!prodUrl) {
-      console.error('--prod needs DATABASE_URL_PROD in .env.local')
-      process.exit(1)
-    }
-    // Assigned before the service is imported: lib/prisma binds its client at
-    // module scope, so a later assignment would be read too late.
-    process.env.DATABASE_URL = prodUrl
+  // Assigned before the Prisma client is imported: lib/prisma binds at module
+  // scope, so a later assignment would be read too late.
+  try {
+    applyDatabaseTarget({ useProd })
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    process.exit(1)
   }
 
   const { getLegacyUsageReport } = await import('../lib/legacy-api-usage-service')

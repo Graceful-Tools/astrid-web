@@ -311,6 +311,7 @@ export async function aggregateDailyStats(date: Date): Promise<void> {
       dauWebIPhone: usersByPlatform['web-iPhone'].size,
       dauWebAndroid: usersByPlatform['web-android'].size,
       dauIOSApp: usersByPlatform['iOS-app'].size,
+      dauMacApp: usersByPlatform['mac-app'].size,
       dauAPIOther: usersByPlatform['API-other'].size,
       dauUnknown: usersByPlatform['unknown'].size,
       taskCreated: eventCounts[AnalyticsEventType.TASK_CREATED] || 0,
