@@ -7,9 +7,9 @@ import { join } from 'node:path'
  * (AWTD-935).
  *
  * This absorbs the earlier e2e/hover-theme-text.spec.ts, which covered the same
- * two text classes in light and lite only. Every assertion it made is still
- * here — including the cascade-order pin — alongside the other classes and the
- * other two themes, without running two near-identical suites.
+ * two text classes in the light theme only. Every assertion it made is still
+ * here — including the cascade-order pin — alongside the other classes and
+ * every theme, without running two near-identical suites.
  *
  * WHY THIS RUNS AGAINST about:blank
  *
@@ -35,13 +35,15 @@ import { join } from 'node:path'
  * of hex values needing an edit every time a palette is retuned.
  */
 
-const THEMES = ['light', 'lite', 'dark', 'ocean'] as const
+// Mirrors the Theme union in contexts/theme-context.tsx. The unit test pins
+// that these are the only themes any stylesheet is scoped to.
+const THEMES = ['light', 'dark', 'ocean'] as const
 type Theme = (typeof THEMES)[number]
 
 /** Exactly the order app/[locale]/layout.tsx imports them; hover-variants.css
  *  ties the theme sheets on specificity and must win on source order. */
 const STYLESHEETS = [
-  'light-theme.css', // also carries the .lite palette
+  'light-theme.css',
   'dark-theme.css',
   'ocean-theme.css',
   'hover-variants.css',
@@ -67,11 +69,14 @@ const PROBE_BASELINE = `
 `
 
 async function useTheme(page: Page, theme: Theme) {
-  await page.evaluate((t) => {
-    const root = document.documentElement
-    root.classList.remove('light', 'lite', 'dark', 'ocean')
-    root.classList.add(t)
-  }, theme)
+  await page.evaluate(
+    ({ t, all }) => {
+      const root = document.documentElement
+      root.classList.remove(...all)
+      root.classList.add(t)
+    },
+    { t: theme, all: [...THEMES] },
+  )
 }
 
 /** Render `declaration` on a throwaway element and read back what the browser
@@ -150,9 +155,9 @@ test.describe('hover:theme-* variants (AWTD-936, AWTD-935)', () => {
 
       // Sanity: a hover landing on the colour the element already had would pass
       // every assertion below while being invisible to a user. That is exactly
-      // the trap --theme-bg-hover falls into in light and lite (pure white, the
-      // same as --theme-bg-primary), and the reason hover:theme-bg-hover
-      // resolves to --theme-surface-hover instead.
+      // the trap --theme-bg-hover falls into in light (pure white, the same as
+      // --theme-bg-primary), and the reason hover:theme-bg-hover resolves to
+      // --theme-surface-hover instead.
       expect(textPrimary, 'primary must differ from muted, or the hover is invisible').not.toBe(muted)
       expect(textSecondary, 'secondary must differ from muted').not.toBe(muted)
       expect(surfaceHover, 'surface-hover must be a real colour').not.toBe('rgba(0, 0, 0, 0)')

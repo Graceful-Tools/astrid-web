@@ -1,6 +1,8 @@
 /**
  * Regression for AWTD-935 — "`hover:theme-text-*` does nothing in the light and
- * lite themes — the CSS escape is a doubled backslash".
+ * lite themes — the CSS escape is a doubled backslash". (The `lite` theme has
+ * since been deleted as dead — AWTD-936 — but the escape bug it names was real
+ * in every theme the rules were written for.)
  *
  * A `:` inside a class name is escaped with ONE backslash. Four rules were
  * written `.light .hover\\:theme-text-primary:hover`, and in CSS `\\` is an
