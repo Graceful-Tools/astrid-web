@@ -1,4 +1,5 @@
 import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
+import { harnessAgentMailboxes } from "@/lib/ai/harness-agents"
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from "@/lib/task-status"
 
 /**
@@ -20,13 +21,14 @@ export const FIXALL_CLAIM_AGENT_EMAIL = agentEmail(AGENT_MAILBOXES.copilot)
  * A server-side AI provider is not here: those are dispatched work, they do not
  * poll a queue and claim from it.
  */
-export const FIXALL_CLAIM_MAILBOXES = [
+export const FIXALL_CLAIM_MAILBOXES: readonly string[] = [
   AGENT_MAILBOXES.copilot,
   AGENT_MAILBOXES.claude,
-  AGENT_MAILBOXES.codex,
-] as const
+  // Every local harness polls the queue and claims from it (AWTD-937).
+  ...harnessAgentMailboxes(),
+]
 
-export type FixallClaimMailbox = typeof FIXALL_CLAIM_MAILBOXES[number]
+export type FixallClaimMailbox = string
 
 /**
  * Copilot when unstated.

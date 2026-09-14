@@ -21,6 +21,7 @@
 import { getAgentConfig } from '@/lib/ai/agent-config'
 import { agentEmail, isLocalHarnessAgentEmail } from '@/lib/brand/agent-emails'
 import { getAgentType } from '@/lib/webhooks/agent-type'
+import { harnessAgentMailboxes } from '@/lib/ai/harness-agents'
 
 /**
  * The coding harnesses that may authenticate as themselves.
@@ -29,9 +30,18 @@ import { getAgentType } from '@/lib/webhooks/agent-type'
  * `openai` and `openclaw` are server-side identities with no interactive CLI that
  * completes an OAuth consent, and OpenClaw workers are per-user addresses anyway.
  */
-export const CONSENT_AGENT_MAILBOXES = ['claude', 'codex', 'copilot', 'gemini'] as const
+export const CONSENT_AGENT_MAILBOXES = [
+  'claude',
+  'copilot',
+  'gemini',
+  // A local CLI authenticates as itself; that is the whole point of the
+  // harness identities, so every one of them consents (AWTD-937).
+  ...harnessAgentMailboxes(),
+  // Typed as a NON-EMPTY tuple, not readonly string[]: app/api/mcp/user-tokens
+  // feeds this straight to `z.enum`, which rejects a possibly-empty array.
+] as [string, ...string[]]
 
-export type ConsentAgentMailbox = (typeof CONSENT_AGENT_MAILBOXES)[number]
+export type ConsentAgentMailbox = string
 
 export function isConsentAgentMailbox(value: string | null | undefined): value is ConsentAgentMailbox {
   return !!value && (CONSENT_AGENT_MAILBOXES as readonly string[]).includes(value)

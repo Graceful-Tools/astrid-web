@@ -13,6 +13,7 @@
  */
 
 import { BRAND } from './config'
+import { harnessAgentMailboxes } from '@/lib/ai/harness-agents'
 
 /** Mailboxes for the built-in agents. */
 export const AGENT_MAILBOXES = {
@@ -22,6 +23,7 @@ export const AGENT_MAILBOXES = {
   gemini: 'gemini',
   copilot: 'copilot',
   codex: 'codex',
+  muse: 'muse',
   openclaw: 'openclaw',
 } as const
 
@@ -32,8 +34,11 @@ export type AgentMailbox = keyof typeof AGENT_MAILBOXES
  *
  * Keep these outside AI_AGENT_CONFIG: treating Codex as OpenAI would let the cloud
  * OpenAI workflow consume tasks assigned to the local Codex CLI.
+ *
+ * Derived from lib/ai/harness-agents.ts so one table registers an agent
+ * everywhere (AWTD-937), rather than nine lists that can disagree.
  */
-export const LOCAL_HARNESS_AGENT_MAILBOXES = [AGENT_MAILBOXES.codex] as const
+export const LOCAL_HARNESS_AGENT_MAILBOXES: readonly string[] = harnessAgentMailboxes()
 
 /** Does this address belong to a polling-only local harness identity? */
 export function isLocalHarnessAgentEmail(email: string | null | undefined): boolean {

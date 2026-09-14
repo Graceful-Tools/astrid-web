@@ -29,6 +29,7 @@ import {
   LOCAL_HARNESS_AGENT_MAILBOXES,
   agentMailboxFromEmail,
 } from '@/lib/brand/agent-emails'
+import { harnessAgentMailboxes } from '@/lib/ai/harness-agents'
 import { MCPSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { createLogger } from '@/lib/logger'
 
@@ -78,10 +79,11 @@ const FORCED_POLLING_MAILBOXES: readonly string[] = LOCAL_HARNESS_AGENT_MAILBOXE
  */
 const CODING_AGENT_MAILBOXES: readonly string[] = [
   AGENT_MAILBOXES.claude,
-  AGENT_MAILBOXES.codex,
   AGENT_MAILBOXES.copilot,
   AGENT_MAILBOXES.openai,
   AGENT_MAILBOXES.gemini,
+  // Every local harness is a coding agent by construction (AWTD-937).
+  ...harnessAgentMailboxes(),
 ]
 
 /** Which provider key backs a mailbox, for the "they already chose API" default. */

@@ -26,7 +26,7 @@ export interface QueueSkillOptions {
   listId?: string | null
 }
 
-export type QueueSkillHarness = 'claude-code' | 'copilot' | 'codex' | 'generic'
+export type QueueSkillHarness = 'claude-code' | 'copilot' | 'codex' | 'muse' | 'generic'
 
 export interface QueueSkillAdapter {
   harness: QueueSkillHarness
@@ -114,7 +114,9 @@ description: Work the correctly scoped ${BRAND.appName} agent queue.
 ---
 ${body}`,
       }
+    // Muse reads AGENTS.md like Codex does, so the artifact is the same shape.
     case 'codex':
+    case 'muse':
       return {
         harness,
         installPath: 'AGENTS.md',
@@ -137,7 +139,7 @@ ${body}`,
 
 /** Every generated adapter, for parity tests and future download surfaces. */
 export function queueSkillAdapters(options: QueueSkillOptions): QueueSkillAdapter[] {
-  return (['claude-code', 'copilot', 'codex', 'generic'] as const).map(harness =>
+  return (['claude-code', 'copilot', 'codex', 'muse', 'generic'] as const).map(harness =>
     queueSkillAdapter(harness, options),
   )
 }

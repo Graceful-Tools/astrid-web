@@ -12,6 +12,20 @@
  * convention. The domain itself is configuration — see lib/brand/agent-emails.ts.
  */
 import { isBrandAgentEmail, isOpenClawAgentEmail } from '@/lib/brand/agent-emails'
+import { harnessAgentMailboxes } from '@/lib/ai/harness-agents'
+
+/**
+ * Local parts that route deterministically. The harness agents come from their
+ * own table so a new CLI is recognised without editing this list (AWTD-937).
+ */
+const KNOWN_AGENT_PREFIXES: readonly string[] = [
+  'claude',
+  'openai',
+  'gemini',
+  'copilot',
+  'openclaw',
+  ...harnessAgentMailboxes(),
+]
 
 export function getAgentType(email?: string, name?: string): string | null {
   if (isOpenClawAgentEmail(email)) {
@@ -20,7 +34,7 @@ export function getAgentType(email?: string, name?: string): string | null {
 
   if (isBrandAgentEmail(email)) {
     const prefix = email.split('@')[0].toLowerCase()
-    if (['claude', 'openai', 'gemini', 'copilot', 'codex', 'openclaw'].includes(prefix)) {
+    if (KNOWN_AGENT_PREFIXES.includes(prefix)) {
       return prefix
     }
   }

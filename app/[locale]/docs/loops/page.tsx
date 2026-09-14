@@ -31,6 +31,7 @@ import { AgentLoopRecipes } from "@/components/agent-runtime-settings"
 const HARNESS_AGENTS = [
   { mailbox: 'claude', label: 'Claude Code' },
   { mailbox: 'codex', label: 'Codex' },
+  { mailbox: 'muse', label: 'Muse' },
   { mailbox: 'copilot', label: 'GitHub Copilot' },
   { mailbox: 'gemini', label: 'Gemini CLI' },
 ]

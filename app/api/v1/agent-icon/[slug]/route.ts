@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
+import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 
 interface AgentIconConfig {
   /** Slug on cdn.simpleicons.org */
@@ -30,7 +31,7 @@ interface AgentIconConfig {
   padding?: number
 }
 
-const AGENT_ICONS: Record<string, AgentIconConfig> = {
+export const AGENT_ICONS: Record<string, AgentIconConfig> = {
   claude: {
     simpleIconSlug: 'anthropic',
     brandColor: 'D4A27F',  // Anthropic warm tan/copper
@@ -52,6 +53,9 @@ const AGENT_ICONS: Record<string, AgentIconConfig> = {
     localFallback: 'copilot.svg',
     padding: 0.125,
   },
+  // The local coding harnesses carry their brand marks in their own table, so
+  // adding a CLI does not mean remembering to edit this one (AWTD-937).
+  ...Object.fromEntries(HARNESS_AGENTS.map((agent) => [agent.mailbox, agent.icon])),
 }
 
 /** Expand the root viewBox by `padding` of its size on every side. */

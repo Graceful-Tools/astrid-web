@@ -79,6 +79,9 @@ describe('generated adapters (AWTD-759)', () => {
       'claude-code',
       'copilot',
       'codex',
+      // Meta's Muse Code, added AWTD-937. It reads AGENTS.md like Codex, but it
+      // is its own harness: its identity and its cron invocation both differ.
+      'muse',
       'generic',
     ])
     for (const adapter of adapters) {
@@ -92,6 +95,7 @@ describe('generated adapters (AWTD-759)', () => {
     expect(queueSkillAdapter('claude-code', OPTS).installPath).toBe(`.claude/commands/${slug}.md`)
     expect(queueSkillAdapter('copilot', OPTS).installPath).toBe(`.github/agents/${slug}.agent.md`)
     expect(queueSkillAdapter('codex', OPTS).installPath).toBe('AGENTS.md')
+    expect(queueSkillAdapter('muse', OPTS).installPath).toBe('AGENTS.md')
     expect(queueSkillAdapter('generic', OPTS).installPath).toBe('AGENTS.md')
   })
 

@@ -19,6 +19,7 @@ import {
   customAgentEmailPattern,
 } from '@/lib/brand/agent-emails'
 import { BRAND } from '@/lib/brand/config'
+import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 
 export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
 
@@ -340,9 +341,13 @@ export function getBuiltInAgents(): BuiltInAgent[] {
  * need a User row, because they author tasks and comments like any other agent, and
  * OAuth consent can now mint one for them.
  */
-const LOCAL_HARNESS_PROFILES: Record<string, { displayName: string; agentType: string }> = {
-  [AGENT_MAILBOXES.codex]: { displayName: 'Codex Agent', agentType: 'local_harness_agent' },
-}
+const LOCAL_HARNESS_PROFILES: Record<string, { displayName: string; agentType: string }> =
+  Object.fromEntries(
+    HARNESS_AGENTS.map((agent) => [
+      agent.mailbox,
+      { displayName: agent.displayName, agentType: 'local_harness_agent' },
+    ]),
+  )
 
 export function getAgentIdentity(email: string): { displayName: string; agentType: string } | null {
   const config = getAgentConfig(email)

@@ -18,20 +18,25 @@
 import {
   AGENT_MAILBOXES,
   agentEmail,
-  type AgentMailbox,
 } from '@/lib/brand/agent-emails'
+import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 // The role lives with the states it belongs to. A second copy here would drift
 // silently: a wrong role matches nothing and reads as an empty queue.
 import { READY_STATUS_ROLE } from '@/lib/task-status'
 
-export const FIXALL_HARNESS_MAILBOXES = {
+export const FIXALL_HARNESS_MAILBOXES: Record<string, string> = {
   'claude-code': AGENT_MAILBOXES.claude,
   'github-copilot': AGENT_MAILBOXES.copilot,
-  codex: AGENT_MAILBOXES.codex,
   'astrid-server': AGENT_MAILBOXES.astrid,
-} as const satisfies Record<string, AgentMailbox>
+  // Every local harness answers to its own selector (AWTD-937). Absent here,
+  // `--harness muse` would match no mailbox and the queue would come back
+  // EMPTY rather than erroring, so the loop reports "nothing to do" forever.
+  ...Object.fromEntries(
+    HARNESS_AGENTS.map((agent) => [agent.harnessSelector, agent.mailbox]),
+  ),
+}
 
-export type FixallHarness = keyof typeof FIXALL_HARNESS_MAILBOXES
+export type FixallHarness = string
 export type ReadyQueueBoard = 'web' | 'ios' | 'windows'
 
 const READY_QUEUE_BOARDS: readonly ReadyQueueBoard[] = ['web', 'ios', 'windows']

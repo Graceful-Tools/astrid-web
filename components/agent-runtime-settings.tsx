@@ -38,6 +38,7 @@ interface AgentRuntime {
 const AGENT_LABELS: Record<string, string> = {
   claude: 'Claude',
   codex: 'Codex',
+  muse: 'Muse',
   copilot: 'GitHub Copilot',
   openai: 'OpenAI',
   gemini: 'Gemini',
@@ -47,6 +48,7 @@ const AGENT_LABELS: Record<string, string> = {
 const DEFAULT_HARNESS: Record<string, string> = {
   claude: 'claude-code',
   codex: 'codex',
+  muse: 'muse',
   copilot: 'copilot',
   openai: 'codex',
   gemini: 'gemini',
@@ -62,18 +64,20 @@ const TAB_MAILBOX: Record<string, string> = {
   'claude-code': 'claude',
   copilot: 'copilot',
   codex: 'codex',
+  muse: 'muse',
   github: 'copilot',
   gemini: 'gemini',
   cursor: 'claude',
 }
 
 /** Every harness tab, in display order. */
-const ALL_TABS: readonly string[] = ['claude-code', 'copilot', 'codex', 'github', 'gemini', 'cursor']
+const ALL_TABS: readonly string[] = ['claude-code', 'copilot', 'codex', 'muse', 'github', 'gemini', 'cursor']
 
 const TAB_LABELS: Record<string, string> = {
   'claude-code': 'Claude Code',
   copilot: 'Copilot / VS Code',
   codex: 'Codex',
+  muse: 'Muse Code',
   github: 'GitHub Actions',
   gemini: 'Gemini CLI',
   cursor: 'Cursor',
@@ -90,6 +94,7 @@ const MAILBOX_TABS: Record<string, readonly string[]> = {
   claude: ['claude-code'],
   copilot: ['copilot', 'github'],
   codex: ['codex'],
+  muse: ['muse'],
   openai: ['codex'],
   gemini: ['gemini'],
 }
@@ -384,6 +389,40 @@ url = "${mcpUrl}"`}
           />
         </RecipeStep>
         {connectionTest('codex', 'Codex cron every 30 minutes, or a manual codex exec run')}
+      </TabsContent>
+
+      <TabsContent value="muse" className="space-y-3 pt-3">
+        <RecipeStep number={1} title="Connect">
+          <CopyBlock
+            label="Add the remote server and authorize it"
+            code={`muse mcp add ${serverName} --url ${mcpUrl}
+muse mcp login ${serverName}`}
+          />
+          <CopyBlock
+            label="Manual MCP fallback: ~/.muse/config.toml"
+            code={`[mcp_servers.${serverName}]
+url = "${mcpUrl}"`}
+          />
+        </RecipeStep>
+        <RecipeStep number={2} title="Install">
+          <CopyBlock
+            label="Add the queue skill to AGENTS.md"
+            code={installBlock('muse', 'muse')}
+          />
+        </RecipeStep>
+        <RecipeStep number={3} title="Schedule or run">
+          {/*
+            Muse parses options on the SUBCOMMAND, not the root, so the flags
+            follow `exec` and its prompt. --disable-approval is what makes an
+            unattended run possible while keeping the CLI's own sandbox; --yolo
+            would drop the sandbox too and is not appropriate on a laptop.
+          */}
+          <CopyBlock
+            label="Run Muse every 30 minutes"
+            code={`*/30 * * * * cd ~/code/your-project && muse exec "${queueLine('muse')}" --disable-approval >> ~/${serverName}-loop.log 2>&1`}
+          />
+        </RecipeStep>
+        {connectionTest('muse', 'Muse cron every 30 minutes, or a manual muse exec run')}
       </TabsContent>
 
       <TabsContent value="github" className="space-y-3 pt-3">
