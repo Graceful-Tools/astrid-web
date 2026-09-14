@@ -86,6 +86,7 @@ The native iOS app is maintained in a separate repository:
 ### 🔒 Security & Files
 - **[Security Policy](../SECURITY.md)** - Vulnerability reporting and engineering requirements
 - **[Authentication System](./AUTHENTICATION.md)** - Authentication-specific implementation details
+- **[Spec: Encrypting Contact Emails](./specs/ENCRYPT_CONTACT_EMAILS.md)** - Proposal (not implemented): what encrypting `AddressBookContact.email` would cost, and why search is the deciding constraint
 
 ### 🤖 AI Prompts
 - **[Planning Mode](./prompts/01-plan.md)** - AI planning prompts
