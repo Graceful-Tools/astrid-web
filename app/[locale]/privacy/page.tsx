@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
       {/* Content */}
       <main className="container mx-auto px-4 py-12 max-w-3xl">
         <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 mb-10">Last updated: July 18, 2026</p>
+        <p className="text-gray-500 mb-10">Last updated: September 14, 2026</p>
 
         <div className="space-y-10">
           <section>
@@ -31,7 +31,21 @@ export default function PrivacyPolicy() {
               <li>Account details (name, email) via Google or Apple sign-in</li>
               <li>Tasks, lists, and content you create</li>
               <li>Usage data to improve the service</li>
+              <li>
+                Contacts, <strong className="text-white">only when you choose to import them</strong> —
+                either from your device or from Google Contacts
+              </li>
             </ul>
+            <p className="text-gray-300 leading-relaxed mt-3">
+              <strong className="text-white">About imported contacts.</strong>{" "}
+              Contacts are other people&apos;s details, so we keep what we do with them narrow.
+              They are used for one thing: suggesting people you might want to share a list
+              with. We do not email them, we do not use them for advertising, and we never
+              sell them. Contact names and phone numbers are encrypted at rest; email
+              addresses are not encrypted, because we match on them to find existing
+              {" "}{BRAND.appName} users. You can remove every contact you have imported at any
+              time from Settings, which deletes them from our systems immediately.
+            </p>
           </section>
 
           <section>
@@ -58,6 +72,25 @@ export default function PrivacyPolicy() {
           <section id="google-user-data" className="scroll-mt-24">
             <h2 className="text-xl font-semibold text-white mb-3">Google User Data</h2>
             <p className="text-gray-300 leading-relaxed mb-3">
+              {BRAND.appName} requests two kinds of Google data, each only if you turn that
+              feature on: <strong className="text-white">Google Tasks</strong>, and
+              {" "}<strong className="text-white">Google Contacts</strong> (read-only). Both are
+              covered by everything in this section, including the Limited Use commitment at
+              the end of it.
+            </p>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              <strong className="text-white">Google Contacts.</strong>{" "}
+              If you import contacts from Google, {BRAND.appName} reads your contact list
+              (names, email addresses and phone numbers) once, with read-only access, solely
+              to suggest people you might share a list with. We never write to your Google
+              contacts. Clearing your imported contacts in Settings deletes them from our
+              systems, and you can revoke the access itself at{" "}
+              <a href="https://myaccount.google.com/permissions" className="text-blue-400 hover:underline">
+                myaccount.google.com/permissions
+              </a>.
+            </p>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              <strong className="text-white">Google Tasks.</strong>{" "}
               If you connect Google Tasks sync, {BRAND.appName} accesses your Google Tasks data
               (task lists, tasks, due dates, and completion status) solely to mirror
               tasks two-way between {BRAND.appName} and Google Tasks at your request. We do not
@@ -104,6 +137,47 @@ export default function PrivacyPolicy() {
             </p>
           </section>
 
+          <section id="github-data" className="scroll-mt-24">
+            <h2 className="text-xl font-semibold text-white mb-3">GitHub Issues Sync</h2>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              If you connect GitHub, you can mirror a list you choose between {BRAND.appName}
+              {" "}and GitHub Issues. {BRAND.appName} accesses the repositories you select and
+              the issues within them, solely to keep that list and those issues in step. We do
+              not access repositories you have not connected, we do not read your source code,
+              and we never sell this data or use it for advertising.
+            </p>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              <strong className="text-white">The sync runs on our servers, on a schedule.</strong>{" "}
+              This is the part worth being explicit about, because it differs from Google Tasks:
+              Google sync happens while you are using the app, whereas GitHub sync is performed
+              by a scheduled job that runs <strong className="text-white">every 15 minutes</strong>.
+              So while the integration is connected, {BRAND.appName} accesses GitHub on your
+              behalf even when you are not using the app and no device of yours is running.
+            </p>
+            <p className="text-gray-300 leading-relaxed mb-3">
+              <strong className="text-white">Credentials and disconnection.</strong>{" "}
+              The connection is a GitHub App installation. The credentials that authorize it are
+              stored encrypted on our servers and are never exposed to the client or written to
+              logs. Disconnecting GitHub in Settings deletes them immediately and stops all
+              further access; you can also remove the installation from GitHub itself, under
+              your account&apos;s Applications settings.
+            </p>
+            <p className="text-gray-300 leading-relaxed">
+              GitHub is a separate company with its own privacy policy, which governs the data
+              once it reaches them.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-white mb-3">If You Use None of This</h2>
+            <p className="text-gray-300 leading-relaxed">
+              Google Tasks sync, Google Contacts import, contact upload, and GitHub Issues sync
+              are each optional and off until you turn them on. If you have never connected
+              them, we hold none of the data described in those sections — no contacts, no
+              GitHub credentials, and nothing mirrored from Google.
+            </p>
+          </section>
+
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">Infrastructure</h2>
             <p className="text-gray-300 leading-relaxed">
@@ -126,8 +200,10 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">External Services</h2>
             <p className="text-gray-300 leading-relaxed">
-              {BRAND.appName} integrates with Google and Apple for authentication.
-              When you connect these services, their respective privacy policies apply.
+              {BRAND.appName} integrates with Google and Apple for authentication, and — only
+              if you turn them on — with Google Tasks, Google Contacts, and GitHub Issues.
+              When you connect any of these services, their respective privacy policies apply
+              to the data once it reaches them.
             </p>
           </section>
 
