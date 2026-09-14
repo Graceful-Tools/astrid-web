@@ -13,11 +13,12 @@
  * The alternative — deriving it from something automatic — would be wrong in
  * the one direction that nags every user on every launch.
  *
- * IT IS EMPTY ON PURPOSE. The clients treat any failure, and any response
- * without `latestVersion`/`updateUrl`, as "no update known" and show nothing.
- * So an empty table is a working, invisible feature rather than a broken one,
- * and the endpoint can land before anyone has decided what goes in it. Filling
- * it in is what turns the card on.
+ * AN EMPTY ROW IS STILL A WORKING STATE. The clients treat any failure, and
+ * any response without `latestVersion`/`updateUrl`, as "no update known" and
+ * show nothing. That is how the endpoint shipped ahead of the numbers
+ * (AWTD-920); filling the table in is what turned the card on (AWTD-924). If a
+ * future platform has no released build yet, leaving its row `{}` is correct
+ * rather than pending.
  *
  * THE TWO PLATFORMS VERSION INDEPENDENTLY. They ship separately, so they get
  * separate rows and the endpoint refuses to answer without knowing which one
@@ -51,16 +52,41 @@ export interface AppVersionInfo {
 export const ALLOWED_UPDATE_URL_SCHEMES = ['https:', 'http:', 'macappstore:', 'itms-apps:'] as const
 
 /**
+ * The App Store listing both apps ship under.
+ *
+ * ONE listing serves both platforms — `supportedDevices` for id 6755752694
+ * includes `MacDesktop-MacDesktop` alongside the iPhone and iPad entries — so
+ * the same URL appearing twice below is correct, not a copy-paste slip.
+ *
+ * Verified against the iTunes lookup API before it was committed (AWTD-924):
+ * trackName `Astrid Tasks`, sellerName `Graceful Tools LLC`, bundleId
+ * `Graceful-Tools-Inc.Astrid-App`. The module's whole caution is that an
+ * unverified `apps.apple.com/app/id…` nags every user on every launch, so the
+ * id is checked rather than assumed.
+ */
+const APP_STORE_URL = 'https://apps.apple.com/us/app/astrid-tasks/id6755752694'
+
+/**
  * THE TABLE. Update this when a release actually reaches the store.
  *
- * Empty means "no update known", which is the safe, invisible state. To turn
- * the Update card on, a row needs BOTH `latestVersion` and a real `updateUrl`
- * — there is no App Store id recorded anywhere in the iOS repo yet, and a
- * link nobody has verified is worse than no card at all.
+ * Empty means "no update known", which is the safe, invisible state. A row
+ * needs BOTH `latestVersion` and a real `updateUrl` to show anything.
+ *
+ * THE NUMBERS COME FROM APP STORE CONNECT, not from a build. Jon read these
+ * off the store on 2026-09-14 (AWTD-924). The lookup API independently
+ * confirms 1.9.2 for the listing; it reports a SINGLE version for the unified
+ * listing, so it cannot corroborate the Mac number — 1.1.1 is Jon's value from
+ * App Store Connect.
+ *
+ * That asymmetry is the safe direction. If the Mac app reports a HIGHER
+ * version than the number here, the client simply shows no card: a stale-low
+ * value is silent, where a stale-high one would nag every launch. So if Mac
+ * users never see an update card, suspect this row before suspecting the
+ * endpoint.
  */
 export const RELEASED_APP_VERSIONS: Readonly<Record<AppPlatform, AppVersionInfo>> = {
-  ios: {},
-  mac: {},
+  ios: { latestVersion: '1.9.2', updateUrl: APP_STORE_URL },
+  mac: { latestVersion: '1.1.1', updateUrl: APP_STORE_URL },
 }
 
 /** Is this a platform we publish? Used to reject rather than guess. */
@@ -94,9 +120,10 @@ export function appVersionFor(platform: AppPlatform): AppVersionInfo {
  * The shaping, separated from the lookup so it can be tested against rows the
  * table does not contain.
  *
- * The table ships EMPTY, so every assertion about dropping a bad `updateUrl`
- * or omitting an absent field would be vacuous if it could only be made
- * through `appVersionFor`. This is the seam that lets those be real tests.
+ * Every assertion about dropping a bad `updateUrl` or omitting an absent field
+ * would be vacuous if it could only be made through `appVersionFor`, whose
+ * rows are whatever the table happens to hold. This is the seam that lets
+ * those be real tests against inputs the table does not contain.
  */
 export function shapeAppVersionInfo(configured: AppVersionInfo): AppVersionInfo {
   const info: AppVersionInfo = {}

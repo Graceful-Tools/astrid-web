@@ -98,13 +98,44 @@ describe('GET /api/v1/app-version (AWTD-920)', () => {
 })
 
 describe('the released-version table (AWTD-920)', () => {
-  it('ships empty, so the feature stays invisible until someone fills it in', () => {
-    // Not an accident: the clients read a missing latestVersion as "no update
-    // known". If this ever fails, the table was filled in — check that the
-    // updateUrl below is a real, verified link before shipping it.
+  /**
+   * This case used to assert the table shipped EMPTY — a deliberate tripwire so
+   * that filling it in could not happen without someone reading the warnings
+   * above it. AWTD-924 filled it in, so the tripwire has done its job and is
+   * replaced by assertions about the real rows.
+   *
+   * The values were verified against the iTunes lookup API for id 6755752694
+   * before they were committed: trackName `Astrid Tasks`, sellerName `Graceful
+   * Tools LLC`. The one thing the store could NOT corroborate is the Mac
+   * number — the unified listing reports a single version (1.9.2) — so 1.1.1
+   * comes from App Store Connect.
+   */
+  it('answers with the released version and a real store link for both platforms', () => {
+    expect(appVersionFor('ios')).toEqual({
+      latestVersion: '1.9.2',
+      updateUrl: 'https://apps.apple.com/us/app/astrid-tasks/id6755752694',
+    })
+    expect(appVersionFor('mac')).toEqual({
+      latestVersion: '1.1.1',
+      updateUrl: 'https://apps.apple.com/us/app/astrid-tasks/id6755752694',
+    })
+  })
+
+  it('survives the shaping, so neither row is silently dropped on the way out', () => {
+    // appVersionFor runs the table through shapeAppVersionInfo, which discards
+    // an updateUrl the client could not open. A row that was configured but
+    // arrives without its link is the exact "dead button" failure this guards.
     for (const platform of APP_PLATFORMS) {
-      expect(appVersionFor(platform)).toEqual({})
+      const shaped = appVersionFor(platform)
+      expect(shaped.latestVersion, `${platform} latestVersion`).toBeTruthy()
+      expect(shaped.updateUrl, `${platform} updateUrl`).toBeTruthy()
     }
+  })
+
+  it('sends both platforms to the same listing, because one listing serves both', () => {
+    // supportedDevices for this id includes MacDesktop, so this is deliberate.
+    // Asserted so that a future Mac-only listing has to change it on purpose.
+    expect(RELEASED_APP_VERSIONS.mac.updateUrl).toBe(RELEASED_APP_VERSIONS.ios.updateUrl)
   })
 
   it('gives each platform its own row, because they release independently', () => {
@@ -122,8 +153,9 @@ describe('the released-version table (AWTD-920)', () => {
 
   it('a row with latestVersion but no updateUrl still shows no card', () => {
     // Stated in the task as load-bearing: "No updateUrl -> no card, even when
-    // latestVersion is newer." Asserted through the shaping seam, because the
-    // shipped table is empty and this would otherwise pass vacuously.
+    // latestVersion is newer." Asserted through the shaping seam rather than
+    // the table, which now has a link in every row — going through
+    // appVersionFor could no longer exercise the missing-URL case at all.
     const shaped = shapeAppVersionInfo({ latestVersion: '9.9.9' })
     expect(shaped.latestVersion).toBe('9.9.9')
     expect(shaped.updateUrl).toBeUndefined()
