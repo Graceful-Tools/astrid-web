@@ -1,0 +1,69 @@
+/**
+ * `hover:theme-*` variants — one place, every theme.
+ *
+ * WHY THIS FILE EXISTS
+ *
+ * `theme-*` classes are hand-written per-theme CSS, not Tailwind utilities.
+ * They are not in tailwind.config.ts, so Tailwind generates NO `hover:` variant
+ * for any of them. Writing `hover:theme-text-primary` in JSX does nothing at all
+ * unless a rule like the ones below exists.
+ *
+ * Nothing enforced that, and it rotted exactly as you would expect (AWTD-936):
+ * 95 call sites accumulated against four rules that lived in light-theme.css
+ * and covered two of the five class names in one theme — and those four were
+ * themselves mis-escaped (`\\:` instead of `\:`) so even they were dropped by
+ * the parser until AWTD-935. Every one of the 95 failed silently, which reads
+ * as a design choice rather than a bug. That is why it survived so long.
+ *
+ * Keeping the variants here, scoped to all four themes at once, means adding a
+ * theme cannot leave a hover behind and a variant cannot exist for only some
+ * themes. tests/styles/hover-theme-variants.test.ts reads the classes actually
+ * used in app/, components/ and lib/ and fails if any of them lacks a rule in
+ * any scope — so a new `hover:theme-*` class in a component is a red test, not
+ * a silent no-op.
+ *
+ * NOTES ON THE RULES
+ *
+ * `:is(.light, .lite, .dark, .ocean)` carries the specificity of its most
+ * specific argument, so each selector below is (0,3,0) — the same as the
+ * `.light .theme-x` base rules it must override. It wins on source order, which
+ * is why app/[locale]/layout.tsx imports this file AFTER the three theme
+ * stylesheets. Do not move that import earlier.
+ *
+ * The colours resolve per theme: each custom property is redeclared in every
+ * theme's palette block, so one rule serves all four.
+ */
+
+/* Text colour on hover — the affordance for a muted or secondary label that
+   becomes readable when you point at it. */
+:is(.light, .lite, .dark, .ocean) .hover\:theme-text-primary:hover {
+  color: rgb(var(--theme-text-primary));
+}
+
+:is(.light, .lite, .dark, .ocean) .hover\:theme-text-secondary:hover {
+  color: rgb(var(--theme-text-secondary));
+}
+
+/* Background on hover.
+ *
+ * Deliberately --theme-surface-hover, NOT --theme-bg-hover, despite the class
+ * name (AWTD-936, Jon's call). --theme-bg-hover is 255,255,255 in light and
+ * lite — identical to --theme-bg-primary and --theme-surface — so honouring the
+ * name literally would paint white on white and leave all 49 call sites with no
+ * visible hover, merely a selector that is no longer dead. --theme-surface-hover
+ * is the already-tuned hover tint (243,244,246 light / 248,248,248 lite /
+ * 55,65,81 dark / 243,244,246 ocean) and is what .theme-surface-hover:hover —
+ * the one hover convention in this codebase that never rotted — has always used.
+ *
+ * The three bare `theme-bg-hover` call sites still resolve to --theme-bg-hover
+ * through the per-theme base rule; this changes only the `hover:` variant. */
+:is(.light, .lite, .dark, .ocean) .hover\:theme-bg-hover:hover {
+  background-color: rgb(var(--theme-surface-hover));
+}
+
+/* Border on hover. Both call sites pair this with `border border-transparent`,
+   so the intent is a border that appears on hover — the same colour the base
+   .theme-border class paints. */
+:is(.light, .lite, .dark, .ocean) .hover\:theme-border:hover {
+  border-color: rgb(var(--theme-border));
+}

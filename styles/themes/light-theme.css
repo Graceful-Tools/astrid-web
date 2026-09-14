@@ -95,14 +95,9 @@
 
 .light .theme-surface { background-color: rgb(var(--theme-surface)); }
 .light .theme-surface-hover:hover { background-color: rgb(var(--theme-surface-hover)); }
-.light .theme-bg-hover:hover { background-color: rgb(var(--theme-bg-hover)); }
-.light .theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
-.light .theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
 
 /* Speech bubble arrow fill - matches theme-bg-secondary */
 .light .speech-bubble-arrow-fill { border-right-color: rgb(var(--theme-bg-secondary)); }
-.light .hover\:theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
-.light .hover\:theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
 
 .light .theme-panel {
   background-color: rgb(var(--theme-panel-bg));
@@ -251,11 +246,6 @@
 
 .lite .theme-surface { background-color: rgb(var(--theme-surface)); }
 .lite .theme-surface-hover:hover { background-color: rgb(var(--theme-surface-hover)); }
-.lite .theme-bg-hover:hover { background-color: rgb(var(--theme-bg-hover)); }
-.lite .theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
-.lite .theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
-.lite .hover\:theme-text-primary:hover { color: rgb(var(--theme-text-primary)); }
-.lite .hover\:theme-text-secondary:hover { color: rgb(var(--theme-text-secondary)); }
 
 .lite .theme-panel {
   background-color: rgb(var(--theme-panel-bg));

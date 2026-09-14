@@ -17,6 +17,9 @@ import "../globals.css"
 import "../../styles/themes/light-theme.css"
 import "../../styles/themes/dark-theme.css"
 import "../../styles/themes/ocean-theme.css"
+// Must come after the three theme stylesheets: the hover variants tie them on
+// specificity and win on source order. See the file header.
+import "../../styles/themes/hover-variants.css"
 import "../../styles/components.css"
 import { Providers } from "@/components/providers"
 import { SoundInitializer } from "@/components/sound-initializer"
