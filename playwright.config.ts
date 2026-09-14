@@ -55,7 +55,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-text)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-variants)\.spec\.ts/,
     },
 
     {

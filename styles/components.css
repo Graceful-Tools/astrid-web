@@ -430,8 +430,7 @@ html, body {
 }
 
 /* Theme-aware active state backgrounds */
-.light .mobile-list-item:active,
-.lite .mobile-list-item:active {
+.light .mobile-list-item:active {
   background-color: rgba(243, 244, 246, 0.8);
 }
 

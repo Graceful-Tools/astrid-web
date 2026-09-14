@@ -50,7 +50,7 @@ export function UserLink({
   return (
     <Link
       href={`/u/${user.id}`}
-      className={`inline-flex items-center gap-2 hover:underline theme-text-primary hover:theme-text-link transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 hover:underline theme-text-primary transition-colors ${className}`}
       onClick={(e) => {
         // Stop propagation to prevent parent click handlers
         e.stopPropagation()
