@@ -130,6 +130,15 @@ const ROWS: AgentRowConfig[] = [
   },
 ]
 
+/**
+ * How many agent rows the hub renders.
+ *
+ * Exported so tests can count rows rather than hardcode a number: a literal
+ * `toHaveLength(4)` went red the moment Muse was added, which is precisely the
+ * "one agent, many places to remember" problem AWTD-937 set out to remove.
+ */
+export const AGENT_HUB_ROW_COUNT = ROWS.length
+
 /** Who operates the runtime — the primary choice. Derived from the stored mode, never stored itself. */
 type Ownership = 'astrid' | 'self' | 'off'
 

@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { AgentHub } from '@/components/agent-hub'
+import { AgentHub, AGENT_HUB_ROW_COUNT } from '@/components/agent-hub'
 import { BRAND } from '@/lib/brand/config'
 
 const capabilities = vi.hoisted(() => ({ integrationMcp: true }))
@@ -188,9 +188,12 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
     render(<AgentHub />)
     await screen.findByText(`claude@${BRAND.agentEmailDomain}`)
 
-    expect(screen.getAllByRole('button', { name: 'Astrid runs it' })).toHaveLength(4)
-    expect(screen.getAllByRole('button', { name: 'I run it' })).toHaveLength(4)
-    expect(screen.getAllByRole('button', { name: 'Off' })).toHaveLength(4)
+    // Counted from the row config, not hardcoded: the point of the case is
+    // "three choices PER ROW", which is a ratio, not the number 4. Pinning the
+    // literal only asserts how many agents existed the day it was written.
+    expect(screen.getAllByRole('button', { name: 'Astrid runs it' })).toHaveLength(AGENT_HUB_ROW_COUNT)
+    expect(screen.getAllByRole('button', { name: 'I run it' })).toHaveLength(AGENT_HUB_ROW_COUNT)
+    expect(screen.getAllByRole('button', { name: 'Off' })).toHaveLength(AGENT_HUB_ROW_COUNT)
     // Transport names are not primary choices any more.
     expect(screen.queryByRole('button', { name: /My harness polls/ })).not.toBeInTheDocument()
   })
