@@ -36,7 +36,21 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
+/**
+ * Mac resolves from GitHub Releases at request time (AWTD-942), so the route
+ * would otherwise make a real network call. Mocked to a known release so the
+ * assertions are about the SHAPE the endpoint serves, not about what happens
+ * to be published today.
+ */
+const fetchLatestMacRelease = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/mac-release', () => ({
+  fetchLatestMacRelease,
+  MAC_RELEASE_REPO: 'Graceful-Tools/astrid-ios',
+  MAC_RELEASES_FALLBACK_URL: 'https://github.com/Graceful-Tools/astrid-ios/releases/latest',
+}))
+
 import { GET } from '@/app/api/v1/app-version/route'
+import { brandOrigin } from '@/lib/brand/config'
 import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import {
   APP_PLATFORMS,
@@ -62,6 +76,12 @@ describe('GET /api/v1/app-version (AWTD-920)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
+    fetchLatestMacRelease.mockResolvedValue({
+      version: '1.0.3',
+      url: 'https://github.com/Graceful-Tools/astrid-ios/releases/download/mac-v1.0.3/Astrid-Mac-1.0.3.dmg',
+      size: '42 MB',
+      published: 'July 29, 2026',
+    })
   })
 
   it('requires authentication, like the rest of /api/v1', async () => {
@@ -69,10 +89,35 @@ describe('GET /api/v1/app-version (AWTD-920)', () => {
     expect((await get('?platform=ios')).status).toBe(401)
   })
 
-  it.each([...APP_PLATFORMS])('answers 200 for platform=%s', async platform => {
-    const response = await get(`?platform=${platform}`)
+  it('answers 200 for platform=ios, from the static store table', async () => {
+    const response = await get('?platform=ios')
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual(appVersionFor(platform))
+    expect(await response.json()).toEqual(appVersionFor('ios'))
+  })
+
+  it('answers 200 for platform=mac, from the resolved GitHub release', async () => {
+    const response = await get('?platform=mac')
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      latestVersion: '1.0.3',
+      updateUrl: `${brandOrigin()}/download`,
+    })
+  })
+
+  it('sends Mac users to the download page, never to the iOS App Store', async () => {
+    // The bug this replaces: a Mac update card that opened an iOS listing with
+    // no Mac download on it (AWTD-942).
+    const body = await (await get('?platform=mac')).json()
+    expect(body.updateUrl).not.toMatch(/apps\.apple\.com/)
+  })
+
+  it('shows no Mac card at all when GitHub cannot be reached', async () => {
+    // Degrade to silence, never to a guess: the clients read a missing
+    // latestVersion as "no update known".
+    fetchLatestMacRelease.mockResolvedValue(null)
+    const response = await get('?platform=mac')
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({})
   })
 
   describe('an unknown or missing platform fails safely (AWTD-920)', () => {
@@ -102,40 +147,52 @@ describe('the released-version table (AWTD-920)', () => {
    * This case used to assert the table shipped EMPTY — a deliberate tripwire so
    * that filling it in could not happen without someone reading the warnings
    * above it. AWTD-924 filled it in, so the tripwire has done its job and is
-   * replaced by assertions about the real rows.
+   * replaced by assertions about the real row.
    *
-   * The values were verified against the iTunes lookup API for id 6755752694
-   * before they were committed: trackName `Astrid Tasks`, sellerName `Graceful
-   * Tools LLC`. The one thing the store could NOT corroborate is the Mac
-   * number — the unified listing reports a single version (1.9.2) — so 1.1.1
-   * comes from App Store Connect.
+   * iOS is verified against the iTunes lookup API for id 6755752694: trackName
+   * `Astrid Tasks`, sellerName `Graceful Tools LLC`, version 1.9.2.
+   *
+   * That the lookup could not corroborate a Mac number was the tell AWTD-924
+   * missed — not a gap to fill from App Store Connect, but evidence there is no
+   * Mac listing at all (`kind: software`, not `mac-software`). Mac ships as a
+   * DMG and no longer has a row here (AWTD-942).
    */
-  it('answers with the released version and a real store link for both platforms', () => {
+  it('answers iOS with the released store version and a verified store link', () => {
     expect(appVersionFor('ios')).toEqual({
       latestVersion: '1.9.2',
       updateUrl: 'https://apps.apple.com/us/app/astrid-tasks/id6755752694',
     })
-    expect(appVersionFor('mac')).toEqual({
-      latestVersion: '1.1.1',
-      updateUrl: 'https://apps.apple.com/us/app/astrid-tasks/id6755752694',
-    })
   })
 
-  it('survives the shaping, so neither row is silently dropped on the way out', () => {
+  it('survives the shaping, so the iOS row is not silently dropped on the way out', () => {
     // appVersionFor runs the table through shapeAppVersionInfo, which discards
     // an updateUrl the client could not open. A row that was configured but
     // arrives without its link is the exact "dead button" failure this guards.
-    for (const platform of APP_PLATFORMS) {
-      const shaped = appVersionFor(platform)
-      expect(shaped.latestVersion, `${platform} latestVersion`).toBeTruthy()
-      expect(shaped.updateUrl, `${platform} updateUrl`).toBeTruthy()
-    }
+    const shaped = appVersionFor('ios')
+    expect(shaped.latestVersion).toBeTruthy()
+    expect(shaped.updateUrl).toBeTruthy()
   })
 
-  it('sends both platforms to the same listing, because one listing serves both', () => {
-    // supportedDevices for this id includes MacDesktop, so this is deliberate.
-    // Asserted so that a future Mac-only listing has to change it on purpose.
-    expect(RELEASED_APP_VERSIONS.mac.updateUrl).toBe(RELEASED_APP_VERSIONS.ios.updateUrl)
+  /**
+   * AWTD-942. This is the case that would have caught the bug.
+   *
+   * AWTD-924 hardcoded mac as `latestVersion: '1.1.1'` pointing at the iOS App
+   * Store, reading `supportedDevices: [MacDesktop-…]` on id 6755752694 as "one
+   * listing serves both platforms". It does not: that field means the iOS build
+   * runs on Apple silicon. The Mac app is a notarized DMG on GitHub Releases,
+   * where the newest was 1.0.3 — so every Mac user was told 1.1.1 was available
+   * and sent to a page with no Mac download on it.
+   *
+   * The static row must stay EMPTY: Mac is resolved at request time.
+   */
+  it('never hardcodes a Mac version, because Mac is not on the App Store', () => {
+    expect(RELEASED_APP_VERSIONS.mac).toEqual({})
+  })
+
+  it('never points Mac at the iOS App Store listing', () => {
+    // The specific dead end that shipped. Any apps.apple.com URL for mac is
+    // wrong while the Mac app is distributed as a DMG.
+    expect(RELEASED_APP_VERSIONS.mac.updateUrl ?? '').not.toMatch(/apps\.apple\.com/)
   })
 
   it('gives each platform its own row, because they release independently', () => {

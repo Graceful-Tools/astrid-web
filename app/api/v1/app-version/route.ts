@@ -19,7 +19,7 @@
  */
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { APP_PLATFORMS, appVersionFor, parseAppPlatform } from '@/lib/app-version'
+import { APP_PLATFORMS, parseAppPlatform, resolveAppVersionFor } from '@/lib/app-version'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +37,9 @@ export const GET = withAuth(
     }
 
     // Absent fields are omitted, not null: every field decodes as optional on
-    // the client, so the smallest honest answer is an empty object.
-    return NextResponse.json(appVersionFor(platform))
+    // the client, so the smallest honest answer is an empty object. Mac is
+    // resolved from GitHub Releases rather than a table (AWTD-942), so this
+    // awaits; an unreachable GitHub answers {} rather than a stale version.
+    return NextResponse.json(await resolveAppVersionFor(platform))
   },
 )

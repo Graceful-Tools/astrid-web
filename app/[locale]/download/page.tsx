@@ -2,48 +2,22 @@ import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import Image from "next/image"
 import { ScrollShell } from "@/components/scroll-shell"
+import { fetchLatestMacRelease, MAC_RELEASES_FALLBACK_URL } from "@/lib/mac-release"
 
 export const metadata = {
   title: `Download ${BRAND.appName} for Mac`,
   description: `${BRAND.appName} for Mac — a native desktop app for your tasks, lists, and chat.`,
 }
 
-// The DMG lives on GitHub Releases (free bandwidth, versioned). We resolve the newest
-// release at request time so publishing a release is the only step needed to ship an update.
-const REPO = "Graceful-Tools/astrid-ios"
-const LATEST_FALLBACK = `https://github.com/${REPO}/releases/latest`
-
-type MacRelease = { version: string; url: string; size: string; published: string } | null
-
-async function getLatestMacRelease(): Promise<MacRelease> {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases`, {
-      headers: { Accept: "application/vnd.github+json" },
-      next: { revalidate: 900 }, // 15 min — releases are rare, don't hammer the API
-    })
-    if (!res.ok) return null
-    const releases = await res.json()
-    for (const rel of releases) {
-      if (rel.draft || !String(rel.tag_name).startsWith("mac-")) continue
-      const asset = (rel.assets || []).find((a: { name: string }) => a.name.endsWith(".dmg"))
-      if (!asset) continue
-      return {
-        version: String(rel.tag_name).replace(/^mac-v?/, ""),
-        url: asset.browser_download_url,
-        size: `${(asset.size / 1_048_576).toFixed(0)} MB`,
-        published: new Date(rel.published_at).toLocaleDateString("en-US", {
-          year: "numeric", month: "long", day: "numeric",
-        }),
-      }
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
 export default async function DownloadPage() {
-  const mac = await getLatestMacRelease()
+  // The DMG lives on GitHub Releases (free bandwidth, versioned). Resolving the
+  // newest release per request means publishing a release is the only step
+  // needed to ship an update.
+  //
+  // The lookup is shared with GET /api/v1/app-version so the two cannot
+  // disagree about the newest Mac build: when that endpoint hardcoded its own
+  // number, it advertised a version this page could not offer (AWTD-942).
+  const mac = await fetchLatestMacRelease()
 
   return (
     <ScrollShell className="bg-black text-gray-100">
@@ -74,7 +48,7 @@ export default async function DownloadPage() {
               </p>
             </div>
             <a
-              href={mac?.url ?? LATEST_FALLBACK}
+              href={mac?.url ?? MAC_RELEASES_FALLBACK_URL}
               className="inline-flex items-center rounded-lg bg-white px-5 py-2.5 font-semibold text-black transition-opacity hover:opacity-90"
             >
               {mac ? "Download for Mac" : "View releases"}
