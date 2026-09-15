@@ -21,6 +21,7 @@ import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+import { classifyVitestFailure, isVitestCheck } from './lib/vitest-starvation'
 import {
   PREDEPLOY_REPORT_TAG,
   selectReportTaskFor,
@@ -96,6 +97,12 @@ interface CheckResult {
   timeoutMs: number
   /** True when the check was killed at its budget rather than failing. */
   timedOut?: boolean
+  /**
+   * True when the check went red only because vitest could not START workers,
+   * and re-running just those files passed (task d036295d). The stage is
+   * green; the note exists so a reader can see contention happened.
+   */
+  recoveredFromStarvation?: string
 }
 
 interface FixAttempt {
@@ -425,7 +432,7 @@ class SelfHealingPredeploy {
    * Parse test stats from output based on check type
    */
   private parseTestStats(checkName: string, output: string): TestStats | undefined {
-    if (checkName.includes('Vitest') || checkName.includes('Unit Tests')) {
+    if (isVitestCheck(checkName)) {
       return this.parseVitestOutput(output)
     }
     if (checkName.includes('E2E') || checkName.includes('Playwright')) {
@@ -446,6 +453,57 @@ class SelfHealingPredeploy {
     if (stats.passed > 0) parts.push(`${stats.passed} passed`)
     if (stats.skipped > 0) parts.push(`${stats.skipped} skipped`)
     return `${parts.join(', ')} (${stats.total} total)`
+  }
+
+  /**
+   * Re-run only the files vitest never started.
+   *
+   * Safe precisely because a file that did not start has no result to
+   * preserve, and cheap — seconds against a ~130s suite. Nothing is retried
+   * when the pool named no file: there is no such thing as re-running an
+   * unnamed file, and re-running the WHOLE suite on a machine already too
+   * loaded to boot a worker is how a 10-minute gate became a 34-minute one.
+   */
+  private recoverStarvedFiles(
+    check: Omit<CheckResult, 'passed' | 'output' | 'duration'>,
+    files: string[],
+  ): { passed: boolean; note: string } {
+    if (files.length === 0) {
+      return {
+        passed: false,
+        note: 'No unstarted file was named, so there is nothing to re-run. Re-run the gate when the machine is quieter.',
+      }
+    }
+
+    const list = files.map((file) => JSON.stringify(file)).join(' ')
+    console.log(`\n🔁 Re-running ${files.length} file(s) vitest could not start...`)
+
+    try {
+      const output = execSync(`${check.command} -- ${list}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: check.timeoutMs,
+        maxBuffer: 50 * 1024 * 1024,
+        env: { ...originalEnv, FORCE_COLOR: '0', CI: 'true', NO_COLOR: '1' },
+      })
+      const stats = this.parseVitestOutput(output)
+      // Belt and braces: a retry that itself reports failures is a failure,
+      // even though execSync exiting zero should already rule that out.
+      if (stats && stats.failed > 0) {
+        return { passed: false, note: `Re-run of the unstarted files reported ${stats.failed} failure(s) — a real one.` }
+      }
+      return {
+        passed: true,
+        note:
+          `Re-ran ${files.length} file(s) vitest could not start; all passed. ` +
+          `The stage is green. Files: ${files.join(', ')}`,
+      }
+    } catch {
+      return {
+        passed: false,
+        note: `Re-run of the unstarted files did not pass, so this is not contention alone. Files: ${files.join(', ')}`,
+      }
+    }
   }
 
   /**
@@ -504,6 +562,49 @@ class SelfHealingPredeploy {
       // partial output describe a run that never finished. Reporting them
       // would be inventing a result.
       const testStats = outcome.timedOut ? undefined : this.parseTestStats(check.name, output)
+
+      // Vitest counts a file it could not START as a failing file, so a
+      // machine saturated by the other repo's build turns the gate red naming
+      // files that are fine (task d036295d). Only ever reached when NOTHING
+      // failed — classifyVitestFailure stands aside for a real regression.
+      if (!outcome.timedOut && isVitestCheck(check.name)) {
+        const verdict = classifyVitestFailure(output, testStats)
+        if (verdict.kind === 'starved') {
+          const recovery = this.recoverStarvedFiles(check, verdict.unstartedFiles)
+          if (recovery.passed) {
+            if (CONFIG.verboseOutput) {
+              console.log(
+                `   ✅ ${check.name} passed (${(duration / 1000).toFixed(1)}s) - ` +
+                  `${testStats ? this.formatTestStats(testStats) : 'no summary'}`,
+              )
+              console.log(`      ${recovery.note}`)
+            }
+            return {
+              ...check,
+              passed: true,
+              output: `${verdict.summary}\n\n${recovery.note}\n\n${output}`,
+              duration: Date.now() - start,
+              testStats,
+              recoveredFromStarvation: recovery.note,
+            }
+          }
+
+          // Not recovered: still red, but described for what it is rather than
+          // as a test failure, so nobody re-reads a suite that never ran.
+          if (CONFIG.verboseOutput) {
+            console.log(`   ⚠️  ${check.name} could not run (${(duration / 1000).toFixed(1)}s)`)
+            console.log(`      ${verdict.summary}`)
+            if (recovery.note) console.log(`      ${recovery.note}`)
+          }
+          return {
+            ...check,
+            passed: false,
+            output: [verdict.summary, recovery.note, output].filter(Boolean).join('\n\n'),
+            duration: Date.now() - start,
+            testStats,
+          }
+        }
+      }
 
       if (CONFIG.verboseOutput) {
         let message = `   ${outcome.timedOut ? '⏱️' : '❌'}  ${outcome.label} (${(duration / 1000).toFixed(1)}s)`
@@ -865,6 +966,15 @@ All predeploy checks are now passing.
     if (this.fixAttempts.length > 0) {
       const successfulFixes = this.fixAttempts.filter((f) => f.success)
       console.log(`🔧 Auto-fixes: ${successfulFixes.length}/${this.fixAttempts.length} successful`)
+    }
+
+    // Say that contention happened even though the stage is green, so a run
+    // that needed rescuing does not look identical to one that did not
+    // (task d036295d).
+    const recovered = this.results.filter((r) => r.recoveredFromStarvation)
+    if (recovered.length > 0) {
+      console.log('\n🔁 Recovered from worker starvation (not a test failure):')
+      recovered.forEach((r) => console.log(`   ${r.name}: ${r.recoveredFromStarvation}`))
     }
 
     // Show test statistics for all test checks
