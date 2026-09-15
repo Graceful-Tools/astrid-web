@@ -15,6 +15,8 @@
  * drift this is aimed at lives in prose and tables.
  */
 
+import { runGit } from './git-exec'
+
 const CODE_EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
   '.json', '.css', '.sql', '.sh', '.yml', '.yaml', '.prisma', '.md',
@@ -165,8 +167,6 @@ export function findGitIgnoredCodePaths(root: string): BrokenCodePath[] {
   const { existsSync, readFileSync } = require('node:fs') as typeof import('node:fs')
    
   const { dirname, join, resolve } = require('node:path') as typeof import('node:path')
-   
-  const { execFileSync } = require('node:child_process') as typeof import('node:child_process')
 
   const cited: BrokenCodePath[] = []
   for (const file of AUTHORITATIVE_DOCS) {
@@ -187,24 +187,20 @@ export function findGitIgnoredCodePaths(root: string): BrokenCodePath[] {
   }
   if (cited.length === 0) return []
 
-  let stdout: string
-  try {
-    stdout = execFileSync('git', ['check-ignore', '--stdin'], {
-      cwd: root,
-      input: cited.map(c => c.path).join('\n'),
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-  } catch (error) {
-    const status = (error as { status?: number }).status
+  // runGit separates git answering from git never starting, so a machine too
+  // loaded to fork no longer arrives here as `exit null` (task cea0ddf5).
+  const result = runGit(root, ['check-ignore', '--stdin'], {
+    input: cited.map(c => c.path).join('\n'),
+  })
+  if (!result.ok) {
     // 1 is check-ignore's normal "nothing matched".
-    if (status === 1) return []
-    // Anything else is git failing, not git answering. Returning [] here is
-    // what made the first version of this guard a no-op that reported success.
-    if (status === undefined) return []
-    const stderr = String((error as { stderr?: unknown }).stderr ?? '').trim()
-    throw new Error(`git check-ignore failed (exit ${status}): ${stderr}`)
+    if (result.status === 1) return []
+    // No git, or no repository: nothing can be declared ignored, and reporting
+    // [] is the honest answer rather than a swallowed failure.
+    if (result.status === null) return []
+    throw new Error(`git check-ignore failed (exit ${result.status}): ${result.stderr}`)
   }
+  const stdout = result.stdout
 
   const ignored = new Set(stdout.split('\n').filter(Boolean))
   return cited.filter(c => ignored.has(c.path))

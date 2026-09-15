@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
-import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { runGit } from './lib/git-exec'
 import {
   findAddedApiBoundaryViolations,
   type AddedSourceLine,
@@ -8,16 +8,22 @@ import {
 import { API_BOUNDARY_EXEMPTIONS } from '../lib/api-boundary-exemptions'
 
 function git(args: string[]): string {
-  return execFileSync('git', args, { encoding: 'utf8' }).trim()
+  const result = runGit(process.cwd(), args)
+  if (!result.ok) throw new Error(`git ${args.join(' ')} failed: ${'stderr' in result ? result.stderr : result.code}`)
+  return result.stdout.trim()
 }
 
+/**
+ * Falling back to HEAD compares the branch against itself, which makes this
+ * guard pass without checking anything. That is the right answer only when git
+ * ANSWERED that there is no origin/main — a shallow clone, a fresh repo. When
+ * the machine was merely too loaded to fork, runGit throws rather than let a
+ * gate go quietly vacuous (task cea0ddf5).
+ */
 function baseRevision(): string {
   if (process.env.API_BOUNDARY_BASE) return process.env.API_BOUNDARY_BASE
-  try {
-    return git(['merge-base', 'HEAD', 'origin/main'])
-  } catch {
-    return 'HEAD'
-  }
+  const result = runGit(process.cwd(), ['merge-base', 'HEAD', 'origin/main'])
+  return result.ok ? result.stdout.trim() : 'HEAD'
 }
 
 function parseAddedLines(diff: string): AddedSourceLine[] {

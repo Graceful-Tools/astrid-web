@@ -20,7 +20,7 @@
  * A file git does not track cannot be present in CI, so it must not be allowed
  * to decide a committed answer.
  */
-import { execFileSync } from "node:child_process"
+import { runGit, type RunGitOptions } from "./git-exec"
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import { basename, extname, join, relative } from "node:path"
 
@@ -75,28 +75,23 @@ export function filesUnder(root: string, directory: string): string[] {
  * scanning nothing. Conflating them would let a broken git silently empty the
  * inventory, which is the failure mode this module was written to remove.
  */
-export function trackedPaths(root: string): Set<string> | null {
-  try {
-    const stdout = execFileSync("git", ["ls-files", "-z"], {
-      cwd: root,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      maxBuffer: 64 * 1024 * 1024,
-    })
-    const paths = stdout.split("\0").filter(Boolean)
-    return paths.length > 0 ? new Set(paths) : null
-  } catch {
-    return null
-  }
+export function trackedPaths(root: string, options: RunGitOptions = {}): Set<string> | null {
+  const result = runGit(root, ["ls-files", "-z"], options)
+  // A transient spawn failure never arrives here: runGit throws rather than
+  // let "the machine was too busy to fork" become `null`, which this function
+  // defines as "scan everything" (task cea0ddf5).
+  if (!result.ok) return null
+  const paths = result.stdout.split("\0").filter(Boolean)
+  return paths.length > 0 ? new Set(paths) : null
 }
 
 /**
  * The files a clean checkout would contain, which is the only honest basis for
  * an answer that gets committed.
  */
-export function scannableSources(root: string): string[] {
+export function scannableSources(root: string, options: RunGitOptions = {}): string[] {
   const all = filesUnder(root, root)
-  const tracked = trackedPaths(root)
+  const tracked = trackedPaths(root, options)
   if (!tracked) return all
   return all.filter(path => tracked.has(relative(root, path)))
 }

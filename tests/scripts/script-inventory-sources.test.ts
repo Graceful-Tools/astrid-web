@@ -14,8 +14,8 @@
  * next time anyone regenerated it locally.
  */
 import { describe, it, expect } from 'vitest'
-import { execFileSync } from 'node:child_process'
 import { relative } from 'node:path'
+import { runGit } from '@/scripts/lib/git-exec'
 import {
   scannableSources,
   trackedPaths,
@@ -33,23 +33,16 @@ const root = process.cwd()
  */
 function gitIgnoredAmong(relativePaths: string[]): string[] {
   if (relativePaths.length === 0) return []
-  let stdout = ''
-  try {
-    stdout = execFileSync('git', ['check-ignore', '--stdin'], {
-      cwd: root,
-      input: relativePaths.join('\n'),
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'ignore'],
-    })
-  } catch (error) {
-    const status = (error as { status?: number }).status
-    // 1 is check-ignore's normal "nothing matched".
-    if (status === 1) return []
-    const captured = (error as { stdout?: unknown }).stdout
-    if (typeof captured !== 'string') throw error
-    stdout = captured
-  }
-  return stdout.split('\n').filter(Boolean)
+  // runGit retries a spawn the machine refused rather than reporting it as an
+  // answer, which is how this file went red naming files that were fine
+  // (task cea0ddf5).
+  const result = runGit(root, ['check-ignore', '--stdin'], {
+    input: relativePaths.join('\n'),
+  })
+  // check-ignore exits 1 for "nothing matched"; anything else non-zero, and
+  // the "no git here" case, leave nothing to report as ignored.
+  if (!result.ok) return []
+  return result.stdout.split('\n').filter(Boolean)
 }
 
 /*
