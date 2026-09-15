@@ -13,8 +13,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { AgentHub, AGENT_HUB_ROW_COUNT } from '@/components/agent-hub'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { AgentHub, AGENT_HUB_ROW_COUNT, AGENT_HUB_MODE_MAILBOXES } from '@/components/agent-hub'
+import { isModeLockedToPolling, isModeSettableFor } from '@/lib/ai/agent-execution-mode'
 import { BRAND } from '@/lib/brand/config'
 
 const capabilities = vi.hoisted(() => ({ integrationMcp: true }))
@@ -191,7 +192,12 @@ describe('AgentHub — ownership before transport (AWTD-762)', () => {
     // Counted from the row config, not hardcoded: the point of the case is
     // "three choices PER ROW", which is a ratio, not the number 4. Pinning the
     // literal only asserts how many agents existed the day it was written.
-    expect(screen.getAllByRole('button', { name: 'Astrid runs it' })).toHaveLength(AGENT_HUB_ROW_COUNT)
+    //
+    // "Astrid runs it" is the one that is not universal: a harness-only agent
+    // has no server runtime to offer, so its row shows two choices rather than
+    // three (task 42349da6). Derived the same way, for the same reason.
+    const serverRunnable = AGENT_HUB_MODE_MAILBOXES.filter(m => !isModeLockedToPolling(m)).length
+    expect(screen.getAllByRole('button', { name: 'Astrid runs it' })).toHaveLength(serverRunnable)
     expect(screen.getAllByRole('button', { name: 'I run it' })).toHaveLength(AGENT_HUB_ROW_COUNT)
     expect(screen.getAllByRole('button', { name: 'Off' })).toHaveLength(AGENT_HUB_ROW_COUNT)
     // Transport names are not primary choices any more.
@@ -276,5 +282,76 @@ describe('AgentHub — Off', () => {
     expect(await screen.findByText(/does not appear in assignee pickers/)).toBeInTheDocument()
     expect(screen.queryByText(/claude mcp add/)).not.toBeInTheDocument()
     expect(screen.queryByPlaceholderText('sk-ant-...')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * task 42349da6 — no row can offer a mode the server will refuse.
+ *
+ * The bug this guards: the Muse row writes the `muse` mailbox, which has no
+ * server executor, and setAgentExecutionMode rejected EVERY mode for such a
+ * mailbox. So "Astrid runs it", "Off" and "Webhook server" all PUT and got a
+ * 400 back. The Codex row escaped only because its modeMailbox is `openai`.
+ *
+ * It survived because the tests above mock apiPut, so the client never sees a
+ * rejection, and nothing held this table against the server's rules. This case
+ * is that missing join — it reads ROWS and asks the real predicate, so adding
+ * a harness agent to the hub fails here rather than in someone's console.
+ */
+describe('the hub only offers modes the server accepts (task 42349da6)', () => {
+  it.each([...AGENT_HUB_MODE_MAILBOXES])('%s takes the modes its row can send', mailbox => {
+    // Every row offers "I run it" and "Off", so both must always be settable.
+    expect(isModeSettableFor(mailbox, 'polling'), `${mailbox} polling`).toBe(true)
+    expect(isModeSettableFor(mailbox, 'off'), `${mailbox} off`).toBe(true)
+
+    // "Astrid runs it" and the webhook transport are offered only when the
+    // agent has a server executor — and are settable exactly then.
+    const serverRun = !isModeLockedToPolling(mailbox)
+    expect(isModeSettableFor(mailbox, 'api'), `${mailbox} api`).toBe(serverRun)
+    expect(isModeSettableFor(mailbox, 'webhook'), `${mailbox} webhook`).toBe(serverRun)
+  })
+
+  it('has a locked row in the table, so this is not vacuously true', () => {
+    // If Muse ever leaves the hub, this is the prompt to re-point the case at
+    // whatever harness agent replaced it rather than delete the guard.
+    expect(AGENT_HUB_MODE_MAILBOXES.filter(m => isModeLockedToPolling(m))).toContain('muse')
+  })
+})
+
+describe('the Muse row, which has no server runtime (task 42349da6)', () => {
+  beforeEach(() => {
+    mockFetches({ muse: 'polling' })
+    putMock.mockResolvedValue({ json: () => Promise.resolve({ modes: { muse: 'off' } }) })
+  })
+
+  it('offers no "Astrid runs it" button, because there is nothing to run it', async () => {
+    render(<AgentHub />)
+    const muse = await screen.findByText('Muse')
+    const row = muse.closest('div.border') as HTMLElement
+    expect(
+      within(row).queryByRole('button', { name: new RegExp(`${BRAND.appName} runs it`) })
+    ).toBeNull()
+  })
+
+  it('can still be turned off, and says so to the server', async () => {
+    render(<AgentHub />)
+    const muse = await screen.findByText('Muse')
+    const row = muse.closest('div.border') as HTMLElement
+    fireEvent.click(within(row).getByRole('button', { name: /Off/ }))
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith('/api/v1/users/me/agent-modes', {
+        agent: 'muse',
+        mode: 'off',
+      })
+    )
+  })
+
+  it('offers no webhook transport under "I run it"', async () => {
+    render(<AgentHub />)
+    const muse = await screen.findByText('Muse')
+    fireEvent.click(muse)
+    expect(await screen.findByText(/Your own Muse setup does the work/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Webhook server/ })).toBeNull()
   })
 })
