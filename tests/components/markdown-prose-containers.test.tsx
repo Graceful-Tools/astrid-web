@@ -57,9 +57,12 @@ describe('markdown surfaces render inside a .prose container (task 0a54e46f)', (
   // invariant directly instead of standing up a page to infer it.
   const DESCRIPTION_SURFACES = [
     // task-detail-viewonly.tsx was deleted when the read-only pane converged
-    // onto TaskDetail (task 72cb4a13); TaskFieldEditors is now the single
-    // description surface for both editable and read-only viewers.
-    'components/task-detail/TaskFieldEditors.tsx',
+    // onto TaskDetail (task 72cb4a13), leaving one description surface for both
+    // editable and read-only viewers. It lived in TaskFieldEditors until
+    // AWTD-945, when the oversized-files ratchet required taking a piece out of
+    // that file to make room for the board-state row, and the description row
+    // was the piece. The surface moved; the invariant did not.
+    'components/task-detail/TaskDetailDescriptionRow.tsx',
   ]
 
   it.each(DESCRIPTION_SURFACES)(

@@ -17,11 +17,12 @@ import { filterLabelLists, isLabelList } from "@/lib/list-flavors"
 import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { TaskDetailBoardStateRow } from "./TaskDetailBoardStateRow"
+import { TaskDetailDescriptionRow } from "./TaskDetailDescriptionRow"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
-import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, List as ListIcon, FileText as FileTextIcon, Tag, User as UserIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Lock, Globe, Users, X, Check, Hash, List as ListIcon, Tag, User as UserIcon } from "lucide-react"
 import { format } from "date-fns"
-import { renderMarkdownWithLinks } from "@/lib/markdown"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList, User } from "@/types/task"
@@ -1006,73 +1007,33 @@ export function TaskFieldEditors({
         )}
       </TaskFieldRow>
 
-      {/* Description Field */}
-      <TaskFieldRow label={t('tasks.taskDescription')} icon={<FileTextIcon className="w-4 h-4" />} align="start">
-        {editingDescription ? (
-          <div ref={descriptionRef}>
-            <textarea
-              ref={descriptionTextareaRef}
-              value={tempDescription}
-              onChange={(e) => setTempDescription(e.target.value)}
-              placeholder="Add a description..."
-              className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[80px] overflow-hidden"
-              autoComplete="off"
-              spellCheck={true}
-              autoCapitalize="sentences"
-              inputMode="text"
-              enterKeyHint="done"
-              onTouchStart={(e) => {
-                // Track focus time for mobile keyboard protection
-                const target = e.target as HTMLTextAreaElement
-                ;(window as any)._lastFocusTime = Date.now()
-                target.focus()
-              }}
-              onClick={(e) => {
-                // Ensure click also triggers focus
-                const target = e.target as HTMLTextAreaElement
-                ;(window as any)._lastFocusTime = Date.now()
-                target.focus()
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (e.shiftKey || e.metaKey || e.ctrlKey) {
-                    // Shift+Enter, Cmd/Ctrl + Enter: Add line break (default textarea behavior)
-                    return
-                  } else {
-                    // Plain Enter: Save description
-                    e.preventDefault()
-                    handleSaveDescription()
-                  }
-                } else if (e.key === 'Escape') {
-                  handleCancelDescription()
-                }
-              }}
-            />
-            <div className="text-xs theme-text-muted mt-1">
-              Press Enter to save • Shift+Enter for line breaks
-            </div>
-          </div>
-        ) : (
-          <div
-            className={`px-3 py-2 rounded border border-transparent flex items-start !min-h-0 ${!readOnly ? 'cursor-pointer theme-surface-hover hover:theme-border' : ''}`}
-            onClick={() => !readOnly && setEditingDescription(true)}
-          >
-            {task.description ? (
-              <div
-                // min-w-0: this is a flex child; without it the intrinsic width of
-                // a code block stretches the row past the panel instead of letting
-                // `.prose pre` scroll horizontally (task 61a21152).
-                className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1"
-                dangerouslySetInnerHTML={{
-                  __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm' })
-                }}
-              />
-            ) : (
-              <span className="theme-text-muted italic">Click to add a description...</span>
-            )}
-          </div>
-        )}
-      </TaskFieldRow>
+      {/* BOARD STATE — appended AFTER the Who/Date/Priority/Lists contract
+          above, never interleaved into it (task 5221e43f). State belongs with
+          WHERE the task lives, so it follows Lists; the cross-platform order in
+          lib/task-detail-field-order.ts covers those four fields only, and iOS
+          appends this row in the same place for the same reason.
+
+          The row decides its own visibility, from the rule iOS and Mac share. */}
+      <TaskDetailBoardStateRow
+        task={task}
+        availableLists={availableLists}
+        displayMode={displayMode}
+        readOnly={readOnly}
+        onUpdate={onUpdate}
+      />
+
+      <TaskDetailDescriptionRow
+        task={task}
+        readOnly={readOnly}
+        editingDescription={editingDescription}
+        setEditingDescription={setEditingDescription}
+        tempDescription={tempDescription}
+        setTempDescription={setTempDescription}
+        descriptionRef={descriptionRef}
+        descriptionTextareaRef={descriptionTextareaRef}
+        handleSaveDescription={handleSaveDescription}
+        handleCancelDescription={handleCancelDescription}
+      />
     </>
   )
 }

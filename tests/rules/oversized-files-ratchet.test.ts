@@ -82,7 +82,13 @@ const BUDGETS: Record<string, number> = {
   // assignee-authorization.ts as `authorizeNewTaskAssignee` and took create's
   // hand-rolled people-check and its existence lookup with it.
   'services/task.service.ts': 1626,
-  'components/task-detail/TaskFieldEditors.tsx': 1078,
+  // 1078 → 1039: AWTD-945 added the board-state row, which this budget
+  // refused. Rather than raise it, the new row went straight into its own
+  // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
+  // self-contained block left here — followed it into
+  // TaskDetailDescriptionRow.tsx. So the file ends up SMALLER than before the
+  // feature, which is what this ratchet is for.
+  'components/task-detail/TaskFieldEditors.tsx': 1039,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line
