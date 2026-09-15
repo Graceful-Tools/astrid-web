@@ -30,6 +30,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { LOCAL_HARNESS_AGENT_MAILBOXES } from '@/lib/brand/agent-emails'
 import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -138,6 +139,29 @@ const ROWS: AgentRowConfig[] = [
  * "one agent, many places to remember" problem AWTD-937 set out to remove.
  */
 export const AGENT_HUB_ROW_COUNT = ROWS.length
+
+/**
+ * Every mailbox the hub writes a mode for. Exported so a test can hold this
+ * table against the server's rules instead of trusting them to agree — they
+ * did not (task 42349da6).
+ */
+export const AGENT_HUB_MODE_MAILBOXES: readonly string[] = ROWS.map(row => row.modeMailbox)
+
+/**
+ * A row whose agent has no server-side executor, so Astrid cannot run it and
+ * there is no webhook to push it to. Only "I run it" and "Off" are real.
+ *
+ * Read from the shared harness registry rather than the endpoint's `locked`
+ * flag: it is the same source the server rejects writes from (AWTD-937), and
+ * it is known before the first fetch resolves, so the row never renders a
+ * button for a moment and then withdraws it.
+ *
+ * The Codex row is NOT locked — its modeMailbox is `openai`, which does have a
+ * server executor. Locking is per mailbox, not per row label.
+ */
+function isHarnessOnly(row: AgentRowConfig): boolean {
+  return LOCAL_HARNESS_AGENT_MAILBOXES.includes(row.modeMailbox)
+}
 
 /** Who operates the runtime — the primary choice. Derived from the stored mode, never stored itself. */
 type Ownership = 'astrid' | 'self' | 'off'
@@ -405,6 +429,11 @@ export function AgentHub() {
 
       {ROWS.map(row => {
         const mode = (modes[row.modeMailbox] as Mode) || 'polling'
+        const harnessOnly = isHarnessOnly(row)
+        // "Astrid runs it" needs a server executor this agent does not have.
+        const choices = (Object.keys(OWNERSHIP_META) as Ownership[]).filter(
+          candidate => !(harnessOnly && candidate === 'astrid')
+        )
         const ownership = ownershipOf(mode)
         const isExpanded = expanded === row.key
         const identity = row.identityFor(mode)
@@ -439,7 +468,7 @@ export function AgentHub() {
               <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                 {savingMode === row.key && <Loader2 className="w-4 h-4 animate-spin theme-text-muted" />}
                 <div className="inline-flex rounded-lg border theme-border overflow-hidden">
-                  {(Object.keys(OWNERSHIP_META) as Ownership[]).map(candidate => {
+                  {choices.map(candidate => {
                     const meta = OWNERSHIP_META[candidate]
                     const OwnershipIcon = meta.icon
                     const active = ownership === candidate
@@ -480,7 +509,10 @@ export function AgentHub() {
 
             {isExpanded && (
               <div className="border-t theme-border p-3 theme-bg-secondary space-y-3">
-                {ownership === 'self' && (
+                {/* A harness-only agent has exactly one transport, so there is no
+                    choice to present — the polling copy below already says what
+                    runs it (task 42349da6). */}
+                {ownership === 'self' && !harnessOnly && (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs theme-text-muted">Transport:</span>
                     <div className="inline-flex rounded-lg border theme-border overflow-hidden">

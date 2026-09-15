@@ -108,7 +108,9 @@ export interface AgentExecutionModeInput {
  * the API route, the dispatch gate and the settings UI cannot drift apart.
  *
  * Order matters:
- *  1. No server executor exists  -> polling, and no setting can override it.
+ *  1. No server executor exists  -> polling, and only a stored `off` overrides
+ *     it: nothing can make the server run an agent it has no executor for, but
+ *     the user can still say they are not using it (task 42349da6).
  *  2. The user said              -> what the user said.
  *  3. A coding agent with a key  -> api. Saving a key IS choosing API mode, and a
  *     working setup must not change under someone because a default moved.
@@ -123,9 +125,16 @@ export function resolveAgentExecutionMode({
 }: AgentExecutionModeInput): AgentExecutionMode {
   if (!mailbox) return 'api'
 
-  if (FORCED_POLLING_MAILBOXES.includes(mailbox)) return 'polling'
-
   const stored = storedModes?.[mailbox]
+
+  if (FORCED_POLLING_MAILBOXES.includes(mailbox)) {
+    // The lock says no SERVER EXECUTOR exists, which rules out `api` and
+    // `webhook`. It does not say the user must keep the agent — `off` is the
+    // one stored value that still means something here, so it is honored
+    // rather than overwritten (task 42349da6).
+    return stored === 'off' ? 'off' : 'polling'
+  }
+
   if (isAgentExecutionMode(stored)) return stored
 
   if (CODING_AGENT_MAILBOXES.includes(mailbox)) {
@@ -135,7 +144,31 @@ export function resolveAgentExecutionMode({
   return 'api'
 }
 
-/** Is this mailbox stuck in polling because no server-side executor exists? */
+/**
+ * Can this mailbox be SET to this mode?
+ *
+ * Split out of setAgentExecutionMode (task 42349da6) because the settings UI
+ * needs the same answer before it renders a button. It used to be implicit and
+ * far blunter: a locked mailbox rejected every mode, so the AI Agents page —
+ * whose Muse row writes the `muse` mailbox directly — had three controls that
+ * could only ever 400.
+ *
+ * A locked agent has no server executor, so it cannot run `api` or `webhook`.
+ * It can be `polling` (what it already is) or `off` (not in use), because
+ * wanting the agent at all is a separate question from who runs it.
+ */
+export function isModeSettableFor(mailbox: string, mode: AgentExecutionMode): boolean {
+  if (!isModeLockedToPolling(mailbox)) return true
+  return mode === 'polling' || mode === 'off'
+}
+
+/**
+ * Does this mailbox lack a server-side executor?
+ *
+ * Such an agent can only be `polling` or `off` — see isModeSettableFor. The
+ * name predates `off` existing; it is about the absence of a server runtime,
+ * not about the agent being unconditionally on.
+ */
 export function isModeLockedToPolling(mailbox: string | null): boolean {
   return !!mailbox && FORCED_POLLING_MAILBOXES.includes(mailbox)
 }
@@ -255,20 +288,24 @@ export async function getAgentExecutionModes(
  * Persist one agent's mode.
  *
  * Read-modify-write on the same blob the API keys live in, so a save here cannot
- * drop a credential. Rejects a mailbox that has no choice to make rather than
- * writing a setting the resolver will ignore — a stored `api` for `codex@` would
- * read, forever after, as a preference someone set and Astrid disobeyed.
+ * drop a credential — which is what makes turning an agent off reversible.
+ *
+ * Rejects a mode the resolver would ignore rather than storing it: a stored
+ * `api` for `codex@` would read, forever after, as a preference someone set and
+ * Astrid disobeyed. That is a question about the MODE, not the mailbox — see
+ * isModeSettableFor. Rejecting the whole mailbox was too broad, and left the
+ * settings UI with buttons that could only 400 (task 42349da6).
  */
 export async function setAgentExecutionMode(
   userId: string,
   mailbox: string,
   mode: AgentExecutionMode
 ): Promise<Record<string, AgentExecutionMode>> {
-  if (isModeLockedToPolling(mailbox)) {
-    throw new Error(`${mailbox} runs in your own harness; it has no API mode.`)
-  }
   if (!CODING_AGENT_MAILBOXES.includes(mailbox)) {
     throw new Error(`Unknown agent "${mailbox}".`)
+  }
+  if (!isModeSettableFor(mailbox, mode)) {
+    throw new Error(`${mailbox} runs in your own harness; it has no API mode.`)
   }
 
   const user = await prisma.user.findUnique({
