@@ -8,10 +8,18 @@
  * TestFlight builds routinely run ahead of the store, and a client that
  * compared against those would tell Jon to downgrade.
  *
- * A HAND-MAINTAINED TABLE IS THE POINT, not a shortcut. It changes a few times
- * a year, it belongs in a diff someone can review, and a release can update it.
- * The alternative — deriving it from something automatic — would be wrong in
- * the one direction that nags every user on every launch.
+ * ASK WHOEVER PUBLISHES THE PLATFORM. For iOS that is the App Store, which we
+ * cannot query for a pending release, so its row is a HAND-MAINTAINED TABLE —
+ * it changes a few times a year, it belongs in a diff someone can review, and a
+ * release can update it. What must never be derived is a build number we
+ * control (`CURRENT_PROJECT_VERSION`, an Xcode Cloud run), because that runs
+ * ahead of the store and nags every user on every launch.
+ *
+ * Mac is the other case: we ARE its publisher. It ships as a notarized DMG on
+ * GitHub Releases, so that feed is the store, and its row is resolved per
+ * request instead of typed in — see resolveAppVersionFor. Hardcoding it once
+ * shipped a version that did not exist next to a link that could not install
+ * it (AWTD-942).
  *
  * AN EMPTY ROW IS STILL A WORKING STATE. The clients treat any failure, and
  * any response without `latestVersion`/`updateUrl`, as "no update known" and
@@ -24,6 +32,9 @@
  * separate rows and the endpoint refuses to answer without knowing which one
  * is asking. Returning one number for both would nag whichever app is behind.
  */
+
+import { fetchLatestMacRelease } from '@/lib/mac-release'
+import { brandOrigin } from '@/lib/brand/config'
 
 /** The apps that have their own release cadence, and so their own row. */
 export const APP_PLATFORMS = ['ios', 'mac'] as const
@@ -52,17 +63,18 @@ export interface AppVersionInfo {
 export const ALLOWED_UPDATE_URL_SCHEMES = ['https:', 'http:', 'macappstore:', 'itms-apps:'] as const
 
 /**
- * The App Store listing both apps ship under.
+ * The iOS App Store listing. iOS ONLY — see the mac row below.
  *
- * ONE listing serves both platforms — `supportedDevices` for id 6755752694
- * includes `MacDesktop-MacDesktop` alongside the iPhone and iPad entries — so
- * the same URL appearing twice below is correct, not a copy-paste slip.
+ * Verified against the iTunes lookup API (AWTD-924): trackName `Astrid Tasks`,
+ * sellerName `Graceful Tools LLC`, bundleId `Graceful-Tools-Inc.Astrid-App`.
  *
- * Verified against the iTunes lookup API before it was committed (AWTD-924):
- * trackName `Astrid Tasks`, sellerName `Graceful Tools LLC`, bundleId
- * `Graceful-Tools-Inc.Astrid-App`. The module's whole caution is that an
- * unverified `apps.apple.com/app/id…` nags every user on every launch, so the
- * id is checked rather than assumed.
+ * IT DOES NOT SERVE MAC, despite `supportedDevices` listing
+ * `MacDesktop-MacDesktop`. That entry means the iOS build can run on Apple
+ * silicon, not that the Mac app is published here. The lookup API reports
+ * `kind: software` for this id; a real Mac App Store app reports
+ * `kind: mac-software`, and Graceful Tools has no such listing. AWTD-924
+ * read that field as "one listing serves both" and shipped this URL for Mac,
+ * which sent Mac users to an iOS page (AWTD-942).
  */
 const APP_STORE_URL = 'https://apps.apple.com/us/app/astrid-tasks/id6755752694'
 
@@ -86,7 +98,17 @@ const APP_STORE_URL = 'https://apps.apple.com/us/app/astrid-tasks/id6755752694'
  */
 export const RELEASED_APP_VERSIONS: Readonly<Record<AppPlatform, AppVersionInfo>> = {
   ios: { latestVersion: '1.9.2', updateUrl: APP_STORE_URL },
-  mac: { latestVersion: '1.1.1', updateUrl: APP_STORE_URL },
+  /**
+   * EMPTY ON PURPOSE — Mac is resolved at request time, not hardcoded.
+   *
+   * The Mac app is not on the Mac App Store; it ships as a notarized DMG on
+   * GitHub Releases. See resolveAppVersionFor below and lib/mac-release.ts.
+   * A hardcoded value here was live for one deploy and was wrong in the
+   * worst direction (AWTD-942): it claimed 1.1.1 against a real latest of
+   * 1.0.3 and pointed at the iOS listing, so every Mac user got an update
+   * card leading somewhere with no Mac download on it.
+   */
+  mac: {},
 }
 
 /** Is this a platform we publish? Used to reject rather than guess. */
@@ -136,4 +158,35 @@ export function shapeAppVersionInfo(configured: AppVersionInfo): AppVersionInfo 
   if (configured.releaseNotes) info.releaseNotes = configured.releaseNotes
 
   return info
+}
+
+/**
+ * The answer actually served for a platform, resolving anything that is not
+ * a fixed store listing.
+ *
+ * iOS comes from the table above — the App Store is the real source, and a
+ * store version genuinely is a human-maintained fact.
+ *
+ * Mac is resolved from GitHub Releases, because that IS the Mac release
+ * channel: the app is a notarized DMG, not a Mac App Store listing. Deriving
+ * it means publishing a release ships the update, with no second step anyone
+ * can forget — which is what went wrong when this was hardcoded (AWTD-942).
+ *
+ * A failed lookup yields `{}`, never a guess. The clients read a missing
+ * `latestVersion` as "no update known" and show nothing, so an unreachable
+ * GitHub degrades to silence rather than to a wrong number.
+ */
+export async function resolveAppVersionFor(platform: AppPlatform): Promise<AppVersionInfo> {
+  if (platform !== 'mac') return appVersionFor(platform)
+
+  const release = await fetchLatestMacRelease()
+  if (!release) return {}
+
+  return shapeAppVersionInfo({
+    latestVersion: release.version,
+    // Our own download page, not the DMG: it states the macOS requirement and
+    // the notarization, and it resolves the newest build from the same source,
+    // so a link copied out of a client cannot go stale.
+    updateUrl: `${brandOrigin()}/download`,
+  })
 }
