@@ -27,6 +27,13 @@ export default mergeConfig(
       // reporting 68% (AWTD-866).
       'tests/lib/api-auth-middleware.test.ts',
       'tests/lib/list-permissions.test.ts',
+      // Saved-filter membership is part of the list-permissions risk surface.
+      // AWTD-927 added 49 lines to lib/list-permissions.ts and put their tests
+      // here, outside this list — so the new functions counted against the
+      // threshold while nothing in the gate exercised them, and main went red
+      // for two days at 68.18% against a 69% floor (task fe1b35c8). Same shape
+      // as the offline-retry-backoff entry below.
+      'tests/lib/saved-filter-membership.test.ts',
       'tests/lib/task-read-access.test.ts',
       'tests/lib/api-offline-queue-v1-urls.test.ts',
       'tests/lib/offline-sync.test.ts',
