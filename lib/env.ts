@@ -76,6 +76,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'DATABASE_URL_PROD', scope: 'tooling', description: 'Production pooled URL, for local deploy/backup scripts.' },
   { name: 'DATABASE_URL_DIRECT_PROD', scope: 'tooling', description: 'Production direct URL, for local migration scripts.' },
   { name: 'PRODUCTION_DATABASE_URL', scope: 'tooling', description: 'Legacy alias read by older maintenance scripts.' },
+  { name: 'UITEST_DATABASE_URL', scope: 'tooling', description: 'Overrides which database scripts/uitest-account.ts mints a UI-test session in; defaults to the production URL, since the app under UI test talks to production.' },
   { name: 'AUTO_MIGRATE_ON_STARTUP', scope: 'optional', description: 'Set to "true" to run pending migrations at server start. Off by default: migrations belong to the deploy.' },
   { name: 'ALLOW_PRODUCTION_DESTRUCTIVE', scope: 'tooling', description: 'Safety interlock that destructive maintenance scripts require.' },
 

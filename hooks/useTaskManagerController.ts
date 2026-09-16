@@ -470,14 +470,7 @@ export function useTaskManagerController({
   }, [listState.finalTasks, effectiveSession?.user?.id])
 
   const getFixedListTaskCountMemo = useCallback((listType: string) => {
-    return getFixedListTaskCount(
-      listState.finalTasks,
-      listType,
-      effectiveSession?.user?.id,
-      listType === 'my-tasks'
-        ? { completionFilter: myTasksPreferences.filters.completion as CompletionFilterMode }
-        : undefined,
-    )
+    return getFixedListTaskCount(listState.finalTasks, listType, effectiveSession?.user?.id, { completionFilter: myTasksPreferences.filters.completion as CompletionFilterMode })
   }, [listState.finalTasks, effectiveSession?.user?.id, myTasksPreferences.filters.completion])
 
   // Permission functions

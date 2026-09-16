@@ -431,6 +431,10 @@ export function getFixedListTaskCount(
 
   switch (listType) {
     case "my-tasks":
+      // The ONLY branch that reads `completionFilter`. Callers therefore pass
+      // the viewer's filter unconditionally rather than re-deciding here which
+      // list it applies to — that rule lives in this switch, not at each call
+      // site, so the badge count and the list view cannot disagree.
       return tasks.filter(task =>
         (task.assigneeId === userId || (task.assigneeId === null && task.creatorId === userId)) &&
         shouldShowCompletedByFilter(task, completionFilter, window, now)
