@@ -18,9 +18,14 @@
  *
  * TWO THINGS THAT WILL BITE YOU:
  *
- * 1. The OAuth client must hold `chat:write`, or POST .../messages 403s.
- *    Grant it with scripts/grant-chat-scopes.ts — chat scopes were missing
- *    from OAUTH_SCOPES entirely until this landed, so no client had them.
+ * 1. The OAuth client must hold `chat:write`, or POST .../messages 403s. Chat
+ *    scopes were missing from OAUTH_SCOPES entirely until this landed, so no
+ *    client has them yet and every client-credentials token 403s here today.
+ *    The fix is AWTD-951 — agent connections take their scopes from the scope
+ *    group they were provisioned from, and existing clients catch up on use.
+ *    Deliberately NOT a hand-written UPDATE against the production OAuthClient
+ *    row (Jon, 2026-09-16): chat access should be standard for an agent
+ *    connection, not granted one row at a time.
  *
  * 2. iOS renders INLINE markdown only (ChatMessageBubble uses
  *    .inlineOnlyPreservingWhitespace). `## headings`, `- bullets` and fenced
@@ -126,8 +131,8 @@ async function main() {
     const detail = await response.text().catch(() => '')
     if (response.status === 403) {
       console.error(
-        'RESULT: FAILED — 403 on the chat route. The OAuth client is probably missing ' +
-        'chat:write; grant it with: npx tsx scripts/grant-chat-scopes.ts --apply'
+        'RESULT: FAILED — 403 on the chat route. The OAuth client is missing ' +
+        'chat:write, which no client can hold until AWTD-951 lands.'
       )
       process.exit(1)
     }
