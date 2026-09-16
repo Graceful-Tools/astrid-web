@@ -8,6 +8,7 @@
  * in one place and both routes call it.
  */
 
+import { BRAND } from '@/lib/brand/config'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { resolveAgentAuthor } from '@/lib/ai-agent-author'
 import { prisma } from '@/lib/prisma'
@@ -31,23 +32,23 @@ describe('resolveAgentAuthor', () => {
 
   it('prefers the token-bound agent over anything in the body', async () => {
     const result = await resolveAgentAuthor(
-      { userId: 'user-jon', agentUser: { id: 'ai-claude', email: 'claude@astrid.cc' } },
+      { userId: 'user-jon', agentUser: { id: 'ai-claude', email: `claude@${BRAND.agentEmailDomain}` } },
       'ai-someone-else'
     )
-    expect(result).toEqual({ ok: true, authorId: 'ai-claude', agentEmail: 'claude@astrid.cc' })
+    expect(result).toEqual({ ok: true, authorId: 'ai-claude', agentEmail: `claude@${BRAND.agentEmailDomain}` })
     // A token bound to a mailbox is a stronger claim than a request body, so
     // the body is not even looked up.
     expect(mockUserFindUnique).not.toHaveBeenCalled()
   })
 
   it('signs as the AI agent named by aiAgentId', async () => {
-    mockUserFindUnique.mockResolvedValue({ id: 'ai-claude', isAIAgent: true, email: 'claude@astrid.cc' })
+    mockUserFindUnique.mockResolvedValue({ id: 'ai-claude', isAIAgent: true, email: `claude@${BRAND.agentEmailDomain}` })
     const result = await resolveAgentAuthor(HUMAN, 'ai-claude')
-    expect(result).toEqual({ ok: true, authorId: 'ai-claude', agentEmail: 'claude@astrid.cc' })
+    expect(result).toEqual({ ok: true, authorId: 'ai-claude', agentEmail: `claude@${BRAND.agentEmailDomain}` })
   })
 
   it('accepts a brand agent mailbox whose isAIAgent flag was never set', async () => {
-    mockUserFindUnique.mockResolvedValue({ id: 'ai-claude', isAIAgent: false, email: 'claude@astrid.cc' })
+    mockUserFindUnique.mockResolvedValue({ id: 'ai-claude', isAIAgent: false, email: `claude@${BRAND.agentEmailDomain}` })
     const result = await resolveAgentAuthor(HUMAN, 'ai-claude')
     expect(result).toMatchObject({ ok: true, authorId: 'ai-claude' })
   })
