@@ -50,8 +50,14 @@ neither substitutes for the other.
 
 ## The queue
 
-**Read and write tasks through the `astrid` MCP server** (`https://www.astrid.cc/mcp`), not
-scripts and never the database (Jon, 2026-08-29: the DB is for deep repair only).
+**Read and write tasks through the `astrid` MCP server** — the LOCAL stdio server
+(`node ../astrid-web/mcp/astrid-mcp-launch.js`), not scripts and never the database
+(Jon, 2026-08-29: the DB is for deep repair only).
+
+Not the hosted `https://www.astrid.cc/mcp` transport, which this document used to name. It is
+authorization-code OAuth, a scheduled run has no browser to complete it in, and every unattended
+run therefore reported `ConnectionRefused` (2026-09-13). stdio authenticates from the
+client-credentials pair in `astrid-web/.env.local` and needs nobody present.
 
 ```
 get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>" }
@@ -316,15 +322,38 @@ since the run began.
 A reopened task means the previous fix missed. Re-read it and find a different cause rather
 than re-closing it on the same reasoning.
 
-**When the list is empty**, push, then summarise in a few lines: what was done, and anything
-skipped and why.
+**When the list is empty**, push, then post the run summary **into the board's list chat** —
+not into the terminal.
+
+```bash
+cd <astrid-web> && npx tsx scripts/post-list-message.ts <boardListId> "<summary>"
+```
+
+A few lines: what was done, and anything skipped and why. Per-task detail stays on the tasks as
+completion comments and is not repeated here; this is the run-level news — what was pushed, what
+was skipped, what failed.
+
+**Why not chat.** One build now carries several tasks and most runs happen with nobody watching,
+so a summary in a terminal is a summary nobody reads twice. The board is where Jon looks, from
+whichever device is to hand. The terminal gets one `RESULT:` line and nothing else.
+
+**Post only when something happened.** A skipped run, a held lock and an empty queue are not
+news; they go to the run log and no further. A scheduled loop that announces every quiet tick
+buries the messages that matter.
+
+**Write for the phone.** iOS renders inline markdown only, so `##` headings, `-` bullets and
+fenced code blocks come out literally. Use `**bold**` labels, `•` bullets and plain newlines.
+Image syntax — an exclamation mark, the task title in square brackets, the task id in
+parentheses — renders as a tappable link to that task, so name tasks by title and still get a
+way through to them. Do not `@`-mention anyone: a mention is the one thing that fires a push
+notification, and a scheduled run should not be pushing notifications.
 
 ## Pushing is part of finishing (Jon, 2026-09-06)
 
 **Do not ask permission to push.** *"I want to look at work when you are done. I don't want to
 tell you to push it so I can look at it and then wait."* An empty queue ends with the work
 pushed, so it is already reviewable — a TestFlight build building on iOS/Mac, `main` updated on
-web — and the summary says what went out.
+web — and the summary posted to the list chat says what went out.
 
 Two things this does NOT change:
 

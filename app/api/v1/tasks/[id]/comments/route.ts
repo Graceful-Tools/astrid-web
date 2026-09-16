@@ -15,7 +15,7 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { agentEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import { resolveAgentAuthor } from '@/lib/ai-agent-author'
 import { createLogger } from '@/lib/logger'
 import { userCanAccessTask } from "@/services/task.service"
 import { createCommentWithSideEffects } from "@/services/comment.service"
@@ -257,31 +257,15 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    let authorId = auth.agentUser?.id || auth.userId
-    if (auth.agentUser) {
-      log.info({ agentEmail: auth.agentUser.email }, 'Posting comment as authenticated AI agent')
-    } else if (body.aiAgentId) {
-      const aiAgent = await prisma.user.findUnique({
-        where: { id: body.aiAgentId },
-        select: { id: true, isAIAgent: true, email: true }
-      })
-
-      if (!aiAgent) {
-        return NextResponse.json(
-          { error: 'Invalid aiAgentId - user not found' },
-          { status: 400 }
-        )
-      }
-
-      if (!aiAgent.isAIAgent && !isBrandAgentEmail(aiAgent.email)) {
-        return NextResponse.json(
-          { error: 'Invalid aiAgentId - specified user is not an AI agent' },
-          { status: 400 }
-        )
-      }
-
-      authorId = aiAgent.id
-      log.info({ agentEmail: aiAgent.email }, 'Posting comment as AI agent')
+    // AWTD-878. Shared with the v1 chat message route so the two rules cannot
+    // drift — see lib/ai-agent-author.ts for the precedence and the why.
+    const author = await resolveAgentAuthor(auth, body.aiAgentId)
+    if (!author.ok) {
+      return NextResponse.json({ error: author.error }, { status: 400 })
+    }
+    const authorId = author.authorId
+    if (authorId !== auth.userId) {
+      log.info({ agentEmail: author.agentEmail }, 'Posting comment as AI agent')
     }
 
     // Accept client-provided createdAt for offline-first ordering — comments

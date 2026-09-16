@@ -11,6 +11,7 @@ import {
   V1_COMMENT_TYPE_VALUES,
 } from '@/lib/api-contracts/v1-request-shapes'
 import { dispatchChatMentions } from '@/lib/chat-mention-dispatch'
+import { resolveAgentAuthor } from '@/lib/ai-agent-author'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
@@ -81,6 +82,7 @@ export const GET = withAuth<RouteContext>(
  *   fileId?: string (SecureFile ID to attach)
  *   replyToId?: string (for threaded replies)
  *   clientRequestId?: string (for idempotency)
+ *   aiAgentId?: string (sign the message as this AI agent, not the token owner)
  * }
  */
 export const POST = withAuth<RouteContext>(
@@ -93,7 +95,7 @@ export const POST = withAuth<RouteContext>(
     }
 
     const body = await req.json()
-    const { content, type, fileId, replyToId, clientRequestId } = body
+    const { content, type, fileId, replyToId, clientRequestId, aiAgentId } = body
 
     if (!content?.trim() && !fileId) {
       return NextResponse.json({ error: 'Content or file attachment is required' }, { status: 400 })
@@ -133,10 +135,22 @@ export const POST = withAuth<RouteContext>(
       }
     }
 
+    // Sign agent-written messages with the agent, not the OAuth client's owner.
+    // Same rule as task comments (AWTD-878), shared so the two cannot drift:
+    // without it the scheduled /fixall run summary arrives in list chat under
+    // the account holder's name and face.
+    const author = await resolveAgentAuthor(auth, aiAgentId)
+    if (!author.ok) {
+      return NextResponse.json({ error: author.error }, { status: 400 })
+    }
+    if (author.authorId !== auth.userId) {
+      log.info({ agentEmail: author.agentEmail }, 'Posting chat message as AI agent')
+    }
+
     let message = await prisma.chatMessage.create({
       data: {
         channelId,
-        authorId: auth.userId,
+        authorId: author.authorId,
         content: content?.trim() || '',
         type: type || 'TEXT',
         replyToId,
@@ -184,7 +198,11 @@ export const POST = withAuth<RouteContext>(
 
     try {
       const recipientIds = await getChatChannelRecipients(channelId)
-      const otherRecipients = recipientIds.filter(id => id !== auth.userId)
+      // Exclude the AUTHOR, not the token owner. When an agent signs the
+      // message those differ, and filtering on auth.userId would drop the one
+      // person who needs it — the list owner whose client minted the token —
+      // so an agent's message would not appear until the next fetch.
+      const otherRecipients = recipientIds.filter(id => id !== author.authorId)
 
       if (otherRecipients.length > 0) {
         await broadcastToUsers(otherRecipients, {
@@ -209,7 +227,7 @@ export const POST = withAuth<RouteContext>(
         content,
         channelId,
         messageId: message.id,
-        senderId: auth.userId,
+        senderId: author.authorId,
         senderName: message.author?.name || 'Someone',
       })
     } catch (mentionError) {

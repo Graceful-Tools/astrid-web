@@ -27,6 +27,10 @@ export const OAUTH_SCOPES = {
   'comments:write': 'Create comments',
   'comments:delete': 'Delete comments',
 
+  // Chat scopes (list chat / channel messages)
+  'chat:read': 'Read chat messages',
+  'chat:write': 'Send chat messages',
+
   // User scopes
   'user:read': 'Read user profile and settings',
   'user:write': 'Update user settings',
@@ -75,6 +79,8 @@ export const SCOPE_GROUPS = {
     'comments:read',
     'comments:write',
     'comments:delete',
+    'chat:read',
+    'chat:write',
     'attachments:read',
     'attachments:write',
     'attachments:delete',
@@ -107,6 +113,8 @@ export const SCOPE_GROUPS = {
     'lists:read',
     'comments:read',
     'comments:write',
+    'chat:read',
+    'chat:write',
     'user:read',
     'sse:connect',
   ] as OAuthScope[],
