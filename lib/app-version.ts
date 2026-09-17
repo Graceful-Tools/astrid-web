@@ -84,11 +84,14 @@ const APP_STORE_URL = 'https://apps.apple.com/us/app/astrid-tasks/id6755752694'
  * Empty means "no update known", which is the safe, invisible state. A row
  * needs BOTH `latestVersion` and a real `updateUrl` to show anything.
  *
- * THE NUMBERS COME FROM APP STORE CONNECT, not from a build. Jon read these
- * off the store on 2026-09-14 (AWTD-924). The lookup API independently
- * confirms 1.9.2 for the listing; it reports a SINGLE version for the unified
- * listing, so it cannot corroborate the Mac number — 1.1.1 is Jon's value from
- * App Store Connect.
+ * THE NUMBER COMES FROM THE STORE, not from a build. Read off the listing on
+ * 2026-09-14 (AWTD-924) and re-verified against the iTunes lookup API for
+ * id 6755752694 on 2026-09-17, which reports 1.9.3 with a
+ * currentVersionReleaseDate of 2026-09-16 (AWTD-953).
+ *
+ * Verify before bumping, every time. A number ahead of the real listing is the
+ * AWTD-942 failure in miniature: an update card pointing at a download that is
+ * not published yet.
  *
  * That asymmetry is the safe direction. If the Mac app reports a HIGHER
  * version than the number here, the client simply shows no card: a stale-low
@@ -97,7 +100,7 @@ const APP_STORE_URL = 'https://apps.apple.com/us/app/astrid-tasks/id6755752694'
  * endpoint.
  */
 export const RELEASED_APP_VERSIONS: Readonly<Record<AppPlatform, AppVersionInfo>> = {
-  ios: { latestVersion: '1.9.2', updateUrl: APP_STORE_URL },
+  ios: { latestVersion: '1.9.3', updateUrl: APP_STORE_URL },
   /**
    * EMPTY ON PURPOSE — Mac is resolved at request time, not hardcoded.
    *

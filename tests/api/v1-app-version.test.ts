@@ -150,7 +150,12 @@ describe('the released-version table (AWTD-920)', () => {
    * replaced by assertions about the real row.
    *
    * iOS is verified against the iTunes lookup API for id 6755752694: trackName
-   * `Astrid Tasks`, sellerName `Graceful Tools LLC`, version 1.9.2.
+   * `Astrid Tasks`, sellerName `Graceful Tools LLC`. Version re-checked against
+   * that lookup on 2026-09-17 and bumped to 1.9.3 (currentVersionReleaseDate
+   * 2026-09-16) — see AWTD-953. The number is verified against the STORE, never
+   * taken from a build or from the task text, because a value ahead of the real
+   * listing is the AWTD-942 failure: an update card leading to a download that
+   * is not there yet.
    *
    * That the lookup could not corroborate a Mac number was the tell AWTD-924
    * missed — not a gap to fill from App Store Connect, but evidence there is no
@@ -159,7 +164,7 @@ describe('the released-version table (AWTD-920)', () => {
    */
   it('answers iOS with the released store version and a verified store link', () => {
     expect(appVersionFor('ios')).toEqual({
-      latestVersion: '1.9.2',
+      latestVersion: '1.9.3',
       updateUrl: 'https://apps.apple.com/us/app/astrid-tasks/id6755752694',
     })
   })
