@@ -22,6 +22,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { NextRequest } from 'next/server'
 
 const STATUS_FIELDS = ['statusRole', 'statusOrder', 'statusDescription', 'statusCompleted'] as const
@@ -216,5 +218,45 @@ describe('PUT /api/lists/:id (legacy) no longer accepts them either (AWTD-853)',
     for (const field of STATUS_FIELDS) {
       expect(Object.keys(updateData())).not.toContain(field)
     }
+  })
+})
+
+/**
+ * Step 3 of AWTD-853: the columns themselves are gone, not merely unsent.
+ *
+ * The cases above pin the WIRE shape, which shipped 2026-09-11. They would
+ * keep passing with the columns still on the table — which is exactly the
+ * state this project sat in for five days, deliberately, as a soak. This block
+ * pins the schema half, so the columns cannot quietly come back and so the
+ * migration cannot be reverted without a test saying so.
+ *
+ * Read from schema.prisma rather than from the generated client: the client is
+ * a build artifact, and a stale one would make this pass while the real model
+ * still carried the fields.
+ */
+describe('the TaskList status columns are retired from the schema (AWTD-853)', () => {
+  const schema = readFileSync(join(process.cwd(), 'prisma/schema.prisma'), 'utf8')
+  const taskListModel = schema.slice(
+    schema.indexOf('model TaskList {'),
+    schema.indexOf('\n}', schema.indexOf('model TaskList {')),
+  )
+
+  it.each(['statusRole', 'statusOrder', 'statusDescription', 'statusCompleted'])(
+    'TaskList no longer declares %s',
+    field => {
+      expect(taskListModel).not.toMatch(new RegExp(`^\\s*${field}\\s`, 'm'))
+    },
+  )
+
+  it('drops the index that depended on statusOrder', () => {
+    // Postgres refuses to drop a column an index covers, so this is not
+    // tidiness — the migration has to drop the index first or fail outright.
+    expect(taskListModel).not.toContain('statusOrder')
+    expect(schema).not.toContain('@@index([projectId, statusOrder])')
+  })
+
+  it('found a real TaskList model, so the assertions above are not vacuous', () => {
+    expect(taskListModel).toContain('model TaskList {')
+    expect(taskListModel).toContain('listType')
   })
 })

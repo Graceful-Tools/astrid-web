@@ -172,10 +172,6 @@ model TaskList {
   imageUrl                String?
   projectId               String?
   listType                String                   @default("regular")
-  statusRole              String?
-  statusOrder             Int?
-  statusDescription       String?
-  statusCompleted         Boolean                  @default(false)
   privacy                 TaskListPrivacy          @default(PRIVATE)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
@@ -232,7 +228,6 @@ model TaskList {
   @@index([ownerId])
   @@index([projectId])
   @@index([projectId, listType])
-  @@index([projectId, statusOrder])
   @@index([privacy])
   @@index([createdAt])
   @@index([defaultAssigneeId])
