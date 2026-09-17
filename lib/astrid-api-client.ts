@@ -14,6 +14,15 @@
 
 import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
+import { SCOPE_GROUPS, type ScopeGroup } from '@/lib/oauth/oauth-scopes'
+import { reconcileClientScopes } from '@/lib/oauth/scope-reconcile'
+
+/**
+ * The group this agent's connection is provisioned from, named once. The three
+ * scope lists this file used to carry were written out separately and had
+ * already drifted from each other and from SCOPE_GROUPS (task 9ebfaba7).
+ */
+const AGENT_SCOPE_GROUP: ScopeGroup = 'ai_agent'
 import { generateAccessToken } from '@/lib/oauth/oauth-token-manager'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 
@@ -35,21 +44,29 @@ async function ensureAstridOAuthClient(): Promise<string> {
   })
   if (!astridUser) throw new Error(`${BRAND.appName} agent user not found`)
 
-  const REQUIRED_SCOPES = ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write']
-
   let client = await prisma.oAuthClient.findFirst({
     where: { userId: astridUser.id },
-    select: { id: true, scopes: true },
+    select: { id: true, scopes: true, scopeGroup: true },
   })
 
-  // Update scopes if the existing client is missing any
-  if (client && !REQUIRED_SCOPES.every(s => client!.scopes.includes(s))) {
-    await prisma.oAuthClient.update({
-      where: { id: client.id },
-      data: { scopes: REQUIRED_SCOPES },
-    })
+  if (client) {
+    // Mark the one client this function owns, so it is reconciled from
+    // SCOPE_GROUPS.ai_agent from here on (task 9ebfaba7). This is the whole of
+    // the "backfill": one known client, adopted in reviewable code, rather
+    // than a blanket UPDATE stamping a group onto every row in production.
+    if (client.scopeGroup !== AGENT_SCOPE_GROUP) {
+      await prisma.oAuthClient.update({
+        where: { id: client.id },
+        data: { scopeGroup: AGENT_SCOPE_GROUP },
+      })
+    }
+
+    // Replaces a hand-rolled reconcile that wrote `data: { scopes: [...] }` —
+    // a REPLACE, which silently stripped any scope this client legitimately
+    // held beyond its six hardcoded ones. reconcileClientScopes unions.
+    const { changed } = await reconcileClientScopes(client.id)
     // Clear token cache so new tokens get updated scopes
-    tokenCache.clear()
+    if (changed) tokenCache.clear()
   }
 
   if (!client) {
@@ -57,12 +74,13 @@ async function ensureAstridOAuthClient(): Promise<string> {
     const credentials = await createOAuthClient({
       userId: astridUser.id,
       name: `${BRAND.appName} Agent`,
-      scopes: ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write'],
+      scopes: [...SCOPE_GROUPS[AGENT_SCOPE_GROUP]],
+      scopeGroup: AGENT_SCOPE_GROUP,
       grantTypes: ['client_credentials'],
     })
     const created = await prisma.oAuthClient.findFirst({
       where: { clientId: credentials.clientId },
-      select: { id: true, scopes: true },
+      select: { id: true, scopes: true, scopeGroup: true },
     })
     if (!created) throw new Error(`Failed to create OAuth client for ${BRAND.appName}`)
     client = created
@@ -86,7 +104,7 @@ export async function getTokenForUser(userId: string): Promise<string> {
   const tokenResult = await generateAccessToken(
     clientId,
     userId,
-    ['tasks:read', 'tasks:write', 'lists:read', 'lists:write', 'comments:read', 'comments:write']
+    [...SCOPE_GROUPS[AGENT_SCOPE_GROUP]]
   )
 
   tokenCache.set(userId, {

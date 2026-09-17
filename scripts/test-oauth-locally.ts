@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { SCOPE_GROUPS } from '../lib/oauth/oauth-scopes'
 import { hashClientSecret } from '@/lib/oauth/oauth-token-manager'
 
 async function testOAuthLocally() {
@@ -40,7 +41,8 @@ async function testOAuthLocally() {
         userId: testUser.id,
         redirectUris: [],
         grantTypes: ['client_credentials'],
-        scopes: ['tasks:read', 'tasks:write'],
+        // From the group rather than another copy (task 9ebfaba7).
+        scopes: [...SCOPE_GROUPS.tasks_only],
         isActive: true,
       },
     })

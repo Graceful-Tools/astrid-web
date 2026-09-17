@@ -6,6 +6,7 @@
  */
 
 import { config } from 'dotenv'
+import { SCOPE_GROUPS } from '../lib/oauth/oauth-scopes'
 import { resolve } from 'path'
 
 // Load .env.local
@@ -64,14 +65,11 @@ async function main() {
       name: 'Astrid iOS App (Production)',
       description: 'Official Astrid iOS application',
       grantTypes: ['client_credentials'],
-      scopes: [
-        'tasks:read', 'tasks:write', 'tasks:delete',
-        'lists:read', 'lists:write', 'lists:delete', 'lists:manage_members',
-        'comments:read', 'comments:write', 'comments:delete',
-        'attachments:read', 'attachments:write', 'attachments:delete',
-        'user:read', 'user:write',
-        'public:read', 'public:write'
-      ]
+      // The group, not a copy of it. These 17 were mobile_app as it stood when
+      // this was written and had since drifted from it — missing projects:*,
+      // chat:* and contacts:* (task 9ebfaba7).
+      scopes: [...SCOPE_GROUPS.mobile_app],
+      scopeGroup: 'mobile_app'
     })
 
     console.log('✅ OAuth client created!\n')

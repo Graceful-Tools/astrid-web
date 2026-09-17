@@ -7,6 +7,7 @@
  */
 
 import { prisma } from '../lib/prisma'
+import { SCOPE_GROUPS } from '../lib/oauth/oauth-scopes'
 import { createOAuthClient } from '../lib/oauth/oauth-client-manager'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -34,7 +35,8 @@ async function main() {
       name: 'Test iOS App',
       description: 'Test OAuth client for local development',
       grantTypes: ['client_credentials'],
-      scopes: ['tasks:read', 'tasks:write', 'lists:read', 'lists:write'],
+      // From the group rather than a fourth copy of a scope list (task 9ebfaba7).
+      scopes: [...SCOPE_GROUPS.ai_agent],
     })
     console.log('✅ OAuth client created:')
     console.log(`   Client ID: ${client.clientId}`)

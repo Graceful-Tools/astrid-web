@@ -22,6 +22,7 @@ import {
   refreshAccessToken,
 } from '@/lib/oauth/oauth-token-manager'
 import { parseScopeString } from '@/lib/oauth/oauth-scopes'
+import { reconcileClientScopes } from '@/lib/oauth/scope-reconcile'
 import { oauthTokenRateLimiter, createRateLimitHeaders } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
 
@@ -151,9 +152,21 @@ async function handleClientCredentialsFlow(
     )
   }
 
+  // Bring the client up to date with its scope group BEFORE deciding what it
+  // may have (task 9ebfaba7). This is what makes an EXISTING connection catch
+  // up: adding a scope to SCOPE_GROUPS reaches it on its next token request,
+  // rather than needing a hand-written UPDATE against production.
+  //
+  // A no-op for any client without a recorded group, which is all of them
+  // until something marks one.
+  const reconciled = await reconcileClientScopes(client.id)
+  const grantableScopes = reconciled.changed
+    ? [...client.scopes, ...reconciled.added]
+    : client.scopes
+
   // Parse and validate requested scopes
-  const requestedScopes = scope ? parseScopeString(scope) : client.scopes
-  const allowedScopes = requestedScopes.filter(s => client.scopes.includes(s))
+  const requestedScopes = scope ? parseScopeString(scope) : grantableScopes
+  const allowedScopes = requestedScopes.filter(s => grantableScopes.includes(s))
 
   if (allowedScopes.length === 0) {
     return oauthError('invalid_scope', 'No valid scopes requested')

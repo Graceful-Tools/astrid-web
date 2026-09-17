@@ -11,6 +11,7 @@ import {
   SCOPE_GROUPS,
   validateRegisterableScopes,
   type OAuthScope,
+  type ScopeGroup,
 } from './oauth-scopes'
 
 /**
@@ -34,6 +35,13 @@ export interface CreateOAuthClientParams {
   redirectUris?: string[]
   grantTypes?: string[]
   scopes?: string[]
+  /**
+   * Which SCOPE_GROUPS entry these scopes came from. Recording it lets the
+   * client be topped up to that group on use instead of by a hand-written
+   * UPDATE against production (task 9ebfaba7). Omit it and the client is never
+   * reconciled — which is the right default for anything bespoke.
+   */
+  scopeGroup?: ScopeGroup
 }
 
 export interface OAuthClientCredentials {
@@ -209,6 +217,7 @@ export async function createOAuthClient(
       redirectUris: params.redirectUris || [],
       grantTypes,
       scopes: validScopes,
+      scopeGroup: params.scopeGroup ?? null,
       isActive: true,
     },
   })

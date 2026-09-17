@@ -851,6 +851,12 @@ model OAuthClient {
   redirectUris            String[]
   grantTypes              String[]                 @default(["client_credentials"])
   scopes                  String[]                 @default(["tasks:read", "tasks:write", "lists:read", "lists:write"])
+  /// Which SCOPE_GROUPS entry this client was provisioned from, so its scopes
+  /// can be topped up to that group on use instead of by a hand-written UPDATE
+  /// against production (task 9ebfaba7). NULL means "never reconcile" — every
+  /// client that predates this carries null, and none of them may gain a scope
+  /// merely because the feature shipped.
+  scopeGroup              String?
   isActive                Boolean                  @default(true)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt

@@ -14,6 +14,7 @@ import { customAgentEmail } from '@/lib/brand/agent-emails'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createOAuthClient } from '@/lib/oauth/oauth-client-manager'
+import { SCOPE_GROUPS } from '@/lib/oauth/oauth-scopes'
 import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
@@ -95,7 +96,12 @@ export const POST = withAuth(
       userId: agentUser.id,
       name: `Custom Agent: ${name}`,
       description: `OAuth client for Custom Agent ${agentEmail}`,
-      scopes: ['tasks:read', 'tasks:write', 'comments:read', 'comments:write', 'sse:connect'],
+      // From the group, not a hand-written list. The previous five omitted
+      // lists:read, chat:read, chat:write and user:read that ai_agent carries,
+      // so every custom agent was born unable to use the chat routes
+      // (task 9ebfaba7). Recording the group also lets it catch up later.
+      scopes: [...SCOPE_GROUPS.ai_agent],
+      scopeGroup: 'ai_agent',
       grantTypes: ['client_credentials'],
     })
 
