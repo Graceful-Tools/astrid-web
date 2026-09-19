@@ -175,6 +175,66 @@ export function resolveColumnMove(
   return { statusRole: targetColumnId, completed: false }
 }
 
+/**
+ * What completing or reopening a task does to its board lane (AWTD-964).
+ *
+ * Completing wrote `{ statusRole: null, completed: true }` and remembered
+ * nothing, so a reopened task landed in Inbox — which the agent queue holds
+ * out. Reopening a task from the phone therefore gave it to nobody, and
+ * docs/FIXALL_WORKFLOW.md's claim that "a REOPENED task looks exactly like one
+ * never done" was true of the document and false of the queue.
+ *
+ * THE LANE IS REMEMBERED, NOT RETAINED. Simply leaving `statusRole` set on a
+ * done task would restore itself for free — `taskColumnId` checks `completed`
+ * first, so the card still renders in Done — but a done task carrying a board
+ * status violates an invariant the board depends on (task db7c6670), enforced
+ * in two places in services/task.service.ts. So completion stashes the lane in
+ * `statusRoleBeforeDone` and clears the live one; reopening moves it back and
+ * empties the stash, so a later completion cannot resurrect a stale lane.
+ *
+ * Pure, and here rather than inline in the service, for the same reason
+ * `resolveColumnMove` is: a rule inside `updateTaskWithSideEffects` is
+ * reachable only through a live Postgres, which is how the missing half went
+ * unnoticed in the first place.
+ */
+export function resolveCompletionStatusTransition(input: {
+  /** `completed` as the request asked for it, or undefined if it said nothing. */
+  requestedCompleted: boolean | undefined
+  /** The lane the task is in right now. */
+  currentStatusRole: string | null | undefined
+  /** The lane stashed when it was completed, if any. */
+  rememberedStatusRole: string | null | undefined
+  /** Is this task assigned to an AI agent? Decides the no-memory landing lane. */
+  assigneeIsAgent: boolean
+}): { statusRole?: string | null; statusRoleBeforeDone?: string | null } {
+  // An update that says nothing about completion must not move the card.
+  if (input.requestedCompleted === undefined) return {}
+
+  if (input.requestedCompleted) {
+    return {
+      statusRole: null,
+      statusRoleBeforeDone: input.currentStatusRole ?? null,
+    }
+  }
+
+  // The remembered lane wins over any default, and that matters most for
+  // `waiting`: a task parked on a named condition must not come back as
+  // actionable just because it passed through Done.
+  if (input.rememberedStatusRole) {
+    return { statusRole: input.rememberedStatusRole, statusRoleBeforeDone: null }
+  }
+
+  // Nothing remembered. For an AGENT's task that is every task completed
+  // before this shipped, plus anything completed straight out of Inbox, and
+  // reopening one means "do this again" — which is what Ready is. A person
+  // reopening their own task has a board in front of them, so moving their
+  // card for them would be presumptuous; it stays where it was.
+  return {
+    statusRole: input.assigneeIsAgent ? READY_STATUS_ROLE : null,
+    statusRoleBeforeDone: null,
+  }
+}
+
 /** Is this role one a board can actually show? */
 export function isKnownStatusRole(role: string | null | undefined, project?: ProjectLike | null): boolean {
   if (!role) return false

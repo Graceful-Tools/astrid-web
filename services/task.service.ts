@@ -75,6 +75,7 @@ import {
   type AnalyticsPlatformValue,
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
+import { resolveCompletionFields } from './task-completion'
 
 const log = createLogger('services.task')
 
@@ -1278,24 +1279,11 @@ export async function updateTaskWithSideEffects(args: {
     data.completed = requestedCompleted
   }
 
-  // Completion stamp and provenance. Sync may backdate completedAt to the
-  // provider's real completion time; completedSource records where it happened
-  // (astrid | google | github | apple).
-  if (requestedCompleted === true) {
-    // Validated, not coerced — parseCompletionStamp says why (AWTD-873).
-    const stamp = parseCompletionStamp(intent)
-    if (!stamp.ok) return { ok: false, status: 400, error: stamp.error }
-    // Absent means the server stamps now; that default is this layer's call.
-    data.completedAt = stamp.value.completedAt ?? new Date()
-    data.completedSource = stamp.value.completedSource
-    // Done carries no board status (AWTD-562).
-    data.statusRole = null
-  } else if (requestedCompleted === false) {
-    data.completedAt = null
-    data.completedSource = null
-    // A reopened task is not a canceled one (task 11042ae3).
-    data.closedReason = null
-  }
+  // Everything completing or reopening writes — stamp, provenance and board
+  // lane — decided in one place (services/task-completion.ts).
+  const completion = resolveCompletionFields({ requestedCompleted, intent, existingTask })
+  if (!completion.ok) return { ok: false, status: 400, error: completion.error }
+  Object.assign(data, completion.data)
 
   if (has('closedReason') && requestedCompleted !== false) {
     data.closedReason = parsedClosedReason.value

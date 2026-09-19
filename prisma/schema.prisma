@@ -328,6 +328,16 @@ model Task {
   /// shared task both hold, and "at most one status" is true by construction
   /// rather than enforced by a normalizer.
   statusRole             String?
+  /// The lane this task was in when it was completed, so reopening can put it
+  /// back (AWTD-964). A done task must carry no live `statusRole` — the board
+  /// depends on that (task db7c6670) — so the lane is remembered here instead
+  /// of retained, and cleared again the moment the task is reopened.
+  ///
+  /// NULL for every task completed before this existed, and for one completed
+  /// straight out of Inbox. Reopening those lands an AGENT's task in Ready,
+  /// which is what handing a finished task back to an agent means; a person's
+  /// stays in Inbox, because they have a board in front of them.
+  statusRoleBeforeDone   String?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   assigneeId             String?

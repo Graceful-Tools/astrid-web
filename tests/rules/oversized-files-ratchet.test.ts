@@ -81,7 +81,12 @@ const BUDGETS: Record<string, number> = {
   // rules, which is more code here, not less. The gate went to
   // assignee-authorization.ts as `authorizeNewTaskAssignee` and took create's
   // hand-rolled people-check and its existence lookup with it.
-  'services/task.service.ts': 1626,
+  // 1626 → 1614: AWTD-964 taught reopening to put a task back in the lane it
+  // was completed from, which is more code here, not less. The stamp, the
+  // provenance and the board lane — three decisions that only ever fire
+  // together — went to services/task-completion.ts instead, and the board rule
+  // itself sits in lib/task-status.ts beside resolveColumnMove.
+  'services/task.service.ts': 1614,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

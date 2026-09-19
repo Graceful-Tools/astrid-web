@@ -1,0 +1,11 @@
+-- AWTD-964: remember the board lane a task was completed from, so reopening
+-- can put it back.
+--
+-- Completing wrote { statusRole: null, completed: true } and remembered
+-- nothing, so a reopened task landed in Inbox — which the agent queue holds
+-- out. Reopening a task from the phone therefore gave it to nobody.
+--
+-- Additive and nullable: nothing is rewritten and no existing row changes
+-- meaning. NULL reads as "no lane remembered", which is exactly true of every
+-- task completed before this, and is the case the restore rule already handles.
+ALTER TABLE "Task" ADD COLUMN "statusRoleBeforeDone" TEXT;
