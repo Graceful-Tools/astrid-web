@@ -190,6 +190,21 @@ export function hasRequiredScopes(
 }
 
 /**
+ * Is this the name of a real scope group?
+ *
+ * Bound 4 of scope reconciliation: widening is bounded by a NAMED group, and
+ * an unrecognised name grants nothing rather than defaulting open. It lives
+ * here rather than in `scope-reconcile.ts` because two paths now need it —
+ * reconciliation on token issuance, and adoption from Settings (AWTD-962) —
+ * and a bound written twice is a bound that will disagree with itself.
+ *
+ * `'*'` is not a group name, so it is rejected here like any other unknown.
+ */
+export function isScopeGroup(name: string | null | undefined): name is ScopeGroup {
+  return !!name && Object.prototype.hasOwnProperty.call(SCOPE_GROUPS, name)
+}
+
+/**
  * Get scope group by name
  */
 export function getScopeGroup(group: ScopeGroup): OAuthScope[] {

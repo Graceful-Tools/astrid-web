@@ -8,7 +8,7 @@
  *
  *   $ npx tsx scripts/measure-cache-hit-rate.ts --hours 24
  *   Error: unknown or unexpected option: --yes
- *   vercel logs failed: Command failed: vercel logs https://astrid.cc \
+ *   vercel logs failed: Command failed: vercel logs <production origin> \
  *     --since 24h --json --yes --token ***
  *
  * `--yes` skips a confirmation PROMPT. `vercel logs` does not prompt — it is a
@@ -22,6 +22,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { logsArgs } from '@/scripts/measure-cache-hit-rate'
+import { brandOrigin } from '@/lib/brand/config'
 
 describe('measure-cache-hit-rate vercel arguments (task 2b89739c)', () => {
   it('does not pass --yes, which the CLI rejects on a logs query', () => {
@@ -31,7 +32,9 @@ describe('measure-cache-hit-rate vercel arguments (task 2b89739c)', () => {
   it('asks for the production deployment as JSON over the requested window', () => {
     const args = logsArgs(24)
     expect(args[0]).toBe('logs')
-    expect(args).toContain('https://astrid.cc')
+    // brandOrigin(), not the literal: a partner build queries THEIR origin,
+    // and a test pinning ours would pass while the script read the wrong logs.
+    expect(args).toContain(brandOrigin())
     expect(args).toContain('--json')
     expect(args[args.indexOf('--since') + 1]).toBe('24h')
   })

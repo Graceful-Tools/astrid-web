@@ -30,7 +30,7 @@
  */
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { SCOPE_GROUPS, type OAuthScope, type ScopeGroup } from './oauth-scopes'
+import { SCOPE_GROUPS, isScopeGroup, type OAuthScope } from './oauth-scopes'
 
 const log = createLogger('oauth.scope-reconcile')
 
@@ -44,10 +44,6 @@ export interface ScopeReconcileResult {
 }
 
 const UNCHANGED: ScopeReconcileResult = { changed: false, added: [] }
-
-function isScopeGroup(name: string | null | undefined): name is ScopeGroup {
-  return !!name && Object.prototype.hasOwnProperty.call(SCOPE_GROUPS, name)
-}
 
 /**
  * Top a client up to its scope group's current contents.

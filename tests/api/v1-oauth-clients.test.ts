@@ -17,14 +17,27 @@ vi.mock('@/lib/api-auth-middleware', () => {
   }
 })
 
-vi.mock('@/lib/oauth/oauth-client-manager', () => ({
-  listUserOAuthClients: vi.fn(),
-  createOAuthClient: vi.fn(),
-  getOAuthClient: vi.fn(),
-  updateOAuthClient: vi.fn(),
-  deleteOAuthClient: vi.fn(),
-  regenerateClientSecret: vi.fn(),
-}))
+vi.mock('@/lib/oauth/oauth-client-manager', () => {
+  // A real class, because the route narrows on `instanceof` rather than
+  // sniffing the message — mocking it as a plain vi.fn() would make every
+  // typed branch fall through to the 500 catch-all.
+  class UnknownScopeGroupError extends Error {
+    constructor(readonly group: string) {
+      super(`Unknown scope group: ${group}`)
+      this.name = 'UnknownScopeGroupError'
+    }
+  }
+  return {
+    listUserOAuthClients: vi.fn(),
+    createOAuthClient: vi.fn(),
+    getOAuthClient: vi.fn(),
+    updateOAuthClient: vi.fn(),
+    deleteOAuthClient: vi.fn(),
+    regenerateClientSecret: vi.fn(),
+    adoptClientScopeGroup: vi.fn(),
+    UnknownScopeGroupError,
+  }
+})
 
 import { GET as LIST, POST as CREATE } from '@/app/api/v1/oauth/clients/route'
 import { GET as GET_ONE, PUT, DELETE } from '@/app/api/v1/oauth/clients/[clientId]/route'
@@ -37,6 +50,8 @@ import {
   updateOAuthClient,
   deleteOAuthClient,
   regenerateClientSecret,
+  adoptClientScopeGroup,
+  UnknownScopeGroupError,
 } from '@/lib/oauth/oauth-client-manager'
 
 const mockAuth = vi.mocked(authenticateAPI)
@@ -46,6 +61,7 @@ const mockGetOne = vi.mocked(getOAuthClient)
 const mockUpdate = vi.mocked(updateOAuthClient)
 const mockDelete = vi.mocked(deleteOAuthClient)
 const mockRegen = vi.mocked(regenerateClientSecret)
+const mockAdopt = vi.mocked(adoptClientScopeGroup)
 
 const authedUser = {
   userId: 'user-1',
@@ -189,6 +205,92 @@ describe('PUT /api/v1/oauth/clients/:clientId', () => {
       'user-1',
       expect.objectContaining({ name: 'New' })
     )
+  })
+})
+
+/**
+ * Adopting a connection into a scope group is how an EXISTING client gains
+ * scopes without a hand-written UPDATE against production (AWTD-962). It
+ * widens privileges, so what it refuses matters more than what it allows.
+ */
+describe('PUT /api/v1/oauth/clients/:clientId — scope group adoption (AWTD-962)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(authedUser as any)
+    mockAdopt.mockResolvedValue({
+      changed: true,
+      added: ['chat:read', 'chat:write'],
+      client: { clientId: 'client-1', scopeGroup: 'ai_agent' },
+    } as any)
+  })
+
+  it('adopts the client and reports which scopes it gained', async () => {
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopeGroup: 'ai_agent' }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.added).toEqual(['chat:read', 'chat:write'])
+    expect(json.client.scopeGroup).toBe('ai_agent')
+    expect(mockAdopt).toHaveBeenCalledWith('client-1', 'user-1', 'ai_agent')
+  })
+
+  it('does not write the ordinary fields when the body only adopts', async () => {
+    await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopeGroup: 'ai_agent' }),
+      { params } as any
+    )
+
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('refuses a delegated token: a narrow OAuth token must not self-escalate', async () => {
+    mockAuth.mockResolvedValue({ ...authedUser, source: 'oauth', scopes: ['tasks:read'] } as any)
+
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopeGroup: 'ai_agent' }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(403)
+    expect(mockAdopt).not.toHaveBeenCalled()
+  })
+
+  it('rejects an unrecognised group as a bad request, not a server error', async () => {
+    mockAdopt.mockRejectedValue(new UnknownScopeGroupError('not_a_group'))
+
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopeGroup: 'not_a_group' }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(400)
+  })
+
+  it('still 404s when the caller does not own the client', async () => {
+    mockAdopt.mockRejectedValue(new Error('OAuth client not found or access denied'))
+
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopeGroup: 'ai_agent' }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(404)
+  })
+
+  it('leaves a plain field update alone — no adoption, no session requirement', async () => {
+    mockAuth.mockResolvedValue({ ...authedUser, source: 'oauth' } as any)
+    mockUpdate.mockResolvedValue({ clientId: 'client-1', name: 'New' } as any)
+
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { name: 'New' }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(200)
+    expect(mockAdopt).not.toHaveBeenCalled()
   })
 })
 

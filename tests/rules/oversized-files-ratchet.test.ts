@@ -108,7 +108,13 @@ const BUDGETS: Record<string, number> = {
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.
-  'components/oauth-app-manager.tsx': 901,
+  // 901 → 859: AWTD-962 added a per-connection scope-group affordance, which
+  // this budget refused. Rather than raise it, the new dialog went straight
+  // into components/oauth-scope-group-dialog.tsx and the EDIT dialog — the
+  // most self-contained block left here — followed it into
+  // components/oauth-client-edit-dialog.tsx. So the file ends up smaller than
+  // before the feature.
+  'components/oauth-app-manager.tsx': 859,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.
   'lib/email-reminder-service.ts': 791,

@@ -11,13 +11,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { Trash2, Plus, Key, Copy, Check, AlertTriangle, FlaskConical, Pencil } from 'lucide-react'
+import { Trash2, Plus, Key, Copy, Check, AlertTriangle, FlaskConical, Pencil, ShieldPlus } from 'lucide-react'
 import { OAUTH_SCOPES, SCOPE_GROUPS, type OAuthScope } from '@/lib/oauth/oauth-scopes'
 import {
   mergeOAuthRedirectUris,
   OAUTH_REDIRECT_PRESETS,
 } from '@/lib/oauth/oauth-client-presets'
 import { useTranslations } from '@/lib/i18n/client'
+import { OAuthScopeGroupDialog } from '@/components/oauth-scope-group-dialog'
+import { OAuthClientEditDialog } from '@/components/oauth-client-edit-dialog'
 import { OAuthClientGuide, GRANT_TYPE_OPTIONS } from '@/components/oauth-client-guide'
 import type { GrantType } from '@/types/oauth'
 import { toast } from 'sonner'
@@ -29,6 +31,12 @@ interface OAuthClient {
   description: string | null
   redirectUris: string[]
   scopes: OAuthScope[]
+  /**
+   * Which SCOPE_GROUPS entry this connection follows, or null for a bespoke
+   * one. A connection with a group is topped up to it on every token request;
+   * one without never changes (AWTD-962).
+   */
+  scopeGroup: string | null
   grantTypes: string[]
   isActive: boolean
   createdAt: string
@@ -67,8 +75,10 @@ export function OAuthAppManager() {
   const [obtainingToken, setObtainingToken] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<OAuthClient | null>(null)
-  const [editRedirectUrisInput, setEditRedirectUrisInput] = useState('')
-  const [savingClient, setSavingClient] = useState(false)
+
+  // Scope group adoption (AWTD-962) — the dialog owns the rest.
+  const [scopeGroupDialogOpen, setScopeGroupDialogOpen] = useState(false)
+  const [scopeGroupClient, setScopeGroupClient] = useState<OAuthClient | null>(null)
 
   useEffect(() => {
     loadClients()
@@ -281,6 +291,11 @@ export function OAuthAppManager() {
     })
   }
 
+  const openScopeGroupDialog = (client: OAuthClient) => {
+    setScopeGroupClient(client)
+    setScopeGroupDialogOpen(true)
+  }
+
   const openTestDialog = (client: OAuthClient) => {
     // Navigate directly to testing page with client ID pre-filled
     router.push(`/settings/api-testing?clientId=${encodeURIComponent(client.clientId)}&clientName=${encodeURIComponent(client.name)}`)
@@ -288,44 +303,7 @@ export function OAuthAppManager() {
 
   const openEditDialog = (client: OAuthClient) => {
     setEditingClient(client)
-    setEditRedirectUrisInput((client.redirectUris || []).join('\n'))
     setEditDialogOpen(true)
-  }
-
-  const saveClientUpdates = async () => {
-    if (!editingClient) return
-    const redirectUris = editRedirectUrisInput
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean)
-
-    try {
-      setSavingClient(true)
-      const response = await fetch(`/api/v1/oauth/clients/${editingClient.clientId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editingClient.name,
-          description: editingClient.description,
-          redirectUris,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update client')
-      }
-
-      toast.success('OAuth client updated')
-      setEditDialogOpen(false)
-      setEditingClient(null)
-      await loadClients()
-    } catch (err) {
-      console.error('Failed to update OAuth client:', err)
-      toast.error(err instanceof Error ? err.message : 'Failed to update OAuth client')
-    } finally {
-      setSavingClient(false)
-    }
   }
 
   const testOAuthApp = async () => {
@@ -551,6 +529,14 @@ export function OAuthAppManager() {
                     </Button>
                     <Button
                       size="sm"
+                      variant="secondary"
+                      onClick={() => openScopeGroupDialog(client)}
+                    >
+                      <ShieldPlus className="w-4 h-4 mr-2" />
+                      Scopes
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => regenerateSecret(client.clientId)}
                     >
@@ -585,7 +571,16 @@ export function OAuthAppManager() {
                 </div>
 
                 <div>
-                  <Label className="text-xs">Scopes</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label className="text-xs">Scopes</Label>
+                    {client.scopeGroup ? (
+                      <Badge variant="outline" className="text-xs">
+                        follows {client.scopeGroup}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs theme-text-muted">fixed at creation</span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {client.scopes.map(scope => (
                       <Badge key={scope} variant="secondary" className="text-xs">
@@ -840,62 +835,25 @@ export function OAuthAppManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Client Dialog */}
-      <Dialog
+      <OAuthScopeGroupDialog
+        client={scopeGroupClient}
+        open={scopeGroupDialogOpen}
+        onOpenChange={(open) => {
+          setScopeGroupDialogOpen(open)
+          if (!open) setScopeGroupClient(null)
+        }}
+        onUpdated={loadClients}
+      />
+
+      <OAuthClientEditDialog
+        client={editingClient}
         open={editDialogOpen}
         onOpenChange={(open) => {
           setEditDialogOpen(open)
-          if (!open) {
-            setEditingClient(null)
-          }
+          if (!open) setEditingClient(null)
         }}
-      >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Edit OAuth Application</DialogTitle>
-            <DialogDescription>
-              Update redirect URLs or other metadata required by your integrations.
-            </DialogDescription>
-          </DialogHeader>
-
-          {editingClient ? (
-            <div className="space-y-4">
-              <div>
-                <Label>Application</Label>
-                <Input value={editingClient.name} readOnly className="bg-gray-50" />
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Input value={editingClient.description || ''} readOnly className="bg-gray-50" />
-              </div>
-              <div>
-                <Label htmlFor="redirect-uris-edit">Redirect URIs</Label>
-                <Textarea
-                  id="redirect-uris-edit"
-                  value={editRedirectUrisInput}
-                  onChange={(e) => setEditRedirectUrisInput(e.target.value)}
-                  className="font-mono text-sm mt-1"
-                  rows={5}
-                  placeholder="https://chat.openai.com/aip/.../oauth/callback"
-                />
-                <p className="text-xs theme-text-muted mt-2">
-                  One URL per line. {BRAND.appName} will only redirect users to the exact URLs listed here. Add ChatGPT&apos;s action callback URL (from GPT Builder) to fix <code>invalid_redirect_uri</code> errors.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <Button variant="outline" onClick={() => { setEditDialogOpen(false); setEditingClient(null) }}>
-                  Cancel
-                </Button>
-                <Button onClick={saveClientUpdates} disabled={savingClient}>
-                  {savingClient ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm theme-text-muted">Select an OAuth app to edit.</p>
-          )}
-        </DialogContent>
-      </Dialog>
+        onUpdated={loadClients}
+      />
     </div>
   )
 }

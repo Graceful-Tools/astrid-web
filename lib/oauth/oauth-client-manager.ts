@@ -9,10 +9,12 @@ import crypto from 'crypto'
 import { hashClientSecret, verifyClientSecret } from './oauth-token-manager'
 import {
   SCOPE_GROUPS,
+  isScopeGroup,
   validateRegisterableScopes,
   type OAuthScope,
   type ScopeGroup,
 } from './oauth-scopes'
+import { reconcileClientScopes } from './scope-reconcile'
 
 /**
  * Generate client ID
@@ -357,6 +359,7 @@ export async function getOAuthClient(clientId: string) {
       redirectUris: true,
       grantTypes: true,
       scopes: true,
+      scopeGroup: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
@@ -379,6 +382,7 @@ export async function listUserOAuthClients(userId: string) {
       redirectUris: true,
       grantTypes: true,
       scopes: true,
+      scopeGroup: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
@@ -431,12 +435,88 @@ export async function updateOAuthClient(
       redirectUris: true,
       grantTypes: true,
       scopes: true,
+      scopeGroup: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
       lastUsedAt: true,
     },
   })
+}
+
+/**
+ * The caller named a group that does not exist.
+ *
+ * A distinct class rather than a message the route string-matches on: the
+ * route has to answer 400 for this and 404 for an unowned client, and telling
+ * them apart by `message.startsWith(...)` is a contract held together by
+ * prose. It also lets the route return the sentence deliberately, instead of
+ * forwarding whatever an exception happened to carry.
+ */
+export class UnknownScopeGroupError extends Error {
+  constructor(readonly group: string) {
+    super(`Unknown scope group: ${group}`)
+    this.name = 'UnknownScopeGroupError'
+  }
+}
+
+/**
+ * Adopt a client into a scope group, and top its scopes up to that group's
+ * current contents (AWTD-962).
+ *
+ * `reconcileClientScopes` already knows how to widen a client safely, but its
+ * first bound is "no group, no change" — so it is a no-op for every client
+ * that predates the column, which on 2026-09-19 was every client in
+ * production. The three code paths that stamp a group each own one known
+ * client; a connection created in Settings → API Access is reachable from none
+ * of them, and nothing in the row marks it as an agent connection. Without
+ * this, the only way such a connection gains `chat:read`/`chat:write` is a
+ * hand-written UPDATE against production — which is the thing being replaced.
+ *
+ * So adoption is an act by the connection's OWNER, on their own client.
+ *
+ * It writes `scopeGroup` and NOTHING ELSE. Every decision about which scopes
+ * may be added — union not replace, never the wildcard, bounded by the named
+ * group — stays in `reconcileClientScopes`, because a second copy of those
+ * bounds here would be free to drift out of agreement with the first.
+ */
+export async function adoptClientScopeGroup(
+  clientId: string,
+  userId: string,
+  group: string,
+): Promise<{
+  changed: boolean
+  added: OAuthScope[]
+  client: Awaited<ReturnType<typeof getOAuthClient>>
+}> {
+  // Bound 4, before touching the database: an unrecognised name grants
+  // nothing rather than defaulting open. `'*'` is not a group name and is
+  // rejected here like any other unknown.
+  if (!isScopeGroup(group)) {
+    throw new UnknownScopeGroupError(group)
+  }
+
+  // Ownership and existence in one predicate, so a client the caller does not
+  // own is indistinguishable from one that does not exist.
+  const client = await prisma.oAuthClient.findFirst({
+    where: { clientId, userId },
+    select: { id: true },
+  })
+
+  if (!client) {
+    throw new Error('OAuth client not found or access denied')
+  }
+
+  // Stamp FIRST: reconciliation reads `scopeGroup` back off the row, so
+  // calling it before this write would return UNCHANGED and do nothing.
+  await prisma.oAuthClient.update({
+    where: { id: client.id },
+    data: { scopeGroup: group },
+  })
+
+  const { changed, added } = await reconcileClientScopes(client.id)
+
+  return { changed, added, client: await getOAuthClient(clientId) }
 }
 
 /**

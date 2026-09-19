@@ -35,6 +35,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { loadScriptEnv } from './lib/load-env'
+import { brandOrigin } from '../lib/brand/config'
 
 loadScriptEnv()
 
@@ -70,7 +71,7 @@ function arg(name: string, fallback: string): string {
  * never produce it, and nothing noticed until the recheck date came round.
  */
 export function logsArgs(hours: number, token = process.env.VERCEL_TOKEN): string[] {
-  const args = ['logs', 'https://astrid.cc', '--since', `${hours}h`, '--json']
+  const args = ['logs', brandOrigin(), '--since', `${hours}h`, '--json']
   // An empty string is not a token; `--token ''` authenticates as nobody.
   if (token) args.push('--token', token)
   return args

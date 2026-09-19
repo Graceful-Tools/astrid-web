@@ -82,7 +82,12 @@ const ROOT = process.cwd()
 // helper call is not one. The calls had not stopped bypassing the offline
 // client; they had stopped being visible, which is strictly worse than a
 // higher number.
-const CEILING = 94 // 115 → 107: task 1b381810 deleted the dead components
+// 94 → 93: AWTD-962 needed a per-connection scope-group affordance in
+// oauth-app-manager.tsx, which the oversized-files ratchet refused. Extracting
+// the edit dialog to make room moved its raw PUT onto lines the diff adds, so
+// the boundary guard saw it and it went onto apiCall. A real one fewer — the
+// call now goes through lib/api.ts, not through a helper that hides it.
+const CEILING = 93 // 115 → 107: task 1b381810 deleted the dead components
 // (task-form and its picker subtree, ai-api-key-manager, sync-status,
 // public-task-browser, list-detail and the rest), taking their raw mutations
 // with them. Nothing was migrated to the offline client here — the count fell
