@@ -56,10 +56,28 @@ function arg(name: string, fallback: string): string {
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback
 }
 
-function readLogs(hours: number): string {
-  const token = process.env.VERCEL_TOKEN
-  const args = ['logs', 'https://astrid.cc', '--since', `${hours}h`, '--json', '--yes']
+/**
+ * The arguments this script hands `vercel logs`.
+ *
+ * Exported and tested because the invocation itself was the bug. It carried
+ * `--yes`, which skips a confirmation PROMPT — and `vercel logs` does not
+ * prompt, it is a read-only query, so the current CLI rejects the flag rather
+ * than ignoring it:
+ *
+ *   Error: unknown or unexpected option: --yes
+ *
+ * The command whose whole purpose was to produce the hit rate could therefore
+ * never produce it, and nothing noticed until the recheck date came round.
+ */
+export function logsArgs(hours: number, token = process.env.VERCEL_TOKEN): string[] {
+  const args = ['logs', 'https://astrid.cc', '--since', `${hours}h`, '--json']
+  // An empty string is not a token; `--token ''` authenticates as nobody.
   if (token) args.push('--token', token)
+  return args
+}
+
+function readLogs(hours: number): string {
+  const args = logsArgs(hours)
   try {
     return execFileSync('vercel', args, { encoding: 'utf-8', timeout: 120_000, maxBuffer: 64 * 1024 * 1024 })
   } catch (error) {
@@ -70,6 +88,19 @@ function readLogs(hours: number): string {
         'from a shell that has it; this script reads production logs and has no\n' +
         'other source for them.',
       )
+      process.exit(2)
+    }
+    // v50 objects three different ways to the same invocation, depending on
+    // which flag it reaches first: an unknown option, a "did you mean to
+    // deploy the subdirectory logs" guess, or a --follow complaint about a
+    // flag that is not there. All three mean the same thing.
+    if (/unknown or unexpected option|Did you mean to deploy|does not support filtering/.test(message)) {
+      console.error(
+        'The `vercel` CLI on PATH is too old for this query. `vercel logs <url>\n' +
+        '--since ... --json` needs a recent CLI; v50 rejects the whole form. Either\n' +
+        'upgrade it (`npm i -g vercel@latest`) or run this through `npx vercel@latest`.\n',
+      )
+      console.error(message)
       process.exit(2)
     }
     console.error(`vercel logs failed: ${message}`)
@@ -184,4 +215,8 @@ function main(): void {
   console.log(`  ${hitRate >= 80 ? 'WITHIN BUDGET' : 'OVER BUDGET'}\n`)
 }
 
-main()
+// Only run when invoked directly. Importing this module — which the argument
+// test does — must not shell out to the Vercel CLI and exit the process.
+if (process.argv[1] && /measure-cache-hit-rate/.test(process.argv[1])) {
+  main()
+}
