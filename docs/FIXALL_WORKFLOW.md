@@ -307,11 +307,15 @@ does not auto-deploy, so `main` having the fix changes nothing until someone dep
 
 ---
 
-## After every task, re-check the list
+## After every task, re-check the queue AND the inbox
 
 ```
 get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>" }
 ```
+
+**One call answers both questions.** `queue` is what to work; `attention` is what has been said
+to this agent and not answered (AWTD-963). Read them at the top of every run and again after
+every task — the inbox is part of the run, not a courtesy at the end of it.
 
 **Never work from the opening snapshot.** New tasks arrive while work is in progress, and a
 REOPENED task looks exactly like one that was never done. Re-check with the SAME call you opened
@@ -322,31 +326,77 @@ since the run began.
 A reopened task means the previous fix missed. Re-read it and find a different cause rather
 than re-closing it on the same reasoning.
 
-**When the list is empty**, push, then post the run summary **into the board's list chat** —
-not into the terminal.
+**When the list is empty**, push, then post the run summary into the board's list chat — see
+*The engagement contract* below for where each kind of thing goes and how to write it.
+
+## The engagement contract — where an answer goes
+
+The loop could always talk to the board. Until AWTD-963 it could not hear it: `queue` is
+Ready ∩ assigned ∩ due, so a comment on a task the agent itself moved to `Doing` was invisible,
+a comment on one it had finished was invisible, and list chat had no read path at all. Polling
+mode disables the server-side dispatch sites deliberately, so the harness has to PULL what the
+server no longer pushes.
+
+Now that it can, these are the rules for answering, in one place rather than in each repo's own
+file.
+
+**Read the inbox with the queue.** `attention.tasks` is every task assigned to this agent — in
+ANY state, completed included — whose newest authored comment is from a human.
+`attention.messages` is list-chat replies since the agent last spoke. Both arrive on the call
+that already reads the queue, so a quiet tick still costs one HTTP request.
+
+Two fields say what the inbox could not see, and neither should be read as silence:
+
+- `attention.truncated` — more is waiting than one poll reports.
+- `attention.skipped` — a half that was not read, and why. The chat half needs `chat:read`; a
+  connection provisioned before chat scopes existed does not carry it until its scope group is
+  adopted in Settings → API Access (AWTD-962). An unread channel and a quiet one are different
+  facts.
+
+**Answer on the task.** Never in the terminal. *"A summary that only exists in a terminal is
+gone as soon as the window is"* (Jon, 2026-09-15). **This holds for a WATCHED run too** — the
+board is where Jon looks, from whichever device is to hand, and a run he watched on Monday is
+one he cannot re-read on Tuesday. `add_comment { taskId, content, type: "MARKDOWN" }`.
+
+**Run summaries go to the board's list chat, silently.**
 
 ```bash
 cd <astrid-web> && npx tsx scripts/post-list-message.ts <boardListId> "<summary>"
 ```
 
-A few lines: what was done, and anything skipped and why. Per-task detail stays on the tasks as
-completion comments and is not repeated here; this is the run-level news — what was pushed, what
-was skipped, what failed.
+A few lines of run-level news — what was pushed, what was skipped, what failed. Per-task detail
+stays on the tasks as completion comments and is not repeated here. One build now carries
+several tasks, so those comments are the only place the detail for a single task exists.
 
-**Why not chat.** One build now carries several tasks and most runs happen with nobody watching,
-so a summary in a terminal is a summary nobody reads twice. The board is where Jon looks, from
-whichever device is to hand. The terminal gets one `RESULT:` line and nothing else.
+No `@`-mentions: a mention is the one thing that fires a push notification, and a scheduled run
+must not be pushing notifications at whatever hour it happens to run.
 
 **Post only when something happened.** A skipped run, a held lock and an empty queue are not
-news; they go to the run log and no further. A scheduled loop that announces every quiet tick
-buries the messages that matter.
+news; they go to the run log and no further. A loop that announces every quiet tick buries the
+messages that matter.
 
 **Write for the phone.** iOS renders inline markdown only, so `##` headings, `-` bullets and
 fenced code blocks come out literally. Use `**bold**` labels, `•` bullets and plain newlines.
 Image syntax — an exclamation mark, the task title in square brackets, the task id in
-parentheses — renders as a tappable link to that task, so name tasks by title and still get a
-way through to them. Do not `@`-mention anyone: a mention is the one thing that fires a push
-notification, and a scheduled run should not be pushing notifications.
+parentheses — renders as a tappable link to that task, so name tasks by title and still give a
+way through to them.
+
+**Anything needing a DECISION escalates to a person, and there is only one path that reaches
+one.** Assign the task to Jon AND post the question as a comment on it — both, for the reason
+the Waiting section already gives, and because `fanOutComment` in `lib/notifications.ts`
+notifies the assignee, the creator and the participants, while a list-chat message notifies
+nobody who was not mentioned. A decision left in the run summary reaches no one.
+
+So the three destinations are not interchangeable:
+
+| What | Where | Who sees it |
+|---|---|---|
+| The answer to a comment, and per-task detail | a comment on that task | assignee, creator, participants — notified |
+| The run's news — what was pushed, skipped, failed | the board's list chat | anyone who opens the board; nobody is notified |
+| Whether the run happened at all | one `RESULT:` line in the terminal | whoever is watching, if anyone |
+
+`RESULT: OK — <n> tasks`, `RESULT: SKIPPED — <why>`, `RESULT: FAILED — <why>`. Nothing else goes
+to the terminal.
 
 ## Pushing is part of finishing (Jon, 2026-09-06)
 

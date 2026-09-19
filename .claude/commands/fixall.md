@@ -16,7 +16,9 @@ busywork.
 **Read [docs/FIXALL_WORKFLOW.md](../../docs/FIXALL_WORKFLOW.md) — it is the canonical
 description** of the queue (board ∩ Ready ∩ assignee ∩ due date), the board etiquette
 (`Doing` / `Waiting` / handing back), the per-task loop (strategy comment → branch → RED-GREEN
-TDD → gates → report), filing the other repo's half, and re-checking after every task.
+TDD → gates → report), filing the other repo's half, re-checking after every task, and *The
+engagement contract* — the attention inbox that comes back on the same call as the queue, and
+where an answer goes once you have one.
 
 That file is shared with astrid-ios because it is one workflow. This file holds only what is
 different **here**.
