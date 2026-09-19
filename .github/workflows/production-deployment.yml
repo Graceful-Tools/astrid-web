@@ -21,6 +21,20 @@ on:
         required: false
         default: false
         type: boolean
+      # AWTD-959. Migrations apply in a job that runs BEFORE the deploy and does
+      # not depend on it, so a DROP can land while the code that stops reading
+      # the dropped thing is still only pending. That happened on 2026-09-18 and
+      # took production down: four TaskList columns dropped, the deploy job hung
+      # and was cancelled, and the old build 500'd on every list read with no way
+      # back — a DROP cannot be undone by redeploying.
+      #
+      # So a destructive migration needs someone to say, on the record, that the
+      # code is already live. Leave this false and the run refuses instead.
+      allow_destructive_migrations:
+        description: 'Apply a pending DROP / RENAME / SET NOT NULL migration (only when the code that stops using it is ALREADY live)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   NODE_VERSION: '22'
@@ -264,6 +278,20 @@ jobs:
 
           echo "✅ Failed migrations resolved"
 
+      # AWTD-959. The gate that was missing on 2026-09-18. It runs here — after
+      # failed migrations are resolved, so `prisma migrate status` gives a clean
+      # answer, and before anything is applied — and refuses a pending DROP,
+      # RENAME or SET NOT NULL unless the dispatch input says the matching code
+      # is already live. The detector is unit-tested in
+      # tests/scripts/destructive-migrations.test.ts; a rule embedded in YAML is
+      # a rule nobody can run a test against.
+      - name: Guard Destructive Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+          ALLOW_DESTRUCTIVE_MIGRATIONS: ${{ inputs.allow_destructive_migrations }}
+        run: npx tsx scripts/check-destructive-migrations.ts
+
       - name: Run Database Migrations
         id: migration
         env:
@@ -289,7 +317,13 @@ jobs:
   deploy-production:
     name: 'Deploy to Production'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 30, not 20 — but the number matters far less now than it did. Every slow
+    # thing inside is separately bounded (600s for the CLI, 300s to verify the
+    # SHA), so this is the backstop rather than the thing that decides the
+    # outcome. At 20 it WAS the thing that decided the outcome: the CLI hung, the
+    # runner cancelled the job, and the log said only "The operation was
+    # canceled" about a deploy that had succeeded (AWTD-959).
+    timeout-minutes: 30
     needs: [quality-gates, database-migration]
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests) && needs.database-migration.outputs.migration-success == 'true'
     outputs:
@@ -318,30 +352,90 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel build --prod --token=$VERCEL_TOKEN
 
+      # AWTD-959. This step used to report FAILED about deploys that succeeded.
+      # Three separate causes, all fixed here:
+      #
+      #   1. IT WAS INVISIBLE. `DEPLOYMENT_OUTPUT=$(vercel deploy ... 2>&1)`
+      #      captures every byte of progress into a variable that is only echoed
+      #      AFTER the command returns. A successful run dumped 40 lines at once;
+      #      a hung run printed nothing at all. The log read:
+      #        20:39:34  Deploying to production...
+      #        20:57:43  ##[error]The operation was canceled.
+      #      So it streams through tee now, and `set -o pipefail` keeps the
+      #      pipeline's status the CLI's rather than tee's (always 0).
+      #
+      #   2. IT HAD NO TIMEOUT. `vercel deploy` blocks until the deployment is
+      #      READY and carries no timeout of its own, so it ate the job's entire
+      #      budget and the RUNNER cancelled it — an `##[error]` with no
+      #      diagnosis. The CLI now gets a bounded 600s, well inside the job's,
+      #      so this step reports first and says what happened.
+      #
+      #   3. IT GUESSED. Success meant "a URL could be regexed out of stdout".
+      #      Production can just be asked: /api/health reports
+      #      VERCEL_GIT_COMMIT_SHA as `commitSha`. During the incident it
+      #      answered 25712912 — the SHA of the deploy this job called a failure.
+      #      A CLI that times out is not the same thing as a deploy that failed,
+      #      and only production knows which happened.
       - name: Deploy to Vercel
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          set -o pipefail
+
+          # What is live BEFORE we touch anything. Without this, verifying the SHA
+          # afterwards cannot tell "this run deployed it" from "it was already
+          # there" — and re-running a deploy of the SAME commit is exactly what
+          # happened on 2026-09-18. Reporting success in that case is right (the
+          # intended code IS live), but it must not be mistaken for proof that
+          # this run's CLI worked, so the log says which one it was.
+          sha_before=$(curl -sS --max-time 15 https://astrid.cc/api/health 2>/dev/null \
+            | grep -oE '"commitSha"[[:space:]]*:[[:space:]]*"[^"]*"' \
+            | sed -E 's/.*"([^"]*)".*/\1/' || true)
+          echo "ℹ️  Production is currently serving: ${sha_before:-(no answer)}"
+          echo "ℹ️  This run is deploying:           $GITHUB_SHA"
+
           echo "Deploying to production..."
 
-          # Deploy to Vercel production
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>&1)
-          echo "Deployment output:"
-          echo "$DEPLOYMENT_OUTPUT"
+          deploy_status=0
+          timeout 600 vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 \
+            | tee /tmp/vercel-deploy.log || deploy_status=$?
 
-          # Extract production URL from output (strip ANSI escape codes first)
-          CLEAN_OUTPUT=$(echo "$DEPLOYMENT_OUTPUT" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | tr -d '\r')
-          DEPLOYMENT_URL=$(echo "$CLEAN_OUTPUT" | grep -oE 'https://[a-z0-9-]+\.vercel\.app' | tail -1)
-
-          if [ -z "$DEPLOYMENT_URL" ]; then
-            echo "❌ Failed to extract deployment URL from output"
-            exit 1
+          if [ "$deploy_status" -eq 124 ]; then
+            echo "⏱️  vercel deploy did not return within 600s."
+            echo "   It may still have deployed — asking production rather than assuming."
+          elif [ "$deploy_status" -ne 0 ]; then
+            echo "⚠️  vercel deploy exited $deploy_status."
+            echo "   Asking production what is actually live before calling this a failure."
           fi
 
-          echo "✅ Deployed to: $DEPLOYMENT_URL"
-          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "success=true" >> $GITHUB_OUTPUT
+          # The tested extractor, not a second inline regex. It handles the
+          # cursor-control escapes and the Inspect-URL trap that the inline
+          # version missed (scripts/extract-preview-url.sh, PR #206).
+          DEPLOYMENT_URL=$(bash scripts/extract-preview-url.sh < /tmp/vercel-deploy.log || true)
+          if [ -n "$DEPLOYMENT_URL" ]; then
+            echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "🔗 Deployment URL: $DEPLOYMENT_URL"
+          else
+            echo "ℹ️  No deployment URL in the output. Not a verdict on its own."
+          fi
+
+          # THE ONLY THING THAT DECIDES SUCCESS: what production is serving.
+          if bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --timeout 300; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "✅ Production is serving $GITHUB_SHA."
+            if [ "$sha_before" = "$GITHUB_SHA" ]; then
+              echo "⚠️  It was ALREADY serving this commit before this run started."
+              echo "   The intended code is live, so this is a pass — but this run"
+              echo "   has NOT shown that the deploy step itself works. If you are"
+              echo "   here to test the pipeline, deploy a different commit."
+            fi
+            exit 0
+          fi
+
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "❌ Production is NOT serving $GITHUB_SHA — this is a real deploy failure."
+          exit 1
 
   # Job 4: Post-Deployment Health Check
   health-check:
@@ -349,34 +443,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: deploy-production
-    if: needs.deploy-production.outputs.deployment-success == 'true'
+    # AWTD-959. This was `needs.deploy-production.outputs.deployment-success ==
+    # 'true'`, so on 2026-09-18 — the one run where production was actually
+    # broken — the only automated verification was skipped. A deploy job that
+    # reports failure is exactly when someone needs to know what production is
+    # serving, so this now runs whenever the deploy was ATTEMPTED and fails on
+    # its own findings rather than inheriting the deploy job's verdict.
+    if: always() && needs.deploy-production.result != 'skipped'
     steps:
-      - name: Wait for Deployment
+      # Needed for scripts/verify-deployed-sha.sh. This job had no checkout,
+      # which is the same omission that made the removed Job 5 dead code.
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Verify Production Is Serving This Commit
         run: |
-          echo "Waiting for deployment to be ready..."
-          # Check astrid.cc directly — this is what users hit
-          PROD_URL="https://astrid.cc"
-
-          MAX_ATTEMPTS=36
-          ATTEMPT=0
-
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Checking $PROD_URL..."
-
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L --max-redirs 3 --max-time 10 "$PROD_URL" 2>/dev/null || echo "000")
-            if [ "$STATUS" = "200" ]; then
-              echo "✅ Production is responding (status: $STATUS)"
-              break
-            fi
-
-            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "❌ Production not ready after 3 minutes (last status: $STATUS)"
-              exit 1
-            fi
-
-            sleep 5
-          done
+          # Replaces a loop that curled the home page for a 200. That was never
+          # evidence the deploy landed: throughout the 2026-09-18 outage
+          # astrid.cc returned 200 while every list read 500'd, because the old
+          # build was live against the new schema. A commit SHA is the question
+          # worth asking.
+          bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --timeout 300
 
       - name: Run Health Checks
         run: |

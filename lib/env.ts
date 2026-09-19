@@ -79,6 +79,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'UITEST_DATABASE_URL', scope: 'tooling', description: 'Overrides which database scripts/uitest-account.ts mints a UI-test session in; defaults to the production URL, since the app under UI test talks to production.' },
   { name: 'AUTO_MIGRATE_ON_STARTUP', scope: 'optional', description: 'Set to "true" to run pending migrations at server start. Off by default: migrations belong to the deploy.' },
   { name: 'ALLOW_PRODUCTION_DESTRUCTIVE', scope: 'tooling', description: 'Safety interlock that destructive maintenance scripts require.' },
+  { name: 'ALLOW_DESTRUCTIVE_MIGRATIONS', scope: 'tooling', description: 'Set to "true" to let a pending DROP/RENAME/SET NOT NULL migration apply; the deploy workflow refuses one otherwise, because it migrates BEFORE the code is live (AWTD-959).' },
 
   // ── Authentication ────────────────────────────────────────────────────────
   { name: 'NEXTAUTH_SECRET', scope: 'required', description: 'Signs session JWTs and WebAuthn state. Rotating it signs everyone out.', validate: minLength(32) },

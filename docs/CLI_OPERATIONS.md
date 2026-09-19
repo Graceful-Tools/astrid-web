@@ -48,7 +48,13 @@ GitHub Actions deploys through the Vercel CLI, so an Actions build appears as
 did this" and means nothing of the sort. That single misreading produced three of
 the four wrong answers below.
 
-To find what production is serving (a different question from what triggers a deploy):
+To find what production is serving (a different question from what triggers a deploy),
+just ask it — one curl, no token:
+```bash
+curl -s https://astrid.cc/api/health | grep -o '"commitSha":"[^"]*"'
+```
+`/api/health` reports `VERCEL_GIT_COMMIT_SHA` as `commitSha` (`app/api/health/route.ts`).
+The Vercel API answers the same question if you need it from outside the app:
 `GET https://api.vercel.com/v9/projects/<projectId>?teamId=<team>` →
 `targets.production.meta.githubCommitSha`.
 
@@ -97,6 +103,36 @@ API `POST /v13/deployments` with `target:"production"`.
 ./scripts/deploy-preview.sh feature-dark-mode  # → dark-mode.astrid.cc
 ```
 Multiple previews coexist via the `*.astrid.cc` wildcard on the single Vercel project.
+
+### A destructive migration takes TWO deploys (AWTD-959)
+
+**`database-migration` runs BEFORE `deploy-production` and does not depend on it.**
+So a `DROP` lands whether or not the code that stops reading the dropped thing ever
+goes live. On **2026-09-18** that took production down: four `TaskList` columns
+dropped, the deploy job then hung and was cancelled, and the old build kept serving
+against the new schema — `get_lists` returned `Internal server error` and every list
+read 500'd. It recovered only because the code eventually landed. A `DROP` is
+irreversible, so "roll back the deploy" would not have fixed it.
+
+`npx tsx scripts/check-destructive-migrations.ts` now runs in that job before
+`prisma migrate deploy` and **refuses** a pending `DROP TABLE` / `DROP COLUMN` /
+`RENAME` / `SET NOT NULL`. When you hit it, the protocol is:
+
+1. **Deploy the code that stops depending on the old shape.** No migration in it.
+2. **Verify it is live** — not that a page returns 200, which it did throughout the
+   outage:
+   ```bash
+   bash scripts/verify-deployed-sha.sh "$(git rev-parse HEAD)"
+   ```
+3. **Deploy again with the migration**, dispatching with
+   `allow_destructive_migrations: true` to say on the record that step 1 is live.
+
+AWTD-853 did exactly this for its first two steps; only step 3 skipped it, and step 3
+is the one that caused the outage. Additive migrations are unaffected — the gate flags
+8 of 86 migrations in this repo's history, all of them real.
+
+`ALTER INDEX`/`ALTER SEQUENCE` renames, `DROP INDEX` and `DROP CONSTRAINT` are
+deliberately **not** flagged: none can make the old code's queries fail.
 
 ### NEVER pull from Vercel — it destroys `.env.local`
 `vercel pull`, `vercel link`, and `vercel env pull` overwrite your local secrets.
