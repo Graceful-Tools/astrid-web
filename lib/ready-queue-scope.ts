@@ -346,6 +346,70 @@ export function parseBlockedConditions(
   return empty
 }
 
+/**
+ * A comment carries two timestamps, and the watermark is the later of them.
+ *
+ * `updatedAt` matters because editing a comment is how a condition gets
+ * revised: a watermark drawn from `createdAt` alone would let an edited
+ * comment slip under a claim that was already made against it.
+ *
+ * Lives here rather than in `scripts/ready-tasks.ts`, where it was private,
+ * because two callers now need the same rule — the Waiting sweep and the
+ * attention inbox (AWTD-963). A rule written twice is a rule that disagrees
+ * with itself.
+ */
+export interface TimestampedComment {
+  createdAt?: string | Date | null
+  updatedAt?: string | Date | null
+}
+
+function toIso(value: string | Date | null | undefined): string | null {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+/** The newest timestamp across a set of comments, or null when there are none. */
+export function latestCommentWatermark(comments: TimestampedComment[]): string | null {
+  const timestamps = comments
+    .flatMap(comment => [toIso(comment.createdAt), toIso(comment.updatedAt)])
+    .filter((value): value is string => value !== null)
+    .sort()
+  return timestamps.at(-1) ?? null
+}
+
+/**
+ * ── The attention inbox (AWTD-963) ───────────────────────────────────────────
+ *
+ * Does this task have something said to the agent that the agent has not
+ * answered?
+ *
+ * The contract reads "the newest comment is from a human AND newer than the
+ * agent's own last comment", which is ONE condition rather than two: if the
+ * newest comment is a human's, it is by construction newer than every comment
+ * the agent has made. So the rule is just — whose is the newest comment.
+ *
+ * SYSTEM EVENTS ARE NOT COMMENTS for this purpose. "Jon Paris marked this as
+ * complete" and reassignment notices carry `authorId: null`, and if one of them
+ * counted as "the newest", then reassigning a task after asking a question
+ * would bury the question — permanently, since nothing would ever push it back
+ * to the top. Callers pass only authored comments; this asserts it rather than
+ * assuming it, because the cost of being wrong is silence.
+ */
+export interface AuthoredComment extends TimestampedComment {
+  authorId?: string | null
+  author?: { id?: string | null; isAIAgent?: boolean | null } | null
+}
+
+export function awaitsAgentReply(comment: AuthoredComment | null | undefined): boolean {
+  if (!comment) return false
+  // A system event is nobody's question.
+  if (!comment.authorId) return false
+  // "From a human". Another agent's comment is not this loop's to answer, and
+  // the agent's own comment is the answer.
+  return comment.author?.isAIAgent !== true
+}
+
 export type WaitingDisposition =
   /** Has BLOCKED-BY blockers — check their completion before anything else. */
   | 'check-blockers'

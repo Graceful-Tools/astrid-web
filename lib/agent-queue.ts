@@ -17,11 +17,23 @@ import { prisma } from '@/lib/prisma'
 import { getTaskUrl } from '@/lib/base-url'
 import { READY_STATUS_ROLE } from '@/lib/task-status'
 import { agentEmail, agentMailboxFromEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
-import { describeSchedule, isDueToStart } from '@/lib/ready-queue-scope'
+import { awaitsAgentReply, describeSchedule, isDueToStart } from '@/lib/ready-queue-scope'
 import { getAgentExecutionMode, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
 
 /** One page is the point: a truncated queue looks exactly like a short one. */
 const PAGE_LIMIT = 500
+
+/**
+ * How much unanswered conversation one poll reports.
+ *
+ * Smaller than PAGE_LIMIT on purpose. The queue is work to DO and must be
+ * complete or visibly truncated; the inbox is things said to the agent, and a
+ * run that answers the hundred most recent is not meaningfully worse than one
+ * that answers two hundred — while a poll that drags every comment on every
+ * task it has ever been assigned would make a quiet tick expensive, which is
+ * the property that makes the scheduled loop affordable at all.
+ */
+const ATTENTION_LIMIT = 100
 
 export interface AgentQueueTask {
   id: string
@@ -36,6 +48,54 @@ export interface AgentQueueTask {
   url: string
 }
 
+/** A task with something said on it that the agent has not answered. */
+export interface AgentAttentionTask {
+  id: string
+  identifier: string | null
+  title: string
+  /** Where it sits now — `doing`, `waiting`, a custom state, or null. */
+  statusRole: string | null
+  completed: boolean
+  url: string
+  lastComment: {
+    id: string
+    authorId: string | null
+    authorName: string | null
+    createdAt: string
+    /** Enough to recognise the comment; the full text is one get_task_comments away. */
+    excerpt: string
+  }
+}
+
+/** A list-chat message posted since the agent last spoke in that channel. */
+export interface AgentAttentionMessage {
+  id: string
+  channelId: string
+  authorId: string | null
+  authorName: string | null
+  content: string
+  createdAt: string
+}
+
+/**
+ * What has been said TO this agent that it has not answered (AWTD-963).
+ *
+ * Deliberately not filtered by the queue's own predicates. `queue` is
+ * Ready ∩ assigned ∩ due — which is why a comment on a task the agent itself
+ * moved to Doing, or on one it finished, reached nobody.
+ */
+export interface AgentAttention {
+  tasks: AgentAttentionTask[]
+  messages: AgentAttentionMessage[]
+  /** True when more is waiting than one poll reports. */
+  truncated: boolean
+  /**
+   * Halves that were NOT read, and why. An unread channel and a quiet one are
+   * different facts, and only one of them means "nothing to do".
+   */
+  skipped: string[]
+}
+
 export interface AgentQueueResult {
   agent: { mailbox: string; email: string; id: string | null; name?: string | null }
   mode: string
@@ -48,6 +108,8 @@ export interface AgentQueueResult {
     scheduled: Array<{ id: string; title: string; startsAt: string }>
   }
   truncated: boolean
+  /** Unanswered comments and chat replies — the loop's inbox (AWTD-963). */
+  attention: AgentAttention
   /**
    * Why the queue is empty, when it is. Absent whenever there is work: a loop
    * with something to do needs no explanation (AWTD-845).
@@ -86,6 +148,17 @@ export interface AgentQueueOptions {
    * either setting. `isQueueableStatusRole` owns that rule and says why.
    */
   requireReady?: boolean
+  /**
+   * Read the board's list chat as well as task comments?
+   *
+   * FALSE BY DEFAULT, and the route sets it from whether the caller's token
+   * already carries `chat:read` (AWTD-963). Requiring the scope outright would
+   * 403 the WHOLE queue for every existing token — including the task-comment
+   * half, which needs nothing new — and stop the loop dead the moment this
+   * shipped. Asking instead means the chat half lights up by itself on the
+   * first token minted with the scope, with no second deploy.
+   */
+  includeChat?: boolean
 }
 
 /**
@@ -134,6 +207,7 @@ export async function buildAgentQueue({
   userId,
   listId = null,
   requireReady = true,
+  includeChat = false,
 }: AgentQueueOptions): Promise<AgentQueueResult> {
   // No default identity, ever. A loop that guesses which agent it is claims
   // another harness's work — the one failure here that costs duplicated effort
@@ -171,6 +245,8 @@ export async function buildAgentQueue({
       queue: [],
       held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
       truncated: false,
+      // An identity nobody has used yet has nothing to answer either.
+      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
       hint: nothingAssignedHint(mailbox),
     }
   }
@@ -260,6 +336,13 @@ export async function buildAgentQueue({
       })
     : 0
 
+  const attention = await buildAttention({
+    agentId: agentUser.id,
+    listScope,
+    listId,
+    includeChat,
+  })
+
   return {
     agent: { mailbox, email, id: agentUser.id, name: agentUser.name },
     mode,
@@ -289,7 +372,182 @@ export async function buildAgentQueue({
     // A truncated page would hide queued work behind a backlog and report a clean
     // run, so say it rather than working a silent subset.
     truncated: tasks.length === PAGE_LIMIT,
+    attention,
   }
+}
+
+/**
+ * The inbox: what has been said to this agent that it has not answered.
+ *
+ * Two reads, neither of which reuses the queue's filters — those filters ARE
+ * the deafness. A comment on a task the agent moved to Doing, and a comment on
+ * one it completed, are precisely the cases `queue` holds out and precisely the
+ * cases somebody is waiting on an answer for.
+ */
+async function buildAttention({
+  agentId,
+  listScope,
+  listId,
+  includeChat,
+}: {
+  agentId: string
+  listScope: object
+  listId: string | null
+  includeChat: boolean
+}): Promise<AgentAttention> {
+  const skipped: string[] = []
+
+  // Every task assigned to this agent that anyone has ever commented on —
+  // ANY status, completed included. Bounded, and the bound is reported.
+  const candidates = await prisma.task.findMany({
+    where: {
+      assigneeId: agentId,
+      lists: listScope,
+      // Without this, the page fills with tasks nobody has said anything on and
+      // the ones that need an answer fall off the end of it.
+      comments: { some: { authorId: { not: null } } },
+    },
+    select: {
+      id: true,
+      identifier: true,
+      title: true,
+      statusRole: true,
+      completed: true,
+      comments: {
+        // SYSTEM EVENTS ARE EXCLUDED HERE, not filtered afterwards. "Jon Paris
+        // marked this as complete" carries authorId null; if it could be "the
+        // newest comment", completing or reassigning a task after a question
+        // would bury that question permanently.
+        where: { authorId: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+          authorId: true,
+          author: { select: { id: true, name: true, isAIAgent: true } },
+        },
+      },
+    },
+    // Most recently touched first, so a truncated inbox drops the stalest.
+    orderBy: { updatedAt: 'desc' },
+    take: ATTENTION_LIMIT,
+  })
+
+  const tasks: AgentAttentionTask[] = candidates
+    // `?.[0]` because the relation is optional in the row type even though the
+    // select always asks for it — an absent comment list is nothing to answer.
+    .filter(task => awaitsAgentReply(task.comments?.[0]))
+    .map(task => {
+      const last = task.comments[0]
+      return {
+        id: task.id,
+        identifier: task.identifier,
+        title: task.title,
+        statusRole: task.statusRole,
+        completed: task.completed,
+        url: getTaskUrl(task.id),
+        lastComment: {
+          id: last.id,
+          authorId: last.authorId,
+          authorName: last.author?.name ?? null,
+          createdAt: last.createdAt.toISOString(),
+          excerpt: excerpt(last.content),
+        },
+      }
+    })
+
+  const messages = await unansweredChatMessages({ agentId, listId, includeChat, skipped })
+
+  return {
+    tasks,
+    messages,
+    // `>=`, not `===`: the page is what came back, and a row count at or over
+    // the limit means there is more behind it either way.
+    truncated: candidates.length >= ATTENTION_LIMIT,
+    skipped,
+  }
+}
+
+/**
+ * List-chat replies posted since the agent last spoke in the board's channel.
+ *
+ * The watermark comes from its own query rather than from the page: the agent's
+ * last message need not be ON the page, and deducing it from what is there
+ * would report a whole quiet channel as unanswered on every run.
+ */
+async function unansweredChatMessages({
+  agentId,
+  listId,
+  includeChat,
+  skipped,
+}: {
+  agentId: string
+  listId: string | null
+  includeChat: boolean
+  skipped: string[]
+}): Promise<AgentAttentionMessage[]> {
+  if (!includeChat) {
+    // Named, not silent. A token without the scope must not be indistinguishable
+    // from a channel with nothing in it.
+    skipped.push(
+      "list chat: this token does not carry chat:read, so the board's channel was not read",
+    )
+    return []
+  }
+
+  // No board named, no channel to read. Not a skip — there is nothing there to
+  // have missed.
+  if (!listId) return []
+
+  const channel = await prisma.chatChannel.findUnique({
+    where: { listId },
+    select: { id: true },
+  })
+
+  // A list whose chat nobody has opened has no channel row yet. Quiet, not broken.
+  if (!channel) return []
+
+  const lastOwn = await prisma.chatMessage.findFirst({
+    where: { channelId: channel.id, authorId: agentId },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  })
+
+  const messages = await prisma.chatMessage.findMany({
+    where: {
+      channelId: channel.id,
+      authorId: { not: agentId },
+      ...(lastOwn ? { createdAt: { gt: lastOwn.createdAt } } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: ATTENTION_LIMIT,
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      authorId: true,
+      author: { select: { id: true, name: true, isAIAgent: true } },
+    },
+  })
+
+  // Oldest first: a conversation reads in the order it was said.
+  return messages.reverse().map(message => ({
+    id: message.id,
+    channelId: channel.id,
+    authorId: message.authorId,
+    authorName: message.author?.name ?? null,
+    content: message.content,
+    createdAt: message.createdAt.toISOString(),
+  }))
+}
+
+/** Enough of a comment to recognise it; the full text is one call away. */
+function excerpt(content: string): string {
+  const flattened = content.replace(/\s+/g, ' ').trim()
+  return flattened.length > 280 ? `${flattened.slice(0, 277)}...` : flattened
 }
 
 /**

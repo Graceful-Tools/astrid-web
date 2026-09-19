@@ -53,6 +53,7 @@ import {
   parseBlockedConditions,
   classifyWaitingTask,
   shouldParkScheduledReadyTask,
+  latestCommentWatermark,
   type AssignableTask,
   type SchedulableTask,
   type StatusRoleTask,
@@ -388,16 +389,6 @@ class SweepApi {
     }
     return open
   }
-}
-
-function latestCommentWatermark(
-  comments: Array<{ createdAt?: string | null; updatedAt?: string | null }>,
-): string | null {
-  const timestamps = comments
-    .flatMap(comment => [comment.createdAt, comment.updatedAt])
-    .filter((value): value is string => !!value && !Number.isNaN(Date.parse(value)))
-    .sort()
-  return timestamps.at(-1) ?? null
 }
 
 /** Soonest first, so the next thing to come due is the first thing listed. */

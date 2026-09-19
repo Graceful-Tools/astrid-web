@@ -104,7 +104,11 @@ const BUDGETS: Record<string, number> = {
   // transport moved out: mcp/oauth-api-client.ts holds OAuthAPIClient and
   // mcp/hosted-token-cache.ts the cache, leaving this file the MCP protocol
   // surface. Locking the gain in.
-  'mcp/mcp-server-oauth.ts': 609,
+  // 609 → 565: AWTD-963 added a chat read path, which this budget refused. The
+  // new code went into mcp/list-chat.ts, and the Zod task schemas — which this
+  // file's own comment had flagged as belonging elsewhere for some time —
+  // followed into mcp/task-schemas.ts. Smaller than before the feature again.
+  'mcp/mcp-server-oauth.ts': 565,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.

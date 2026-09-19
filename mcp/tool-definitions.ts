@@ -284,6 +284,32 @@ export const OAUTH_MCP_TOOLS = [
         },
       },
       {
+        name: "get_list_messages",
+        description:
+          "Read the recent messages in a list's chat channel — the thread run summaries are posted into. The loop's only read path into chat: scripts/post-list-message.ts writes and nothing read, so a reply to a summary reached nobody (AWTD-963). Needs the chat:read scope; a connection that predates chat scopes gets 403 until its scope group is adopted in Settings → API Access.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            listId: {
+              type: "string",
+              description:
+                "The list whose chat to read. Its channel is resolved (and created if the list has never been chatted in) the same way posting does.",
+            },
+            limit: {
+              type: "number",
+              description: "How many of the most recent messages to return. Default 50, max 100.",
+            },
+            before: {
+              type: "string",
+              format: "date-time",
+              description:
+                "Return messages older than this timestamp, for paging back through a thread.",
+            },
+          },
+          required: ["listId"],
+        },
+      },
+      {
         name: "get_task_comments",
         description: "Get all comments for a specific task",
         inputSchema: {

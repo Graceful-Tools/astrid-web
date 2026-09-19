@@ -1,5 +1,6 @@
 /**
- * GET /api/v1/agent-queue?agent=claude — what a polling harness may work right now.
+ * GET /api/v1/agent-queue?agent=claude — what a polling harness may work right now,
+ * and what has been said to it that it has not answered.
  *
  * The one call a loop makes. `/loop 30m /fixall` in Claude Code, a cron'd
  * `codex exec`, a scheduled GitHub Actions job: each wakes up, asks this endpoint
@@ -14,6 +15,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
+import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.agent-queue')
@@ -50,6 +52,15 @@ export const GET = withAuth(
         userId: auth.userId,
         listId: url.searchParams.get('listId'),
         requireReady: parseRequireReady(url.searchParams.get('requireReady')),
+        // The chat half of the inbox is included only if the caller ALREADY
+        // holds chat:read (AWTD-963). Adding it to this route's `scopes` would
+        // 403 the whole queue for every token minted before chat scopes
+        // existed — which today is all of them — and stop every loop dead,
+        // including the task-comment half that needs nothing new. Asking
+        // instead means the chat half turns itself on with the first token
+        // that carries the scope, and nothing has to be deployed twice.
+        // hasRequiredScopes honours the wildcard, so session auth gets it.
+        includeChat: hasRequiredScopes(auth.scopes ?? [], ['chat:read']),
       })
 
       return NextResponse.json({
