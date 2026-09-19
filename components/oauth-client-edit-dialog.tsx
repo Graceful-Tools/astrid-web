@@ -99,8 +99,11 @@ export function OAuthClientEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
+      {/* Same column-with-one-scroller shape as the scope dialog, and for the
+          same reason: DialogContent caps no height, so on a phone a tall body
+          pushes the actions off the bottom of the screen. */}
+      <DialogContent className="max-w-xl flex flex-col max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh]">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Edit OAuth Application</DialogTitle>
           <DialogDescription>
             Update redirect URLs or other metadata required by your integrations.
@@ -108,7 +111,8 @@ export function OAuthClientEditDialog({
         </DialogHeader>
 
         {client ? (
-          <div className="space-y-4">
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
             <div>
               <Label>Application</Label>
               <Input value={client.name} readOnly className="bg-gray-50" />
@@ -131,13 +135,15 @@ export function OAuthClientEditDialog({
                 One URL per line. {BRAND.appName} will only redirect users to the exact URLs listed here. Add ChatGPT&apos;s action callback URL (from GPT Builder) to fix <code>invalid_redirect_uri</code> errors.
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            </div>
+
+            <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
               <Button variant="outline" onClick={close}>Cancel</Button>
               <Button onClick={save} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
-          </div>
+          </>
         ) : (
           <p className="text-sm theme-text-muted">Select an OAuth app to edit.</p>
         )}

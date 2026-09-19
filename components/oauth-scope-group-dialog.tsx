@@ -114,8 +114,23 @@ export function OAuthScopeGroupDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
+      {/*
+        A column with ONE scrolling child, not a tall box.
+
+        `DialogContent` is fixed, centred with translate-y(-50%), and caps
+        nothing: at 390x664 this dialog rendered 836px tall with its top at
+        -86 and its bottom at 750, the page unscrollable and no scroll
+        container inside it. Every button — including the ✕ — was off-screen,
+        so on a phone the thing could not be used OR dismissed (measured, not
+        guessed). `max-h` alone would have let it scroll but pushed the
+        actions off the bottom, so the footer is pinned outside the scroller
+        and only the middle moves.
+
+        `dvh` where supported: on mobile Safari `vh` means the viewport with
+        the browser chrome HIDDEN, which is exactly the case this bug is about.
+      */}
+      <DialogContent className="max-w-xl flex flex-col max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh]">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Scope Group</DialogTitle>
           <DialogDescription>
             A connection that follows a scope group is topped up to that group whenever it
@@ -126,7 +141,8 @@ export function OAuthScopeGroupDialog({
         </DialogHeader>
 
         {client ? (
-          <div className="space-y-4">
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
             <div>
               <Label>Application</Label>
               <Input value={client.name} readOnly className="bg-gray-50" />
@@ -169,14 +185,16 @@ export function OAuthScopeGroupDialog({
               Tokens already issued keep the scopes they were minted with. Request a new one to
               pick up the change.
             </p>
+            </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* Outside the scroller: the actions stay put however long the list gets. */}
+            <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
               <Button variant="outline" onClick={close}>Cancel</Button>
               <Button onClick={apply} disabled={saving}>
                 {saving ? 'Updating...' : 'Update Scopes'}
               </Button>
             </div>
-          </div>
+          </>
         ) : (
           <p className="text-sm theme-text-muted">Select an OAuth app.</p>
         )}
