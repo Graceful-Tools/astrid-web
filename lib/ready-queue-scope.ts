@@ -401,13 +401,47 @@ export interface AuthoredComment extends TimestampedComment {
   author?: { id?: string | null; isAIAgent?: boolean | null } | null
 }
 
-export function awaitsAgentReply(comment: AuthoredComment | null | undefined): boolean {
+export function awaitsAgentReply(input: {
+  /** The newest AUTHORED comment on the task, or null when there is none. */
+  comment: AuthoredComment | null | undefined
+  /** When the task was completed, or null if it is still open. */
+  completedAt?: Date | string | null
+}): boolean {
+  const { comment, completedAt } = input
   if (!comment) return false
   // A system event is nobody's question.
   if (!comment.authorId) return false
   // "From a human". Another agent's comment is not this loop's to answer, and
   // the agent's own comment is the answer.
-  return comment.author?.isAIAgent !== true
+  if (comment.author?.isAIAgent === true) return false
+
+  // On a COMPLETED task, the newest comment is usually the loop's own
+  // completion report — and it is attributed to a PERSON, because the OAuth
+  // client the loop writes through is owned by one (AWTD-970). So "from a
+  // human" cannot distinguish a question from the record of the work, and the
+  // first production read of this inbox returned 59 completion reports and
+  // zero real items (AWTD-969).
+  //
+  // Time can distinguish them. A comment at or before completion is the record
+  // of the work; one after it is somebody reacting to finished work, which is
+  // the case the inbox exists for.
+  const completed = toDate(completedAt)
+  if (!completed) return true
+
+  // The later of createdAt/updatedAt, because editing a comment is how a
+  // question gets revised — the same reason latestCommentWatermark exists.
+  const said = latestCommentWatermark([comment])
+  // Unreadable or missing timestamps surface rather than hide: showing a few
+  // extra is recoverable, going silent on a real question is not.
+  if (!said) return true
+
+  return new Date(said).getTime() > completed.getTime()
+}
+
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 export type WaitingDisposition =

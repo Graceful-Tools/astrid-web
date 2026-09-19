@@ -413,6 +413,7 @@ async function buildAttention({
       title: true,
       statusRole: true,
       completed: true,
+      completedAt: true,
       comments: {
         // SYSTEM EVENTS ARE EXCLUDED HERE, not filtered afterwards. "Jon Paris
         // marked this as complete" carries authorId null; if it could be "the
@@ -439,7 +440,16 @@ async function buildAttention({
   const tasks: AgentAttentionTask[] = candidates
     // `?.[0]` because the relation is optional in the row type even though the
     // select always asks for it — an absent comment list is nothing to answer.
-    .filter(task => awaitsAgentReply(task.comments?.[0]))
+    //
+    // `completedAt` is what stops the loop's own completion reports reading as
+    // unanswered questions (AWTD-969). It is a MEMORY filter rather than part
+    // of the WHERE because Prisma cannot compare a related row's createdAt to
+    // the parent's completedAt — so `truncated` below counts candidates, not
+    // results. AWTD-970 removes the noise at source.
+    .filter(task => awaitsAgentReply({
+      comment: task.comments?.[0],
+      completedAt: task.completedAt,
+    }))
     .map(task => {
       const last = task.comments[0]
       return {
