@@ -152,6 +152,17 @@ export const desktopHandoffRateLimiter = new RateLimiter({
   keyGenerator: (request) => clientIpKey('desktop-handoff', request),
 })
 
+// Core Web Vitals beacon (AWTD-904). Unauthenticated by design — LCP matters
+// most for logged-out visitors, so requiring a session would blind the metric
+// exactly where it counts. Its own bucket so a burst of telemetry cannot spend
+// the budget that sign-in shares, and generous because one page view legitimately
+// sends up to three samples (LCP, INP, CLS) plus any INP updates.
+export const webVitalsRateLimiter = new RateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  maxRequests: 30,
+  keyGenerator: (request) => clientIpKey('web-vitals', request),
+})
+
 // Preset configurations for different endpoints
 export const RATE_LIMITS = {
   // Webhook endpoints - higher limits for legitimate AI service integrations

@@ -1160,6 +1160,32 @@ model LegacyApiDailyUsage {
   @@index([day])
 }
 
+/// Core Web Vitals samples (AWTD-904).
+///
+/// Its own table rather than a column on AnalyticsEvent: that model's userId is
+/// non-nullable with an FK to User, so it structurally cannot hold a sample from
+/// a logged-out visitor — and logged-out is exactly where LCP matters most.
+///
+/// No userId here at all. `authState` carries the only distinction the budget
+/// needs (anonymous vs signed-in) without recording who the visitor was, and
+/// `sessionId` is an opaque per-tab value generated in the browser, never a
+/// user or session identifier from the database.
+model WebVitalSample {
+  id        String   @id @default(cuid())
+  metric    String // LCP, INP, CLS
+  value     Float // milliseconds for LCP/INP, unitless ratio for CLS
+  rating    String // good, needs-improvement, poor — at Google's p75 thresholds
+  route     String // normalised, locale-stripped: /lists/:id
+  platform  String // AnalyticsPlatform value: web-desktop, web-iPhone, ...
+  authState String // anonymous, signed-in
+  sessionId String // opaque, client-generated, per tab
+  createdAt DateTime @default(now())
+
+  @@index([metric, createdAt])
+  @@index([createdAt])
+  @@index([route, metric, createdAt])
+}
+
 model AdminUser {
   id        String   @id @default(cuid())
   userId    String   @unique
