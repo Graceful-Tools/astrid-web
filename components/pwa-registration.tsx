@@ -25,10 +25,12 @@ export function PWARegistration() {
           }
         })
 
-      // Handle service worker updates
+      // Handle service worker updates. Sampled BEFORE registration: a page that
+      // had no controller is seeing its first worker claim it, not an update.
+      const hadController = !!navigator.serviceWorker.controller
       let reloadingForUpdate = false
       const handleControllerChange = () => {
-        if (!shouldReloadForControllerChange(reloadingForUpdate)) return
+        if (!shouldReloadForControllerChange({ hasReloaded: reloadingForUpdate, hadController })) return
         reloadingForUpdate = true
         window.location.reload()
       }
