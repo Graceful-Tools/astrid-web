@@ -35,6 +35,9 @@ import type {
   V1CommentsResponse,
   V1ReminderSettings,
   V1MeSettingsResponse,
+  V1Connection,
+  V1ConnectionsResponse,
+  V1ConnectionRevokeResponse,
   V1PublicList,
   V1PublicListsResponse,
   V1Shortcode,
@@ -496,6 +499,32 @@ describe('v1 contract — V1ReminderSettings (users/me/settings)', () => {
       quietHoursStart: null, quietHoursEnd: null,
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1Connection carries the audit fields a client renders and revokes by', () => {
+    // GET /api/v1/users/me/connections. `kind` is the revoke path segment, so a
+    // rename here is a broken Revoke button on every native build in the wild.
+    const row: V1Connection = {
+      id: 'dcr-1', kind: 'authorizedApp', name: 'Claude Code',
+      actsAs: 'claude@example.test', scopes: ['tasks:read'],
+      createdAt: '2026-09-20T10:00:00.000Z', lastUsedAt: null, expiresAt: null,
+      status: 'active', revocable: true, manageIn: 'connections',
+      detail: { clientId: 'astrid_client_x', activeTokens: 1 },
+    }
+    const list: V1ConnectionsResponse = {
+      connections: [row],
+      meta: { apiVersion: 'v1', authSource: 'session', total: 1 },
+    }
+    const revoked: V1ConnectionRevokeResponse = {
+      success: true, kind: 'authorizedApp', id: 'dcr-1', revokedTokens: 1,
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(Object.keys(row).sort()).toEqual([
+      'actsAs', 'createdAt', 'detail', 'expiresAt', 'id', 'kind', 'lastUsedAt',
+      'manageIn', 'name', 'revocable', 'scopes', 'status',
+    ])
+    expect(list.connections[0].kind).toBe('authorizedApp')
+    expect(revoked.kind).toBe(list.connections[0].kind)
   })
 
   it('V1MeSettingsResponse wraps reminderSettings under settings', () => {

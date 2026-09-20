@@ -527,6 +527,61 @@ export interface V1MobileMcpTokenRevokeResponse {
   meta: V1ResponseMeta
 }
 
+// ── Connections (GET/DELETE /api/v1/users/me/connections) ─────────────
+//
+// Everything that can act as the account, from every source, in one list.
+// A client decodes `kind` leniently (an unknown kind is a row it cannot
+// revoke, not a decode failure) and treats `detail` as optional.
+
+export type V1ConnectionKind =
+  | 'oauthClient'    // an OAuth client the user created (developer console)
+  | 'authorizedApp'  // a dynamically registered client approved on the consent page
+  | 'customAgent'    // a Custom Agent the user registered (client owned by its bot user)
+  | 'accessToken'    // a user-level access token (e.g. the Copilot cloud agent)
+  | 'webhook'        // the user's webhook server
+
+export interface V1ConnectionDetail {
+  clientId?: string
+  grantTypes?: string[]
+  activeTokens?: number
+  permissions?: string[]
+  agentId?: string
+  webhookUrl?: string
+  description?: string | null
+}
+
+export interface V1Connection {
+  /** OAuthClient.id, MCPToken.id, the Custom Agent's User.id, or the literal 'webhook'. */
+  id: string
+  kind: V1ConnectionKind
+  name: string
+  /** The email this credential authors as: the user, an agent@, or a Custom Agent. */
+  actsAs: string | null
+  /** OAuth scopes as the API enforces them today; '*' where it grants everything. */
+  scopes: string[]
+  createdAt: string
+  lastUsedAt: string | null
+  expiresAt: string | null
+  status: 'active' | 'expired' | 'disabled'
+  revocable: boolean
+  /** Which settings page owns further management of this row. */
+  manageIn: 'agents' | 'connections'
+  detail?: V1ConnectionDetail
+}
+
+export interface V1ConnectionsResponse {
+  connections: V1Connection[]
+  meta: V1ScopedMeta
+}
+
+export interface V1ConnectionRevokeResponse {
+  success: true
+  kind: V1ConnectionKind
+  id: string
+  revokedTokens?: number
+  meta: V1ResponseMeta
+}
+
 /**
  * POST /api/v1/auth/desktop/exchange — a one-time hand-off code plus its PKCE
  * verifier, traded for a session.
