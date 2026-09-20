@@ -1,10 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Scheduled /fixall for the Astrid Web board (AWTD-971). Install with:
+  Scheduled /fixall for the Astrid Web board (AWTD-971).
+
+  FIRST, grant node Full Disk Access, or this job hangs forever on its first tick.
+  The checkout lives under ~/Documents, which is TCC-protected; a launchd agent
+  reading it BLOCKS pending consent rather than failing, so the job sits in
+  `state = running` with an empty log and launchd swallows every later tick.
+  Verified 2026-09-19. System Settings -> Privacy & Security -> Full Disk Access,
+  add the path from `readlink -f /opt/homebrew/bin/node`. That is a broad grant to
+  a general-purpose interpreter — decide it deliberately.
+
+  Then install with:
 
     cp scripts/launchd/cc.astrid.fixall-web.plist ~/Library/LaunchAgents/
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cc.astrid.fixall-web.plist
+
+  Confirm it works before trusting it:
+
+    launchctl kickstart gui/$(id -u)/cc.astrid.fixall-web
+    tail ~/Library/Logs/astrid-fixall-web.log      # must show a RESULT: line
 
   Stop it again with:
 
