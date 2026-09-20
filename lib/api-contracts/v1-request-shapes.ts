@@ -80,6 +80,14 @@ export type { V1CommentUpdateRequest } from '@/lib/api-contracts/shared-schemas'
  * can send. tests/api/v1-task-update-clearing.test.ts pins all three.
  */
 export interface V1TaskUpdateRequest {
+  /**
+   * Which agent is making this update, for the system activity line it emits
+   * (AWTD-974). Same field and same rules as `POST /tasks/:id/comments`: it
+   * must name a real AI-agent user, an agent-bound credential overrides it,
+   * and a legacy MCP caller may not send it at all.
+   */
+  aiAgentId?: string
+
   title?: string
   description?: string
   priority?: number

@@ -65,4 +65,17 @@ export class McpAgentIdentity {
   authorId(): string | null {
     return this.declared || this.configured
   }
+
+  /**
+   * The identity fields to merge into a write body — spread it, don't branch.
+   *
+   * ABSENT rather than null when unknown: the routes branch on the key being
+   * present, and an explicit null reads as a caller-chosen author and is
+   * rejected. Comments and task updates both need this (AWTD-878, AWTD-974),
+   * and writing the ternary twice is how one of them ends up sending null.
+   */
+  signature(): { aiAgentId?: string } {
+    const id = this.authorId()
+    return id ? { aiAgentId: id } : {}
+  }
 }

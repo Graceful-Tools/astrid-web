@@ -100,10 +100,17 @@ async function main() {
     .map((l: { name?: string; id: string }) => l.name || l.id)
   console.log('before:', JSON.stringify({ status: task.statusRole ?? null, boards: boardsBefore }))
 
+  // Say WHO is moving this (AWTD-974). The status change emits a system
+  // activity line, and client-credentials auth resolves to the OAuth client's
+  // owner — so without this the board reads "Jon Paris moved this to Waiting"
+  // for a move the loop made. ASTRID_AGENT_ID first: it is the harness-agnostic
+  // one, and this script is run by Copilot and Codex too.
+  const aiAgentId = process.env.ASTRID_AGENT_ID || process.env.CLAUDE_AGENT_ID
+
   const put = await fetch(`${API}/api/v1/tasks/${taskId}`, {
     method: 'PUT',
     headers: auth,
-    body: JSON.stringify({ statusRole: status.role }),
+    body: JSON.stringify({ statusRole: status.role, ...(aiAgentId ? { aiAgentId } : {}) }),
   })
   if (!put.ok) {
     console.error('❌ Status change failed:', put.status, await put.text())
