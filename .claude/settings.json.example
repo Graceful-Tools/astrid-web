@@ -1,6 +1,24 @@
 {
   "permissions": {
     "allow": [
+      // === Astrid MCP board tools (AWTD-963 / e629448e) ===
+      // A SCHEDULED run has no terminal to grant a permission prompt in, and
+      // `--permission-mode acceptEdits` pre-approves file edits only — so
+      // without these every mcp__astrid__* call is denied and the loop falls
+      // back to the OAuth scripts. That fallback works for the queue but CANNOT
+      // see `attention`, which arrives only on get_agent_queue. A loop that
+      // cannot hear what is said to it is the failure AWTD-963 existed to fix.
+      // Named individually rather than mcp__astrid__*: a wildcard would also
+      // pre-approve whatever is added to that server later.
+      "mcp__astrid__get_agent_queue",
+      "mcp__astrid__get_lists",
+      "mcp__astrid__get_tasks",
+      "mcp__astrid__get_task",
+      "mcp__astrid__get_task_comments",
+      "mcp__astrid__get_list_messages",
+      "mcp__astrid__add_comment",
+      "mcp__astrid__update_task",
+      "mcp__astrid__create_task",
       // === Development & Build Tools ===
       "Bash(npm run *)",
       "Bash(npm run dev)",                        // All npm scripts (dev, test, build, lint, etc.)
