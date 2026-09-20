@@ -431,8 +431,8 @@
       "description": "Full coding agent with GitHub + Vercel integration"
     },
     "aiAgents": {
-      "title": "AI & Agents",
-      "description": "Configure AI assistants and coding agents with your API keys",
+      "title": "AI Agents",
+      "description": "Assign tasks to AI agents and get intelligent help",
       "githubMcp": {
         "title": "Use {appName} in GitHub Copilot",
         "description": "Connect {appName} to GitHub's cloud coding agent and code review.",
