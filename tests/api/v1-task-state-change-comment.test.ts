@@ -81,6 +81,7 @@ import { PUT } from '@/app/api/v1/tasks/[id]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI, requireScopes, requireTaskAccess } from '@/lib/api-auth-middleware'
 import { recordStateChangeComment } from '@/lib/task-update-handler'
+import { BRAND } from '@/lib/brand/config'
 
 const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
@@ -178,5 +179,84 @@ describe('PUT /api/v1/tasks/[id] — state-change comment (task efecc4b8)', () =
     const response = await PUT(putReq({ title: 'Renamed' }) as never, ctx as never)
 
     expect(response.status).toBe(200)
+  })
+})
+
+/**
+ * AWTD-974 — and the system line must name WHO actually acted.
+ *
+ * AWTD-878 fixed this for comments: `POST /api/v1/tasks/:id/comments` takes an
+ * `aiAgentId` and resolves it through `lib/ai-agent-author.ts`, so the /fixall
+ * loop's strategy notes stopped arriving with the account holder's name and
+ * face. The SYSTEM lines were left behind, and they are the louder half — every
+ * status move the loop makes emits one.
+ *
+ * Client-credentials auth resolves `auth.userId` to the OAuth client's OWNER,
+ * so `actorName: auth.user?.name` signed every agent-driven update as Jon. The
+ * board read "Jon Paris reassigned from Unassigned to Claude Agent" for a move
+ * Jon never made, and "Jon Paris marked this as complete" for a task the loop
+ * closed. An audit trail that names the wrong actor is worse than none: it
+ * reads as authoritative.
+ *
+ * The same precedence as the comments route, for the same reason — it is the
+ * same question. `auth.agentUser` (a token bound to a mailbox) beats a body
+ * field, and a body field that does not name a real agent is a 400 rather than
+ * a silent fall back to the human, because a silent fallback is invisible in
+ * the response and is exactly the bug.
+ */
+describe('PUT /api/v1/tasks/[id] — who the system line names (AWTD-974)', () => {
+  const CLAUDE = {
+    id: 'ai-agent-claude',
+    email: `claude@${BRAND.agentEmailDomain}`,
+    name: 'Claude Agent',
+    isAIAgent: true,
+  }
+
+  it('names the agent when the token is bound to an agent mailbox', async () => {
+    // The stronger claim: the credential itself says who is acting, so no
+    // request body can contradict it.
+    mockAuth.mockResolvedValue({ ...auth, agentUser: CLAUDE } as never)
+
+    await PUT(putReq({ statusRole: 'doing' }) as never, ctx as never)
+
+    expect(mockRecordComment.mock.calls[0][0].updaterName).toBe('Claude Agent')
+  })
+
+  it('names the agent a client-credentials caller declares in the body', async () => {
+    // The local harnesses have no agent-bound credential yet, so this is the
+    // path scripts/set-task-status.ts and the MCP server actually take.
+    ;(mockPrisma.user.findUnique as never as Mock).mockResolvedValue(CLAUDE as never)
+
+    await PUT(putReq({ statusRole: 'waiting', aiAgentId: 'ai-agent-claude' }) as never, ctx as never)
+
+    expect(mockRecordComment.mock.calls[0][0].updaterName).toBe('Claude Agent')
+  })
+
+  it('still names the human on an ordinary update', async () => {
+    await PUT(putReq({ completed: true }) as never, ctx as never)
+
+    expect(mockRecordComment.mock.calls[0][0].updaterName).toBe('Jon')
+  })
+
+  it('rejects an aiAgentId that does not name an agent, rather than quietly signing as the owner', async () => {
+    ;(mockPrisma.user.findUnique as never as Mock).mockResolvedValue({
+      id: 'user-2', email: 'someone@example.com', name: 'Someone Else', isAIAgent: false,
+    } as never)
+
+    const response = await PUT(putReq({ completed: true, aiAgentId: 'user-2' }) as never, ctx as never)
+
+    expect(response.status).toBe(400)
+    expect(mockRecordComment).not.toHaveBeenCalled()
+  })
+
+  it('refuses a caller-chosen agent on legacy MCP, as the comments route does', async () => {
+    // That credential cannot prove which harness is speaking, so letting it
+    // pick an identity would make the attribution a suggestion.
+    mockAuth.mockResolvedValue({ ...auth, source: 'legacy_mcp' } as never)
+
+    const response = await PUT(putReq({ completed: true, aiAgentId: 'ai-agent-claude' }) as never, ctx as never)
+
+    expect(response.status).toBe(400)
+    expect(mockRecordComment).not.toHaveBeenCalled()
   })
 })

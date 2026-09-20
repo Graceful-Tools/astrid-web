@@ -420,11 +420,14 @@ export default class AstridMCPServerOAuth {
     const updateData = UpdateTaskSchema.parse(args)
     const { taskId, ...updates } = updateData
 
+    // Signed like a comment (AWTD-974): the activity line this emits —
+    // "marked this as complete" — otherwise carries the OAuth client owner's
+    // name, because client-credentials auth resolves to the owner.
     const data = await this.oauthClient.makeRequest<{ task: Task }>(
       `/api/v1/tasks/${taskId}`,
       {
         method: "PUT",
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ ...updates, ...this.agentIdentity.signature() }),
       }
     )
 
@@ -449,10 +452,6 @@ export default class AstridMCPServerOAuth {
     // Validate comment data
     const commentData = CreateCommentSchema.parse(args)
 
-    // Absent rather than null when unknown: the route branches on the key
-    // being present, and a null would be read as a caller-chosen author.
-    const aiAgentId = this.agentIdentity.authorId()
-
     const data = await this.oauthClient.makeRequest<{ comment: Comment }>(
       `/api/v1/tasks/${commentData.taskId}/comments`,
       {
@@ -460,7 +459,7 @@ export default class AstridMCPServerOAuth {
         body: JSON.stringify({
           content: commentData.content,
           type: commentData.type,
-          ...(aiAgentId ? { aiAgentId } : {}),
+          ...this.agentIdentity.signature(),
         }),
       }
     )

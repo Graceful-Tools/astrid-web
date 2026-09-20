@@ -113,7 +113,7 @@ const BUDGETS: Record<string, number> = {
   // new code went into mcp/list-chat.ts, and the Zod task schemas — which this
   // file's own comment had flagged as belonging elsewhere for some time —
   // followed into mcp/task-schemas.ts. Smaller than before the feature again.
-  'mcp/mcp-server-oauth.ts': 565,
+  'mcp/mcp-server-oauth.ts': 564,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.

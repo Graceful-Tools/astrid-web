@@ -24,6 +24,7 @@ import {
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
+import { resolveAgentAuthor } from '@/lib/ai-agent-author'
 
 const log = createLogger('v1.tasks.id')
 
@@ -225,6 +226,16 @@ export const PUT = withAuth<RouteContext>(
       return NextResponse.json({ error: shape.error }, { status: 400 })
     }
 
+    // Same rule as the comments route: a legacy MCP credential cannot prove
+    // which harness is speaking, so letting it choose an identity would make
+    // the attribution a suggestion rather than a fact.
+    if (body.aiAgentId !== undefined && auth.source === 'legacy_mcp') {
+      return NextResponse.json(
+        { error: 'aiAgentId cannot be selected by the caller; use an agent-bound credential' },
+        { status: 400 }
+      )
+    }
+
     // Subtasks: re-parent or promote to top-level (null). Validates existence,
     // self-parenting and cycles. Parsing is shared with the web route so the
     // two cannot disagree about what "no parent" looks like (task b00a1f94).
@@ -280,11 +291,28 @@ export const PUT = withAuth<RouteContext>(
     const ifUnmodifiedSinceHeader = req.headers.get('If-Unmodified-Since')
     const ifUnmodifiedSince = ifUnmodifiedSinceHeader ? new Date(ifUnmodifiedSinceHeader) : null
 
+    // AWTD-974. The activity line this update emits has to name WHO acted, and
+    // client-credentials auth resolves `auth.userId` to the OAuth client's
+    // OWNER — so signing with `auth.user` stamped every move the /fixall loop
+    // made as Jon ("Jon Paris reassigned from Unassigned to Claude Agent", for
+    // a move Jon never made). Same precedence, and the same shared helper, as
+    // the comments route settled on in AWTD-878: it is the same question about
+    // the same write.
+    const actor = await resolveAgentAuthor(auth, body.aiAgentId)
+    if (!actor.ok) {
+      return NextResponse.json({ error: actor.error }, { status: 400 })
+    }
+    const actingAsAgent = actor.authorId !== auth.userId
+
     const result = await updateTaskWithSideEffects({
       taskId,
-      actorId: auth.userId,
-      actorName: auth.user?.name || auth.user?.email || 'Someone',
-      actorType: auth.isAIAgent ? 'agent' : 'user',
+      actorId: actor.authorId,
+      actorName: actingAsAgent
+        ? actor.agentName || actor.agentEmail || 'Agent'
+        : auth.user?.name || auth.user?.email || 'Someone',
+      // An agent-bound token is an agent even when the owner's row is not
+      // flagged, which is the case for every local harness today.
+      actorType: actingAsAgent || auth.isAIAgent ? 'agent' : 'user',
       platform: detectPlatform(req),
       intent,
       include: V1_TASK_RESPONSE_INCLUDE as never,

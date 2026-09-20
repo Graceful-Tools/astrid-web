@@ -24,11 +24,22 @@ import { prisma } from '@/lib/prisma'
 
 export interface AgentAuthorContext {
   userId: string
-  agentUser?: { id: string; email: string } | null
+  agentUser?: { id: string; email: string; name?: string | null } | null
 }
 
+/**
+ * `agentEmail` and `agentName` are present only when an AGENT is signing —
+ * their absence is how a caller tells "this is an ordinary human write" from
+ * "this is the agent" without comparing ids.
+ *
+ * The name is here rather than fetched by the caller because the system
+ * activity lines need to NAME the actor (AWTD-974), and this function has
+ * already done the lookup. A second query to ask who the row it just read
+ * belongs to is the kind of thing that gets skipped, and then the line says
+ * "Someone".
+ */
 export type ResolveAgentAuthorResult =
-  | { ok: true; authorId: string; agentEmail?: string }
+  | { ok: true; authorId: string; agentEmail?: string; agentName?: string }
   | { ok: false; error: string }
 
 /**
@@ -44,7 +55,12 @@ export async function resolveAgentAuthor(
   aiAgentId?: string | null
 ): Promise<ResolveAgentAuthorResult> {
   if (auth.agentUser) {
-    return { ok: true, authorId: auth.agentUser.id, agentEmail: auth.agentUser.email }
+    return {
+      ok: true,
+      authorId: auth.agentUser.id,
+      agentEmail: auth.agentUser.email,
+      agentName: auth.agentUser.name ?? undefined,
+    }
   }
 
   if (!aiAgentId) {
@@ -53,7 +69,7 @@ export async function resolveAgentAuthor(
 
   const aiAgent = await prisma.user.findUnique({
     where: { id: aiAgentId },
-    select: { id: true, isAIAgent: true, email: true },
+    select: { id: true, isAIAgent: true, email: true, name: true },
   })
 
   if (!aiAgent) {
@@ -66,5 +82,10 @@ export async function resolveAgentAuthor(
     return { ok: false, error: 'Invalid aiAgentId - specified user is not an AI agent' }
   }
 
-  return { ok: true, authorId: aiAgent.id, agentEmail: aiAgent.email ?? undefined }
+  return {
+    ok: true,
+    authorId: aiAgent.id,
+    agentEmail: aiAgent.email ?? undefined,
+    agentName: aiAgent.name ?? undefined,
+  }
 }
