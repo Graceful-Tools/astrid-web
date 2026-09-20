@@ -57,7 +57,6 @@ const PUBLIC: Record<string, string> = {
   'app/api/v1/auth/apple/route.ts': 'establishes a session; there is none yet',
   'app/api/v1/auth/google/route.ts': 'establishes a session; there is none yet',
   'app/api/v1/auth/mobile-session/route.ts': 'establishes a session; there is none yet',
-  'app/api/v1/auth/mobile-mcp-token/route.ts': 'exchanges a sign-in for an MCP token',
   'app/api/v1/auth/desktop/exchange/route.ts': 'redeems a single-use desktop hand-off grant',
   'app/api/v1/auth/signout/route.ts': 'clears a session; safe to call without one',
   'app/api/v1/integrations/github/callback/route.ts': 'OAuth callback — the provider calls it, not a signed-in client',

@@ -74,7 +74,6 @@ describe('isLegacyApiPath', () => {
     '/api/chat/channels/abc/agent-response',
     '/api/auth/mobile-signup',
     '/api/auth/mobile-session',
-    '/api/auth/mobile-mcp-token',
     '/api/auth/apple',
     '/api/auth/google',
     '/api/invitations',

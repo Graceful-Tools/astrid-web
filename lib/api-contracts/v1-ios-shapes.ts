@@ -516,17 +516,6 @@ export interface V1AuthSessionResponse {
   meta: V1ResponseMeta
 }
 
-export interface V1MobileMcpTokenResponse {
-  token: string
-  userId: string
-  meta: V1ResponseMeta
-}
-
-export interface V1MobileMcpTokenRevokeResponse {
-  success: true
-  meta: V1ResponseMeta
-}
-
 // ── Connections (GET/DELETE /api/v1/users/me/connections) ─────────────
 //
 // Everything that can act as the account, from every source, in one list.

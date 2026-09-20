@@ -47,7 +47,7 @@
  *   pole. It isn't, and hasn't been for a while.
  * - **iOS's remaining 8 calls have nowhere to go.** There are NO v1
  *   WebAuthn routes (`/api/v1/auth/` has apple / google / mobile-session /
- *   signout / mobile-mcp-token and no passkey endpoints), and no
+ *   signout and no passkey endpoints), and no
  *   `/api/v1/reminders/status`. That is a v1 parity gap, not client
  *   inertia — closing it frees iOS from the legacy surface entirely.
  * - **The web client is the volume consumer** (~21 `/api/lists/` and ~16
@@ -149,7 +149,6 @@ const MIGRATABLE_AUTH_ROUTES = [
   'google',
   'mobile-session',
   'mobile-signup',
-  'mobile-mcp-token',
 ] as const
 
 /** `/api/auth/webauthn/*` — passkeys. Cookie-based web-session auth. */

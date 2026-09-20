@@ -98,9 +98,6 @@ Get current session information.
 ### DELETE `/api/auth/signout`
 Sign out the current user.
 
-### POST `/api/auth/mobile-mcp-token`
-Get MCP (Model Context Protocol) token for AI integrations.
-
 ### POST `/api/auth/desktop/grant`
 Mint a one-time hand-off code for a native desktop app. Cookie-authenticated: the
 code is always for the **session** user, never for a user named in the body.
