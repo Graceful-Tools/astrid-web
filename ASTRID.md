@@ -200,6 +200,29 @@ Tasks assigned to AI agents are automatically routed:
 4. For OpenClaw: fire-and-forget POST to user's gateway via `/hooks/agent`
 5. For Claude Code Remote: signed webhook to user's self-hosted server
 
+### Settings surfaces and credentials
+
+Two settings pages, two questions — keep them apart (2026-09-20):
+
+- **AI Agents** (`/settings/agents`, `components/agent-hub.tsx`) — *who does work here and who
+  runs them*. Every credential a transport needs is minted **there**: provider API keys for
+  "Astrid runs it"; a `client_credentials` pair for the GitHub Actions recipe and the webhook
+  server (`POST /api/v1/oauth/clients { preset, agent }`, `lib/oauth/oauth-client-presets.ts`);
+  the Copilot cloud access token; Custom Agent registration. Never link out of this page for a
+  credential.
+- **Connections** (`/settings/connections`, `components/connections-list.tsx`) — *what can act
+  as this account*: owned OAuth apps, consent-approved apps (dynamically registered MCP
+  clients), Custom Agents, access tokens, the webhook server — one list with Revoke, over
+  `GET/DELETE /api/v1/users/me/connections` (`lib/connections/`). The developer console
+  (hand-made OAuth apps, scope matrix, API tester) is folded underneath it, web-only.
+  `/settings/api-access` is a redirect stub; the registry keeps the old key.
+
+Native (iOS + Mac) has an Agent Hub twin and a shared `ConnectionsScreen`; the developer
+console stays on the web. Credential kinds the API accepts: OAuth bearer (`Authorization:
+Bearer astrid_…` or `X-OAuth-Token`), session cookie, and access tokens (`MCPToken` rows,
+`X-MCP-Access-Token`) — the last granted `*` today and shadow-scoped ahead of narrowing
+(`accessTokenShadowScopes` in `lib/api-auth-middleware.ts`).
+
 ### Communication Protocol
 
 Agents communicate through **task comments**:
@@ -873,6 +896,8 @@ Each package has its own README with setup and usage instructions.
 | File | Purpose |
 |------|---------|
 | `lib/ai/agent-config.ts` | Agent routing configuration |
+| `lib/connections/` | Everything that can act as an account: list + revoke (Settings → Connections) |
+| `lib/oauth/oauth-client-presets.ts` | The client shapes the agents page mints for a transport |
 | `lib/ai-orchestrator.ts` | AI workflow execution |
 | `prisma/schema.prisma` | Database schema |
 | `app/api/` | API endpoints |

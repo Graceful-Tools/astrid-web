@@ -149,7 +149,7 @@ npm run deploy:trigger monitor       # Run deployment monitoring
 
 ### From Cloud AI Agent (astrid.cc)
 
-The Astrid AI Coding Agent at `astrid.cc/settings/coding-integration` can trigger deployments via:
+The Astrid AI Coding Agent (configured at `astrid.cc/settings/agents`) can trigger deployments via:
 
 1. **Automatic PR Previews**: When the AI creates a PR, the `preview-deployment.yml` workflow automatically creates a preview URL
 2. **Production Deployment**: `production-deployment.yml` must be dispatched deliberately. Merging a PR to main does NOT trigger it.

@@ -8,7 +8,7 @@ The application uses **NextAuth.js** with **JWT sessions**. Three sign-in surfac
 
 - **Web** — Google OAuth and WebAuthn passkeys (via NextAuth on the server)
 - **iOS** — Apple Sign-In (custom endpoint at `/api/auth/apple`) and Google OAuth
-- **API/automation** — OAuth client_credentials grant (`/api/v1/oauth/token`) and legacy MCP tokens
+- **API/automation** — OAuth client_credentials grant (`/api/v1/oauth/token`), consent-approved OAuth apps (MCP clients via dynamic registration), and access tokens (`MCPToken` rows — the one long-lived static bearer, minted for the GitHub.com Copilot agent). Everything that can act as an account is listed, with Revoke, under **Settings → Connections** (`GET/DELETE /api/v1/users/me/connections`). Access tokens are granted `*` today; the middleware reports the scopes their permissions map to as `shadowScopes` and the wrapper logs what enforcement would refuse, ahead of narrowing them.
 
 Email/password authentication was removed in 2026-04. There is no `User.password` column, no `CredentialsProvider`, no `/api/auth/signup` endpoint, and no `bcryptjs` dependency.
 

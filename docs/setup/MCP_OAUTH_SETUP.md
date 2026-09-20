@@ -270,8 +270,10 @@ connect.
 
 Astrid supports OAuth dynamic client registration and S256 PKCE, so compatible
 public MCP clients such as VS Code and GitHub Copilot CLI can register themselves
-during that first connection. You do not need to create an API Access client,
-paste a secret, or choose a callback URL.
+during that first connection. You do not need to create a client under
+Settings → Connections → Developer, paste a secret, or choose a callback URL.
+The approval shows up afterwards as an *Authorized app* on Settings →
+Connections, where it can be revoked.
 
 **1. Add the server to `.vscode/mcp.json`** (workspace) — or your user `mcp.json`
 via the *MCP: Open User Configuration* command:
@@ -298,8 +300,8 @@ Notes:
   the Astrid sign-in page.
 - If you pre-register a client instead of using dynamic registration, use both
   documented VS Code callbacks: `http://127.0.0.1:33418` and
-  `https://vscode.dev/redirect`. The API Access form includes a
-  **VS Code / GitHub Copilot** preset that adds them. Do not leave redirects
+  `https://vscode.dev/redirect`. The Developer section's create-app form
+  (Settings → Connections) includes a **VS Code / GitHub Copilot** preset that adds them. Do not leave redirects
   unbound: exact matching prevents authorization-code theft.
 - GitHub's hosted coding agent does not support interactive OAuth for remote MCP
   servers. This limitation does not apply to the local Copilot CLI or VS Code
