@@ -48,7 +48,13 @@ export function loadScriptEnv(options: LoadScriptEnvOptions = {}): LoadScriptEnv
     key => process.env[key] !== undefined && process.env[key] !== parsed[key],
   )
 
-  dotenv.config({ path: envPath, override: true })
+  // `quiet`: dotenv 17 prints a "◇ injected env (n) from .env.local" tip to
+  // STDOUT, ahead of whatever the script prints. Any script whose stdout is
+  // parsed — `ready-tasks.ts --json` piped into a claim, the loop's queue
+  // status — then fails on the first character. CI has no .env.local, so the
+  // one place this bit was a developer machine, which is where the scheduled
+  // loop runs (2026-09-20: `LANES: not read — Unexpected token '◇'`).
+  dotenv.config({ path: envPath, override: true, quiet: true })
 
   return { path: envPath, overridden }
 }
