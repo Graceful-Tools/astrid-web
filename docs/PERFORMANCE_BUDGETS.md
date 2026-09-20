@@ -24,7 +24,7 @@ Insights was collecting the numbers — see below.
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
 | Redis cache hit rate | >= 80% after warm-up | `scripts/measure-cache-hit-rate.ts` (needs the deploy carrying it) | **not yet sampled** |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
-| Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
+| Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights — dashboard only, see below | **not yet transcribed** |
 
 ## Compressed or decoded: say which, or the budget means nothing
 
@@ -116,7 +116,7 @@ visible in the Vercel dashboard and nowhere a script can reach. Probed
 `/v1/speed-insights/vitals`, `/v1/speed-insights/<speedInsightsId>/vitals`,
 `/v1/projects/<projectId>/speed-insights/vitals` and `/v2/speed-insights/vitals`.
 
-So this row had a manual procedure, like the `vercel logs` rows above it:
+So this row's procedure is manual, like the `vercel logs` rows above it:
 
 > Open the project's Speed Insights tab in the Vercel dashboard, read the
 > **p75** for LCP, INP and CLS over the last 28 days, and record them here
@@ -126,49 +126,6 @@ So this row had a manual procedure, like the `vercel logs` rows above it:
 this document uses p50/p95, and copying that convention here would produce
 numbers that do not mean what the thresholds mean. The budgets in the row
 above are Google's "good" thresholds.
-
-### There is now a scriptable second source (AWTD-904)
-
-Speed Insights stays mounted and remains the source with **history** — it has
-been collecting since 2025-08-13 and nothing here replaces it. What it cannot
-do is answer a script, which is why the row above still says "not yet
-transcribed" rather than carrying a number.
-
-A first-party pipeline now collects the same three metrics into a table this
-repo can query:
-
-| piece | where |
-|---|---|
-| client reporter | `components/web-vitals-reporter.tsx`, mounted in `components/providers.tsx` |
-| ingest beacon | `POST /api/internal/web-vitals` — unauthenticated, rate-limited per IP |
-| storage | `WebVitalSample` — no `userId`, only an `anonymous` / `signed-in` flag |
-| rules and p75 | `lib/web-vitals.ts` |
-| report | `npx tsx scripts/measure-web-vitals.ts --prod` |
-
-```bash
-npx tsx scripts/measure-web-vitals.ts --prod          # 28-day p75, read-only
-npx tsx scripts/measure-web-vitals.ts --prod --days 7
-```
-
-It reports p75 overall and split by auth state, because the logged-out case is
-both the worst for LCP and the one Speed Insights will not break out.
-
-**Its history starts on the day it is deployed, so it has none yet.** Until
-samples accumulate the script prints *"No samples recorded in this window"* and
-says in as many words that this means NOT MEASURED rather than fast. Do not
-copy a zero out of it. That is the same failure this whole section exists to
-correct, and `summarizeWebVitals` returns `p75: null` — never `0` — so an empty
-window cannot be mistaken for a passing score anywhere downstream.
-
-**Why both collectors, rather than removing one.** Speed Insights has thirteen
-months of real-visitor data and no API; this has an API and no history. Neither
-is redundant today. Revisit once the first-party table has a few months behind
-it — and if Speed Insights is ever unmounted, the rules test that guards this
-section retires with it.
-
-**Why no `web-vitals` dependency.** The reporter uses Next's own
-`useReportWebVitals`, which already wraps that library. Adding it directly
-would ship the measurement code twice.
 
 The cells are marked *not yet transcribed* rather than filled with a guess.
 Whether the eventual source stays the dashboard or becomes a first-party
