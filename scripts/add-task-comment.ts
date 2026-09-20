@@ -9,49 +9,12 @@
  */
 
 import { loadScriptEnv } from './lib/load-env'
+// Env var, then a lookup by the agent's identity address, then null — the same
+// rule the sweep and the chat poster use (AWTD-970). This script grew that logic
+// first; it is shared now so there is one answer to "who is writing this".
+import { resolveAgentAuthorId } from './lib/agent-author'
 
 loadScriptEnv()
-
-/**
- * Get the Claude agent user ID from env or by looking up assigned tasks
- */
-async function getClaudeAgentId(accessToken: string): Promise<string | null> {
-  // Prefer env var — avoids API lookup entirely
-  if (process.env.CLAUDE_AGENT_ID) {
-    return process.env.CLAUDE_AGENT_ID
-  }
-
-  const agentEmail = process.env.CLAUDE_AGENT_EMAIL || 'claude@astrid.cc'
-
-  try {
-    // Fallback: find a task assigned to the Claude agent to get the agent's user ID
-    const response = await fetch(
-      `https://astrid.cc/api/v1/tasks?assigneeEmail=${encodeURIComponent(agentEmail)}&limit=1`,
-      {
-        headers: {
-          'X-OAuth-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      const tasks = data.tasks || [data.task].filter(Boolean)
-
-      if (tasks.length > 0 && tasks[0].assignee?.id) {
-        return tasks[0].assignee.id
-      }
-    }
-
-    console.warn(`⚠️ Could not find Claude agent ID for ${agentEmail}`)
-    console.warn(`   Set CLAUDE_AGENT_ID in .env.local to fix this`)
-    return null
-  } catch (error) {
-    console.warn(`⚠️ Error looking up Claude agent:`, error)
-    return null
-  }
-}
 
 async function addTaskComment() {
   const args = process.argv.slice(2)
@@ -97,7 +60,7 @@ async function addTaskComment() {
     const { access_token } = await tokenResponse.json()
 
     // Step 2: Get the Claude agent ID so comments appear from the AI agent
-    const aiAgentId = await getClaudeAgentId(access_token)
+    const aiAgentId = await resolveAgentAuthorId({ mailbox: 'claude', accessToken: access_token })
 
     // Step 3: Add comment using OAuth token, posting as Claude agent
     const body: { content: string; type: string; aiAgentId?: string } = {
