@@ -149,6 +149,48 @@ describe('POST /api/v1/oauth/clients', () => {
       expect.objectContaining({ name: 'My App', userId: 'user-1' })
     )
   })
+
+  it('builds a preset client from the preset, not the body: scopes, grant, and the group it follows', async () => {
+    mockCreate.mockResolvedValue({ clientId: 'new-id', clientSecret: 'new-secret' } as any)
+
+    const res = await CREATE(
+      makeReq('POST', 'http://localhost/api/v1/oauth/clients', {
+        preset: 'githubActions',
+        agent: 'copilot',
+        // A caller may not smuggle its own scopes in beside a preset.
+        scopes: ['tasks:delete'],
+        grantTypes: ['authorization_code'],
+      }),
+      undefined as any
+    )
+    expect(res.status).toBe(201)
+    const call = mockCreate.mock.calls[0][0]
+    expect(call.userId).toBe('user-1')
+    expect(call.name).toMatch(/GitHub Actions/)
+    expect(call.name).toContain('copilot')
+    expect(call.grantTypes).toEqual(['client_credentials'])
+    expect(call.scopeGroup).toBe('ai_agent')
+    expect(call.scopes).not.toContain('tasks:delete')
+    expect(call.scopes).toContain('tasks:read')
+  })
+
+  it('rejects an unknown preset as a bad request', async () => {
+    const res = await CREATE(
+      makeReq('POST', 'http://localhost/api/v1/oauth/clients', { preset: 'nope', agent: 'claude' }),
+      undefined as any
+    )
+    expect(res.status).toBe(400)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a preset without a known agent identity', async () => {
+    const res = await CREATE(
+      makeReq('POST', 'http://localhost/api/v1/oauth/clients', { preset: 'githubActions', agent: 'root' }),
+      undefined as any
+    )
+    expect(res.status).toBe(400)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
 })
 
 describe('GET /api/v1/oauth/clients/:clientId', () => {

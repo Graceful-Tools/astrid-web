@@ -445,6 +445,18 @@
         "configStep": "Ouvrez Settings > Copilot > MCP servers et collez cette configuration.",
         "configLabel": "Configuration MCP",
         "openGitHub": "Ouvrir les instructions GitHub"
+      },
+      "credentials": {
+        "create": "Créer des identifiants pour ce workflow",
+        "creating": "Création…",
+        "created": "Identifiants créés",
+        "clientId": "ID client",
+        "clientSecret": "Secret client",
+        "shownOnce": "Enregistrez-les maintenant : le secret client ne sera plus affiché.",
+        "saveAsSecrets": "Enregistrez-les comme secrets du dépôt nommés {clientIdSecret} et {clientSecretSecret}.",
+        "sdkNeedsBoth": "Votre serveur a besoin des deux : ces identifiants pour appeler l’API et le secret du webhook ci-dessous pour vérifier les livraisons.",
+        "manage": "Gérer dans Accès API",
+        "error": "Impossible de créer les identifiants"
       }
     },
     "apiAccess": {

@@ -18,9 +18,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
+import { CredentialField, copyCredential } from "@/components/credential-field"
 import {
   Plus,
-  Copy,
   Check,
   Trash2,
   AlertTriangle,
@@ -139,21 +139,9 @@ export function CustomAgentManager() {
   }
 
   const copyToClipboard = async (text: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedField(field)
-      setTimeout(() => setCopiedField(null), 2000)
-    } catch {
-      // Fallback for older browsers
-      const el = document.createElement("textarea")
-      el.value = text
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand("copy")
-      document.body.removeChild(el)
-      setCopiedField(field)
-      setTimeout(() => setCopiedField(null), 2000)
-    }
+    await copyCredential(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
   }
 
   const handlePhotoClick = (agentId: string) => {
@@ -484,49 +472,6 @@ export function CustomAgentManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  )
-}
-
-function CredentialField({
-  label,
-  value,
-  field,
-  copiedField,
-  onCopy,
-  sensitive,
-}: {
-  label: string
-  value: string
-  field: string
-  copiedField: string | null
-  onCopy: (text: string, field: string) => void
-  sensitive?: boolean
-}) {
-  return (
-    <div>
-      <Label className="text-xs theme-text-muted">{label}</Label>
-      <div className="flex items-center gap-2 mt-0.5">
-        <code
-          className={`flex-1 text-xs font-mono p-2 theme-bg-tertiary rounded truncate ${
-            sensitive ? "text-red-400" : "theme-text-primary"
-          }`}
-        >
-          {value}
-        </code>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="shrink-0"
-          onClick={() => onCopy(value, field)}
-        >
-          {copiedField === field ? (
-            <Check className="w-4 h-4 text-green-500" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
-        </Button>
-      </div>
     </div>
   )
 }

@@ -445,6 +445,18 @@
         "configStep": "Settings > Copilot > MCP servers를 열고 이 설정을 붙여넣으세요.",
         "configLabel": "MCP 설정",
         "openGitHub": "GitHub 안내 열기"
+      },
+      "credentials": {
+        "create": "이 워크플로의 자격 증명 만들기",
+        "creating": "만드는 중…",
+        "created": "자격 증명을 만들었습니다",
+        "clientId": "클라이언트 ID",
+        "clientSecret": "클라이언트 시크릿",
+        "shownOnce": "지금 저장하세요. 클라이언트 시크릿은 다시 표시되지 않습니다.",
+        "saveAsSecrets": "{clientIdSecret} 및 {clientSecretSecret}라는 이름의 저장소 시크릿으로 저장하세요.",
+        "sdkNeedsBoth": "서버에는 둘 다 필요합니다. API를 호출하기 위한 이 자격 증명과 전달을 검증하기 위한 아래의 웹훅 시크릿입니다.",
+        "manage": "API 액세스에서 관리",
+        "error": "자격 증명을 만들 수 없습니다"
       }
     },
     "apiAccess": {

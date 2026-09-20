@@ -28,6 +28,7 @@ vi.mock('@/lib/i18n/client', () => ({
       'common.unableToCopy': 'Unable to copy',
       'settingsPages.aiAgents.githubMcp.create': 'Create GitHub setup',
       'settingsPages.apiAccess.title': 'API Access',
+      'settingsPages.aiAgents.credentials.create': 'Create credentials for this workflow',
     })[key] ?? key,
   }),
 }))
@@ -111,10 +112,11 @@ describe('AgentLoopRecipes guided connection flow (AWTD-758)', () => {
     render(<AgentLoopRecipes mailbox="copilot" origin="https://example.test" listId="board-123" />)
     await user.click(screen.getByRole('tab', { name: 'GitHub Actions' }))
 
-    expect(screen.getByRole('link', { name: 'API Access' })).toHaveAttribute(
-      'href',
-      'https://example.test/settings/api-access',
-    )
+    // The recipe mints its own client credentials: no detour to another page.
+    expect(screen.queryByRole('link', { name: 'API Access' })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Create credentials for this workflow' }),
+    ).toBeInTheDocument()
     const panel = screen.getByRole('tabpanel')
     expect(panel).toHaveTextContent(/client credentials/i)
     expect(panel).toHaveTextContent(/one hour/i)

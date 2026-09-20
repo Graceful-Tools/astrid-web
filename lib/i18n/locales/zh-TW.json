@@ -445,6 +445,18 @@
         "configStep": "開啟 Settings > Copilot > MCP servers 並貼上此設定。",
         "configLabel": "MCP 設定",
         "openGitHub": "開啟 GitHub 說明"
+      },
+      "credentials": {
+        "create": "為此工作流程建立憑證",
+        "creating": "建立中…",
+        "created": "憑證已建立",
+        "clientId": "用戶端 ID",
+        "clientSecret": "用戶端密鑰",
+        "shownOnce": "請立即儲存——用戶端密鑰不會再次顯示。",
+        "saveAsSecrets": "將其儲存為名為 {clientIdSecret} 和 {clientSecretSecret} 的儲存庫密鑰。",
+        "sdkNeedsBoth": "您的伺服器兩者都需要：用這些憑證呼叫 API，用下方的 Webhook 密鑰驗證投遞。",
+        "manage": "在 API 存取中管理",
+        "error": "無法建立憑證"
       }
     },
     "apiAccess": {

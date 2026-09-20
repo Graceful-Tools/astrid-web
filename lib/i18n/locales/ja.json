@@ -445,6 +445,18 @@
         "configStep": "Settings > Copilot > MCP servers を開き、この設定を貼り付けます。",
         "configLabel": "MCP設定",
         "openGitHub": "GitHubの手順を開く"
+      },
+      "credentials": {
+        "create": "このワークフロー用の認証情報を作成",
+        "creating": "作成中…",
+        "created": "認証情報を作成しました",
+        "clientId": "クライアント ID",
+        "clientSecret": "クライアントシークレット",
+        "shownOnce": "今すぐ保存してください。クライアントシークレットは二度と表示されません。",
+        "saveAsSecrets": "{clientIdSecret} と {clientSecretSecret} という名前のリポジトリシークレットとして保存してください。",
+        "sdkNeedsBoth": "サーバーには両方が必要です。API を呼び出すためのこの認証情報と、配信を検証するための下の Webhook シークレットです。",
+        "manage": "API アクセスで管理",
+        "error": "認証情報を作成できませんでした"
       }
     },
     "apiAccess": {

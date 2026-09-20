@@ -23,6 +23,7 @@ const PROVISIONING_PATHS = [
   'scripts/setup-ios-oauth.ts',
   'scripts/test-oauth-local.ts',
   'scripts/test-oauth-locally.ts',
+  'lib/oauth/oauth-client-presets.ts',
 ]
 
 /**

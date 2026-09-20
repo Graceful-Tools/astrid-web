@@ -14,8 +14,10 @@ import { NextResponse } from 'next/server'
 import {
   createOAuthClient,
   listUserOAuthClients,
+  type CreateOAuthClientParams,
 } from '@/lib/oauth/oauth-client-manager'
-import { type CreateOAuthClientParams } from '@/types/oauth'
+import { isConsentAgentMailbox } from '@/lib/oauth/agent-consent'
+import { isOAuthClientPreset, oauthClientPreset } from '@/lib/oauth/oauth-client-presets'
 import { withAuth } from '@/lib/api-auth-wrapper'
 
 /**
@@ -49,6 +51,42 @@ export const GET = withAuth(
  *
  * Returns client credentials (clientSecret is only shown once!)
  */
+/**
+ * A client minted from the agents page: the transport picked the preset, so
+ * the body may name only the preset and the agent. Scopes, grant types and
+ * redirect URIs come from the preset — a caller must not be able to hand a
+ * preset client a wider scope list than the preset carries.
+ */
+function presetParams(body: Record<string, unknown>): Omit<CreateOAuthClientParams, 'userId'> | NextResponse {
+  if (!isOAuthClientPreset(body.preset)) {
+    return NextResponse.json({ error: 'Unknown client preset' }, { status: 400 })
+  }
+  if (!isConsentAgentMailbox(typeof body.agent === 'string' ? body.agent : null)) {
+    return NextResponse.json(
+      { error: 'A preset client must name a known agent identity' },
+      { status: 400 }
+    )
+  }
+  return oauthClientPreset(body.preset, body.agent as string)
+}
+
+/** The developer console's shape: the caller chose everything. */
+function bespokeParams(body: Record<string, unknown>): Omit<CreateOAuthClientParams, 'userId'> | NextResponse {
+  if (!body.name || typeof body.name !== 'string') {
+    return NextResponse.json(
+      { error: 'name is required and must be a string' },
+      { status: 400 }
+    )
+  }
+  return {
+    name: body.name,
+    description: body.description as string | undefined,
+    redirectUris: body.redirectUris as string[] | undefined,
+    grantTypes: body.grantTypes as string[] | undefined,
+    scopes: body.scopes as string[] | undefined,
+  }
+}
+
 export const POST = withAuth(
   { tag: 'v1.oauth.clients' },
   async (req, auth) => {
@@ -64,20 +102,8 @@ export const POST = withAuth(
 
     const body = await req.json()
 
-    if (!body.name || typeof body.name !== 'string') {
-      return NextResponse.json(
-        { error: 'name is required and must be a string' },
-        { status: 400 }
-      )
-    }
-
-    const params: CreateOAuthClientParams = {
-      name: body.name,
-      description: body.description,
-      redirectUris: body.redirectUris,
-      grantTypes: body.grantTypes,
-      scopes: body.scopes,
-    }
+    const params = body.preset !== undefined ? presetParams(body) : bespokeParams(body)
+    if (params instanceof NextResponse) return params
 
     const clientCredentials = await createOAuthClient({
       ...params,
