@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Scheduled /fixall for the Astrid Web board (AWTD-971). Install with:
+
+    cp scripts/launchd/cc.astrid.fixall-web.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cc.astrid.fixall-web.plist
+
+  Stop it again with:
+
+    launchctl bootout gui/$(id -u)/cc.astrid.fixall-web
+
+  Paths are absolute because launchd does not expand ~. Adjust them if your
+  checkout lives elsewhere. See .claude/commands/fixall.md.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>cc.astrid.fixall-web</string>
+
+    <!-- node, not zsh: launchd's zsh has no TCC access to ~/Documents. See the shim. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/jonparis/Documents/mycode/astrid-web/scripts/run-fixall-loop.mjs</string>
+    </array>
+
+    <!--
+      :20 and :50, deliberately NOT StartInterval 1800. Fixed clock minutes
+      interleave with the other two loops working Astrid boards on this Mac:
+      cc.astrid.fixall (iOS, claude) at :00/:30, and the Copilot "Work Astrid
+      Web queue" workflow at :07/:37 against THIS board. Two harnesses claiming
+      the same queue at the same instant is a claim conflict at best.
+    -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Minute</key>
+            <integer>20</integer>
+        </dict>
+        <dict>
+            <key>Minute</key>
+            <integer>50</integer>
+        </dict>
+    </array>
+
+    <!-- Never at load: installing it must not kick off a run you did not ask for. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/jonparis/Library/Logs/astrid-fixall-web.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jonparis/Library/Logs/astrid-fixall-web.log</string>
+</dict>
+</plist>

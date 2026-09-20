@@ -31,6 +31,15 @@ stop, and re-run from your own worktree via `npm run work:start <task-slug>`:
 npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness claude-code
 ```
 
+**Unless `ASTRID_FIXALL_LOCK_HELD=1` — then the lock is already yours; do not acquire or
+release it.** The scheduled runner (`scripts/fixall-loop.sh`, AWTD-971) takes the lock with
+its OWN pid before starting Claude, so it can skip a busy tree without paying for a session
+to find out. Inside `claude -p`, `$PPID` is the claude process — a **different live pid**
+from the launcher's — so an acquire here would come back `2` and the run would stop before
+reading the queue, blocked by its own launcher. Releasing would be worse: it exits `1` as
+`held-by-other` and, if it ever succeeded, would unlock the tree while the run was still
+editing it.
+
 Then pull the queue with the identity of the harness that is actually running this
 command:
 

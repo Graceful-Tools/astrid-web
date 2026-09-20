@@ -114,6 +114,7 @@
     "validate:mcp:oauth": "tsx scripts/validate-mcp-oauth.ts",
     "test:caching": "tsx --env-file=.env.local scripts/test-progressive-caching.ts",
     "monitor:cache": "./scripts/monitor-cache-usage.sh",
+    "fixall:loop": "./scripts/fixall-loop.sh",
     "work:start": "tsx scripts/worktree-start.ts",
     "work:done": "tsx scripts/worktree-cleanup.ts",
     "work:list": "tsx scripts/worktree-list.ts",
