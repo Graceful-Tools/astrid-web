@@ -44,8 +44,13 @@ a small follow-up rather than reconstructing the UI work.
 2. The recipe advertises a 365-day MCP setup token as REST authorization.
    `lib/api-auth-middleware.ts` currently maps legacy MCP tokens to `scopes: ['*']`.
    Do not advertise a wildcard long-lived credential. Prefer short-lived OAuth client
-   credentials from `/settings/connections`, with only the scopes required for queue read
-   and task/comment writes, or implement and test a least-privilege MCP-to-REST scope map.
+   credentials, with only the scopes required for queue read and task/comment writes, or
+   implement and test a least-privilege MCP-to-REST scope map.
+   *Status 2026-09-20:* the GitHub Actions recipe now mints a `client_credentials` pair
+   from the agents page (`POST /api/v1/oauth/clients { preset: 'githubActions' }`, the
+   `ai_agent` group); the middleware reports `shadowScopes` for access tokens and
+   `withAuth` logs what enforcement would refuse. Enforcement is the follow-up once that
+   log has been quiet for a deploy cycle (the scheduled fixall loop runs on such a token).
 3. Update `tests/components/agent-loop-recipes-tabs.test.tsx`. If auth behavior changes,
    add focused API auth tests proving the credential is not wildcard.
 

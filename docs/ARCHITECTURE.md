@@ -796,7 +796,7 @@ npm run predeploy:quick  # TypeScript + ESLint only
 - `Task`: Task data with assignments and metadata
 - `TaskList`: List organization and permissions
 - `Comment`: Task comments with file attachments
-- `MCPToken`: External API access tokens (`token` = SHA-256 hash for lookup, `tokenEncrypted` = AES-256-GCM ciphertext)
+- `MCPToken`: Access tokens — the long-lived static bearer the GitHub.com Copilot agent needs; listed as *Access tokens* under Settings → Connections (`token` = SHA-256 hash for lookup, `tokenEncrypted` = AES-256-GCM ciphertext)
 - `ReminderQueue`: Scheduled reminder queue
 - `PushSubscription`: Web push notification subscriptions
 - `GitHubIntegration`: GitHub App installation data

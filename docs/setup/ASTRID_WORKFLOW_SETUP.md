@@ -51,9 +51,12 @@ This guide shows you how to set up this workflow for your own project.
 
 ## Step 2: Create OAuth Client
 
-1. **Navigate to API Access Settings**:
-   - Go to [astrid.cc/settings/connections](https://astrid.cc/settings/connections)
-   - Click "Create OAuth Client"
+1. **Navigate to Connections → Developer**:
+   - Go to [astrid.cc/settings/connections](https://astrid.cc/settings/connections),
+     expand **Developer**, and click **New App**
+   - For a GitHub Actions queue gate you can skip this form: **Settings → AI Agents →
+     I run it → GitHub Actions → Create credentials for this workflow** mints the pair
+     with the `ai_agent` scope group already chosen
 
 2. **Configure OAuth Client**:
    ```

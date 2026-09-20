@@ -133,8 +133,9 @@ The `archive/` directory contains historical documentation preserved for referen
 3. Review [Development Guidelines](./guides/development-guidelines.md)
 
 ### For AI Agent Setup
-1. Open `/docs/loops` in the app (or Settings -> Agent Hub) and follow the connect -> install -> schedule -> test recipe for your harness
+1. Open `/docs/loops` in the app (or Settings -> AI Agents) and follow the connect -> install -> schedule -> test recipe for your harness
 2. Read [Fixall Queue Workflow](./FIXALL_WORKFLOW.md) for the full queue contract
+3. Review and revoke anything that can act as your account under Settings -> Connections (`GET/DELETE /api/v1/users/me/connections`, see [API contract](./API_CONTRACT.md))
 
 ### For Testing MCP Integration
 1. Review [MCP Testing Guide](./testing/MCP_TESTING_GUIDE.md)

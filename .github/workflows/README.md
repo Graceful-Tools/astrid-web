@@ -61,10 +61,13 @@ prints `CLAIM_CONFLICT` and exits 2 without changing the task; success prints
 
 ### Credential rotation
 
-Create or rotate the OAuth application through **Settings → API Access** while
-signed in as the owner of the Astrid Web To-do. Use the `client_credentials`
+Create or rotate the OAuth application while signed in as the owner of the
+Astrid Web To-do: either **Settings → AI Agents → I run it → GitHub Actions →
+Create credentials for this workflow** (mints a `client_credentials` pair on the
+`ai_agent` scope group, which covers queue read and task/comment writes), or by
+hand under **Settings → Connections → Developer** with the `client_credentials`
 grant and scopes `tasks:read`, `tasks:write`, `lists:read`, `comments:read`, and
-`comments:write`. A newly created application keeps the old credentials valid
+`comments:write`. Either way the app is listed, and revocable, on Connections. A newly created application keeps the old credentials valid
 while both repositories are updated. Capture the one-time values without shell
 history or plaintext files:
 
