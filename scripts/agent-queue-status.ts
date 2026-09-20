@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Is there anything for this agent to do right now? One HTTP request, no session.
+ * Is there anything for this agent to do right now? No session, no tokens.
  *
  * WHY THIS EXISTS. A scheduled /fixall tick used to answer that question by
  * starting a whole Claude session — loading CLAUDE.md, fixall.md and the MCP
@@ -10,21 +10,55 @@
  * request, so the loop asks it first and only pays for a session when the
  * answer is yes.
  *
+ * WHAT "YES" MEANS. Three things, because the run is required to act on all
+ * three and until 2026-09-20 this script saw only the first:
+ *
+ *   1. `queue`     — Ready, assigned to this agent, due. The endpoint's `empty`.
+ *   2. `attention` — comments and list-chat replies nobody has answered
+ *                    (AWTD-963). Same call, and the loop skipped past two direct
+ *                    questions from Jon because it read only `empty`.
+ *   3. the lanes   — `--board <web|ios|windows>` runs the sweep
+ *                    (scripts/ready-tasks.ts) as this agent's harness: dated
+ *                    Ready work parks in Waiting, met conditions promote back to
+ *                    Ready, and RECHECK/REVIEW items come out as work. Without
+ *                    this a parked task could never wake the loop by itself —
+ *                    the sweep ran only inside a session, and a session needed a
+ *                    non-empty queue to start.
+ *
+ * WAKING IS BOUNDED. A seen-file (default: node_modules/.cache/astrid-fixall/
+ * seen-<agent>-<list>.json, override with `--seen <file>`) records which inbox
+ * and lane items have already woken a run; the same item never wakes a second
+ * one, a new comment does. Without it an item the agent chose not to answer
+ * would start a session every half hour, forever — the bill this guard exists
+ * to avoid. The decision lives in scripts/lib/agent-queue-verdict.ts, where it
+ * is tested.
+ *
  * Usage:
- *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId>
+ *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web
+ *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId>            # no sweep; lanes reported as not read
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --json
  *
  * Exit codes are the interface, matching the fixall scripts around it:
  *   0  there is work — the caller should start a run
- *   3  the queue is empty — the caller should skip, and why is on stdout
+ *   3  nothing to do — the caller should skip, and why is on stdout
  *   1  could not tell (network, auth). A caller must NOT treat this as empty.
+ *
+ * Every verdict is one `QUEUE:` line. Lane moves the sweep made are `LANES:`
+ * lines, so a log of skips still shows the board being kept honest.
  *
  * `--json` prints the raw endpoint response for debugging a queue that is empty
  * when you did not expect it to be; the `hint` field says which condition was
  * the unmet one.
  */
 
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+
 import { loadScriptEnv } from './lib/load-env'
+import { FIXALL_HARNESS_MAILBOXES } from '@/lib/ready-queue-scope'
+import { parseReadyTaskClaims } from './lib/ready-tasks-output'
+import { decideQueueVerdict, type LaneSnapshot, type QueueSnapshot } from './lib/agent-queue-verdict'
 
 loadScriptEnv()
 
@@ -35,15 +69,106 @@ function arg(name: string): string | undefined {
   return i === -1 ? undefined : process.argv[i + 1]
 }
 
+/**
+ * The sweep takes a harness selector (`claude-code`), this script takes a
+ * mailbox (`claude`). The map only runs one way, so invert it. No match means
+ * no sweep — named on stdout, never silently.
+ */
+function harnessForMailbox(mailbox: string): string | undefined {
+  return Object.entries(FIXALL_HARNESS_MAILBOXES).find(([, box]) => box === mailbox)?.[0]
+}
+
+/**
+ * Run the lane sweep and return its RECHECK/REVIEW items.
+ *
+ * Null means "could not read" — a failed sweep is reported, not treated as a
+ * clean board, and not treated as a reason to run either: the session could
+ * not read the lanes any better than this could, and a sweep that is broken
+ * every tick must not become a session every tick.
+ */
+function readLanes(board: string, mailbox: string): { lanes: LaneSnapshot; notes: string[] } {
+  const harness = harnessForMailbox(mailbox)
+  if (!harness) {
+    return { lanes: null, notes: [`LANES: not swept — no harness selector maps to mailbox "${mailbox}"`] }
+  }
+
+  const result = spawnSync(
+    'npx',
+    ['tsx', 'scripts/ready-tasks.ts', board, '--json', '--harness', harness],
+    { encoding: 'utf8', env: process.env },
+  )
+
+  // The sweep reports its moves on stderr in JSON mode ("→ parked …").
+  const notes = (result.stderr ?? '')
+    .split('\n')
+    .filter(line => line.startsWith('→'))
+    .map(line => `LANES: ${line.slice(1).trim()}`)
+
+  if (result.status !== 0) {
+    const why = (result.stderr ?? '').trim().split('\n').pop() ?? `exit ${result.status}`
+    return { lanes: null, notes: [...notes, `LANES: not read — ${why}`] }
+  }
+
+  // The envelope is one JSON line. Take that line rather than the whole
+  // stream, so a stray stdout line from a dependency (dotenv's banner was one)
+  // cannot turn the lanes into "not read" every tick.
+  const envelope = (result.stdout ?? '').split('\n').find(line => line.startsWith('{')) ?? ''
+
+  try {
+    const lanes = parseReadyTaskClaims(envelope).filter(
+      (claim): claim is { id: string; action: 'recheck' | 'review'; commentWatermark: string | null } =>
+        claim.action !== 'ready',
+    )
+    return { lanes, notes }
+  } catch (error) {
+    return {
+      lanes: null,
+      notes: [...notes, `LANES: not read — ${error instanceof Error ? error.message : error}`],
+    }
+  }
+}
+
+function readSeen(file: string | undefined): Set<string> {
+  if (!file || !existsSync(file)) return new Set()
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8'))
+    return new Set(Array.isArray(parsed) ? parsed.filter(k => typeof k === 'string') : [])
+  } catch {
+    // An unreadable file is an empty memory: the worst case is one extra
+    // run, which beats a guard that cannot start.
+    return new Set()
+  }
+}
+
+function writeSeen(file: string | undefined, keys: string[]): void {
+  if (!file) return
+  try {
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, `${JSON.stringify(keys, null, 2)}\n`)
+  } catch (error) {
+    console.log(`SEEN: could not write ${file} — ${error instanceof Error ? error.message : error}`)
+  }
+}
+
 async function main() {
   const agent = arg('--agent') || 'claude'
   const listId = arg('--list')
+  const board = arg('--board')
   const asJson = process.argv.includes('--json')
 
   if (!listId) {
-    console.error('Usage: npx tsx scripts/agent-queue-status.ts --agent <mailbox> --list <listId>')
+    console.error(
+      'Usage: npx tsx scripts/agent-queue-status.ts --agent <mailbox> --list <listId> [--board web|ios|windows] [--seen <file>]',
+    )
     process.exit(1)
   }
+
+  // Bounded by DEFAULT, not by flag: the iOS loop calls this script from the
+  // web checkout with no flags, and an inbox item it never answers must not
+  // start an iOS session every half hour either. Per agent and board, under
+  // node_modules/.cache so it is gitignored wherever tsx can run at all.
+  const seenFile =
+    arg('--seen') ?? join(process.cwd(), 'node_modules', '.cache', 'astrid-fixall', `seen-${agent}-${listId}.json`)
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -51,6 +176,12 @@ async function main() {
     console.error('QUEUE: unknown — ASTRID_OAUTH_CLIENT_ID and ASTRID_OAUTH_CLIENT_SECRET are required')
     process.exit(1)
   }
+
+  // The sweep goes FIRST: a Waiting task it promotes is Ready by the time the
+  // endpoint is asked, so the queue half of the verdict sees it this tick and
+  // not the next.
+  const { lanes, notes } = board ? readLanes(board, agent) : { lanes: null, notes: [] }
+  for (const note of notes) console.log(note)
 
   const tokenResponse = await fetch(`${API}/api/v1/oauth/token`, {
     method: 'POST',
@@ -70,29 +201,23 @@ async function main() {
     process.exit(1)
   }
 
-  const result = await response.json()
+  const snapshot = (await response.json()) as QueueSnapshot
 
   if (asJson) {
-    console.log(JSON.stringify(result, null, 2))
+    console.log(JSON.stringify(snapshot, null, 2))
   }
 
-  if (!result.empty) {
-    const n = result.queue?.length ?? 0
-    if (!asJson) console.log(`QUEUE: ${n} task${n === 1 ? '' : 's'} ready`)
-    process.exit(0)
-  }
+  // A board that was not swept has lanes nobody looked at — say so rather than
+  // let "not asked" read as "clear".
+  const verdict = decideQueueVerdict({ snapshot, lanes: board ? lanes : null, seen: readSeen(seenFile) })
 
-  // A queue held up by the clock is not an idle one — say when it opens, so a
-  // log of skips still tells you the loop is waiting rather than broken.
-  const next = result.held?.scheduled?.[0]
-  if (!asJson) {
-    console.log(
-      next
-        ? `QUEUE: empty — next task ("${next.title}") comes due ${next.startsAt}`
-        : `QUEUE: empty${result.hint ? ` — ${result.hint}` : ''}`
-    )
-  }
-  process.exit(3)
+  if (!asJson) console.log(verdict.line)
+
+  // Every wake-able item present now has had its chance after this tick,
+  // whether the run starts or not.
+  writeSeen(seenFile, verdict.keys)
+
+  process.exit(verdict.work ? 0 : 3)
 }
 
 main().catch(error => {

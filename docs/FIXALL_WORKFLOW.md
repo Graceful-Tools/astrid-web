@@ -345,6 +345,13 @@ ANY state, completed included — whose newest authored comment is from a human.
 `attention.messages` is list-chat replies since the agent last spoke. Both arrive on the call
 that already reads the queue, so a quiet tick still costs one HTTP request.
 
+The scheduled runner (`scripts/fixall-loop.sh`) reads that same call *before* starting a session
+— through its queue-status guard, which also runs the lane sweep — and starts one only for a
+Ready task, a new inbox item, or RECHECK/REVIEW work. An inbox item wakes **one** run:
+if that run chooses not to answer it, the same comment never wakes another, a new comment does.
+So an idle board costs no tokens at all, and an unanswered "thanks" cannot become a session
+every half hour.
+
 Two fields say what the inbox could not see, and neither should be read as silence:
 
 - `attention.truncated` — more is waiting than one poll reports.

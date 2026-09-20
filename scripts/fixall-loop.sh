@@ -118,18 +118,32 @@ fi
 # ── Guard 3: is there actually any work? ─────────────────────────────────────
 # THE expensive question, asked the cheap way. Without this a quiet tick still
 # boots a whole session — CLAUDE.md, fixall.md, the MCP tool schemas — to call
-# get_agent_queue once and find `empty: true`. GET /api/v1/agent-queue is the
-# same question for one HTTP request.
+# get_agent_queue once and find `empty: true`. A few HTTP requests answer the
+# same question, and answer ALL of it — three things the run must act on, and
+# until 2026-09-20 this guard checked only the first:
+#
+#   queue  — Ready ∩ assigned to claude ∩ due (the endpoint's `empty`)
+#   inbox  — `attention`: comments and chat nobody answered (AWTD-963). The
+#            guard skipped past two direct questions from Jon, "nothing queued".
+#   lanes  — `--board web` runs the sweep as claude-code first: parked work
+#            whose date arrived comes back to Ready, and RECHECK/REVIEW items
+#            are work. Before this the sweep ran only INSIDE a session, and a
+#            session needed a non-empty queue to start, so a parked task could
+#            never wake the loop on its own.
+#
+# And it stays cheap in the other direction: an inbox or lane item wakes ONE
+# run (scripts/agent-queue-status.ts keeps a seen-file), so something the
+# agent chose not to answer cannot start a session every half hour.
 #
 # Exit 1 means "could not tell" (network, auth) and must NOT be read as empty:
 # a queue we cannot see is a reason to run and let the agent report properly,
 # not a reason to skip quietly forever.
-QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" 2>&1)
+QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web 2>&1)
 QUEUE_STATUS=$?
-QUEUE_LINE=$(echo "$QUEUE_OUT" | grep '^QUEUE:' | tail -1)
-echo "  ${QUEUE_LINE:-QUEUE: no verdict}"
+QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN):')
+echo "${QUEUE_LINES:-QUEUE: no verdict}" | sed 's/^/  /'
 if [ "$QUEUE_STATUS" -eq 3 ]; then
-  echo "RESULT: SKIPPED — nothing queued for claude"
+  echo "RESULT: SKIPPED — nothing to do for claude (no Ready task, no new comment, no lane work)"
   exit 0
 fi
 
