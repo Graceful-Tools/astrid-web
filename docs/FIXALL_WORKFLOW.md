@@ -382,10 +382,15 @@ must not be pushing notifications at whatever hour it happens to run.
 news; they go to the run log and no further. A loop that announces every quiet tick buries the
 messages that matter.
 
-**Write for the phone.** iOS renders inline markdown only, so `##` headings, `-` bullets and
-fenced code blocks come out literally. Use `**bold**` labels, `•` bullets and plain newlines.
+**Write for the phone.** Block markdown renders on iOS — `##` headings, `-` bullets and fenced
+code blocks all draw, since astrid-ios AITD-416 routed the chat bubble and the task-comment
+bubble through the shared block renderer (confirmed installed 2026-09-20). Write normal
+markdown; the old advice to flatten everything into `**bold**` labels and `•` bullets was a
+workaround for a renderer that no longer has that limit.
+
+The no-`@`-mentions rule above is unaffected — that one is about notifications, not rendering.
 Image syntax — an exclamation mark, the task title in square brackets, the task id in
-parentheses — renders as a tappable link to that task, so name tasks by title and still give a
+parentheses — still renders as a tappable link to that task, so name tasks by title and give a
 way through to them.
 
 **Anything needing a DECISION escalates to a person, and there is only one path that reaches
