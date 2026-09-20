@@ -455,7 +455,7 @@
         "shownOnce": "Salvale ora: il segreto client non verrà mostrato di nuovo.",
         "saveAsSecrets": "Salvale come segreti del repository chiamati {clientIdSecret} e {clientSecretSecret}.",
         "sdkNeedsBoth": "Il tuo server ha bisogno di entrambi: queste credenziali per chiamare l’API e il segreto del webhook qui sotto per verificare le consegne.",
-        "manage": "Gestisci in Accesso API",
+        "manage": "Gestisci in Connessioni",
         "error": "Impossibile creare le credenziali"
       }
     },
@@ -889,6 +889,46 @@
         "removed": "Agente rimosso",
         "photoUpdated": "Foto profilo aggiornata",
         "photoFailed": "Impossibile aggiornare la foto profilo"
+      }
+    },
+    "connections": {
+      "title": "Connessioni",
+      "description": "Tutto ciò che può agire per conto del tuo account",
+      "empty": "Non c’è ancora nulla collegato al tuo account.",
+      "loadError": "Impossibile caricare le connessioni",
+      "kinds": {
+        "oauthClient": "App OAuth",
+        "authorizedApp": "App autorizzata",
+        "customAgent": "Agente personalizzato",
+        "accessToken": "Token di accesso",
+        "webhook": "Server webhook"
+      },
+      "columns": {
+        "actsAs": "Agisce come",
+        "scopes": "Ambiti",
+        "created": "Creato",
+        "lastUsed": "Ultimo utilizzo",
+        "expires": "Scade",
+        "never": "Mai"
+      },
+      "status": {
+        "active": "Attivo",
+        "expired": "Scaduto",
+        "disabled": "Disattivato"
+      },
+      "actsAsYou": "Tu",
+      "revoke": "Revoca",
+      "revokeConfirm": "Revocare {name}? Tutto ciò che lo usa smetterà di funzionare immediatamente.",
+      "removeAgentConfirm": "Rimuovere {name}? L’agente e le sue credenziali verranno eliminati.",
+      "confirm": "Conferma",
+      "cancel": "Annulla",
+      "revoked": "Revocato",
+      "revokeError": "Impossibile revocare",
+      "manageInAgents": "Gestisci in Agenti IA",
+      "developer": {
+        "title": "Sviluppatore",
+        "description": "Crea app OAuth manualmente, testa l’API e collega assistenti che parlano OpenAPI.",
+        "openTester": "Apri tester API"
       }
     }
   },

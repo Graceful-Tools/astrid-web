@@ -40,7 +40,7 @@ export default function APIDocsPage() {
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
-            onClick={() => router.push('/settings/api-access')}
+            onClick={() => router.push('/settings/connections')}
             className="p-2 hover:bg-opacity-20"
           >
             <ArrowLeft className="w-5 h-5 theme-text-primary" />
@@ -383,7 +383,7 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between"
-                onClick={() => router.push('/settings/api-access')}
+                onClick={() => router.push('/settings/connections')}
               >
                 <span>Manage OAuth Applications</span>
                 <ExternalLink className="w-4 h-4" />

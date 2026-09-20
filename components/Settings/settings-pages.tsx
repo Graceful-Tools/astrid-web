@@ -7,7 +7,7 @@ const AccountSettings = lazy(() => import("./AccountSettings"))
 const AppearanceSettings = lazy(() => import("./AppearanceSettings"))
 const RemindersSettings = lazy(() => import("./RemindersSettings"))
 const AgentsSettings = lazy(() => import("./AgentsSettings"))
-const ApiAccessSettings = lazy(() => import("./ApiAccessSettings"))
+const ConnectionsSettings = lazy(() => import("./ConnectionsSettings"))
 const ContactsSettings = lazy(() => import("./ContactsSettings"))
 const DebugSettings = lazy(() => import("./DebugSettings"))
 const TasksSettings = lazy(() => import("./TasksSettings"))
@@ -22,7 +22,9 @@ export const SETTINGS_PAGE_TITLES: Record<string, string> = {
   'appearance': 'Appearance',
   'reminders': 'Reminders & Notifications',
   'agents': 'AI Agents',
-  'api-access': 'API Access',
+  'connections': 'Connections',
+  // Retired name; in-app navigation that still says api-access lands on Connections.
+  'api-access': 'Connections',
   'contacts': 'Contacts',
   'debug': 'Debug',
   'tasks': 'Task Settings',
@@ -45,7 +47,8 @@ export function renderSettingsPage(page: string, props: SettingsPageProps): Reac
     case "appearance": return <AppearanceSettings {...props} />
     case "reminders": return <RemindersSettings {...props} />
     case "agents": return <AgentsSettings {...props} />
-    case "api-access": return <ApiAccessSettings {...props} />
+    case "connections":
+    case "api-access": return <ConnectionsSettings {...props} />
     case "contacts": return <ContactsSettings {...props} />
     case "debug": return <DebugSettings {...props} />
     case "tasks": return <TasksSettings {...props} />

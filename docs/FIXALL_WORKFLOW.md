@@ -350,7 +350,7 @@ Two fields say what the inbox could not see, and neither should be read as silen
 - `attention.truncated` — more is waiting than one poll reports.
 - `attention.skipped` — a half that was not read, and why. The chat half needs `chat:read`; a
   connection provisioned before chat scopes existed does not carry it until its scope group is
-  adopted in Settings → API Access (AWTD-962). An unread channel and a quiet one are different
+  adopted in Settings → Connections (AWTD-962). An unread channel and a quiet one are different
   facts.
 
 **Answer on the task.** Never in the terminal. *"A summary that only exists in a terminal is

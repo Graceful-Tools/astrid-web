@@ -14,13 +14,13 @@ With these pieces you can build a GPT Action, share it with the team, and every 
 
 ## Requirements
 
-- Astrid account with access to Settings → API Access
+- Astrid account with access to Settings → Connections
 - ChatGPT Plus (custom GPT + Actions)
 - Ability to create OAuth clients inside Astrid
 
 ## Step 1 – Create a ChatGPT OAuth client
 
-1. Go to **Settings → API Access → New App**
+1. Go to **Settings → Connections → New App**
 2. Name it something like **“ChatGPT Actions”**
 3. Select scope group **AI Agent**, then verify these scopes stay ticked:
    - `tasks:read`
@@ -82,4 +82,4 @@ Share your GPT link. Each collaborator completes OAuth once and gains their own 
 - **401 Unauthorized:** Ensure the GPT action uses the correct client ID/secret and that the OAuth app has both `authorization_code` and `refresh_token` grant types.
 - **Invalid redirect URI:** Double-check the redirect string matches exactly (`https://chat.openai.com/aip/api/v1/oauth/callback`).
 - **Wrong scopes:** If ChatGPT reports insufficient permissions, edit the OAuth client to include the recommended scope set, then reconnect.
-- **Need to revoke access:** Go to Settings → API Access → delete/regenerate the ChatGPT client to revoke all refresh tokens immediately.
+- **Need to revoke access:** Go to Settings → Connections → delete/regenerate the ChatGPT client to revoke all refresh tokens immediately.

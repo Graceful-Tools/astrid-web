@@ -105,7 +105,7 @@ export function AgentCredentialsCard({
           : t('settingsPages.aiAgents.credentials.sdkNeedsBoth')}
       </p>
       <p className="text-xs">
-        <Link href="/settings/api-access" className="text-blue-500 hover:underline">
+        <Link href="/settings/connections" className="text-blue-500 hover:underline">
           {t('settingsPages.aiAgents.credentials.manage')}
         </Link>
       </p>

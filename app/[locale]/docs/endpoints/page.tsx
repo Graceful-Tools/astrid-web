@@ -385,7 +385,7 @@ export default function APIEndpointsPage() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => router.push('/settings/api-access')}
+              onClick={() => router.push('/settings/connections')}
             >
               Manage OAuth Apps
             </Button>

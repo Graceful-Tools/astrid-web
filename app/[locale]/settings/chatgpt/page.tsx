@@ -8,8 +8,8 @@ export default function ChatGPTSettingsRedirect() {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace("/settings/api-access")
+    router.replace("/settings/connections")
   }, [router])
 
-  return <LoadingScreen message="Redirecting to API Access..." />
+  return <LoadingScreen message="Redirecting to Connections..." />
 }

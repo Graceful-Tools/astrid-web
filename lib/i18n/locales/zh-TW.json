@@ -455,7 +455,7 @@
         "shownOnce": "請立即儲存——用戶端密鑰不會再次顯示。",
         "saveAsSecrets": "將其儲存為名為 {clientIdSecret} 和 {clientSecretSecret} 的儲存庫密鑰。",
         "sdkNeedsBoth": "您的伺服器兩者都需要：用這些憑證呼叫 API，用下方的 Webhook 密鑰驗證投遞。",
-        "manage": "在 API 存取中管理",
+        "manage": "在連線中管理",
         "error": "無法建立憑證"
       }
     },
@@ -889,6 +889,46 @@
         "removed": "代理程式已移除",
         "photoUpdated": "大頭貼已更新",
         "photoFailed": "更新大頭貼失敗"
+      }
+    },
+    "connections": {
+      "title": "連線",
+      "description": "所有可以代表您的帳戶執行操作的內容",
+      "empty": "您的帳戶尚未連線任何內容。",
+      "loadError": "無法載入連線",
+      "kinds": {
+        "oauthClient": "OAuth 應用程式",
+        "authorizedApp": "已授權應用程式",
+        "customAgent": "自訂代理",
+        "accessToken": "存取權杖",
+        "webhook": "Webhook 伺服器"
+      },
+      "columns": {
+        "actsAs": "身分",
+        "scopes": "權限範圍",
+        "created": "建立時間",
+        "lastUsed": "上次使用",
+        "expires": "到期時間",
+        "never": "從不"
+      },
+      "status": {
+        "active": "使用中",
+        "expired": "已過期",
+        "disabled": "已停用"
+      },
+      "actsAsYou": "您",
+      "revoke": "撤銷",
+      "revokeConfirm": "撤銷 {name}？使用它的一切將立即停止運作。",
+      "removeAgentConfirm": "移除 {name}？該代理及其憑證將被刪除。",
+      "confirm": "確認",
+      "cancel": "取消",
+      "revoked": "已撤銷",
+      "revokeError": "無法撤銷",
+      "manageInAgents": "在 AI 代理中管理",
+      "developer": {
+        "title": "開發者",
+        "description": "手動建立 OAuth 應用程式、測試 API，並連接支援 OpenAPI 的助理。",
+        "openTester": "開啟 API 測試器"
       }
     }
   },

@@ -75,7 +75,7 @@ describe('POST /api/v1/oauth/register (task a0e0808c)', () => {
     const payload = await response.json()
     expect(payload.error).toBe('invalid_client_metadata')
     expect(payload.error_description).toMatch(/token_endpoint_auth_method must be "none"/)
-    expect(payload.error_description).toMatch(/Settings → API Access/)
+    expect(payload.error_description).toMatch(/Settings → Connections/)
     expect(mockPrisma.oAuthClient.create).not.toHaveBeenCalled()
   })
 })

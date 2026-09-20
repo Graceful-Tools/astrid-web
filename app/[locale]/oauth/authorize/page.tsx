@@ -98,7 +98,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
             )}
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <Button asChild className="flex-1">
-                <Link href="/settings/api-access">Go to API Access</Link>
+                <Link href="/settings/connections">Go to Connections</Link>
               </Button>
               <Button variant="outline" asChild className="flex-1">
                 <Link href="/">Return Home</Link>
@@ -284,7 +284,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                 </div>
               </form>
               <p className="text-xs theme-text-muted">
-                Tokens expire after 1 hour. Refresh tokens remain valid for 30 days or until revoked from Settings → API Access.
+                Tokens expire after 1 hour. Refresh tokens remain valid for 30 days or until revoked from Settings → Connections.
               </p>
             </CardContent>
           </Card>

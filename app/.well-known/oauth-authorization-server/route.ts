@@ -28,7 +28,7 @@ export async function GET() {
       "comments:read",
       "comments:write"
     ],
-    service_documentation: `${baseUrl}/settings/api-access`,
+    service_documentation: `${baseUrl}/settings/connections`,
   }
 
   return NextResponse.json(metadata, {

@@ -455,7 +455,7 @@
         "shownOnce": "Save these now — the client secret will not be shown again.",
         "saveAsSecrets": "Save them as repository secrets named {clientIdSecret} and {clientSecretSecret}.",
         "sdkNeedsBoth": "Your server needs both: these client credentials to call the API, and the webhook secret below to verify deliveries.",
-        "manage": "Manage in API Access",
+        "manage": "Manage in Connections",
         "error": "Could not create credentials"
       }
     },
@@ -889,6 +889,46 @@
         "serverUrl": "MCP Server URL",
         "postEndpoint": "POST Endpoint",
         "note": "MCP provides a standardized way to connect AI models to external tools"
+      }
+    },
+    "connections": {
+      "title": "Connections",
+      "description": "Everything that can act as your account",
+      "empty": "Nothing is connected to your account yet.",
+      "loadError": "Could not load connections",
+      "kinds": {
+        "oauthClient": "OAuth app",
+        "authorizedApp": "Authorized app",
+        "customAgent": "Custom Agent",
+        "accessToken": "Access token",
+        "webhook": "Webhook server"
+      },
+      "columns": {
+        "actsAs": "Acts as",
+        "scopes": "Scopes",
+        "created": "Created",
+        "lastUsed": "Last used",
+        "expires": "Expires",
+        "never": "Never"
+      },
+      "status": {
+        "active": "Active",
+        "expired": "Expired",
+        "disabled": "Disabled"
+      },
+      "actsAsYou": "You",
+      "revoke": "Revoke",
+      "revokeConfirm": "Revoke {name}? Anything using it stops working immediately.",
+      "removeAgentConfirm": "Remove {name}? The agent and its credentials are deleted.",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "revoked": "Revoked",
+      "revokeError": "Could not revoke",
+      "manageInAgents": "Manage in AI Agents",
+      "developer": {
+        "title": "Developer",
+        "description": "Create OAuth apps by hand, test the API, and connect assistants that speak OpenAPI.",
+        "openTester": "Open API tester"
       }
     }
   },

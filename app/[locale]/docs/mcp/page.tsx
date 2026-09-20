@@ -226,7 +226,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
             <CardContent className="space-y-4 text-sm">
               <Step n={1} title="Create OAuth credentials">
                 Go to{' '}
-                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/settings/api-access')}>
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/settings/connections')}>
                   Settings &rarr; API Access
                 </Button>
                 {' '}and create a new OAuth application. Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.
@@ -493,7 +493,7 @@ Content-Type: application/json
               <Button
                 variant="outline"
                 className="w-full justify-between"
-                onClick={() => router.push('/settings/api-access')}
+                onClick={() => router.push('/settings/connections')}
               >
                 <span>Get MCP Token</span>
                 <ExternalLink className="w-4 h-4" />

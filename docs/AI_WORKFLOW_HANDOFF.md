@@ -44,7 +44,7 @@ a small follow-up rather than reconstructing the UI work.
 2. The recipe advertises a 365-day MCP setup token as REST authorization.
    `lib/api-auth-middleware.ts` currently maps legacy MCP tokens to `scopes: ['*']`.
    Do not advertise a wildcard long-lived credential. Prefer short-lived OAuth client
-   credentials from `/settings/api-access`, with only the scopes required for queue read
+   credentials from `/settings/connections`, with only the scopes required for queue read
    and task/comment writes, or implement and test a least-privilege MCP-to-REST scope map.
 3. Update `tests/components/agent-loop-recipes-tabs.test.tsx`. If auth behavior changes,
    add focused API auth tests proving the credential is not wildcard.

@@ -52,7 +52,7 @@ This guide shows you how to set up this workflow for your own project.
 ## Step 2: Create OAuth Client
 
 1. **Navigate to API Access Settings**:
-   - Go to [astrid.cc/settings/api-access](https://astrid.cc/settings/api-access)
+   - Go to [astrid.cc/settings/connections](https://astrid.cc/settings/connections)
    - Click "Create OAuth Client"
 
 2. **Configure OAuth Client**:
@@ -318,7 +318,7 @@ All provided scripts already use the correct header.
 
 **Solution:**
 1. Verify credentials in `.env.local` match your OAuth client
-2. Check OAuth client is active at astrid.cc/settings/api-access
+2. Check OAuth client is active at astrid.cc/settings/connections
 3. Test connection: `curl https://astrid.cc/api/health`
 
 ### Issue: "List not found" or empty task list
@@ -446,7 +446,7 @@ Content-Type: application/json
    - Create separate clients for different purposes
 
 3. **Monitor API usage:**
-   - Review OAuth client activity at astrid.cc/settings/api-access
+   - Review OAuth client activity at astrid.cc/settings/connections
    - Revoke compromised credentials immediately
    - Use separate credentials per environment
 
