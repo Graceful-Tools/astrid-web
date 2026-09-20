@@ -14,7 +14,7 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
 import { validateAccessToken } from './oauth/oauth-token-manager'
-import { hasRequiredScopes } from './oauth/oauth-scopes'
+import { hasRequiredScopes, SCOPE_GROUPS } from './oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
@@ -29,6 +29,12 @@ export interface AuthContext {
   userId: string
   source: AuthSource
   scopes: string[]
+  /**
+   * For an access token (MCPToken row): the scopes its permissions map to,
+   * which is what enforcement WILL use. `scopes` stays '*' until then; the
+   * wrapper logs every call the shadow would refuse (accessTokenShadowScopes).
+   */
+  shadowScopes?: string[]
   clientId?: string
   isAIAgent: boolean
   user: {
@@ -110,10 +116,30 @@ function extractMCPToken(req: NextRequest): string | null {
 }
 
 /**
- * Validate legacy MCP token
+ * What an access token's read/write permissions mean as OAuth scopes.
+ *
+ * Access tokens (the MCPToken table) predate scopes and are granted '*'. The
+ * mapping is the narrowing they will get: read-only tokens the `readonly`
+ * group, read+write tokens the `ai_agent` group — the same grant a Custom
+ * Agent or a preset client receives. Reported as `shadowScopes` first and
+ * enforced later, once the shadow log has been quiet for a deploy cycle:
+ * the scheduled fixall loop runs on one of these
+ * (scripts/rotate-fixall-mcp-token.ts), and a guess would 403 it in
+ * production.
+ */
+export function accessTokenShadowScopes(permissions: readonly string[]): string[] {
+  const group = permissions.includes('write') || permissions.includes('admin')
+    ? SCOPE_GROUPS.ai_agent
+    : SCOPE_GROUPS.readonly
+  return [...group]
+}
+
+/**
+ * Validate an access token (MCPToken row)
  */
 async function validateMCPToken(token: string): Promise<{
   userId: string
+  permissions: string[]
   user: {
     id: string
     email: string
@@ -181,6 +207,7 @@ async function validateMCPToken(token: string): Promise<{
 
   return {
     userId: mcpToken.userId,
+    permissions: mcpToken.permissions ?? [],
     user: mcpToken.user,
     agentUser,
   }
@@ -265,17 +292,21 @@ export async function authenticateAPI(
     }
   }
 
-  // Priority 3: Legacy MCP token (deprecated, backward compatibility)
+  // Priority 3: Access token (MCPToken row). The source name `legacy_mcp` is
+  // the wire-level value other code switches on and stays; the token itself
+  // is not deprecated — it is the one long-lived static bearer the product
+  // offers (the GitHub.com Copilot agent needs one), listed and revocable
+  // under Settings → Connections.
   // Check headers first, then fallback to body token (for iOS compatibility)
   const mcpToken = extractMCPToken(req) || legacyTokenFromBody
   if (mcpToken) {
     const validated = await validateMCPToken(mcpToken)
     if (validated) {
-      log.warn('[API Auth] ⚠️ Legacy MCP token used - please migrate to OAuth')
       return {
         userId: validated.userId,
         source: 'legacy_mcp',
-        scopes: ['*'], // Legacy tokens have full access
+        scopes: ['*'], // Full access today; see accessTokenShadowScopes for what comes next.
+        shadowScopes: accessTokenShadowScopes(validated.permissions),
         isAIAgent: validated.user.isAIAgent,
         user: validated.user,
         agentUser: validated.agentUser,
@@ -302,11 +333,14 @@ export function requireScopes(
 }
 
 /**
- * Get deprecation warning header for legacy auth methods
+ * Advisory header for access-token callers: what their token will be limited
+ * to. Not a deprecation — the token stays — a heads-up about the narrowing.
  */
 export function getDeprecationWarning(auth: AuthContext): string | null {
   if (auth.source === 'legacy_mcp') {
-    return `MCP tokens are deprecated. Please migrate to OAuth 2.0. See https://${BRAND.domain}/docs/api for migration guide.`
+    return `Access tokens will be limited to the scopes their permissions map to (${
+      (auth.shadowScopes ?? []).join(' ') || 'see docs'
+    }). Manage them under Settings → Connections at https://${BRAND.domain}/settings/connections.`
   }
   return null
 }

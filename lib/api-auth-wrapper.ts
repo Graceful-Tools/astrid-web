@@ -1,4 +1,5 @@
 import { hasCapability, type CapabilityKey } from '@/lib/brand/capabilities'
+import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { NextResponse, type NextRequest } from 'next/server'
 import {
   authenticateAPI,
@@ -55,6 +56,19 @@ interface WithAuthOptions {
    * that some other caller could reach it.
    */
   capability?: CapabilityKey
+  /**
+   * Called (instead of the default warning log) when an access-token caller
+   * passes today's '*' check but would fail the scopes its permissions map to.
+   * Tests inject it; production leaves it unset.
+   */
+  onShadowDenied?: (info: ShadowDenied) => void
+}
+
+export interface ShadowDenied {
+  tag?: string
+  path: string
+  needed: string[]
+  shadowScopes: string[]
 }
 
 type Handler<TContext> = (
@@ -122,6 +136,23 @@ export function withAuth<TContext = unknown>(
           return NextResponse.json({ error: 'Forbidden', message: err.message }, { status: 403 })
         }
         throw err
+      }
+
+      // Shadow enforcement for access tokens: they pass on '*' today. Log what
+      // real scopes would have refused, so the switch is made on evidence.
+      if (
+        auth.source === 'legacy_mcp' &&
+        auth.shadowScopes &&
+        !hasRequiredScopes(auth.shadowScopes, options.scopes)
+      ) {
+        const info: ShadowDenied = {
+          tag: options.tag,
+          path: req.nextUrl.pathname,
+          needed: options.scopes,
+          shadowScopes: auth.shadowScopes,
+        }
+        if (options.onShadowDenied) options.onShadowDenied(info)
+        else log.warn(info, 'access token would be denied under scope mapping')
       }
     }
 

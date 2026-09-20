@@ -37,6 +37,7 @@ import {
   type AuthContext,
 } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
+import { SCOPE_GROUPS } from '@/lib/oauth/oauth-scopes'
 
 const PERSON = { id: 'u1', email: 'u@example.com', name: 'U', isAIAgent: false }
 const AGENT = { id: 'a1', email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', isAIAgent: true }
@@ -220,6 +221,30 @@ describe('authenticateAPI — telling the two bearer token kinds apart', () => {
     expect(auth.source).toBe('legacy_mcp')
   })
 
+  /**
+   * Phase one of narrowing access tokens: the middleware still grants '*',
+   * but says what the token's permissions WOULD map to, so the wrapper can log
+   * every call that enforcement would refuse. The date enforcement lands is
+   * the date those logs go quiet — not a guess.
+   */
+  it('shadows an access token\'s permissions as the scopes enforcement will use', async () => {
+    mockPrisma.mCPToken.findFirst.mockResolvedValue({
+      id: 't1', userId: 'u1', user: PERSON, agentUser: null, agentMailbox: null,
+      permissions: ['read', 'write'],
+    })
+    const readWrite = await authenticateAPI(req({ 'x-mcp-access-token': 'astrid_mcp_x' }))
+    expect(readWrite.scopes).toEqual(['*'])
+    expect(readWrite.shadowScopes).toEqual(SCOPE_GROUPS.ai_agent)
+
+    mockPrisma.mCPToken.findFirst.mockResolvedValue({
+      id: 't2', userId: 'u1', user: PERSON, agentUser: null, agentMailbox: null,
+      permissions: ['read'],
+    })
+    const readOnly = await authenticateAPI(req({ 'x-mcp-access-token': 'astrid_mcp_y' }))
+    expect(readOnly.scopes).toEqual(['*'])
+    expect(readOnly.shadowScopes).toEqual(SCOPE_GROUPS.readonly)
+  })
+
   it('gives a legacy MCP session full scopes and carries its agent identity', async () => {
     mockPrisma.mCPToken.findFirst.mockResolvedValue({
       id: 't1', userId: 'u1', user: PERSON, agentUser: AGENT, agentMailbox: null,
@@ -392,8 +417,9 @@ describe('requireScopes and getDeprecationWarning', () => {
     expect(() => requireScopes(auth(['tasks:read']), ['tasks:write'])).toThrow(/tasks:write/)
   })
 
-  it('warns only for the deprecated mechanism', () => {
-    expect(getDeprecationWarning(auth(['*'], 'legacy_mcp'))).toContain('deprecated')
+  it('warns only for the access-token mechanism', () => {
+    expect(getDeprecationWarning(auth(['*'], 'legacy_mcp'))).toMatch(/access token/i)
+    expect(getDeprecationWarning(auth(['*'], 'legacy_mcp'))).not.toContain('deprecated')
     expect(getDeprecationWarning(auth(['*'], 'oauth'))).toBeNull()
     expect(getDeprecationWarning(auth(['*'], 'session'))).toBeNull()
   })
