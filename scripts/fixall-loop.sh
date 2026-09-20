@@ -138,6 +138,23 @@ if [ ! -x "$CLAUDE" ]; then
   exit 1
 fi
 
+# ── Can this machine actually CALL the board? ────────────────────────────────
+# WARNS, never skips (AWTD-975). .claude/settings.local.json is gitignored, so
+# a fresh checkout inherits none of the mcp__astrid__* grants and every board
+# call is denied — with no terminal to grant them in. The run still works: it
+# falls back to the OAuth scripts. What it loses is `attention`, the inbox that
+# arrives only on get_agent_queue (AWTD-963), so it goes deaf while still
+# logging RESULT: OK. That silence is the bug; this is the noise.
+#
+# Not a guard, because degraded beats absent: one missing line in a gitignored
+# file must not turn into a loop that never runs.
+if ! PERMISSION_OUT=$("$TSX" scripts/check-board-permissions.ts 2>&1); then
+  echo "  ⚠️  board tools are NOT pre-approved here — this run will be degraded:"
+  echo "$PERMISSION_OUT" | sed 's/^/     /'
+  echo "     fix: copy the mcp__astrid__* entries from .claude/settings.json.example"
+  echo "          into .claude/settings.local.json (an agent cannot; it is a protected path)"
+fi
+
 # ── The run ──────────────────────────────────────────────────────────────────
 # Two bounds, because a run goes wrong in two different ways.
 #
