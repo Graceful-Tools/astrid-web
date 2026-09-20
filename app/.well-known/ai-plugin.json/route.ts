@@ -19,7 +19,7 @@ export async function GET() {
       `Use this tool to read ${BRAND.appName} task lists, create new tasks with titles and optional descriptions, and update tasks (including marking them complete). Always include helpful summaries when presenting results to the user.`,
     auth: {
       type: 'oauth',
-      client_url: `${baseUrl}/settings/api-access`,
+      client_url: `${baseUrl}/settings/connections`,
       scope: 'tasks:read tasks:write lists:read comments:write',
       authorization_url: `${baseUrl}/oauth/authorize`,
       token_url: `${baseUrl}/api/v1/oauth/token`,

@@ -40,7 +40,7 @@ export default function APIDocsPage() {
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
-            onClick={() => router.push('/settings/api-access')}
+            onClick={() => router.push('/settings/connections')}
             className="p-2 hover:bg-opacity-20"
           >
             <ArrowLeft className="w-5 h-5 theme-text-primary" />
@@ -101,13 +101,10 @@ export default function APIDocsPage() {
                   Use the OAuth 2.0 Client Credentials flow to get an access token:
                 </p>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`curl -X POST https://${BRAND.domain}/api/oauth/token \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "grant_type": "client_credentials",
-    "client_id": "YOUR_CLIENT_ID",
-    "client_secret": "YOUR_CLIENT_SECRET"
-  }'`}</code>
+                  <code className="text-xs text-gray-300">{`curl -X POST https://${BRAND.domain}/api/v1/oauth/token \\
+  -d grant_type=client_credentials \\
+  -d client_id=YOUR_CLIENT_ID \\
+  -d client_secret=YOUR_CLIENT_SECRET`}</code>
                 </pre>
                 <p className="text-xs theme-text-muted mt-2">
                   Response: <code className="theme-bg-tertiary px-1 rounded">{"{ \"access_token\": \"...\", \"expires_in\": 3600 }"}</code>
@@ -154,7 +151,7 @@ export default function APIDocsPage() {
                 <div className="space-y-2">
                   <div className="flex items-start space-x-2">
                     <code className="theme-bg-tertiary px-2 py-1 rounded text-xs font-mono">POST</code>
-                    <code className="theme-bg-tertiary px-2 py-1 rounded text-xs font-mono flex-1">/api/oauth/token</code>
+                    <code className="theme-bg-tertiary px-2 py-1 rounded text-xs font-mono flex-1">/api/v1/oauth/token</code>
                   </div>
                   <p className="text-sm theme-text-muted ml-14">
                     Exchange your client credentials for an access token
@@ -386,7 +383,7 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between"
-                onClick={() => router.push('/settings/api-access')}
+                onClick={() => router.push('/settings/connections')}
               >
                 <span>Manage OAuth Applications</span>
                 <ExternalLink className="w-4 h-4" />

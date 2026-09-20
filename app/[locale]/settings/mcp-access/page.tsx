@@ -15,10 +15,10 @@ export default function LegacyMCPAccessPage() {
 
   useEffect(() => {
     // Redirect to new API Access page
-    router.replace('/settings/api-access')
+    router.replace('/settings/connections')
   }, [router])
 
   return (
-    <LoadingScreen message="Redirecting to API Access..." />
+    <LoadingScreen message="Redirecting to Connections..." />
   )
 }

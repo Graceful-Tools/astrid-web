@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { deleteCustomAgent } from '@/lib/custom-agents/delete-agent'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.custom-agents.agents.id')
@@ -66,32 +67,10 @@ export const DELETE = withAuth<RouteContext>(
   async (_req, auth, { params }) => {
     const { id } = await params
 
-    const agent = await prisma.user.findUnique({
-      where: { id },
-      select: { id: true, email: true, aiAgentType: true, aiAgentConfig: true },
-    })
-
-    if (!agent || agent.aiAgentType !== 'openclaw_worker') {
+    const deleted = await deleteCustomAgent(auth.userId, id, auth.user.email)
+    if (!deleted) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
     }
-
-    const config = parseUserAIConfig(
-      agent.aiAgentConfig as string | null | undefined,
-      AIAgentConfigSchema,
-      'v1/custom-agents/agents/[id] DELETE ownership'
-    )
-
-    if (config.registeredBy !== auth.userId) {
-      return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-    }
-
-    // Delete user — cascades to OAuthClient and OAuthToken
-    await prisma.user.delete({ where: { id } })
-
-    log.info(
-      { agentEmail: agent.email, deletedBy: auth.user.email },
-      'Deleted Custom Agent'
-    )
 
     return NextResponse.json({ success: true })
   }

@@ -71,7 +71,7 @@ describe('MCP OAuth public clients (task a0e0808c)', () => {
     expect(() => validatePublicClientRegistration({
       redirect_uris: ['https://vscode.dev/redirect'],
       token_endpoint_auth_method: 'client_secret_post',
-    })).toThrow(/API Access/)
+    })).toThrow(/Connections/)
   })
 
   it('authenticates a registered public client without conflating it with a confidential client', async () => {

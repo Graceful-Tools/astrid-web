@@ -445,6 +445,18 @@
         "configStep": "Ouvrez Settings > Copilot > MCP servers et collez cette configuration.",
         "configLabel": "Configuration MCP",
         "openGitHub": "Ouvrir les instructions GitHub"
+      },
+      "credentials": {
+        "create": "Créer des identifiants pour ce workflow",
+        "creating": "Création…",
+        "created": "Identifiants créés",
+        "clientId": "ID client",
+        "clientSecret": "Secret client",
+        "shownOnce": "Enregistrez-les maintenant : le secret client ne sera plus affiché.",
+        "saveAsSecrets": "Enregistrez-les comme secrets du dépôt nommés {clientIdSecret} et {clientSecretSecret}.",
+        "sdkNeedsBoth": "Votre serveur a besoin des deux : ces identifiants pour appeler l’API et le secret du webhook ci-dessous pour vérifier les livraisons.",
+        "manage": "Gérer dans Connexions",
+        "error": "Impossible de créer les identifiants"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "Agent supprimé",
         "photoUpdated": "Photo de profil mise à jour",
         "photoFailed": "Impossible de mettre à jour la photo de profil"
+      }
+    },
+    "connections": {
+      "title": "Connexions",
+      "description": "Tout ce qui peut agir au nom de votre compte",
+      "empty": "Rien n’est encore connecté à votre compte.",
+      "loadError": "Impossible de charger les connexions",
+      "kinds": {
+        "oauthClient": "App OAuth",
+        "authorizedApp": "App autorisée",
+        "customAgent": "Agent personnalisé",
+        "accessToken": "Jeton d’accès",
+        "webhook": "Serveur webhook"
+      },
+      "columns": {
+        "actsAs": "Agit en tant que",
+        "scopes": "Portées",
+        "created": "Créé",
+        "lastUsed": "Dernière utilisation",
+        "expires": "Expire",
+        "never": "Jamais"
+      },
+      "status": {
+        "active": "Actif",
+        "expired": "Expiré",
+        "disabled": "Désactivé"
+      },
+      "actsAsYou": "Vous",
+      "revoke": "Révoquer",
+      "revokeConfirm": "Révoquer {name} ? Tout ce qui l’utilise cessera de fonctionner immédiatement.",
+      "removeAgentConfirm": "Supprimer {name} ? L’agent et ses identifiants seront supprimés.",
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "revoked": "Révoqué",
+      "revokeError": "Révocation impossible",
+      "manageInAgents": "Gérer dans Agents IA",
+      "developer": {
+        "title": "Développeur",
+        "description": "Créez des apps OAuth à la main, testez l’API et connectez des assistants qui parlent OpenAPI.",
+        "openTester": "Ouvrir le testeur d’API"
       }
     }
   },

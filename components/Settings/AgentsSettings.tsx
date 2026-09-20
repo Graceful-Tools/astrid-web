@@ -8,6 +8,7 @@ import { AgentHub } from "@/components/agent-hub"
 import { GitHubIntegrationSettings } from "@/components/github-integration-settings"
 import { GitHubSharedSetup } from "@/components/github-shared-setup"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
+import { useTranslations } from "@/lib/i18n/client"
 import {
   Brain,
   FileText,
@@ -164,6 +165,7 @@ function GithubConnectionCard() {
 
 // onNavigate stays in the signature — the settings registry passes it to every page.
 export default function AgentsSettings(_props: AgentsSettingsProps) {
+  const { t } = useTranslations()
   return (
     <div className="p-2 sm:p-4">
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
@@ -171,8 +173,8 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
         <div className="flex flex-wrap items-center gap-3">
           <Brain className="w-8 h-8 text-purple-500" />
           <div>
-            <h1 className="text-2xl font-bold theme-text-primary">AI Agents</h1>
-            <p className="theme-text-muted">Assign tasks to AI agents and get intelligent help</p>
+            <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.aiAgents.title")}</h1>
+            <p className="theme-text-muted">{t("settingsPages.aiAgents.description")}</p>
           </div>
         </div>
 

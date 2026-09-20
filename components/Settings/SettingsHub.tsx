@@ -78,9 +78,9 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
     },
     {
       icon: Network,
-      title: t("settingsPages.apiAccess.title"),
-      description: t("settingsPages.apiAccess.description"),
-      page: "api-access",
+      title: t("settingsPages.connections.title"),
+      description: t("settingsPages.connections.description"),
+      page: "connections",
       color: "text-blue-600"
     },
     {

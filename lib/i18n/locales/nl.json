@@ -445,6 +445,18 @@
         "configStep": "Open Settings > Copilot > MCP servers en plak deze configuratie.",
         "configLabel": "MCP-configuratie",
         "openGitHub": "GitHub-instructies openen"
+      },
+      "credentials": {
+        "create": "Inloggegevens voor deze workflow aanmaken",
+        "creating": "Aanmaken…",
+        "created": "Inloggegevens aangemaakt",
+        "clientId": "Client-ID",
+        "clientSecret": "Client-secret",
+        "shownOnce": "Sla ze nu op — het client-secret wordt niet opnieuw getoond.",
+        "saveAsSecrets": "Sla ze op als repository-secrets met de namen {clientIdSecret} en {clientSecretSecret}.",
+        "sdkNeedsBoth": "Je server heeft beide nodig: deze inloggegevens om de API aan te roepen en het webhook-secret hieronder om leveringen te verifiëren.",
+        "manage": "Beheren in Verbindingen",
+        "error": "Inloggegevens konden niet worden aangemaakt"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "Agent verwijderd",
         "photoUpdated": "Profielfoto bijgewerkt",
         "photoFailed": "Profielfoto kon niet worden bijgewerkt"
+      }
+    },
+    "connections": {
+      "title": "Verbindingen",
+      "description": "Alles wat namens je account kan handelen",
+      "empty": "Er is nog niets met je account verbonden.",
+      "loadError": "Verbindingen konden niet worden geladen",
+      "kinds": {
+        "oauthClient": "OAuth-app",
+        "authorizedApp": "Geautoriseerde app",
+        "customAgent": "Aangepaste agent",
+        "accessToken": "Toegangstoken",
+        "webhook": "Webhook-server"
+      },
+      "columns": {
+        "actsAs": "Handelt als",
+        "scopes": "Rechten",
+        "created": "Aangemaakt",
+        "lastUsed": "Laatst gebruikt",
+        "expires": "Verloopt",
+        "never": "Nooit"
+      },
+      "status": {
+        "active": "Actief",
+        "expired": "Verlopen",
+        "disabled": "Uitgeschakeld"
+      },
+      "actsAsYou": "Jij",
+      "revoke": "Intrekken",
+      "revokeConfirm": "{name} intrekken? Alles wat het gebruikt stopt onmiddellijk.",
+      "removeAgentConfirm": "{name} verwijderen? De agent en zijn inloggegevens worden verwijderd.",
+      "confirm": "Bevestigen",
+      "cancel": "Annuleren",
+      "revoked": "Ingetrokken",
+      "revokeError": "Intrekken mislukt",
+      "manageInAgents": "Beheren in AI-agents",
+      "developer": {
+        "title": "Ontwikkelaar",
+        "description": "Maak OAuth-apps handmatig, test de API en verbind assistenten die OpenAPI spreken.",
+        "openTester": "API-tester openen"
       }
     }
   },

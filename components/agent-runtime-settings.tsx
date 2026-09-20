@@ -21,6 +21,7 @@ import {
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ACTIONS_SECRET_NAMES, AgentCredentialsCard } from '@/components/agent-credentials-card'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n/client'
 import { toast } from 'sonner'
@@ -428,18 +429,13 @@ url = "${mcpUrl}"`}
       <TabsContent value="github" className="space-y-3 pt-3">
         <RecipeStep number={1} title="Connect">
           <p className="text-xs theme-text-muted">
-            Create OAuth client credentials in {BRAND.appName} and save them as repository
-            Actions secrets named <code className="font-mono">ASTRID_CLIENT_ID</code> and{' '}
-            <code className="font-mono">ASTRID_CLIENT_SECRET</code>. Each run exchanges the
-            client credentials for a one hour access token with only the scopes a queue
-            worker needs — no long-lived token ever reaches the repository.
+            Create client credentials for this agent and save them as repository Actions
+            secrets named <code className="font-mono">{ACTIONS_SECRET_NAMES.clientId}</code> and{' '}
+            <code className="font-mono">{ACTIONS_SECRET_NAMES.clientSecret}</code>. Each run
+            exchanges the client credentials for a one hour access token with only the scopes
+            a queue worker needs — no long-lived token ever reaches the repository.
           </p>
-          <Button variant="outline" size="sm" asChild>
-            <a href={`${origin}/settings/api-access`}>
-              {t('settingsPages.apiAccess.title')}
-              <ExternalLink className="ml-2 h-3.5 w-3.5" />
-            </a>
-          </Button>
+          <AgentCredentialsCard preset="githubActions" agent={agentFor('github')} />
         </RecipeStep>
         <RecipeStep number={2} title="Install">
           <p className="text-xs theme-text-muted">

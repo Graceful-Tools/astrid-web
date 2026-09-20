@@ -161,7 +161,7 @@ export default function IntegrationGuidePage() {
             <CardContent className="space-y-4 text-sm">
               <p className="theme-text-secondary">
                 Create an OAuth application in{' '}
-                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/settings/api-access')}>
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/settings/connections')}>
                   Settings &rarr; API Access
                 </Button>
                 {' '}to get a <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">client_id</code> and{' '}
@@ -183,7 +183,7 @@ export default function IntegrationGuidePage() {
                 <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">Authorization: Bearer &lt;token&gt;</code>{' '}
                 in subsequent requests.
               </p>
-              <Button variant="outline" size="sm" onClick={() => router.push('/settings/api-access')}>
+              <Button variant="outline" size="sm" onClick={() => router.push('/settings/connections')}>
                 Create OAuth App
               </Button>
             </CardContent>

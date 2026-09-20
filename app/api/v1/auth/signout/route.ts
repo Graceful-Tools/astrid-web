@@ -2,10 +2,10 @@
  * DELETE /api/v1/auth/signout
  *
  * iOS-friendly signout. Deletes the database session row tied to the
- * supplied session cookie and revokes any active "Mobile App Token" MCP
- * tokens for that user. NextAuth's [...nextauth] catch-all handles the web
- * signout via POST; iOS prefers a direct DELETE that mirrors how
- * mobile-mcp-token DELETE works.
+ * supplied session cookie and revokes any "Mobile App Token" rows still
+ * around from builds that minted one (the mint endpoint is gone; the revoke
+ * stays until those tokens have all expired). NextAuth's [...nextauth]
+ * catch-all handles the web signout via POST; iOS prefers a direct DELETE.
  *
  * Idempotent: returns 200 even if there was no session to delete, so the
  * client cleanup path on iOS can fire-and-forget without sweating the

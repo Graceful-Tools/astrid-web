@@ -445,6 +445,18 @@
         "configStep": "Settings > Copilot > MCP servers를 열고 이 설정을 붙여넣으세요.",
         "configLabel": "MCP 설정",
         "openGitHub": "GitHub 안내 열기"
+      },
+      "credentials": {
+        "create": "이 워크플로의 자격 증명 만들기",
+        "creating": "만드는 중…",
+        "created": "자격 증명을 만들었습니다",
+        "clientId": "클라이언트 ID",
+        "clientSecret": "클라이언트 시크릿",
+        "shownOnce": "지금 저장하세요. 클라이언트 시크릿은 다시 표시되지 않습니다.",
+        "saveAsSecrets": "{clientIdSecret} 및 {clientSecretSecret}라는 이름의 저장소 시크릿으로 저장하세요.",
+        "sdkNeedsBoth": "서버에는 둘 다 필요합니다. API를 호출하기 위한 이 자격 증명과 전달을 검증하기 위한 아래의 웹훅 시크릿입니다.",
+        "manage": "연결에서 관리",
+        "error": "자격 증명을 만들 수 없습니다"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "에이전트가 제거되었습니다",
         "photoUpdated": "프로필 사진이 업데이트되었습니다",
         "photoFailed": "프로필 사진을 업데이트하지 못했습니다"
+      }
+    },
+    "connections": {
+      "title": "연결",
+      "description": "내 계정으로 동작할 수 있는 모든 것",
+      "empty": "아직 계정에 연결된 것이 없습니다.",
+      "loadError": "연결을 불러올 수 없습니다",
+      "kinds": {
+        "oauthClient": "OAuth 앱",
+        "authorizedApp": "승인된 앱",
+        "customAgent": "사용자 지정 에이전트",
+        "accessToken": "액세스 토큰",
+        "webhook": "웹훅 서버"
+      },
+      "columns": {
+        "actsAs": "실행 주체",
+        "scopes": "범위",
+        "created": "생성됨",
+        "lastUsed": "마지막 사용",
+        "expires": "만료",
+        "never": "없음"
+      },
+      "status": {
+        "active": "활성",
+        "expired": "만료됨",
+        "disabled": "비활성화됨"
+      },
+      "actsAsYou": "나",
+      "revoke": "취소",
+      "revokeConfirm": "{name}을(를) 취소할까요? 이를 사용하는 모든 것이 즉시 작동을 멈춥니다.",
+      "removeAgentConfirm": "{name}을(를) 제거할까요? 에이전트와 자격 증명이 삭제됩니다.",
+      "confirm": "확인",
+      "cancel": "취소",
+      "revoked": "취소됨",
+      "revokeError": "취소할 수 없습니다",
+      "manageInAgents": "AI 에이전트에서 관리",
+      "developer": {
+        "title": "개발자",
+        "description": "OAuth 앱을 직접 만들고, API를 테스트하고, OpenAPI를 지원하는 어시스턴트를 연결합니다.",
+        "openTester": "API 테스터 열기"
       }
     }
   },

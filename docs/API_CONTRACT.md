@@ -98,9 +98,6 @@ Get current session information.
 ### DELETE `/api/auth/signout`
 Sign out the current user.
 
-### POST `/api/auth/mobile-mcp-token`
-Get MCP (Model Context Protocol) token for AI integrations.
-
 ### POST `/api/auth/desktop/grant`
 Mint a one-time hand-off code for a native desktop app. Cookie-authenticated: the
 code is always for the **session** user, never for a user named in the body.
@@ -389,6 +386,61 @@ Search for users by name or email.
 
 ### GET `/api/users/{userId}/profile`
 Get a user's public profile. The `email` field is returned only when the requester is viewing their own profile; for other users' profiles it is omitted.
+
+---
+
+### GET `/api/v1/users/me/connections`
+Everything that can act as the account, from every source, as one list.
+Requires `user:read`.
+
+**Response:**
+```json
+{
+  "connections": [
+    {
+      "id": "string",
+      "kind": "oauthClient | authorizedApp | customAgent | accessToken | webhook",
+      "name": "string",
+      "actsAs": "string | null",
+      "scopes": ["string"],
+      "createdAt": "ISO 8601",
+      "lastUsedAt": "ISO 8601 | null",
+      "expiresAt": "ISO 8601 | null",
+      "status": "active | expired | disabled",
+      "revocable": true,
+      "manageIn": "agents | connections",
+      "detail": { "clientId": "string", "grantTypes": ["string"], "activeTokens": 1,
+                  "permissions": ["string"], "agentId": "string", "webhookUrl": "string" }
+    }
+  ],
+  "meta": { "apiVersion": "v1", "authSource": "session", "total": 1 }
+}
+```
+
+- `kind` — `oauthClient`: a client the user created; `authorizedApp`: a
+  dynamically registered client approved on the consent page (shared across
+  accounts; the row is the user's own tokens for it); `customAgent`: a Custom
+  Agent the user registered; `accessToken`: a user-level access token;
+  `webhook`: the user's webhook server (`id` is the literal `webhook`).
+- `actsAs` — the email the credential authors as (an `agent@` mailbox, a
+  Custom Agent, or null for the user themself).
+- `scopes` — what the API enforces today. `accessToken` rows report `*`.
+- `detail` is optional; clients must decode an unknown `kind` as a row they
+  cannot revoke, not as a failure.
+
+### DELETE `/api/v1/users/me/connections/{kind}/{id}`
+Revoke one connection. **Session-only** (403 for a delegated token): a leaked
+credential must not be able to revoke its siblings. `authorizedApp` revokes
+only the caller's tokens for that client; `oauthClient` disables the client
+and revokes its tokens; `customAgent` deletes the agent (cascading its client
+and tokens); `accessToken` deactivates the token; `webhook` removes the
+configuration. 400 for an unknown kind, 404 when the row is not the caller's.
+
+**Response:**
+```json
+{ "success": true, "kind": "authorizedApp", "id": "string", "revokedTokens": 2,
+  "meta": { "apiVersion": "v1", "authSource": "session" } }
+```
 
 ---
 

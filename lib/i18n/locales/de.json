@@ -445,6 +445,18 @@
         "configStep": "Öffnen Sie Settings > Copilot > MCP servers und fügen Sie diese Konfiguration ein.",
         "configLabel": "MCP-Konfiguration",
         "openGitHub": "GitHub-Anleitung öffnen"
+      },
+      "credentials": {
+        "create": "Zugangsdaten für diesen Workflow erstellen",
+        "creating": "Wird erstellt…",
+        "created": "Zugangsdaten erstellt",
+        "clientId": "Client-ID",
+        "clientSecret": "Client-Secret",
+        "shownOnce": "Jetzt speichern — das Client-Secret wird nicht noch einmal angezeigt.",
+        "saveAsSecrets": "Als Repository-Secrets mit den Namen {clientIdSecret} und {clientSecretSecret} speichern.",
+        "sdkNeedsBoth": "Ihr Server braucht beides: diese Zugangsdaten für API-Aufrufe und das Webhook-Secret unten zur Prüfung der Zustellungen.",
+        "manage": "Unter Verbindungen verwalten",
+        "error": "Zugangsdaten konnten nicht erstellt werden"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "Agent entfernt",
         "photoUpdated": "Profilbild aktualisiert",
         "photoFailed": "Profilbild konnte nicht aktualisiert werden"
+      }
+    },
+    "connections": {
+      "title": "Verbindungen",
+      "description": "Alles, was in Ihrem Namen handeln kann",
+      "empty": "Mit Ihrem Konto ist noch nichts verbunden.",
+      "loadError": "Verbindungen konnten nicht geladen werden",
+      "kinds": {
+        "oauthClient": "OAuth-App",
+        "authorizedApp": "Autorisierte App",
+        "customAgent": "Eigener Agent",
+        "accessToken": "Zugriffstoken",
+        "webhook": "Webhook-Server"
+      },
+      "columns": {
+        "actsAs": "Handelt als",
+        "scopes": "Berechtigungen",
+        "created": "Erstellt",
+        "lastUsed": "Zuletzt verwendet",
+        "expires": "Läuft ab",
+        "never": "Nie"
+      },
+      "status": {
+        "active": "Aktiv",
+        "expired": "Abgelaufen",
+        "disabled": "Deaktiviert"
+      },
+      "actsAsYou": "Sie",
+      "revoke": "Widerrufen",
+      "revokeConfirm": "{name} widerrufen? Alles, was es verwendet, funktioniert sofort nicht mehr.",
+      "removeAgentConfirm": "{name} entfernen? Der Agent und seine Zugangsdaten werden gelöscht.",
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen",
+      "revoked": "Widerrufen",
+      "revokeError": "Widerrufen nicht möglich",
+      "manageInAgents": "Unter KI-Agenten verwalten",
+      "developer": {
+        "title": "Entwickler",
+        "description": "OAuth-Apps manuell erstellen, die API testen und Assistenten anbinden, die OpenAPI sprechen.",
+        "openTester": "API-Tester öffnen"
       }
     }
   },

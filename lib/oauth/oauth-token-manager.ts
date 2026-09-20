@@ -409,6 +409,30 @@ export async function revokeAllClientTokens(clientId: string): Promise<number> {
 }
 
 /**
+ * Revoke ONE user's live tokens for a client.
+ *
+ * Distinct from revokeAllClientTokens on purpose: a dynamically registered
+ * public client (Claude Code, VS Code) is one row shared by every account that
+ * approved it, so "revoke this app" from one person's settings must not log
+ * everyone else out of it. `clientId` is OAuthClient.id, the internal key
+ * OAuthToken.clientId holds — not the public astrid_client_… string.
+ */
+export async function revokeUserClientTokens(clientId: string, userId: string): Promise<number> {
+  const result = await prisma.oAuthToken.updateMany({
+    where: {
+      clientId,
+      userId,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: new Date(),
+    },
+  })
+
+  return result.count
+}
+
+/**
  * Generate authorization code for OAuth authorization flow
  */
 export async function generateAuthorizationCode(

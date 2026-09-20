@@ -40,6 +40,7 @@ import { AgentLoopRecipes } from '@/components/agent-runtime-settings'
 import { WebhookSettingsManager } from '@/components/webhook-settings-manager'
 import { CustomAgentManager } from '@/components/custom-agent-manager'
 import { GitHubCopilotMcpSetup } from '@/components/github-copilot-mcp-setup'
+import { AgentCredentialsCard } from '@/components/agent-credentials-card'
 import {
   Bot,
   Check,
@@ -595,12 +596,11 @@ export function AgentHub() {
                       >
                         {BRAND.appName} SDK
                       </a>{' '}
-                      (<code className="text-xs">npx astrid-agent serve</code>, credentials from{' '}
-                      <Link href="/settings/api-access" className="text-blue-500 hover:underline">
-                        API Access
-                      </Link>
-                      ).
+                      (<code className="text-xs">npx astrid-agent serve</code>). It needs the client
+                      credentials below to call the API and the webhook secret to verify what it is
+                      sent.
                     </p>
+                    <AgentCredentialsCard preset="webhookServer" agent={row.pollMailbox} />
                     <WebhookSettingsManager />
                   </>
                 )}

@@ -109,7 +109,7 @@ export function validatePublicClientRegistration(
     // land here. Fail with an actionable next step, not an opaque rejection.
     throw new Error(
       'token_endpoint_auth_method must be "none" for dynamic registration; ' +
-        'create confidential clients in Settings → API Access'
+        'create confidential clients in Settings → Connections (Developer)'
     )
   }
 

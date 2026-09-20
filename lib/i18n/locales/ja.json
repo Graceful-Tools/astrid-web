@@ -445,6 +445,18 @@
         "configStep": "Settings > Copilot > MCP servers を開き、この設定を貼り付けます。",
         "configLabel": "MCP設定",
         "openGitHub": "GitHubの手順を開く"
+      },
+      "credentials": {
+        "create": "このワークフロー用の認証情報を作成",
+        "creating": "作成中…",
+        "created": "認証情報を作成しました",
+        "clientId": "クライアント ID",
+        "clientSecret": "クライアントシークレット",
+        "shownOnce": "今すぐ保存してください。クライアントシークレットは二度と表示されません。",
+        "saveAsSecrets": "{clientIdSecret} と {clientSecretSecret} という名前のリポジトリシークレットとして保存してください。",
+        "sdkNeedsBoth": "サーバーには両方が必要です。API を呼び出すためのこの認証情報と、配信を検証するための下の Webhook シークレットです。",
+        "manage": "接続で管理",
+        "error": "認証情報を作成できませんでした"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "エージェントを削除しました",
         "photoUpdated": "プロフィール写真を更新しました",
         "photoFailed": "プロフィール写真を更新できませんでした"
+      }
+    },
+    "connections": {
+      "title": "接続",
+      "description": "あなたのアカウントとして動作できるものすべて",
+      "empty": "まだアカウントに接続されているものはありません。",
+      "loadError": "接続を読み込めませんでした",
+      "kinds": {
+        "oauthClient": "OAuth アプリ",
+        "authorizedApp": "承認済みアプリ",
+        "customAgent": "カスタムエージェント",
+        "accessToken": "アクセストークン",
+        "webhook": "Webhook サーバー"
+      },
+      "columns": {
+        "actsAs": "実行者",
+        "scopes": "スコープ",
+        "created": "作成日",
+        "lastUsed": "最終使用",
+        "expires": "有効期限",
+        "never": "なし"
+      },
+      "status": {
+        "active": "有効",
+        "expired": "期限切れ",
+        "disabled": "無効"
+      },
+      "actsAsYou": "あなた",
+      "revoke": "取り消す",
+      "revokeConfirm": "{name} を取り消しますか？これを使用しているものはすぐに動作しなくなります。",
+      "removeAgentConfirm": "{name} を削除しますか？エージェントとその認証情報が削除されます。",
+      "confirm": "確認",
+      "cancel": "キャンセル",
+      "revoked": "取り消しました",
+      "revokeError": "取り消せませんでした",
+      "manageInAgents": "AI エージェントで管理",
+      "developer": {
+        "title": "開発者",
+        "description": "OAuth アプリを手動で作成し、API をテストし、OpenAPI 対応のアシスタントを接続します。",
+        "openTester": "API テスターを開く"
       }
     }
   },

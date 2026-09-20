@@ -445,6 +445,18 @@
         "configStep": "Abra Settings > Copilot > MCP servers e cole esta configuração.",
         "configLabel": "Configuração MCP",
         "openGitHub": "Abrir instruções do GitHub"
+      },
+      "credentials": {
+        "create": "Criar credenciais para este fluxo de trabalho",
+        "creating": "Criando…",
+        "created": "Credenciais criadas",
+        "clientId": "ID do cliente",
+        "clientSecret": "Segredo do cliente",
+        "shownOnce": "Salve agora — o segredo do cliente não será exibido novamente.",
+        "saveAsSecrets": "Salve como segredos do repositório com os nomes {clientIdSecret} e {clientSecretSecret}.",
+        "sdkNeedsBoth": "Seu servidor precisa de ambos: estas credenciais para chamar a API e o segredo do webhook abaixo para verificar as entregas.",
+        "manage": "Gerenciar em Conexões",
+        "error": "Não foi possível criar as credenciais"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "Agente removido",
         "photoUpdated": "Foto de perfil atualizada",
         "photoFailed": "Falha ao atualizar a foto de perfil"
+      }
+    },
+    "connections": {
+      "title": "Conexões",
+      "description": "Tudo o que pode agir como sua conta",
+      "empty": "Ainda não há nada conectado à sua conta.",
+      "loadError": "Não foi possível carregar as conexões",
+      "kinds": {
+        "oauthClient": "App OAuth",
+        "authorizedApp": "App autorizado",
+        "customAgent": "Agente personalizado",
+        "accessToken": "Token de acesso",
+        "webhook": "Servidor de webhook"
+      },
+      "columns": {
+        "actsAs": "Age como",
+        "scopes": "Escopos",
+        "created": "Criado",
+        "lastUsed": "Último uso",
+        "expires": "Expira",
+        "never": "Nunca"
+      },
+      "status": {
+        "active": "Ativo",
+        "expired": "Expirado",
+        "disabled": "Desativado"
+      },
+      "actsAsYou": "Você",
+      "revoke": "Revogar",
+      "revokeConfirm": "Revogar {name}? Tudo o que o utiliza deixará de funcionar imediatamente.",
+      "removeAgentConfirm": "Remover {name}? O agente e suas credenciais serão excluídos.",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "revoked": "Revogado",
+      "revokeError": "Não foi possível revogar",
+      "manageInAgents": "Gerenciar em Agentes de IA",
+      "developer": {
+        "title": "Desenvolvedor",
+        "description": "Crie apps OAuth manualmente, teste a API e conecte assistentes que falam OpenAPI.",
+        "openTester": "Abrir testador de API"
       }
     }
   },

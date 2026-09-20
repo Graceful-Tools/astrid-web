@@ -445,6 +445,18 @@
         "configStep": "打开 Settings > Copilot > MCP servers 并粘贴此配置。",
         "configLabel": "MCP 配置",
         "openGitHub": "打开 GitHub 说明"
+      },
+      "credentials": {
+        "create": "为此工作流创建凭据",
+        "creating": "正在创建…",
+        "created": "凭据已创建",
+        "clientId": "客户端 ID",
+        "clientSecret": "客户端密钥",
+        "shownOnce": "请立即保存——客户端密钥不会再次显示。",
+        "saveAsSecrets": "将其保存为名为 {clientIdSecret} 和 {clientSecretSecret} 的仓库密钥。",
+        "sdkNeedsBoth": "您的服务器两者都需要：用这些凭据调用 API，用下方的 Webhook 密钥验证投递。",
+        "manage": "在连接中管理",
+        "error": "无法创建凭据"
       }
     },
     "apiAccess": {
@@ -877,6 +889,46 @@
         "removed": "代理已移除",
         "photoUpdated": "头像已更新",
         "photoFailed": "更新头像失败"
+      }
+    },
+    "connections": {
+      "title": "连接",
+      "description": "所有可以代表您的账户执行操作的内容",
+      "empty": "您的账户尚未连接任何内容。",
+      "loadError": "无法加载连接",
+      "kinds": {
+        "oauthClient": "OAuth 应用",
+        "authorizedApp": "已授权应用",
+        "customAgent": "自定义代理",
+        "accessToken": "访问令牌",
+        "webhook": "Webhook 服务器"
+      },
+      "columns": {
+        "actsAs": "身份",
+        "scopes": "权限范围",
+        "created": "创建时间",
+        "lastUsed": "上次使用",
+        "expires": "过期时间",
+        "never": "从不"
+      },
+      "status": {
+        "active": "活跃",
+        "expired": "已过期",
+        "disabled": "已禁用"
+      },
+      "actsAsYou": "您",
+      "revoke": "撤销",
+      "revokeConfirm": "撤销 {name}？使用它的一切将立即停止工作。",
+      "removeAgentConfirm": "移除 {name}？该代理及其凭据将被删除。",
+      "confirm": "确认",
+      "cancel": "取消",
+      "revoked": "已撤销",
+      "revokeError": "无法撤销",
+      "manageInAgents": "在 AI 代理中管理",
+      "developer": {
+        "title": "开发者",
+        "description": "手动创建 OAuth 应用、测试 API，并连接支持 OpenAPI 的助手。",
+        "openTester": "打开 API 测试器"
       }
     }
   },

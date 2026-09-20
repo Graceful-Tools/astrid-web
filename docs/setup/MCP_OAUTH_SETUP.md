@@ -11,7 +11,7 @@ The Astrid MCP Server V3 (OAuth) enables AI assistants like Claude Desktop and C
 | Client type | Connection | Create a client in Settings? |
 |---|---|---|
 | OAuth-capable assistant (VS Code / Copilot, ChatGPT, generic MCP connector) | Hosted MCP at `https://astrid.cc/mcp` with RFC 7591 dynamic client registration + S256 PKCE | **No** — the client registers itself on first connect |
-| Server integration with a static secret (scripts, the stdio MCP server, custom `X-Astrid-*` headers) | `client_credentials` grant | **Yes** — create it in Settings → API Access |
+| Server integration with a static secret (scripts, the stdio MCP server, custom `X-Astrid-*` headers) | `client_credentials` grant | **Yes** — create it in Settings → Connections |
 
 If your assistant opens a browser to sign you in to Astrid, you are on the first row: stop here and skip client creation. Only the second row needs a manually created client.
 
@@ -48,7 +48,7 @@ If your assistant opens a browser to sign you in to Astrid, you are on the first
 You need OAuth credentials from Astrid.cc:
 
 **Production (astrid.cc):**
-1. Visit [https://astrid.cc/settings/api-access](https://astrid.cc/settings/api-access)
+1. Visit [https://astrid.cc/settings/connections](https://astrid.cc/settings/connections)
 2. Click "Create OAuth Client"
 3. Fill in details:
    - Name: "Claude Desktop MCP" (or your preferred name)
@@ -257,7 +257,7 @@ Quit the ChatGPT desktop app completely, relaunch it, then open your custom GPT 
 **4. Each teammate brings their own credentials**
 
 Because OAuth clients are scoped per Astrid user, share these instructions with teammates. They simply:
-1. Create an OAuth client inside Astrid (Settings → API Access)
+1. Create an OAuth client inside Astrid (Settings → Connections)
 2. Paste their Client ID, Client Secret, and preferred List ID into the `mcp_config.json`
 3. Restart ChatGPT and start issuing Astrid commands (e.g., “List my Astrid bugs”)
 
@@ -348,7 +348,7 @@ Supported headers:
 
 Usage flow:
 
-1. **Create your Astrid OAuth client** (Settings → API Access) and note the Client ID/Secret + desired list ID.
+1. **Create your Astrid OAuth client** (Settings → Connections) and note the Client ID/Secret + desired list ID.
 2. **Fetch an access token** (or let the server do it via Basic auth):
    ```bash
    curl https://astrid.cc/api/v1/oauth/token \
@@ -516,7 +516,7 @@ If you set `ASTRID_OAUTH_LIST_ID`:
    - Production: `https://astrid.cc`
    - Local: `http://localhost:3000`
 2. **Verify OAuth client:**
-   - Visit [https://astrid.cc/settings/api-access](https://astrid.cc/settings/api-access)
+   - Visit [https://astrid.cc/settings/connections](https://astrid.cc/settings/connections)
    - Check that your OAuth client is active
    - Verify grant type is `client_credentials`
 3. **Check scopes:**
@@ -563,7 +563,7 @@ secret — it will not help.
   `X-Astrid-Client-Id` + `X-Astrid-Client-Secret` headers instead: the server
   exchanges those for a fresh token on demand.
 - If the issue persists, check the OAuth client is still active in
-  Settings → API Access.
+  Settings → Connections.
 
 ### Claude Desktop not seeing the MCP server
 
