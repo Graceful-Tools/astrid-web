@@ -340,7 +340,7 @@ export function getDeprecationWarning(auth: AuthContext): string | null {
   if (auth.source === 'legacy_mcp') {
     return `Access tokens will be limited to the scopes their permissions map to (${
       (auth.shadowScopes ?? []).join(' ') || 'see docs'
-    }). Manage them under Settings → Connections at https://${BRAND.domain}/settings/connections.`
+    }). Manage them under Settings > Connections at https://${BRAND.domain}/settings/connections.`
   }
   return null
 }

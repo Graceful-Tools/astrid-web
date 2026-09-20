@@ -420,6 +420,9 @@ describe('requireScopes and getDeprecationWarning', () => {
   it('warns only for the access-token mechanism', () => {
     expect(getDeprecationWarning(auth(['*'], 'legacy_mcp'))).toMatch(/access token/i)
     expect(getDeprecationWarning(auth(['*'], 'legacy_mcp'))).not.toContain('deprecated')
+    // The message travels as an HTTP header, which is Latin-1: one "→" in it
+    // made /api/mcp/operations throw "Cannot convert argument to a ByteString".
+    expect(getDeprecationWarning(auth(['*'], 'legacy_mcp'))).toMatch(/^[\x00-\xFF]*$/)
     expect(getDeprecationWarning(auth(['*'], 'oauth'))).toBeNull()
     expect(getDeprecationWarning(auth(['*'], 'session'))).toBeNull()
   })
