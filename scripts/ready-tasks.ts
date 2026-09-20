@@ -44,6 +44,7 @@ import { loadScriptEnv } from './lib/load-env'
 loadScriptEnv()
 
 import {
+  FIXALL_HARNESS_MAILBOXES,
   hasReadyStatus,
   isClaimableByAgent,
   describeAssignee,
@@ -60,6 +61,8 @@ import {
 } from "@/lib/ready-queue-scope"
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
 import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
+import { resolveAgentAuthorId } from "./lib/agent-author"
+import { SweepApi } from "./lib/sweep-api"
 
 const BOARD_LIST_NAMES = {
   web: "Astrid Web To-do",
@@ -184,7 +187,17 @@ async function main() {
   // until its date; a Waiting task whose condition is met comes back. Both
   // moves are logged here and commented on the task, and both touch ONLY
   // tasks this harness may claim — a person's tasks are theirs to move.
-  const api = new SweepApi(auth, options.dryRun, report)
+  //
+  // The sweep signs its comments as the harness that is running it (AWTD-970).
+  // Unsigned, they arrived as Jon — the board showed him parking his own tasks
+  // in Waiting — and the mailbox has to come from --harness rather than from
+  // CLAUDE_AGENT_ID, or a Copilot sweep on this machine would write as Claude.
+  const authorId = await resolveAgentAuthorId({
+    mailbox: FIXALL_HARNESS_MAILBOXES[options.harness],
+    accessToken: token,
+    warn: message => report(message),
+  })
+  const api = new SweepApi(auth, options.dryRun, report, authorId)
 
   const mine: QueueTask[] = []
   for (const task of claimable) {
@@ -324,70 +337,6 @@ async function main() {
   for (const task of queue) {
     const stars = "★".repeat(task.priority ?? 0) || "—"
     console.log(`  ${task.id}  ${stars.padEnd(3)}  ${task.title}`)
-  }
-}
-
-/**
- * The sweep's writes, kept small and loud. Every mutation is a single-field
- * statusRole PUT (never listIds — a full-membership PUT is the strand-a-task
- * bug set-task-status.ts exists to prevent) plus one explanatory comment.
- * --dry-run prints what would move and writes nothing.
- */
-class SweepApi {
-  constructor(
-    private readonly auth: Record<string, string>,
-    private readonly dryRun: boolean,
-    private readonly report: (...args: unknown[]) => void,
-  ) {}
-
-  async setStatus(task: { id: string }, statusRole: string): Promise<void> {
-    if (this.dryRun) return
-    const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({ statusRole }),
-    })
-    if (!response.ok) {
-      this.report(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
-    }
-  }
-
-  async comment(task: { id: string }, content: string): Promise<void> {
-    if (this.dryRun) return
-    const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}/comments`, {
-      method: "POST",
-      headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    })
-    if (!response.ok) {
-      this.report(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)
-    }
-  }
-
-  async comments(task: { id: string }): Promise<Array<{
-    content?: string | null
-    createdAt?: string | null
-    updatedAt?: string | null
-  }>> {
-    const response = await fetch(`https://astrid.cc/api/v1/tasks/${task.id}/comments`, { headers: this.auth })
-    if (!response.ok) return []
-    const body = await response.json()
-    return Array.isArray(body.comments) ? body.comments : []
-  }
-
-  /** Which of these blocker ids are still open? Unfetchable ids count as OPEN — promoting on a guess redoes the strand. */
-  async openBlockers(ids: string[]): Promise<string[]> {
-    const open: string[] = []
-    for (const id of ids) {
-      const response = await fetch(`https://astrid.cc/api/v1/tasks/${id}`, { headers: this.auth })
-      if (!response.ok) {
-        open.push(`${id} (unreadable: HTTP ${response.status})`)
-        continue
-      }
-      const body = await response.json()
-      if (!body?.task?.completed) open.push(id)
-    }
-    return open
   }
 }
 

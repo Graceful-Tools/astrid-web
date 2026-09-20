@@ -37,6 +37,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { loadScriptEnv } from './lib/load-env'
+import { resolveAgentAuthorId } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -109,6 +110,7 @@ async function main() {
 
   const token = await mintToken()
   const channelId = await resolveChannelId(token, listId)
+  const aiAgentId = await resolveAgentAuthorId({ mailbox: 'claude', accessToken: token })
 
   const response = await fetch(`${API}/api/v1/chat/channels/${channelId}/messages`, {
     method: 'POST',
@@ -121,9 +123,9 @@ async function main() {
       clientRequestId: randomUUID(),
       // Sign as the coding agent rather than the OAuth client's owner, so the
       // summary does not read as Jon talking to himself (AWTD-878's rule,
-      // extended to chat). Absent the env var the server falls back to the
-      // token owner rather than failing.
-      ...(process.env.CLAUDE_AGENT_ID ? { aiAgentId: process.env.CLAUDE_AGENT_ID } : {}),
+      // extended to chat). Unresolvable, the field is omitted and the server
+      // falls back to the token owner rather than failing.
+      ...(aiAgentId ? { aiAgentId } : {}),
     }),
   })
 

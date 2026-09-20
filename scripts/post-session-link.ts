@@ -16,6 +16,7 @@
 
 import { loadScriptEnv } from './lib/load-env'
 import { resolveCallingSession, sessionUrl } from './lib/calling-session'
+import { resolveAgentAuthorId } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -39,7 +40,6 @@ async function postSessionLink() {
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
-  const agentId = process.env.CLAUDE_AGENT_ID
 
   if (!clientId || !clientSecret) {
     console.error('❌ OAuth credentials not found in .env.local')
@@ -66,6 +66,10 @@ async function postSessionLink() {
 
   // Post comment with session link
   const comment = `🔗 **Claude Code Session**: [${session.name}](${url})\n\nFollow along or provide feedback via remote control.`
+
+  // The link is the agent announcing itself; signed as the OAuth client's owner
+  // it read as Jon posting his own session (AWTD-970).
+  const agentId = await resolveAgentAuthorId({ mailbox: 'claude', accessToken: access_token })
 
   const body: { content: string; type: string; aiAgentId?: string } = {
     content: comment,
