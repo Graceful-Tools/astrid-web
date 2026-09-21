@@ -40,11 +40,20 @@ export {
   type CopilotProviderOptions,
 } from './copilot-provider'
 
+export {
+  callMuse,
+  MUSE_BASE_URL,
+  MUSE_DEFAULT_MODEL,
+  MUSE_REPOSITORY_TOOLS,
+  type MuseProviderOptions,
+} from './muse-provider'
+
 // Import providers for the unified interface
 import { callClaude, type ClaudeProviderOptions } from './claude-provider'
 import { callOpenAI, type OpenAIProviderOptions } from './openai-provider'
 import { callGemini, type GeminiProviderOptions } from './gemini-provider'
 import { callCopilot, type CopilotProviderOptions } from './copilot-provider'
+import { callMuse, type MuseProviderOptions } from './muse-provider'
 import type { AIServiceType, AIProviderResponse, ToolExecutionCallback } from './types'
 import type { ClaudeSystemBlock } from '../clients/claude'
 import type { AILogger } from '../types/logger'
@@ -171,6 +180,21 @@ export async function callProvider(options: UnifiedProviderOptions): Promise<AIP
       return callCopilot(copilotOptions)
     }
 
+    case 'muse': {
+      const museOptions: MuseProviderOptions = {
+        apiKey,
+        prompt,
+        maxTokens,
+        jsonOnly,
+        userId,
+        logger,
+        hasRepository,
+        executeToolCallback,
+        model,
+      }
+      return callMuse(museOptions)
+    }
+
     default:
       throw new Error(`Unsupported AI service: ${service}`)
   }
@@ -190,6 +214,8 @@ export function getRepositoryTools(service: AIServiceType): any[] {
       return require('./gemini-provider').GEMINI_REPOSITORY_TOOLS
     case 'copilot':
       return require('./copilot-provider').COPILOT_REPOSITORY_TOOLS
+    case 'muse':
+      return require('./muse-provider').MUSE_REPOSITORY_TOOLS
     default:
       return []
   }

@@ -34,6 +34,7 @@ export const CONSENT_AGENT_MAILBOXES = [
   'claude',
   'copilot',
   'gemini',
+  'muse',
   // A local CLI authenticates as itself; that is the whole point of the
   // harness identities, so every one of them consents (AWTD-937).
   ...harnessAgentMailboxes(),

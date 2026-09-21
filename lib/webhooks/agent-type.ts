@@ -17,12 +17,15 @@ import { harnessAgentMailboxes } from '@/lib/ai/harness-agents'
 /**
  * Local parts that route deterministically. The harness agents come from their
  * own table so a new CLI is recognised without editing this list (AWTD-937).
+ * Muse is listed explicitly: it graduated from the harness table to a
+ * server-side provider, but the prefix still routes the same way.
  */
 const KNOWN_AGENT_PREFIXES: readonly string[] = [
   'claude',
   'openai',
   'gemini',
   'copilot',
+  'muse',
   'openclaw',
   ...harnessAgentMailboxes(),
 ]
@@ -46,6 +49,7 @@ export function getAgentType(email?: string, name?: string): string | null {
     if (lowerName.includes('gemini')) return 'gemini'
     if (lowerName.includes('copilot')) return 'copilot'
     if (lowerName.includes('codex')) return 'codex'
+    if (lowerName.includes('muse')) return 'muse'
     if (lowerName.includes('openclaw') || lowerName.includes('claw')) return 'openclaw'
   }
 

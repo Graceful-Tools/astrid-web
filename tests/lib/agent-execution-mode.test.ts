@@ -255,7 +255,9 @@ describe('isAgentOffered (task 9dbe0b17)', () => {
  */
 describe('a locked harness agent accepts the modes it can actually run (task 42349da6)', () => {
   it('rejects only the modes that need a server executor', () => {
-    for (const mailbox of ['codex', 'muse']) {
+    // Muse used to be in this list; it graduated to a server-side provider
+    // (Meta's Llama API), so only codex remains locked.
+    for (const mailbox of ['codex']) {
       expect(isModeLockedToPolling(mailbox), mailbox).toBe(true)
       expect(isModeSettableFor(mailbox, 'api'), `${mailbox} api`).toBe(false)
       expect(isModeSettableFor(mailbox, 'webhook'), `${mailbox} webhook`).toBe(false)
@@ -265,8 +267,10 @@ describe('a locked harness agent accepts the modes it can actually run (task 423
   })
 
   it('leaves an unlocked agent able to take every mode', () => {
-    for (const mode of ['api', 'polling', 'webhook', 'off'] as const) {
-      expect(isModeSettableFor('claude', mode), mode).toBe(true)
+    for (const mailbox of ['claude', 'muse']) {
+      for (const mode of ['api', 'polling', 'webhook', 'off'] as const) {
+        expect(isModeSettableFor(mailbox, mode), `${mailbox} ${mode}`).toBe(true)
+      }
     }
   })
 
@@ -280,14 +284,15 @@ describe('a locked harness agent accepts the modes it can actually run (task 423
 
   it('still forces polling for every other stored value', () => {
     // There is no server executor, so `api` and `webhook` remain unreachable
-    // however they got into the blob.
+    // however they got into the blob. (Muse used to be pinned here too; it
+    // has a server executor now, so a stored `api` is honored for it.)
     for (const stored of ['api', 'webhook']) {
       expect(
-        resolveAgentExecutionMode({ mailbox: 'muse', storedModes: { muse: stored } }),
+        resolveAgentExecutionMode({ mailbox: 'codex', storedModes: { codex: stored } }),
         stored
       ).toBe('polling')
     }
-    expect(resolveAgentExecutionMode({ mailbox: 'muse' })).toBe('polling')
+    expect(resolveAgentExecutionMode({ mailbox: 'codex' })).toBe('polling')
   })
 
   it('stops dispatching for a harness agent that was turned off', async () => {
@@ -334,9 +339,9 @@ describe('setAgentExecutionMode (task 42349da6)', () => {
     expect(saved().agentModes.muse).toBe('off')
   })
 
-  it('still refuses to give it a server runtime it does not have', async () => {
+  it('still refuses to give a locked agent a server runtime it does not have', async () => {
     for (const mode of ['api', 'webhook'] as const) {
-      await expect(setAgentExecutionMode('user-1', 'muse', mode)).rejects.toThrow('no API mode')
+      await expect(setAgentExecutionMode('user-1', 'codex', mode)).rejects.toThrow('no API mode')
     }
     expect(mockPrisma.user.update).not.toHaveBeenCalled()
   })

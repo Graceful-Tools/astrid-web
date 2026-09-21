@@ -47,6 +47,7 @@ import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
+import { callMuse } from '@/lib/ai/providers/muse-provider'
 import { getAgentConfig, type AIService } from '@/lib/ai/agent-config'
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from '@/lib/ai/clients/fetch-with-timeout'
 import {
@@ -64,6 +65,7 @@ const DEFAULT_MODELS = {
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   copilot: 'gpt-4.1',
+  muse: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
 } as const
 
 export interface RunAssistantWorkflowArgs {
@@ -357,7 +359,7 @@ Respond to the new comment. Be concise but thorough.`
  * For coding tasks, Astrid now dispatches to external runtimes via webhooks/SSE.
  */
 async function callAIService(
-  service: 'claude' | 'openai' | 'gemini' | 'copilot',
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse',
   apiKey: string,
   prompt: string,
   model: string,
@@ -414,6 +416,11 @@ async function callAIService(
 
     case 'copilot': {
       const response = await callCopilot({ apiKey, prompt, userId, model })
+      return response.content
+    }
+
+    case 'muse': {
+      const response = await callMuse({ apiKey, prompt, userId, model })
       return response.content
     }
 

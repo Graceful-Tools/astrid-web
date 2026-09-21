@@ -1,7 +1,7 @@
 /**
  * The coding-harness agents, defined ONCE (AWTD-937).
  *
- * A harness agent is a CLI that runs on the user's own machine — Codex, Muse —
+ * A harness agent is a CLI that runs on the user's own machine — Codex —
  * rather than a provider API this server calls. Astrid dispatches nothing for
  * them: the task sits in their queue (Ready + assigned) and the user's loop
  * picks it up. See lib/ai/agent-execution-mode.ts for why that mode exists.
@@ -21,9 +21,14 @@
  * lives with the settings UI that renders it. This table is the machine-
  * readable half: who exists, and what every registry needs to know about them.
  *
- * The provider-routed agents (claude@, openai@, gemini@, copilot@) stay in
+ * The provider-routed agents (claude@, openai@, gemini@, copilot@, muse@) stay in
  * AGENT_DEFINITIONS. They have a server executor and a credential; these do
  * not. Merging the two would be one table with two disjoint halves.
+ *
+ * Muse graduated out of this table: muse@ is now a server-side provider agent
+ * backed by Meta's Llama API (AGENT_DEFINITIONS.muse). The Muse Code CLI still
+ * polls the same identity in `polling` execution mode — the mode system, not
+ * this table, decides who runs it.
  */
 
 export interface HarnessAgent {
@@ -68,15 +73,6 @@ export const HARNESS_AGENTS: readonly HarnessAgent[] = [
     label: 'Codex',
     harnessSelector: 'codex',
     icon: { simpleIconSlug: 'openai', brandColor: '412991', localFallback: 'openai.svg' },
-  },
-  {
-    // Meta's terminal coding agent (Muse Code, August 2026). A CLI like Codex,
-    // NOT an API Astrid calls — so it is a harness agent, not a provider.
-    mailbox: 'muse',
-    displayName: 'Muse Agent',
-    label: 'Muse',
-    harnessSelector: 'muse',
-    icon: { simpleIconSlug: 'meta', brandColor: '0467DF', localFallback: 'muse.svg', padding: 0.125 },
   },
 ] as const
 

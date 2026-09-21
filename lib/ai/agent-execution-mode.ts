@@ -82,6 +82,7 @@ const CODING_AGENT_MAILBOXES: readonly string[] = [
   AGENT_MAILBOXES.copilot,
   AGENT_MAILBOXES.openai,
   AGENT_MAILBOXES.gemini,
+  AGENT_MAILBOXES.muse,
   // Every local harness is a coding agent by construction (AWTD-937).
   ...harnessAgentMailboxes(),
 ]
@@ -92,6 +93,7 @@ const MAILBOX_CREDENTIAL_KEYS: Record<string, string> = {
   [AGENT_MAILBOXES.openai]: 'openai',
   [AGENT_MAILBOXES.gemini]: 'gemini',
   [AGENT_MAILBOXES.copilot]: 'copilot',
+  [AGENT_MAILBOXES.muse]: 'muse',
 }
 
 export interface AgentExecutionModeInput {

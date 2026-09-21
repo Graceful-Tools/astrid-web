@@ -311,26 +311,41 @@ describe('the hub only offers modes the server accepts (task 42349da6)', () => {
     expect(isModeSettableFor(mailbox, 'webhook'), `${mailbox} webhook`).toBe(serverRun)
   })
 
-  it('has a locked row in the table, so this is not vacuously true', () => {
-    // If Muse ever leaves the hub, this is the prompt to re-point the case at
-    // whatever harness agent replaced it rather than delete the guard.
-    expect(AGENT_HUB_MODE_MAILBOXES.filter(m => isModeLockedToPolling(m))).toContain('muse')
+  it('still locks at least one agent server-side, so this is not vacuously true', () => {
+    // The hub itself no longer has a locked row — Muse graduated to a provider
+    // agent and the Codex row's modes are stored against openai — but the lock
+    // must survive for the harness agents that remain locked (codex). If every
+    // agent unlocks, this is the prompt to re-point the case at the hub's new
+    // locked row rather than delete the guard.
+    expect(isModeLockedToPolling('codex')).toBe(true)
   })
 })
 
-describe('the Muse row, which has no server runtime (task 42349da6)', () => {
+/**
+ * The Muse row graduated from harness-only to a full provider agent (Meta's
+ * Llama API), so it now offers every mode — this pins the graduated row in the
+ * positive form of the task-42349da6 guards above.
+ */
+describe('the Muse row, a provider agent with a server runtime', () => {
   beforeEach(() => {
     mockFetches({ muse: 'polling' })
-    putMock.mockResolvedValue({ json: () => Promise.resolve({ modes: { muse: 'off' } }) })
+    putMock.mockResolvedValue({ json: () => Promise.resolve({ modes: { muse: 'api' } }) })
   })
 
-  it('offers no "Astrid runs it" button, because there is nothing to run it', async () => {
+  it('offers an "Astrid runs it" button, and says so to the server', async () => {
     render(<AgentHub />)
     const muse = await screen.findByText('Muse')
     const row = muse.closest('div.border') as HTMLElement
-    expect(
-      within(row).queryByRole('button', { name: new RegExp(`${BRAND.appName} runs it`) })
-    ).toBeNull()
+    fireEvent.click(
+      within(row).getByRole('button', { name: new RegExp(`${BRAND.appName} runs it`) })
+    )
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith('/api/v1/users/me/agent-modes', {
+        agent: 'muse',
+        mode: 'api',
+      })
+    )
   })
 
   it('can still be turned off, and says so to the server', async () => {
@@ -347,11 +362,11 @@ describe('the Muse row, which has no server runtime (task 42349da6)', () => {
     )
   })
 
-  it('offers no webhook transport under "I run it"', async () => {
+  it('offers the webhook transport under "I run it"', async () => {
     render(<AgentHub />)
     const muse = await screen.findByText('Muse')
     fireEvent.click(muse)
     expect(await screen.findByText(/Your own Muse setup does the work/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Webhook server/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /Webhook server/ })).toBeTruthy()
   })
 })

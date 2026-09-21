@@ -186,7 +186,7 @@ export async function resolveDefaultAgent(
         return null
       }
     } else {
-      const service = getAgentService(agent.email) as 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+      const service = getAgentService(agent.email) as 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse' | 'openclaw'
       const hasKey = await hasValidApiKey(userId, service)
       if (!hasKey) return null
     }

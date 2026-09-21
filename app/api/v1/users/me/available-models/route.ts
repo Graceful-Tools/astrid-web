@@ -15,7 +15,7 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.users.me.available-models')
 
-const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot'] as const
+const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot', 'muse'] as const
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.available-models' },
@@ -25,7 +25,7 @@ export const GET = withAuth(
         typeof VALID_SERVICES[number] | null
       if (!service || !VALID_SERVICES.includes(service)) {
         return NextResponse.json(
-          { error: 'Invalid service. Use: claude, openai, gemini, copilot' },
+          { error: 'Invalid service. Use: claude, openai, gemini, copilot, muse' },
           { status: 400 }
         )
       }

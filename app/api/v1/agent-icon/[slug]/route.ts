@@ -53,6 +53,14 @@ export const AGENT_ICONS: Record<string, AgentIconConfig> = {
     localFallback: 'copilot.svg',
     padding: 0.125,
   },
+  // Muse graduated from the harness table to a server-side provider, so its
+  // mark is listed explicitly (the spread below only covers local harnesses).
+  muse: {
+    simpleIconSlug: 'meta',
+    brandColor: '0467DF',  // Meta blue
+    localFallback: 'muse.svg',
+    padding: 0.125,
+  },
   // The local coding harnesses carry their brand marks in their own table, so
   // adding a CLI does not mean remembering to edit this one (AWTD-937).
   ...Object.fromEntries(HARNESS_AGENTS.map((agent) => [agent.mailbox, agent.icon])),

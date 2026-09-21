@@ -20,7 +20,7 @@ const log = createLogger('user.webhook-settings')
 
 
 // Available AI agents that can be routed to webhook
-const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot'] as const
+const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot', 'muse'] as const
 
 // Validation schema for webhook settings
 const WebhookSettingsSchema = z.object({
@@ -46,7 +46,7 @@ const WebhookSettingsSchema = z.object({
     'comment.created',
     'task.updated'
   ])).optional(),
-  agents: z.array(z.enum(['claude', 'openai', 'gemini', 'copilot'])).optional(),
+  agents: z.array(z.enum(['claude', 'openai', 'gemini', 'copilot', 'muse'])).optional(),
   regenerateSecret: z.boolean().optional()
 })
 

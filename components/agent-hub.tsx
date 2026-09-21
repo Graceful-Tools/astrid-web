@@ -102,14 +102,17 @@ const ROWS: AgentRowConfig[] = [
     keyDocsUrl: 'https://platform.openai.com/docs/api-reference',
   },
   {
-    // Muse Code is a local CLI only — there is no Meta API Astrid calls, so it
-    // has no key field and its identity is always the polling one (AWTD-937).
+    // Muse is a server-side provider via Meta's Llama API; the Muse Code CLI
+    // polls the same identity in polling mode. Key format is `LLM|…`, created
+    // in the API Dashboard (llama.developer.meta.com).
     key: 'muse',
     label: 'Muse',
     modeMailbox: 'muse',
     service: 'muse',
     pollMailbox: 'muse',
     identityFor: () => 'muse',
+    keyPlaceholder: 'LLM|...',
+    keyDocsUrl: 'https://llama.developer.meta.com',
   },
   {
     key: 'copilot',

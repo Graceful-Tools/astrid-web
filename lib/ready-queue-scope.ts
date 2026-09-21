@@ -28,6 +28,10 @@ export const FIXALL_HARNESS_MAILBOXES: Record<string, string> = {
   'claude-code': AGENT_MAILBOXES.claude,
   'github-copilot': AGENT_MAILBOXES.copilot,
   'astrid-server': AGENT_MAILBOXES.astrid,
+  // Muse graduated from the harness table to a server-side provider, but the
+  // Muse Code CLI still answers to this selector — same explicit treatment as
+  // claude-code above. (Was derived from HARNESS_AGENTS before the graduation.)
+  'muse': AGENT_MAILBOXES.muse,
   // Every local harness answers to its own selector (AWTD-937). Absent here,
   // `--harness muse` would match no mailbox and the queue would come back
   // EMPTY rather than erroring, so the loop reports "nothing to do" forever.

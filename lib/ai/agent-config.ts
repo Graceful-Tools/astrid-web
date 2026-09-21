@@ -21,7 +21,7 @@ import {
 import { BRAND } from '@/lib/brand/config'
 import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 
-export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse' | 'openclaw'
 
 /** Product label for a service key; `openclaw` remains wire/storage compatibility. */
 export function agentServiceLabel(service: string): string {
@@ -88,6 +88,14 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
     'gpt-4o',
     'gpt-4o-mini',
   ],
+  // Muse runs on Meta's Llama API through its OpenAI-compatible endpoint, so
+  // the model ids are the Llama API model ids (docs.llama.com "Meet the models").
+  muse: [
+    'Llama-4-Maverick-17B-128E-Instruct-FP8',
+    'Llama-4-Scout-17B-16E-Instruct-FP8',
+    'Llama-3.3-70B-Instruct',
+    'Llama-3.3-8B-Instruct',
+  ],
 }
 
 /**
@@ -98,6 +106,7 @@ export const DEFAULT_MODELS: Partial<Record<AIService, string>> = {
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   copilot: 'gpt-4.1',
+  muse: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
 }
 
 const STANDARD_CAPABILITIES = [
@@ -154,6 +163,17 @@ const AGENT_DEFINITIONS: Record<string, AIAgentConfig> = {
     model: 'gpt-4.1',
     displayName: 'GitHub Copilot Agent',
     agentType: 'copilot_agent',
+    contextFile: 'ASTRID.md',
+    capabilities: STANDARD_CAPABILITIES,
+  },
+  // Muse is a server-side provider agent backed by Meta's Llama API — not a
+  // harness agent. The Muse Code CLI polls the same muse@ identity in
+  // `polling` mode; in `api` mode this server calls the Llama API instead.
+  muse: {
+    service: 'muse',
+    model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
+    displayName: 'Muse Agent',
+    agentType: 'muse_agent',
     contextFile: 'ASTRID.md',
     capabilities: STANDARD_CAPABILITIES,
   },
@@ -298,6 +318,7 @@ const BUILT_IN_AGENT_NAMES: Record<string, string> = {
   openai: 'OpenAI',
   gemini: 'Gemini',
   copilot: 'GitHub Copilot',
+  muse: 'Muse',
 }
 
 /**

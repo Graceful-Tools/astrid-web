@@ -17,13 +17,17 @@ export const FIXALL_CLAIM_AGENT_EMAIL = agentEmail(AGENT_MAILBOXES.copilot)
  * below, and for the same reason: a claim decides which account ends up owning
  * the task, so an arbitrary mailbox must never reach the user lookup.
  *
- * Exactly the three harnesses docs/FIXALL_WORKFLOW.md names as running the loop.
- * A server-side AI provider is not here: those are dispatched work, they do not
- * poll a queue and claim from it.
+ * The local harnesses poll the queue and claim from it (AWTD-937), and so do
+ * the CLIs behind the dual-mode provider identities — Claude Code claims as
+ * claude@, Muse Code as muse@. A pure server-side provider with no CLI is not
+ * here: that work is dispatched, it never polls.
  */
 export const FIXALL_CLAIM_MAILBOXES: readonly string[] = [
   AGENT_MAILBOXES.copilot,
   AGENT_MAILBOXES.claude,
+  // Muse graduated from the harness table to a server-side provider, but the
+  // Muse Code CLI still polls the queue and claims from it — same as claude.
+  AGENT_MAILBOXES.muse,
   // Every local harness polls the queue and claims from it (AWTD-937).
   ...harnessAgentMailboxes(),
 ]

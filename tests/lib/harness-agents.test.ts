@@ -38,7 +38,10 @@ describe('the harness-agent table (AWTD-937)', () => {
   it('still contains the harnesses that predate it', () => {
     // A refactor that quietly dropped one would deregister a working agent.
     expect(mailboxes).toContain('codex')
-    expect(mailboxes).toContain('muse')
+    // Muse graduated to a server-side provider (Meta's Llama API) and is
+    // deliberately NOT here anymore — the provider table owns it now. Its
+    // CLI-facing registrations are pinned explicitly below.
+    expect(mailboxes).not.toContain('muse')
   })
 
   it('gives every entry the facts a harness agent cannot work without', () => {
@@ -112,5 +115,53 @@ describe('the icon endpoint knows every harness agent (AWTD-937)', () => {
   it.each(mailboxes)('%s has an icon entry', async mailbox => {
     const { AGENT_ICONS } = await import('@/app/api/v1/agent-icon/[slug]/route')
     expect(Object.keys(AGENT_ICONS)).toContain(mailbox)
+  })
+})
+
+/**
+ * Muse graduated from the harness table to a server-side provider agent backed
+ * by Meta's Llama API (AGENT_DEFINITIONS.muse). The Muse Code CLI still polls
+ * the same muse@ identity in `polling` mode, so every CLI-facing registration
+ * the harness table used to derive is now explicit — the same treatment
+ * claude@ already had. These cases pin that none of them were lost in the move.
+ */
+describe('the graduated muse provider keeps its CLI-facing registrations', () => {
+  const MUSE_EMAIL = agentEmail('muse')
+
+  it('is a provider-routed agent, not a harness agent', () => {
+    expect(getAgentConfig(MUSE_EMAIL)?.service).toBe('muse')
+    expect(isLocalHarnessAgentEmail(MUSE_EMAIL)).toBe(false)
+  })
+
+  it('is not locked to polling — a saved key means the server runs it', () => {
+    expect(isModeLockedToPolling('muse')).toBe(false)
+    expect(resolveAgentExecutionMode({ mailbox: 'muse', hasStoredCredential: true })).toBe('api')
+    expect(resolveAgentExecutionMode({ mailbox: 'muse' })).toBe('polling')
+  })
+
+  it('is offered in the settings UI as pollable', () => {
+    expect(pollableMailboxes()).toContain('muse')
+  })
+
+  it('may complete an OAuth consent as itself', () => {
+    expect(CONSENT_AGENT_MAILBOXES as readonly string[]).toContain('muse')
+    expect(isConsentAgentAvailable('muse')).toBe(true)
+  })
+
+  it('keeps its --harness selector for the Muse Code /fixall loop', () => {
+    expect(FIXALL_HARNESS_MAILBOXES['muse']).toBe('muse')
+  })
+
+  it('can hold a /fixall claim', () => {
+    expect(FIXALL_CLAIM_MAILBOXES as readonly string[]).toContain('muse')
+  })
+
+  it('resolves a webhook agent type from its address', () => {
+    expect(getAgentType(MUSE_EMAIL)).toBe('muse')
+  })
+
+  it('has an icon entry', async () => {
+    const { AGENT_ICONS } = await import('@/app/api/v1/agent-icon/[slug]/route')
+    expect(Object.keys(AGENT_ICONS)).toContain('muse')
   })
 })

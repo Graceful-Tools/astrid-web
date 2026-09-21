@@ -33,7 +33,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('v1.users.me.webhook-settings')
 
 const AVAILABLE_EVENTS = ['task.assigned', 'comment.created', 'task.updated'] as const
-const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot'] as const
+const AVAILABLE_AGENTS = ['claude', 'openai', 'gemini', 'copilot', 'muse'] as const
 
 const DEFAULT_EVENTS = ['task.assigned', 'comment.created']
 

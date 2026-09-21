@@ -32,6 +32,7 @@ const SEED_PROFILE: Record<string, { name: string; image: string }> = {
   openai: { name: 'OpenAI Agent', image: 'openai.png' },
   gemini: { name: 'Gemini Agent', image: 'gemini.png' },
   copilot: { name: 'GitHub Copilot Agent', image: 'copilot.png' },
+  muse: { name: 'Muse Agent', image: 'muse.svg' },
   codex: { name: 'Codex Agent', image: 'openai.png' },
   openclaw: { name: 'OpenClaw Worker', image: 'openclaw.svg' },
 }
