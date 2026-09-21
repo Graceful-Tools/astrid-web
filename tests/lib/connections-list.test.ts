@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BRAND } from '@/lib/brand/config'
 
 const tokenFindMany = vi.hoisted(() => vi.fn())
+const tokenGroupBy = vi.hoisted(() => vi.fn())
 const clientFindMany = vi.hoisted(() => vi.fn())
 const mcpFindMany = vi.hoisted(() => vi.fn())
 const webhookFindUnique = vi.hoisted(() => vi.fn())
@@ -20,7 +21,7 @@ const listClients = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    oAuthToken: { findMany: tokenFindMany },
+    oAuthToken: { findMany: tokenFindMany, groupBy: tokenGroupBy },
     oAuthClient: { findMany: clientFindMany },
     mCPToken: { findMany: mcpFindMany },
     userWebhookConfig: { findUnique: webhookFindUnique },
@@ -35,12 +36,14 @@ import { listConnections } from '@/lib/connections/list-connections'
 const NOW = new Date('2026-09-20T10:00:00Z')
 const LATER = new Date('2026-10-20T10:00:00Z')
 const EARLIER = new Date('2026-09-01T10:00:00Z')
+const LONG_AGO = new Date('2026-06-01T10:00:00Z')
 
 describe('listConnections', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listClients.mockResolvedValue([])
     tokenFindMany.mockResolvedValue([])
+    tokenGroupBy.mockResolvedValue([])
     clientFindMany.mockResolvedValue([])
     mcpFindMany.mockResolvedValue([])
     webhookFindUnique.mockResolvedValue(null)
@@ -85,6 +88,41 @@ describe('listConnections', () => {
     const where = tokenFindMany.mock.calls[0][0].where
     expect(where.userId).toBe('user-1')
     expect(where.revokedAt).toBeNull()
+  })
+
+  // AWTD-983: the page showed third-party apps "last used" before they were
+  // "created". Refreshing revokes the old token row and mints a new one, so
+  // the oldest LIVE token dates from the last refresh — which is why the two
+  // dates could invert on an app that has been connected for months.
+  it('AWTD-983: dates a consent-authorised app from the first token in its refresh chain, not the newest', async () => {
+    const claudeCode = { id: 'dcr-1', clientId: 'astrid_client_dcr', name: 'Claude Code', userId: null, lastUsedAt: NOW }
+    tokenFindMany.mockResolvedValue([
+      { id: 't2', clientId: 'dcr-1', scopes: ['tasks:read'], agentMailbox: 'claude', createdAt: EARLIER, expiresAt: LATER, refreshExpiresAt: LATER, client: claudeCode },
+    ])
+    // The revoked predecessors are still on file: this is when the user consented.
+    tokenGroupBy.mockResolvedValue([{ clientId: 'dcr-1', _min: { createdAt: LONG_AGO } }])
+
+    const [row] = await listConnections('user-1')
+    expect(row.createdAt).toBe(LONG_AGO.toISOString())
+    expect(row.lastUsedAt).toBe(NOW.toISOString())
+    // Revoked rows are the whole point of the lookup, so it must not filter them out.
+    expect(tokenGroupBy.mock.calls[0][0].where).toEqual({ userId: 'user-1' })
+  })
+
+  // AWTD-983, the residual case: a dynamically registered client is SHARED, and
+  // its lastUsedAt column is written by whoever uses it. A use that predates
+  // this reader's own grant was somebody else's, so it is not a fact about this
+  // row — "Never" is honest where an impossible date is not.
+  it('AWTD-983: reports no last-used rather than a date that precedes the connection', async () => {
+    const shared = { id: 'dcr-1', clientId: 'astrid_client_dcr', name: 'Claude Code', userId: null, lastUsedAt: LONG_AGO }
+    tokenFindMany.mockResolvedValue([
+      { id: 't1', clientId: 'dcr-1', scopes: ['tasks:read'], agentMailbox: 'claude', createdAt: NOW, expiresAt: LATER, refreshExpiresAt: LATER, client: shared },
+    ])
+    tokenGroupBy.mockResolvedValue([{ clientId: 'dcr-1', _min: { createdAt: NOW } }])
+
+    const [row] = await listConnections('user-1')
+    expect(row.createdAt).toBe(NOW.toISOString())
+    expect(row.lastUsedAt).toBeNull()
   })
 
   it('lists a Custom Agent the caller registered, and not one somebody else did', async () => {
