@@ -925,6 +925,12 @@
       "revoked": "취소됨",
       "revokeError": "취소할 수 없습니다",
       "manageInAgents": "AI 에이전트에서 관리",
+      "review": {
+        "summaryOne": "연결 1개가 사용되지 않는 것 같습니다. 더 이상 필요 없다면 해지하세요.",
+        "summaryMany": "연결 {count}개가 사용되지 않는 것 같습니다. 더 이상 필요 없는 항목은 해지하세요.",
+        "idle": "{days}일 동안 사용되지 않음",
+        "neverUsed": "사용된 적 없음, {days}일 전 생성"
+      },
       "developer": {
         "title": "개발자",
         "description": "OAuth 앱을 직접 만들고, API를 테스트하고, OpenAPI를 지원하는 어시스턴트를 연결합니다.",

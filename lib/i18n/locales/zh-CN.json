@@ -925,6 +925,12 @@
       "revoked": "已撤销",
       "revokeError": "无法撤销",
       "manageInAgents": "在 AI 代理中管理",
+      "review": {
+        "summaryOne": "有 1 个连接看起来未使用 — 如果不再需要，请撤销。",
+        "summaryMany": "有 {count} 个连接看起来未使用 — 请撤销不再需要的。",
+        "idle": "已 {days} 天未使用",
+        "neverUsed": "从未使用，创建于 {days} 天前"
+      },
       "developer": {
         "title": "开发者",
         "description": "手动创建 OAuth 应用、测试 API，并连接支持 OpenAPI 的助手。",

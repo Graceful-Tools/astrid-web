@@ -44,6 +44,10 @@ vi.mock('@/lib/i18n/client', () => ({
         'settingsPages.connections.cancel': 'Cancel',
         'settingsPages.connections.manageInAgents': 'Manage in AI Agents',
         'settingsPages.connections.actsAsYou': 'You',
+        'settingsPages.connections.review.summaryOne': '1 connection looks unused',
+        'settingsPages.connections.review.summaryMany': `${vars?.count} connections look unused`,
+        'settingsPages.connections.review.idle': `Not used in ${vars?.days} days`,
+        'settingsPages.connections.review.neverUsed': `Never used, created ${vars?.days} days ago`,
       })[key] ?? key,
   }),
 }))
@@ -137,5 +141,101 @@ describe('ConnectionsList', () => {
     getMock.mockResolvedValue(respond({ connections: [], meta: {} }))
     render(<ConnectionsList />)
     expect(await screen.findByText('Nothing is connected')).toBeInTheDocument()
+  })
+})
+
+/**
+ * RED for AWTD-980 — the list reviews itself.
+ *
+ * A date in a table is not a recommendation. These rows carry the dates
+ * already; the question the reader has is which of them can go.
+ */
+describe('ConnectionsList unused review (AWTD-980)', () => {
+  // Relative to the real clock rather than a frozen one: freezing time fights
+  // testing-library's async helpers, and the component's only reading of "now"
+  // is the one it makes while rendering these fixtures.
+  const daysBefore = (days: number): string =>
+    new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  beforeEach(() => {
+    getMock.mockReset()
+    deleteMock.mockReset()
+  })
+
+  it('counts the unused ones and says why each is flagged', async () => {
+    getMock.mockResolvedValue(respond({
+      connections: [
+        row({ id: 'c1', name: 'Old script', lastUsedAt: daysBefore(200) }),
+        row({ id: 'dcr-1', kind: 'authorizedApp', name: 'Tried once', createdAt: daysBefore(90), lastUsedAt: null }),
+        row({ id: 'c2', name: 'Daily driver', lastUsedAt: daysBefore(1) }),
+      ],
+      meta: {},
+    }))
+    render(<ConnectionsList />)
+
+    expect(await screen.findByText('2 connections look unused')).toBeInTheDocument()
+
+    const old = (await screen.findByText('Old script')).closest('[data-connection-id]') as HTMLElement
+    expect(within(old).getByText('Not used in 200 days')).toBeInTheDocument()
+
+    const tried = (screen.getByText('Tried once')).closest('[data-connection-id]') as HTMLElement
+    expect(within(tried).getByText('Never used, created 90 days ago')).toBeInTheDocument()
+
+    const daily = (screen.getByText('Daily driver')).closest('[data-connection-id]') as HTMLElement
+    expect(within(daily).queryByText(/Not used in/)).not.toBeInTheDocument()
+  })
+
+  it('uses the singular sentence for one unused connection', async () => {
+    getMock.mockResolvedValue(respond({
+      connections: [row({ id: 'c1', name: 'Old script', lastUsedAt: daysBefore(200) })],
+      meta: {},
+    }))
+    render(<ConnectionsList />)
+    expect(await screen.findByText('1 connection looks unused')).toBeInTheDocument()
+  })
+
+  it('stays silent when everything is in use', async () => {
+    getMock.mockResolvedValue(respond({
+      connections: [row({ id: 'c1', name: 'Daily driver', lastUsedAt: daysBefore(1) })],
+      meta: {},
+    }))
+    render(<ConnectionsList />)
+
+    expect(await screen.findByText('Daily driver')).toBeInTheDocument()
+    expect(screen.queryByText(/looks? unused/)).not.toBeInTheDocument()
+  })
+
+  it('does not flag an access token, whose usage is never recorded', async () => {
+    getMock.mockResolvedValue(respond({
+      connections: [row({
+        id: 'tok-1', kind: 'accessToken', name: 'Cloud agent token',
+        createdAt: daysBefore(400), lastUsedAt: null, manageIn: 'agents',
+      })],
+      meta: {},
+    }))
+    render(<ConnectionsList />)
+
+    expect(await screen.findByText('Cloud agent token')).toBeInTheDocument()
+    expect(screen.queryByText(/looks? unused/)).not.toBeInTheDocument()
+  })
+
+  it('stops counting a connection as unused once it has been revoked', async () => {
+    getMock.mockResolvedValue(respond({
+      connections: [
+        row({ id: 'c1', name: 'Old script', lastUsedAt: daysBefore(200) }),
+        row({ id: 'c2', name: 'Older script', lastUsedAt: daysBefore(300) }),
+      ],
+      meta: {},
+    }))
+    deleteMock.mockResolvedValue(respond({ success: true }))
+    const user = userEvent.setup()
+    render(<ConnectionsList />)
+
+    expect(await screen.findByText('2 connections look unused')).toBeInTheDocument()
+    const old = (screen.getByText('Older script')).closest('[data-connection-id]') as HTMLElement
+    await user.click(within(old).getByRole('button', { name: 'Revoke' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    expect(await screen.findByText('1 connection looks unused')).toBeInTheDocument()
   })
 })

@@ -925,6 +925,12 @@
       "revoked": "Ingetrokken",
       "revokeError": "Intrekken mislukt",
       "manageInAgents": "Beheren in AI-agents",
+      "review": {
+        "summaryOne": "1 verbinding lijkt ongebruikt — trek hem in als je hem niet meer nodig hebt.",
+        "summaryMany": "{count} verbindingen lijken ongebruikt — trek in wat je niet meer nodig hebt.",
+        "idle": "Al {days} dagen niet gebruikt",
+        "neverUsed": "Nooit gebruikt, {days} dagen geleden aangemaakt"
+      },
       "developer": {
         "title": "Ontwikkelaar",
         "description": "Maak OAuth-apps handmatig, test de API en verbind assistenten die OpenAPI spreken.",
