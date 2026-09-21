@@ -25,13 +25,17 @@
  *                    the sweep ran only inside a session, and a session needed a
  *                    non-empty queue to start.
  *
- * WAKING IS BOUNDED. A seen-file (default: node_modules/.cache/astrid-fixall/
- * seen-<agent>-<list>.json, override with `--seen <file>`) records which inbox
- * and lane items have already woken a run; the same item never wakes a second
- * one, a new comment does. Without it an item the agent chose not to answer
- * would start a session every half hour, forever — the bill this guard exists
- * to avoid. The decision lives in scripts/lib/agent-queue-verdict.ts, where it
- * is tested.
+ * WAKING IS BOUNDED. A seen-file (default: ~/Library/Caches/astrid-fixall/
+ * seen-<agent>-<list>.json on macOS, $XDG_CACHE_HOME or ~/.cache elsewhere;
+ * override with `--seen <file>`) records which inbox and lane items have
+ * already woken a run; the same item never wakes a second one, a new comment
+ * does. Without it an item the agent chose not to answer would start a
+ * session every half hour, forever — the bill this guard exists to avoid.
+ * The decision lives in scripts/lib/agent-queue-verdict.ts, where it is
+ * tested; the path math lives in scripts/lib/fixall-seen-file.ts, tested
+ * too. The file is machine-local state, NOT repo state: the old default
+ * under node_modules/.cache was wiped by every `npm ci`, and the next tick
+ * woke every unanswered item at once.
  *
  * Usage:
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web
@@ -58,6 +62,7 @@ import { dirname, join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
 import { FIXALL_HARNESS_MAILBOXES } from '@/lib/ready-queue-scope'
 import { parseReadyTaskClaims } from './lib/ready-tasks-output'
+import { adoptLegacySeenFile, defaultSeenFile } from './lib/fixall-seen-file'
 import { decideQueueVerdict, type LaneSnapshot, type QueueSnapshot } from './lib/agent-queue-verdict'
 
 loadScriptEnv()
@@ -165,10 +170,16 @@ async function main() {
 
   // Bounded by DEFAULT, not by flag: the iOS loop calls this script from the
   // web checkout with no flags, and an inbox item it never answers must not
-  // start an iOS session every half hour either. Per agent and board, under
-  // node_modules/.cache so it is gitignored wherever tsx can run at all.
-  const seenFile =
-    arg('--seen') ?? join(process.cwd(), 'node_modules', '.cache', 'astrid-fixall', `seen-${agent}-${listId}.json`)
+  // start an iOS session every half hour either. Per agent and list, in the
+  // OS cache dir — machine-local state that survives `npm ci`
+  // (scripts/lib/fixall-seen-file.ts).
+  const seenFile = arg('--seen') ?? defaultSeenFile(agent, listId)
+  if (!arg('--seen')) {
+    // One-time move of the pre-2026-09-21 default, so a deploy does not
+    // re-wake every item the old file had already muted.
+    const adopted = adoptLegacySeenFile(agent, listId, seenFile)
+    if (adopted) console.log(`SEEN: adopted legacy seen-file at ${adopted}`)
+  }
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
