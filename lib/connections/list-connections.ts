@@ -43,7 +43,27 @@ export async function listConnections(userId: string): Promise<V1Connection[]> {
     accessTokens(userId),
     webhookServer(userId),
   ])
-  return [...owned, ...authorized, ...custom, ...tokens, ...webhook].map(withTaxonomy)
+  return [...owned, ...authorized, ...custom, ...tokens, ...webhook]
+    .map(withCoherentUsage)
+    .map(withTaxonomy)
+}
+
+/**
+ * Drop a `lastUsedAt` that precedes the row's own `createdAt` (AWTD-983).
+ *
+ * The two dates do not always come from the same record. An `authorizedApp`
+ * reads its usage from `OAuthClient.lastUsedAt`, one column on a client row
+ * that dynamic registration SHARES between everyone who approved that app — so
+ * the last use can belong to another person and predate this reader's grant
+ * entirely. A use that happened before the connection existed is not a fact
+ * about the connection, and "Never" is the honest way to say we have none.
+ *
+ * Applied once, next to the taxonomy stamp, for the same reason: an invariant
+ * every row must hold belongs in one place rather than in each builder.
+ */
+function withCoherentUsage(connection: ConnectionRow): ConnectionRow {
+  if (!connection.lastUsedAt || connection.lastUsedAt >= connection.createdAt) return connection
+  return { ...connection, lastUsedAt: null }
 }
 
 /** OAuth clients the user created in the developer console (or via a preset). */
@@ -76,18 +96,21 @@ async function ownedClients(userId: string): Promise<ConnectionRow[]> {
  */
 async function authorizedApps(userId: string): Promise<ConnectionRow[]> {
   const now = new Date()
-  const tokens = await prisma.oAuthToken.findMany({
-    where: {
-      userId,
-      revokedAt: null,
-      OR: [{ expiresAt: { gt: now } }, { refreshExpiresAt: { gt: now } }],
-    },
-    include: {
-      client: {
-        select: { id: true, clientId: true, name: true, userId: true, lastUsedAt: true },
+  const [tokens, firstGrants] = await Promise.all([
+    prisma.oAuthToken.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        OR: [{ expiresAt: { gt: now } }, { refreshExpiresAt: { gt: now } }],
       },
-    },
-  })
+      include: {
+        client: {
+          select: { id: true, clientId: true, name: true, userId: true, lastUsedAt: true },
+        },
+      },
+    }),
+    firstGrantByClient(userId),
+  ])
 
   const byClient = new Map<string, ConnectionRow>()
   for (const token of tokens) {
@@ -103,7 +126,7 @@ async function authorizedApps(userId: string): Promise<ConnectionRow[]> {
         name: token.client.name,
         actsAs: token.agentMailbox ? agentEmail(token.agentMailbox) : null,
         scopes: [...token.scopes],
-        createdAt: new Date(token.createdAt).toISOString(),
+        createdAt: firstGrants.get(token.client.id) ?? new Date(token.createdAt).toISOString(),
         lastUsedAt: iso(token.client.lastUsedAt),
         expiresAt: iso(latest),
         status: 'active',
@@ -122,6 +145,33 @@ async function authorizedApps(userId: string): Promise<ConnectionRow[]> {
     existing.detail = { ...existing.detail, activeTokens: (existing.detail?.activeTokens ?? 0) + 1 }
   }
   return [...byClient.values()]
+}
+
+/**
+ * When this user first got a token for each client — the date the row means by
+ * "Created" (AWTD-983).
+ *
+ * It cannot be read off the live tokens, because refreshing REVOKES the row it
+ * replaces (`refreshAccessToken`) — so the oldest live token dates from the
+ * last refresh, an hour ago, on an app connected since spring. Revoked rows are
+ * therefore exactly the ones to count: they are the earlier links of the same
+ * chain, not withdrawn consent.
+ *
+ * `cleanupExpiredTokens` drops rows seven days after they expire, so this is
+ * "connected at least since", never earlier than the truth.
+ */
+async function firstGrantByClient(userId: string): Promise<Map<string, string>> {
+  const grants = await prisma.oAuthToken.groupBy({
+    by: ['clientId'],
+    where: { userId },
+    _min: { createdAt: true },
+  })
+  return new Map(
+    grants.flatMap(grant => {
+      const first = iso(grant._min.createdAt)
+      return first ? [[grant.clientId, first] as const] : []
+    })
+  )
 }
 
 /** Custom Agents the user registered: the client belongs to the bot user, so it never shows under ownedClients. */
