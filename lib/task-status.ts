@@ -213,7 +213,11 @@ export function resolveCompletionStatusTransition(input: {
   if (input.requestedCompleted) {
     return {
       statusRole: null,
-      statusRoleBeforeDone: input.currentStatusRole ?? null,
+      // A task completed twice (idempotent retry, sync backdating
+      // completedAt, double PUT) has no live lane the second time — the
+      // stash must keep the lane from the first completion, or the reopen
+      // loses it.
+      statusRoleBeforeDone: input.currentStatusRole ?? input.rememberedStatusRole ?? null,
     }
   }
 

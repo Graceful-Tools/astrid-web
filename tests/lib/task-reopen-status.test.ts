@@ -64,6 +64,21 @@ describe('resolveCompletionStatusTransition — completing (AWTD-964)', () => {
       }),
     ).toEqual({ statusRole: null, statusRoleBeforeDone: null })
   })
+
+  it('does not clobber the stashed lane when an already-completed task is completed again', () => {
+    // Completion clears the live lane, so a second completed=true (idempotent
+    // retry, sync backdating completedAt, double PUT) sees currentStatusRole
+    // null. Writing that null into the stash would destroy the lane the
+    // reopen needs — the remembered lane must survive.
+    expect(
+      resolveCompletionStatusTransition({
+        requestedCompleted: true,
+        currentStatusRole: null,
+        rememberedStatusRole: DOING_STATUS_ROLE,
+        assigneeIsAgent: true,
+      }),
+    ).toEqual({ statusRole: null, statusRoleBeforeDone: DOING_STATUS_ROLE })
+  })
 })
 
 describe('resolveCompletionStatusTransition — reopening (AWTD-964)', () => {
