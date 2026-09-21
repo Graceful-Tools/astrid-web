@@ -33,10 +33,26 @@
  * to avoid. The decision lives in scripts/lib/agent-queue-verdict.ts, where it
  * is tested.
  *
+ * The write is the SECOND phase of waking, and the loop opts into that
+ * explicitly. A preflight with `--no-write-seen` computes the verdict and
+ * prints its keys as a `KEYS:` line but does not touch the seen-file: a run
+ * that crashes, is watchdog-killed, or exhausts its budget must not mute the
+ * items that woke it. Only a finished run records them, via
+ * `--mark-seen --seen-keys '<json>'`, which writes exactly the preflight's
+ * keys — never a recomputed set, which would differ once the run has answered
+ * things. Callers that do not opt in keep the old write-on-preflight
+ * behavior, so the iOS loop (which calls this with no flags) is unchanged.
+ *
  * Usage:
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId>            # no sweep; lanes reported as not read
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --json
+ *
+ * Two-phase waking (the scheduled loop's contract):
+ *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web --no-write-seen
+ *     # → prints KEYS: ["comment:…", …], writes nothing
+ *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --mark-seen --seen-keys '<keys json>'
+ *     # → records those keys as seen; run only after a finished run
  *
  * Exit codes are the interface, matching the fixall scripts around it:
  *   0  there is work — the caller should start a run
@@ -170,6 +186,22 @@ async function main() {
   const seenFile =
     arg('--seen') ?? join(process.cwd(), 'node_modules', '.cache', 'astrid-fixall', `seen-${agent}-${listId}.json`)
 
+  // Phase two of waking: record exactly the keys a finished run was woken
+  // for. No network, no verdict — the preflight already decided.
+  if (process.argv.includes('--mark-seen')) {
+    const raw = arg('--seen-keys')
+    let keys: string[] = []
+    try {
+      const parsed: unknown = JSON.parse(raw ?? '[]')
+      if (Array.isArray(parsed)) keys = parsed.filter((k): k is string => typeof k === 'string')
+    } catch {
+      // Malformed keys mark nothing: failing closed beats recording garbage.
+    }
+    writeSeen(seenFile, keys)
+    console.log(`SEEN: marked ${keys.length} keys as seen`)
+    process.exit(0)
+  }
+
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
   if (!clientId || !clientSecret) {
@@ -213,9 +245,16 @@ async function main() {
 
   if (!asJson) console.log(verdict.line)
 
-  // Every wake-able item present now has had its chance after this tick,
-  // whether the run starts or not.
-  writeSeen(seenFile, verdict.keys)
+  // The write is the second phase of waking. With --no-write-seen the keys
+  // are handed back as a KEYS: line instead, and only a finished run records
+  // them via --mark-seen. Without the flag the old behavior stands: every
+  // wake-able item present now has had its chance after this tick, whether
+  // the run starts or not.
+  if (process.argv.includes('--no-write-seen')) {
+    if (!asJson) console.log(`KEYS: ${JSON.stringify(verdict.keys)}`)
+  } else {
+    writeSeen(seenFile, verdict.keys)
+  }
 
   process.exit(verdict.work ? 0 : 3)
 }

@@ -60,4 +60,20 @@ describe('the scheduled loop wakes only for new work', () => {
     // reads to decide whether the loop is healthy.
     expect(loop).toMatch(/RESULT: SKIPPED — nothing to do for claude \(no Ready task, no new comment, no lane work\)/)
   })
+
+  it('does not burn wake keys on a preflight whose run may never happen', () => {
+    // The status script used to write the seen-file the moment it computed
+    // the verdict — before the loop had verified the claude binary, started
+    // the run, or known it succeeded. A crashed, watchdog-killed, or
+    // budget-exhausted run then muted its inbox/lane items forever: "one run
+    // per item" became "one attempt ever". The preflight must defer the
+    // write; only a finished run marks its keys seen.
+    const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
+    expect(call, `${LOOP} preflight must defer the seen-file write`).toMatch(/--no-write-seen\b/)
+  })
+
+  it('marks wake keys seen only after a successful run', () => {
+    expect(loop, `${LOOP} must mark the preflight keys seen on RESULT: OK`).toMatch(/--mark-seen\b/)
+    expect(status, `${STATUS} must support --mark-seen`).toMatch(/--mark-seen/)
+  })
 })

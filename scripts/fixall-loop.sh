@@ -135,12 +135,20 @@ fi
 # run (scripts/agent-queue-status.ts keeps a seen-file), so something the
 # agent chose not to answer cannot start a session every half hour.
 #
+# The seen-file write is the SECOND phase of waking. The preflight below runs
+# with --no-write-seen and hands its keys back as a KEYS: line; only a run
+# that finishes records them (--mark-seen after RESULT: OK). A run that
+# crashes, is watchdog-killed, or exhausts its budget must not mute the items
+# that woke it — otherwise "one run per item" becomes "one attempt ever" and
+# the items never wake another run.
+#
 # Exit 1 means "could not tell" (network, auth) and must NOT be read as empty:
 # a queue we cannot see is a reason to run and let the agent report properly,
 # not a reason to skip quietly forever.
-QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web 2>&1)
+QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --no-write-seen 2>&1)
 QUEUE_STATUS=$?
 QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN):')
+QUEUE_KEYS=$(echo "$QUEUE_OUT" | sed -n 's/^KEYS: //p' | head -1)
 echo "${QUEUE_LINES:-QUEUE: no verdict}" | sed 's/^/  /'
 if [ "$QUEUE_STATUS" -eq 3 ]; then
   echo "RESULT: SKIPPED — nothing to do for claude (no Ready task, no new comment, no lane work)"
@@ -198,6 +206,12 @@ kill "$WATCHDOG_PID" 2>/dev/null
 
 if [ "$STATUS" -eq 0 ]; then
   echo "RESULT: OK — run finished (see the tasks for what changed)"
+  # Phase two of waking: this run had its chance at the preflight's items, so
+  # they are marked seen and will not wake another run. A run that did NOT
+  # finish never reaches this, and its items stay eligible.
+  if [ -n "$QUEUE_KEYS" ]; then
+    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+  fi
   exit 0
 fi
 
