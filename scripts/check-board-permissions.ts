@@ -57,6 +57,37 @@ export const BOARD_TOOLS_THE_LOOP_NEEDS = [
   'mcp__astrid__create_task',
 ] as const
 
+/**
+ * The pushes a finished `/fixall` run makes (AWTD-978).
+ *
+ * An `ask` entry matching any of these stops the run from publishing its work:
+ * `ask` means PROMPT, and `claude -p` has no terminal to answer a prompt in. The
+ * scheduled run of 2026-09-20 finished two tasks with predeploy green and then
+ * left both commits on local `main`, unpushed and unreviewable — the exact
+ * outcome CLAUDE.md rule 3 exists to prevent.
+ *
+ * The gate bought no safety in return. Since #204 the production workflow is
+ * `workflow_dispatch` only, so pushing `main` ships nothing and there is no
+ * deploy for a prompt to guard; those entries were a leftover from when
+ * "pushing main is a production deploy" was still believed, which is the claim
+ * tests/rules/pushing-main-does-not-deploy.test.ts holds down in prose.
+ */
+export const PUSHES_THE_LOOP_MAKES = [
+  'git push origin main',
+  'git push origin master',
+  'git push',
+] as const
+
+/** A gate that would stop the loop publishing its work. */
+export interface PushBlocker {
+  /** Which permission list it came from — `deny` cannot even be granted. */
+  list: 'ask' | 'deny'
+  /** The entry verbatim, so the warning names something greppable. */
+  entry: string
+  /** Which of `PUSHES_THE_LOOP_MAKES` it gates. */
+  blocks: string
+}
+
 export interface BoardPermissionCheck {
   ok: boolean
   /** Board tools this settings file does not pre-approve. */
@@ -80,6 +111,63 @@ export function allowedToolsIn(source: string): string[] {
   return Array.isArray(allow)
     ? allow.filter((entry: unknown): entry is string => typeof entry === 'string')
     : []
+}
+
+/**
+ * Does this `Bash(...)` permission entry match `command`?
+ *
+ * Claude Code's Bash rules are the command with optional globs — `Bash(git *)`,
+ * and the prefix form `Bash(git push:*)`, which means the same thing. Anything
+ * that is not a `Bash(...)` entry (an `mcp__astrid__*` tool name, a
+ * `WebFetch(domain:…)`) cannot gate a shell command and is skipped.
+ */
+function bashEntryMatches(entry: string, command: string): boolean {
+  const inner = entry.match(/^Bash\((.*)\)$/)?.[1]
+  if (inner === undefined) return false
+
+  const pattern = inner
+    .replace(/:\*$/, '*')
+    .replace(/[.*+?^${}()|[\]\\]/g, character => (character === '*' ? '*' : `\\${character}`))
+    .replace(/\*/g, '.*')
+
+  return new RegExp(`^${pattern}$`).test(command)
+}
+
+/**
+ * Every gate in this settings file that would stop the loop pushing (AWTD-978).
+ *
+ * Reads `ask` AND `deny`: `ask` is what actually bit, but `deny` would bite
+ * harder — it cannot be granted even at a terminal.
+ *
+ * An unparseable file reports `[]` rather than throwing, which is the OPPOSITE
+ * of `checkBoardPermissions` above and deliberate. There, "I could not tell"
+ * must never read as "nothing missing" — that conflation is the AWTD-975 bug.
+ * Here the same file is already reported as a parse failure by that function, so
+ * a second copy of the same complaint would only make the real finding harder to
+ * see. Claude Code reads no permissions at all out of a broken file, so no entry
+ * in it is in force anyway.
+ */
+export function pushBlockersIn(source: string): PushBlocker[] {
+  let permissions: Record<string, unknown>
+  try {
+    permissions = JSON.parse(removeComments(source))?.permissions ?? {}
+  } catch {
+    return []
+  }
+
+  const blockers: PushBlocker[] = []
+  for (const list of ['ask', 'deny'] as const) {
+    const entries = permissions[list]
+    if (!Array.isArray(entries)) continue
+
+    for (const entry of entries) {
+      if (typeof entry !== 'string') continue
+      const blocks = PUSHES_THE_LOOP_MAKES.find(push => bashEntryMatches(entry, push))
+      if (blocks) blockers.push({ list, entry, blocks })
+    }
+  }
+
+  return blockers
 }
 
 /**
@@ -124,14 +212,36 @@ if (invokedDirectly) {
   const path = process.argv[2] ?? join(process.cwd(), '.claude/settings.local.json')
   const result = checkBoardPermissionsFile(path)
   const total = BOARD_TOOLS_THE_LOOP_NEEDS.length
+  const blockers = existsSync(path) ? pushBlockersIn(readFileSync(path, 'utf8')) : []
 
-  if (result.ok) {
-    console.log(`board tools pre-approved (${total}/${total})`)
+  if (result.ok && blockers.length === 0) {
+    console.log(`board tools pre-approved (${total}/${total}), nothing gates the push`)
     process.exit(0)
   }
 
-  console.log(`${path} ${result.problem ?? `is missing ${result.missing.length} of ${total} board tool(s)`}`)
-  for (const tool of result.missing) console.log(`  missing: ${tool}`)
-  console.log('  → this run falls back to the OAuth scripts and cannot see `attention` (AWTD-963)')
+  // Two independent problems, and the remedies differ — so each prints its own
+  // rather than the caller guessing which one applies (AWTD-978).
+  if (!result.ok) {
+    console.log(
+      `${path} ${result.problem ?? `is missing ${result.missing.length} of ${total} board tool(s)`}`,
+    )
+    for (const tool of result.missing) console.log(`  missing: ${tool}`)
+    console.log('  → this run falls back to the OAuth scripts and cannot see `attention` (AWTD-963)')
+    console.log(`  → fix: copy the mcp__astrid__* entries from .claude/settings.json.example`)
+  }
+
+  if (blockers.length > 0) {
+    console.log(`${path} gates the push this run ends with:`)
+    for (const blocker of blockers) {
+      console.log(`  ${blocker.list}: ${blocker.entry}   (matches \`${blocker.blocks}\`)`)
+    }
+    console.log('  → a scheduled run has no terminal to answer a prompt in, so its finished')
+    console.log('    work stays on local `main`, unpushed and unreviewable (CLAUDE.md rule 3)')
+    console.log('  → pushing `main` ships nothing: production-deployment.yml is')
+    console.log('    workflow_dispatch only, so there is no deploy for this to guard (AWTD-978)')
+    console.log('  → fix: delete those entries; `Bash(git *)` in `allow` then covers the push')
+  }
+
+  console.log('  (an agent cannot edit either file — .claude/** is a protected path)')
   process.exit(1)
 }

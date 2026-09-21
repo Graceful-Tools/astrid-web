@@ -31,6 +31,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 
+import { pushBlockersIn } from '../../scripts/check-board-permissions'
+
 const ROOT = process.cwd()
 const WORKFLOW = '.github/workflows/production-deployment.yml'
 
@@ -175,4 +177,117 @@ describe('pushing main does not deploy (AWTD-879)', () => {
       expect(sentencesClaimingPushDeploys(sentence), sentence).toEqual([])
     }
   })
+})
+
+/**
+ * AWTD-978: the same false claim, spelled as a PERMISSION rather than as prose.
+ *
+ * The describe above holds the documents. It cannot see `.claude/settings*.json`,
+ * where the claim had also been written — as two `permissions.ask` entries,
+ * `Bash(git push origin main)` and `Bash(git push origin master)`. `ask` means
+ * prompt, and `claude -p` has no terminal to answer a prompt in, so every
+ * scheduled run finished its work and then could not push it. Four commits sat
+ * on local `main`, invisible, which is precisely the outcome CLAUDE.md rule 3
+ * exists to prevent.
+ *
+ * It bought nothing in exchange. The workflow is `workflow_dispatch` only — the
+ * first test in this file proves it from the trigger block — so a push to `main`
+ * ships nothing and there is no deploy for the prompt to guard.
+ *
+ * WHY THE ASSERTIONS ARE OVER FIXTURES AND NOT OVER THE REAL FILES. The local
+ * settings file is gitignored (.claude/README.md), so no test can see the
+ * machine the loop runs on; that half is `fixall-loop.sh`'s startup check, the
+ * same warn-and-continue arrangement AWTD-975 built for the board tools.
+ *
+ * The checked-in template IS visible, and
+ *
+ *     expect(pushBlockersIn(readFileSync('.claude/settings.json.example')))
+ *       .toEqual([])
+ *
+ * is the assertion this file is eventually for. It is NOT here yet because the
+ * two entries are still in that template: `.claude/**` is a protected path and
+ * Claude Code refuses to write there mid-run — correctly, since a session that
+ * can widen its own permissions has none. So AWTD-978 waits on a human for the
+ * deletions, and that line lands with them. Until then the detector is exercised
+ * over fixtures and run against the real files by the startup check, which is
+ * the arrangement that at least makes the gap LOUD instead of silent.
+ */
+describe('nor does any permission gate the push (AWTD-978)', () => {
+  const loop = readFileSync(join(ROOT, 'scripts/fixall-loop.sh'), 'utf8')
+
+  /** A settings file whose `ask`/`deny` lists are exactly these entries. */
+  const settingsWith = (lists: { ask?: string[]; deny?: string[] }) =>
+    JSON.stringify({
+      permissions: { allow: ['Bash(git *)'], deny: lists.deny ?? [], ask: lists.ask ?? [] },
+    })
+
+  const entries = (source: string) => pushBlockersIn(source).map(blocker => blocker.entry)
+
+  it('flags the two entries that actually blocked the scheduled run', () => {
+    const found = pushBlockersIn(
+      settingsWith({ ask: ['Bash(git push origin main)', 'Bash(git push origin master)'] }),
+    )
+
+    expect(entries(settingsWith({ ask: ['Bash(git push origin main)'] }))).toEqual([
+      'Bash(git push origin main)',
+    ])
+    expect(found).toHaveLength(2)
+    expect(found[0].list).toBe('ask')
+    // It must say which push it gates, or the warning cannot be acted on.
+    expect(found[0].blocks).toBe('git push origin main')
+  })
+
+  it('flags a deny entry too, not just ask', () => {
+    // `deny` blocks harder than `ask` — it cannot even be granted at a terminal.
+    const found = pushBlockersIn(settingsWith({ deny: ['Bash(git push origin main)'] }))
+
+    expect(found).toHaveLength(1)
+    expect(found[0].list).toBe('deny')
+  })
+
+  it('is not fooled by a wildcard spelling of the same gate', () => {
+    // The entry that comes back will not be a verbatim copy of the one removed.
+    for (const entry of ['Bash(git push *)', 'Bash(git push:*)', 'Bash(git *)']) {
+      expect(entries(settingsWith({ ask: [entry] })), entry).toEqual([entry])
+    }
+  })
+
+  it('leaves the gates that are actually load-bearing alone', () => {
+    // These SHOULD prompt: they reach real users or destroy data, and none of
+    // them is a push. A checker that flagged them would be arguing for a
+    // permissions file with no gates at all.
+    const keep = [
+      'Bash(npm publish *)',
+      'Bash(npx prisma migrate reset *)',
+      'Bash(npx prisma db push --force-reset *)',
+      'Bash(gh workflow run production-deployment.yml)',
+    ]
+
+    expect(pushBlockersIn(settingsWith({ ask: keep }))).toEqual([])
+  })
+
+  it('reports nothing for a file with no gates at all, rather than throwing', () => {
+    expect(pushBlockersIn(JSON.stringify({ permissions: { allow: ['Bash(git *)'] } }))).toEqual([])
+    expect(pushBlockersIn('{ "permissions": { "ask": [')).toEqual([])
+  })
+
+  it('surfaces it at startup, where the gitignored local file is', () => {
+    // The template can be tested; the file the loop reads cannot. This is the
+    // other half, and it is the half that fires on a real machine.
+    const after = loop.slice(loop.indexOf('check-board-permissions.ts'))
+    const nextSection = after.indexOf('\n# ──')
+    const block = after.slice(0, nextSection)
+
+    expect(nextSection).toBeGreaterThan(0)
+    expect(
+      block,
+      'the startup warning must print the checker OUTPUT rather than a hardcoded ' +
+        'board-tools remedy — it now reports two different problems, and advice ' +
+        'about copying mcp__astrid__* entries is wrong for a blocked push.',
+    ).toMatch(/\$PERMISSION_OUT/)
+    expect(block, 'a hardcoded board-tools-only remedy no longer fits').not.toMatch(
+      /copy the mcp__astrid__\* entries/,
+    )
+  })
+
 })
