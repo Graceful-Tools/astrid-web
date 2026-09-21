@@ -896,12 +896,15 @@
       "description": "Alles, was in Ihrem Namen handeln kann",
       "empty": "Mit Ihrem Konto ist noch nichts verbunden.",
       "loadError": "Verbindungen konnten nicht geladen werden",
-      "kinds": {
-        "oauthClient": "OAuth-App",
-        "authorizedApp": "Autorisierte App",
-        "customAgent": "Eigener Agent",
-        "accessToken": "Zugriffstoken",
+      "categories": {
+        "app": "Apps",
+        "token": "Zugriffstoken",
         "webhook": "Webhook-Server"
+      },
+      "owners": {
+        "you": "Ihre",
+        "thirdParty": "Drittanbieter",
+        "agent": "Agent"
       },
       "columns": {
         "actsAs": "Handelt als",

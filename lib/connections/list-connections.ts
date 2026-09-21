@@ -8,6 +8,11 @@
  *
  * Every row says which identity it authors as (`actsAs`), because that is the
  * question an audit answers: not "what is this" but "what can it do as whom".
+ *
+ * Five sources, but not five TYPES: three of them are one `OAuthClient` table
+ * differing only in who owns the row. Each row therefore leaves here stamped
+ * with the `category`/`owner` facets a reader groups by — applied once, at the
+ * end, so no builder can disagree with connection-taxonomy.ts (AWTD-981).
  */
 
 import { prisma } from '@/lib/prisma'
@@ -15,19 +20,14 @@ import { listUserOAuthClients } from '@/lib/oauth/oauth-client-manager'
 import { decryptField } from '@/lib/field-encryption'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { listMyCustomAgentUsers } from '@/lib/custom-agents/list-my-agents'
-import type { V1Connection, V1ConnectionKind } from '@/lib/api-contracts/v1-ios-shapes'
+import { withTaxonomy } from '@/lib/connections/connection-taxonomy'
+import type { V1Connection } from '@/lib/api-contracts/v1-ios-shapes'
 
-export const CONNECTION_KINDS: readonly V1ConnectionKind[] = [
-  'oauthClient',
-  'authorizedApp',
-  'customAgent',
-  'accessToken',
-  'webhook',
-]
-
-export function isConnectionKind(value: unknown): value is V1ConnectionKind {
-  return typeof value === 'string' && (CONNECTION_KINDS as readonly string[]).includes(value)
-}
+/**
+ * A row as its builder writes it. The `category` and `owner` facets are added
+ * once, in `listConnections`, from the kind — see connection-taxonomy.ts.
+ */
+type ConnectionRow = Omit<V1Connection, 'category' | 'owner'>
 
 /** The literal id of the single webhook row: there is one config per user. */
 export const WEBHOOK_CONNECTION_ID = 'webhook'
@@ -43,11 +43,11 @@ export async function listConnections(userId: string): Promise<V1Connection[]> {
     accessTokens(userId),
     webhookServer(userId),
   ])
-  return [...owned, ...authorized, ...custom, ...tokens, ...webhook]
+  return [...owned, ...authorized, ...custom, ...tokens, ...webhook].map(withTaxonomy)
 }
 
 /** OAuth clients the user created in the developer console (or via a preset). */
-async function ownedClients(userId: string): Promise<V1Connection[]> {
+async function ownedClients(userId: string): Promise<ConnectionRow[]> {
   const clients = await listUserOAuthClients(userId)
   return clients.map(client => ({
     id: client.id,
@@ -74,7 +74,7 @@ async function ownedClients(userId: string): Promise<V1Connection[]> {
  * owner (userId null) and is shared by everyone who approved it, so the
  * user's view of it is the set of THEIR live tokens, grouped by client.
  */
-async function authorizedApps(userId: string): Promise<V1Connection[]> {
+async function authorizedApps(userId: string): Promise<ConnectionRow[]> {
   const now = new Date()
   const tokens = await prisma.oAuthToken.findMany({
     where: {
@@ -89,7 +89,7 @@ async function authorizedApps(userId: string): Promise<V1Connection[]> {
     },
   })
 
-  const byClient = new Map<string, V1Connection>()
+  const byClient = new Map<string, ConnectionRow>()
   for (const token of tokens) {
     if (token.client.userId !== null) continue // an owned client is its own row
     const latest = [token.expiresAt, token.refreshExpiresAt]
@@ -125,7 +125,7 @@ async function authorizedApps(userId: string): Promise<V1Connection[]> {
 }
 
 /** Custom Agents the user registered: the client belongs to the bot user, so it never shows under ownedClients. */
-async function customAgents(userId: string): Promise<V1Connection[]> {
+async function customAgents(userId: string): Promise<ConnectionRow[]> {
   const agents = await listMyCustomAgentUsers(userId, 'connections')
   if (agents.length === 0) return []
   const clients = await prisma.oAuthClient.findMany({
@@ -158,7 +158,7 @@ async function customAgents(userId: string): Promise<V1Connection[]> {
  * row says '*' rather than a narrower list nothing enforces; the raw
  * permissions ride along in `detail` for the day that changes.
  */
-async function accessTokens(userId: string): Promise<V1Connection[]> {
+async function accessTokens(userId: string): Promise<ConnectionRow[]> {
   const now = new Date()
   const tokens = await prisma.mCPToken.findMany({
     where: { userId, listId: null, isActive: true },
@@ -192,7 +192,7 @@ async function accessTokens(userId: string): Promise<V1Connection[]> {
   })
 }
 
-async function webhookServer(userId: string): Promise<V1Connection[]> {
+async function webhookServer(userId: string): Promise<ConnectionRow[]> {
   const config = await prisma.userWebhookConfig.findUnique({ where: { userId } })
   if (!config) return []
   const url = decryptField(config.webhookUrl)

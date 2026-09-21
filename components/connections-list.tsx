@@ -3,12 +3,14 @@
 /**
  * Everything that can act as this account, with a way to stop each one.
  *
- * One list over five credential sources (GET /api/v1/users/me/connections):
- * OAuth apps the user made, apps approved on the consent page, Custom
- * Agents, user-level access tokens, and the webhook server. Each row says
- * which identity it authors as, because that is what an audit answers. Rows
- * the agents page owns say so and link there rather than pretending to
- * manage them here.
+ * One list over five credential sources (GET /api/v1/users/me/connections),
+ * shown as the three things they really are: apps (client id + secret,
+ * whoever owns them), access tokens, and the webhook server. The first three
+ * sources are one `OAuthClient` table differing only in ownership, so they
+ * share a section and wear their owner as a badge instead of masquerading as
+ * three types (AWTD-981). Each row says which identity it authors as, because
+ * that is what an audit answers. Rows the agents page owns say so and link
+ * there rather than pretending to manage them here.
  *
  * The list also reviews itself: `reviewConnections` turns the Created and
  * Last used dates into the recommendation the reader came for — which of
@@ -33,6 +35,7 @@ import {
 import { apiDelete, apiGet } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n/client'
 import { connectionKey, reviewConnections } from '@/lib/connections/review-connections'
+import { groupByCategory } from '@/lib/connections/connection-taxonomy'
 import type { V1Connection, V1ConnectionsResponse } from '@/lib/api-contracts/v1-ios-shapes'
 
 const STATUS_TINT: Record<V1Connection['status'], string> = {
@@ -114,85 +117,101 @@ export function ConnectionsList() {
             : t('settingsPages.connections.review.summaryMany', { count: String(reviews.size) })}
         </p>
       )}
-      {connections.map(connection => (
-        <div
-          key={connectionKey(connection)}
-          data-connection-id={connection.id}
-          data-connection-kind={connection.kind}
-          className={`rounded-lg border theme-border p-3 space-y-2 ${
-            connection.status === 'active' ? '' : 'opacity-70'
-          }`}
+      {groupByCategory(connections).map(group => (
+        <section
+          key={group.category}
+          data-connection-category={group.category}
+          className="space-y-2 pt-1"
         >
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium theme-text-primary">{connection.name}</span>
-                <Badge variant="outline" className="text-xs">
-                  {t(`settingsPages.connections.kinds.${connection.kind}`)}
-                </Badge>
-                <Badge
-                  variant={connection.status === 'active' ? 'default' : 'secondary'}
-                  className={`text-xs ${STATUS_TINT[connection.status]}`}
-                >
-                  {t(`settingsPages.connections.status.${connection.status}`)}
-                </Badge>
-              </div>
-              <div className="text-xs theme-text-muted">
-                {t('settingsPages.connections.columns.actsAs')}:{' '}
-                <span className="font-mono">
-                  {connection.actsAs ?? t('settingsPages.connections.actsAsYou')}
-                </span>
-              </div>
-              {connection.scopes.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {connection.scopes.map(scope => (
-                    <Badge key={scope} variant="secondary" className="text-[10px] font-mono">
-                      {scope}
+          <h3 className="text-xs font-medium uppercase tracking-wide theme-text-muted">
+            {t(`settingsPages.connections.categories.${group.category}`)}
+          </h3>
+          {group.connections.map(connection => (
+            <div
+              key={connectionKey(connection)}
+              data-connection-id={connection.id}
+              data-connection-kind={connection.kind}
+              className={`rounded-lg border theme-border p-3 space-y-2 ${
+                connection.status === 'active' ? '' : 'opacity-70'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium theme-text-primary">{connection.name}</span>
+                    {/* The heading already names the category; only an app has an
+                        owner left to say, and that is the whole of what the three
+                        old kind labels were carrying. */}
+                    {connection.owner && (
+                      <Badge variant="outline" className="text-xs">
+                        {t(`settingsPages.connections.owners.${connection.owner}`)}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant={connection.status === 'active' ? 'default' : 'secondary'}
+                      className={`text-xs ${STATUS_TINT[connection.status]}`}
+                    >
+                      {t(`settingsPages.connections.status.${connection.status}`)}
                     </Badge>
-                  ))}
-                </div>
-              )}
-              <div className="text-xs theme-text-muted">
-                {t('settingsPages.connections.columns.created')} {formatDate(connection.createdAt, never)}
-                {' · '}
-                {t('settingsPages.connections.columns.lastUsed')} {formatDate(connection.lastUsedAt, never)}
-                {connection.expiresAt && (
-                  <>
-                    {' · '}
-                    {t('settingsPages.connections.columns.expires')} {formatDate(connection.expiresAt, never)}
-                  </>
-                )}
-              </div>
-              {(() => {
-                const review = reviews.get(connectionKey(connection))
-                if (!review) return null
-                return (
-                  <div className="text-xs text-yellow-600 dark:text-yellow-400">
-                    {t(`settingsPages.connections.review.${review.reason}`, { days: String(review.days) })}
                   </div>
-                )
-              })()}
+                  <div className="text-xs theme-text-muted">
+                    {t('settingsPages.connections.columns.actsAs')}:{' '}
+                    <span className="font-mono">
+                      {connection.actsAs ?? t('settingsPages.connections.actsAsYou')}
+                    </span>
+                  </div>
+                  {connection.scopes.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {connection.scopes.map(scope => (
+                        <Badge key={scope} variant="secondary" className="text-[10px] font-mono">
+                          {scope}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <div className="text-xs theme-text-muted">
+                    {t('settingsPages.connections.columns.created')} {formatDate(connection.createdAt, never)}
+                    {' · '}
+                    {t('settingsPages.connections.columns.lastUsed')} {formatDate(connection.lastUsedAt, never)}
+                    {connection.expiresAt && (
+                      <>
+                        {' · '}
+                        {t('settingsPages.connections.columns.expires')} {formatDate(connection.expiresAt, never)}
+                      </>
+                    )}
+                  </div>
+                  {(() => {
+                    const review = reviews.get(connectionKey(connection))
+                    if (!review) return null
+                    return (
+                      <div className="text-xs text-yellow-600 dark:text-yellow-400">
+                        {t(`settingsPages.connections.review.${review.reason}`, { days: String(review.days) })}
+                      </div>
+                    )
+                  })()}
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {connection.revocable && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                      onClick={() => setPending(connection)}
+                    >
+                      <ShieldOff className="w-4 h-4 mr-1" />
+                      {t('settingsPages.connections.revoke')}
+                    </Button>
+                  )}
+                  {connection.manageIn === 'agents' && (
+                    <Link href="/settings/agents" className="text-xs text-blue-500 hover:underline">
+                      {t('settingsPages.connections.manageInAgents')}
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              {connection.revocable && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                  onClick={() => setPending(connection)}
-                >
-                  <ShieldOff className="w-4 h-4 mr-1" />
-                  {t('settingsPages.connections.revoke')}
-                </Button>
-              )}
-              {connection.manageIn === 'agents' && (
-                <Link href="/settings/agents" className="text-xs text-blue-500 hover:underline">
-                  {t('settingsPages.connections.manageInAgents')}
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
+          ))}
+        </section>
       ))}
 
       <Dialog open={!!pending} onOpenChange={open => !open && !revoking && setPending(null)}>

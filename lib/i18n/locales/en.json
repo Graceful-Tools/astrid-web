@@ -896,12 +896,15 @@
       "description": "Everything that can act as your account",
       "empty": "Nothing is connected to your account yet.",
       "loadError": "Could not load connections",
-      "kinds": {
-        "oauthClient": "OAuth app",
-        "authorizedApp": "Authorized app",
-        "customAgent": "Custom Agent",
-        "accessToken": "Access token",
+      "categories": {
+        "app": "Apps",
+        "token": "Access tokens",
         "webhook": "Webhook server"
+      },
+      "owners": {
+        "you": "Yours",
+        "thirdParty": "Third-party",
+        "agent": "Agent"
       },
       "columns": {
         "actsAs": "Acts as",

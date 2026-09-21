@@ -6,15 +6,18 @@
  * The Connections list: everything that can act as the account, with a way
  * to stop each one.
  *
- * Renders the five kinds GET /api/v1/users/me/connections returns and sends
- * Revoke to the sibling DELETE with the row's kind and id — the kind is the
- * path segment, so the button is only as correct as that pairing.
+ * Renders the five kinds GET /api/v1/users/me/connections returns — grouped
+ * into the three categories they really are (AWTD-981) — and sends Revoke to
+ * the sibling DELETE with the row's kind and id. The kind is the path segment,
+ * so the button is only as correct as that pairing, which is why grouping the
+ * display must not touch it.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConnectionsList } from '@/components/connections-list'
+import { withTaxonomy } from '@/lib/connections/connection-taxonomy'
 import type { V1Connection } from '@/lib/api-contracts/v1-ios-shapes'
 
 const getMock = vi.fn()
@@ -29,11 +32,12 @@ vi.mock('@/lib/i18n/client', () => ({
     t: (key: string, vars?: Record<string, string>) =>
       ({
         'settingsPages.connections.empty': 'Nothing is connected',
-        'settingsPages.connections.kinds.oauthClient': 'OAuth app',
-        'settingsPages.connections.kinds.authorizedApp': 'Authorized app',
-        'settingsPages.connections.kinds.customAgent': 'Custom Agent',
-        'settingsPages.connections.kinds.accessToken': 'Access token',
-        'settingsPages.connections.kinds.webhook': 'Webhook server',
+        'settingsPages.connections.categories.app': 'Apps',
+        'settingsPages.connections.categories.token': 'Access tokens',
+        'settingsPages.connections.categories.webhook': 'Webhook server',
+        'settingsPages.connections.owners.you': 'Yours',
+        'settingsPages.connections.owners.thirdParty': 'Third-party',
+        'settingsPages.connections.owners.agent': 'Agent',
         'settingsPages.connections.status.active': 'Active',
         'settingsPages.connections.status.expired': 'Expired',
         'settingsPages.connections.status.disabled': 'Disabled',
@@ -52,20 +56,24 @@ vi.mock('@/lib/i18n/client', () => ({
   }),
 }))
 
-const row = (overrides: Partial<V1Connection>): V1Connection => ({
-  id: 'x',
-  kind: 'oauthClient',
-  name: 'Row',
-  actsAs: null,
-  scopes: [],
-  createdAt: '2026-09-01T10:00:00.000Z',
-  lastUsedAt: null,
-  expiresAt: null,
-  status: 'active',
-  revocable: true,
-  manageIn: 'connections',
-  ...overrides,
-})
+// The facets come from the taxonomy rather than being typed out per fixture,
+// for the same reason the API computes them: a row whose `owner` disagreed
+// with its `kind` is a row the server cannot produce.
+const row = (overrides: Partial<V1Connection>): V1Connection =>
+  withTaxonomy({
+    id: 'x',
+    kind: 'oauthClient',
+    name: 'Row',
+    actsAs: null,
+    scopes: [],
+    createdAt: '2026-09-01T10:00:00.000Z',
+    lastUsedAt: null,
+    expiresAt: null,
+    status: 'active',
+    revocable: true,
+    manageIn: 'connections',
+    ...overrides,
+  })
 
 const FIXTURE: V1Connection[] = [
   row({ id: 'c1', kind: 'oauthClient', name: 'My script', scopes: ['tasks:read'] }),
@@ -141,6 +149,86 @@ describe('ConnectionsList', () => {
     getMock.mockResolvedValue(respond({ connections: [], meta: {} }))
     render(<ConnectionsList />)
     expect(await screen.findByText('Nothing is connected')).toBeInTheDocument()
+  })
+})
+
+/**
+ * RED for AWTD-981 — three sections, not five peer rows.
+ *
+ * Jon: "collapse display only. Webhooks stays." So the three OAuthClient kinds
+ * become one Apps section carrying an owner, access tokens keep theirs, and the
+ * webhook keeps its own section on this page rather than being folded in with
+ * things that act AS the account — it is the one row that points outward.
+ */
+describe('ConnectionsList grouping (AWTD-981)', () => {
+  const section = (name: string): HTMLElement =>
+    screen.getByRole('heading', { name }).closest('[data-connection-category]') as HTMLElement
+
+  beforeEach(() => {
+    getMock.mockReset()
+    deleteMock.mockReset()
+  })
+
+  it('shows three sections rather than five kinds of row', async () => {
+    getMock.mockResolvedValue(respond({ connections: FIXTURE, meta: {} }))
+    render(<ConnectionsList />)
+
+    expect(await screen.findByRole('heading', { name: 'Apps' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Access tokens' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Webhook server' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading')).toHaveLength(3)
+  })
+
+  it('puts all three OAuthClient-backed kinds in Apps, labelled by owner', async () => {
+    getMock.mockResolvedValue(respond({ connections: FIXTURE, meta: {} }))
+    render(<ConnectionsList />)
+
+    await screen.findByText('Claude Code')
+    const apps = section('Apps')
+    for (const name of ['My script', 'Claude Code', 'nightly', 'Old app']) {
+      expect(within(apps).getByText(name)).toBeInTheDocument()
+    }
+    expect(within(apps.querySelector('[data-connection-id="c1"]') as HTMLElement).getByText('Yours')).toBeInTheDocument()
+    expect(within(apps.querySelector('[data-connection-id="dcr-1"]') as HTMLElement).getByText('Third-party')).toBeInTheDocument()
+    expect(within(apps.querySelector('[data-connection-id="agent-1"]') as HTMLElement).getByText('Agent')).toBeInTheDocument()
+  })
+
+  it('keeps the token and the webhook in their own sections', async () => {
+    getMock.mockResolvedValue(respond({ connections: FIXTURE, meta: {} }))
+    render(<ConnectionsList />)
+    await screen.findByText('Claude Code')
+
+    expect(within(section('Access tokens')).getByText('GitHub Copilot cloud agent')).toBeInTheDocument()
+    expect(within(section('Webhook server')).getByText('hooks.example.test')).toBeInTheDocument()
+    // The heading names them, so the row does not repeat it as a badge.
+    expect(within(section('Webhook server')).queryByText('Yours')).not.toBeInTheDocument()
+  })
+
+  it('draws no heading for a category nothing is in', async () => {
+    getMock.mockResolvedValue(respond({
+      connections: [row({ id: 'c1', name: 'My script' })],
+      meta: {},
+    }))
+    render(<ConnectionsList />)
+
+    expect(await screen.findByText('My script')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Webhook server' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Access tokens' })).not.toBeInTheDocument()
+  })
+
+  it('still revokes by kind, which grouping must not have changed', async () => {
+    getMock.mockResolvedValue(respond({ connections: FIXTURE, meta: {} }))
+    deleteMock.mockResolvedValue(respond({ success: true }))
+    const user = userEvent.setup()
+    render(<ConnectionsList />)
+
+    const agent = (await screen.findByText('nightly')).closest('[data-connection-id]') as HTMLElement
+    await user.click(within(agent).getByRole('button', { name: 'Revoke' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() =>
+      expect(deleteMock).toHaveBeenCalledWith('/api/v1/users/me/connections/customAgent/agent-1')
+    )
   })
 })
 

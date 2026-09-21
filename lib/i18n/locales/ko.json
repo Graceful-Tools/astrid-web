@@ -896,12 +896,15 @@
       "description": "내 계정으로 동작할 수 있는 모든 것",
       "empty": "아직 계정에 연결된 것이 없습니다.",
       "loadError": "연결을 불러올 수 없습니다",
-      "kinds": {
-        "oauthClient": "OAuth 앱",
-        "authorizedApp": "승인된 앱",
-        "customAgent": "사용자 지정 에이전트",
-        "accessToken": "액세스 토큰",
+      "categories": {
+        "app": "앱",
+        "token": "액세스 토큰",
         "webhook": "웹훅 서버"
+      },
+      "owners": {
+        "you": "내 것",
+        "thirdParty": "서드파티",
+        "agent": "에이전트"
       },
       "columns": {
         "actsAs": "실행 주체",
