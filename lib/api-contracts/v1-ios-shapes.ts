@@ -529,6 +529,22 @@ export type V1ConnectionKind =
   | 'accessToken'    // a user-level access token (e.g. the Copilot cloud agent)
   | 'webhook'        // the user's webhook server
 
+/**
+ * What a row IS, once the three `OAuthClient`-backed kinds above are seen for
+ * what they are: one credential with three owners. Group by this; revoke by
+ * `kind` (AWTD-981).
+ */
+export type V1ConnectionCategory =
+  | 'app'      // client id + secret, whoever owns it
+  | 'token'    // a bearer string, pasted
+  | 'webhook'  // the server we call OUT to, rather than one calling in
+
+/** For an app, whose it is. `null` for a token or a webhook. */
+export type V1ConnectionOwner =
+  | 'you'         // you made it in the developer console
+  | 'thirdParty'  // you approved it on the consent page
+  | 'agent'       // it belongs to a Custom Agent you registered
+
 export interface V1ConnectionDetail {
   clientId?: string
   grantTypes?: string[]
@@ -543,6 +559,10 @@ export interface V1Connection {
   /** OAuthClient.id, MCPToken.id, the Custom Agent's User.id, or the literal 'webhook'. */
   id: string
   kind: V1ConnectionKind
+  /** Which of the three real types this is — the grouping a client renders. */
+  category: V1ConnectionCategory
+  /** Whose app it is; `null` where the category has no owner to draw. */
+  owner: V1ConnectionOwner | null
   name: string
   /** The email this credential authors as: the user, an agent@, or a Custom Agent. */
   actsAs: string | null

@@ -896,12 +896,15 @@
       "description": "Tutto ciò che può agire per conto del tuo account",
       "empty": "Non c’è ancora nulla collegato al tuo account.",
       "loadError": "Impossibile caricare le connessioni",
-      "kinds": {
-        "oauthClient": "App OAuth",
-        "authorizedApp": "App autorizzata",
-        "customAgent": "Agente personalizzato",
-        "accessToken": "Token di accesso",
+      "categories": {
+        "app": "App",
+        "token": "Token di accesso",
         "webhook": "Server webhook"
+      },
+      "owners": {
+        "you": "Tue",
+        "thirdParty": "Di terze parti",
+        "agent": "Agente"
       },
       "columns": {
         "actsAs": "Agisce come",

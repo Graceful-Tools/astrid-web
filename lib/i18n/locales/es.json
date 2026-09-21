@@ -896,12 +896,15 @@
       "description": "Todo lo que puede actuar como tu cuenta",
       "empty": "Todavía no hay nada conectado a tu cuenta.",
       "loadError": "No se pudieron cargar las conexiones",
-      "kinds": {
-        "oauthClient": "App OAuth",
-        "authorizedApp": "App autorizada",
-        "customAgent": "Agente personalizado",
-        "accessToken": "Token de acceso",
+      "categories": {
+        "app": "Apps",
+        "token": "Tokens de acceso",
         "webhook": "Servidor webhook"
+      },
+      "owners": {
+        "you": "Tuyas",
+        "thirdParty": "De terceros",
+        "agent": "Agente"
       },
       "columns": {
         "actsAs": "Actúa como",

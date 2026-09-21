@@ -22,6 +22,7 @@ import {
   IDLE_AFTER_DAYS,
   NEVER_USED_AFTER_DAYS,
 } from '@/lib/connections/review-connections'
+import { withTaxonomy } from '@/lib/connections/connection-taxonomy'
 import type { V1Connection } from '@/lib/api-contracts/v1-ios-shapes'
 
 const NOW = new Date('2026-09-20T10:00:00.000Z')
@@ -29,20 +30,21 @@ const NOW = new Date('2026-09-20T10:00:00.000Z')
 const daysBefore = (days: number): string =>
   new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
 
-const row = (overrides: Partial<V1Connection> = {}): V1Connection => ({
-  id: 'c1',
-  kind: 'oauthClient',
-  name: 'Row',
-  actsAs: null,
-  scopes: [],
-  createdAt: daysBefore(400),
-  lastUsedAt: daysBefore(1),
-  expiresAt: null,
-  status: 'active',
-  revocable: true,
-  manageIn: 'connections',
-  ...overrides,
-})
+const row = (overrides: Partial<V1Connection> = {}): V1Connection =>
+  withTaxonomy({
+    id: 'c1',
+    kind: 'oauthClient',
+    name: 'Row',
+    actsAs: null,
+    scopes: [],
+    createdAt: daysBefore(400),
+    lastUsedAt: daysBefore(1),
+    expiresAt: null,
+    status: 'active',
+    revocable: true,
+    manageIn: 'connections',
+    ...overrides,
+  })
 
 describe('reviewConnections (AWTD-980)', () => {
   it('flags a connection that has not been used in longer than the idle window', () => {

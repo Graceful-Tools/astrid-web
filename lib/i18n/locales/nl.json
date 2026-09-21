@@ -896,12 +896,15 @@
       "description": "Alles wat namens je account kan handelen",
       "empty": "Er is nog niets met je account verbonden.",
       "loadError": "Verbindingen konden niet worden geladen",
-      "kinds": {
-        "oauthClient": "OAuth-app",
-        "authorizedApp": "Geautoriseerde app",
-        "customAgent": "Aangepaste agent",
-        "accessToken": "Toegangstoken",
+      "categories": {
+        "app": "Apps",
+        "token": "Toegangstokens",
         "webhook": "Webhook-server"
+      },
+      "owners": {
+        "you": "Van jou",
+        "thirdParty": "Van derden",
+        "agent": "Agent"
       },
       "columns": {
         "actsAs": "Handelt als",

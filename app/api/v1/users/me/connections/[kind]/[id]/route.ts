@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { isConnectionKind } from '@/lib/connections/list-connections'
+import { isConnectionKind } from '@/lib/connections/connection-taxonomy'
 import { ConnectionNotFoundError, revokeConnection } from '@/lib/connections/revoke-connection'
 import type { V1ConnectionRevokeResponse } from '@/lib/api-contracts/v1-ios-shapes'
 

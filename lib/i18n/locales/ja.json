@@ -896,12 +896,15 @@
       "description": "あなたのアカウントとして動作できるものすべて",
       "empty": "まだアカウントに接続されているものはありません。",
       "loadError": "接続を読み込めませんでした",
-      "kinds": {
-        "oauthClient": "OAuth アプリ",
-        "authorizedApp": "承認済みアプリ",
-        "customAgent": "カスタムエージェント",
-        "accessToken": "アクセストークン",
+      "categories": {
+        "app": "アプリ",
+        "token": "アクセストークン",
         "webhook": "Webhook サーバー"
+      },
+      "owners": {
+        "you": "自分のもの",
+        "thirdParty": "サードパーティ",
+        "agent": "エージェント"
       },
       "columns": {
         "actsAs": "実行者",

@@ -506,6 +506,7 @@ describe('v1 contract — V1ReminderSettings (users/me/settings)', () => {
     // rename here is a broken Revoke button on every native build in the wild.
     const row: V1Connection = {
       id: 'dcr-1', kind: 'authorizedApp', name: 'Claude Code',
+      category: 'app', owner: 'thirdParty',
       actsAs: 'claude@example.test', scopes: ['tasks:read'],
       createdAt: '2026-09-20T10:00:00.000Z', lastUsedAt: null, expiresAt: null,
       status: 'active', revocable: true, manageIn: 'connections',
@@ -520,11 +521,16 @@ describe('v1 contract — V1ReminderSettings (users/me/settings)', () => {
       meta: { apiVersion: 'v1', authSource: 'session' },
     }
     expect(Object.keys(row).sort()).toEqual([
-      'actsAs', 'createdAt', 'detail', 'expiresAt', 'id', 'kind', 'lastUsedAt',
-      'manageIn', 'name', 'revocable', 'scopes', 'status',
+      'actsAs', 'category', 'createdAt', 'detail', 'expiresAt', 'id', 'kind',
+      'lastUsedAt', 'manageIn', 'name', 'owner', 'revocable', 'scopes', 'status',
     ])
     expect(list.connections[0].kind).toBe('authorizedApp')
     expect(revoked.kind).toBe(list.connections[0].kind)
+    // AWTD-981: `category`/`owner` are what a client GROUPS by; `kind` is what
+    // it REVOKES by. A client that adopted the facets and dropped the kind
+    // would render beautifully and revoke nothing.
+    expect(list.connections[0].category).toBe('app')
+    expect(list.connections[0].owner).toBe('thirdParty')
   })
 
   it('V1MeSettingsResponse wraps reminderSettings under settings', () => {

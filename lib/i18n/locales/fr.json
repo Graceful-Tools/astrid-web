@@ -896,12 +896,15 @@
       "description": "Tout ce qui peut agir au nom de votre compte",
       "empty": "Rien n’est encore connecté à votre compte.",
       "loadError": "Impossible de charger les connexions",
-      "kinds": {
-        "oauthClient": "App OAuth",
-        "authorizedApp": "App autorisée",
-        "customAgent": "Agent personnalisé",
-        "accessToken": "Jeton d’accès",
+      "categories": {
+        "app": "Applis",
+        "token": "Jetons d’accès",
         "webhook": "Serveur webhook"
+      },
+      "owners": {
+        "you": "Les vôtres",
+        "thirdParty": "Tierce partie",
+        "agent": "Agent"
       },
       "columns": {
         "actsAs": "Agit en tant que",

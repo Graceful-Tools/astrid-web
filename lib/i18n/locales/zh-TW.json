@@ -896,12 +896,15 @@
       "description": "所有可以代表您的帳戶執行操作的內容",
       "empty": "您的帳戶尚未連線任何內容。",
       "loadError": "無法載入連線",
-      "kinds": {
-        "oauthClient": "OAuth 應用程式",
-        "authorizedApp": "已授權應用程式",
-        "customAgent": "自訂代理",
-        "accessToken": "存取權杖",
+      "categories": {
+        "app": "應用程式",
+        "token": "存取權杖",
         "webhook": "Webhook 伺服器"
+      },
+      "owners": {
+        "you": "你的",
+        "thirdParty": "第三方",
+        "agent": "代理"
       },
       "columns": {
         "actsAs": "身分",
