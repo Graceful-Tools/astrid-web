@@ -116,6 +116,25 @@ function extractMCPToken(req: NextRequest): string | null {
 }
 
 /**
+ * Is this request presenting an API token rather than a browser session?
+ *
+ * For routes that serve BOTH a cookie-bearing browser and API clients, and so
+ * cannot simply wrap themselves in `withAuth`. They need to know which scheme
+ * is in play before authenticating, because a scope gate is meaningful for a
+ * token and meaningless for a session — `AuthContext.scopes` is empty on the
+ * session path, so checking scopes unconditionally would lock the web app out
+ * of its own data.
+ *
+ * Exported so those routes do not each re-implement the header sniff. The one
+ * that already did (`app/api/sse/route.ts`) tests only `Authorization: Bearer`
+ * and is therefore blind to `X-OAuth-Token` — the same omission that made
+ * secure-files unreachable for every OAuth client (AWTD-982).
+ */
+export function hasApiTokenCredential(req: NextRequest): boolean {
+  return extractOAuthToken(req) !== null || extractMCPToken(req) !== null
+}
+
+/**
  * What an access token's read/write permissions mean as OAuth scopes.
  *
  * Access tokens (the MCPToken table) predate scopes and are granted '*'. The

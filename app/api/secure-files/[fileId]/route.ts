@@ -6,6 +6,8 @@ import { hasListAccess } from "@/lib/list-member-utils"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 import { hasExplicitListRole } from "@/lib/list-permissions"
+import { authenticateAPI, hasApiTokenCredential } from "@/lib/api-auth-middleware"
+import { hasRequiredScopes } from "@/lib/oauth/oauth-scopes"
 
 const log = createLogger('secure-files.[fileId]')
 
@@ -38,13 +40,80 @@ async function getSession(request: NextRequest) {
   return { user: { id: dbSession.user.id } }
 }
 
+type RequesterResult =
+  | { ok: true; userId: string }
+  | { ok: false; response: NextResponse }
+
+/**
+ * Who is asking for this file — by cookie OR by API token (AWTD-982).
+ *
+ * This route is mounted at `/api/v1/secure-files/[fileId]` as well, and was
+ * the one `/api/v1/*` surface that never looked at `X-OAuth-Token`. An OAuth
+ * client has no cookie and cannot obtain one — client-credentials issues a
+ * token, not a session — so every attachment 401'd for every API client, and
+ * an agent told to read a task's screenshots could see that they existed and
+ * never open one.
+ *
+ * The scope gate applies to tokens only. `AuthContext.scopes` is empty on the
+ * session path, so gating a browser request on it would lock the web app out
+ * of its own attachments; the cookie path keeps the authorization it has
+ * always had, which is the per-file check below.
+ *
+ * Attachments are user photos, so the token path is deliberately NOT opened to
+ * every credential that authenticates: it requires the `attachments:*` scope
+ * matching the method. Per-file authorization is unchanged either way — the
+ * caller still has to be able to see the task, list, comment or chat message
+ * the file hangs off.
+ */
+async function resolveRequester(
+  request: NextRequest,
+  requiredScope: string,
+): Promise<RequesterResult> {
+  if (hasApiTokenCredential(request)) {
+    try {
+      const auth = await authenticateAPI(request)
+
+      if (!hasRequiredScopes(auth.scopes, [requiredScope])) {
+        // 403, not 401: the credential was fine and the grant was not, and a
+        // client that cannot tell those apart retries forever with a token
+        // that will never work. Scope names stay in the log rather than in the
+        // body, matching the SSE route (task 17fea642).
+        log.warn(
+          { scopes: auth.scopes, requiredScope, source: auth.source },
+          'Token missing required scope for secure file'
+        )
+        return {
+          ok: false,
+          response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+        }
+      }
+
+      return { ok: true, userId: auth.userId }
+    } catch (authError) {
+      log.warn({ err: authError }, 'API token authentication failed for secure file')
+      return {
+        ok: false,
+        response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      }
+    }
+  }
+
+  const session = await getSession(request)
+  if (!session?.user?.id) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    }
+  }
+
+  return { ok: true, userId: session.user.id }
+}
+
 export async function GET(request: NextRequest, context: RouteContextParams<{ fileId: string }>) {
   try {
-    const session = await getSession(request)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const requester = await resolveRequester(request, 'attachments:read')
+    if (!requester.ok) return requester.response
+    const session = { user: { id: requester.userId } }
 
     const { fileId } = await context.params
     const { searchParams } = new URL(request.url)
@@ -226,11 +295,9 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
  */
 export async function PUT(request: NextRequest, context: RouteContextParams<{ fileId: string }>) {
   try {
-    const session = await getSession(request)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const requester = await resolveRequester(request, 'attachments:write')
+    if (!requester.ok) return requester.response
+    const session = { user: { id: requester.userId } }
 
     const { fileId } = await context.params
 
@@ -336,11 +403,9 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ fi
  */
 export async function DELETE(request: NextRequest, context: RouteContextParams<{ fileId: string }>) {
   try {
-    const session = await getSession(request)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const requester = await resolveRequester(request, 'attachments:delete')
+    if (!requester.ok) return requester.response
+    const session = { user: { id: requester.userId } }
 
     const { fileId } = await context.params
 
