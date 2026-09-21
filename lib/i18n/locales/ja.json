@@ -925,6 +925,12 @@
       "revoked": "取り消しました",
       "revokeError": "取り消せませんでした",
       "manageInAgents": "AI エージェントで管理",
+      "review": {
+        "summaryOne": "1 件の接続は使われていないようです。不要なら取り消してください。",
+        "summaryMany": "{count} 件の接続が使われていないようです。不要なものは取り消してください。",
+        "idle": "{days} 日間未使用",
+        "neverUsed": "未使用のまま、作成から {days} 日"
+      },
       "developer": {
         "title": "開発者",
         "description": "OAuth アプリを手動で作成し、API をテストし、OpenAPI 対応のアシスタントを接続します。",

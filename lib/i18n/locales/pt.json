@@ -925,6 +925,12 @@
       "revoked": "Revogado",
       "revokeError": "Não foi possível revogar",
       "manageInAgents": "Gerenciar em Agentes de IA",
+      "review": {
+        "summaryOne": "1 conexão parece sem uso — revogue-a se não precisar mais dela.",
+        "summaryMany": "{count} conexões parecem sem uso — revogue as que não precisar mais.",
+        "idle": "Sem uso há {days} dias",
+        "neverUsed": "Nunca usada, criada há {days} dias"
+      },
       "developer": {
         "title": "Desenvolvedor",
         "description": "Crie apps OAuth manualmente, teste a API e conecte assistentes que falam OpenAPI.",

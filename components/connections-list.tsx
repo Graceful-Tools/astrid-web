@@ -9,9 +9,14 @@
  * which identity it authors as, because that is what an audit answers. Rows
  * the agents page owns say so and link there rather than pretending to
  * manage them here.
+ *
+ * The list also reviews itself: `reviewConnections` turns the Created and
+ * Last used dates into the recommendation the reader came for — which of
+ * these can go — and the count at the top says how much there is to do
+ * before any of the rows are read.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, ShieldOff } from 'lucide-react'
 import { toast } from 'sonner'
@@ -27,6 +32,7 @@ import {
 } from '@/components/ui/dialog'
 import { apiDelete, apiGet } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n/client'
+import { connectionKey, reviewConnections } from '@/lib/connections/review-connections'
 import type { V1Connection, V1ConnectionsResponse } from '@/lib/api-contracts/v1-ios-shapes'
 
 const STATUS_TINT: Record<V1Connection['status'], string> = {
@@ -44,6 +50,13 @@ export function ConnectionsList() {
   const [connections, setConnections] = useState<V1Connection[] | null>(null)
   const [pending, setPending] = useState<V1Connection | null>(null)
   const [revoking, setRevoking] = useState(false)
+
+  // Recomputed from the rows in hand, so revoking one takes it out of the
+  // count without another round trip.
+  const reviews = useMemo(
+    () => new Map(reviewConnections(connections ?? []).map(review => [connectionKey(review), review])),
+    [connections]
+  )
 
   useEffect(() => {
     apiGet('/api/v1/users/me/connections')
@@ -94,9 +107,16 @@ export function ConnectionsList() {
 
   return (
     <div className="space-y-2">
+      {reviews.size > 0 && (
+        <p data-testid="connections-review-summary" className="text-sm text-yellow-600 dark:text-yellow-400">
+          {reviews.size === 1
+            ? t('settingsPages.connections.review.summaryOne')
+            : t('settingsPages.connections.review.summaryMany', { count: String(reviews.size) })}
+        </p>
+      )}
       {connections.map(connection => (
         <div
-          key={`${connection.kind}:${connection.id}`}
+          key={connectionKey(connection)}
           data-connection-id={connection.id}
           data-connection-kind={connection.kind}
           className={`rounded-lg border theme-border p-3 space-y-2 ${
@@ -143,6 +163,15 @@ export function ConnectionsList() {
                   </>
                 )}
               </div>
+              {(() => {
+                const review = reviews.get(connectionKey(connection))
+                if (!review) return null
+                return (
+                  <div className="text-xs text-yellow-600 dark:text-yellow-400">
+                    {t(`settingsPages.connections.review.${review.reason}`, { days: String(review.days) })}
+                  </div>
+                )
+              })()}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               {connection.revocable && (

@@ -925,6 +925,12 @@
       "revoked": "Widerrufen",
       "revokeError": "Widerrufen nicht möglich",
       "manageInAgents": "Unter KI-Agenten verwalten",
+      "review": {
+        "summaryOne": "Eine Verbindung wirkt ungenutzt – widerrufe sie, wenn du sie nicht mehr brauchst.",
+        "summaryMany": "{count} Verbindungen wirken ungenutzt – widerrufe die, die du nicht mehr brauchst.",
+        "idle": "Seit {days} Tagen nicht genutzt",
+        "neverUsed": "Nie genutzt, vor {days} Tagen erstellt"
+      },
       "developer": {
         "title": "Entwickler",
         "description": "OAuth-Apps manuell erstellen, die API testen und Assistenten anbinden, die OpenAPI sprechen.",
