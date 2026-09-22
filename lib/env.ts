@@ -271,6 +271,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'CI', scope: 'platform', description: 'Set by the CI runner.' },
   { name: 'PORT', scope: 'platform', description: 'Set by the host.' },
   { name: 'HOSTNAME', scope: 'platform', description: 'Set by the host.' },
+  { name: 'XDG_CACHE_HOME', scope: 'platform', description: 'Cache dir set by the desktop session on Linux; the /fixall seen-file lives under it off macOS (scripts/lib/fixall-seen-file.ts).' },
   { name: 'VERCEL', scope: 'platform', description: 'Set by Vercel when building or running on their platform.' },
   { name: 'VERCEL_ENV', scope: 'platform', description: 'production | preview | development, set by Vercel.' },
   { name: 'VERCEL_URL', scope: 'platform', description: 'Deployment URL, set by Vercel.' },
