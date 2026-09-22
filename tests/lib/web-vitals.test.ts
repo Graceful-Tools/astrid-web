@@ -122,7 +122,7 @@ describe('normalizeVitalsRoute (AWTD-904)', () => {
     expect(normalizeVitalsRoute('/')).toBe('/')
   })
 
-  it('never stores an invite bearer token in the route', () => {
+  it('never stores an invite bearer token in the route (AWTD-984)', () => {
     // Invite tokens are `inv_` + 32 hex chars and redeem an invitation.
     // The beacon endpoint is unauthenticated by design, so the route column
     // must not carry a credential verbatim.
@@ -131,13 +131,13 @@ describe('normalizeVitalsRoute (AWTD-904)', () => {
     ).toBe('/invite/:id')
   })
 
-  it('never stores a share shortcode in the route', () => {
+  it('never stores a share shortcode in the route (AWTD-984)', () => {
     // Shortcodes are bearer links to shared tasks/lists.
     expect(normalizeVitalsRoute('/s/Ab3xYz9Q')).toBe('/s/:id')
     expect(normalizeVitalsRoute('/en/s/Ab3xYz9Q')).toBe('/s/:id')
   })
 
-  it('does not mistake an 8-char route word for a shortcode', () => {
+  it('does not mistake an 8-char route word for a shortcode (AWTD-984)', () => {
     // "settings" is 8 alphanumeric chars but a real page, not a credential.
     expect(normalizeVitalsRoute('/en/settings')).toBe('/settings')
   })

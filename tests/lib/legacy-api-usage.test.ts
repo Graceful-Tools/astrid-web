@@ -78,7 +78,7 @@ describe('legacy usage bucketing (task 641a7615)', () => {
     expect(bucket.route).toBe('/api/lists/public')
   })
 
-  it('collapses an invite bearer token so the token never lands in telemetry', () => {
+  it('collapses an invite bearer token so the token never lands in telemetry (AWTD-984)', () => {
     // Invite tokens are `inv_` + 32 hex chars and redeem an invitation — a
     // bearer credential. The usage table must never store one verbatim.
     const bucket = legacyUsageBucket({
@@ -89,7 +89,7 @@ describe('legacy usage bucketing (task 641a7615)', () => {
     expect(bucket.route).toBe('/api/invitations/:id')
   })
 
-  it('collapses a share shortcode after a shortcode-bearing route', () => {
+  it('collapses a share shortcode after a shortcode-bearing route (AWTD-984)', () => {
     // Shortcodes are 8-char nanoids — bearer links to shared tasks/lists.
     const bucket = legacyUsageBucket({
       route: '/api/shortcodes/Ab3xYz9Q',
@@ -104,7 +104,7 @@ describe('legacy usage bucketing (task 641a7615)', () => {
     expect(v1.route).toBe('/api/v1/shortcodes/:id')
   })
 
-  it('does not collapse an 8-char segment that is not a shortcode', () => {
+  it('does not collapse an 8-char segment that is not a shortcode (AWTD-984)', () => {
     // "settings" is 8 alphanumeric chars but a real route word, not a
     // credential. Collapsing by shape alone would eat legitimate routes.
     const bucket = legacyUsageBucket({
