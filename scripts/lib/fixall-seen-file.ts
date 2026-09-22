@@ -13,7 +13,7 @@
  * tested in tests/scripts/fixall-seen-file.test.ts, and the script stays a
  * thin caller.
  */
-import { existsSync, mkdirSync, renameSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, renameSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { homedir } from 'node:os'
 
@@ -57,7 +57,15 @@ export function adoptLegacySeenFile(
   if (!existsSync(legacy)) return null
   try {
     mkdirSync(dirname(seenFile), { recursive: true })
-    renameSync(legacy, seenFile)
+    try {
+      renameSync(legacy, seenFile)
+    } catch (error) {
+      // A checkout on another volume than the home directory cannot be
+      // renamed across; copy and remove instead of giving up every tick.
+      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') throw error
+      copyFileSync(legacy, seenFile)
+      unlinkSync(legacy)
+    }
     return seenFile
   } catch {
     return null
