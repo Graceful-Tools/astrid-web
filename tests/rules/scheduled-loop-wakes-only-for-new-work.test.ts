@@ -61,7 +61,7 @@ describe('the scheduled loop wakes only for new work', () => {
     expect(loop).toMatch(/RESULT: SKIPPED — nothing to do for claude \(no Ready task, no new comment, no lane work\)/)
   })
 
-  it('does not burn wake keys on a preflight whose run may never happen', () => {
+  it('does not burn wake keys on a preflight whose run may never happen (AWTD-986)', () => {
     // The status script used to write the seen-file the moment it computed
     // the verdict — before the loop had verified the claude binary, started
     // the run, or known it succeeded. A crashed, watchdog-killed, or
@@ -72,7 +72,7 @@ describe('the scheduled loop wakes only for new work', () => {
     expect(call, `${LOOP} preflight must defer the seen-file write`).toMatch(/--no-write-seen\b/)
   })
 
-  it('marks wake keys seen only after a successful run', () => {
+  it('marks wake keys seen only after a successful run (AWTD-986)', () => {
     expect(loop, `${LOOP} must mark the preflight keys seen on RESULT: OK`).toMatch(/--mark-seen\b/)
     expect(status, `${STATUS} must support --mark-seen`).toMatch(/--mark-seen/)
   })
