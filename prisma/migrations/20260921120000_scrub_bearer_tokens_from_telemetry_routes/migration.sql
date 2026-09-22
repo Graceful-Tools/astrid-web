@@ -34,16 +34,20 @@ BEGIN
       regexp_replace(r."route", '/invitations/inv_[0-9a-fA-F]{32}', '/invitations/:id', 'g'),
       '(/(v1/)?shortcodes/)[0-9A-Za-z]{8}($|/)', '\1:id\3', 'g'
     );
+    -- Never merge a row into itself: if the replace patterns ever miss a
+    -- route the WHERE matched, the row must be left alone, not doubled
+    -- and deleted.
     SELECT "id" INTO target_id FROM "LegacyApiDailyUsage"
       WHERE "day" = r."day" AND "route" = normalized
         AND "method" = r."method" AND "platform" = r."platform"
+        AND "id" <> r."id"
       LIMIT 1;
     IF target_id IS NOT NULL THEN
       UPDATE "LegacyApiDailyUsage"
         SET "count" = "count" + r."count", "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = target_id;
       DELETE FROM "LegacyApiDailyUsage" WHERE "id" = r."id";
-    ELSE
+    ELSIF normalized <> r."route" THEN
       UPDATE "LegacyApiDailyUsage" SET "route" = normalized WHERE "id" = r."id";
     END IF;
   END LOOP;
