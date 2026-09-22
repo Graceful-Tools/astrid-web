@@ -16,12 +16,17 @@
  *
  * Deliberately NOT here: the write path (`lib/legacy-api-usage-service.ts`,
  * which needs Prisma) and the beacon route. This file stays importable from the
- * edge runtime — it has ZERO imports, deliberately. The original re-landed here
- * died of exactly one import: middleware pulled detectPlatform from
- * analytics-events, which imports Prisma at module scope, and the edge bundle
- * failed to instantiate — every request 500'd for ~12 minutes
- * (tests/middleware/middleware-edge-safety.test.ts now guards the class).
+ * edge runtime — its only imports are the two PRISMA-FREE credential-shape
+ * leaves, `lib/invite-token-format.ts` and `lib/shortcode-format.ts`. The
+ * original re-landed here died of exactly one import: middleware pulled
+ * detectPlatform from analytics-events, which imports Prisma at module scope,
+ * and the edge bundle failed to instantiate — every request 500'd for ~12
+ * minutes (tests/middleware/middleware-edge-safety.test.ts now guards the
+ * class).
  */
+
+import { isInviteToken } from '@/lib/invite-token-format'
+import { isShortcode } from '@/lib/shortcode-format'
 
 /**
  * Where the middleware beacons a hit. Must be excluded from
@@ -40,20 +45,38 @@ const NEVER_DELETABLE = ['/api/auth/']
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CUID = /^c[a-z0-9]{20,}$/i
 const NUMERIC = /^\d+$/
-/**
- * Invite bearer tokens: `inv_` + 32 hex chars (app/api/invitations/route.ts).
- * Redeeming one accepts the invitation, so the token must never land in a
- * telemetry row verbatim.
- */
-const INVITE_TOKEN = /^inv_[0-9a-f]{32}$/i
+
 /**
  * Share shortcodes are 8-char nanoids — bearer links to shared tasks/lists.
- * But so are real route words ("settings"), so this shape only counts right
+ * But so are real route words ("settings"), so the shape only counts right
  * after a route known to carry a shortcode: `/s/<code>` on the web surface,
  * `/api/shortcodes/<code>` and `/api/v1/shortcodes/<code>` on the API one.
+ *
+ * The shape itself is `isShortcode` from `lib/shortcode-format.ts`, shared with
+ * the generator. Membership of this set is checked against the routes that
+ * exist on disk by tests/rules/credential-segments-are-collapsed.test.ts.
  */
-const SHORTCODE = /^[0-9A-Za-z]{8}$/
-const SHORTCODE_PARENTS = new Set(['s', 'shortcodes'])
+export const SHORTCODE_PARENTS = new Set(['s', 'shortcodes'])
+
+/**
+ * Routes whose next segment is a bearer credential WHATEVER it looks like, so
+ * the segment is collapsed by position rather than by shape (AWTD-989).
+ *
+ * Shape-matching is not enough here, and assuming it was is how invite tokens
+ * kept leaking after AWTD-984. Three generators write `Invitation.token`:
+ * `lib/list-invite.ts` and `app/api/invitations/route.ts` mint
+ * `inv_` + 32 hex, while `lib/placeholder-user-service.ts` minted 64 raw hex
+ * with NO prefix — a shape the `inv_` matcher misses entirely, travelling in
+ * the path at `/api/invitations/<token>` and `/invite/<token>`. That generator
+ * now shares the others', but tokens ALREADY ISSUED keep their old shape until
+ * they expire, and nothing stops the next new credential format from arriving
+ * the same way.
+ *
+ * Position is the durable fact: whatever sits under `/invitations` or `/invite`
+ * is the thing that redeems the invitation. `INVITE_TOKEN_PATTERN` stays as a
+ * second net for tokens seen anywhere else.
+ */
+export const CREDENTIAL_PARENTS = new Set(['invitations', 'invite'])
 
 /**
  * One in N legacy hits is beaconed (task f9ba26b3).
@@ -135,16 +158,26 @@ export function normalizeLegacyRoute(pathname: string): string {
         UUID.test(segment) ||
         CUID.test(segment) ||
         NUMERIC.test(segment) ||
-        INVITE_TOKEN.test(segment)
+        isInviteToken(segment)
       ) {
         return ':id'
       }
-      // A shortcode is only a credential in context: the 8-char shape is
-      // collapsed only when the parent route is known to carry one.
+
       const parent = segments[i - 1]
-      if (parent !== undefined && SHORTCODE_PARENTS.has(parent) && SHORTCODE.test(segment)) {
+      if (parent === undefined) return segment
+
+      // Under a credential-bearing route, the segment goes whatever it looks
+      // like — we would rather lose a route name than keep a bearer token.
+      if (segment !== '' && CREDENTIAL_PARENTS.has(parent)) {
         return ':id'
       }
+
+      // A shortcode is only a credential in context: the 8-char shape is
+      // collapsed only when the parent route is known to carry one.
+      if (SHORTCODE_PARENTS.has(parent) && isShortcode(segment)) {
+        return ':id'
+      }
+
       return segment
     })
     .join('/')
