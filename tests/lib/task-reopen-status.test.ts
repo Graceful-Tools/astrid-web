@@ -76,8 +76,25 @@ describe('resolveCompletionStatusTransition — completing (AWTD-964)', () => {
         currentStatusRole: null,
         rememberedStatusRole: DOING_STATUS_ROLE,
         assigneeIsAgent: true,
+        currentCompleted: true,
       }),
     ).toEqual({ statusRole: null, statusRoleBeforeDone: DOING_STATUS_ROLE })
+  })
+
+  it('resets a stale stash when an OPEN task is completed from no lane (AWTD-985)', () => {
+    // A reopen that bypasses resolveCompletionFields (GitHub Issues sync,
+    // a repeating roll-forward) leaves the stash behind. If the user then
+    // parks the task in Inbox and completes it, the next reopen must not
+    // drop it back into the lane they moved it out of.
+    expect(
+      resolveCompletionStatusTransition({
+        requestedCompleted: true,
+        currentStatusRole: null,
+        rememberedStatusRole: DOING_STATUS_ROLE,
+        assigneeIsAgent: true,
+        currentCompleted: false,
+      }),
+    ).toEqual({ statusRole: null, statusRoleBeforeDone: null })
   })
 })
 

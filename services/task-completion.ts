@@ -21,6 +21,7 @@ export interface CompletionFieldsInput {
   intent: { completedAt?: string | Date | null; completedSource?: string | null }
   /** The pre-update row: its lane, its stashed lane, and who it is assigned to. */
   existingTask: {
+    completed?: boolean | null
     statusRole?: string | null
     statusRoleBeforeDone?: string | null
     assignee?: { isAIAgent?: boolean | null } | null
@@ -64,6 +65,7 @@ export function resolveCompletionFields({
       requestedCompleted,
       currentStatusRole: existingTask.statusRole,
       rememberedStatusRole: existingTask.statusRoleBeforeDone,
+      currentCompleted: existingTask.completed === true,
       // `assignee` is in both of the includes this service reads an existing
       // task with. A surface that passed a leaner one gets `false`, which is
       // the conservative answer: the task stays where it was.
