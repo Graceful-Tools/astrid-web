@@ -17,6 +17,7 @@ import crypto from 'crypto'
 import { loadScriptEnv } from './lib/load-env'
 import { ENABLED_AGENT_MAILBOXES, AI_AGENT_CONFIG } from '../lib/ai/agent-config'
 import { agentEmail, LOCAL_HARNESS_AGENT_MAILBOXES } from '../lib/brand/agent-emails'
+import { harnessAgentByMailbox } from '../lib/ai/harness-agents'
 
 // Load .env.local for database URL
 loadScriptEnv()
@@ -36,6 +37,18 @@ const SEED_PROFILE: Record<string, { name: string; image: string }> = {
   openclaw: { name: 'OpenClaw Worker', image: 'openclaw.svg' },
 }
 
+/**
+ * Seed profile for a local harness, from the registry rather than a second
+ * hardcoded table (AWTD-937: one table registers an agent everywhere).
+ *
+ * Adding a harness to lib/ai/harness-agents.ts is now enough to seed it.
+ */
+function harnessSeedProfile(mailbox: string): { name: string; image: string } {
+  const harness = harnessAgentByMailbox(mailbox)
+  if (!harness) throw new Error(`No seed profile and no harness registered for "${mailbox}"`)
+  return { name: harness.displayName, image: harness.icon.localFallback }
+}
+
 async function createSpecificAIAgents() {
   try {
     console.log('🤖 Creating specific AI agents...')
@@ -50,7 +63,11 @@ async function createSpecificAIAgents() {
 
     for (const mailbox of mailboxes) {
       const email = agentEmail(mailbox)
-      const profile = SEED_PROFILE[mailbox]
+      // Local harnesses come from the registry, not SEED_PROFILE — the `in
+      // SEED_PROFILE` guard above only covers the first half of the list, so a
+      // harness with no hardcoded twin used to throw here and take every agent
+      // after it down with it. That is why muse@ had no row (AWTD-992).
+      const profile = SEED_PROFILE[mailbox] ?? harnessSeedProfile(mailbox)
       const fields = {
         name: profile.name,
         image: `${BLOB_BASE}/${profile.image}`,
