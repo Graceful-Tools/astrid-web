@@ -65,7 +65,7 @@ describe('resolveCompletionStatusTransition — completing (AWTD-964)', () => {
     ).toEqual({ statusRole: null, statusRoleBeforeDone: null })
   })
 
-  it('does not clobber the stashed lane when an already-completed task is completed again', () => {
+  it('does not clobber the stashed lane when an already-completed task is completed again (AWTD-985)', () => {
     // Completion clears the live lane, so a second completed=true (idempotent
     // retry, sync backdating completedAt, double PUT) sees currentStatusRole
     // null. Writing that null into the stash would destroy the lane the
