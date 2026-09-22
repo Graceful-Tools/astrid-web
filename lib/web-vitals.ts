@@ -20,6 +20,30 @@
 
 import { normalizeLegacyRoute } from './legacy-api-usage'
 
+/**
+ * How far back the p75 report reads.
+ *
+ * 28 days, matching both the Speed Insights dashboard window and
+ * `REQUIRED_OBSERVATION_DAYS` in the legacy-API census, so the two numbers in
+ * PERFORMANCE_BUDGETS.md are over comparable periods.
+ */
+export const WEB_VITALS_WINDOW_DAYS = 28
+
+/**
+ * How long a sample is kept (AWTD-990).
+ *
+ * Nothing deleted samples at all before this, so the table grew forever and
+ * every future migration of it seq-scanned history nobody reads.
+ *
+ * It is deliberately LONGER than the report window rather than equal to it.
+ * Retention shorter than the window is the failure that does not announce
+ * itself: the oldest days come back half-empty, the p75 shifts, and no error
+ * is raised anywhere. The week of slack means the 28th day is always complete
+ * even when the prune runs hours before the report, and the window can widen a
+ * little without a gap appearing in the data first.
+ */
+export const WEB_VITALS_RETENTION_DAYS = WEB_VITALS_WINDOW_DAYS + 7
+
 /** The three metrics the budget document tracks. */
 export const WEB_VITAL_METRICS = ['LCP', 'INP', 'CLS'] as const
 export type WebVitalMetric = (typeof WEB_VITAL_METRICS)[number]

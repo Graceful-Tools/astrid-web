@@ -8,13 +8,20 @@
  */
 
 import { prisma } from './prisma'
+import { createLogger } from './logger'
 import {
   isPlausibleSample,
   isWebVitalMetric,
   rateWebVital,
   summarizeWebVitals,
+  WEB_VITALS_RETENTION_DAYS,
+  WEB_VITALS_WINDOW_DAYS,
   type WebVitalSummary,
 } from './web-vitals'
+
+const log = createLogger('web-vitals-service')
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export interface IncomingWebVital {
   metric: string
@@ -61,14 +68,44 @@ export interface WebVitalsReport {
 }
 
 /**
+ * Drop samples older than the retention period (AWTD-990).
+ *
+ * `WEB_VITALS_RETENTION_DAYS` is longer than the report window on purpose —
+ * see the constant. The `[createdAt]` index on WebVitalSample serves this
+ * predicate, so it stays a range delete rather than a seq scan.
+ *
+ * Returns 0 rather than throwing, for the reason `recordWebVitalSample`
+ * declines rather than throws: this runs inside the nightly analytics cron, and
+ * a telemetry housekeeping failure must not fail the job that aggregates real
+ * usage stats — nor page anyone as though it were an incident.
+ */
+export async function pruneWebVitalSamples(
+  { now = new Date() }: { now?: Date } = {},
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - WEB_VITALS_RETENTION_DAYS * DAY_MS)
+
+  try {
+    const { count } = await prisma.webVitalSample.deleteMany({
+      where: { createdAt: { lt: cutoff } },
+    })
+    return count
+  } catch (error) {
+    log.error({ err: error, cutoff }, 'Failed to prune web vital samples')
+    return 0
+  }
+}
+
+/**
  * The p75 report for the budget document.
  *
- * Defaults to 28 days, matching both the Speed Insights dashboard window and
- * the observation window the legacy-API census uses, so the two numbers in
- * PERFORMANCE_BUDGETS.md are over comparable periods.
+ * The default window is `WEB_VITALS_WINDOW_DAYS`, shared with the retention
+ * period so the two can never drift into the arrangement where we delete
+ * samples this report still reads.
  */
-export async function getWebVitalsReport({ windowDays = 28 }: { windowDays?: number } = {}): Promise<WebVitalsReport> {
-  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
+export async function getWebVitalsReport({
+  windowDays = WEB_VITALS_WINDOW_DAYS,
+}: { windowDays?: number } = {}): Promise<WebVitalsReport> {
+  const since = new Date(Date.now() - windowDays * DAY_MS)
 
   const rows = await prisma.webVitalSample.findMany({
     where: { createdAt: { gte: since } },

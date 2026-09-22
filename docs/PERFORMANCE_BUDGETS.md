@@ -144,6 +144,15 @@ repo can query:
 | storage | `WebVitalSample` — no `userId`, only an `anonymous` / `signed-in` flag |
 | rules and p75 | `lib/web-vitals.ts` |
 | report | `npx tsx scripts/measure-web-vitals.ts --prod` |
+| retention | 35 days, pruned nightly by `/api/cron/analytics` (AWTD-990) |
+
+The reporter samples every page view, so the table only stays bounded because
+something deletes from it. `WEB_VITALS_RETENTION_DAYS` is deliberately a week
+longer than `WEB_VITALS_WINDOW_DAYS` — retention shorter than the report window
+would quietly truncate the oldest days of the p75 rather than raise anything,
+so the two constants live together in `lib/web-vitals.ts` with a test asserting
+the ordering. Asking for `--days` beyond 35 will read a window the data no
+longer covers.
 
 ```bash
 npx tsx scripts/measure-web-vitals.ts --prod          # 28-day p75, read-only

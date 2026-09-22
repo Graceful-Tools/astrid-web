@@ -2,13 +2,14 @@
  * Analytics Aggregation Cron Job
  *
  * Runs daily at midnight PST (08:00 UTC) to aggregate the previous day's events
- * into AnalyticsDailyStats.
+ * into AnalyticsDailyStats, and to expire telemetry nobody reads any more.
  *
  * GET /api/cron/analytics - Trigger aggregation (Vercel Cron)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { aggregateDailyStats } from '@/lib/analytics-events'
+import { pruneWebVitalSamples } from '@/lib/web-vitals-service'
 import { ensureInitialAdmin } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
@@ -34,7 +35,13 @@ export async function GET(request: NextRequest) {
     // Idempotent.
     await ensureInitialAdmin()
 
-    return { date: yesterday.toISOString().split('T')[0] }
+    // Housekeeping, after the aggregation that actually matters: WebVitalSample
+    // gets a row per page view and the report reads a fixed window, so without
+    // this the table grows forever (AWTD-990). It reports its own failures and
+    // returns 0 rather than failing the job above.
+    const webVitalSamplesPruned = await pruneWebVitalSamples()
+
+    return { date: yesterday.toISOString().split('T')[0], webVitalSamplesPruned }
   })
 }
 
