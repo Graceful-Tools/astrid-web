@@ -206,14 +206,27 @@ export function resolveCompletionStatusTransition(input: {
   rememberedStatusRole: string | null | undefined
   /** Is this task assigned to an AI agent? Decides the no-memory landing lane. */
   assigneeIsAgent: boolean
+  /**
+   * Is the task already done? A completion of a done task is a re-completion
+   * (idempotent retry, sync backdating completedAt, double PUT) and keeps the
+   * stash; a completion of an OPEN task from no lane resets it. Optional so a
+   * caller with a leaner row gets the pre-AWTD-985 reset, never a stale lane.
+   */
+  currentCompleted?: boolean | null
 }): { statusRole?: string | null; statusRoleBeforeDone?: string | null } {
   // An update that says nothing about completion must not move the card.
   if (input.requestedCompleted === undefined) return {}
 
   if (input.requestedCompleted) {
+    // A done task has no live lane, so re-completing it must keep the lane the
+    // FIRST completion stashed or the reopen loses it (AWTD-985). An open task
+    // completed straight out of Inbox has no lane to remember, and a stash
+    // left behind by a reopen that bypassed this rule (GitHub sync, a
+    // repeating roll-forward) must not resurrect a lane the user moved out of.
+    const remembered = input.currentCompleted ? input.rememberedStatusRole ?? null : null
     return {
       statusRole: null,
-      statusRoleBeforeDone: input.currentStatusRole ?? null,
+      statusRoleBeforeDone: input.currentStatusRole ?? remembered,
     }
   }
 
