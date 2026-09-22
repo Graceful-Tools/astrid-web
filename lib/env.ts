@@ -266,12 +266,13 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_IOS_LIST_NAME', scope: 'tooling', description: 'iOS board name used by cross-repo filing scripts.' },
   { name: 'ASTRID_IOS_GITHUB_TOKEN', scope: 'tooling', description: 'Token for filing issues on the iOS repository.' },
 
+  { name: 'XDG_CACHE_HOME', scope: 'tooling', description: 'Linux cache dir; the /fixall seen-file lives under it off macOS, so an operator can relocate it (scripts/lib/fixall-seen-file.ts).' },
+
   // ── Platform-injected (never authored by an operator) ─────────────────────
   { name: 'NODE_ENV', scope: 'platform', description: 'Set by the runtime.' },
   { name: 'CI', scope: 'platform', description: 'Set by the CI runner.' },
   { name: 'PORT', scope: 'platform', description: 'Set by the host.' },
   { name: 'HOSTNAME', scope: 'platform', description: 'Set by the host.' },
-  { name: 'XDG_CACHE_HOME', scope: 'platform', description: 'Cache dir set by the desktop session on Linux; the /fixall seen-file lives under it off macOS (scripts/lib/fixall-seen-file.ts).' },
   { name: 'VERCEL', scope: 'platform', description: 'Set by Vercel when building or running on their platform.' },
   { name: 'VERCEL_ENV', scope: 'platform', description: 'production | preview | development, set by Vercel.' },
   { name: 'VERCEL_URL', scope: 'platform', description: 'Deployment URL, set by Vercel.' },
