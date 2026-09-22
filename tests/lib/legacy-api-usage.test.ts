@@ -77,6 +77,43 @@ describe('legacy usage bucketing (task 641a7615)', () => {
 
     expect(bucket.route).toBe('/api/lists/public')
   })
+
+  it('collapses an invite bearer token so the token never lands in telemetry (AWTD-984)', () => {
+    // Invite tokens are `inv_` + 32 hex chars and redeem an invitation — a
+    // bearer credential. The usage table must never store one verbatim.
+    const bucket = legacyUsageBucket({
+      route: '/api/invitations/inv_9f2c4a6e8b1d3f5a7c9e2b4d6f8a1c3e',
+      method: 'GET', platform: 'web-desktop', at: new Date('2026-08-02T00:00:00Z'),
+    })
+
+    expect(bucket.route).toBe('/api/invitations/:id')
+  })
+
+  it('collapses a share shortcode after a shortcode-bearing route (AWTD-984)', () => {
+    // Shortcodes are 8-char nanoids — bearer links to shared tasks/lists.
+    const bucket = legacyUsageBucket({
+      route: '/api/shortcodes/Ab3xYz9Q',
+      method: 'GET', platform: 'web-desktop', at: new Date('2026-08-02T00:00:00Z'),
+    })
+    const v1 = legacyUsageBucket({
+      route: '/api/v1/shortcodes/Ab3xYz9Q',
+      method: 'GET', platform: 'web-desktop', at: new Date('2026-08-02T00:00:00Z'),
+    })
+
+    expect(bucket.route).toBe('/api/shortcodes/:id')
+    expect(v1.route).toBe('/api/v1/shortcodes/:id')
+  })
+
+  it('does not collapse an 8-char segment that is not a shortcode (AWTD-984)', () => {
+    // "settings" is 8 alphanumeric chars but a real route word, not a
+    // credential. Collapsing by shape alone would eat legitimate routes.
+    const bucket = legacyUsageBucket({
+      route: '/api/downloads/settings',
+      method: 'GET', platform: 'web-desktop', at: new Date('2026-08-02T00:00:00Z'),
+    })
+
+    expect(bucket.route).toBe('/api/downloads/settings')
+  })
 })
 
 describe('the beacon must not count itself (task 641a7615)', () => {

@@ -40,6 +40,20 @@ const NEVER_DELETABLE = ['/api/auth/']
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CUID = /^c[a-z0-9]{20,}$/i
 const NUMERIC = /^\d+$/
+/**
+ * Invite bearer tokens: `inv_` + 32 hex chars (app/api/invitations/route.ts).
+ * Redeeming one accepts the invitation, so the token must never land in a
+ * telemetry row verbatim.
+ */
+const INVITE_TOKEN = /^inv_[0-9a-f]{32}$/i
+/**
+ * Share shortcodes are 8-char nanoids — bearer links to shared tasks/lists.
+ * But so are real route words ("settings"), so this shape only counts right
+ * after a route known to carry a shortcode: `/s/<code>` on the web surface,
+ * `/api/shortcodes/<code>` and `/api/v1/shortcodes/<code>` on the API one.
+ */
+const SHORTCODE = /^[0-9A-Za-z]{8}$/
+const SHORTCODE_PARENTS = new Set(['s', 'shortcodes'])
 
 /**
  * One in N legacy hits is beaconed (task f9ba26b3).
@@ -114,13 +128,25 @@ export interface LegacyUsageBucket {
  * distinct routes, none of which individually looks like traffic.
  */
 export function normalizeLegacyRoute(pathname: string): string {
-  return pathname
-    .split('/')
-    .map(segment =>
-      UUID.test(segment) || CUID.test(segment) || NUMERIC.test(segment)
-        ? ':id'
-        : segment,
-    )
+  const segments = pathname.split('/')
+  return segments
+    .map((segment, i) => {
+      if (
+        UUID.test(segment) ||
+        CUID.test(segment) ||
+        NUMERIC.test(segment) ||
+        INVITE_TOKEN.test(segment)
+      ) {
+        return ':id'
+      }
+      // A shortcode is only a credential in context: the 8-char shape is
+      // collapsed only when the parent route is known to carry one.
+      const parent = segments[i - 1]
+      if (parent !== undefined && SHORTCODE_PARENTS.has(parent) && SHORTCODE.test(segment)) {
+        return ':id'
+      }
+      return segment
+    })
     .join('/')
 }
 
