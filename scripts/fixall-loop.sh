@@ -135,12 +135,22 @@ fi
 # run (scripts/agent-queue-status.ts keeps a seen-file), so something the
 # agent chose not to answer cannot start a session every half hour.
 #
+# The seen-file write is the SECOND phase of waking. The preflight below runs
+# with --no-write-seen and hands its keys back as a KEYS: line; the run's
+# outcome records them. A finished run marks them seen. A run that crashes,
+# is watchdog-killed, or exhausts its budget must not mute the items that
+# woke it on the first failure — otherwise "one run per item" becomes "one
+# attempt ever" — but it gets a strike (--mark-seen --failed), and a key out
+# of strikes is muted like a finished one, so a run that keeps dying on the
+# same item cannot wake a session every tick forever.
+#
 # Exit 1 means "could not tell" (network, auth) and must NOT be read as empty:
 # a queue we cannot see is a reason to run and let the agent report properly,
 # not a reason to skip quietly forever.
-QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web 2>&1)
+QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --no-write-seen 2>&1)
 QUEUE_STATUS=$?
 QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN):')
+QUEUE_KEYS=$(echo "$QUEUE_OUT" | sed -n 's/^KEYS: //p' | head -1)
 echo "${QUEUE_LINES:-QUEUE: no verdict}" | sed 's/^/  /'
 if [ "$QUEUE_STATUS" -eq 3 ]; then
   echo "RESULT: SKIPPED — nothing to do for claude (no Ready task, no new comment, no lane work)"
@@ -199,6 +209,18 @@ WATCHDOG_PID=$!
 wait "$CLAUDE_PID"
 STATUS=$?
 kill "$WATCHDOG_PID" 2>/dev/null
+
+# Phase two of waking, before the RESULT line so that line stays last (the
+# header promises it). A finished run had its chance at the preflight's items:
+# they are marked seen and will not wake another run. A failed run gives them
+# a strike instead; scripts/lib/wake-keys.ts holds the strike limit.
+if [ -n "$QUEUE_KEYS" ]; then
+  if [ "$STATUS" -eq 0 ]; then
+    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+  else
+    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --failed --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+  fi
+fi
 
 if [ "$STATUS" -eq 0 ]; then
   echo "RESULT: OK — run finished (see the tasks for what changed)"
