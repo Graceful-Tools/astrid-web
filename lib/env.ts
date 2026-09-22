@@ -266,6 +266,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_IOS_LIST_NAME', scope: 'tooling', description: 'iOS board name used by cross-repo filing scripts.' },
   { name: 'ASTRID_IOS_GITHUB_TOKEN', scope: 'tooling', description: 'Token for filing issues on the iOS repository.' },
 
+  { name: 'XDG_CACHE_HOME', scope: 'tooling', description: 'Linux cache dir; the /fixall seen-file lives under it off macOS, so an operator can relocate it (scripts/lib/fixall-seen-file.ts).' },
+
   // ── Platform-injected (never authored by an operator) ─────────────────────
   { name: 'NODE_ENV', scope: 'platform', description: 'Set by the runtime.' },
   { name: 'CI', scope: 'platform', description: 'Set by the CI runner.' },

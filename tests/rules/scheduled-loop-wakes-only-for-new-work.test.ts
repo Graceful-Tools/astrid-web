@@ -52,7 +52,17 @@ describe('the scheduled loop wakes only for new work', () => {
   it('bounds waking with a seen-file by default, not only when asked', () => {
     // The iOS loop calls this script with no flags; an unanswered item there
     // must not become a session every tick either.
-    expect(status).toMatch(/arg\('--seen'\)\s*\?\?\s*join\(/)
+    expect(status).toMatch(/arg\('--seen'\)\s*\?\?\s*defaultSeenFile\(/)
+  })
+
+  it('keeps the default seen-file out of node_modules', () => {
+    // node_modules/.cache was wiped by every `npm ci`, and the next tick woke
+    // every unanswered item at once. The default belongs in the OS cache dir;
+    // node_modules survives only in the one-time legacy adoption path.
+    const seenLib = readFileSync(join(ROOT, 'scripts/lib/fixall-seen-file.ts'), 'utf8')
+    const defaultFn = seenLib.match(/export function defaultSeenFile\([\s\S]*?\n\}/)?.[0] ?? ''
+    expect(defaultFn, 'defaultSeenFile must not point at node_modules').not.toMatch(/node_modules/)
+    expect(defaultFn).toMatch(/Caches/)
   })
 
   it('keeps the skip line honest about what was checked', () => {
