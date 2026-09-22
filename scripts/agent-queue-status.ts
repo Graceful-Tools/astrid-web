@@ -37,11 +37,15 @@
  * explicitly. A preflight with `--no-write-seen` computes the verdict and
  * prints its keys as a `KEYS:` line but does not touch the seen-file: a run
  * that crashes, is watchdog-killed, or exhausts its budget must not mute the
- * items that woke it. Only a finished run records them, via
- * `--mark-seen --seen-keys '<json>'`, which writes exactly the preflight's
- * keys — never a recomputed set, which would differ once the run has answered
- * things. Callers that do not opt in keep the old write-on-preflight
- * behavior, so the iOS loop (which calls this with no flags) is unchanged.
+ * items that woke it on its first failure. The run's outcome then records
+ * them: `--mark-seen --seen-keys '<json>'` after a finished run marks exactly
+ * the preflight's keys — never a recomputed set, which would differ once the
+ * run has answered things — and `--mark-seen --failed --seen-keys '<json>'`
+ * after a failed one gives each key a strike, muting it after
+ * MAX_FAILED_ATTEMPTS (scripts/lib/wake-keys.ts) so a run that keeps dying
+ * on the same item cannot wake a session every tick forever. Callers that do
+ * not opt in keep the old write-on-preflight behavior, so the iOS loop (which
+ * calls this with no flags) is unchanged.
  *
  * Usage:
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web
@@ -53,6 +57,8 @@
  *     # → prints KEYS: ["comment:…", …], writes nothing
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --mark-seen --seen-keys '<keys json>'
  *     # → records those keys as seen; run only after a finished run
+ *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --mark-seen --failed --seen-keys '<keys json>'
+ *     # → one strike per key; a key at MAX_FAILED_ATTEMPTS is recorded as seen
  *
  * Exit codes are the interface, matching the fixall scripts around it:
  *   0  there is work — the caller should start a run
@@ -75,6 +81,7 @@ import { loadScriptEnv } from './lib/load-env'
 import { FIXALL_HARNESS_MAILBOXES } from '@/lib/ready-queue-scope'
 import { parseReadyTaskClaims } from './lib/ready-tasks-output'
 import { decideQueueVerdict, type LaneSnapshot, type QueueSnapshot } from './lib/agent-queue-verdict'
+import { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun } from './lib/wake-keys'
 
 loadScriptEnv()
 
@@ -147,22 +154,46 @@ function readLanes(board: string, mailbox: string): { lanes: LaneSnapshot; notes
 function readSeen(file: string | undefined): Set<string> {
   if (!file || !existsSync(file)) return new Set()
   try {
-    const parsed = JSON.parse(readFileSync(file, 'utf8'))
-    return new Set(Array.isArray(parsed) ? parsed.filter(k => typeof k === 'string') : [])
-  } catch {
     // An unreadable file is an empty memory: the worst case is one extra
     // run, which beats a guard that cannot start.
+    return new Set(parseSeenKeys(readFileSync(file, 'utf8')) ?? [])
+  } catch {
     return new Set()
   }
 }
 
-function writeSeen(file: string | undefined, keys: string[]): void {
-  if (!file) return
+/** Returns false when nothing was written, and says so on stdout. */
+function writeJson(file: string | undefined, value: unknown): boolean {
+  if (!file) return false
   try {
     mkdirSync(dirname(file), { recursive: true })
-    writeFileSync(file, `${JSON.stringify(keys, null, 2)}\n`)
+    writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
+    return true
   } catch (error) {
     console.log(`SEEN: could not write ${file} — ${error instanceof Error ? error.message : error}`)
+    return false
+  }
+}
+
+function writeSeen(file: string | undefined, keys: string[]): boolean {
+  return writeJson(file, keys)
+}
+
+/** Strike counts for keys whose runs failed, beside the seen-file. */
+function attemptsFileFor(seenFile: string): string {
+  return `${seenFile}.attempts.json`
+}
+
+function readAttempts(file: string): Record<string, number> {
+  if (!existsSync(file)) return {}
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'))
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter((e): e is [string, number] => typeof e[1] === 'number'),
+    )
+  } catch {
+    return {}
   }
 }
 
@@ -186,20 +217,32 @@ async function main() {
   const seenFile =
     arg('--seen') ?? join(process.cwd(), 'node_modules', '.cache', 'astrid-fixall', `seen-${agent}-${listId}.json`)
 
-  // Phase two of waking: record exactly the keys a finished run was woken
-  // for. No network, no verdict — the preflight already decided.
+  // Phase two of waking: record the keys the run was woken for, by how the
+  // run ended. No network, no verdict — the preflight already decided.
   if (process.argv.includes('--mark-seen')) {
-    const raw = arg('--seen-keys')
-    let keys: string[] = []
-    try {
-      const parsed: unknown = JSON.parse(raw ?? '[]')
-      if (Array.isArray(parsed)) keys = parsed.filter((k): k is string => typeof k === 'string')
-    } catch {
-      // Malformed keys mark nothing: failing closed beats recording garbage.
+    const keys = parseSeenKeys(arg('--seen-keys'))
+    if (keys === null) {
+      // Missing or malformed keys mark NOTHING and say so: writing an empty
+      // set here would un-mute every item the file had already muted.
+      console.log('SEEN: --seen-keys missing or not a JSON array — nothing recorded')
+      process.exit(1)
     }
-    writeSeen(seenFile, keys)
-    console.log(`SEEN: marked ${keys.length} keys as seen`)
-    process.exit(0)
+    const attemptsFile = attemptsFileFor(seenFile)
+    const seen = readSeen(seenFile)
+    const attempts = readAttempts(attemptsFile)
+    if (process.argv.includes('--failed')) {
+      const failed = recordFailedRun(seen, keys, attempts)
+      const ok = writeJson(attemptsFile, failed.attempts) && (failed.exhausted.length === 0 || writeSeen(seenFile, failed.seen))
+      console.log(
+        `SEEN: run failed — ${failed.exhausted.length} of ${keys.length} keys reached ${MAX_FAILED_ATTEMPTS} attempts and are muted` +
+          (ok ? '' : ' (not recorded)'),
+      )
+      process.exit(ok ? 0 : 1)
+    }
+    const finished = recordFinishedRun(seen, keys, attempts)
+    const ok = writeSeen(seenFile, finished.seen) && writeJson(attemptsFile, finished.attempts)
+    console.log(`SEEN: marked ${keys.length} keys as seen${ok ? '' : ' (not recorded)'}`)
+    process.exit(ok ? 0 : 1)
   }
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
@@ -235,22 +278,25 @@ async function main() {
 
   const snapshot = (await response.json()) as QueueSnapshot
 
-  if (asJson) {
-    console.log(JSON.stringify(snapshot, null, 2))
-  }
-
   // A board that was not swept has lanes nobody looked at — say so rather than
   // let "not asked" read as "clear".
   const verdict = decideQueueVerdict({ snapshot, lanes: board ? lanes : null, seen: readSeen(seenFile) })
+  const deferSeen = process.argv.includes('--no-write-seen')
 
-  if (!asJson) console.log(verdict.line)
+  if (asJson) {
+    // The keys ride inside the document, so a JSON caller can still hand
+    // them back to --mark-seen.
+    console.log(JSON.stringify(deferSeen ? { ...snapshot, wakeKeys: verdict.keys } : snapshot, null, 2))
+  } else {
+    console.log(verdict.line)
+  }
 
   // The write is the second phase of waking. With --no-write-seen the keys
-  // are handed back as a KEYS: line instead, and only a finished run records
+  // are handed back as a KEYS: line instead, and the run's outcome records
   // them via --mark-seen. Without the flag the old behavior stands: every
   // wake-able item present now has had its chance after this tick, whether
   // the run starts or not.
-  if (process.argv.includes('--no-write-seen')) {
+  if (deferSeen) {
     if (!asJson) console.log(`KEYS: ${JSON.stringify(verdict.keys)}`)
   } else {
     writeSeen(seenFile, verdict.keys)

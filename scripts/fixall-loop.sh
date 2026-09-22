@@ -136,11 +136,13 @@ fi
 # agent chose not to answer cannot start a session every half hour.
 #
 # The seen-file write is the SECOND phase of waking. The preflight below runs
-# with --no-write-seen and hands its keys back as a KEYS: line; only a run
-# that finishes records them (--mark-seen after RESULT: OK). A run that
-# crashes, is watchdog-killed, or exhausts its budget must not mute the items
-# that woke it — otherwise "one run per item" becomes "one attempt ever" and
-# the items never wake another run.
+# with --no-write-seen and hands its keys back as a KEYS: line; the run's
+# outcome records them. A finished run marks them seen. A run that crashes,
+# is watchdog-killed, or exhausts its budget must not mute the items that
+# woke it on the first failure — otherwise "one run per item" becomes "one
+# attempt ever" — but it gets a strike (--mark-seen --failed), and a key out
+# of strikes is muted like a finished one, so a run that keeps dying on the
+# same item cannot wake a session every tick forever.
 #
 # Exit 1 means "could not tell" (network, auth) and must NOT be read as empty:
 # a queue we cannot see is a reason to run and let the agent report properly,
@@ -204,14 +206,20 @@ wait "$CLAUDE_PID"
 STATUS=$?
 kill "$WATCHDOG_PID" 2>/dev/null
 
+# Phase two of waking, before the RESULT line so that line stays last (the
+# header promises it). A finished run had its chance at the preflight's items:
+# they are marked seen and will not wake another run. A failed run gives them
+# a strike instead; scripts/lib/wake-keys.ts holds the strike limit.
+if [ -n "$QUEUE_KEYS" ]; then
+  if [ "$STATUS" -eq 0 ]; then
+    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+  else
+    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --failed --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+  fi
+fi
+
 if [ "$STATUS" -eq 0 ]; then
   echo "RESULT: OK — run finished (see the tasks for what changed)"
-  # Phase two of waking: this run had its chance at the preflight's items, so
-  # they are marked seen and will not wake another run. A run that did NOT
-  # finish never reaches this, and its items stay eligible.
-  if [ -n "$QUEUE_KEYS" ]; then
-    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
-  fi
   exit 0
 fi
 

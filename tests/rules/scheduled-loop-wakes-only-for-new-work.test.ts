@@ -67,13 +67,36 @@ describe('the scheduled loop wakes only for new work', () => {
     // the run, or known it succeeded. A crashed, watchdog-killed, or
     // budget-exhausted run then muted its inbox/lane items forever: "one run
     // per item" became "one attempt ever". The preflight must defer the
-    // write; only a finished run marks its keys seen.
+    // write, and the script must honor the flag it is passed.
     const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
     expect(call, `${LOOP} preflight must defer the seen-file write`).toMatch(/--no-write-seen\b/)
+    expect(status, `${STATUS} must honor --no-write-seen`).toMatch(/process\.argv\.includes\('--no-write-seen'\)/)
   })
 
-  it('marks wake keys seen only after a successful run (AWTD-986)', () => {
-    expect(loop, `${LOOP} must mark the preflight keys seen on RESULT: OK`).toMatch(/--mark-seen\b/)
-    expect(status, `${STATUS} must support --mark-seen`).toMatch(/--mark-seen/)
+  it('records wake keys by how the run ended, before its RESULT line (AWTD-986)', () => {
+    // The invocations, not the comments that describe them: a finished run
+    // marks its keys seen, a failed one gives them a strike, and both happen
+    // before the RESULT line so that line stays the last one in the log.
+    const calls = [...loop.matchAll(/^\s*"\$TSX" scripts\/agent-queue-status\.ts[^\n]*--mark-seen[^\n]*$/gm)].map(m => m[0])
+    expect(calls, `${LOOP} must call --mark-seen for a finished run and --mark-seen --failed for a failed one`).toHaveLength(2)
+    expect(calls.some(c => /--mark-seen --seen-keys/.test(c))).toBe(true)
+    expect(calls.some(c => /--mark-seen --failed --seen-keys/.test(c))).toBe(true)
+    // The run's own RESULT lines are the last two in the file; the earlier
+    // RESULT: FAILED lines belong to guards that fire before any run starts,
+    // where there are no consumed keys to record.
+    const lastCall = calls.map(c => loop.indexOf(c)).sort((a, b) => b - a)[0]
+    expect(lastCall, 'mark-seen must run before the RESULT lines').toBeLessThan(loop.lastIndexOf('echo "RESULT: OK'))
+    expect(lastCall).toBeLessThan(loop.lastIndexOf('echo "RESULT: FAILED'))
+    expect(status, `${STATUS} must handle --mark-seen`).toMatch(/process\.argv\.includes\('--mark-seen'\)/)
+    expect(status, `${STATUS} must handle --failed`).toMatch(/process\.argv\.includes\('--failed'\)/)
+  })
+
+  it('bounds a run that keeps failing instead of re-waking it every tick (AWTD-986)', () => {
+    // Removing the preflight write must not swing to the other extreme: a
+    // run that dies the same way every time (watchdog, budget, crash) would
+    // otherwise start a capped session every half hour, forever. The strike
+    // limit lives in the tested helper and the script must use it.
+    expect(status).toMatch(/recordFailedRun\(/)
+    expect(status).toMatch(/recordFinishedRun\(/)
   })
 })
