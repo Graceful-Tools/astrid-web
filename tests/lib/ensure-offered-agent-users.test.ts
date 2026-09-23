@@ -19,7 +19,7 @@ const MUSE = agentEmail('muse')
 beforeEach(() => {
   vi.clearAllMocks()
   mockPrisma.user.findFirst.mockResolvedValue(null as never)
-  mockPrisma.user.create.mockImplementation(async ({ data }: any) => ({ id: `id-${data.email}`, ...data }) as never)
+  mockPrisma.user.create.mockImplementation((async ({ data }: any) => ({ id: `id-${data.email}`, ...data })) as never)
 })
 
 describe('ensureOfferedAgentUsers (AWTD-992)', () => {
