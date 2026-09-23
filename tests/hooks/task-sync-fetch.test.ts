@@ -91,7 +91,9 @@ describe('fetchSyncPayload (task 641a7615)', () => {
   })
 
   it('asks for a delta when a cursor exists', async () => {
-    getCursor.mockResolvedValue({ cursor: '2026-08-01T00:00:00Z' })
+    // A real cursor always carries lastSync (setCursor stamps it); one older
+    // than SYNC_CURSOR_MAX_AGE_MS, or without it, means a full fetch (AWTD-993).
+    getCursor.mockResolvedValue({ cursor: '2026-08-01T00:00:00Z', lastSync: Date.now() })
     const fetchImpl = vi.fn(async (url: string) =>
       String(url).includes('/tasks') ? page('tasks', [], 0, 1000) : page('lists', [], 0, 1000)
     )

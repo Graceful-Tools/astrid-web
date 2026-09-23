@@ -9,6 +9,7 @@
  */
 
 import { CacheManager } from './cache-manager'
+import { SYNC_CURSOR_MAX_AGE_MS } from '@/lib/sync-cursor-age'
 import { fetchAllPages } from './api-paginate'
 import {
   OfflineTaskOperations,
@@ -104,8 +105,9 @@ class DataSyncManagerClass {
    */
   private refreshScheduler: RefreshScheduler | null = null
 
-  // Max age before forcing full sync (24 hours)
-  private readonly MAX_CURSOR_AGE = 24 * 60 * 60 * 1000
+  // Max age before forcing full sync — shared with the task-manager delta so
+  // both incremental paths stay inside tombstone retention (lib/sync-cursor-age.ts).
+  private readonly MAX_CURSOR_AGE = SYNC_CURSOR_MAX_AGE_MS
 
   private syncIntervalId: ReturnType<typeof setInterval> | null = null
   private initialized = false
