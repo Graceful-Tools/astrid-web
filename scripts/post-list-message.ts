@@ -27,12 +27,21 @@
  *    row (Jon, 2026-09-16): chat access should be standard for an agent
  *    connection, not granted one row at a time.
  *
- * 2. iOS renders INLINE markdown only (ChatMessageBubble uses
- *    .inlineOnlyPreservingWhitespace). `## headings`, `- bullets` and fenced
- *    code blocks render LITERALLY. Use **bold** labels and • bullets, plain
- *    newlines between lines. `![Title](taskId)` becomes a tappable task link;
- *    `@[Name](userId)` is the only thing that fires a push notification, so
- *    leave mentions out of anything that runs on a schedule.
+ * 2. Two bits of link syntax, and the one that is easy to get wrong is the
+ *    LEADING `!`: `![Title](taskId)` becomes a tappable task link, and
+ *    dropping the `!` posts a dead link that looks fine until someone taps it
+ *    (four of them went out on 2026-09-23). `@[Name](userId)` is the only
+ *    thing that fires a push notification, so leave mentions out of anything
+ *    that runs on a schedule — a 3am summary must not buzz a phone.
+ *
+ * WRITE NORMAL MARKDOWN. `## headings`, `- bullets` and fenced code blocks all
+ * DRAW on iOS — astrid-ios AITD-416 routed the chat bubble and the task-comment
+ * bubble through the shared block renderer (merged 2026-09-19, confirmed
+ * installed 2026-09-20). This header said the opposite until AWTD-999 and the
+ * stale advice was followed: it told agents to flatten summaries into **bold**
+ * labels and • bullets, which is strictly worse output than the markdown the
+ * renderer now understands. The ratchet is
+ * tests/rules/chat-copy-says-block-markdown-renders.test.ts.
  */
 
 import { randomUUID } from 'node:crypto'
