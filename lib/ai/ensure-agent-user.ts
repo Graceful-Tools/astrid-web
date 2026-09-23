@@ -65,3 +65,28 @@ export async function ensureAgentUser(email: string, image?: string | null): Pro
     return null
   }
 }
+
+/**
+ * Create the User rows for offered agents that do not have one (AWTD-992).
+ *
+ * The list-settings picker reads its agent options from existing User rows, so
+ * an agent the caller may be offered but that nobody seeded is invisible there
+ * and looks like it does not exist — which is how muse@ went missing in
+ * production. One findMany decides which are missing, so the common case
+ * (every row already there) costs a single extra query rather than one per
+ * agent. ensureAgentUser swallows its own failures; a picker that shows five
+ * agents instead of six beats a search that 500s.
+ */
+export async function ensureOfferedAgentUsers(emails: string[]): Promise<void> {
+  if (emails.length === 0) return
+
+  const existing = await prisma.user.findMany({
+    where: { email: { in: emails }, isAIAgent: true },
+    select: { email: true },
+  })
+  const have = new Set(existing.map(row => row.email))
+  const missing = emails.filter(email => !have.has(email))
+  if (missing.length === 0) return
+
+  await Promise.all(missing.map(email => ensureAgentUser(email)))
+}
