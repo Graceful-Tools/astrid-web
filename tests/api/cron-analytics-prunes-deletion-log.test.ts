@@ -96,8 +96,11 @@ describe('GET /api/cron/analytics prunes the deletion log (AWTD-993)', () => {
    */
   it('keeps tombstones far longer than a sync cursor stays valid', async () => {
     const { DELETION_LOG_RETENTION_DAYS } = await import('@/lib/deletion-log')
-    const MAX_CURSOR_AGE_DAYS = 1 // lib/data-sync.ts MAX_CURSOR_AGE = 24h
+    const { SYNC_CURSOR_MAX_AGE_MS } = await import('@/lib/sync-cursor-age')
+    const retentionMs = DELETION_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000
 
-    expect(DELETION_LOG_RETENTION_DAYS).toBeGreaterThan(MAX_CURSOR_AGE_DAYS)
+    // Both incremental clients (lib/data-sync.ts and hooks/task-manager) cap
+    // their cursor at the shared constant, so this one comparison covers them.
+    expect(retentionMs).toBeGreaterThanOrEqual(7 * SYNC_CURSOR_MAX_AGE_MS)
   })
 })

@@ -13,6 +13,7 @@
  */
 
 import { OfflineTaskOperations, OfflineListOperations, OfflineSyncCursorOperations } from '@/lib/offline-db'
+import { SYNC_CURSOR_MAX_AGE_MS } from '@/lib/sync-cursor-age'
 import type { Task, TaskList } from '@/types/task'
 
 export interface SeededData {
@@ -55,9 +56,13 @@ export async function seedFromCache(): Promise<SeededData> {
  * own IndexedDB refresh, where a stale row is harmless because the next full
  * sync overwrites it. Wire this into loadData once the API reports deletions.
  *
- * Falls back to the full URL whenever the cursor is missing or unreadable —
- * fetching too much is a performance problem, fetching too little is a
- * correctness one.
+ * Falls back to the full URL whenever the cursor is missing, unreadable, or
+ * older than SYNC_CURSOR_MAX_AGE_MS — fetching too much is a performance
+ * problem, fetching too little is a correctness one. The age cap matters
+ * because deletions arrive only as tombstones, which the nightly cron prunes
+ * after DELETION_LOG_RETENTION_DAYS (AWTD-993): a delta from before that
+ * window would leave deleted rows on screen for good. DataSyncManager has
+ * always applied the same cap; this path did not.
  */
 export async function buildTaskSyncUrl(
   baseUrl: string,
@@ -66,6 +71,9 @@ export async function buildTaskSyncUrl(
   try {
     const cursor = await OfflineSyncCursorOperations.getCursor(entity)
     if (!cursor?.cursor) return baseUrl
+    if (typeof cursor.lastSync !== 'number' || Date.now() - cursor.lastSync > SYNC_CURSOR_MAX_AGE_MS) {
+      return baseUrl
+    }
     const separator = baseUrl.includes('?') ? '&' : '?'
     return `${baseUrl}${separator}updatedSince=${encodeURIComponent(cursor.cursor)}`
   } catch {
