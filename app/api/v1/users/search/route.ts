@@ -15,7 +15,7 @@
 import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
 import { resolveSearchListIds } from '@/lib/user-search-scope'
 import { getAssignableAgentEmails, getOfferableAgentEmails } from '@/lib/ai/assignable-agents'
-import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
+import { ensureOfferedAgentUsers } from '@/lib/ai/ensure-agent-user'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
@@ -36,28 +36,6 @@ interface UserSearchResult {
 
 // Which agents exist is configuration; see lib/ai/assignable-agents.ts. Task 97208a72.
 const AI_AGENT_EMAILS = getAssignableAgentEmails()
-
-/**
- * Create the User rows for offered agents that do not have one (AWTD-992).
- *
- * One findMany decides which are missing, so the common case — every row
- * already there — costs a single extra query rather than one per agent.
- * Failures are swallowed by ensureAgentUser; a picker that shows five agents
- * instead of six is better than a search that 500s.
- */
-async function ensureOfferedAgentUsers(emails: string[]): Promise<void> {
-  if (emails.length === 0) return
-
-  const existing = await prisma.user.findMany({
-    where: { email: { in: emails }, isAIAgent: true },
-    select: { email: true },
-  })
-  const have = new Set(existing.map(row => row.email))
-  const missing = emails.filter(email => !have.has(email))
-  if (missing.length === 0) return
-
-  await Promise.all(missing.map(email => ensureAgentUser(email)))
-}
 
 export const dynamic = 'force-dynamic'
 

@@ -11,6 +11,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { agentEmail } from '@/lib/brand/agent-emails'
+
+const MUSE = agentEmail('muse')
+const CLAUDE = agentEmail('claude')
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -38,7 +42,7 @@ vi.mock('@/lib/session-utils', () => ({ getUnifiedSession: vi.fn() }))
 vi.mock('@/lib/ai/assignable-agents', () => ({
   getAssignableAgentEmails: () => [],
   getKeyedAgentEmails: () => [],
-  getOfferableAgentEmails: vi.fn(async () => ['muse@astrid.cc', 'claude@astrid.cc']),
+  getOfferableAgentEmails: vi.fn(async () => [MUSE, CLAUDE]),
 }))
 vi.mock('@/lib/ai-agent-utils', () => ({ isCodingAgent: () => false }))
 vi.mock('@/lib/api-key-cache', () => ({ hasValidApiKey: vi.fn(async () => false) }))
@@ -73,8 +77,8 @@ describe('GET /api/v1/users/search?includeAIAgents=true creates missing agent ro
   it('ensures every offerable agent has a User row BEFORE querying for them', async () => {
     const res = await v1Search(new NextRequest('http://localhost/api/v1/users/search?includeAIAgents=true'))
 
-    expect(res.status).toBe(200)
-    expect(ensureOfferedAgentUsers).toHaveBeenCalledWith(['muse@astrid.cc', 'claude@astrid.cc'])
+    expect(res.status, await res.clone().text()).toBe(200)
+    expect(ensureOfferedAgentUsers).toHaveBeenCalledWith([MUSE, CLAUDE])
     // Creating after the query would still leave the picker empty on this load.
     const queries = mockPrisma.user.findMany.mock.invocationCallOrder
     expect(queries.length).toBeGreaterThan(0)
