@@ -90,6 +90,22 @@ describe('the reconcile fetch asks for a delta when it can', () => {
     expect(url).toBe('/api/tasks')
   })
 
+  it('falls back to a full fetch when the cursor is older than the sync-cursor cap (AWTD-993)', async () => {
+    // Deletions arrive only as tombstones, pruned after DELETION_LOG_RETENTION_DAYS.
+    // A delta from a cursor older than the cap would ask for deletions the
+    // server has already forgotten and leave deleted rows on screen for good.
+    const { SYNC_CURSOR_MAX_AGE_MS } = await import('@/lib/sync-cursor-age')
+    getCursor.mockResolvedValue({
+      entity: 'task',
+      cursor: '2026-07-26T12:00:00.000Z',
+      lastSync: Date.now() - SYNC_CURSOR_MAX_AGE_MS - 1000,
+    })
+
+    const url = await buildTaskSyncUrl('/api/tasks')
+
+    expect(url).toBe('/api/tasks')
+  })
+
   it('falls back to a full fetch when the cursor is unreadable', async () => {
     getCursor.mockRejectedValue(new Error('boom'))
 

@@ -42,7 +42,13 @@ vi.mock('@/lib/ai/assignable-agents', () => ({
   getKeyedAgentEmails: () => [],
   getOfferableAgentEmails: () => [],
 }))
-vi.mock('@/lib/brand/agent-emails', () => ({ openClawEmailSuffix: () => '.oc@example.com' }))
+// @/lib/brand/agent-emails is loaded for real, on purpose. It is pure brand data
+// — lib/brand/config.ts imports nothing and lib/ai/harness-agents.ts is a static
+// table — so a stub severs no dependency and buys no determinism. It used to be
+// mocked wholesale with only `openClawEmailSuffix`, which left `agentEmail`
+// undefined and failed the whole SUITE at collection time whenever the real
+// api-auth-middleware reached it via ensure-agent-user (AWTD-994).
+// tests/rules/agent-emails-is-never-stubbed-wholesale.test.ts holds this.
 vi.mock('@/lib/ai-agent-utils', () => ({ isCodingAgent: () => false }))
 vi.mock('@/lib/api-key-cache', () => ({ hasValidApiKey: vi.fn(async () => false) }))
 

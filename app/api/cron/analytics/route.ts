@@ -2,13 +2,16 @@
  * Analytics Aggregation Cron Job
  *
  * Runs daily at midnight PST (08:00 UTC) to aggregate the previous day's events
- * into AnalyticsDailyStats.
+ * into AnalyticsDailyStats, and to expire rows nobody reads any more.
+ * into AnalyticsDailyStats, and to expire telemetry nobody reads any more.
  *
  * GET /api/cron/analytics - Trigger aggregation (Vercel Cron)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { aggregateDailyStats } from '@/lib/analytics-events'
+import { pruneDeletionLog } from '@/lib/deletion-log'
+import { pruneWebVitalSamples } from '@/lib/web-vitals-service'
 import { ensureInitialAdmin } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
@@ -34,7 +37,26 @@ export async function GET(request: NextRequest) {
     // Idempotent.
     await ensureInitialAdmin()
 
-    return { date: yesterday.toISOString().split('T')[0] }
+    // Housekeeping, after the aggregation that actually matters. Both prunes
+    // report their own failures and return 0 rather than failing the job above.
+    //
+    // DeletionLog gets a tombstone per deleted task and list, and nothing
+    // expired them, so the table grew forever and getDeletionsSince() scanned
+    // all of it (AWTD-993). Safe at 30 days' retention because both incremental
+    // clients force a FULL sync once their cursor is older than
+    // SYNC_CURSOR_MAX_AGE_MS (24h, lib/sync-cursor-age.ts), so no client asks
+    // for deletions older than the window.
+    const deletionTombstonesPruned = await pruneDeletionLog()
+
+    // WebVitalSample gets a row per page view and the report reads a fixed
+    // window, so without this the table grows forever (AWTD-990).
+    const webVitalSamplesPruned = await pruneWebVitalSamples()
+
+    return {
+      date: yesterday.toISOString().split('T')[0],
+      deletionTombstonesPruned,
+      webVitalSamplesPruned,
+    }
   })
 }
 
