@@ -285,7 +285,20 @@ export class RedisCache {
    * correct by construction, and losing a dying instance's partial window
    * costs that window rather than everything it ever did.
    */
-  private static window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0 }
+  private static window = {
+    hits: 0,
+    misses: 0,
+    loads: 0,
+    coalesced: 0,
+    errors: 0,
+    // Summed durations, in milliseconds, over the window's lookups and loads
+    // (AWTD-905). Sums rather than samples, so they can be added across
+    // instances — which also means every latency derived from them is a MEAN.
+    // No percentile survives a sum, and the budget document's other latency
+    // rows are percentiles, so nothing downstream may call these p-anything.
+    lookupMs: 0,
+    loadMs: 0,
+  }
   private static windowStartedAt = Date.now()
 
   /**
@@ -313,8 +326,37 @@ export class RedisCache {
     this.flushMetricsWindow()
   }
 
+  /**
+   * Send the flushed window to the database, without joining the request to it.
+   *
+   * Deliberately not awaited, and deliberately a dynamic import: the caller is
+   * `RedisCache.get()` on a request path, so a slow or failing telemetry write
+   * must not become a slow or failing cache lookup, and `lib/redis.ts` must not
+   * gain a static Prisma dependency (it is imported by code with no database).
+   *
+   * The log event still goes out first and unconditionally. It was the only
+   * source before this task, and losing it whenever the new one fails would be
+   * a straight regression.
+   */
+  private static persistMetricsWindow(sample: {
+    instanceId: string
+    hits: number
+    misses: number
+    loads: number
+    coalesced: number
+    errors: number
+    lookupMs: number
+    loadMs: number
+  }): void {
+    void import('./cache-metrics-service')
+      .then(({ recordCacheMetricWindow }) => recordCacheMetricWindow(sample))
+      .catch(error => {
+        log.debug({ err: error }, 'Cache metrics window not persisted')
+      })
+  }
+
   private static flushMetricsWindow(): void {
-    const { hits, misses, loads, coalesced, errors } = this.window
+    const { hits, misses, loads, coalesced, errors, lookupMs, loadMs } = this.window
     const lookups = hits + misses
     const elapsed = Date.now() - this.windowStartedAt
 
@@ -335,6 +377,8 @@ export class RedisCache {
         loads,
         coalesced,
         errors,
+        lookupMs,
+        loadMs,
         // Convenience for reading one line; the fleet rate must be recomputed
         // from summed hits and misses, never averaged across these.
         hitRate: lookups > 0 ? Number(((hits / lookups) * 100).toFixed(2)) : null,
@@ -342,7 +386,18 @@ export class RedisCache {
       'Cache metrics window',
     )
 
-    this.window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0 }
+    this.persistMetricsWindow({
+      instanceId: this.instanceId,
+      hits,
+      misses,
+      loads,
+      coalesced,
+      errors,
+      lookupMs,
+      loadMs,
+    })
+
+    this.window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0, lookupMs: 0, loadMs: 0 }
     this.windowStartedAt = Date.now()
   }
 
@@ -381,15 +436,19 @@ export class RedisCache {
     }
     // The window travels with them: a reset that left it populated would leak
     // one test's counts into the next one's first snapshot.
-    this.window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0 }
+    this.window = { hits: 0, misses: 0, loads: 0, coalesced: 0, errors: 0, lookupMs: 0, loadMs: 0 }
     this.windowStartedAt = Date.now()
   }
 
   // Get cached data
   static async get<T>(key: string): Promise<T | null> {
+    // Timed from the connection onward, because that is what a caller waits
+    // for: a cold client's connect is part of what the lookup cost (AWTD-905).
+    const startedAt = performance.now()
     try {
       const client = await getRedisClient()
       const cached = await client.get(key)
+      this.window.lookupMs += performance.now() - startedAt
 
       if (cached) {
         this.metrics.hits++
@@ -528,9 +587,19 @@ export class RedisCache {
 
     const promise = (async () => {
       this.metrics.loads++
-      this.window.loads++
+      // The loader only — not the `set` that follows it, and not the miss that
+      // preceded it. What this measures is the cost a miss pays to go to the
+      // source, which next to the lookup mean is the case for the cache
+      // existing at all (AWTD-905).
+      const startedAt = performance.now()
       try {
         const data = await fetchFn()
+        // Counted and timed together, after the load succeeded: a loader that
+        // threw contributes no duration, so counting it would divide a real
+        // total by an inflated number of loads. `metrics.loads` still counts
+        // every attempt, and `metrics.loadErrors` the failures.
+        this.window.loads++
+        this.window.loadMs += performance.now() - startedAt
         await this.set(key, data, ttl)
         return data
       } catch (error) {

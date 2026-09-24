@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
 import { CHART_SERIES_COLORS } from '@/lib/brand/colors'
+import { formatCacheHitRate, formatCacheLatencyMs } from '@/lib/cache-metrics'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import {
@@ -66,10 +67,44 @@ interface EventsByPlatform {
   eventOrder: string[]
 }
 
+/**
+ * Redis cache numbers for the selected range (AWTD-905).
+ *
+ * `hitRate` and the two latencies are null when nothing was recorded — which is
+ * a different fact from 0%, and has to render differently. Both latencies are
+ * MEANS: the stored windows are summed durations, and no percentile is
+ * recoverable from a sum, so the labels say "mean" rather than borrowing the
+ * percentile wording the other rows of PERFORMANCE_BUDGETS.md use.
+ */
+interface CacheMetricsSummary {
+  hits: number
+  misses: number
+  lookups: number
+  loads: number
+  coalesced: number
+  errors: number
+  windows: number
+  instances: number
+  hitRate: number | null
+  meanLookupMs: number | null
+  meanLoadMs: number | null
+}
+
+interface CacheMetricsDay extends CacheMetricsSummary {
+  date: string
+}
+
+interface CacheMetricsReport {
+  totals: CacheMetricsSummary
+  byDay: CacheMetricsDay[]
+  retentionDays: number
+}
+
 interface AnalyticsData {
   stats: DailyStats[]
   summary: AnalyticsSummary | null
   eventsByPlatform?: EventsByPlatform
+  cache?: CacheMetricsReport
   meta: {
     startDate: string
     endDate: string
@@ -103,6 +138,17 @@ const EVENT_LABELS: Record<string, string> = {
 const labelFor = (map: Record<string, string>, key: string) =>
   map[key] ||
   key.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+
+/** A tile for a value that may not exist yet — MetricCard takes a number. */
+function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-xl font-bold tabular-nums">{value}</div>
+      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+    </div>
+  )
+}
 
 function MetricCard({
   title,
@@ -457,6 +503,118 @@ export default function AnalyticsDashboard() {
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+            )
+          })()}
+        </CardContent>
+      </Card>
+
+      {/* Redis cache (AWTD-905) */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Redis Cache</CardTitle>
+          <CardDescription>
+            Hit rate and mean latency per day over the selected period. Latencies are means over
+            every lookup and load, not percentiles — the stored windows are summed durations.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const cache = data.cache
+            if (!cache || cache.totals.windows === 0) {
+              return (
+                <div className="text-sm text-muted-foreground" data-testid="cache-empty">
+                  No cache windows recorded in this period. Each serverless instance reports one
+                  window a minute while it is serving traffic, so this fills in once a build
+                  carrying the reporter is live.
+                </div>
+              )
+            }
+
+            const { totals } = cache
+            const trend = cache.byDay.map((day) => ({
+              date: new Date(`${day.date}T00:00:00Z`).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              }),
+              'Hit rate %': day.hitRate === null ? null : Number(day.hitRate.toFixed(2)),
+              'Mean lookup ms': day.meanLookupMs === null ? null : Number(day.meanLookupMs.toFixed(2)),
+              'Mean load ms': day.meanLoadMs === null ? null : Number(day.meanLoadMs.toFixed(2)),
+            }))
+
+            return (
+              <div className="space-y-4" data-testid="cache-section">
+                <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                  <StatTile
+                    label="Hit rate"
+                    value={formatCacheHitRate(totals.hitRate)}
+                    hint="budget: ≥ 80% warm"
+                  />
+                  <StatTile
+                    label="Mean lookup"
+                    value={formatCacheLatencyMs(totals.meanLookupMs)}
+                    hint="Redis round trip"
+                  />
+                  <StatTile
+                    label="Mean load"
+                    value={formatCacheLatencyMs(totals.meanLoadMs)}
+                    hint="what a miss pays"
+                  />
+                  <StatTile
+                    label="Lookups"
+                    value={totals.lookups.toLocaleString()}
+                    hint={`${totals.instances.toLocaleString()} instance${totals.instances === 1 ? '' : 's'} reporting`}
+                  />
+                </div>
+
+                <div className="h-[220px] sm:h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                      {/* Two axes: a percentage and a duration do not share a scale. */}
+                      <YAxis yAxisId="rate" domain={[0, 100]} tick={{ fontSize: 12 }} />
+                      <YAxis yAxisId="ms" orientation="right" tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        yAxisId="rate"
+                        type="monotone"
+                        dataKey="Hit rate %"
+                        stroke={CHART_SERIES_COLORS[0]}
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls={false}
+                      />
+                      <Line
+                        yAxisId="ms"
+                        type="monotone"
+                        dataKey="Mean lookup ms"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls={false}
+                      />
+                      <Line
+                        yAxisId="ms"
+                        type="monotone"
+                        dataKey="Mean load ms"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {totals.hits.toLocaleString()} hits, {totals.misses.toLocaleString()} misses,{' '}
+                  {totals.loads.toLocaleString()} loads, {totals.coalesced.toLocaleString()} coalesced,{' '}
+                  {totals.errors.toLocaleString()} errors over {totals.windows.toLocaleString()}{' '}
+                  windows. Windows are kept {cache.retentionDays} days, so a range wider than that
+                  reads short at its oldest end.
+                </p>
               </div>
             )
           })()}

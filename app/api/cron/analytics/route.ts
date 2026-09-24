@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aggregateDailyStats } from '@/lib/analytics-events'
 import { pruneDeletionLog } from '@/lib/deletion-log'
 import { pruneWebVitalSamples } from '@/lib/web-vitals-service'
+import { pruneCacheMetricBuckets } from '@/lib/cache-metrics-service'
 import { ensureInitialAdmin } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
@@ -52,10 +53,16 @@ export async function GET(request: NextRequest) {
     // window, so without this the table grows forever (AWTD-990).
     const webVitalSamplesPruned = await pruneWebVitalSamples()
 
+    // CacheMetricBucket gets a row per hour per serverless instance, and
+    // /admin/analytics reads at most 90 days of it (AWTD-905). Retention is
+    // deliberately wider than that window — see CACHE_METRICS_RETENTION_DAYS.
+    const cacheMetricBucketsPruned = await pruneCacheMetricBuckets()
+
     return {
       date: yesterday.toISOString().split('T')[0],
       deletionTombstonesPruned,
       webVitalSamplesPruned,
+      cacheMetricBucketsPruned,
     }
   })
 }
