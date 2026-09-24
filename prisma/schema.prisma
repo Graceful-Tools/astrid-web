@@ -1186,6 +1186,43 @@ model WebVitalSample {
   @@index([route, metric, createdAt])
 }
 
+/// One hour of one process's Redis cache metrics (AWTD-905).
+///
+/// `RedisCache` flushes a window of DELTAS every minute; each flush increments
+/// the row for its hour and instance. Hourly rather than per-window because the
+/// write count is the same either way and the table then holds roughly
+/// `24 x instances` rows a day instead of `1440 x instances`.
+///
+/// `instanceId` is a per-process value (`VERCEL_DEPLOYMENT_ID` plus a random
+/// suffix), never a user or request identifier. It is here so a reported hit
+/// rate can be checked against the number of processes that reported it — a
+/// fleet aggregate and one lambda talking to itself otherwise look identical.
+///
+/// The `*MsTotal` columns are SUMS of durations, which is why every latency
+/// derived from this table is a mean. No percentile is recoverable from a sum,
+/// and the other latency rows in docs/PERFORMANCE_BUDGETS.md are percentiles.
+model CacheMetricBucket {
+  id          String   @id @default(cuid())
+  bucketStart DateTime // hour boundary, UTC
+  instanceId  String
+  hits        Int      @default(0)
+  misses      Int      @default(0)
+  loads       Int      @default(0)
+  coalesced   Int      @default(0)
+  errors      Int      @default(0)
+  /// Summed Redis round-trip time over this hour's lookups (hits + misses).
+  lookupMsTotal Float  @default(0)
+  /// Summed loader time over this hour's loads (the cost a miss pays).
+  loadMsTotal   Float  @default(0)
+  /// How many flushed windows this row is made of.
+  windows     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([bucketStart, instanceId])
+  @@index([bucketStart])
+}
+
 model AdminUser {
   id        String   @id @default(cuid())
   userId    String   @unique

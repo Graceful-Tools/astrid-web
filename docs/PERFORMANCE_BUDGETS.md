@@ -22,7 +22,7 @@ Insights was collecting the numbers — see below.
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
-| Redis cache hit rate | >= 80% after warm-up | `scripts/measure-cache-hit-rate.ts` (needs the deploy carrying it) | **not yet sampled** |
+| Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | **not yet sampled — needs the deploy carrying the writer** |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 
@@ -46,7 +46,7 @@ resident on a phone, and 2.3 MiB of it is worth knowing about.
 ```bash
 npx tsx scripts/measure-api-latency.ts --samples 30      # latency + sizes
 npx tsx scripts/index-drop-evidence.ts --prod            # index plans (AWTD-855)
-npx tsx scripts/measure-cache-hit-rate.ts --hours 24     # Redis hit rate (2b89739c)
+npx tsx scripts/measure-cache-hit-rate.ts --hours 24     # Redis hit rate from LOGS — capped, see below
 ```
 
 `measure-api-latency.ts` times the critical reads against production over
@@ -187,7 +187,7 @@ cannot hold a sample from a logged-out visitor) is the open question on
 e586eff1 — it buys scriptability, at the price of a second pipeline beside a
 working one and a new production table.
 
-**Redis cache hit rate — a surface now exists; the sample waits on a deploy.**
+**Redis cache hit rate — it is on the analytics page now; the sample waits on a deploy.**
 
 The problem was never that the outcomes were not recorded. PR #260's
 structured `Cache lookup` / `Cache load` events in `lib/redis.ts` are correct
@@ -212,24 +212,39 @@ it usable, and each is there to avoid a specific wrong number:
   serving `GET /api/v1/tasks` — the same reason reading `getMetrics()` from a
   single request is not the fleet's hit rate.
 
-```bash
-npx tsx scripts/measure-cache-hit-rate.ts --hours 24
-```
+**The log was the wrong sink, and the row ceiling is why.** `scripts/measure-cache-hit-rate.ts`
+sums those windows out of `vercel logs` and divides once at the end, and it works — against a
+source that returns **exactly 100 rows whether `--since` is 2h, 24h or 72h**. Measured 2026-09-19:
+the 20-window floor the script needs is unreachable at any `--hours`, so widening the query (the
+remedy this section used to recommend) cannot help. The ~50-unique-row ceiling under *Server error
+rate* is a hard cap, not a tendency. The script stays for a spot check on a single deploy; it is no
+longer the source of the number.
 
-sums those windows and divides **once** at the end. The fleet rate is not the
-mean of the per-window rates: an instance that served three lookups and one
-that served thirty thousand each contribute one `hitRate` field, and averaging
-them weights them equally.
+**The source is the app's own database, read on the analytics page** (AWTD-905, Jon: *"Add this to
+the analytics page so we can see latency per period"*). Each flush now also increments a
+`CacheMetricBucket` row — one per hour per process — and `/admin/analytics` → **Redis Cache**
+summarizes them over the range its selector already offers. No row cap, no CLI, and the numbers
+accumulate whether or not anyone is looking.
 
-**Not yet sampled, and the row says so.** The event only exists in code;
-production deploys are manual, so nothing has emitted one yet. Tracked on
-2b89739c, which is parked on that deploy.
+Three things about what that page shows:
 
-One thing for whoever takes the sample: the ~50-unique-row ceiling described
-under *Server error rate* applies here too. One event per instance per minute
-is far thinner than per-request rows and should fit, but the script refuses to
-report a rate from fewer than 20 windows rather than printing a confident
-percentage over four — which is how the error-rate row became unprovable.
+- **The rate divides once, at the end**, out of summed hits and summed lookups. The fleet rate is
+  not the mean of the per-bucket rates: a bucket that served three lookups and one that served
+  thirty thousand would otherwise weigh the same.
+- **Both latencies are MEANS, and are labelled as such** — mean Redis round trip per lookup, and
+  mean loader time per load, the pair that says what a hit costs against what a miss costs. The
+  stored columns are summed durations, and no percentile is recoverable from a sum. The other
+  latency rows in this document are percentiles; do not read the two as comparable.
+- **`instances` is on the page** because a hit rate aggregated from one lambda and one aggregated
+  from the fleet look identical otherwise.
+
+Buckets are kept 97 days — wider than the 90-day range the page can ask for, so the oldest end of
+a chart is never quietly truncated — and the nightly analytics cron prunes them.
+
+**Still not sampled, and the row says so.** The table is new, so nothing has written a bucket yet:
+the migration and the writer both arrive with a production deploy, and deploys are manual. What
+changed is that after that deploy the number appears by itself, on a page, instead of needing a
+script run that the log ceiling would defeat.
 
 **Server error rate — sample too small to assert.** The Vercel CLI returns only
 ~50 unique log rows per query and pads beyond that, so walking windows across
