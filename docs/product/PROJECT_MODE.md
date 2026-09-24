@@ -52,6 +52,13 @@ anything new before they opt in?** Three mechanisms, in preference order:
 3. **Nullable columns render nothing.** `closedReason`, `identifier`,
    `estimate`, `blockedByTaskId` all default to null and draw no UI.
 
+   `blockedByTaskId` was never built, and **is superseded** by the
+   `TaskDependency` join table in
+   [specs/TASK_BLOCKING_DEPENDENCIES.md](../specs/TASK_BLOCKING_DEPENDENCIES.md)
+   (AWTD-1002): a scalar column caps a task at one blocker, and the requirement
+   is one or more with no hard-coded ceiling. The rule above is unaffected — a
+   relation with no rows draws no UI exactly as well as a null column does.
+
 The existing "Create Board" action is the model: a plain list *becomes* a board
 on demand. Extend that pattern; do not add a settings page of toggles.
 
