@@ -71,6 +71,11 @@ and stack versions with `npm run check:docs`.
 - **[Testing Strategy](./context/testing.md)** - Testing approach and tools
 - **[Task Defaults System](./context/task-defaults-system.md)** - Task default values and behavior
 
+### 🧭 Product Specs
+- **[Project Mode](./product/PROJECT_MODE.md)** - Scope, gating and the rules every Project Mode change must satisfy
+- **[Project Status Board](./product/project-status-board.md)** - Board behavior (columns, drag, statuses)
+- **[Spec: Task Blocking Dependencies](./specs/TASK_BLOCKING_DEPENDENCIES.md)** - Proposal (not implemented): "waiting on tasks", and why the Waiting→Ready rule has exactly one implementation
+
 ### 🎨 UI & Design
 - **[Layout System](./LAYOUT_SYSTEM.md)** - ⚠️ **Critical**: Mobile vs Column Layout distinction, responsive breakpoints
 
