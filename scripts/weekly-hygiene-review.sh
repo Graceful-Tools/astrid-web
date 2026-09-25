@@ -4,7 +4,7 @@
 #
 # Reviews the repo across five lenses (hygiene, duplication, security, performance,
 # documentation) and files the findings as tasks on the Astrid Web To-do. Scheduled by
-# scripts/launchd/cc.astrid.weekly-hygiene-review.plist; see
+# scripts/launchd/cc.astrid.weekly-hygiene-review.plist.template; see
 # docs/WEEKLY_HYGIENE_REVIEW.md.
 #
 #   ./scripts/weekly-hygiene-review.sh                # full run
