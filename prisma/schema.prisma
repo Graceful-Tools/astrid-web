@@ -100,6 +100,7 @@ model User {
   sessions                     Session[]
   assignedTasks                Task[]                   @relation("TaskAssignee")
   createdTasks                 Task[]                   @relation("TaskCreator")
+  createdTaskDependencies      TaskDependency[]         @relation("TaskDependencyCreator")
   ownedLists                   TaskList[]               @relation("ListOwner")
   analyticsEvents              AnalyticsEvent[]         @relation("AnalyticsEvents")
   adminUser                    AdminUser?               @relation("AdminUsers")
@@ -374,6 +375,9 @@ model Task {
   codingWorkflow CodingTaskWorkflow?
   comments       Comment[]
   costEvents     TaskCostEvent[]
+  /// Tasks this one waits for, and the ones waiting on it (AWTD-1002).
+  blockedBy      TaskDependency[]    @relation("TaskBlockedBy")
+  blocks         TaskDependency[]    @relation("TaskBlocks")
   events         TaskEvent[]
   notifications  Notification[]
   reminderQueue  ReminderQueue[]
@@ -402,6 +406,42 @@ model Task {
   @@index([parentTaskId])
   @@index([closedReason])
   @@index([statusRole])
+}
+
+/// A task waits for another task to be completed (AWTD-1002).
+///
+/// A join row rather than a `blockedByTaskId` column on Task: "one or more
+/// blockers, no hard-coded ceiling" is a relation, and the 1–3 the UI is tuned
+/// for is a fact about how people work, not a constraint the data may assume.
+/// Rows exist only for tasks somebody deliberately blocked, so the feature
+/// costs an account that never uses it nothing.
+///
+/// See docs/specs/TASK_BLOCKING_DEPENDENCIES.md. Not subtasks and never to
+/// become them: a subtask is PART OF its parent, a blocker is BEFORE its
+/// dependent, so this never reuses `parentTaskId`.
+model TaskDependency {
+  id             String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  /// The task that is held up.
+  blockedTaskId  String
+  /// The task it is waiting for.
+  blockingTaskId String
+  createdAt      DateTime @default(now())
+  createdById    String?
+
+  blockedTask  Task  @relation("TaskBlockedBy", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+  blockingTask Task  @relation("TaskBlocks", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+  /// SetNull, not cascade: a departing user must not silently unblock the
+  /// team's tasks.
+  createdBy    User? @relation("TaskDependencyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  /// Adding the same blocker twice is a no-op, not a duplicate chip. Sync, MCP,
+  /// iOS and the web UI all write here, so "the same write arrived twice" is
+  /// the normal case.
+  @@unique([blockedTaskId, blockingTaskId])
+  /// The reverse direction is the HOT one: completing a task asks "what did I
+  /// just unblock?", and that runs on every completion in the product.
+  @@index([blockingTaskId])
+  @@index([createdById])
 }
 
 /// Append-only task activity history (task 51a4b8ff).

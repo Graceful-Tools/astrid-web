@@ -18,6 +18,7 @@ import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { TaskDetailBoardStateRow } from "./TaskDetailBoardStateRow"
+import { TaskDetailBlockersRow } from "./TaskDetailBlockersRow"
 import { TaskDetailDescriptionRow } from "./TaskDetailDescriptionRow"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
@@ -1020,6 +1021,15 @@ export function TaskFieldEditors({
         displayMode={displayMode}
         readOnly={readOnly}
         onUpdate={onUpdate}
+      />
+
+      {/* WAITING ON — after board state, because a blocker is a statement about
+          the task's lane (AWTD-1002). Decides its own visibility from
+          `showsTaskBlockers`, beside the rule above. */}
+      <TaskDetailBlockersRow
+        task={task}
+        availableLists={availableLists}
+        readOnly={readOnly}
       />
 
       <TaskDetailDescriptionRow

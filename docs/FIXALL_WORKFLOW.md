@@ -148,7 +148,7 @@ can re-check on every run. Three kinds of condition, three mechanisms:
 | Waiting on… | How it is recorded | Who re-checks it |
 |---|---|---|
 | **a date** | the task's own due date | the script — promotes to Ready when due |
-| **another task** | a comment line `BLOCKED-BY: <task-id>` (repeatable) | the script — promotes when every blocker is complete |
+| **another task** | the task's own **blockers** — `TaskDependency` rows, set in the app (AWTD-1002) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the way to block a task from a phone or a harness with no API for it | the script — promotes when every blocker is complete |
 | **an external event** (a dependency release, a vendor fix, a client rollout) | a comment line `BLOCKED-ON: <one-line condition>` **plus a recheck due date** | the agent — the script surfaces it under `RECHECK` when the date arrives |
 
 The **latest marker-bearing comment wins wholesale** — to change the conditions, post a new

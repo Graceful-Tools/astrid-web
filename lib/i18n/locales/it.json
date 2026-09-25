@@ -106,7 +106,18 @@
     "when": "Quando",
     "createdBy": "Creato da",
     "confirmCompleteTitle": "Completare questa attività?",
-    "confirmCompleteAssigned": "Assegnata a {name}"
+    "confirmCompleteAssigned": "Assegnata a {name}",
+    "blockers": {
+      "label": "In attesa di",
+      "add": "Aggiungi bloccante",
+      "searchPlaceholder": "Cerca attività…",
+      "empty": "Non è in attesa di nessuna attività",
+      "hidden": "Unattività che non puoi vedere",
+      "remove": "Rimuovi bloccante",
+      "cycleError": "Quelle attività finirebbero per aspettarsi a vicenda",
+      "addError": "Impossibile aggiungere quel bloccante",
+      "noResults": "Nessuna attività corrispondente"
+    }
   },
   "lists": {
     "list": "Lista",

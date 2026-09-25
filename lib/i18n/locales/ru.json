@@ -106,7 +106,18 @@
     "when": "Когда",
     "createdBy": "Создал",
     "confirmCompleteTitle": "Завершить эту задачу?",
-    "confirmCompleteAssigned": "Назначена: {name}"
+    "confirmCompleteAssigned": "Назначена: {name}",
+    "blockers": {
+      "label": "Ожидает",
+      "add": "Добавить блокирующую задачу",
+      "searchPlaceholder": "Поиск задач…",
+      "empty": "Не ожидает ни одной задачи",
+      "hidden": "Задача, недоступная для просмотра",
+      "remove": "Убрать блокирующую задачу",
+      "cycleError": "Эти задачи начали бы ждать друг друга",
+      "addError": "Не удалось добавить блокирующую задачу",
+      "noResults": "Подходящих задач нет"
+    }
   },
   "lists": {
     "list": "Список",

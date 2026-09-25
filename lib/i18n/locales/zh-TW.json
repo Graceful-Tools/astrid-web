@@ -106,7 +106,18 @@
     "when": "時間",
     "createdBy": "建立者",
     "confirmCompleteTitle": "完成此任務？",
-    "confirmCompleteAssigned": "指派給 {name}"
+    "confirmCompleteAssigned": "指派給 {name}",
+    "blockers": {
+      "label": "等待中",
+      "add": "新增阻塞任務",
+      "searchPlaceholder": "搜尋任務…",
+      "empty": "沒有在等待任何任務",
+      "hidden": "你無法檢視的任務",
+      "remove": "移除阻塞任務",
+      "cycleError": "這些任務會互相等待",
+      "addError": "無法新增該阻塞任務",
+      "noResults": "沒有符合的任務"
+    }
   },
   "lists": {
     "list": "列表",

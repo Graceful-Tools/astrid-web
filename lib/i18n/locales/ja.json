@@ -106,7 +106,18 @@
     "when": "日時",
     "createdBy": "作成者",
     "confirmCompleteTitle": "このタスクを完了しますか？",
-    "confirmCompleteAssigned": "担当: {name}"
+    "confirmCompleteAssigned": "担当: {name}",
+    "blockers": {
+      "label": "待機中のタスク",
+      "add": "ブロッカーを追加",
+      "searchPlaceholder": "タスクを検索…",
+      "empty": "待機中のタスクはありません",
+      "hidden": "閲覧できないタスク",
+      "remove": "ブロッカーを削除",
+      "cycleError": "これらのタスクが互いに待ち合う状態になります",
+      "addError": "ブロッカーを追加できませんでした",
+      "noResults": "一致するタスクがありません"
+    }
   },
   "lists": {
     "list": "リスト",

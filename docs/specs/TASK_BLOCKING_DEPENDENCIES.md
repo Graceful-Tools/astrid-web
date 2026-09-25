@@ -2,7 +2,12 @@
 
 *Spec of record for blocking dependencies between tasks. Task **AWTD-1002**.*
 
-Status: **proposed, not implemented** (2026-09-24). Companion to
+Status: **implemented** (2026-09-25, AWTD-1002) — `lib/task-dependencies.ts`,
+`services/task-dependency.service.ts`, `app/api/v1/tasks/[id]/blockers/`,
+`components/task-detail/TaskDetailBlockersRow.tsx`. One deviation, recorded where it is
+made: the empty row renders for a user who can WRITE, because the "Add blocker…" task
+action menu this spec assumed does not exist in this repo, and a feature reachable only
+through a surface nobody built is not shipped. Companion to
 [PROJECT_MODE.md](../product/PROJECT_MODE.md), which governs gating and scope, and to
 [project-status-board.md](../product/project-status-board.md), which governs the board's
 behaviour. This file governs **the relation, the promotion rule, and the surface**.

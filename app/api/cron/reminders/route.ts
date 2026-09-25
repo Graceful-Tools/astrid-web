@@ -3,6 +3,7 @@ import { ReminderService } from '@/lib/reminder-service'
 import { EmailReminderService } from '@/lib/email-reminder-service'
 import { PushNotificationService } from '@/lib/push-notification-service'
 import { processAgentTasksDueSoon } from '@/lib/agent-task-scheduler'
+import { promoteDueUnblockedTasks } from '@/services/task-dependency.service'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
@@ -32,10 +33,16 @@ export async function GET(request: NextRequest) {
     // allSettled by design: one failing sub-job must not stop the others. But
     // it also swallows the rejection, so the outcomes are counted rather than
     // discarded.
-    const [due, retry, agents] = await Promise.allSettled([
+    const [due, retry, agents, unblocked] = await Promise.allSettled([
       reminderService.processDueReminders(),
       reminderService.retryFailedReminders(),
       processAgentTasksDueSoon(),
+      // The clock half of the blocking gate (AWTD-1002): nothing happens to a
+      // task when its own date arrives, so something has to notice. This job
+      // already runs every minute and already sweeps for work whose moment has
+      // come, so a second cron for one query would be a second schedule to keep
+      // in step with this one.
+      promoteDueUnblockedTasks(),
     ])
 
     // Digests run at the top of every hour; the services filter by user time.
@@ -56,9 +63,11 @@ export async function GET(request: NextRequest) {
       staleClaimsReleased: due.status === 'fulfilled' ? due.value.staleReleased : -1,
       retriesRescheduled: retry.status === 'fulfilled' ? retry.value.rescheduled : -1,
       agentTasksDispatched: agents.status === 'fulfilled' ? agents.value : -1,
+      tasksUnblocked: unblocked.status === 'fulfilled' ? unblocked.value.length : -1,
       // -1 means the sub-job threw. A count of 0 and "we never found out" are
       // different answers and the summary has to be able to tell them apart.
-      subJobsFailed: [due, retry, agents].filter((r) => r.status === 'rejected').length,
+      subJobsFailed: [due, retry, agents, unblocked].filter((r) => r.status === 'rejected')
+        .length,
       digestsAttempted,
     }
   })

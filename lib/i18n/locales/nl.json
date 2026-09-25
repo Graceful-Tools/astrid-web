@@ -106,7 +106,18 @@
     "when": "Wanneer",
     "createdBy": "Gemaakt door",
     "confirmCompleteTitle": "Deze taak voltooien?",
-    "confirmCompleteAssigned": "Toegewezen aan {name}"
+    "confirmCompleteAssigned": "Toegewezen aan {name}",
+    "blockers": {
+      "label": "Wacht op",
+      "add": "Blokkering toevoegen",
+      "searchPlaceholder": "Taken zoeken…",
+      "empty": "Wacht op geen enkele taak",
+      "hidden": "Een taak die je niet kunt zien",
+      "remove": "Blokkering verwijderen",
+      "cycleError": "Die taken zouden op elkaar gaan wachten",
+      "addError": "Kon die blokkering niet toevoegen",
+      "noResults": "Geen overeenkomende taken"
+    }
   },
   "lists": {
     "list": "Lijst",

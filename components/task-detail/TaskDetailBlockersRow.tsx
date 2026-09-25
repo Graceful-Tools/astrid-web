@@ -1,0 +1,222 @@
+"use client"
+
+/**
+ * The "waiting on" row in task details — task-to-task blocking (AWTD-1002).
+ *
+ * Spec: docs/specs/TASK_BLOCKING_DEPENDENCIES.md. Its own component for the
+ * reason `TaskDetailBoardStateRow` is: the chips, the search picker and the
+ * writes are one idea, and `TaskFieldEditors` is not allowed to grow.
+ *
+ * Renders nothing unless `showsTaskBlockers` says so — that rule is stated once
+ * beside the board-state row's, so iOS and Mac copy it rather than re-deciding
+ * it.
+ *
+ * ONE TO THREE, WITHOUT A THREE ANYWHERE. Chips wrap and the row grows: there
+ * is no slice, no "+2 more" and no MAX_BLOCKERS. One to three is what this row
+ * is designed to read well at, not a limit the code may assume — ten blockers
+ * render as ten chips, which is honest and rare. The picker stays open between
+ * picks for the same reason: adding two or three in a row is the common case.
+ */
+import { useCallback, useEffect, useState } from "react"
+import { Ban, Plus, X } from "lucide-react"
+import { TaskFieldRow } from "./TaskFieldRow"
+import { useTranslations } from "@/lib/i18n/client"
+import { apiDelete, apiGet, apiPost } from "@/lib/api"
+import {
+  isTaskInProject,
+  showsTaskBlockers,
+} from "@/lib/task-detail-project-state"
+import type { BlockerView } from "@/lib/task-dependencies"
+import type { Task, TaskList } from "@/types/task"
+
+interface TaskDetailBlockersRowProps {
+  task: Task
+  availableLists: TaskList[]
+  readOnly: boolean
+}
+
+interface SearchHit {
+  id: string
+  title: string
+  identifier?: string | null
+}
+
+export function TaskDetailBlockersRow({
+  task,
+  availableLists,
+  readOnly,
+}: TaskDetailBlockersRowProps) {
+  const { t } = useTranslations()
+  const [blockedBy, setBlockedBy] = useState<BlockerView[]>([])
+  const [picking, setPicking] = useState(false)
+  const [query, setQuery] = useState("")
+  const [hits, setHits] = useState<SearchHit[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const response = await apiGet(`/api/v1/tasks/${task.id}/blockers`)
+      const body = (await response.json()) as { blockedBy?: BlockerView[] }
+      setBlockedBy(body.blockedBy ?? [])
+    } catch {
+      // A read that fails shows an empty row rather than an error banner: the
+      // blockers are not the reason the pane was opened.
+      setBlockedBy([])
+    }
+  }, [task.id])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  // The picker is the EXISTING search — server-side, permission-filtered, and
+  // already paginated. Filtering loaded tasks client-side is the bug 5df85b9f
+  // fixed, and a second search path would be a second set of permission rules.
+  useEffect(() => {
+    if (!picking) return
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      setHits([])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const response = await apiGet(`/api/v1/search?q=${encodeURIComponent(trimmed)}`)
+        const body = (await response.json()) as { tasks?: SearchHit[] }
+        if (cancelled) return
+        const linked = new Set(blockedBy.map(blocker => blocker.id))
+        setHits(
+          (body.tasks ?? [])
+            // Never offer a choice that the write would refuse: the task
+            // itself, and anything already linked.
+            .filter(hit => hit.id !== task.id && !linked.has(hit.id))
+        )
+      } catch {
+        if (!cancelled) setHits([])
+      }
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [picking, query, task.id, blockedBy])
+
+  const add = async (blockingTaskId: string) => {
+    setError(null)
+    try {
+      await apiPost(`/api/v1/tasks/${task.id}/blockers`, { blockingTaskId })
+      await load()
+    } catch (err) {
+      // A cycle is refused server-side; saying so is the only way the person
+      // learns why nothing happened.
+      const reason = (err as { data?: { reason?: string } })?.data?.reason
+      setError(reason === 'dependency_cycle' ? t('tasks.blockers.cycleError') : t('tasks.blockers.addError'))
+    }
+  }
+
+  const remove = async (blockingTaskId: string) => {
+    setError(null)
+    try {
+      await apiDelete(`/api/v1/tasks/${task.id}/blockers/${blockingTaskId}`)
+      await load()
+    } catch {
+      setError(t('tasks.blockers.addError'))
+    }
+  }
+
+  // After the hooks: a conditional return above them would change the hook
+  // order between renders as the blockers load.
+  if (
+    !showsTaskBlockers({
+      isInProject: isTaskInProject(task, availableLists),
+      isReadOnly: readOnly,
+      hasBlockers: blockedBy.length > 0,
+    })
+  ) {
+    return null
+  }
+
+  return (
+    <TaskFieldRow label={t('tasks.blockers.label')} icon={<Ban className="w-4 h-4" />}>
+      <div className="flex flex-col gap-2" data-testid="task-detail-blockers">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('tasks.blockers.label')}>
+          {blockedBy.length === 0 && (
+            <span className="text-sm text-gray-600 dark:text-gray-300">
+              {t('tasks.blockers.empty')}
+            </span>
+          )}
+          {blockedBy.map(blocker => (
+            <span
+              key={blocker.id}
+              data-testid={`task-blocker-${blocker.id}`}
+              className={`inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 ${
+                blocker.completed
+                  ? 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 line-through'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+              }`}
+            >
+              {/* A blocker you cannot see still blocks. The COUNT is not a
+                  leak — the reader already knows something holds their task —
+                  but the title would be. */}
+              {blocker.hidden ? t('tasks.blockers.hidden') : blocker.title}
+              {!readOnly && (
+                <button
+                  type="button"
+                  aria-label={t('tasks.blockers.remove')}
+                  onClick={() => remove(blocker.id)}
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </span>
+          ))}
+          {!readOnly && (
+            <button
+              type="button"
+              data-testid="task-detail-add-blocker"
+              onClick={() => setPicking(value => !value)}
+              className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+            >
+              <Plus className="w-3 h-3" />
+              {t('tasks.blockers.add')}
+            </button>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+        {picking && !readOnly && (
+          <div className="flex flex-col gap-1">
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder={t('tasks.blockers.searchPlaceholder')}
+              aria-label={t('tasks.blockers.searchPlaceholder')}
+              className="h-9 px-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-transparent text-sm"
+            />
+            {query.trim().length >= 2 && hits.length === 0 && (
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                {t('tasks.blockers.noResults')}
+              </span>
+            )}
+            {hits.map(hit => (
+              <button
+                key={hit.id}
+                type="button"
+                onClick={() => add(hit.id)}
+                className="text-left text-sm px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                {hit.identifier ? `${hit.identifier} · ` : ''}
+                {hit.title}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </TaskFieldRow>
+  )
+}

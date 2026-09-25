@@ -247,10 +247,21 @@ export async function deleteTaskWithSideEffects(args: {
   const previousListIds = (task.lists ?? []).map(list => list.id)
   const listNames = (task.lists ?? []).map(list => list.name)
 
+  // Who was waiting on this task — read BEFORE the delete, because the
+  // dependency rows cascade away with it and asking after returns nobody
+  // (AWTD-1002). Imported here rather than at the top because that module reads
+  // this one's access rule, and a static cycle between them would be a
+  // module-load problem nobody would connect to blockers.
+  const deps = await import('@/services/task-dependency.service')
+  const dependentTaskIds = await deps.findDependentTaskIds(taskId).catch(() => [])
+
   // Stop the agent before removing the thing it is working on.
   await cancelActiveCodingWorkflow({ taskId, reason: 'Task deleted' })
 
   await prisma.task.delete({ where: { id: taskId } })
+
+  // A deleted blocker is one fewer blocker: its dependents may now be free.
+  await deps.reevaluateBlockedTasks({ taskIds: dependentTaskIds, actorId }).catch(() => {})
 
   // Everything below is best-effort: the row is already gone. try/await rather
   // than .catch() so a caller that stubs these with a plain function — as a
@@ -1396,6 +1407,21 @@ async function runUpdateSideEffects(args: {
     }
   } catch (err) {
     log.error({ err }, 'Failed to reschedule reminders after task update')
+  }
+
+  // A blocker's completion decides other tasks' lanes, in BOTH directions:
+  // completing unblocks its dependents, reopening re-blocks the ones still in
+  // Ready (AWTD-1002). Dynamically imported for the reason the delete path
+  // above gives.
+  if (existingTask.completed !== task.completed) {
+    await import('@/services/task-dependency.service')
+      .then(deps => deps.promoteUnblockedDependents({
+        blockingTaskId: task.id,
+        actorId,
+        actorType: actorType === 'agent' ? 'agent' : 'user',
+        blockerCompleted: !!task.completed,
+      }))
+      .catch(err => log.error({ err }, 'Failed to re-evaluate tasks blocked by this one'))
   }
 
   try {

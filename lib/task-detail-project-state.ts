@@ -52,6 +52,51 @@ export function showsTaskDetailProjectState({
   return !usesCompactTaskDetail(displayMode) && isInProject && !isReadOnly
 }
 
+export interface TaskBlockersVisibility {
+  /** Does the task have a board column at all? Ask `isTaskInProject`. */
+  isInProject: boolean
+  /** The public-list viewer, who may read but not write. */
+  isReadOnly: boolean
+  /** Does it have any blockers to show right now? */
+  hasBlockers: boolean
+}
+
+/**
+ * Does the blockers row appear (AWTD-1002)?
+ *
+ * Stated here beside `showsTaskDetailProjectState` rather than at the call
+ * site, for that rule's reason: iOS and Mac will copy this one rather than each
+ * re-deciding it.
+ *
+ * Three differences from the board-state row, each deliberate:
+ *
+ * - **Both display modes.** Blocking is not said anywhere else in the compact
+ *   layout, so there is no duplicate to avoid.
+ * - **Read-only viewers see it.** The row is a LABEL before it is a control,
+ *   and a public-list reader benefits from knowing a task is blocked. The
+ *   controls inside it are what hides for them.
+ * - **Zero blockers renders nothing for a reader**, who has nothing to read.
+ *   For someone who can WRITE it still renders, because that empty row is the
+ *   only way to add the first blocker — the spec put that affordance in a task
+ *   action menu this repo does not have, and a feature reachable only through a
+ *   surface nobody built is not shipped. When the menu exists, this becomes
+ *   `hasBlockers` alone.
+ *
+ * Still on a board only: blocking is a board idea, which is the whole design in
+ * `isTaskInProject`.
+ */
+export function showsTaskBlockers({
+  isInProject,
+  isReadOnly,
+  hasBlockers,
+}: TaskBlockersVisibility): boolean {
+  if (!isInProject) return false
+  if (hasBlockers) return true
+  // With nothing to show, only someone who could add one has a reason to see
+  // the row.
+  return !isReadOnly
+}
+
 /**
  * Which project a task belongs to, from its OWN list memberships.
  *

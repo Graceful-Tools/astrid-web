@@ -70,6 +70,22 @@ export class SweepApi {
     return Array.isArray(body.comments) ? body.comments : []
   }
 
+  /**
+   * The task's STRUCTURED blockers — `TaskDependency` rows (AWTD-1002).
+   *
+   * Unioned by the caller with the `BLOCKED-BY:` comment markers rather than
+   * replacing them: on the day the rows shipped, every currently-parked task
+   * carried its condition in a comment, and reading only the rows would have
+   * silently unblocked all of them. A task that is unreadable here contributes
+   * nothing, because the markers remain the fallback that makes that safe.
+   */
+  async structuredBlockers(task: { id: string }): Promise<string[]> {
+    const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}`, { headers: this.auth })
+    if (!response.ok) return []
+    const body = await response.json()
+    return Array.isArray(body?.task?.blockedBy) ? body.task.blockedBy.filter((id: unknown) => typeof id === 'string') : []
+  }
+
   /** Which of these blocker ids are still open? Unfetchable ids count as OPEN — promoting on a guess redoes the strand. */
   async openBlockers(ids: string[]): Promise<string[]> {
     const open: string[] = []

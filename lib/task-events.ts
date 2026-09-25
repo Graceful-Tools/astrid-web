@@ -39,6 +39,13 @@ export const TASK_EVENT_KINDS = [
   'list_added',
   'list_removed',
   'title_changed',
+  // "Waiting on tasks" (AWTD-1002). `unblocked` is the one that matters: "why
+  // did this move to Ready at 4am?" is precisely the question this table exists
+  // to answer, and an automatic promotion with no trail is the agent-autonomy
+  // trust problem the model comment above describes.
+  'blocker_added',
+  'blocker_removed',
+  'unblocked',
 ] as const
 
 export type TaskEventKind = (typeof TASK_EVENT_KINDS)[number]

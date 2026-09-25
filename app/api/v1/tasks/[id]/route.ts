@@ -108,6 +108,12 @@ export const GET = withAuth<RouteContext>(
         // them (taskLevelAttachments / CommentSection). A response that drops
         // them does not render fewer attachments — it renders none. (641a7615)
         secureFiles: true,
+        // Blocking dependencies as plain id arrays (AWTD-1002). Ids only: the
+        // full shapes, with the permission filtering a title needs, are
+        // /api/v1/tasks/:id/blockers. A client that has never heard of these
+        // fields is unaffected, which is what lets the halves ship apart.
+        blockedBy: { select: { blockingTaskId: true } },
+        blocks: { select: { blockedTaskId: true } },
       },
     })
 
@@ -128,7 +134,9 @@ export const GET = withAuth<RouteContext>(
     // iOS expects a flat listIds array alongside the relation
     const taskWithListIds = {
       ...task,
-      listIds: task.lists?.map(list => list.id) || []
+      listIds: task.lists?.map(list => list.id) || [],
+      blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
+      blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
     }
 
     return NextResponse.json(

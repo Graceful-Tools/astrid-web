@@ -106,7 +106,18 @@
     "when": "Quando",
     "createdBy": "Criado por",
     "confirmCompleteTitle": "Concluir esta tarefa?",
-    "confirmCompleteAssigned": "Atribuída a {name}"
+    "confirmCompleteAssigned": "Atribuída a {name}",
+    "blockers": {
+      "label": "À espera de",
+      "add": "Adicionar bloqueio",
+      "searchPlaceholder": "Pesquisar tarefas…",
+      "empty": "Não está à espera de nenhuma tarefa",
+      "hidden": "Uma tarefa que não podes ver",
+      "remove": "Remover bloqueio",
+      "cycleError": "Essas tarefas acabariam à espera uma da outra",
+      "addError": "Não foi possível adicionar esse bloqueio",
+      "noResults": "Nenhuma tarefa correspondente"
+    }
   },
   "lists": {
     "list": "Lista",

@@ -106,7 +106,18 @@
     "when": "When",
     "createdBy": "Created by",
     "confirmCompleteTitle": "Complete this task?",
-    "confirmCompleteAssigned": "Assigned to {name}"
+    "confirmCompleteAssigned": "Assigned to {name}",
+    "blockers": {
+      "label": "Waiting on",
+      "add": "Add blocker",
+      "searchPlaceholder": "Search tasks…",
+      "empty": "Not waiting on any task",
+      "hidden": "A task you cannot see",
+      "remove": "Remove blocker",
+      "cycleError": "Those tasks would end up waiting for each other",
+      "addError": "Could not add that blocker",
+      "noResults": "No matching tasks"
+    }
   },
   "lists": {
     "list": "List",

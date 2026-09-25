@@ -223,15 +223,21 @@ async function main() {
     const comments = await api.comments(task)
     const conditions = parseBlockedConditions(comments)
     const commentWatermark = latestCommentWatermark(comments)
+    // Structured `TaskDependency` rows are the source of truth, UNIONED with
+    // the parsed `BLOCKED-BY:` markers rather than replacing them (AWTD-1002):
+    // every task parked by a marker before the rows existed must stay parked,
+    // and a human typing on their phone can still block a task with a comment.
+    const structured = await api.structuredBlockers(task)
+    const blockedBy = Array.from(new Set([...conditions.blockedBy, ...structured]))
     let disposition = classifyWaitingTask({
       dueDateTime: task.dueDateTime,
       now,
-      blockedBy: conditions.blockedBy,
+      blockedBy,
       blockedOn: conditions.blockedOn,
     })
 
     if (disposition === 'check-blockers') {
-      const open = await api.openBlockers(conditions.blockedBy)
+      const open = await api.openBlockers(blockedBy)
       if (open.length > 0) {
         blocked.push({ task, on: open })
         continue
