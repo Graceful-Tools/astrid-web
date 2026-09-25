@@ -131,6 +131,7 @@
     "hygiene:review": "zsh scripts/weekly-hygiene-review.sh",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "audit:brand": "tsx scripts/brand-audit.ts",
+    "audit:prod": "tsx scripts/audit-production-advisories.ts",
     "check:env": "tsx scripts/check-env-schema.ts",
     "vendor:sync": "node scripts/sync-vendor-assets.mjs",
     "check:unimported": "tsx scripts/check-unimported.ts",
