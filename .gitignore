@@ -179,3 +179,17 @@ mcp/astrid-mcp-oauth-http
 
 # Claude Code local permissions — per-machine, never shared (.claude/settings.json.example is the template)
 .claude/settings.local.json
+
+# Signing and credential material. *.pem and certificates/ are covered above;
+# these are the rest of the shapes a key arrives in. The repo is public, so
+# this is a guard against the accident, not a description of practice — nothing
+# of the sort has ever been committed.
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.key
+*.p8
+*.jks
+*.keystore
