@@ -96,8 +96,8 @@ when the project is created**, before any task is minted. Changing it afterwards
 - **Pickers search the server.** The "Waiting on" picker already calls `/api/v1/search`,
   which matches a bare identifier. The `!` mention picker in comments filters tasks
   already on the client, by title only (`hooks/use-chat-mentions.ts`). It must use the same
-  server search, so typing `!AWTD-10` finds the task. The stored form stays
-  `![Title](uuid)`.
+  server search, so typing `!AWTD-10` finds the task. The stored form is unchanged: the
+  mention markdown that `lib/markdown.ts` parses, carrying the task's UUID.
 - **Every API that takes a task id takes an identifier.** Today only `GET
   /api/v1/tasks/[id]` accepts one. The follow-up covers PUT and DELETE, and the MCP tools,
   through `resolveTaskIdOrIdentifier`.
