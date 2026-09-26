@@ -32,6 +32,7 @@ import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
+import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 
 interface ProjectStatusBoardProps {
   allTasks: Task[]
@@ -471,6 +472,7 @@ export function ProjectStatusBoard({
                         onToggleComplete={handleToggleComplete}
                         onCopyPublic={handleCopyPublic}
                         displayMode={taskDisplayMode}
+                        identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
                         /* Someone else's card opens the sheet too, in either
                            display mode (AWTD-877) — it is the only route to
                            reassign, reprioritise or move it, and to a

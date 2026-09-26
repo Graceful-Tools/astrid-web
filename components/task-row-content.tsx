@@ -27,6 +27,9 @@ export interface TaskRowContentProps {
   /** The task's list is on a project board: tap opens the options popover
    *  whatever the display mode (task 036ef139). */
   onBoard?: boolean
+  /** Task id to show, muted, before the title (AWTD-1017). The caller decides
+   *  with shouldShowTaskIdentifier — only board cards pass one. */
+  identifier?: string | null
 }
 
 export function TaskRowContent({
@@ -39,6 +42,7 @@ export function TaskRowContent({
   displayMode,
   onOpenOptions,
   onBoard,
+  identifier,
 }: TaskRowContentProps) {
   const { t } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
@@ -74,6 +78,9 @@ export function TaskRowContent({
               ? "theme-text-selected"
               : "theme-text-primary"
         }`}>
+          {identifier && (
+            <span className="mr-1.5 text-xs font-mono font-normal theme-text-muted">{identifier}</span>
+          )}
           {task.title}
           {/* Canceled tasks are visually distinct from finished ones (task
               11042ae3). Nothing renders when closedReason is null, which is
