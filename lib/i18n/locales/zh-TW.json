@@ -972,7 +972,10 @@
     "requestDialogSubmit": "Send request",
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again."
+    "requestFailed": "Couldn't send your request. Please try again.",
+    "keyLabel": "任務 ID 前綴",
+    "keyExample": "任務將編號為 {example} 等",
+    "keyInvalid": "{min}–{max} 個字母或數字，以字母開頭"
   },
   "listSettings": {
     "adminSettings": "管理員設定",

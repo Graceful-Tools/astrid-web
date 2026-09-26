@@ -972,7 +972,10 @@
     "requestDialogSubmit": "Send request",
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again."
+    "requestFailed": "Couldn't send your request. Please try again.",
+    "keyLabel": "Prefixo do ID da tarefa",
+    "keyExample": "As tarefas serão {example}, …",
+    "keyInvalid": "De {min} a {max} letras ou dígitos, começando com uma letra"
   },
   "listSettings": {
     "adminSettings": "Configurações de administrador",

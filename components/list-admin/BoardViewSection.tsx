@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import {
+  MAX_PROJECT_KEY_LENGTH,
+  MIN_PROJECT_KEY_LENGTH,
+  deriveProjectKey,
+  formatIdentifier,
+  normalizeProjectKey,
+} from "@/lib/task-identifier-core"
 import { KanbanSquare, Lock } from "lucide-react"
 import type { TaskList } from "@/types/task"
 import { CAPABILITIES } from "@/lib/brand/capabilities"
@@ -65,8 +73,18 @@ export function BoardViewSection({
     return () => { cancelled = true }
   }, [showBoardControls])
 
+  // The owner sees the project key and may change it before any task is
+  // minted (AWTD-1018). Left as derived it is NOT sent, so the server still
+  // resolves a collision (AWTD → AWTD2) exactly as before; an edited key is
+  // sent and a taken one comes back as a 409 whose message is shown below.
+  const derivedKey = deriveProjectKey(list.name) ?? ""
+  const [keyInput, setKeyInput] = useState(derivedKey)
+  const requestedKey = normalizeProjectKey(keyInput)
+  const keyEdited = keyInput !== derivedKey
+  const keyInvalid = keyEdited && !requestedKey
+
   const handleCreateProjectBoard = useCallback(async () => {
-    if (list.projectId || isCreatingProjectBoard) return
+    if (list.projectId || isCreatingProjectBoard || keyInvalid) return
 
     setIsCreatingProjectBoard(true)
     setProjectBoardError(null)
@@ -77,7 +95,7 @@ export function BoardViewSection({
       const response = await fetch('/api/v1/projects/from-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listId: list.id }),
+        body: JSON.stringify(keyEdited ? { listId: list.id, key: requestedKey } : { listId: list.id }),
       })
 
       if (!response.ok) {
@@ -99,7 +117,7 @@ export function BoardViewSection({
     } finally {
       setIsCreatingProjectBoard(false)
     }
-  }, [isCreatingProjectBoard, list, onProjectBoardCreated, onUpdate])
+  }, [isCreatingProjectBoard, keyEdited, keyInvalid, list, onProjectBoardCreated, onUpdate, requestedKey])
 
   const handleRemoveProjectBoard = useCallback(async () => {
     if (!list.projectId || isRemovingProjectBoard) return
@@ -188,7 +206,7 @@ export function BoardViewSection({
               type="button"
               size="sm"
               variant="default"
-              disabled={isCreatingProjectBoard}
+              disabled={isCreatingProjectBoard || keyInvalid}
               onClick={handleCreateProjectBoard}
               className="shrink-0"
             >
@@ -197,6 +215,28 @@ export function BoardViewSection({
             </Button>
           )}
         </div>
+        {showBoardControls && !list.projectId ? (
+          <div className="flex items-center gap-2">
+            <Label htmlFor={`project-key-${list.id}`} className="text-xs theme-text-muted shrink-0">
+              {t("projectMode.keyLabel")}
+            </Label>
+            <Input
+              id={`project-key-${list.id}`}
+              value={keyInput}
+              onChange={(event) => setKeyInput(event.target.value.toUpperCase())}
+              maxLength={MAX_PROJECT_KEY_LENGTH}
+              aria-invalid={keyInvalid}
+              className="h-7 w-20 font-mono text-xs"
+            />
+            <span className={`text-xs ${keyInvalid ? "text-red-500" : "theme-text-muted"}`}>
+              {keyInvalid
+                ? t("projectMode.keyInvalid", { min: String(MIN_PROJECT_KEY_LENGTH), max: String(MAX_PROJECT_KEY_LENGTH) })
+                : requestedKey
+                  ? t("projectMode.keyExample", { example: formatIdentifier(requestedKey, 1) })
+                  : null}
+            </span>
+          </div>
+        ) : null}
         {projectBoardError ? (
           <p className="text-xs text-red-500">{projectBoardError}</p>
         ) : null}

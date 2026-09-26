@@ -972,7 +972,10 @@
     "requestDialogSubmit": "Send request",
     "requestDialogCancel": "Cancel",
     "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again."
+    "requestFailed": "Couldn't send your request. Please try again.",
+    "keyLabel": "Префикс ID задач",
+    "keyExample": "Задачи получат ID вида {example}, …",
+    "keyInvalid": "{min}–{max} букв или цифр, начиная с буквы"
   },
   "listSettings": {
     "adminSettings": "Настройки администратора",

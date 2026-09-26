@@ -155,4 +155,49 @@ describe('BoardViewSection', () => {
       })
     })
   })
+
+  describe('owner picks the project key (AWTD-1018)', () => {
+    function createBody() {
+      const call = vi.mocked(global.fetch).mock.calls.find(([url]) => url === '/api/v1/projects/from-list')
+      return call ? JSON.parse((call[1] as RequestInit).body as string) : undefined
+    }
+
+    it('shows the key derived from the list name before any task is minted', () => {
+      renderSection({ list: makeList({ name: 'Astrid Web To-do' }), canEditSettings: true })
+      expect(screen.getByRole('textbox', { name: 'Task ID prefix' })).toHaveValue('AWTD')
+    })
+
+    it('sends no key when the owner leaves the derived one, so a collision still resolves itself', async () => {
+      renderSection({ list: makeList({ name: 'Astrid Web To-do' }), canEditSettings: true })
+      fireEvent.click(screen.getByText('Create Board'))
+      await vi.waitFor(() => expect(createBody()).toEqual({ listId: 'list-1' }))
+    })
+
+    it('sends the edited key, uppercased', async () => {
+      renderSection({ list: makeList({ name: 'Astrid Web To-do' }), canEditSettings: true })
+      fireEvent.change(screen.getByRole('textbox', { name: 'Task ID prefix' }), { target: { value: 'web' } })
+      expect(screen.getByRole('textbox', { name: 'Task ID prefix' })).toHaveValue('WEB')
+      fireEvent.click(screen.getByText('Create Board'))
+      await vi.waitFor(() => expect(createBody()).toEqual({ listId: 'list-1', key: 'WEB' }))
+    })
+
+    it('refuses a key the id format cannot carry', () => {
+      renderSection({ list: makeList({ name: 'Astrid Web To-do' }), canEditSettings: true })
+      fireEvent.change(screen.getByRole('textbox', { name: 'Task ID prefix' }), { target: { value: '2AB' } })
+      expect(screen.getByText('Create Board').closest('button')).toBeDisabled()
+      expect(screen.getByText(/2–5 letters or digits/)).toBeInTheDocument()
+    })
+
+    it('shows the server message when the key is taken', async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: () => Promise.resolve({ error: 'The key WEB is already used by another project' }),
+      } as Response)
+      renderSection({ list: makeList({ name: 'Astrid Web To-do' }), canEditSettings: true })
+      fireEvent.change(screen.getByRole('textbox', { name: 'Task ID prefix' }), { target: { value: 'WEB' } })
+      fireEvent.click(screen.getByText('Create Board'))
+      expect(await screen.findByText('The key WEB is already used by another project')).toBeInTheDocument()
+    })
+  })
 })

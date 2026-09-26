@@ -20,6 +20,7 @@ import {
   parseIdentifier,
   formatIdentifier,
   normalizeProjectKey,
+  deriveProjectKey,
 } from '@/lib/task-identifier-core'
 export {
   MIN_PROJECT_KEY_LENGTH,
@@ -27,49 +28,9 @@ export {
   parseIdentifier,
   formatIdentifier,
   normalizeProjectKey,
+  deriveProjectKey,
   type ParsedIdentifier,
 } from '@/lib/task-identifier-core'
-
-/**
- * Derive a candidate project key from its name.
- *
- * Initials of the first words when there are several ("Astrid Web To-do" →
- * "AWT"), otherwise the leading letters of the single word ("Astrid" → "AST").
- * Digits are kept when they carry meaning ("Project 42" → "P4"), because
- * stripping them produces surprising keys.
- *
- * Returns null when the name has nothing usable — the caller falls back rather
- * than minting a meaningless key.
- */
-export function deriveProjectKey(name: string): string | null {
-  const cleaned = (name || '').trim()
-  if (!cleaned) return null
-
-  const words = cleaned
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-  if (words.length === 0) return null
-
-  const candidate = words.length > 1
-    ? words.map(word => word[0]).join('')
-    : words[0]
-
-  const normalized = candidate
-    .replace(/[^A-Za-z0-9]/g, '')
-    .toUpperCase()
-    .slice(0, MAX_PROJECT_KEY_LENGTH)
-
-  if (normalized.length === 0) return null
-  // A key must start with a letter so it can never be confused with a bare
-  // sequence number.
-  if (!/^[A-Z]/.test(normalized)) return null
-
-  // Pad a one-character key rather than rejecting it: "X" → "XX" is ugly but
-  // usable, and refusing would leave the project with no identifier at all.
-  return normalized.length < MIN_PROJECT_KEY_LENGTH
-    ? normalized.padEnd(MIN_PROJECT_KEY_LENGTH, normalized[0])
-    : normalized
-}
 
 /**
  * Pick a key that doesn't collide with any key already taken on astrid.cc.
