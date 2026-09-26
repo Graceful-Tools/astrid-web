@@ -13,37 +13,20 @@
  * delete: a branch named `ast-142-...` must not come to mean a different task.
  */
 
-/** Project keys are short enough to type and long enough to disambiguate. */
-export const MIN_PROJECT_KEY_LENGTH = 2
-export const MAX_PROJECT_KEY_LENGTH = 5
-
-const IDENTIFIER_PATTERN = /^([A-Za-z][A-Za-z0-9]{1,4})-(\d+)$/
-
-export interface ParsedIdentifier {
-  key: string
-  sequence: number
-}
-
-/**
- * Parse "AST-142" into its parts, or null when it isn't an identifier.
- *
- * Case-insensitive on input (people type `ast-142`), canonical uppercase on
- * output — the same identifier must not resolve two different ways.
- */
-export function parseIdentifier(value: string | null | undefined): ParsedIdentifier | null {
-  if (typeof value !== 'string') return null
-  const match = IDENTIFIER_PATTERN.exec(value.trim())
-  if (!match) return null
-
-  const sequence = Number(match[2])
-  if (!Number.isSafeInteger(sequence) || sequence < 1) return null
-
-  return { key: match[1].toUpperCase(), sequence }
-}
-
-export function formatIdentifier(key: string, sequence: number): string {
-  return `${key.toUpperCase()}-${sequence}`
-}
+// The format itself is client-safe and lives in task-identifier-core (AWTD-1017).
+import {
+  MIN_PROJECT_KEY_LENGTH,
+  MAX_PROJECT_KEY_LENGTH,
+  parseIdentifier,
+  formatIdentifier,
+} from '@/lib/task-identifier-core'
+export {
+  MIN_PROJECT_KEY_LENGTH,
+  MAX_PROJECT_KEY_LENGTH,
+  parseIdentifier,
+  formatIdentifier,
+  type ParsedIdentifier,
+} from '@/lib/task-identifier-core'
 
 /**
  * Derive a candidate project key from its name.

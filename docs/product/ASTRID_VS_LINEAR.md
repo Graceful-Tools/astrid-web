@@ -17,7 +17,7 @@ counting wrong.
 | G1 shared board statuses | `Task.statusRole` (+ `TaskList.statusRole`), both indexed | Live | **Yes** |
 | G2 project membership | `getUserRoleInList` + `listVisibilityWhere` (`lib/list-permissions.ts`), ~8 call sites | Live | **Yes** |
 | G3 canceled state | `Task.closedReason`, indexed, wired through `TaskActionMenu` | Live | **Yes** |
-| G4 identifiers | `Project.key` + `Task.identifier`, unique-indexed, rendered in task rows and detail | Live | **Yes** |
+| G4 identifiers | `Project.key` (unique across astrid.cc) + `Task.identifier`; accepted by every task API, `/t/KEY-N` resolves. Web shows them only in the notification bell and the blocker picker so far — rows, detail and autolinks are AWTD-1017 (spec: `docs/specs/TASK_IDENTIFIERS.md`) | Server live; web display partial | **Partly** |
 | G5 labels | `listType: 'label'` (`LIST_TYPE_LABEL`, `lib/list-flavors.ts`); `label:` supported by `lib/search-query-parser.ts` | Half-closed — **no picker UI in any component** | **No — you cannot apply one** |
 | G6 command palette | `lib/command-palette.ts` | **Model only.** Zero `.tsx` importers, nothing bound to ⌘K | **No** |
 | G7 activity history | `TaskEvent` + `recordTaskEvents` | Live, and genuinely writing — called from **both** `app/api/v1/tasks/[id]` and `app/api/tasks/[id]` | **Yes** |

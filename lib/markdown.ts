@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
+import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
 const SAFE_URL_PROTOCOLS = ['http:', 'https:', 'mailto:']
@@ -205,10 +206,25 @@ function styleInlineCode(html: string, codeClass: string): string {
  * markdown, and `![Title](taskId)` in particular is image syntax that `marked`
  * would render as `<img src="taskId">`.
  */
-export function renderMarkdownWithLinks(text: string, options?: { codeClass?: string }): string {
+export function renderMarkdownWithLinks(
+  text: string,
+  options?: { codeClass?: string; identifiers?: IdentifierLinkContext }
+): string {
   if (!text) return ""
 
-  const { text: withSentinels, rendered } = extractReferences(text)
+  const extracted = extractReferences(text)
+  const { rendered } = extracted
+  // Task ids (AWTD-12, #12) link to /t/<id> — AFTER references are masked, so
+  // an id inside a `![Title](uuid)` title stays text (AWTD-1017). Without a
+  // context nothing links: the reader's visible keys are what gate it.
+  const withSentinels = options?.identifiers
+    ? replaceIdentifierLinks(extracted.text, options.identifiers, link => {
+        rendered.push(
+          `<a href="${link.href}" class="font-mono text-amber-700 dark:text-amber-300 no-underline hover:underline">${escapeHtml(link.match)}</a>`
+        )
+        return `${REF_OPEN}${rendered.length - 1}${REF_CLOSE}`
+      })
+    : extracted.text
 
   let html = marked.parse(withSentinels, { async: false }) as string
   html = decorateExternalLinks(html)
