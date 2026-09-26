@@ -34,7 +34,17 @@ mkdir -p "$AGENTS_DIR" "$HOME/Library/Logs"
 typeset -a labels
 labels=("$@")
 if (( ${#labels} == 0 )); then
-  for template in "$SCRIPT_DIR"/*.plist.template; do
+  # (N) so an empty directory yields nothing rather than a zsh "no matches found"
+  # abort, which would beat the friendlier error just below to the punch.
+  for template in "$SCRIPT_DIR"/*.plist.template(N); do
+    # A retired job still has a template — kept so it can be revived or read —
+    # but installing every template by default resurrects it, schedules work
+    # nobody asked for, and does it silently. Opt those out with a marker line;
+    # naming one explicitly still installs it.
+    if grep -qi '^[[:space:]]*install-default:[[:space:]]*skip' "$template"; then
+      print "skipping ${${template:t}%.plist.template} (install-default: skip)"
+      continue
+    fi
     labels+=("${${template:t}%.plist.template}")
   done
 fi
@@ -52,20 +62,30 @@ for label in "${labels[@]}"; do
   fi
 
   dest=$AGENTS_DIR/$label.plist
+
+  # Render and check somewhere else, then move into place. Writing straight to
+  # $dest would leave a half-valid plist installed when a check fails — exactly
+  # the silent breakage this script exists to prevent, since launchd declines a
+  # malformed job without saying so.
+  tmp=$(mktemp "${TMPDIR:-/tmp}/$label.XXXXXX")
+  trap 'rm -f "$tmp"' EXIT INT TERM
+
   sed -e "s|__REPO_ROOT__|$REPO_ROOT|g" \
       -e "s|__REPO_PARENT__|$REPO_PARENT|g" \
       -e "s|__HOME__|$HOME|g" \
-      "$template" > "$dest"
+      "$template" > "$tmp"
 
-  # A malformed plist is another silent failure: launchd just declines to load it.
-  plutil -lint "$dest" > /dev/null
+  plutil -lint "$tmp" > /dev/null
 
   # An unrendered placeholder would install a job pointing at a path that cannot exist.
-  if grep -q '__[A-Z_]*__' "$dest"; then
-    print -u2 "unrendered placeholder left in $dest:"
-    grep -n '__[A-Z_]*__' "$dest" >&2
+  if grep -q '__[A-Z][A-Z_]*__' "$tmp"; then
+    print -u2 "unrendered placeholder left in $label:"
+    grep -n '__[A-Z][A-Z_]*__' "$tmp" >&2
     exit 1
   fi
+
+  mv "$tmp" "$dest"
+  trap - EXIT INT TERM
 
   launchctl bootout "$GUI_DOMAIN/$label" 2> /dev/null || true
   launchctl bootstrap "$GUI_DOMAIN" "$dest"

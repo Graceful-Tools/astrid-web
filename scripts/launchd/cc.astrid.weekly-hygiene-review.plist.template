@@ -3,15 +3,21 @@
 <!--
   Weekly hygiene review.
 
+  install-default: skip — SUPERSEDED 2026-09-06 by the weekly deep review, which
+  is triggered by a repeating Astrid task and has no launchd job at all. See
+  docs/WEEKLY_DEEP_REVIEW.md. This template is kept so the job can be read or
+  revived deliberately; scripts/launchd/install.sh with no arguments will not
+  install it, and naming it explicitly still will.
+
   A TEMPLATE, not an installable plist. Create the worktree it runs from, then install:
 
     git worktree add ../astrid-web-hygiene main
     ./scripts/launchd/install.sh cc.astrid.weekly-hygiene-review
 
   The job runs from a sibling worktree nobody works in, so the schedule never depends
-  on which branch a shared checkout happens to be sitting on — hence __REPO_PARENT__
-  rather than __REPO_ROOT__. Re-run the installer after moving the checkout; no path
-  is committed, so there is nothing to hand-edit and nothing to rot.
+  on which branch a shared checkout happens to be sitting on — hence the sibling path
+  below rather than the repo itself. Re-run the installer after moving the checkout;
+  no path is committed, so there is nothing to hand-edit and nothing to rot.
 
   Keep both the checkout and that worktree out of TCC-protected directories
   (~/Documents, ~/Desktop, ~/Downloads) — from there a launchd agent hangs pending
@@ -25,7 +31,7 @@
     <!--
       node, not zsh: a zsh launched straight by launchd has no TCC access to protected
       locations, and git dies before the run starts. The shim also self-locates the repo,
-      which is what lets this template name only __REPO_ROOT__. Keep it. See the shim.
+      which is what lets this template carry a single repo path. Keep it. See the shim.
     -->
     <key>ProgramArguments</key>
     <array>
