@@ -74,7 +74,8 @@ and stack versions with `npm run check:docs`.
 ### 🧭 Product Specs
 - **[Project Mode](./product/PROJECT_MODE.md)** - Scope, gating and the rules every Project Mode change must satisfy
 - **[Project Status Board](./product/project-status-board.md)** - Board behavior (columns, drag, statuses)
-- **[Spec: Task Blocking Dependencies](./specs/TASK_BLOCKING_DEPENDENCIES.md)** - Proposal (not implemented): "waiting on tasks", and why the Waiting→Ready rule has exactly one implementation
+- **[Spec: Task Blocking Dependencies](./specs/TASK_BLOCKING_DEPENDENCIES.md)** - Implemented (AWTD-1002): "waiting on tasks", and why the Waiting→Ready rule has exactly one implementation
+- **[Spec: Task Identifiers](./specs/TASK_IDENTIFIERS.md)** - Decided (AWTD-1010): short ids like `AWTD-1007` / `#1007` — uniqueness across astrid.cc, typing, visibility, where each client shows them
 
 ### 🎨 UI & Design
 - **[Layout System](./LAYOUT_SYSTEM.md)** - ⚠️ **Critical**: Mobile vs Column Layout distinction, responsive breakpoints
