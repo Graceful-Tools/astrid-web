@@ -120,8 +120,18 @@ export async function resolveAgentAuthorId(
     if (response.ok) {
       const data = await response.json()
       const tasks = data.tasks ?? [data.task].filter(Boolean)
-      const id = Array.isArray(tasks) ? tasks[0]?.assignee?.id : undefined
-      if (typeof id === 'string' && id.length > 0) return id
+      const assignee = Array.isArray(tasks) ? tasks[0]?.assignee : undefined
+      // Trust the answer only if it IS the agent asked for (AWTD-1020). A route
+      // that ignores the filter returns an arbitrary task; its assignee is a
+      // person (a 400) or another harness (a comment signed as the wrong agent).
+      if (
+        typeof assignee?.id === 'string' &&
+        assignee.id.length > 0 &&
+        assignee.isAIAgent === true &&
+        String(assignee.email ?? '').toLowerCase() === email.toLowerCase()
+      ) {
+        return assignee.id
+      }
     }
   } catch (error) {
     warn(`⚠️ Could not look up ${email}: ${error instanceof Error ? error.message : error}`)

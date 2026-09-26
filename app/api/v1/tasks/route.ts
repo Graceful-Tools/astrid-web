@@ -28,6 +28,7 @@ const log = createLogger('v1.tasks')
  * - completed: true/false
  * - priority: 0-2
  * - assigneeId: Filter by assignee
+ * - assigneeEmail: Filter by the assignee's email (case-insensitive)
  * - statusRole: Filter by board status (ready | doing | waiting | a project's
  *   custom role). `none` selects Inbox — the tasks carrying no status at all.
  * - limit: Max results (default: 100)
@@ -45,6 +46,7 @@ export const GET = withAuth(
     const completed = completedParam !== null ? completedParam === 'true' : undefined
     const priority = url.searchParams.get('priority')
     const assigneeId = url.searchParams.get('assigneeId')
+    const assigneeEmail = url.searchParams.get('assigneeEmail')?.trim()
     // Board status as a state on the task (AWTD-562). Filtering here rather than
     // in the caller is what keeps a status query to ONE request: the old shape —
     // fetch the board, filter client-side — silently truncates against `limit`,
@@ -114,6 +116,11 @@ export const GET = withAuth(
     }
     if (assigneeId) {
       where.assigneeId = assigneeId
+    }
+    // AWTD-1020: ignoring this returned an arbitrary task, whose assignee the
+    // agent-author lookup then signed comments as.
+    if (assigneeEmail) {
+      where.assignee = { email: { equals: assigneeEmail, mode: 'insensitive' } }
     }
     // Inbox is the ABSENCE of a status, so it is a null column rather than a
     // value — same distinction /api/v1/search draws for `status:none`.

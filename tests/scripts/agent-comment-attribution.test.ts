@@ -62,7 +62,9 @@ describe('resolveAgentAuthorId (AWTD-970)', () => {
   it('AWTD-970: never signs one harness as another — CLAUDE_AGENT_ID is claude-only', async () => {
     // A Copilot sweep on a machine whose .env.local sets CLAUDE_AGENT_ID (which
     // is every machine that runs the Claude loop) must not write as Claude.
-    const fetchImpl = stubFetch({ tasks: [{ assignee: { id: 'ai-agent-copilot' } }] })
+    const fetchImpl = stubFetch({
+      tasks: [{ assignee: { id: 'ai-agent-copilot', email: agentEmail('copilot'), isAIAgent: true } }],
+    })
     const authorId = await resolveAgentAuthorId({
       mailbox: 'copilot',
       accessToken: 'test-token',
@@ -88,7 +90,9 @@ describe('resolveAgentAuthorId (AWTD-970)', () => {
   })
 
   it('falls back to looking the agent up by its identity address', async () => {
-    const fetchImpl = stubFetch({ tasks: [{ assignee: { id: 'ai-agent-claude' } }] })
+    const fetchImpl = stubFetch({
+      tasks: [{ assignee: { id: 'ai-agent-claude', email: agentEmail('claude'), isAIAgent: true } }],
+    })
     const authorId = await resolveAgentAuthorId({
       mailbox: 'claude',
       accessToken: 'test-token',
@@ -116,6 +120,39 @@ describe('resolveAgentAuthorId (AWTD-970)', () => {
 
     expect(authorId).toBeNull()
     expect(warn).toHaveBeenCalled()
+  })
+
+  it('AWTD-1020: refuses a lookup answer whose assignee is a person, and signs as the caller', async () => {
+    // What production answered on 2026-09-26: the filter was ignored and the
+    // first task came back, assigned to Jon. Sending his id as aiAgentId is a
+    // 400 at best, and a cross-signed comment when the stranger is an agent.
+    const warn = vi.fn()
+    const authorId = await resolveAgentAuthorId({
+      mailbox: 'claude',
+      accessToken: 'test-token',
+      env: {},
+      fetchImpl: stubFetch({
+        tasks: [{ assignee: { id: 'cmeje966q', email: 'jonparis@gmail.com', isAIAgent: false } }],
+      }),
+      warn,
+    })
+
+    expect(authorId).toBeNull()
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('AWTD-1020: refuses ANOTHER agent the unfiltered route happened to return', async () => {
+    const authorId = await resolveAgentAuthorId({
+      mailbox: 'claude',
+      accessToken: 'test-token',
+      env: {},
+      fetchImpl: stubFetch({
+        tasks: [{ assignee: { id: 'ai-agent-copilot', email: agentEmail('copilot'), isAIAgent: true } }],
+      }),
+      warn: vi.fn(),
+    })
+
+    expect(authorId).toBeNull()
   })
 })
 
