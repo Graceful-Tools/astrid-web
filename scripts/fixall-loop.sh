@@ -103,17 +103,54 @@ export ASTRID_FIXALL_LOCK_HELD=1
 # /fixstuff takes no lock, so an interactive session editing files here is
 # invisible to guard 1. This is the only thing between a 30-minute tick and
 # uncommitted work.
+#
+# A MERGED BRANCH IS NOT WORK IN PROGRESS. On 2026-09-26 a session merged its
+# branch and left the checkout on it — clean, identical to origin/main — and
+# this guard skipped every tick for 9½ hours while Ready filled up. A clean HEAD
+# already contained in origin/main has nothing to lose, so the loop goes back to
+# main itself. Anything else (dirty, or commits origin/main lacks) is still left
+# alone.
+#
+# A SKIP THAT NEVER ENDS IS AN OUTAGE. Skips exit 0 and read as healthy, so a
+# stuck loop looked exactly like an idle one. STUCK_FILE records when the
+# current run of skips began; past FIXALL_STUCK_ALERT_MINUTES the loop posts to
+# the board chat, once, and the marker clears as soon as a tick gets through.
+STUCK_DIR="$HOME/Library/Caches/astrid-fixall"
+STUCK_FILE="$STUCK_DIR/stuck-web"
+STUCK_ALERT_MINUTES="${FIXALL_STUCK_ALERT_MINUTES:-120}"
+
+skip_guard2() {
+  local reason="$1" now since
+  mkdir -p "$STUCK_DIR"
+  now=$(date +%s)
+  [ -f "$STUCK_FILE" ] || echo "$now" > "$STUCK_FILE"
+  since=$(head -1 "$STUCK_FILE")
+  if [ $(( (now - since) / 60 )) -ge "$STUCK_ALERT_MINUTES" ] && ! grep -q '^alerted$' "$STUCK_FILE"; then
+    post_to_list "**Scheduled /fixall (web) has been skipping for $(( (now - since) / 60 )) minutes** — $reason. Ready tasks will not be worked until the checkout at $REPO is clean and on main."
+    echo "alerted" >> "$STUCK_FILE"
+  fi
+  echo "RESULT: SKIPPED — $reason"
+  exit 0
+}
+
 if [ "${FIXALL_FORCE:-0}" != "1" ]; then
   BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    echo "RESULT: SKIPPED — working tree is dirty, leaving it alone"
-    exit 0
+    skip_guard2 "working tree is dirty, leaving it alone"
   fi
   if [ "$BRANCH" != "main" ]; then
-    echo "RESULT: SKIPPED — HEAD is on $BRANCH, not main"
-    exit 0
+    if git fetch -q origin main 2>/dev/null && git merge-base --is-ancestor HEAD origin/main; then
+      if git checkout -q main && git merge -q --ff-only origin/main; then
+        echo "  returned to main from $BRANCH (already in origin/main)"
+      else
+        skip_guard2 "HEAD is on $BRANCH (merged) but could not return to main"
+      fi
+    else
+      skip_guard2 "HEAD is on $BRANCH, not main, with commits origin/main lacks"
+    fi
   fi
 fi
+rm -f "$STUCK_FILE"
 
 # ── Guard 3: is there actually any work? ─────────────────────────────────────
 # THE expensive question, asked the cheap way. Without this a quiet tick still
