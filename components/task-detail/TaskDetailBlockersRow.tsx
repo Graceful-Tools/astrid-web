@@ -23,6 +23,12 @@ import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
 import { apiDelete, apiGet, apiPost } from "@/lib/api"
 import {
+  MIN_TASK_SEARCH_LENGTH,
+  TASK_SEARCH_DEBOUNCE_MS,
+  searchTasks,
+  type TaskSearchHit as SearchHit,
+} from "@/lib/task-search-client"
+import {
   isTaskInProject,
   showsTaskBlockers,
 } from "@/lib/task-detail-project-state"
@@ -33,13 +39,6 @@ interface TaskDetailBlockersRowProps {
   task: Task
   availableLists: TaskList[]
   readOnly: boolean
-}
-
-interface SearchHit {
-  id: string
-  title: string
-  identifier?: string | null
-  lists?: Array<{ id: string }> | null
 }
 
 export function TaskDetailBlockersRow({
@@ -81,22 +80,21 @@ export function TaskDetailBlockersRow({
   useEffect(() => {
     if (!picking) return
     const trimmed = query.trim()
-    if (trimmed.length < 2) {
+    if (trimmed.length < MIN_TASK_SEARCH_LENGTH) {
       setHits([])
       return
     }
     let cancelled = false
     const timer = setTimeout(async () => {
       try {
-        const response = await apiGet(`/api/v1/search?q=${encodeURIComponent(trimmed)}`)
-        const body = (await response.json()) as { tasks?: SearchHit[] }
+        const tasks = await searchTasks(trimmed)
         if (cancelled) return
         // Never offer a choice the write would refuse — the task itself,
         // anything already linked, anything that would cycle — and put this
         // board's tasks first, since most blockers are neighbours.
         setHits(
           rankBlockerCandidates({
-            hits: body.tasks ?? [],
+            hits: tasks,
             taskId: task.id,
             taskListIds: (task.lists ?? []).map(list => list.id),
             excludedIds: [...blockedBy.map(blocker => blocker.id), ...dependentIds],
@@ -105,7 +103,7 @@ export function TaskDetailBlockersRow({
       } catch {
         if (!cancelled) setHits([])
       }
-    }, 200)
+    }, TASK_SEARCH_DEBOUNCE_MS)
     return () => {
       cancelled = true
       clearTimeout(timer)

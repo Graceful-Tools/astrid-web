@@ -1,7 +1,15 @@
 "use client"
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { User, TaskList, Task } from '@/types/task'
+import {
+  MIN_TASK_SEARCH_LENGTH,
+  TASK_SEARCH_DEBOUNCE_MS,
+  searchTasks,
+  type TaskSearchHit,
+} from '@/lib/task-search-client'
+
+const MAX_TASK_ITEMS = 15
 
 // Trigger characters and their autocomplete types
 export type AutocompleteType = 'mention' | 'list' | 'task'
@@ -97,7 +105,9 @@ export function useChatMentions({
     const otherTasks: Task[] = []
 
     for (const task of tasks) {
-      if (search && !task.title.toLowerCase().includes(search)) continue
+      const matches = task.title.toLowerCase().includes(search)
+        || Boolean(task.identifier?.toLowerCase().includes(search))
+      if (search && !matches) continue
       const inSelectedList = task.lists?.some(l => l.id === selectedListId)
       if (inSelectedList) {
         selectedListTasks.push(task)
@@ -115,8 +125,31 @@ export function useChatMentions({
     selectedListTasks.sort(sortTasks)
     otherTasks.sort(sortTasks)
 
-    return [...selectedListTasks, ...otherTasks].slice(0, 15)
+    return [...selectedListTasks, ...otherTasks].slice(0, MAX_TASK_ITEMS)
   }, [tasks, autocompleteSearch, autocompleteType, selectedListId])
+
+  // ...and the server search the Waiting-on picker uses (AWTD-1017): it
+  // matches identifiers and reaches tasks this client never loaded. Loaded
+  // matches show at once; server hits follow when they land.
+  const [searchHits, setSearchHits] = useState<{ query: string; hits: TaskSearchHit[] }>({ query: '', hits: [] })
+  const taskQuery = autocompleteType === 'task' ? (autocompleteSearch || '').trim() : ''
+
+  useEffect(() => {
+    if (taskQuery.length < MIN_TASK_SEARCH_LENGTH) return
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const hits = await searchTasks(taskQuery)
+        if (!cancelled) setSearchHits({ query: taskQuery, hits })
+      } catch {
+        // Local matches still show; a failed search is not worth a banner.
+      }
+    }, TASK_SEARCH_DEBOUNCE_MS)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [taskQuery])
 
   // Build unified autocomplete items
   const autocompleteItems = useMemo((): AutocompleteItem[] => {
@@ -141,18 +174,23 @@ export function useChatMentions({
           isShared: l.privacy === 'SHARED' || l.privacy === 'PUBLIC',
           privacy: l.privacy,
         }))
-      case 'task':
-        return filteredTasks.map(t => ({
+      case 'task': {
+        const seen = new Set(filteredTasks.map(t => t.id))
+        const remote = searchHits.query === taskQuery
+          ? searchHits.hits.filter(hit => !seen.has(hit.id))
+          : []
+        return [...filteredTasks, ...remote].slice(0, MAX_TASK_ITEMS).map(t => ({
           id: t.id,
           type: 'task' as const,
           label: t.title,
-          secondaryLabel: t.lists?.[0]?.name,
+          secondaryLabel: [t.identifier, t.lists?.[0]?.name].filter(Boolean).join(' · ') || undefined,
           completed: t.completed,
         }))
+      }
       default:
         return []
     }
-  }, [autocompleteType, filteredUsers, filteredLists, filteredTasks])
+  }, [autocompleteType, filteredUsers, filteredLists, filteredTasks, searchHits, taskQuery])
 
   const handleTextChange = useCallback((value: string, cursorPos: number) => {
     const textBeforeCursor = value.substring(0, cursorPos)
