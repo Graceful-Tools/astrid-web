@@ -117,6 +117,11 @@
       "cycleError": "这些任务会互相等待",
       "addError": "无法等待该任务",
       "noResults": "没有匹配的任务"
+    },
+    "taskId": {
+      "label": "任务 ID",
+      "copy": "复制任务 ID",
+      "copied": "已复制 {id}"
     }
   },
   "lists": {

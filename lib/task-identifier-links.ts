@@ -96,8 +96,10 @@ export type IdentifierSurface = 'details' | 'row-board' | 'row-list'
 
 interface IdentifiedTask {
   identifier?: string | null
-  lists?: Array<{ projectId?: string | null }> | null
+  lists?: Array<{ id?: string; projectId?: string | null }> | null
 }
+
+type KnownList = { id: string; projectId?: string | null }
 
 /**
  * THE show rule — one helper, never open-coded per component (§7).
@@ -105,10 +107,20 @@ interface IdentifiedTask {
  * Shown when the task has an id AND sits on a project list; in rows only on
  * board views. A task moved out of every project keeps its id for links and
  * search but stops displaying it.
+ *
+ * `knownLists` is the client's list store. Task payloads name their lists
+ * without `projectId`, so on web a membership is resolved against it.
  */
-export function shouldShowTaskIdentifier(task: IdentifiedTask, surface: IdentifierSurface): boolean {
+export function shouldShowTaskIdentifier(
+  task: IdentifiedTask,
+  surface: IdentifierSurface,
+  knownLists: KnownList[] = []
+): boolean {
   if (!task.identifier || surface === 'row-list') return false
-  return (task.lists ?? []).some(list => Boolean(list.projectId))
+  const projectIdById = new Map(knownLists.map(list => [list.id, list.projectId]))
+  return (task.lists ?? []).some(list =>
+    Boolean(list.projectId || (list.id && projectIdById.get(list.id)))
+  )
 }
 
 /** "Copy task id" is offered whenever an id exists, shown or not. */

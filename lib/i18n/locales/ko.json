@@ -117,6 +117,11 @@
       "cycleError": "해당 작업들이 서로를 기다리게 됩니다",
       "addError": "해당 작업을 대기 대상으로 추가하지 못했습니다",
       "noResults": "일치하는 작업이 없습니다"
+    },
+    "taskId": {
+      "label": "작업 ID",
+      "copy": "작업 ID 복사",
+      "copied": "{id} 복사됨"
     }
   },
   "lists": {

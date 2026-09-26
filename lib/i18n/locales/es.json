@@ -117,6 +117,11 @@
       "cycleError": "Esas tareas acabarían esperándose entre sí",
       "addError": "No se pudo esperar a esa tarea",
       "noResults": "No hay tareas coincidentes"
+    },
+    "taskId": {
+      "label": "ID de tarea",
+      "copy": "Copiar ID de tarea",
+      "copied": "{id} copiado"
     }
   },
   "lists": {

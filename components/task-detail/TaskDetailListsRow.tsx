@@ -25,6 +25,7 @@ import { selectableLists } from "@/lib/status-lists"
 import { filterLabelLists, isLabelList } from "@/lib/list-flavors"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { TaskFieldRow } from "./TaskFieldRow"
+import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
 import { Globe, Users, X, Check, Hash, List as ListIcon, Tag } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList } from "@/types/task"
@@ -108,6 +109,7 @@ export function TaskDetailListsRow({
   }
 
   return (
+    <>
     <TaskFieldRow label={t('navigation.lists')} icon={<ListIcon className="w-4 h-4" />} align="start">
       {editingLists ? (
         <div className="space-y-3">
@@ -217,5 +219,9 @@ export function TaskDetailListsRow({
         </div>
       )}
     </TaskFieldRow>
+    {/* TASK ID follows Lists: it exists because of a project list (AWTD-1017).
+        Rendered here so TaskFieldEditors does not grow (size ratchet). */}
+    <TaskDetailIdentifierRow task={task} availableLists={availableLists} />
+    </>
   )
 }

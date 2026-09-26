@@ -193,6 +193,12 @@ export interface Task {
    * `completed`. Replaces membership in a status list.
    */
   statusRole?: string | null
+  /**
+   * Human-readable id, e.g. "AWTD-142" (AWTD-1016). Minted while the task is
+   * on a project list and kept after it leaves. Whether it DISPLAYS is
+   * `shouldShowTaskIdentifier` in lib/task-identifier-links.ts, never ad hoc.
+   */
+  identifier?: string | null
   /** Legacy attachment rows. Only the MCP handlers write these. */
   attachments: Attachment[]
   /**

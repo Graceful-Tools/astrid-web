@@ -117,6 +117,11 @@
       "cycleError": "Ces tâches finiraient par s'attendre mutuellement",
       "addError": "Impossible d'attendre cette tâche",
       "noResults": "Aucune tâche correspondante"
+    },
+    "taskId": {
+      "label": "ID de tâche",
+      "copy": "Copier l'ID de tâche",
+      "copied": "{id} copié"
     }
   },
   "lists": {

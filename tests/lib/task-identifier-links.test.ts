@@ -29,6 +29,25 @@ describe('show-rule fixture cases (AWTD-1017)', () => {
   })
 })
 
+describe('show rule resolves projects from the loaded lists (AWTD-1017)', () => {
+  // Task payloads carry list ids without projectId; the client's list store
+  // has it. Without this every real task would read as "not on a project".
+  const task = { identifier: 'AWTD-12', lists: [{ id: 'board' }] }
+
+  it('shows when a membership is a project list in the known lists', () => {
+    expect(shouldShowTaskIdentifier(task, 'details', [{ id: 'board', projectId: 'p1' }])).toBe(true)
+    expect(shouldShowTaskIdentifier(task, 'row-board', [{ id: 'board', projectId: 'p1' }])).toBe(true)
+  })
+
+  it('stays hidden when the known list is not in a project', () => {
+    expect(shouldShowTaskIdentifier(task, 'details', [{ id: 'board', projectId: null }])).toBe(false)
+  })
+
+  it('never shows in list rows', () => {
+    expect(shouldShowTaskIdentifier(task, 'row-list', [{ id: 'board', projectId: 'p1' }])).toBe(false)
+  })
+})
+
 describe('renderMarkdownWithLinks with identifier context (AWTD-1017)', () => {
   const context = { projectKey: 'AWTD', keys: ['AWTD'], hidden: [] }
 

@@ -12,12 +12,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2 } from "lucide-react"
+import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2, Hash } from "lucide-react"
 import type { Task, User } from "../../types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 import { isCanceled } from "@/lib/closed-reason"
 import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
 import { useTranslations } from "@/lib/i18n/client"
+import { useCopyTaskIdentifier } from "@/hooks/use-copy-task-identifier"
 
 /**
  * Action dropdown menu (the "..." button on the task detail header).
@@ -107,6 +108,8 @@ export function TaskActionMenu({
   compact = false,
 }: TaskActionMenuProps) {
   const { t } = useTranslations()
+  // Offered whenever an id exists, shown or not (AWTD-1017, spec §7).
+  const copyIdentifier = useCopyTaskIdentifier(task)
   const taskList = task.lists?.[0]
   const isPublicListTask = taskList?.privacy === 'PUBLIC'
   const isUserOwnerOrAdmin = canUserManageList(currentUser, taskList as never)
@@ -165,6 +168,12 @@ export function TaskActionMenu({
           <Share2 className="w-4 h-4 mr-2" />
           Share
         </DropdownMenuItem>
+        {copyIdentifier.canCopy && (
+          <DropdownMenuItem onClick={copyIdentifier.copy}>
+            <Hash className="w-4 h-4 mr-2" />
+            {t("tasks.taskId.copy")}
+          </DropdownMenuItem>
+        )}
         {onStatusSelect && (
           <>
             <DropdownMenuSeparator />
