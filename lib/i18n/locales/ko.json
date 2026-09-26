@@ -107,15 +107,15 @@
     "createdBy": "작성자",
     "confirmCompleteTitle": "이 작업을 완료할까요?",
     "confirmCompleteAssigned": "담당: {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "대기 중인 작업",
-      "add": "차단 작업 추가",
+      "add": "대기할 작업 추가",
       "searchPlaceholder": "작업 검색…",
       "empty": "대기 중인 작업이 없습니다",
       "hidden": "볼 수 없는 작업",
-      "remove": "차단 작업 제거",
+      "remove": "이 작업 대기 해제",
       "cycleError": "해당 작업들이 서로를 기다리게 됩니다",
-      "addError": "차단 작업을 추가하지 못했습니다",
+      "addError": "해당 작업을 대기 대상으로 추가하지 못했습니다",
       "noResults": "일치하는 작업이 없습니다"
     }
   },

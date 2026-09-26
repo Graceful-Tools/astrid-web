@@ -107,15 +107,15 @@
     "createdBy": "Gemaakt door",
     "confirmCompleteTitle": "Deze taak voltooien?",
     "confirmCompleteAssigned": "Toegewezen aan {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "Wacht op",
-      "add": "Blokkering toevoegen",
+      "add": "Op een taak wachten…",
       "searchPlaceholder": "Taken zoeken…",
       "empty": "Wacht op geen enkele taak",
       "hidden": "Een taak die je niet kunt zien",
-      "remove": "Blokkering verwijderen",
+      "remove": "Niet meer op deze taak wachten",
       "cycleError": "Die taken zouden op elkaar gaan wachten",
-      "addError": "Kon die blokkering niet toevoegen",
+      "addError": "Kon niet op die taak wachten",
       "noResults": "Geen overeenkomende taken"
     }
   },

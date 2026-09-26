@@ -107,15 +107,15 @@
     "createdBy": "创建者",
     "confirmCompleteTitle": "完成此任务？",
     "confirmCompleteAssigned": "分配给 {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "等待中",
-      "add": "添加阻塞任务",
+      "add": "添加等待的任务",
       "searchPlaceholder": "搜索任务…",
       "empty": "没有在等待任何任务",
       "hidden": "你无法查看的任务",
-      "remove": "移除阻塞任务",
+      "remove": "取消等待此任务",
       "cycleError": "这些任务会互相等待",
-      "addError": "无法添加该阻塞任务",
+      "addError": "无法等待该任务",
       "noResults": "没有匹配的任务"
     }
   },

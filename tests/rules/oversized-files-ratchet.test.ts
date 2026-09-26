@@ -86,14 +86,25 @@ const BUDGETS: Record<string, number> = {
   // provenance and the board lane — three decisions that only ever fire
   // together — went to services/task-completion.ts instead, and the board rule
   // itself sits in lib/task-status.ts beside resolveColumnMove.
-  'services/task.service.ts': 1614,
+  // 1614 → 1605: AWTD-1002 hung two dependency side effects off the update and
+  // delete paths, which this budget refused. `resolveAssignee` went to
+  // services/assignee-authorization.ts to pay for them — the module that
+  // already decides who MAY be assigned, and whose own doc comment had named
+  // that function since AWTD-891. Who gets assigned by default and who may be
+  // assigned at all are one question asked twice.
+  'services/task.service.ts': 1605,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
   // self-contained block left here — followed it into
   // TaskDetailDescriptionRow.tsx. So the file ends up SMALLER than before the
   // feature, which is what this ratchet is for.
-  'components/task-detail/TaskFieldEditors.tsx': 1039,
+  // 1039 → 914: AWTD-1002 added the "Waiting on" row, and the same answer
+  // worked twice. The row is its own TaskDetailBlockersRow.tsx, and the LISTS
+  // row — the largest self-contained block left here, with the four helpers
+  // that served only it — followed into TaskDetailListsRow.tsx. Smaller than
+  // before the feature again.
+  'components/task-detail/TaskFieldEditors.tsx': 914,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line

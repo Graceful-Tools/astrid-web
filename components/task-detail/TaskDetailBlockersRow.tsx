@@ -18,7 +18,7 @@
  * picks for the same reason: adding two or three in a row is the common case.
  */
 import { useCallback, useEffect, useState } from "react"
-import { Ban, Plus, X } from "lucide-react"
+import { Hourglass, Plus, X } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
 import { apiDelete, apiGet, apiPost } from "@/lib/api"
@@ -111,7 +111,7 @@ export function TaskDetailBlockersRow({
       // A cycle is refused server-side; saying so is the only way the person
       // learns why nothing happened.
       const reason = (err as { data?: { reason?: string } })?.data?.reason
-      setError(reason === 'dependency_cycle' ? t('tasks.blockers.cycleError') : t('tasks.blockers.addError'))
+      setError(reason === 'dependency_cycle' ? t('tasks.waitingOn.cycleError') : t('tasks.waitingOn.addError'))
     }
   }
 
@@ -121,7 +121,7 @@ export function TaskDetailBlockersRow({
       await apiDelete(`/api/v1/tasks/${task.id}/blockers/${blockingTaskId}`)
       await load()
     } catch {
-      setError(t('tasks.blockers.addError'))
+      setError(t('tasks.waitingOn.addError'))
     }
   }
 
@@ -138,12 +138,12 @@ export function TaskDetailBlockersRow({
   }
 
   return (
-    <TaskFieldRow label={t('tasks.blockers.label')} icon={<Ban className="w-4 h-4" />}>
+    <TaskFieldRow label={t('tasks.waitingOn.label')} icon={<Hourglass className="w-4 h-4" />}>
       <div className="flex flex-col gap-2" data-testid="task-detail-blockers">
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t('tasks.blockers.label')}>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('tasks.waitingOn.label')}>
           {blockedBy.length === 0 && (
-            <span className="text-sm text-gray-600 dark:text-gray-300">
-              {t('tasks.blockers.empty')}
+            <span className="text-sm theme-text-secondary">
+              {t('tasks.waitingOn.empty')}
             </span>
           )}
           {blockedBy.map(blocker => (
@@ -152,20 +152,20 @@ export function TaskDetailBlockersRow({
               data-testid={`task-blocker-${blocker.id}`}
               className={`inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 ${
                 blocker.completed
-                  ? 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 line-through'
-                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+                  ? 'theme-border theme-text-muted line-through'
+                  : 'theme-border theme-text-primary'
               }`}
             >
               {/* A blocker you cannot see still blocks. The COUNT is not a
                   leak — the reader already knows something holds their task —
                   but the title would be. */}
-              {blocker.hidden ? t('tasks.blockers.hidden') : blocker.title}
+              {blocker.hidden ? t('tasks.waitingOn.hidden') : blocker.title}
               {!readOnly && (
                 <button
                   type="button"
-                  aria-label={t('tasks.blockers.remove')}
+                  aria-label={t('tasks.waitingOn.remove')}
                   onClick={() => remove(blocker.id)}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+                  className="theme-text-secondary hover:theme-text-primary"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -177,10 +177,10 @@ export function TaskDetailBlockersRow({
               type="button"
               data-testid="task-detail-add-blocker"
               onClick={() => setPicking(value => !value)}
-              className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+              className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 border-dashed theme-border theme-text-secondary"
             >
               <Plus className="w-3 h-3" />
-              {t('tasks.blockers.add')}
+              {t('tasks.waitingOn.add')}
             </button>
           )}
         </div>
@@ -194,13 +194,13 @@ export function TaskDetailBlockersRow({
               autoFocus
               value={query}
               onChange={event => setQuery(event.target.value)}
-              placeholder={t('tasks.blockers.searchPlaceholder')}
-              aria-label={t('tasks.blockers.searchPlaceholder')}
-              className="h-9 px-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-transparent text-sm"
+              placeholder={t('tasks.waitingOn.searchPlaceholder')}
+              aria-label={t('tasks.waitingOn.searchPlaceholder')}
+              className="h-9 px-3 rounded-lg border-2 theme-border bg-transparent text-sm"
             />
             {query.trim().length >= 2 && hits.length === 0 && (
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                {t('tasks.blockers.noResults')}
+              <span className="text-sm theme-text-secondary">
+                {t('tasks.waitingOn.noResults')}
               </span>
             )}
             {hits.map(hit => (
@@ -208,7 +208,7 @@ export function TaskDetailBlockersRow({
                 key={hit.id}
                 type="button"
                 onClick={() => add(hit.id)}
-                className="text-left text-sm px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="text-left text-sm px-3 py-2 rounded-lg theme-surface-hover"
               >
                 {hit.identifier ? `${hit.identifier} · ` : ''}
                 {hit.title}

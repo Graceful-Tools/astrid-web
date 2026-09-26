@@ -107,15 +107,15 @@
     "createdBy": "Créé par",
     "confirmCompleteTitle": "Terminer cette tâche ?",
     "confirmCompleteAssigned": "Attribuée à {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "En attente de",
-      "add": "Ajouter un bloqueur",
+      "add": "Attendre une tâche…",
       "searchPlaceholder": "Rechercher des tâches…",
       "empty": "N'attend aucune tâche",
       "hidden": "Une tâche que vous ne pouvez pas voir",
-      "remove": "Retirer le bloqueur",
-      "cycleError": "Ces tâches finiraient par sattendre mutuellement",
-      "addError": "Impossible d'ajouter ce bloqueur",
+      "remove": "Ne plus attendre cette tâche",
+      "cycleError": "Ces tâches finiraient par s'attendre mutuellement",
+      "addError": "Impossible d'attendre cette tâche",
       "noResults": "Aucune tâche correspondante"
     }
   },

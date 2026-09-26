@@ -41,11 +41,31 @@ const ROW_KEYS: Record<string, string> = {
   Lists: 'navigation.lists',
 }
 
+/**
+ * A row that has been EXTRACTED is still one of the four, and still has a
+ * position here — the element in this file just names the component instead of
+ * carrying the label (AWTD-1002 moved Lists into TaskDetailListsRow for the
+ * oversized-file budget).
+ *
+ * So a row is found by either marker. Locating it by the component name alone
+ * would be weaker: an inline row would then have no position at all and the
+ * ordering assertions would go quiet, which is the failure mode the
+ * translation-key comment above already warns about.
+ */
+const EXTRACTED_ROWS: Record<string, string> = {
+  Lists: '<TaskDetailListsRow',
+}
+
 function rowPosition(label: string): number {
   const key = ROW_KEYS[label]
   expect(key, `no translation key mapped for the ${label} row`).toBeDefined()
-  const index = src.indexOf(`<TaskFieldRow label={t('${key}')}`)
-  expect(index, `no <TaskFieldRow label={t('${key}')}> found`).toBeGreaterThan(-1)
+
+  const inline = `<TaskFieldRow label={t('${key}')}`
+  const extracted = EXTRACTED_ROWS[label]
+  const candidates = [inline, ...(extracted ? [extracted] : [])]
+
+  const index = candidates.map(needle => src.indexOf(needle)).find(found => found > -1) ?? -1
+  expect(index, `no ${candidates.join(' or ')} found`).toBeGreaterThan(-1)
   return index
 }
 

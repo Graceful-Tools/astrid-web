@@ -14,6 +14,24 @@
  *
  * Everything here is pure. The database work is services/task-dependency.service.ts,
  * which is what lets the rules be stated once and tested without a Postgres.
+ *
+ * TWO VOCABULARIES, ON PURPOSE (Jon, 2026-09-25: *"we should not make it
+ * 'blocked on' but 'waiting on' to make it more obvious that these are
+ * connected (as well as due date)"*).
+ *
+ *   - **The product says "waiting on".** Every string a user reads is under
+ *     `tasks.waitingOn.*`, and it names the same wait the due date does: the
+ *     two are halves of one question, when can this start? (The row itself
+ *     stays below Lists — the Who/Date/Priority/Lists order is a
+ *     cross-platform contract nothing is interleaved into.)
+ *   - **The data says "blocker".** `TaskDependency`, `blockedTaskId` /
+ *     `blockingTaskId`, the v1 route paths, and the `BLOCKED-BY:` comment
+ *     marker that parked agent tasks already depend on. Renaming those for a
+ *     vocabulary change would break a convention in use for the sake of a word
+ *     nobody sees.
+ *
+ * So a name here is a data name, and the translation to the user's word happens
+ * exactly once, in the copy layer. Do not "fix" one side to match the other.
  */
 
 import { classifyWaitingTask, type WaitingDisposition } from '@/lib/ready-queue-scope'

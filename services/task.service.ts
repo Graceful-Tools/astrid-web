@@ -39,7 +39,7 @@ import { prisma } from '@/lib/prisma'
 // tests/rules/assignee-rule-reaches-both-write-paths.test.ts).
 import { PROJECT_ACCESS_INCLUDE, hasExplicitListRole } from '@/lib/list-permissions'
 import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
-import { authorizeAssigneeChange, authorizeNewTaskAssignee } from '@/services/assignee-authorization'
+import { authorizeAssigneeChange, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
@@ -693,41 +693,6 @@ export async function createTaskWithSideEffects(args: {
   await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds })
 
   return { ok: true, task, idempotent: false }
-}
-
-/**
- * Which user, if anyone, the new task belongs to.
- *
- * The list default is the subtle part, and its three-way encoding is load-
- * bearing: `undefined` (never configured) leaves the task unassigned, `null`
- * means "whoever created it", and the string `'unassigned'` is an explicit
- * choice that must not be read as a user id.
- */
-function resolveAssignee(args: {
-  requested: string | null | undefined
-  actorId: string
-  lists: Array<Record<string, any>>
-  connectListIds: string[]
-  hasCopyOnlyPublicList: boolean
-}): string | null {
-  const { requested, actorId, lists, connectListIds, hasCopyOnlyPublicList } = args
-
-  // A copy-only public list is a template anyone can read and copy. An
-  // assignee on one publishes a real person's identity on a public artifact
-  // and means nothing to whoever copies it. Collaborative public lists keep
-  // their assignees — only members can add tasks there.
-  if (hasCopyOnlyPublicList) return null
-
-  if (requested !== undefined) return requested
-
-  if (connectListIds.length === 0) return null
-
-  const firstList = lists.find(list => list.id === connectListIds[0])
-  const listDefault = firstList?.defaultAssigneeId
-  if (listDefault === undefined) return null
-  if (listDefault === null) return actorId
-  if (listDefault === 'unassigned') return null
-  return listDefault
 }
 
 /** Parse a date field that may arrive as a string, a Date, or nothing. */

@@ -107,15 +107,15 @@
     "createdBy": "Creado por",
     "confirmCompleteTitle": "¿Completar esta tarea?",
     "confirmCompleteAssigned": "Asignada a {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "Esperando a",
-      "add": "Añadir bloqueo",
+      "add": "Esperar a una tarea…",
       "searchPlaceholder": "Buscar tareas…",
       "empty": "No espera ninguna tarea",
       "hidden": "Una tarea que no puedes ver",
-      "remove": "Quitar bloqueo",
+      "remove": "Dejar de esperar a esta tarea",
       "cycleError": "Esas tareas acabarían esperándose entre sí",
-      "addError": "No se pudo añadir ese bloqueo",
+      "addError": "No se pudo esperar a esa tarea",
       "noResults": "No hay tareas coincidentes"
     }
   },

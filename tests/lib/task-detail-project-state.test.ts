@@ -136,8 +136,9 @@ describe('projectStateChips (task 5221e43f)', () => {
  * assert against, and rendering it in jsdom would need the twenty-odd props
  * and pickers it depends on to prove a fact about sequence.
  *
- * Matched by COMPONENT NAME for the two extracted rows and by translation key
- * for Lists, because that is how each is actually spelled in the file.
+ * Matched by COMPONENT NAME, which is now how every row in this neighbourhood
+ * is spelled: Lists followed BoardState and Description out of the file in
+ * AWTD-1002, to pay for the "Waiting on" row under the oversized-file budget.
  */
 describe('the board-state row is placed after the field-order contract (task 5221e43f)', () => {
   const src = readFileSync(
@@ -152,7 +153,7 @@ describe('the board-state row is placed after the field-order contract (task 522
   }
 
   it('follows Lists, because state belongs with WHERE the task lives', () => {
-    expect(positionOf("<TaskFieldRow label={t('navigation.lists')}")).toBeLessThan(
+    expect(positionOf('<TaskDetailListsRow')).toBeLessThan(
       positionOf('<TaskDetailBoardStateRow'),
     )
   })

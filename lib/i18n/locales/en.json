@@ -107,15 +107,15 @@
     "createdBy": "Created by",
     "confirmCompleteTitle": "Complete this task?",
     "confirmCompleteAssigned": "Assigned to {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "Waiting on",
-      "add": "Add blocker",
+      "add": "Wait on a task…",
       "searchPlaceholder": "Search tasks…",
       "empty": "Not waiting on any task",
       "hidden": "A task you cannot see",
-      "remove": "Remove blocker",
+      "remove": "Stop waiting on this task",
       "cycleError": "Those tasks would end up waiting for each other",
-      "addError": "Could not add that blocker",
+      "addError": "Could not wait on that task",
       "noResults": "No matching tasks"
     }
   },

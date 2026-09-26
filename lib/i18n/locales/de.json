@@ -107,15 +107,15 @@
     "createdBy": "Erstellt von",
     "confirmCompleteTitle": "Diese Aufgabe abschließen?",
     "confirmCompleteAssigned": "Zugewiesen an {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "Wartet auf",
-      "add": "Blocker hinzufügen",
+      "add": "Auf Aufgabe warten…",
       "searchPlaceholder": "Aufgaben suchen…",
       "empty": "Wartet auf keine Aufgabe",
       "hidden": "Eine Aufgabe, die du nicht sehen kannst",
-      "remove": "Blocker entfernen",
+      "remove": "Nicht mehr auf diese Aufgabe warten",
       "cycleError": "Diese Aufgaben würden aufeinander warten",
-      "addError": "Blocker konnte nicht hinzugefügt werden",
+      "addError": "Konnte nicht auf diese Aufgabe warten",
       "noResults": "Keine passenden Aufgaben"
     }
   },

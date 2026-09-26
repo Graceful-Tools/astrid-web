@@ -341,16 +341,29 @@ schema changes ship with their migration in the same PR, permissions through
 `lib/list-permissions.ts`, all copy through i18n, `npm run check:reuse`, and every
 `brands/` profile passing `npm run check:brands` with `projectMode` off.
 
-## Open question for Jon
-
-One, and only one, because it changes the model rather than the implementation:
+## The open question, answered
 
 **Should a blocked task be *moved* to `Waiting` automatically when a blocker is added?**
-This spec says **yes** — adding a blocker to a `Ready` task demotes it to `Waiting`,
-because Ready means "actionable now" (Jon, 2026-08-29) and a blocked task is not. But it
-also means dropping a blocker on someone's card moves it, which is the mirror image of the
-reopen case where this spec argues *against* moving people's cards. The distinction is that
-adding a blocker is a deliberate statement about *this* task, while reopening a blocker is a
-statement about a different one — thin enough that it is worth confirming.
+This spec said yes, and asked anyway, because it is the one place the answer changes the
+model rather than the implementation: adding a blocker to someone's `Ready` card moves that
+card, which is the mirror image of the reopen case where this spec argues *against* moving
+people's cards.
 
-A `Doing` task that acquires a blocker is **not** moved, either way.
+**Jon, 2026-09-25: yes** — *"Adding a blocked task to ready should move it to 'waiting on'
+and we should not make it 'blocked on' but 'waiting on' to make it more obvious that these
+are connected (as well as due date)."* Implemented as `shouldDemoteOnBlockerAdded` in
+`lib/task-dependencies.ts`. A `Doing` task that acquires a blocker is still not moved.
+
+That answer carried a second instruction the question had not asked about, and it is the
+one with the wider reach: **the feature is called "waiting on"**, not "blocked on", so that
+the tasks a card waits for and the date it waits for read as two halves of one question.
+
+**So the vocabulary is deliberately split, and the split is the design.** The product says
+*waiting on* — every string a user reads lives under `tasks.waitingOn.*`, the same verb the
+due date's wait already uses (the row stays after Board state: the Who/Date/Priority/Lists
+order is a cross-platform contract nothing is interleaved into). The data says *blocker* — `TaskDependency`, `blockedTaskId` /
+`blockingTaskId`, the `/blockers` route paths, and the `BLOCKED-BY:` comment marker that
+parked agent tasks already depend on and that *Reconciling the agent convention* above
+keeps. Renaming those to match the copy would break a convention in live use for the sake
+of a word nobody sees. `lib/task-dependencies.ts` states this where the names are, so it is
+not re-litigated one file at a time.

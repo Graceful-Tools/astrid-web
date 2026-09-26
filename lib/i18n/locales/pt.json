@@ -107,15 +107,15 @@
     "createdBy": "Criado por",
     "confirmCompleteTitle": "Concluir esta tarefa?",
     "confirmCompleteAssigned": "Atribuída a {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "À espera de",
-      "add": "Adicionar bloqueio",
+      "add": "Esperar por uma tarefa…",
       "searchPlaceholder": "Pesquisar tarefas…",
       "empty": "Não está à espera de nenhuma tarefa",
       "hidden": "Uma tarefa que não podes ver",
-      "remove": "Remover bloqueio",
+      "remove": "Deixar de esperar por esta tarefa",
       "cycleError": "Essas tarefas acabariam à espera uma da outra",
-      "addError": "Não foi possível adicionar esse bloqueio",
+      "addError": "Não foi possível esperar por essa tarefa",
       "noResults": "Nenhuma tarefa correspondente"
     }
   },

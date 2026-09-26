@@ -107,15 +107,15 @@
     "createdBy": "作成者",
     "confirmCompleteTitle": "このタスクを完了しますか？",
     "confirmCompleteAssigned": "担当: {name}",
-    "blockers": {
+    "waitingOn": {
       "label": "待機中のタスク",
-      "add": "ブロッカーを追加",
+      "add": "待機するタスクを追加",
       "searchPlaceholder": "タスクを検索…",
       "empty": "待機中のタスクはありません",
       "hidden": "閲覧できないタスク",
-      "remove": "ブロッカーを削除",
+      "remove": "このタスクを待たない",
       "cycleError": "これらのタスクが互いに待ち合う状態になります",
-      "addError": "ブロッカーを追加できませんでした",
+      "addError": "そのタスクを待機対象にできませんでした",
       "noResults": "一致するタスクがありません"
     }
   },
