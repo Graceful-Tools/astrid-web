@@ -3,18 +3,20 @@
 <!--
   Scheduled /fixall for the Astrid Web board (AWTD-971).
 
-  FIRST, grant node Full Disk Access, or this job hangs forever on its first tick.
-  The checkout lives under ~/Documents, which is TCC-protected; a launchd agent
-  reading it BLOCKS pending consent rather than failing, so the job sits in
-  `state = running` with an empty log and launchd swallows every later tick.
-  Verified 2026-09-19. System Settings -> Privacy & Security -> Full Disk Access,
-  add the path from `readlink -f /opt/homebrew/bin/node`. That is a broad grant to
-  a general-purpose interpreter — decide it deliberately.
+  A TEMPLATE, not an installable plist. Install it with:
 
-  Then install with:
+    ./scripts/launchd/install.sh cc.astrid.fixall-web
 
-    cp scripts/launchd/cc.astrid.fixall-web.plist ~/Library/LaunchAgents/
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cc.astrid.fixall-web.plist
+  which fills in this checkout's absolute paths, then bootstraps the job. Re-run it after moving the checkout; no path is
+  committed, so there is nothing to hand-edit and nothing to rot.
+
+  KEEP THE CHECKOUT OUT OF TCC-PROTECTED DIRECTORIES (~/Documents, ~/Desktop,
+  ~/Downloads). From one of those, a launchd agent reading the repo BLOCKS pending
+  consent rather than failing: the job sits in `state = running` with an empty log
+  and launchd swallows every later tick. Verified 2026-09-19 from ~/Documents. The
+  escape hatch is Full Disk Access for `readlink -f /opt/homebrew/bin/node`, but
+  that is a broad grant to a general-purpose interpreter — moving the checkout is
+  the cheaper fix.
 
   Confirm it works before trusting it:
 
@@ -25,19 +27,22 @@
 
     launchctl bootout gui/$(id -u)/cc.astrid.fixall-web
 
-  Paths are absolute because launchd does not expand ~. Adjust them if your
-  checkout lives elsewhere. See .claude/commands/fixall.md.
+  See .claude/commands/fixall.md.
 -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
     <string>cc.astrid.fixall-web</string>
 
-    <!-- node, not zsh: launchd's zsh has no TCC access to ~/Documents. See the shim. -->
+    <!--
+      node, not zsh: a zsh launched straight by launchd has no TCC access to protected
+      locations, and git dies before the run starts. The shim also self-locates the repo,
+      which is what lets this template carry a single repo path. Keep it. See the shim.
+    -->
     <key>ProgramArguments</key>
     <array>
         <string>/opt/homebrew/bin/node</string>
-        <string>/Users/jonparis/Documents/mycode/astrid-web/scripts/run-fixall-loop.mjs</string>
+        <string>__REPO_ROOT__/scripts/run-fixall-loop.mjs</string>
     </array>
 
     <!--
@@ -64,8 +69,8 @@
     <false/>
 
     <key>StandardOutPath</key>
-    <string>/Users/jonparis/Library/Logs/astrid-fixall-web.log</string>
+    <string>__HOME__/Library/Logs/astrid-fixall-web.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/jonparis/Library/Logs/astrid-fixall-web.log</string>
+    <string>__HOME__/Library/Logs/astrid-fixall-web.log</string>
 </dict>
 </plist>

@@ -25,7 +25,8 @@ pushes, or deploys. Its only side effect is filing tasks.
 | `scripts/weekly-hygiene-review.sh` | The runner — refreshes the worktree, then invokes Claude Code headless |
 | `scripts/weekly-hygiene-review.prompt.md` | What the review actually does. **Edit this to change the review.** |
 | `scripts/run-weekly-hygiene-review.mjs` | launchd shim (see *Why node* below) |
-| `scripts/launchd/cc.astrid.weekly-hygiene-review.plist` | Schedule template |
+| `scripts/launchd/cc.astrid.weekly-hygiene-review.plist.template` | Schedule template — paths are placeholders |
+| `scripts/launchd/install.sh` | Renders the template for this checkout and bootstraps it |
 
 ## Install
 
@@ -34,9 +35,13 @@ depends on which branch a shared checkout happens to be sitting on:
 
 ```bash
 git worktree add ../astrid-web-hygiene main
-cp scripts/launchd/cc.astrid.weekly-hygiene-review.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cc.astrid.weekly-hygiene-review.plist
+./scripts/launchd/install.sh cc.astrid.weekly-hygiene-review
 ```
+
+The installer fills the template's `__REPO_PARENT__` and `__HOME__` placeholders from
+where this checkout actually is, writes the result to `~/Library/LaunchAgents`, and
+bootstraps it. No absolute path is committed, so **re-run it after moving the checkout**
+— that is the whole maintenance story.
 
 The plist sets `HYGIENE_SELF_UPDATE=1`, which hard-resets that worktree to `origin/main` at
 the start of every run — so prompt and runner changes take effect the moment they land on
@@ -67,14 +72,19 @@ out. `.env.local` is symlinked from the primary checkout — secrets are never c
 ## Why node, not zsh (do not "simplify" this)
 
 launchd runs the job through `scripts/run-weekly-hygiene-review.mjs` rather than pointing
-straight at the shell script. A `/bin/zsh` launched by launchd has **no TCC access to
-`~/Documents`**, so the run dies at the first `git` call with:
+straight at the shell script, for two reasons.
+
+**It self-locates.** The shim resolves the repo from its own `import.meta.url`, which is why
+the plist template has to name only one path. Point launchd at the shell script and every
+path becomes the installer's problem again.
+
+**TCC, if the checkout sits in a protected directory.** A `/bin/zsh` launched by launchd has
+no TCC access to `~/Documents`, `~/Desktop` or `~/Downloads`, so the run dies at the first
+`git` call with:
 
 ```
 fatal: Unable to read current working directory: Operation not permitted
 ```
-
-`/opt/homebrew/bin/node` holds a Full Disk Access grant and children inherit it. Measured:
 
 ```
 zsh direct read : DENIED
@@ -82,9 +92,20 @@ node fs.readdir : OK
 node->zsh child : OK
 ```
 
-This is the same reason `cc.astrid.user-feedback` works — it execs `npx tsx`, so node is the
-responsible process. Pointing launchd at the shell script directly makes the job fail
-silently every week: two lines in the log, no review, no tasks.
+> **Corrected 2026-09-25.** This section used to state flatly that
+> `/opt/homebrew/bin/node` holds a Full Disk Access grant and children inherit it. The
+> measurement above was taken on a Mac where that grant had been given by hand;
+> `scripts/run-fixall-loop.mjs` records the opposite result on 2026-09-19, where an
+> ungranted node **hung** on `readdirSync` of the repo rather than failing. Do not rely on
+> the shim alone to defeat TCC.
+>
+> The durable fix is to keep the checkout out of protected directories entirely — this repo
+> now lives outside `~/Documents` for exactly this reason, and the job needs no Full Disk
+> Access grant there. If you must run from a protected directory, grant FDA to the real
+> binary (`readlink -f /opt/homebrew/bin/node`) and weigh that broad grant deliberately.
+
+Pointing launchd at the shell script directly makes the job fail silently every week: two
+lines in the log, no review, no tasks.
 
 ## Tuning the review
 
