@@ -35,6 +35,18 @@ export function parseIdentifier(value: string | null | undefined): ParsedIdentif
   return { key: match[1].toUpperCase(), sequence }
 }
 
+/**
+ * An owner-typed project key in canonical form, or null when the identifier
+ * format cannot carry it (AWTD-1018). Judged by `parseIdentifier` itself, so
+ * the key rule and the id rule cannot drift apart.
+ */
+export function normalizeProjectKey(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!/^[A-Za-z0-9]+$/.test(trimmed)) return null
+  return parseIdentifier(`${trimmed}-1`)?.key ?? null
+}
+
 export function formatIdentifier(key: string, sequence: number): string {
   return `${key.toUpperCase()}-${sequence}`
 }

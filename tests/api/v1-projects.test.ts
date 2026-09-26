@@ -158,6 +158,33 @@ describe('POST /api/v1/projects', () => {
     expect(mockCreate).not.toHaveBeenCalled()
   })
 
+  it('AWTD-1018: takes an owner-chosen key, canonical uppercase', async () => {
+    mockCreate.mockResolvedValue({ id: 'p1', name: 'Web', lists: [] } as any)
+    ;(mockPrisma.project.findUnique as any).mockResolvedValue(null)
+
+    const res = await createProject(makeReq('POST', { name: 'Web', key: 'web' }), undefined as any)
+
+    expect(res.status).toBe(201)
+    expect(mockCreate).toHaveBeenCalledWith('owner-1', expect.objectContaining({ key: 'WEB' }))
+  })
+
+  it('AWTD-1018: 400s a key the identifier format cannot carry', async () => {
+    for (const key of ['A', 'ABCDEF', '2AB', 'A-B']) {
+      const res = await createProject(makeReq('POST', { name: 'Web', key }), undefined as any)
+      expect(res.status, key).toBe(400)
+    }
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1018: 409s a key any other project already holds', async () => {
+    ;(mockPrisma.project.findUnique as any).mockResolvedValue({ id: 'someone-elses' })
+
+    const res = await createProject(makeReq('POST', { name: 'Web', key: 'AWTD' }), undefined as any)
+
+    expect(res.status).toBe(409)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
   it('creates a project + seeds defaults via the shared service', async () => {
     mockCreate.mockResolvedValue({
       id: 'p1',

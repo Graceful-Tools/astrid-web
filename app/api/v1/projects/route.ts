@@ -15,6 +15,7 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { createProjectForUser, listProjectsForUser } from '@/lib/projects-service'
+import { checkRequestedProjectKey } from '@/lib/task-identifier'
 import { projectModeGate } from '@/lib/project-mode'
 
 const log = createLogger('v1.projects')
@@ -55,11 +56,18 @@ export const POST = withAuth(
       return NextResponse.json({ error: 'name is required' }, { status: 400 })
     }
 
+    // The owner may choose the key before any task is minted (AWTD-1018).
+    const requested = await checkRequestedProjectKey(body.key)
+    if ('error' in requested) {
+      return NextResponse.json({ error: requested.error }, { status: requested.status })
+    }
+
     const project = await createProjectForUser(auth.userId, {
       name,
       description: body.description,
       color: body.color,
       imageUrl: body.imageUrl,
+      ...(requested.key ? { key: requested.key } : {}),
     })
 
     try {

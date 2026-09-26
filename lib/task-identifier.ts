@@ -19,12 +19,14 @@ import {
   MAX_PROJECT_KEY_LENGTH,
   parseIdentifier,
   formatIdentifier,
+  normalizeProjectKey,
 } from '@/lib/task-identifier-core'
 export {
   MIN_PROJECT_KEY_LENGTH,
   MAX_PROJECT_KEY_LENGTH,
   parseIdentifier,
   formatIdentifier,
+  normalizeProjectKey,
   type ParsedIdentifier,
 } from '@/lib/task-identifier-core'
 
@@ -157,6 +159,30 @@ export async function allocateSequence(
  * another request just picked the same key, so we re-read rather than fail the
  * task creation that triggered this.
  */
+/**
+ * Check a key the owner typed at project creation (AWTD-1018, spec §3).
+ *
+ * Absent → `{ key: null }`, and the key is derived from the name as before.
+ * Malformed → 400; held by any project on astrid.cc → 409. The unique index
+ * remains the backstop for two creates racing for one key.
+ */
+export async function checkRequestedProjectKey(
+  value: unknown,
+  client: PrismaLike = prisma
+): Promise<{ key: string | null } | { error: string; status: 400 | 409 }> {
+  if (value === undefined || value === null || value === '') return { key: null }
+  const key = normalizeProjectKey(value)
+  if (!key) {
+    return {
+      error: `A key is ${MIN_PROJECT_KEY_LENGTH}–${MAX_PROJECT_KEY_LENGTH} letters or digits, starting with a letter`,
+      status: 400,
+    }
+  }
+  const holder = await client.project.findUnique({ where: { key }, select: { id: true } })
+  if (holder) return { error: `The key ${key} is already taken`, status: 409 }
+  return { key }
+}
+
 export async function ensureProjectKey(
   projectId: string,
   client: PrismaLike = prisma

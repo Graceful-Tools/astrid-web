@@ -16,6 +16,7 @@ import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { createProjectFromList } from '@/lib/projects-service'
+import { checkRequestedProjectKey } from '@/lib/task-identifier'
 import { projectModeGate } from '@/lib/project-mode'
 
 const log = createLogger('v1.projects.from-list')
@@ -40,7 +41,16 @@ export const POST = withAuth(
       )
     }
 
-    const result = await createProjectFromList(auth.userId, listId)
+    // The owner may choose the key before any task is minted (AWTD-1018).
+    const requested = await checkRequestedProjectKey(body.key)
+    if ('error' in requested) {
+      return NextResponse.json(
+        { error: requested.error, meta: { apiVersion: 'v1', authSource: auth.source } },
+        { status: requested.status },
+      )
+    }
+
+    const result = await createProjectFromList(auth.userId, listId, { key: requested.key })
 
     if ('error' in result) {
       const meta = { apiVersion: 'v1', authSource: auth.source }

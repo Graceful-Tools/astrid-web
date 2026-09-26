@@ -84,7 +84,8 @@ describe('POST /api/v1/projects/from-list — Project Mode gate (task e0613ae5)'
     const res = await POST(req({ listId: 'list-1' }) as never)
 
     expect(res.status).toBe(201)
-    expect(createProjectFromList).toHaveBeenCalledWith(USER, 'list-1')
+    // No key requested → derived from the name as before (AWTD-1018).
+    expect(createProjectFromList).toHaveBeenCalledWith(USER, 'list-1', { key: null })
   })
 
   it('still rejects a missing listId', async () => {

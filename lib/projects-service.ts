@@ -73,6 +73,8 @@ export interface CreateProjectInput {
   description?: string | null
   color?: string
   imageUrl?: string | null
+  /** Owner-chosen, already checked by `checkRequestedProjectKey` (AWTD-1018). */
+  key?: string
 }
 
 /**
@@ -92,6 +94,7 @@ export async function createProjectForUser(userId: string, input: CreateProjectI
         description: input.description || null,
         color,
         imageUrl: input.imageUrl || null,
+        ...(input.key ? { key: input.key } : {}),
         ownerId: userId,
         members: {
           create: { userId, role: 'admin' },
@@ -125,6 +128,7 @@ export type CreateProjectFromListResult =
 export async function createProjectFromList(
   userId: string,
   listId: string,
+  options: { key?: string | null } = {},
 ): Promise<CreateProjectFromListResult> {
   return prisma.$transaction(async (tx) => {
     const list = await tx.taskList.findUnique({
@@ -156,6 +160,7 @@ export async function createProjectFromList(
         description: list.description || null,
         color: list.color || DEFAULT_LIST_COLOR,
         imageUrl: list.imageUrl || null,
+        ...(options.key ? { key: options.key } : {}),
         ownerId: userId,
         members: { create: { userId, role: 'admin' } },
       },
