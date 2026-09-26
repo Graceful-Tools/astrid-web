@@ -18,8 +18,9 @@
  * picks for the same reason: adding two or three in a row is the common case.
  */
 import { useCallback, useEffect, useState } from "react"
-import { Hourglass, Plus, X } from "lucide-react"
+import { Plus, Triangle, X } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
+import { Badge } from "@/components/ui/badge"
 import { useTranslations } from "@/lib/i18n/client"
 import { apiDelete, apiGet, apiPost } from "@/lib/api"
 import {
@@ -146,46 +147,58 @@ export function TaskDetailBlockersRow({
   }
 
   return (
-    <TaskFieldRow label={t('tasks.waitingOn.label')} icon={<Hourglass className="w-4 h-4" />}>
+    // A yield sign: an inverted triangle, outlined and muted like every other
+    // row icon (AWTD-1007). iOS, Mac and Windows draw the same shape.
+    <TaskFieldRow
+      label={t('tasks.waitingOn.label')}
+      icon={<Triangle data-testid="waiting-on-icon" className="w-4 h-4 rotate-180" />}
+    >
       <div className="flex flex-col gap-2" data-testid="task-detail-blockers">
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t('tasks.waitingOn.label')}>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('tasks.waitingOn.label')}>
           {blockedBy.length === 0 && (
             <span className="text-sm theme-text-secondary">
               {t('tasks.waitingOn.empty')}
             </span>
           )}
+          {/* Listed the way the Lists row lists lists: the same Badge, so a
+              blocker reads as a thing the task is attached to. */}
           {blockedBy.map(blocker => (
-            <span
+            <Badge
               key={blocker.id}
+              variant="secondary"
               data-testid={`task-blocker-${blocker.id}`}
-              className={`inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 ${
-                blocker.completed
-                  ? 'theme-border theme-text-muted line-through'
-                  : 'theme-border theme-text-primary'
+              className={`flex items-center gap-1 ${readOnly ? '' : 'pr-1'} ${
+                blocker.completed ? 'line-through opacity-60' : ''
               }`}
             >
               {/* A blocker you cannot see still blocks. The COUNT is not a
                   leak — the reader already knows something holds their task —
-                  but the title would be. */}
+                  but the title would be, and so would its id. */}
               {blocker.hidden ? (
                 t('tasks.waitingOn.hidden')
               ) : (
-                // The same task link a `!task` reference renders (lib/markdown.ts).
-                <a href={`/?task=${encodeURIComponent(blocker.id)}`} className="hover:underline">
-                  {blocker.title}
-                </a>
+                <>
+                  {/* Outside the link, so the link's name stays the title. */}
+                  {blocker.identifier && (
+                    <span className="font-mono opacity-70">{blocker.identifier}</span>
+                  )}
+                  {/* The same task link a `!task` reference renders (lib/markdown.ts). */}
+                  <a href={`/?task=${encodeURIComponent(blocker.id)}`} className="hover:underline">
+                    {blocker.title}
+                  </a>
+                </>
               )}
               {!readOnly && (
                 <button
                   type="button"
                   aria-label={t('tasks.waitingOn.remove')}
                   onClick={() => remove(blocker.id)}
-                  className="theme-text-secondary hover:theme-text-primary"
+                  className="ml-1 hover:bg-black/20 rounded-full p-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
-            </span>
+            </Badge>
           ))}
           {!readOnly && (
             <button
