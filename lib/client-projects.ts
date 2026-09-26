@@ -4,6 +4,8 @@
  * fact the list payload does not carry (custom board states, task-id keys);
  * each hook keeps its own caching policy.
  */
+import { apiGet } from '@/lib/api'
+
 export interface ClientProject {
   id: string
   key?: string | null
@@ -12,8 +14,8 @@ export interface ClientProject {
 }
 
 export async function fetchProjects(): Promise<ClientProject[]> {
-  const response = await fetch('/api/v1/projects')
-  if (!response.ok) throw new Error(`projects ${response.status}`)
+  // apiGet throws on a non-2xx, so callers see a failed read as a rejection.
+  const response = await apiGet('/api/v1/projects')
   const body = await response.json()
   return Array.isArray(body?.projects) ? body.projects : []
 }
