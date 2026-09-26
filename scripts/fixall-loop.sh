@@ -247,6 +247,29 @@ wait "$CLAUDE_PID"
 STATUS=$?
 kill "$WATCHDOG_PID" 2>/dev/null
 
+# ── Leave the checkout where the next tick can use it ────────────────────────
+# fixall.md works each task on its own branch and merges back at the end. A run
+# the watchdog kills never gets to the end: on 2026-09-26 one committed AWTD-1008
+# on fix/fixall-claim-windows-board, was killed, and left HEAD there — unpushed,
+# so nobody could see it, and unmerged, so guard 2 rightly refused every later
+# tick. This wrapper holds the lock and the session that made the branch is
+# gone, so it is the one place that may move HEAD: push the branch so the work
+# is reviewable, then go back to main. Uncommitted changes are left alone.
+END_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ "$END_BRANCH" != "main" ]; then
+  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    echo "  ⚠️  run left $END_BRANCH with uncommitted changes — leaving it for a human"
+  else
+    if git push -q -u origin "$END_BRANCH" 2>/dev/null; then
+      echo "  run left $END_BRANCH — pushed it to origin for review"
+    else
+      echo "  ⚠️  run left $END_BRANCH and it could not be pushed"
+      post_to_list "**Scheduled /fixall (web) left unpushed work on \`$END_BRANCH\`** — the push failed. The branch is still in $REPO; the loop has gone back to main."
+    fi
+    git checkout -q main && echo "  returned to main from $END_BRANCH"
+  fi
+fi
+
 # Phase two of waking, before the RESULT line so that line stays last (the
 # header promises it). A finished run had its chance at the preflight's items:
 # they are marked seen and will not wake another run. A failed run gives them

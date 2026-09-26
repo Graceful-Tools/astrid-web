@@ -58,6 +58,16 @@ The Vercel API answers the same question if you need it from outside the app:
 `GET https://api.vercel.com/v9/projects/<projectId>?teamId=<team>` →
 `targets.production.meta.githubCommitSha`.
 
+Once a deploy's health check passes, the workflow moves the **`prod` branch** to that commit
+and tags it `prod-<YYYYMMDD-HHMMSS>-<sha7>` (`scripts/advance-prod-branch.sh`). Only the deploy
+moves it, rollbacks included. So what is waiting to ship is a git question:
+```bash
+git fetch origin && git log --oneline origin/prod..origin/main    # the next deploy's commits
+git diff origin/prod origin/main -- prisma/migrations/            # and its migrations
+```
+`/api/health` is still the ground truth; `prod` lags it only if a deploy bypassed the workflow
+(`./scripts/deploy-preview.sh --production` does not move it).
+
 > **This section has been wrong three times — each one merged, and each one acted
 > on. The pattern matters more than any of the answers:**
 > 1. *"Auto-deploy is OFF."* An agent used it to call a merge safe; five migrations

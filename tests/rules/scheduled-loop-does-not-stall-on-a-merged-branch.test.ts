@@ -43,6 +43,16 @@ describe('the scheduled loop does not stall on a merged branch', () => {
     expect(guard2).toMatch(/post_to_list/)
   })
 
+  it('after its own run, pushes a leftover task branch and returns to main', () => {
+    // 2026-09-26: a watchdog-killed run left AWTD-1008 committed on an unpushed
+    // task branch, and guard 2 skipped every tick after it.
+    const afterRun = loop.slice(loop.indexOf('wait "$CLAUDE_PID"'))
+    const cleanup = afterRun.slice(0, afterRun.indexOf('Phase two of waking'))
+    expect(cleanup).toMatch(/git push -q -u origin "\$END_BRANCH"/)
+    expect(cleanup).toMatch(/git checkout -q main/)
+    expect(cleanup.indexOf('git status --porcelain')).toBeLessThan(cleanup.indexOf('git checkout'))
+  })
+
   it('clears the stuck marker once the guard passes', () => {
     const afterGuard = loop.slice(loop.indexOf('Guard 2'))
     expect(afterGuard).toMatch(/rm -f "\$STUCK_FILE"/)

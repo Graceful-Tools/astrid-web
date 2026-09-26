@@ -489,6 +489,26 @@ jobs:
 
           echo "🎯 Production health checks passed!"
 
+  # `prod` = the commit production is serving, moved only here and only after
+  # the health check has confirmed that SHA is live. `git log origin/prod..origin/main`
+  # is then "what the next deploy ships". Reasoning in scripts/advance-prod-branch.sh.
+  advance-prod-branch:
+    name: 'Advance prod Branch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [deploy-production, health-check]
+    if: always() && needs.health-check.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Point prod at the deployed commit
+        run: bash scripts/advance-prod-branch.sh "$GITHUB_SHA"
+
   # Job 5 (Update AI Agent Tasks) was REMOVED — AWTD-868.
   #
   # Its only real step POSTed to /api/coding-agent/deployment-complete, a route
