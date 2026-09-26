@@ -80,7 +80,7 @@ export const OAUTH_MCP_TOOLS = [
           properties: {
             taskId: {
               type: "string",
-              description: "ID of the task",
+              description: "Task id (uuid) or identifier such as AWTD-1007",
             },
           },
           required: ["taskId"],
@@ -182,7 +182,7 @@ export const OAUTH_MCP_TOOLS = [
           properties: {
             taskId: {
               type: "string",
-              description: "ID of the task to update",
+              description: "Task id (uuid) or identifier such as AWTD-1007",
             },
             title: {
               type: "string",
@@ -267,7 +267,7 @@ export const OAUTH_MCP_TOOLS = [
           properties: {
             taskId: {
               type: "string",
-              description: "ID of the task",
+              description: "Task id (uuid) or identifier such as AWTD-1007",
             },
             content: {
               type: "string",
@@ -317,7 +317,7 @@ export const OAUTH_MCP_TOOLS = [
           properties: {
             taskId: {
               type: "string",
-              description: "ID of the task",
+              description: "Task id (uuid) or identifier such as AWTD-1007",
             },
           },
           required: ["taskId"],

@@ -222,7 +222,13 @@ const V1_TASK_RESPONSE_INCLUDE = {
 export const PUT = withAuth<RouteContext>(
   { scopes: ['tasks:write'], tag: 'v1.tasks.id' },
   async (req, auth, { params }) => {
-    const { id: taskId } = await params
+    const { id: rawId } = await params
+
+    // Identifiers are accepted wherever a task id is (AWTD-1016), as on GET.
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
 
     await requireTaskAccess(auth.userId, taskId)
 
@@ -376,7 +382,12 @@ export const PUT = withAuth<RouteContext>(
 export const DELETE = withAuth<RouteContext>(
   { scopes: ['tasks:delete'], tag: 'v1.tasks.id' },
   async (req, auth, { params }) => {
-    const { id: taskId } = await params
+    const { id: rawId } = await params
+
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
 
     await requireTaskAccess(auth.userId, taskId)
 

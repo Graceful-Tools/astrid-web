@@ -45,7 +45,7 @@ import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-wor
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
-import { allocateTaskIdentifier } from '@/lib/task-identifier'
+import { mintTaskIdentifierBestEffort } from '@/services/task-identifier-mint'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import {
   recordTaskCreationComment,
@@ -622,12 +622,7 @@ export async function createTaskWithSideEffects(args: {
   // sequence number, and above the create so every real create gets one —
   // including the clientRequestId path, which is what task 5bcd426b was about.
   // Best-effort: no identifier is worse than a failed create is worse still.
-  let minted: { identifier: string; sequence: number } | null = null
-  try {
-    minted = await allocateTaskIdentifier(connectListIds)
-  } catch (err) {
-    log.error({ err }, 'Failed to allocate task identifier')
-  }
+  const minted = await mintTaskIdentifierBestEffort(connectListIds)
 
   // Same validation as the update path, for the same reason (task e16e9b94).
   const parsedRepeating = parseRepeating(input.repeating)
@@ -1275,6 +1270,8 @@ export async function updateTaskWithSideEffects(args: {
   // which is what the checkbox sends — skipped it and left the task in Ready.
   if (validatedListIds !== undefined) {
     data.lists = { set: validatedListIds.map(id => ({ id })) }
+    // A move onto a project mints as a create does (AWTD-1016); `=== null` so an existingTask without the column never re-mints.
+    if (existingTask.identifier === null) Object.assign(data, await mintTaskIdentifierBestEffort(validatedListIds))
   } else if (requestedCompleted === true) {
     const detach = statusListIdsToDetachOnCompletion(existingTask.lists)
     if (detach.length > 0) {

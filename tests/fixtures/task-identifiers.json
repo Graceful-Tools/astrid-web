@@ -1,0 +1,90 @@
+{
+  "$comment": "Shared contract for task identifiers (docs/specs/TASK_IDENTIFIERS.md, AWTD-1010/AWTD-1016). The server is the only minter; every client parses, autolinks and shows ids against THESE cases. astrid-windows copies this file into contracts/fixtures/, astrid-ios into its test bundle. Change it here first.",
+  "version": 1,
+  "parse": [
+    { "input": "AWTD-1007", "expected": { "key": "AWTD", "sequence": 1007 } },
+    { "input": "awtd-1007", "expected": { "key": "AWTD", "sequence": 1007 }, "note": "case-insensitive in, uppercase out" },
+    { "input": "  AB-1  ", "expected": { "key": "AB", "sequence": 1 }, "note": "surrounding whitespace is trimmed" },
+    { "input": "ab-1", "expected": { "key": "AB", "sequence": 1 } },
+    { "input": "AWTD2-44", "expected": { "key": "AWTD2", "sequence": 44 }, "note": "digits allowed after the first letter" },
+    { "input": "ABCDE-9", "expected": { "key": "ABCDE", "sequence": 9 }, "note": "five characters is the maximum" },
+    { "input": "A-1", "expected": null, "note": "key too short" },
+    { "input": "ABCDEF-1", "expected": null, "note": "key too long" },
+    { "input": "AB-0", "expected": null, "note": "sequences start at 1" },
+    { "input": "2AB-1", "expected": null, "note": "key must start with a letter" },
+    { "input": "AB-", "expected": null },
+    { "input": "AB-1a", "expected": null },
+    { "input": "#1007", "expected": null, "note": "the short form is an autolink rule, not an identifier" },
+    { "input": "3f2a0c1e-1111-2222-3333-444455556666", "expected": null, "note": "a uuid is never an identifier" },
+    { "input": "", "expected": null }
+  ],
+  "autolink": {
+    "$comment": "Text in, link spans out. Context: `projectKey` is the project whose task or list chat the text belongs to (null outside a project); `keys` are the project keys the reader can see; `hidden` are ids the reader is known not to see. A reference whose key is not in `keys`, or whose id is in `hidden`, renders as plain text — no link that 404s. Full form matches uppercase only, on word boundaries, never inside a URL or code. `#N` needs a projectKey and expands to it. Every link targets /t/<IDENTIFIER>.",
+    "cases": [
+      {
+        "name": "full form anywhere",
+        "text": "Blocked by AWTD-1007, see there.",
+        "context": { "projectKey": null, "keys": ["AWTD"], "hidden": [] },
+        "links": [{ "match": "AWTD-1007", "identifier": "AWTD-1007", "href": "/t/AWTD-1007" }]
+      },
+      {
+        "name": "short form inside a project",
+        "text": "Dup of #12.",
+        "context": { "projectKey": "AWTD", "keys": ["AWTD"], "hidden": [] },
+        "links": [{ "match": "#12", "identifier": "AWTD-12", "href": "/t/AWTD-12" }]
+      },
+      {
+        "name": "short form outside a project is plain text",
+        "text": "Dup of #12.",
+        "context": { "projectKey": null, "keys": ["AWTD"], "hidden": [] },
+        "links": []
+      },
+      {
+        "name": "hidden target is plain text",
+        "text": "See AWTD-3 and AWTD-4.",
+        "context": { "projectKey": null, "keys": ["AWTD"], "hidden": ["AWTD-3"] },
+        "links": [{ "match": "AWTD-4", "identifier": "AWTD-4", "href": "/t/AWTD-4" }]
+      },
+      {
+        "name": "unknown key is plain text, so UTF-8 and COVID-19 stay prose",
+        "text": "Encode as UTF-8, unlike COVID-19 era code; fixes AITD-5.",
+        "context": { "projectKey": null, "keys": ["AWTD", "AITD"], "hidden": [] },
+        "links": [{ "match": "AITD-5", "identifier": "AITD-5", "href": "/t/AITD-5" }]
+      },
+      {
+        "name": "lowercase is not autolinked (it is still parsed when typed into a picker)",
+        "text": "branch awtd-1007-fix-thing",
+        "context": { "projectKey": null, "keys": ["AWTD"], "hidden": [] },
+        "links": []
+      },
+      {
+        "name": "not inside a word or a URL",
+        "text": "XAWTD-1 https://example.com/AWTD-2 AWTD-3x",
+        "context": { "projectKey": null, "keys": ["AWTD"], "hidden": [] },
+        "links": []
+      },
+      {
+        "name": "not inside code",
+        "text": "Run `git log AWTD-9` then read AWTD-10.",
+        "context": { "projectKey": null, "keys": ["AWTD"], "hidden": [] },
+        "links": [{ "match": "AWTD-10", "identifier": "AWTD-10", "href": "/t/AWTD-10" }]
+      },
+      {
+        "name": "#N needs digits only, and a heading is not a reference",
+        "text": "# 12 heading\n#12abc and #0",
+        "context": { "projectKey": "AWTD", "keys": ["AWTD"], "hidden": [] },
+        "links": []
+      }
+    ]
+  },
+  "showRule": {
+    "$comment": "Where the id is SHOWN (docs/specs/TASK_IDENTIFIERS.md §7). Shown when the task has an identifier AND sits on at least one list that belongs to a project. Surfaces: `details` (next to the lists), `row-board` (muted, board views only), `row-list` (never). 'Copy task id' is offered whenever an identifier exists.",
+    "cases": [
+      { "name": "on a board", "identifier": "AWTD-1", "lists": [{ "projectId": "p1" }], "show": { "details": true, "row-board": true, "row-list": false }, "copy": true },
+      { "name": "board plus a personal list", "identifier": "AWTD-1", "lists": [{ "projectId": null }, { "projectId": "p1" }], "show": { "details": true, "row-board": true, "row-list": false }, "copy": true },
+      { "name": "moved out of every project keeps the id for links, not for display", "identifier": "AWTD-1", "lists": [{ "projectId": null }], "show": { "details": false, "row-board": false, "row-list": false }, "copy": true },
+      { "name": "solo task never had one", "identifier": null, "lists": [{ "projectId": null }], "show": { "details": false, "row-board": false, "row-list": false }, "copy": false },
+      { "name": "no lists at all", "identifier": null, "lists": [], "show": { "details": false, "row-board": false, "row-list": false }, "copy": false }
+    ]
+  }
+}

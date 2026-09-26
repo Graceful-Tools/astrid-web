@@ -87,12 +87,13 @@ export function deriveProjectKey(name: string): string | null {
 }
 
 /**
- * Pick a key that doesn't collide with any the owner already uses.
+ * Pick a key that doesn't collide with any key already taken on astrid.cc.
  *
  * Appends a digit ("AST" → "AST2"), staying inside the length cap. Collisions
- * are resolved per owner rather than globally: two people may both have an
- * "AST", and forcing global uniqueness would hand out increasingly ugly keys
- * for no benefit.
+ * are resolved across every owner, not per owner (AWTD-1016): `Task.identifier`
+ * is globally unique, so two owners sharing "AST" would both mint AST-1 and
+ * every task create in the second project would fail on that index. A global
+ * key is also what lets `AST-142` name one task anywhere it is typed.
  */
 export function resolveProjectKeyCollision(
   candidate: string,
@@ -169,9 +170,9 @@ export async function allocateSequence(
 /**
  * Ensure a project has a key, deriving one from its name if it doesn't.
  *
- * Idempotent, and safe under concurrency: a unique violation on (ownerId, key)
- * means another request just picked the same key, so we re-read rather than
- * fail the task creation that triggered this.
+ * Idempotent, and safe under concurrency: a unique violation on `key` means
+ * another request just picked the same key, so we re-read rather than fail the
+ * task creation that triggered this.
  */
 export async function ensureProjectKey(
   projectId: string,
@@ -179,7 +180,7 @@ export async function ensureProjectKey(
 ): Promise<string | null> {
   const project = await client.project.findUnique({
     where: { id: projectId },
-    select: { id: true, key: true, name: true, ownerId: true },
+    select: { id: true, key: true, name: true },
   })
   if (!project) return null
   if (project.key) return project.key
@@ -187,13 +188,14 @@ export async function ensureProjectKey(
   const candidate = deriveProjectKey(project.name)
   if (!candidate) return null
 
-  const siblings = await client.project.findMany({
-    where: { ownerId: project.ownerId, key: { not: null } },
+  // Every key on astrid.cc, not just this owner's (AWTD-1016).
+  const taken = await client.project.findMany({
+    where: { key: { not: null } },
     select: { key: true },
   })
   const key = resolveProjectKeyCollision(
     candidate,
-    siblings.map(sibling => sibling.key as string)
+    taken.map(other => other.key as string)
   )
 
   try {

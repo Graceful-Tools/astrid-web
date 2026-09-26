@@ -27,9 +27,15 @@ const v1Route = fs.readFileSync('app/api/v1/tasks/route.ts', 'utf8')
 
 describe('task create identifier minting (task 5bcd426b, epic 9dedd8aa)', () => {
   it('mints exactly once, not once per branch', () => {
-    const mints = service.match(/await allocateTaskIdentifier\(/g) ?? []
+    // The UPDATE verb mints too since AWTD-1016 — a task moved onto a project
+    // list gets its identifier then — so count each verb on its own side.
+    const updateAt = service.indexOf('export async function updateTaskWithSideEffects')
+    expect(updateAt).toBeGreaterThan(-1)
+    const createMints = service.slice(0, updateAt).match(/await mintTaskIdentifierBestEffort\(/g) ?? []
+    const updateMints = service.slice(updateAt).match(/await mintTaskIdentifierBestEffort\(/g) ?? []
 
-    expect(mints).toHaveLength(1)
+    expect(createMints).toHaveLength(1)
+    expect(updateMints).toHaveLength(1)
   })
 
   it('has exactly one create for the mint to sit above', () => {
@@ -41,7 +47,7 @@ describe('task create identifier minting (task 5bcd426b, epic 9dedd8aa)', () => 
 
   it('mints below the idempotency return, so a retry burns no sequence number', () => {
     const idempotencyAt = service.indexOf('Idempotency ')
-    const mintAt = service.indexOf('await allocateTaskIdentifier(')
+    const mintAt = service.indexOf('await mintTaskIdentifierBestEffort(')
 
     expect(idempotencyAt).toBeGreaterThan(-1)
     expect(mintAt).toBeGreaterThan(idempotencyAt)

@@ -11,6 +11,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { authenticateAPI, getDeprecationWarning, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { isAdmin } from '@/lib/admin-auth'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { createLogger } from '@/lib/logger'
 import { ListImageClaimError } from '@/lib/images/update-list-image'
 
@@ -308,6 +309,18 @@ async function executeMCPOperation(operation: string, args: any, userId: string)
     throw new ForbiddenOperationError(
       `Operation "${operation}" runs on this deployment's own credentials and is restricted to platform admins.`,
     )
+  }
+
+  // Every task-id argument accepts an identifier (AWTD-1007) as well as a
+  // uuid (AWTD-1016). Resolved once here so no handler open-codes it; an
+  // identifier that matches nothing is left as typed and fails each handler's
+  // own not-found check, the same answer a hidden task gets.
+  if (typeof args?.taskId === 'string') {
+    args.taskId = (await resolveTaskIdOrIdentifier(args.taskId)) ?? args.taskId
+  }
+  if (typeof args?.taskUpdate?.taskId === 'string') {
+    args.taskUpdate.taskId =
+      (await resolveTaskIdOrIdentifier(args.taskUpdate.taskId)) ?? args.taskUpdate.taskId
   }
 
   switch (operation) {

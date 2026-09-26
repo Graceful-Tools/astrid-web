@@ -9,6 +9,9 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks ──────────────────────────────────────────────────────────────
 
+// Fixture ids like "task-123" are identifier-shaped (KEY-N); resolve them as
+// the uuids they stand for (AWTD-1016).
+vi.mock('@/lib/task-identifier', () => ({ resolveTaskIdOrIdentifier: vi.fn(async (id: string) => id) }))
 vi.mock('@/lib/sse-utils', () => ({
   broadcastToUsers: vi.fn(),
 }))

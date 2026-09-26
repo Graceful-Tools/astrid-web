@@ -98,9 +98,9 @@ when the project is created**, before any task is minted. Changing it afterwards
   already on the client, by title only (`hooks/use-chat-mentions.ts`). It must use the same
   server search, so typing `!AWTD-10` finds the task. The stored form is unchanged: the
   mention markdown that `lib/markdown.ts` parses, carrying the task's UUID.
-- **Every API that takes a task id takes an identifier.** Today only `GET
-  /api/v1/tasks/[id]` accepts one. The follow-up covers PUT and DELETE, and the MCP tools,
-  through `resolveTaskIdOrIdentifier`.
+- **Every API that takes a task id takes an identifier.** `GET`, `PUT` and `DELETE
+  /api/v1/tasks/[id]`, its comments route, and the hosted MCP operations all resolve
+  through `resolveTaskIdOrIdentifier` (W1, AWTD-1016).
 
 ### 6. Visibility
 
@@ -146,10 +146,12 @@ test bundle, the same way the quick-add keyword tables are shared.
 
 Web (Astrid Web To-do):
 
-- **W1: server.** Keys unique across astrid.cc: migration, global collision check, and a RED
-  test for the cross-owner create failure. Mint an id when an id-less task moves into a
-  project. Resolve identifiers in PUT, DELETE and MCP. Add the `/t/[identifier]` route with
-  gated resolution. Add the shared fixture file.
+- **W1: server — built (AWTD-1016).** Keys unique across astrid.cc (migration
+  `20260926230000_project_key_unique_globally`, global collision check). An id-less task
+  gets its id when a move lands it on a project. PUT, DELETE, comments and MCP resolve
+  identifiers. `/t/[identifier]` (`lib/task-link.ts`) resolves with gated access. The
+  shared fixtures are `tests/fixtures/task-identifiers.json`; the autolink cases take the
+  reader's visible project keys as context, so `UTF-8` and `COVID-19` stay prose.
 - **W2: UI.** Autolink `KEY-N` and `#N` in comments, descriptions and chat. The `!` picker
   searches the server, including identifiers. Show the id in task details, and add "Copy
   task id" to the task menu. Apply the show-rule to rows.

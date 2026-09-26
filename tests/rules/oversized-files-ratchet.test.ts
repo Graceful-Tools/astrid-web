@@ -92,7 +92,9 @@ const BUDGETS: Record<string, number> = {
   // already decides who MAY be assigned, and whose own doc comment had named
   // that function since AWTD-891. Who gets assigned by default and who may be
   // assigned at all are one question asked twice.
-  'services/task.service.ts': 1605,
+  // 1605 → 1602: AWTD-1016 made a move mint an identifier as a create does.
+  // The best-effort mint went to services/task-identifier-mint.ts, used by both.
+  'services/task.service.ts': 1602,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

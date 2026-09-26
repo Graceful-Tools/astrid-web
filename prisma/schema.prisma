@@ -247,9 +247,11 @@ model Project {
   imageUrl     String?
   ownerId      String
   /// Short prefix for this project's task identifiers, e.g. "AST" in AST-142
-  /// (task 12f54df4). Unique per owner, not globally: two people may both have
-  /// an "AST" and forcing global uniqueness would hand out ugly keys for no
-  /// benefit. Null for projects created before identifiers existed.
+  /// (task 12f54df4). Unique across astrid.cc, not per owner (AWTD-1016):
+  /// Task.identifier is globally unique, so a key two owners shared would make
+  /// every task create in the second project fail on that index — and a global
+  /// key is what lets AST-142 name one task wherever it is typed. Null for
+  /// projects created before identifiers existed.
   key          String?
   /// Per-project custom board states — a Project-Mode-only feature (AWTD-562).
   /// Shape: [{ role, name, description?, order }]. The defaults
@@ -268,7 +270,7 @@ model Project {
   members      ProjectMember[]
   lists        TaskList[]
 
-  @@unique([ownerId, key])
+  @@unique([key])
   @@index([ownerId])
   @@index([createdAt])
 }

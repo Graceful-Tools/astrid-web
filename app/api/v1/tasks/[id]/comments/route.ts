@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import {
   isV1CommentType,
   V1_COMMENT_TYPE_VALUES,
@@ -87,7 +88,13 @@ type RouteContext = { params: Promise<{ id: string }> }
 export const GET = withAuth<RouteContext>(
   { scopes: ['comments:read'], tag: 'v1.tasks.comments' },
   async (_req, auth, { params }) => {
-    const { id: taskId } = await params
+    const { id: rawId } = await params
+
+    // Identifiers are accepted wherever a task id is (AWTD-1016).
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
 
     const task = await prisma.task.findUnique({
       where: { id: taskId },
@@ -174,7 +181,11 @@ export const GET = withAuth<RouteContext>(
 export const POST = withAuth<RouteContext>(
   { scopes: ['comments:write'], tag: 'v1.tasks.comments' },
   async (req, auth, { params }) => {
-    const { id: taskId } = await params
+    const { id: rawId } = await params
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    }
     const body: V1CommentCreateRequest = await req.json()
 
     // NOTE (task 87e19910): this route is STRICTER than its two siblings.
