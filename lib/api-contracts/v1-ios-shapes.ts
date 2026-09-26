@@ -610,3 +610,57 @@ export interface V1DesktopExchangeResponse {
   user: V1AuthUser
   meta: V1ResponseMeta
 }
+
+// ── Blockers — "waiting on" (AWTD-1002) ───────────────────────────────
+
+/**
+ * One blocker as /api/v1/tasks/[id]/blockers renders it.
+ *
+ * `hidden: true` is the permission case: the reader may not see this task, so
+ * it carries an id and nothing else. A hidden blocker STILL BLOCKS — a client
+ * must count it, not drop it. The copy says "waiting on"; the wire says
+ * "blocker" (docs/specs/TASK_BLOCKING_DEPENDENCIES.md).
+ */
+export interface V1Blocker {
+  id: string
+  title?: string
+  identifier?: string | null
+  completed?: boolean
+  hidden?: true
+}
+
+/** GET /api/v1/tasks/[id]/blockers */
+export interface V1BlockersResponse {
+  /** Tasks this one is waiting on. */
+  blockedBy: V1Blocker[]
+  /** Tasks waiting on this one. */
+  blocks: V1Blocker[]
+  /**
+   * Every visible task that waits on this one, transitively: the tasks it may
+   * not be made to wait on, because the write would refuse the cycle (409
+   * `dependency_cycle`). A picker drops these rather than offering them.
+   */
+  dependentIds: string[]
+  meta: V1ResponseMeta
+}
+
+/**
+ * POST /api/v1/tasks/[id]/blockers (201 created, 200 already linked) and
+ * DELETE /api/v1/tasks/[id]/blockers/[blockingTaskId].
+ */
+export interface V1BlockerMutationResponse {
+  taskId: string
+  blockingTaskId: string
+  blockedBy: V1Blocker[]
+  meta: V1ResponseMeta
+}
+
+/**
+ * The id arrays GET /api/v1/tasks/[id] adds beside `listIds`. OPTIONAL on the
+ * contract so iOS and web ship independently: a client that has never heard of
+ * them is unaffected.
+ */
+export interface V1TaskBlockerIds {
+  blockedBy?: string[]
+  blocks?: string[]
+}

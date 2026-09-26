@@ -10,6 +10,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
 import { projectModeGate } from '@/lib/project-mode'
 import { addBlocker, getBlockersForTask } from '@/services/task-dependency.service'
+import type { V1BlockerMutationResponse, V1BlockersResponse } from '@/lib/api-contracts/v1-ios-shapes'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -22,7 +23,10 @@ export const GET = withAuth<RouteContext>(
     const { id: taskId } = await params
     await requireTaskAccess(auth.userId, taskId)
 
-    return NextResponse.json(await getBlockersForTask(taskId, auth.userId))
+    return NextResponse.json({
+      ...(await getBlockersForTask(taskId, auth.userId)),
+      meta: { apiVersion: 'v1', authSource: auth.source },
+    } satisfies V1BlockersResponse)
   },
 )
 
@@ -65,7 +69,12 @@ export const POST = withAuth<RouteContext>(
     // 200 rather than 201 when the link already existed: the unique constraint
     // makes the write idempotent, and every surface writes here.
     return NextResponse.json(
-      { taskId, blockingTaskId, blockedBy: result.blockedBy },
+      {
+        taskId,
+        blockingTaskId: blockingTaskId.trim(),
+        blockedBy: result.blockedBy,
+        meta: { apiVersion: 'v1', authSource: auth.source },
+      } satisfies V1BlockerMutationResponse,
       { status: result.created ? 201 : 200 },
     )
   },

@@ -154,8 +154,8 @@ Reopening a blocker **re-blocks its dependents, but only out of `Ready`.**
 
 - Dependent in `Ready` → back to `Waiting`. It was only in Ready because the blocker was
   done, and that is no longer true.
-- Dependent in `Doing`, `Done`, or a custom state → **left alone**, with a `TaskEvent` and a
-  notification to its assignee. Yanking a card out from under someone mid-work is worse than
+- Dependent in `Doing`, `Done`, or a custom state → **left alone**, with a `TaskEvent`
+  (`blocker_reopened`) and a notification to its assignee. Yanking a card out from under someone mid-work is worse than
   a stale lane, and they are the only one who can judge whether the reopened blocker
   actually stops them.
 
@@ -255,13 +255,26 @@ in the implementation task's test, in the style of `tests/rules/`.
 
 ### Copy and activity
 
-- Every user-facing string is an i18n key (`tasks.blockers.*`), never a literal.
-- Three new `TASK_EVENT_KINDS` in `lib/task-events.ts`: `blocker_added`, `blocker_removed`,
-  `unblocked`. `unblocked` is the one that matters — "why did this move to Ready at 4am?"
+- Every user-facing string is an i18n key (`tasks.waitingOn.*`), never a literal.
+- Four new `TASK_EVENT_KINDS` in `lib/task-events.ts`: `blocker_added`, `blocker_removed`,
+  `unblocked`, and `blocker_reopened` (the reopen case above). `unblocked` is the one that matters — "why did this move to Ready at 4am?"
   is precisely the question `TaskEvent` exists to answer, and an automatic promotion with no
   trail is the agent-autonomy trust problem that model comment describes.
-- `unblocked` notifies the dependent's assignee via the existing `TaskEvent` fan-out. It
-  writes no new notification path.
+- `unblocked` and `blocker_reopened` notify via the existing `TaskEvent` fan-out
+  (`fanOutEvent` → `persistNotifications`), mapped to the `status_changed` notification kind
+  in `lib/notifications.ts`. No new notification path.
+
+### Every automatic move is announced
+
+The gate changes `statusRole` itself, so nothing else would tell open boards: a person's
+own edit goes through `updateTaskWithSideEffects`, which broadcasts and invalidates the
+cache, and the gate's write does not. Every move the gate makes — promote, re-block, the
+demotion when a blocker is added — therefore goes through one helper, `moveLane` in
+`services/task-dependency.service.ts`: a conditional write, the `TaskEvent`, the
+notification, a task-cache invalidation, and a `task_updated` SSE with the **full** task
+(the web cache stores the payload as the task). The actor is **included** in that
+broadcast, unlike the update path's: they never touched this card, so no optimistic update
+shows it moving.
 
 ---
 
@@ -287,13 +300,15 @@ comment marker re-checked by a human or an agent, exactly as
 
 ## API
 
-All four gated by `projectModeGate`, all returning the standard v1 envelope. Any wire change
+All four gated by `projectModeGate`, all returning the standard v1 envelope (`meta`). Shapes:
+`V1BlockersResponse`, `V1BlockerMutationResponse` and `V1TaskBlockerIds` in
+`lib/api-contracts/v1-ios-shapes.ts`, which the routes `satisfies`. Any wire change
 updates `lib/api-contracts/v1-ios-shapes.ts` and `tests/api/v1-contract.test.ts` in the same
 PR, per PROJECT_MODE.md's working agreements.
 
 | Route | Does |
 |---|---|
-| `GET /api/v1/tasks/:id/blockers` | Both directions: `{ blockedBy: [...], blocks: [...] }`. Invisible blockers appear as `{ hidden: true }` with an id only. |
+| `GET /api/v1/tasks/:id/blockers` | Both directions: `{ blockedBy: [...], blocks: [...], dependentIds: [...] }`. Invisible blockers appear as `{ hidden: true }` with an id only. `dependentIds` is every visible task that transitively waits on this one — what the picker drops, since choosing one would be refused as a cycle. |
 | `POST /api/v1/tasks/:id/blockers` | `{ blockingTaskId }`. `409 dependency_cycle`, `403` on permissions, `200` (not 201) on an existing link — the unique constraint makes it idempotent. |
 | `DELETE /api/v1/tasks/:id/blockers/:blockingTaskId` | Removes one link. Re-runs the promotion gate: removing the last outstanding blocker unblocks the task, same as completing it would. |
 | `GET /api/v1/tasks/:id` | Gains `blockedBy` / `blocks` id arrays. **Optional fields**, so iOS and web ship independently. |

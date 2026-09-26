@@ -46,6 +46,11 @@ export const TASK_EVENT_KINDS = [
   'blocker_added',
   'blocker_removed',
   'unblocked',
+  // A blocker reopened under a card someone is already working. The card is
+  // left where it is — only its assignee can judge whether the blocker stops
+  // them — so this event, and the notification it fans out to, is the whole
+  // signal.
+  'blocker_reopened',
 ] as const
 
 export type TaskEventKind = (typeof TASK_EVENT_KINDS)[number]

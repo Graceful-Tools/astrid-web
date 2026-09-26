@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireTaskAccess, requireTaskReadAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
+import type { V1TaskBlockerIds } from '@/lib/api-contracts/v1-ios-shapes'
 import { prisma } from '@/lib/prisma'
 import { validateParentTask, readParentTaskIdFromBody } from '@/lib/subtasks'
 import { getListMemberIds } from '@/lib/list-member-utils'
@@ -135,8 +136,10 @@ export const GET = withAuth<RouteContext>(
     const taskWithListIds = {
       ...task,
       listIds: task.lists?.map(list => list.id) || [],
-      blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
-      blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
+      ...({
+        blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
+        blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
+      } satisfies V1TaskBlockerIds),
     }
 
     return NextResponse.json(

@@ -16,9 +16,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { recordTaskEvents } from '@/lib/task-events'
+import { recordTaskEvents, type TaskEventInput } from '@/lib/task-events'
 import {
   isPromotableAfterBlockerChange,
+  reachableTaskIds,
   shouldDemoteOnBlockerAdded,
   shouldReblockOnBlockerReopened,
   toBlockerView,
@@ -26,6 +27,13 @@ import {
   type BlockerView,
 } from '@/lib/task-dependencies'
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
+import { audienceForTask } from '@/lib/deletion-log'
+import { broadcastToUsers } from '@/lib/sse-utils'
+import { RedisCache, isRedisAvailable } from '@/lib/redis'
+import { fanOutEvent } from '@/lib/notifications'
+import { persistNotifications } from '@/lib/notification-store'
+import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { getTaskForUser } from '@/services/task.service'
 
 const log = createLogger('services.task-dependency')
@@ -40,6 +48,14 @@ export interface BlockerLists {
   blockedBy: BlockerView[]
   /** Tasks waiting for this one. */
   blocks: BlockerView[]
+  /**
+   * Every task that waits on this one, transitively — the tasks it may NOT be
+   * made to wait on, because that would close a cycle. The picker drops them
+   * so it never offers a choice the write would refuse. Only tasks the reader
+   * may see: an id is information, and the picker only needs to filter search
+   * hits, which are visible by construction.
+   */
+  dependentIds: string[]
 }
 
 const BLOCKER_SELECT = {
@@ -56,6 +72,104 @@ async function blockersOf(taskId: string): Promise<string[]> {
     select: { blockingTaskId: true },
   })
   return rows.map(row => row.blockingTaskId)
+}
+
+/** The edges into one task — who is waiting on it. */
+async function dependentsOf(taskId: string): Promise<string[]> {
+  const rows = await prisma.taskDependency.findMany({
+    where: { blockingTaskId: taskId },
+    select: { blockedTaskId: true },
+  })
+  return rows.map(row => row.blockedTaskId)
+}
+
+/**
+ * Tell everyone whose view of a task just changed, when the change was made BY
+ * THE GATE rather than by a person dragging a card.
+ *
+ * That distinction is why this exists. A person's own edit goes through
+ * `updateTaskWithSideEffects`, which broadcasts, invalidates the cache and
+ * notifies. The gate writes `statusRole` directly, and without this the card
+ * sat in its old column on every open board — the actor's included, since they
+ * never touched this card and so have no optimistic update showing it — until
+ * a refresh. The spec's reason for the completion trigger was the opposite:
+ * "unblock the next card while they are looking at the board".
+ *
+ * So the actor is NOT excluded from the broadcast, unlike the update path.
+ * They are excluded from the notification, by `fanOutEvent`, because being
+ * told about your own action is noise.
+ *
+ * Best-effort throughout: the move has already happened, and failing to
+ * announce it must not turn a successful write into an error.
+ */
+async function announceTaskChange(args: {
+  taskId: string
+  actorId: string | null
+  event: TaskEventInput
+  broadcast: boolean
+}): Promise<void> {
+  const { taskId, actorId, event, broadcast } = args
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId }, include: TASK_FULL_INCLUDE })
+    if (!task) return
+
+    await persistNotifications({
+      targets: fanOutEvent({
+        kind: event.kind,
+        actorId,
+        audience: { assigneeId: task.assigneeId, creatorId: task.creatorId },
+      }),
+      context: { taskId, actorId },
+    })
+
+    if (!broadcast) return
+
+    const audience = audienceForTask(task as never)
+    // Invalidated BEFORE the broadcast, so a client that refetches on the nudge
+    // cannot be served the pre-move rows.
+    if (await isRedisAvailable()) {
+      await Promise.all(audience.map(userId => RedisCache.del(RedisCache.keys.userTasks(userId))))
+    }
+    // The FULL task, not a patch: the web cache stores the payload as the task.
+    broadcastToUsers(audience, {
+      type: 'task_updated',
+      timestamp: new Date().toISOString(),
+      data: { taskId, task: enrichTaskForAgent(task as never) },
+    })
+  } catch (err) {
+    log.error({ err, taskId }, 'Failed to announce a task the blocker gate changed')
+  }
+}
+
+/**
+ * Move one card between lanes on the gate's authority — the ONLY way this
+ * module changes a task's status.
+ *
+ * Conditional in the `where` clause rather than read-then-write: two blockers
+ * completing at the same moment both get here, and the database is the only
+ * place that race can be settled. A task somebody has since moved, completed,
+ * or parked in a custom state is not the gate's to move.
+ */
+async function moveLane(args: {
+  taskId: string
+  from: string
+  to: string
+  kind: 'status_changed' | 'unblocked'
+  actorId: string | null
+  actorType: 'user' | 'agent' | 'system'
+}): Promise<boolean> {
+  const { taskId, from, to, kind, actorId, actorType } = args
+
+  const moved = await prisma.task.updateMany({
+    where: { id: taskId, statusRole: from, completed: false },
+    data: { statusRole: to },
+  })
+  if (moved.count === 0) return false
+
+  const event: TaskEventInput = { kind, from, to }
+  await recordTaskEvents({ taskId, actorId, actorType, events: [event] })
+  await announceTaskChange({ taskId, actorId, event, broadcast: true })
+  return true
 }
 
 /**
@@ -97,14 +211,16 @@ export async function getBlockersForTask(
 
   const blockedByTasks = blockedByRows.map(row => row.blockingTask)
   const blocksTasks = blocksRows.map(row => row.blockedTask)
+  const dependents = [...(await reachableTaskIds(taskId, dependentsOf))].filter(id => id !== taskId)
   const visible = await visibleTaskIds(
-    [...blockedByTasks, ...blocksTasks].map(task => task.id),
+    [...new Set([...blockedByTasks, ...blocksTasks].map(task => task.id).concat(dependents))],
     userId,
   )
 
   return {
     blockedBy: blockedByTasks.map(task => toBlockerView(task, visible.has(task.id))),
     blocks: blocksTasks.map(task => toBlockerView(task, visible.has(task.id))),
+    dependentIds: dependents.filter(id => visible.has(id)),
   }
 }
 
@@ -175,17 +291,13 @@ export async function addBlocker(args: {
       shouldDemoteOnBlockerAdded(blocked.statusRole) &&
       !blockerAccess.task.completed
     ) {
-      await prisma.task.update({
-        where: { id: taskId, statusRole: READY_STATUS_ROLE },
-        data: { statusRole: WAITING_STATUS_ROLE },
-      })
-      await recordTaskEvents({
+      await moveLane({
         taskId,
+        from: READY_STATUS_ROLE,
+        to: WAITING_STATUS_ROLE,
+        kind: 'status_changed',
         actorId: userId,
         actorType,
-        events: [
-          { kind: 'status_changed', from: READY_STATUS_ROLE, to: WAITING_STATUS_ROLE },
-        ],
       })
     }
   }
@@ -236,13 +348,7 @@ async function outstandingBlockerIds(taskId: string): Promise<string[]> {
   return rows.map(row => row.blockingTaskId)
 }
 
-/**
- * Promote ONE task if nothing holds it any more.
- *
- * Conditional in the `where` clause rather than in a read-then-write: two
- * blockers completing at the same moment both run this, and the database is the
- * only place that race can be settled.
- */
+/** Promote ONE task if nothing holds it any more. The write is `moveLane`'s. */
 async function promoteIfUnblocked(args: {
   taskId: string
   actorId: string | null
@@ -267,19 +373,14 @@ async function promoteIfUnblocked(args: {
     return false
   }
 
-  const promoted = await prisma.task.updateMany({
-    where: { id: taskId, statusRole: WAITING_STATUS_ROLE, completed: false },
-    data: { statusRole: READY_STATUS_ROLE },
-  })
-  if (promoted.count === 0) return false
-
-  await recordTaskEvents({
+  return moveLane({
     taskId,
+    from: WAITING_STATUS_ROLE,
+    to: READY_STATUS_ROLE,
+    kind: 'unblocked',
     actorId,
     actorType,
-    events: [{ kind: 'unblocked', from: WAITING_STATUS_ROLE, to: READY_STATUS_ROLE }],
   })
-  return true
 }
 
 /**
@@ -312,7 +413,7 @@ export async function promoteUnblockedDependents(args: {
 
   const dependents = await prisma.taskDependency.findMany({
     where: { blockingTaskId },
-    select: { blockedTask: { select: { id: true, statusRole: true } } },
+    select: { blockedTask: { select: { id: true, statusRole: true, completed: true } } },
   })
 
   for (const { blockedTask } of dependents) {
@@ -325,22 +426,29 @@ export async function promoteUnblockedDependents(args: {
       }
 
       // Reopened: only a dependent sitting in Ready goes back to Waiting.
-      if (!shouldReblockOnBlockerReopened(blockedTask.statusRole)) continue
-      const moved = await prisma.task.updateMany({
-        where: { id: blockedTask.id, statusRole: READY_STATUS_ROLE, completed: false },
-        data: { statusRole: WAITING_STATUS_ROLE },
-      })
-      if (moved.count > 0) {
-        reblocked.push(blockedTask.id)
-        await recordTaskEvents({
+      if (shouldReblockOnBlockerReopened(blockedTask.statusRole)) {
+        const moved = await moveLane({
           taskId: blockedTask.id,
+          from: READY_STATUS_ROLE,
+          to: WAITING_STATUS_ROLE,
+          kind: 'status_changed',
           actorId,
           actorType,
-          events: [
-            { kind: 'status_changed', from: READY_STATUS_ROLE, to: WAITING_STATUS_ROLE },
-          ],
         })
+        if (moved) reblocked.push(blockedTask.id)
+        continue
       }
+
+      // A dependent already in Waiting is still held; nothing new to say.
+      if ((blockedTask.statusRole ?? '') === WAITING_STATUS_ROLE && !blockedTask.completed) continue
+
+      // Doing, Done, or a custom state: left where it is, because yanking a
+      // card out from under someone is worse than a stale lane. The spec's
+      // other half is that they HEAR about it — they are the only one who can
+      // judge whether the reopened blocker actually stops them.
+      const event: TaskEventInput = { kind: 'blocker_reopened', to: { blockingTaskId } }
+      await recordTaskEvents({ taskId: blockedTask.id, actorId, actorType, events: [event] })
+      await announceTaskChange({ taskId: blockedTask.id, actorId, event, broadcast: false })
     } catch (err) {
       log.error({ err, taskId: blockedTask.id }, 'Failed to re-evaluate a blocked task')
     }

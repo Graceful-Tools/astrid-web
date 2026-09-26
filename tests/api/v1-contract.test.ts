@@ -48,6 +48,10 @@ import type {
   V1DesktopExchangeResponse,
   V1Reminder,
   V1RemindersResponse,
+  V1Blocker,
+  V1BlockersResponse,
+  V1BlockerMutationResponse,
+  V1TaskBlockerIds,
   V1ReminderDismissResponse,
   V1ReminderSnoozeResponse,
   V1UserSearchResult,
@@ -762,5 +766,48 @@ describe('v1 contract — agent event type mapping', () => {
   it('returns null for unknown event types (silently ignored by iOS)', () => {
     expect(mapEventType('unknown_event')).toBeNull()
     expect(mapEventType('list_created')).toBeNull()
+  })
+})
+
+describe('v1 contract — blockers, "waiting on" (AWTD-1002)', () => {
+  it('V1BlockersResponse has { blockedBy, blocks, dependentIds, meta }', () => {
+    const EXPECTED_KEYS = [
+      'blockedBy', 'blocks', 'dependentIds', 'meta',
+    ] as const satisfies ReadonlyArray<keyof V1BlockersResponse>
+    const sample: V1BlockersResponse = {
+      blockedBy: [],
+      blocks: [],
+      dependentIds: [],
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('V1BlockerMutationResponse has { taskId, blockingTaskId, blockedBy, meta }', () => {
+    const EXPECTED_KEYS = [
+      'taskId', 'blockingTaskId', 'blockedBy', 'meta',
+    ] as const satisfies ReadonlyArray<keyof V1BlockerMutationResponse>
+    const sample: V1BlockerMutationResponse = {
+      taskId: 't1',
+      blockingTaskId: 't2',
+      blockedBy: [],
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    }
+    expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED_KEYS))
+  })
+
+  it('a hidden blocker carries an id and nothing else — and still counts', () => {
+    const visible: V1Blocker = { id: 'b1', title: 'Ship it', identifier: 'AWTD-1', completed: false }
+    const hidden: V1Blocker = { id: 'b2', hidden: true }
+    expect(Object.keys(hidden).sort()).toEqual(['hidden', 'id'])
+    expect([visible, hidden]).toHaveLength(2)
+  })
+
+  it('the id arrays on GET /api/v1/tasks/[id] are optional, so the halves ship apart', () => {
+    const EXPECTED_KEYS = ['blockedBy', 'blocks'] as const satisfies ReadonlyArray<keyof V1TaskBlockerIds>
+    const older: V1TaskBlockerIds = {}
+    const newer: V1TaskBlockerIds = { blockedBy: ['b1'], blocks: [] }
+    expect(older.blockedBy).toBeUndefined()
+    expect(new Set(Object.keys(newer))).toEqual(new Set(EXPECTED_KEYS))
   })
 })

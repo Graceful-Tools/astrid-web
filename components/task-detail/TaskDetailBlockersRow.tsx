@@ -26,7 +26,7 @@ import {
   isTaskInProject,
   showsTaskBlockers,
 } from "@/lib/task-detail-project-state"
-import type { BlockerView } from "@/lib/task-dependencies"
+import { rankBlockerCandidates, type BlockerView } from "@/lib/task-dependencies"
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskDetailBlockersRowProps {
@@ -39,6 +39,7 @@ interface SearchHit {
   id: string
   title: string
   identifier?: string | null
+  lists?: Array<{ id: string }> | null
 }
 
 export function TaskDetailBlockersRow({
@@ -48,6 +49,9 @@ export function TaskDetailBlockersRow({
 }: TaskDetailBlockersRowProps) {
   const { t } = useTranslations()
   const [blockedBy, setBlockedBy] = useState<BlockerView[]>([])
+  // Tasks that already wait on this one, transitively: choosing any of them
+  // would close a cycle the server refuses, so the picker never offers them.
+  const [dependentIds, setDependentIds] = useState<string[]>([])
   const [picking, setPicking] = useState(false)
   const [query, setQuery] = useState("")
   const [hits, setHits] = useState<SearchHit[]>([])
@@ -56,12 +60,14 @@ export function TaskDetailBlockersRow({
   const load = useCallback(async () => {
     try {
       const response = await apiGet(`/api/v1/tasks/${task.id}/blockers`)
-      const body = (await response.json()) as { blockedBy?: BlockerView[] }
+      const body = (await response.json()) as { blockedBy?: BlockerView[]; dependentIds?: string[] }
       setBlockedBy(body.blockedBy ?? [])
+      setDependentIds(body.dependentIds ?? [])
     } catch {
       // A read that fails shows an empty row rather than an error banner: the
       // blockers are not the reason the pane was opened.
       setBlockedBy([])
+      setDependentIds([])
     }
   }, [task.id])
 
@@ -85,12 +91,16 @@ export function TaskDetailBlockersRow({
         const response = await apiGet(`/api/v1/search?q=${encodeURIComponent(trimmed)}`)
         const body = (await response.json()) as { tasks?: SearchHit[] }
         if (cancelled) return
-        const linked = new Set(blockedBy.map(blocker => blocker.id))
+        // Never offer a choice the write would refuse — the task itself,
+        // anything already linked, anything that would cycle — and put this
+        // board's tasks first, since most blockers are neighbours.
         setHits(
-          (body.tasks ?? [])
-            // Never offer a choice that the write would refuse: the task
-            // itself, and anything already linked.
-            .filter(hit => hit.id !== task.id && !linked.has(hit.id))
+          rankBlockerCandidates({
+            hits: body.tasks ?? [],
+            taskId: task.id,
+            taskListIds: (task.lists ?? []).map(list => list.id),
+            excludedIds: [...blockedBy.map(blocker => blocker.id), ...dependentIds],
+          })
         )
       } catch {
         if (!cancelled) setHits([])
@@ -100,7 +110,7 @@ export function TaskDetailBlockersRow({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [picking, query, task.id, blockedBy])
+  }, [picking, query, task.id, task.lists, blockedBy, dependentIds])
 
   const add = async (blockingTaskId: string) => {
     setError(null)
@@ -159,7 +169,14 @@ export function TaskDetailBlockersRow({
               {/* A blocker you cannot see still blocks. The COUNT is not a
                   leak — the reader already knows something holds their task —
                   but the title would be. */}
-              {blocker.hidden ? t('tasks.waitingOn.hidden') : blocker.title}
+              {blocker.hidden ? (
+                t('tasks.waitingOn.hidden')
+              ) : (
+                // The same task link a `!task` reference renders (lib/markdown.ts).
+                <a href={`/?task=${encodeURIComponent(blocker.id)}`} className="hover:underline">
+                  {blocker.title}
+                </a>
+              )}
               {!readOnly && (
                 <button
                   type="button"

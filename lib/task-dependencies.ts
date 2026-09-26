@@ -113,23 +113,67 @@ export async function wouldCreateDependencyCycle(
 ): Promise<boolean> {
   const { blockedTaskId, blockingTaskId, blockersOf } = input
   if (blockedTaskId === blockingTaskId) return true
+  return (await reachableTaskIds(blockingTaskId, blockersOf)).has(blockedTaskId)
+}
 
-  const visited = new Set<string>()
-  const frontier = [blockingTaskId]
+/**
+ * Every task reachable from `startId` along `edgesOf`, not counting the start
+ * itself unless a cycle leads back to it.
+ *
+ * The one walk behind both the write check above (follow blockers up) and the
+ * picker's exclusions (follow dependents down) — the spec asks for "the same
+ * walk as the write check, so the user is never offered a choice that will be
+ * refused", and two walks would be two answers. Bounded by the visited set
+ * rather than a depth constant, so it terminates on a graph that somehow
+ * already contains a cycle.
+ */
+export async function reachableTaskIds(
+  startId: string,
+  edgesOf: (taskId: string) => Promise<string[]>,
+): Promise<Set<string>> {
+  const reached = new Set<string>()
+  const expanded = new Set<string>()
+  const frontier = [startId]
 
   while (frontier.length > 0) {
     const current = frontier.pop() as string
-    if (visited.has(current)) continue
-    visited.add(current)
+    if (expanded.has(current)) continue
+    expanded.add(current)
 
-    const blockers = await blockersOf(current)
-    for (const blocker of blockers) {
-      if (blocker === blockedTaskId) return true
-      if (!visited.has(blocker)) frontier.push(blocker)
+    for (const next of await edgesOf(current)) {
+      reached.add(next)
+      if (!expanded.has(next)) frontier.push(next)
     }
   }
 
-  return false
+  return reached
+}
+
+/** A search hit as the picker sees it — `lists` as `/api/v1/search` returns it. */
+export interface BlockerCandidate {
+  id: string
+  lists?: Array<{ id: string }> | null
+}
+
+/**
+ * What the picker offers, in the order it offers it.
+ *
+ * Drops the task itself and `excludedIds` (already linked, or would cycle), and
+ * nothing else. Then puts tasks sharing a list with this one first, keeping
+ * search order inside each group: most blockers are neighbours, and ranking is
+ * not filtering, so a cross-board blocker is still one search away.
+ */
+export function rankBlockerCandidates<T extends BlockerCandidate>(input: {
+  hits: T[]
+  taskId: string
+  taskListIds: string[]
+  excludedIds: string[]
+}): T[] {
+  const excluded = new Set([input.taskId, ...input.excludedIds])
+  const board = new Set(input.taskListIds)
+  const offered = input.hits.filter(hit => !excluded.has(hit.id))
+  const isNeighbour = (hit: T) => (hit.lists ?? []).some(list => board.has(list.id))
+  return [...offered.filter(isNeighbour), ...offered.filter(hit => !isNeighbour(hit))]
 }
 
 function isReady(statusRole: string | null | undefined): boolean {

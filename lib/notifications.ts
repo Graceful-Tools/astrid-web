@@ -80,6 +80,12 @@ const EVENT_TO_NOTIFICATION: Partial<Record<TaskEventKind, NotificationKind>> = 
   closed: 'completed',
   status_changed: 'status_changed',
   list_added: 'status_changed',
+  // "Waiting on" (AWTD-1002). An automatic promotion is exactly the kind of
+  // status change someone needs to hear about — nobody dragged the card — and a
+  // reopened blocker under a card in Doing is news for the person working it.
+  // Adding or removing a blocker is history, not news.
+  unblocked: 'status_changed',
+  blocker_reopened: 'status_changed',
 }
 
 export function notificationKindFor(eventKind: TaskEventKind): NotificationKind | null {
