@@ -5,6 +5,7 @@ import { ChatMessageBubble } from './ChatMessageBubble'
 import { TypingIndicator } from './TypingIndicator'
 import { Loader2 } from 'lucide-react'
 import type { ChatMessage } from '@/types/chat'
+import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 interface ChatMessageListProps {
   messages: ChatMessage[]
@@ -13,6 +14,8 @@ interface ChatMessageListProps {
   hasMore: boolean
   onLoadMore: () => void
   agentTyping?: { isTyping: boolean; agentName: string | null }
+  /** Reader context for autolinking task ids (AWTD-1017). */
+  identifiers?: IdentifierLinkContext
 }
 
 export const ChatMessageList = React.memo(function ChatMessageList({
@@ -22,6 +25,7 @@ export const ChatMessageList = React.memo(function ChatMessageList({
   hasMore,
   onLoadMore,
   agentTyping,
+  identifiers,
 }: ChatMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
@@ -114,6 +118,7 @@ export const ChatMessageList = React.memo(function ChatMessageList({
             message={message}
             isOwnMessage={message.authorId === currentUserId}
             showAuthor={shouldShowAuthor(index)}
+            identifiers={identifiers}
           />
         ))}
         {agentTyping?.isTyping && (

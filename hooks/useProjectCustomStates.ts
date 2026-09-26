@@ -23,20 +23,14 @@
  */
 
 import { useEffect, useState } from 'react'
+import { fetchProjects } from '@/lib/client-projects'
 
 /** Cached across mounts: switching boards must not refetch every time. */
 const cache = new Map<string, unknown>()
 const inflight = new Map<string, Promise<unknown>>()
 
 async function fetchCustomStates(projectId: string): Promise<unknown> {
-  const response = await fetch('/api/v1/projects')
-  if (!response.ok) throw new Error(`projects ${response.status}`)
-
-  const body = await response.json()
-  const projects: Array<{ id?: string; customStates?: unknown }> = Array.isArray(body?.projects)
-    ? body.projects
-    : []
-
+  const projects = await fetchProjects()
   return projects.find(project => project.id === projectId)?.customStates ?? []
 }
 

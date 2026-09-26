@@ -3,16 +3,19 @@
 import React from 'react'
 import { MessageBubble, type MessageBubbleAttachment } from '@/components/shared/MessageBubble'
 import type { ChatMessage } from '@/types/chat'
+import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 interface ChatMessageBubbleProps {
   message: ChatMessage
   isOwnMessage: boolean
   showAuthor: boolean
+  identifiers?: IdentifierLinkContext
 }
 
 export const ChatMessageBubble = React.memo(function ChatMessageBubble({
   message,
   isOwnMessage,
+  identifiers,
 }: ChatMessageBubbleProps) {
   const attachments: MessageBubbleAttachment[] = []
   // Secure file attachments (new system)
@@ -49,6 +52,7 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble({
       createdAt={message.createdAt}
       attachments={attachments.length > 0 ? attachments : undefined}
       isOptimistic={message.id.startsWith('optimistic_')}
+      identifiers={identifiers}
     />
   )
 })

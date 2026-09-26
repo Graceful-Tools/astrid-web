@@ -16,6 +16,7 @@ import { FileText as FileTextIcon } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
+import { useIdentifierLinkContext } from "@/hooks/use-identifier-link-context"
 import type { Task } from "@/types/task"
 
 interface TaskDetailDescriptionRowProps {
@@ -44,6 +45,7 @@ export function TaskDetailDescriptionRow({
   handleCancelDescription,
 }: TaskDetailDescriptionRowProps) {
   const { t } = useTranslations()
+  const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
 
   return (
     <TaskFieldRow label={t('tasks.taskDescription')} icon={<FileTextIcon className="w-4 h-4" />} align="start">
@@ -103,7 +105,7 @@ export function TaskDetailDescriptionRow({
               // `.prose pre` scroll horizontally (task 61a21152).
               className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1"
               dangerouslySetInnerHTML={{
-                __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm' })
+                __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm', identifiers })
               }}
             />
           ) : (

@@ -21,6 +21,7 @@ import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { hasExplicitListRole } from "@/lib/list-permissions"
 import { apiDelete, apiPut } from '@/lib/api'
+import { useIdentifierLinkContext } from '@/hooks/use-identifier-link-context'
 import type { V1CommentUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 
 // Helper function to display author name/email with fallback for system/deleted users
@@ -109,6 +110,8 @@ export function CommentSection({
   agentTyping,
 }: CommentSectionProps) {
   const [showSystemComments, setShowSystemComments] = useState(false)
+  // Task ids in comments autolink; #N means this task's project (AWTD-1017).
+  const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
   // The comment editor holds a pending buffer, so it registers a hand-off
   // commit: opening another editor SAVES the edit rather than dropping it
   // (task 7b60c7c5). Cancel stays the one path that discards.
@@ -512,6 +515,7 @@ export function CommentSection({
         createdAt={comment.createdAt}
         attachments={attachments.length > 0 ? attachments : undefined}
         isSystem={isSystem}
+        identifiers={identifiers}
         onClick={() => setShowingActionsFor(isActionsVisible ? null : comment.id)}
         actions={isActionsVisible ? (
           <div className="flex items-center gap-3" data-comment-actions>

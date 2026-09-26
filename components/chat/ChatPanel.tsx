@@ -5,6 +5,7 @@ import { ChatMessageList } from './ChatMessageList'
 import { ChatInput } from './ChatInput'
 import { useChatChannel } from '@/hooks/use-chat-channel'
 import { useAgentTyping } from '@/hooks/use-agent-typing'
+import { useIdentifierLinkContext } from '@/hooks/use-identifier-link-context'
 import { Loader2 } from 'lucide-react'
 import type { User, TaskList, Task } from '@/types/task'
 
@@ -46,6 +47,8 @@ export const ChatPanel = React.memo(function ChatPanel({
   })
 
   const agentTyping = useAgentTyping(channelId)
+  // Task ids in chat autolink; in a list's chat #N means its project (AWTD-1017).
+  const identifiers = useIdentifierLinkContext(listId ? [listId] : [])
 
   if (externalLoading || (!channelId && !error)) {
     return (
@@ -72,6 +75,7 @@ export const ChatPanel = React.memo(function ChatPanel({
         hasMore={hasMore}
         onLoadMore={loadMore}
         agentTyping={agentTyping}
+        identifiers={identifiers}
       />
       <ChatInput
         onSend={sendMessage}

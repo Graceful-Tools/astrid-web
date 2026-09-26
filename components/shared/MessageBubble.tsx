@@ -4,6 +4,7 @@ import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SecureAttachmentViewer } from '@/components/secure-attachment-viewer'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
+import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 import { FileText } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -43,6 +44,8 @@ export interface MessageBubbleProps {
   isOptimistic?: boolean
   /** Markdown code class override */
   codeClass?: string
+  /** Reader context for autolinking task ids (AWTD-1017); absent links none. */
+  identifiers?: IdentifierLinkContext
   /** Action buttons (rendered below the bubble) */
   actions?: React.ReactNode
   /** Click handler for the bubble (e.g., to toggle actions) */
@@ -85,6 +88,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   isSystem = false,
   isOptimistic = false,
   codeClass,
+  identifiers,
   actions,
   onClick,
 }: MessageBubbleProps) {
@@ -171,7 +175,7 @@ export const MessageBubble = React.memo(function MessageBubble({
               // reader sees no difference (task 0a54e46f).
               className="prose prose-sm max-w-none text-sm theme-text-secondary"
               dangerouslySetInnerHTML={{
-                __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded' }),
+                __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded', identifiers }),
               }}
             />
           )}
