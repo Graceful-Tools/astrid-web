@@ -4,6 +4,9 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     task: { findUnique: vi.fn() },
+    // `task-1` is identifier-shaped (TASK-1), so a miss also asks whether TASK
+    // is a renamed key (AWTD-1024).
+    projectKeyAlias: { findUnique: vi.fn() },
     comment: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
     secureFile: { findUnique: vi.fn(), update: vi.fn() },

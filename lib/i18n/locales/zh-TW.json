@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "任務 ID 前綴",
     "keyExample": "任務將編號為 {example} 等",
-    "keyInvalid": "{min}–{max} 個字母或數字，以字母開頭"
+    "keyInvalid": "{min}–{max} 個字母或數字，以字母開頭",
+    "keyRename": "重新命名",
+    "keyRenameHint": "任務將變為 {next}；{old} 仍然有效",
+    "keyRenameFailed": "無法重新命名前綴"
   },
   "listSettings": {
     "adminSettings": "管理員設定",

@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "タスクIDの接頭辞",
     "keyExample": "タスクは {example} のようになります",
-    "keyInvalid": "{min}〜{max} 文字の英数字（先頭は英字）"
+    "keyInvalid": "{min}〜{max} 文字の英数字（先頭は英字）",
+    "keyRename": "名前を変更",
+    "keyRenameHint": "タスクは {next} になります。{old} も引き続き使えます",
+    "keyRenameFailed": "接頭辞を変更できませんでした"
   },
   "listSettings": {
     "adminSettings": "管理者設定",

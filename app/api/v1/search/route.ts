@@ -34,6 +34,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { listVisibilityWhere } from '@/lib/list-permissions'
+import { canonicalizeIdentifier } from '@/lib/task-identifier'
 import {
   parseSearchQuery,
   isEmptySearch,
@@ -83,7 +84,9 @@ export const GET = withAuth(
 
     // A bare identifier is a direct hit — still inside the visibility floor.
     if (parsed.identifier) {
-      filters.push({ identifier: parsed.identifier })
+      // An id typed under a renamed key finds the task by its current id (AWTD-1024).
+      const identifier = (await canonicalizeIdentifier(parsed.identifier)) ?? parsed.identifier
+      filters.push({ identifier })
     }
 
     if (parsed.text) {

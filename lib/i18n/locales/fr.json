@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Préfixe des ID de tâche",
     "keyExample": "Les tâches deviennent {example}, …",
-    "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre"
+    "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre",
+    "keyRename": "Renommer",
+    "keyRenameHint": "Les tâches deviennent {next} ; {old} fonctionne toujours",
+    "keyRenameFailed": "Impossible de renommer le préfixe"
   },
   "listSettings": {
     "adminSettings": "Paramètres d’administration",
