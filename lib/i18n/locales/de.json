@@ -111,7 +111,7 @@
       "label": "Wartet auf",
       "add": "Auf Aufgabe warten…",
       "searchPlaceholder": "Aufgaben suchen…",
-      "empty": "Wartet auf keine Aufgabe",
+      "empty": "Nichts, worauf gewartet wird",
       "hidden": "Eine Aufgabe, die du nicht sehen kannst",
       "remove": "Nicht mehr auf diese Aufgabe warten",
       "cycleError": "Diese Aufgaben würden aufeinander warten",

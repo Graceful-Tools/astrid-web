@@ -111,7 +111,7 @@
       "label": "Wacht op",
       "add": "Op een taak wachten…",
       "searchPlaceholder": "Taken zoeken…",
-      "empty": "Wacht op geen enkele taak",
+      "empty": "Niets om op te wachten",
       "hidden": "Een taak die je niet kunt zien",
       "remove": "Niet meer op deze taak wachten",
       "cycleError": "Die taken zouden op elkaar gaan wachten",

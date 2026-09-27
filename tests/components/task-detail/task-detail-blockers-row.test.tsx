@@ -54,16 +54,27 @@ describe('TaskDetailBlockersRow (AWTD-1002)', () => {
   it('links a visible blocker to its task, and shows a hidden one without a title or link', async () => {
     render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
 
-    const link = await screen.findByRole('link', { name: 'Visible blocker' })
+    const link = await screen.findByRole('link', { name: 'AWTD-1' })
     expect(link.getAttribute('href')).toBe('/?task=visible')
 
     const hiddenChip = screen.getByTestId('task-blocker-secret')
     expect(hiddenChip.querySelector('a')).toBeNull()
   })
 
+  it('names a blocker by its short id, and an empty row says "Nothing to wait for" (AWTD-1028)', async () => {
+    const { unmount } = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    const link = await screen.findByRole('link', { name: 'AWTD-1' })
+    expect(link.getAttribute('href')).toBe('/?task=visible')
+    unmount()
+
+    apiGet.mockImplementation(async () => json({ blockedBy: [], blocks: [], dependentIds: [] }))
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    expect(await screen.findByText('Nothing to wait for')).toBeTruthy()
+  })
+
   it('never offers the task itself, a linked blocker, or one that would cycle — and ranks the board first', async () => {
     render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
-    await screen.findByRole('link', { name: 'Visible blocker' })
+    await screen.findByRole('link', { name: 'AWTD-1' })
 
     fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ta' } })

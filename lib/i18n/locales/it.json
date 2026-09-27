@@ -111,7 +111,7 @@
       "label": "In attesa di",
       "add": "Attendi un'attività…",
       "searchPlaceholder": "Cerca attività…",
-      "empty": "Non è in attesa di nessuna attività",
+      "empty": "Niente da attendere",
       "hidden": "Unattività che non puoi vedere",
       "remove": "Non attendere più questa attività",
       "cycleError": "Quelle attività finirebbero per aspettarsi a vicenda",

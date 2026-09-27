@@ -218,6 +218,10 @@ export function showsTaskBlockers({ isInProject, isReadOnly, hasBlockers }: …)
   the reason that module already gives.
 - **Read-only viewers see chips, not controls** — unlike the board-state row, which is a
   mover and hides entirely. A public-list reader benefits from knowing a task is blocked.
+- **A chip names its blocker by short id** (`AWTD-12`), the way the date row names a date,
+  falling back to the title when there is no id; a hidden blocker gets the hidden string and
+  never its id. `blockerChipLabel` in `lib/task-dependencies.ts` states it once (AWTD-1028,
+  iOS AITD-438). An empty row reads "Nothing to wait for".
 - **Zero blockers renders nothing.** The row appears when there is something to show, or
   from the task action menu ("Add blocker…"). No empty-state row on every task on every
   board.

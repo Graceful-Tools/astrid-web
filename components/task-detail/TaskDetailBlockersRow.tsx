@@ -32,7 +32,7 @@ import {
   isTaskInProject,
   showsTaskBlockers,
 } from "@/lib/task-detail-project-state"
-import { rankBlockerCandidates, type BlockerView } from "@/lib/task-dependencies"
+import { blockerChipLabel, rankBlockerCandidates, type BlockerView } from "@/lib/task-dependencies"
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskDetailBlockersRowProps {
@@ -171,8 +171,9 @@ export function TaskDetailBlockersRow({
                 t('tasks.waitingOn.hidden')
               ) : (
                 // The same task link a `!task` reference renders (lib/markdown.ts).
-                <a href={`/?task=${encodeURIComponent(blocker.id)}`} className="hover:underline">
-                  {blocker.title}
+                // The chip says the short id; the title stays one hover away.
+                <a href={`/?task=${encodeURIComponent(blocker.id)}`} title={blocker.title} className="hover:underline">
+                  {blockerChipLabel(blocker, t('tasks.waitingOn.hidden'))}
                 </a>
               )}
               {!readOnly && (

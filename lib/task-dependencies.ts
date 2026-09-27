@@ -224,6 +224,16 @@ export interface BlockerView {
 }
 
 /**
+ * What a "Waiting on" chip says (AWTD-1028), matching iOS/Mac (AITD-438): a
+ * hidden blocker is named by `hiddenText` and never by its id; a visible one by
+ * its short id, like the date row names a date, else by its title.
+ */
+export function blockerChipLabel(blocker: BlockerView, hiddenText: string): string {
+  if (blocker.hidden) return hiddenText
+  return blocker.identifier || blocker.title || ''
+}
+
+/**
  * Render one blocker for a reader, hiding what they may not see.
  *
  * A blocker you cannot see STILL BLOCKS. Treating invisible blockers as

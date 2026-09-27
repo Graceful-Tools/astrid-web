@@ -111,7 +111,7 @@
       "label": "À espera de",
       "add": "Esperar por uma tarefa…",
       "searchPlaceholder": "Pesquisar tarefas…",
-      "empty": "Não está à espera de nenhuma tarefa",
+      "empty": "Nada por que esperar",
       "hidden": "Uma tarefa que não podes ver",
       "remove": "Deixar de esperar por esta tarefa",
       "cycleError": "Essas tarefas acabariam à espera uma da outra",

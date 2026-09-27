@@ -111,7 +111,7 @@
       "label": "Esperando a",
       "add": "Esperar a una tarea…",
       "searchPlaceholder": "Buscar tareas…",
-      "empty": "No espera ninguna tarea",
+      "empty": "Nada que esperar",
       "hidden": "Una tarea que no puedes ver",
       "remove": "Dejar de esperar a esta tarea",
       "cycleError": "Esas tareas acabarían esperándose entre sí",

@@ -111,7 +111,7 @@
       "label": "等待中",
       "add": "添加等待的任务",
       "searchPlaceholder": "搜索任务…",
-      "empty": "没有在等待任何任务",
+      "empty": "没有需要等待的项目",
       "hidden": "你无法查看的任务",
       "remove": "取消等待此任务",
       "cycleError": "这些任务会互相等待",

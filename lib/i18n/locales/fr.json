@@ -111,7 +111,7 @@
       "label": "En attente de",
       "add": "Attendre une tâche…",
       "searchPlaceholder": "Rechercher des tâches…",
-      "empty": "N'attend aucune tâche",
+      "empty": "Rien à attendre",
       "hidden": "Une tâche que vous ne pouvez pas voir",
       "remove": "Ne plus attendre cette tâche",
       "cycleError": "Ces tâches finiraient par s'attendre mutuellement",

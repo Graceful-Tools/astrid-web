@@ -111,7 +111,7 @@
       "label": "Waiting on",
       "add": "Wait on a task…",
       "searchPlaceholder": "Search tasks…",
-      "empty": "Not waiting on any task",
+      "empty": "Nothing to wait for",
       "hidden": "A task you cannot see",
       "remove": "Stop waiting on this task",
       "cycleError": "Those tasks would end up waiting for each other",
