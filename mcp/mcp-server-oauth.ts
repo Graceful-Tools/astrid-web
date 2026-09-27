@@ -272,10 +272,10 @@ export default class AstridMCPServerOAuth {
     const params = new URLSearchParams({ agent: String(args.agent) })
     const listId = args.listId || this.defaultListId
     if (listId) params.append("listId", String(listId))
-    // Only sent when explicitly turned OFF. Passing the default on every call
-    // would put a second copy of "what the default is" in the MCP layer, and the
-    // two would drift the first time the API's changed.
+    // Flags are sent only when they differ from the API's default, so the MCP layer
+    // holds no second copy of "what the default is" to drift from the API's.
     if (args.requireReady === false) params.append("requireReady", "false")
+    if (args.includeUnassigned === true) params.append("includeUnassigned", "true")
 
     const data = await this.oauthClient.makeRequest<unknown>(
       `/api/v1/agent-queue?${params.toString()}`

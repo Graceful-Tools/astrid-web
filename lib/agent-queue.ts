@@ -13,6 +13,7 @@
  * day on the board.
  */
 
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getTaskUrl } from '@/lib/base-url'
 import { READY_STATUS_ROLE } from '@/lib/task-status'
@@ -45,6 +46,12 @@ export interface AgentQueueTask {
   listId: string | null
   listName: string | null
   githubRepositoryId: string | null
+  /**
+   * False for an unassigned task queued by `includeUnassigned`. The claim
+   * assigns it; until then it is anybody's, so a loop should claim before it
+   * writes a line.
+   */
+  assigned: boolean
   url: string
 }
 
@@ -131,6 +138,17 @@ export class UnknownAgentError extends Error {
   }
 }
 
+/**
+ * Thrown for an option combination the queue refuses — today, asking for
+ * unassigned work without naming the board it may come from.
+ */
+export class BadQueueOptionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'BadQueueOptionError'
+  }
+}
+
 export interface AgentQueueOptions {
   /** The agent identity the harness runs as — a mailbox or a full address. */
   agent: string | null | undefined
@@ -148,6 +166,27 @@ export interface AgentQueueOptions {
    * either setting. `isQueueableStatusRole` owns that rule and says why.
    */
   requireReady?: boolean
+  /**
+   * Queue UNASSIGNED Ready tasks too, alongside the ones assigned to this agent?
+   * Defaults to FALSE.
+   *
+   * On a board a person keeps for their own agents, Ready IS the handshake and
+   * assigning each task first is a second step that buys nothing — /fixall on
+   * Astrid's own boards works this way. On a shared list an unassigned Ready
+   * task is somebody's untriaged note, which is why it stays opt-in.
+   *
+   * Narrower than the assigned half on purpose:
+   *   - `listId` is REQUIRED. Without it, "unassigned and visible" includes every
+   *     public list on the service.
+   *   - the board must be one the caller OWNS or is a MEMBER of — public
+   *     visibility alone does not make a stranger's backlog yours to work.
+   *   - the task must be `ready`, even under `requireReady: false`. An unassigned
+   *     task with no status is an Inbox note, not a hand-off.
+   *
+   * Doing is never queued either way: it is not Ready, and a task in Doing is
+   * one a peer session or a person is already on.
+   */
+  includeUnassigned?: boolean
   /**
    * Read the board's list chat as well as task comments?
    *
@@ -207,6 +246,7 @@ export async function buildAgentQueue({
   userId,
   listId = null,
   requireReady = true,
+  includeUnassigned = false,
   includeChat = false,
 }: AgentQueueOptions): Promise<AgentQueueResult> {
   // No default identity, ever. A loop that guesses which agent it is claims
@@ -226,6 +266,12 @@ export async function buildAgentQueue({
   // scheduled loop cannot debug.
   if (!mailbox || !isBrandAgentEmail(email) || !pollableMailboxes().includes(mailbox)) {
     throw new UnknownAgentError(`Unknown agent "${requested}"`)
+  }
+
+  if (includeUnassigned && !listId) {
+    throw new BadQueueOptionError(
+      'includeUnassigned requires listId — unassigned work is taken from one named board, never from every list the caller can see.'
+    )
   }
 
   const mode = await getAgentExecutionMode(userId, email)
@@ -265,18 +311,38 @@ export async function buildAgentQueue({
   // count drawn more widely would report work the caller cannot see.
   const listScope = { some: listId ? { id: listId, ...visibleToCaller } : visibleToCaller }
 
+  // Assignment is the handshake, and by default it is REQUIRED — an unassigned
+  // Ready task on a shared list is somebody's untriaged note rather than an
+  // invitation. Ready is a FIELD on the task (AWTD-562), not membership in a list.
+  const assignedToAgent: Prisma.TaskWhereInput = {
+    assigneeId: agentUser.id,
+    ...queuedStatusFilter(requireReady),
+    lists: listScope,
+  }
+
+  // `includeUnassigned` widens it for a board the caller keeps for their own
+  // agents (see AgentQueueOptions). Membership, not visibility, and Ready only.
+  // (`listId` is checked above; testing it again narrows the type.)
+  const unassignedOnOwnBoard: Prisma.TaskWhereInput | null =
+    includeUnassigned && listId
+      ? {
+          assigneeId: null,
+          statusRole: READY_STATUS_ROLE,
+          lists: {
+            some: {
+              id: listId,
+              OR: [{ ownerId: userId }, { listMembers: { some: { userId } } }],
+            },
+          },
+        }
+      : null
+
   const tasks = await prisma.task.findMany({
     where: {
-      // Assignment is the handshake, and it is REQUIRED here — deliberately
-      // stricter than the local /fixall script's isClaimableByAgent, which also
-      // takes unassigned tasks. That is safe on one person's own board and
-      // unsafe on a shared list, where an unassigned Ready task is somebody's
-      // untriaged note rather than an invitation.
-      assigneeId: agentUser.id,
       completed: false,
-      // Ready is a FIELD on the task (AWTD-562), not membership in a list.
-      ...queuedStatusFilter(requireReady),
-      lists: listScope,
+      ...(unassignedOnOwnBoard
+        ? { OR: [assignedToAgent, unassignedOnOwnBoard] }
+        : assignedToAgent),
     },
     select: {
       id: true,
@@ -287,6 +353,7 @@ export async function buildAgentQueue({
       dueDateTime: true,
       isAllDay: true,
       createdAt: true,
+      assigneeId: true,
       lists: { select: { id: true, name: true, githubRepositoryId: true } },
     },
     // Priority high → low, then oldest first — the order a loop works them in.
@@ -348,7 +415,9 @@ export async function buildAgentQueue({
     mode,
     // An explicit flag, so a loop can stop without interpreting an array.
     empty,
-    hint: empty ? emptyQueueHint(mailbox, notReadyCount, scheduled, requireReady) : undefined,
+    hint: empty
+      ? emptyQueueHint(mailbox, notReadyCount, scheduled, requireReady, includeUnassigned)
+      : undefined,
     queue: due.map(({ task }) => ({
       id: task.id,
       identifier: task.identifier,
@@ -359,6 +428,7 @@ export async function buildAgentQueue({
       listId: task.lists[0]?.id ?? null,
       listName: task.lists[0]?.name ?? null,
       githubRepositoryId: task.lists.find(l => l.githubRepositoryId)?.githubRepositoryId ?? null,
+      assigned: task.assigneeId !== null,
       url: getTaskUrl(task.id),
     })),
     // A queue waiting on the clock must not look like an idle one — say WHEN, so
@@ -578,7 +648,8 @@ function emptyQueueHint(
   mailbox: string,
   notReadyCount: number,
   scheduled: Array<{ startsAt: string }>,
-  requireReady: boolean
+  requireReady: boolean,
+  includeUnassigned = false
 ): string {
   if (scheduled.length > 0) {
     const waiting = `${scheduled.length} task(s) are queued for ${mailbox} but not due to start yet — the earliest begins ${scheduled[0].startsAt}.`
@@ -587,6 +658,9 @@ function emptyQueueHint(
       : waiting
   }
   if (notReadyCount > 0) return notReadyHint(mailbox, notReadyCount, requireReady)
+  if (includeUnassigned) {
+    return `Nothing on this board is Ready for ${mailbox}: no incomplete Ready task is assigned to it, and none is unassigned.`
+  }
   return nothingAssignedHint(mailbox)
 }
 

@@ -8,13 +8,14 @@
  * is pushed to the harness and no provider is called from here, so a quiet day
  * costs exactly one HTTP request.
  *
- * The queue rules — Ready, assigned to this identity, past its start date, and
+ * The queue rules — Ready, assigned to this identity (or, with
+ * `includeUnassigned`, unassigned on the named board), past its start date, and
  * visible to the caller — live in lib/agent-queue.ts. This file is the HTTP shell.
  */
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
+import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
 import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
 
@@ -31,13 +32,13 @@ class BadQueueParameterError extends Error {}
  * just tried to open, and hand them the one failure a scheduled loop cannot debug —
  * exactly the silence the rest of this endpoint is written against.
  */
-function parseRequireReady(raw: string | null): boolean {
-  if (raw === null) return true
+function parseBooleanParam(name: string, raw: string | null, absent: boolean): boolean {
+  if (raw === null) return absent
   const value = raw.trim().toLowerCase()
   if (value === 'false' || value === '0') return false
   if (value === 'true' || value === '1' || value === '') return true
   throw new BadQueueParameterError(
-    `requireReady must be true or false, not "${raw}".`
+    `${name} must be true or false, not "${raw}".`
   )
 }
 
@@ -51,7 +52,14 @@ export const GET = withAuth(
         agent: url.searchParams.get('agent'),
         userId: auth.userId,
         listId: url.searchParams.get('listId'),
-        requireReady: parseRequireReady(url.searchParams.get('requireReady')),
+        requireReady: parseBooleanParam('requireReady', url.searchParams.get('requireReady'), true),
+        // `?includeUnassigned=true` — unassigned Ready tasks on the named board
+        // queue too. Opt-in; lib/agent-queue.ts says why and what bounds it.
+        includeUnassigned: parseBooleanParam(
+          'includeUnassigned',
+          url.searchParams.get('includeUnassigned'),
+          false
+        ),
         // The chat half of the inbox is included only if the caller ALREADY
         // holds chat:read (AWTD-963). Adding it to this route's `scopes` would
         // 403 the whole queue for every token minted before chat scopes
@@ -68,7 +76,7 @@ export const GET = withAuth(
         meta: { apiVersion: 'v1' as const, authSource: auth.source },
       })
     } catch (error) {
-      if (error instanceof BadQueueParameterError) {
+      if (error instanceof BadQueueParameterError || error instanceof BadQueueOptionError) {
         return NextResponse.json({ error: error.message }, { status: 400 })
       }
       if (error instanceof UnknownAgentError) {

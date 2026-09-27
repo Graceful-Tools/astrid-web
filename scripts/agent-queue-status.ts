@@ -55,6 +55,8 @@
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId>            # no sweep; lanes reported as not read
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --json
+ *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web --include-unassigned
+ *     # → unassigned Ready tasks on the board count as queued work too (the /fixall rule)
  *
  * Two-phase waking (the scheduled loop's contract):
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web --no-write-seen
@@ -207,6 +209,7 @@ async function main() {
   const listId = arg('--list')
   const board = arg('--board')
   const asJson = process.argv.includes('--json')
+  const includeUnassigned = process.argv.includes('--include-unassigned')
 
   if (!listId) {
     console.error(
@@ -280,7 +283,9 @@ async function main() {
   }
   const { access_token: token } = await tokenResponse.json()
 
-  const url = `${API}/api/v1/agent-queue?agent=${encodeURIComponent(agent)}&listId=${encodeURIComponent(listId)}`
+  const url =
+    `${API}/api/v1/agent-queue?agent=${encodeURIComponent(agent)}&listId=${encodeURIComponent(listId)}` +
+    (includeUnassigned ? '&includeUnassigned=true' : '')
   const response = await fetch(url, { headers: { 'X-OAuth-Token': token } })
   if (!response.ok) {
     console.error(`QUEUE: unknown — HTTP ${response.status} from /api/v1/agent-queue`)

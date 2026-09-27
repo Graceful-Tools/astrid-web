@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
-import { buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
+import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
 import { BRAND } from '@/lib/brand/config'
 
 const AGENT = { id: 'agent-claude', name: 'Claude Agent', isAIAgent: true }
@@ -318,5 +318,88 @@ describe('buildAgentQueue — requireReady', () => {
     expect(result.held.notReadyCount).toBe(4)
     expect(result.hint).not.toMatch(/requireReady/)
     expect(result.hint).toMatch(/Waiting|Doing|status/i)
+  })
+})
+
+/**
+ * /fixall on a board kept for agents — unassigned Ready tasks queue too.
+ *
+ * Ready is the hand-off there, and requiring an assignment first left Ready work
+ * sitting unworked. It stays opt-in and bounded: a named board the caller owns or
+ * belongs to, Ready only, and never Doing — that is a peer session's claim.
+ */
+describe('buildAgentQueue — includeUnassigned', () => {
+  beforeEach(() => {
+    mockPrisma.user.findUnique.mockReset()
+    mockPrisma.task.findMany.mockReset()
+    mockPrisma.task.count.mockReset()
+    mockPrisma.user.findUnique.mockResolvedValue(AGENT)
+    mockPrisma.task.findMany.mockResolvedValue([])
+    mockPrisma.task.count.mockResolvedValue(0)
+  })
+
+  it('is off by default, so the queue still requires assignment', async () => {
+    await buildAgentQueue({ agent: 'claude', userId: 'user-1', listId: 'list-9' })
+    const where = mockPrisma.task.findMany.mock.calls[0][0].where
+    expect(where.assigneeId).toBe('agent-claude')
+    expect(where.OR).toBeUndefined()
+  })
+
+  it('refuses without a board — unassigned and visible includes every public list', async () => {
+    await expect(
+      buildAgentQueue({ agent: 'claude', userId: 'user-1', includeUnassigned: true })
+    ).rejects.toBeInstanceOf(BadQueueOptionError)
+    expect(mockPrisma.task.findMany).not.toHaveBeenCalled()
+  })
+
+  it('queues unassigned Ready tasks on a board the caller belongs to, alongside assigned ones', async () => {
+    await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      listId: 'list-9',
+      includeUnassigned: true,
+    })
+    const where = mockPrisma.task.findMany.mock.calls[0][0].where
+    expect(where.completed).toBe(false)
+    const [assigned, unassigned] = where.OR
+    expect(assigned.assigneeId).toBe('agent-claude')
+    expect(assigned.statusRole).toBe('ready')
+    expect(unassigned.assigneeId).toBeNull()
+    // Ready only: Doing is a peer's claim, Waiting is parked.
+    expect(unassigned.statusRole).toBe('ready')
+    expect(unassigned.lists.some.id).toBe('list-9')
+    // Membership, not visibility: public alone is not enough.
+    expect(JSON.stringify(unassigned.lists)).not.toContain('PUBLIC')
+    expect(JSON.stringify(unassigned.lists)).toContain('user-1')
+  })
+
+  it('keeps unassigned tasks Ready-only even when requireReady is relaxed', async () => {
+    await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      listId: 'list-9',
+      includeUnassigned: true,
+      requireReady: false,
+    })
+    const [assigned, unassigned] = mockPrisma.task.findMany.mock.calls[0][0].where.OR
+    expect(assigned.OR).toEqual([{ statusRole: 'ready' }, { statusRole: null }])
+    expect(unassigned.statusRole).toBe('ready')
+  })
+
+  it('marks which queued tasks are unassigned, so the loop claims before it works', async () => {
+    mockPrisma.task.findMany.mockResolvedValueOnce([
+      task({ id: 'mine', assigneeId: 'agent-claude' }),
+      task({ id: 'open', assigneeId: null }),
+    ])
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      listId: 'list-9',
+      includeUnassigned: true,
+    })
+    expect(result.queue.map(t => [t.id, t.assigned])).toEqual([
+      ['mine', true],
+      ['open', false],
+    ])
   })
 })

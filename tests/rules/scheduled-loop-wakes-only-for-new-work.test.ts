@@ -36,6 +36,12 @@ describe('the scheduled loop wakes only for new work', () => {
     expect(call, `${LOOP} must pass --board web to ${STATUS}`).toMatch(/--board web\b/)
   })
 
+  it('counts unassigned Ready tasks as work, as /fixall does', () => {
+    const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
+    expect(call, `${LOOP} must pass --include-unassigned to ${STATUS}`).toMatch(/--include-unassigned\b/)
+    expect(status).toMatch(/includeUnassigned=true/)
+  })
+
   it('decides through the tested verdict, not the endpoint flag alone', () => {
     expect(status).toMatch(/decideQueueVerdict\(/)
     // The old shape. If it comes back, the inbox goes deaf again.

@@ -45,10 +45,10 @@ command:
 
 ```bash
 # GitHub Copilot CLI / Copilot app
-get_agent_queue { agent: "copilot", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }
+get_agent_queue { agent: "copilot", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba", includeUnassigned: true }
 
 # Claude Code
-get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba" }
+get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba", includeUnassigned: true }
 
 # Queue debugging only (never use the DB):
 # Copilot:    scripts/ready-tasks.ts web --harness github-copilot
@@ -57,8 +57,9 @@ get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba
 
 `agent` never defaults: identify the current runtime, then pass its matching mailbox.
 Copilot must not poll Claude's assignments, and Claude Code must not poll Copilot's.
-Only tasks assigned to that selected identity are returned; unassigned Ready tasks are
-someone's untriaged note.
+The queue returns Ready tasks assigned to that identity **plus unassigned Ready tasks** on
+the board (`assigned: false`) — whichever loop claims one first owns it. Tasks in `Doing`
+are never returned: another agent or a person is already on them.
 
 ## What is different here
 
@@ -81,6 +82,8 @@ someone's untriaged note.
 - **Claim each task atomically before working it**, with this harness's own mailbox:
   `npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent claude`. Exit 2
   (`CLAIM_CONFLICT`) means a peer session took it first — move to the next task silently.
+  This matters most for unassigned tasks: every loop polling the board sees them, and the
+  claim is what makes exactly one of them the owner.
   Omitting `--agent` assigns the task to Copilot.
 - **One isolated branch/worktree per task, and one `/fixall` session per working tree.**
   In a Copilot app session, use the branch and worktree the session already created; do not
