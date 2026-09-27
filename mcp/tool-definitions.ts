@@ -48,7 +48,7 @@ export const OAUTH_MCP_TOOLS = [
       {
         name: "get_agent_queue",
         description:
-          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too.",
+          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too. On a board you keep for your own agents, pass includeUnassigned: true with listId so unassigned Ready tasks queue as well.",
         inputSchema: {
           type: "object",
           properties: {
@@ -67,6 +67,12 @@ export const OAUTH_MCP_TOOLS = [
               description:
                 "Must a task be in Ready to queue? Default true. Pass false if you do not use the board: a task with NO status queues as well, so assignment alone is enough. It relaxes only that — Waiting, Doing and a project's custom states are still never queued, so parking a blocked task in Waiting keeps stopping the loop from re-reading it.",
               default: true,
+            },
+            includeUnassigned: {
+              type: "boolean",
+              description:
+                "Also queue UNASSIGNED Ready tasks on the board named by listId (required with this). Default false. Use it on a board you keep for your own agents, where Ready is the hand-off; claim a task before working it, since an unassigned task is open to any agent. Only boards you own or are a member of, only Ready — Doing, Waiting and unstatused tasks never queue this way.",
+              default: false,
             },
           },
           required: ["agent"],

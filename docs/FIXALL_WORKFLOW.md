@@ -60,7 +60,7 @@ run therefore reported `ConnectionRefused` (2026-09-13). stdio authenticates fro
 client-credentials pair in `astrid-web/.env.local` and needs nobody present.
 
 ```
-get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>" }
+get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>", includeUnassigned: true }
 ```
 
 The current runtime determines the mailbox: GitHub Copilot CLI / the Copilot app
@@ -82,10 +82,20 @@ A task is yours only when **all four** hold:
    every board, so filtering on it alone would hand the web loop iOS work.
 2. **Ready status.** The rest of the board is filed but not triaged. Working anything else is
    not autonomy, it is picking your own work.
-3. **Assigned to this agent.** The MCP queue REQUIRES assignment — an unassigned Ready task is
-   somebody's untriaged note, not an invitation. (The local script also took unassigned tasks;
-   the MCP does not.) If something is genuinely yours, say so and let Jon assign it; do not
-   work around the filter.
+3. **Assigned to this agent, or unassigned.** On these boards Ready is the hand-off, so an
+   unassigned Ready task is work for whichever loop claims it first — `includeUnassigned: true`
+   asks for it (Jon, 2026-09-27). Queue items carry `assigned: false` for those. A task assigned
+   to a person or to *another* agent is never yours. The claim (below) assigns it to you and
+   moves it to `Doing` in one statement, so two loops reading the same unassigned task cannot
+   both take it — `CLAIM_CONFLICT` means a peer got there first.
+
+   **`Doing` is ignored.** It is not Ready, so it never queues, assigned or not: a task in
+   `Doing` is one a peer session or a person is working right now.
+
+   The server bounds the flag: it requires `listId`, only takes unassigned tasks from a board
+   the caller owns or belongs to (public visibility is not enough), and only in Ready — an
+   unassigned task with no status is an Inbox note, even under `requireReady: false`. Without
+   the flag the queue is assigned-only, which is still right for anyone else's shared list.
 4. **Due now.** See below.
 
 The queue reports what it held and why (`held.notDueCount`, `held.scheduled`), so a queue
@@ -310,7 +320,7 @@ does not auto-deploy, so `main` having the fix changes nothing until someone dep
 ## After every task, re-check the queue AND the inbox
 
 ```
-get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>" }
+get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>", includeUnassigned: true }
 ```
 
 **One call answers both questions.** `queue` is what to work; `attention` is what has been said
@@ -332,7 +342,7 @@ than re-closing it on the same reasoning.
 ## The engagement contract — where an answer goes
 
 The loop could always talk to the board. Until AWTD-963 it could not hear it: `queue` is
-Ready ∩ assigned ∩ due, so a comment on a task the agent itself moved to `Doing` was invisible,
+Ready ∩ (assigned ∪ unassigned) ∩ due, so a comment on a task the agent itself moved to `Doing` was invisible,
 a comment on one it had finished was invisible, and list chat had no read path at all. Polling
 mode disables the server-side dispatch sites deliberately, so the harness has to PULL what the
 server no longer pushes.

@@ -159,7 +159,8 @@ rm -f "$STUCK_FILE"
 # same question, and answer ALL of it — three things the run must act on, and
 # until 2026-09-20 this guard checked only the first:
 #
-#   queue  — Ready ∩ assigned to claude ∩ due (the endpoint's `empty`)
+#   queue  — Ready ∩ (assigned to claude ∪ unassigned) ∩ due (the endpoint's
+#            `empty`; --include-unassigned is the /fixall rule, docs/FIXALL_WORKFLOW.md)
 #   inbox  — `attention`: comments and chat nobody answered (AWTD-963). The
 #            guard skipped past two direct questions from Jon, "nothing queued".
 #   lanes  — `--board web` runs the sweep as claude-code first: parked work
@@ -184,7 +185,7 @@ rm -f "$STUCK_FILE"
 # Exit 1 means "could not tell" (network, auth) and must NOT be read as empty:
 # a queue we cannot see is a reason to run and let the agent report properly,
 # not a reason to skip quietly forever.
-QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --no-write-seen 2>&1)
+QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --include-unassigned --no-write-seen 2>&1)
 QUEUE_STATUS=$?
 QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN):')
 QUEUE_KEYS=$(echo "$QUEUE_OUT" | sed -n 's/^KEYS: //p' | head -1)
