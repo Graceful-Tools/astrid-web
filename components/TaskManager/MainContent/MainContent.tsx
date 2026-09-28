@@ -21,8 +21,7 @@ import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTaskRowController } from "@/hooks/task-manager/useTaskRowController"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
-import { getBoardRowContext, getProjectIdForBoard } from "@/lib/project-status"
-import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
+import { useBoardRowContext } from "@/hooks/task-manager/useBoardRowContext"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
   Settings,
@@ -426,24 +425,8 @@ export function MainContent({
     taskDisplayMode,
   })
 
-  // The board behind the selected list, or null. Built once for the whole list
-  // rather than per row: every row offers the same columns, and a row that
-  // resolved its current column against a different project than its buttons
-  // came from would render a picker with nothing selected (task 036ef139).
-  //
-  // The project id is resolved first because the custom states are FETCHED by
-  // it, and the row picker has to read them the same way the board does — a
-  // picker built without them offers only the legacy row-backed customs, and
-  // once the rows are dropped, none at all (task 9ddf4a6f).
-  const boardProjectId = React.useMemo(
-    () => getProjectIdForBoard(lists, selectedListId),
-    [lists, selectedListId],
-  )
-  const boardCustomStates = useProjectCustomStates(boardProjectId)
-  const boardRowContext = React.useMemo(
-    () => getBoardRowContext(lists, selectedListId, boardCustomStates),
-    [lists, selectedListId, boardCustomStates],
-  )
+  // The board behind the selected list, or null — once for the whole list.
+  const boardRowContext = useBoardRowContext(lists, selectedListId)
 
   // The Statuses settings tab manages the SAME columns the board renders. It
   // used to be handed the `listType: 'status'` rows; Stage D deleted them, and
@@ -471,8 +454,10 @@ export function MainContent({
       setDraggingTaskMetrics={setDraggingTaskMetrics}
       startMobileDrag={startMobileDrag}
       board={boardRowContext}
+      currentListId={selectedListId}
     />
   ), [
+    selectedListId,
     rowController,
     isMobile,
     isTouchManualSort,
