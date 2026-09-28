@@ -156,6 +156,31 @@ if [ "${FIXALL_FORCE:-0}" != "1" ]; then
 fi
 rm -f "$STUCK_FILE"
 
+# ── Run what is merged, not what someone last pulled by hand ─────────────────
+# Nothing else updates this checkout. On 2026-09-27 a merged loop fix sat unused
+# in astrid-ios until a human pulled it. The guards above have just confirmed a
+# clean tree on main, so a fast-forward cannot clobber anything. If the loop
+# script itself changed, exec the new version: same pid, so the lock is simply
+# reacquired, and FIXALL_SELF_UPDATED stops it updating twice. A failed fetch
+# (offline, auth) degrades to running the current checkout — it must not become
+# a loop that never runs. fsmonitor off: a stuck daemon hung a pull here.
+if [ "${FIXALL_FORCE:-0}" != "1" ] && [ "${FIXALL_SELF_UPDATED:-0}" != "1" ]; then
+  BEFORE=$(git rev-parse HEAD)
+  if GIT_TERMINAL_PROMPT=0 git -c core.fsmonitor=false fetch -q origin main 2>/dev/null \
+     && git -c core.fsmonitor=false merge -q --ff-only origin/main 2>/dev/null; then
+    AFTER=$(git rev-parse HEAD)
+    if [ "$BEFORE" != "$AFTER" ]; then
+      echo "  updated main $(git rev-parse --short "$BEFORE") → $(git rev-parse --short "$AFTER")"
+      if ! git diff --quiet "$BEFORE" "$AFTER" -- scripts/fixall-loop.sh; then
+        echo "  the loop changed — restarting on the new version"
+        FIXALL_SELF_UPDATED=1 exec "$0" "$@"
+      fi
+    fi
+  else
+    echo "  ⚠️  could not fast-forward main to origin/main — running on $(git rev-parse --short HEAD)"
+  fi
+fi
+
 # ── Guard 3: is there actually any work? ─────────────────────────────────────
 # THE expensive question, asked the cheap way. Without this a quiet tick still
 # boots a whole session — CLAUDE.md, fixall.md, the MCP tool schemas — to call
