@@ -51,7 +51,10 @@ REPO="${0:A:h:h}"
 TSX="$REPO/node_modules/.bin/tsx"
 CLAUDE="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
 MODEL="${FIXALL_MODEL:-opus}"
-MAX_MINUTES="${FIXALL_MAX_MINUTES:-50}"
+# 75, not 50: on 2026-09-27 a run capped at ONE task (AWTD-1007) still hit a 50m
+# watchdog. A killed run is now saved and harmless, but a task that never fits
+# would be killed on every attempt.
+MAX_MINUTES="${FIXALL_MAX_MINUTES:-75}"
 MAX_USD="${FIXALL_MAX_USD-10}"
 WEB_LIST_ID="a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
 
@@ -258,7 +261,7 @@ fi
 # later tick until someone notices. macOS ships no `timeout`, hence the subshell.
 #
 # The budget catches one that stays BUSY — a task it cannot finish, retried
-# until the clock runs out — which the watchdog would not stop for 50 minutes.
+# until the clock runs out — which the watchdog would not stop for the whole window.
 # --max-budget-usd only works with -p, which is the mode this always runs in.
 BUDGET_ARGS=()
 [ -n "$MAX_USD" ] && BUDGET_ARGS=(--max-budget-usd "$MAX_USD")
