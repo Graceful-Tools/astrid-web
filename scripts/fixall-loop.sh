@@ -98,6 +98,10 @@ trap release_lock EXIT INT TERM
 # and skips the acquire when it is set. Remove one and the other is a silent
 # no-op on every tick.
 export ASTRID_FIXALL_LOCK_HELD=1
+# One Ready task per run (fixall.md → "One task per scheduled run"). Four tasks
+# with a ~10-minute predeploy each do not fit the 50m watchdog: on 2026-09-27 the
+# 16:20 run was killed partway into its first task. The next tick takes the next.
+export ASTRID_FIXALL_MAX_TASKS="${FIXALL_MAX_TASKS:-1}"
 
 # ── Guard 2: never clobber work in progress ──────────────────────────────────
 # /fixstuff takes no lock, so an interactive session editing files here is
@@ -255,20 +259,43 @@ kill "$WATCHDOG_PID" 2>/dev/null
 # so nobody could see it, and unmerged, so guard 2 rightly refused every later
 # tick. This wrapper holds the lock and the session that made the branch is
 # gone, so it is the one place that may move HEAD: push the branch so the work
-# is reviewable, then go back to main. Uncommitted changes are left alone.
+# is reviewable, then go back to main.
+#
+# UNCOMMITTED work is saved the same way, as a WIP commit on a branch. Leaving it
+# "for a human" wedged the loop twice on 2026-09-27 (AWTD-1024 at 08:20, AWTD-1025
+# at 16:20): guard 2 rightly refuses a dirty tree, so every later tick skipped
+# while Ready work waited. The commit is never on main — a run that dirtied main
+# itself gets a wip/ branch — and it is marked UNFINISHED so nobody ships it.
+# --no-verify because the work is by definition unverified; the pre-commit hook
+# would refuse it and put us back where we started.
+SAVED_BRANCH=""
 END_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-if [ "$END_BRANCH" != "main" ]; then
-  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    echo "  ⚠️  run left $END_BRANCH with uncommitted changes — leaving it for a human"
-  else
-    if git push -q -u origin "$END_BRANCH" 2>/dev/null; then
-      echo "  run left $END_BRANCH — pushed it to origin for review"
-    else
-      echo "  ⚠️  run left $END_BRANCH and it could not be pushed"
-      post_to_list "**Scheduled /fixall (web) left unpushed work on \`$END_BRANCH\`** — the push failed. The branch is still in $REPO; the loop has gone back to main."
-    fi
-    git checkout -q main && echo "  returned to main from $END_BRANCH"
+if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+  if [ "$END_BRANCH" = "main" ] || [ "$END_BRANCH" = "HEAD" ]; then
+    END_BRANCH="wip/fixall-web-$(date +%Y%m%d-%H%M%S)"
+    git checkout -q -b "$END_BRANCH"
   fi
+  if git add -A && git commit -q --no-verify -m "wip: scheduled /fixall run ended mid-task — UNFINISHED, UNVERIFIED
+
+Saved by scripts/fixall-loop.sh (claude exit $STATUS) so the checkout can return
+to main. Predeploy has not been run on this. Continue from here; do not ship it."; then
+    SAVED_BRANCH="$END_BRANCH"
+    echo "  run left uncommitted changes — saved as a WIP commit on $END_BRANCH"
+  else
+    echo "  ⚠️  run left $END_BRANCH with uncommitted changes and they could not be committed — leaving it for a human"
+  fi
+fi
+if [ "$END_BRANCH" != "main" ] && [ -z "$(git status --porcelain 2>/dev/null)" ]; then
+  if [ -n "$SAVED_BRANCH" ]; then
+    post_to_list "**Scheduled /fixall (web) saved unfinished work on \`$SAVED_BRANCH\`** — the run ended mid-task, so it is a WIP commit, not verified. The loop has gone back to main; pick the task up from that branch."
+  fi
+  if git push -q -u origin "$END_BRANCH" 2>/dev/null; then
+    echo "  run left $END_BRANCH — pushed it to origin for review"
+  else
+    echo "  ⚠️  run left $END_BRANCH and it could not be pushed"
+    post_to_list "**Scheduled /fixall (web) left unpushed work on \`$END_BRANCH\`** — the push failed. The branch is still in $REPO; the loop has gone back to main."
+  fi
+  git checkout -q main && echo "  returned to main from $END_BRANCH"
 fi
 
 # Phase two of waking, before the RESULT line so that line stays last (the
@@ -295,6 +322,11 @@ if [ "$STATUS" -ge 128 ]; then
 else
   REASON="claude exited $STATUS"
 fi
-post_to_list "**Scheduled /fixall (web) did not finish** — $REASON. Nothing was pushed by this run. Log: ~/Library/Logs/astrid-fixall-web.log"
+if [ -n "$SAVED_BRANCH" ]; then
+  SAVED_NOTE="Its unfinished work is saved on \`$SAVED_BRANCH\` (WIP, unverified)."
+else
+  SAVED_NOTE="Nothing was pushed by this run."
+fi
+post_to_list "**Scheduled /fixall (web) did not finish** — $REASON. $SAVED_NOTE Log: ~/Library/Logs/astrid-fixall-web.log"
 echo "RESULT: FAILED — $REASON"
 exit 1
