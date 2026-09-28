@@ -75,6 +75,35 @@ describe('unstartedTestFiles (task d036295d)', () => {
   })
 })
 
+/**
+ * What vitest 4.1.11 actually prints (AWTD-1034).
+ *
+ * The fixtures above were written without the sentence's closing period, and
+ * vitest ends the message with one — `formatFiles(task)` followed by `.`. It
+ * also joins a multi-file task with `", "`. Parsed with `\S+`, the recovery
+ * re-ran `…task-copy-flow.test.ts.` or `…a.test.ts,` — paths that match no
+ * file, so the re-run failed and a contention-only run stayed red.
+ */
+describe('unstartedTestFiles reads the message vitest really prints (AWTD-1034)', () => {
+  /** Verbatim from the AWTD-1034 predeploy report. */
+  const VITEST_4_MESSAGE =
+    'Error: [vitest-pool]: Failed to start forks worker for test files /Users/jonparis/mycode/astrid-web/tests/lib/task-copy-flow.test.ts.\n' +
+    ' ❯ node_modules/vitest/dist/chunks/cli-api.CnMVyzaz.js:3532:94\n'
+
+  it('drops the sentence-ending period (AWTD-1034)', () => {
+    expect(unstartedTestFiles(VITEST_4_MESSAGE)).toEqual([
+      '/Users/jonparis/mycode/astrid-web/tests/lib/task-copy-flow.test.ts',
+    ])
+  })
+
+  it('names every file of a multi-file task, without commas (AWTD-1034)', () => {
+    const multi =
+      'Error: [vitest-pool]: Failed to start forks worker for test files /repo/tests/a.test.ts, /repo/tests/b.test.tsx.\n'
+
+    expect(unstartedTestFiles(multi)).toEqual(['/repo/tests/a.test.ts', '/repo/tests/b.test.tsx'])
+  })
+})
+
 describe('classifyVitestFailure (task d036295d)', () => {
   it('calls a named worker failure starvation, and offers the files to re-run', () => {
     const verdict = classifyVitestFailure(STARVED_OUTPUT, { passed: 6541, failed: 0, skipped: 0, total: 6541 })

@@ -51,15 +51,26 @@ export interface VitestStats {
 }
 
 /**
- * The pool's message names the file it gave up on. Matching the path rather
- * than the whole line because the "Caused by:" detail varies between a worker
- * that timed out and one that was refused outright.
+ * The pool's message names the files it gave up on. Matching the file list
+ * rather than the whole line because the "Caused by:" detail varies between a
+ * worker that timed out and one that was refused outright.
+ *
+ * vitest 4 writes the list as `formatFiles(task)` — paths joined with `", "` —
+ * and ends the sentence with a period (AWTD-1034). Both have to come off, or
+ * the re-run is handed `a.test.ts.` / `a.test.ts,`, which match no file.
  */
-const UNSTARTED_FILE = /Failed to start forks worker for test files\s+(\S+)/g
+const UNSTARTED_FILES = /Failed to start forks worker for test files\s+(.+)$/gm
 
 /** Files vitest reported it could not start, in the order it reported them. */
 export function unstartedTestFiles(output: string): string[] {
-  const found = [...output.matchAll(UNSTARTED_FILE)].map(match => match[1])
+  const found = [...output.matchAll(UNSTARTED_FILES)].flatMap(match =>
+    match[1]
+      .trim()
+      .replace(/\.$/, '')
+      .split(', ')
+      .map(file => file.trim())
+      .filter(Boolean)
+  )
   // A file can be reported by more than one pool message; re-running it twice
   // would be harmless but the report would read as though more went wrong.
   return [...new Set(found)]
