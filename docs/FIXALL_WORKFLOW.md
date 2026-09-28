@@ -325,7 +325,7 @@ report and release as usual, then end the run. Answering the inbox and clearing 
 empty.
 
 The scheduled runners (`astrid-web/scripts/fixall-loop.sh`, `astrid-ios/scripts/fixall-loop.sh`)
-set it to `1`. A run that takes the whole queue does not fit its 50-minute watchdog once a gate
+set it to `1`. A run that takes the whole queue does not fit its watchdog (75 minutes since 2026-09-28) once a gate
 takes ~10 minutes a task. On 2026-09-27 a web run was killed partway into the first of four
 tasks, and the next tick takes the next task anyway.
 
