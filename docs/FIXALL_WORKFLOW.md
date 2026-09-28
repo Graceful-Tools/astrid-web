@@ -317,6 +317,31 @@ does not auto-deploy, so `main` having the fix changes nothing until someone dep
 
 ---
 
+## One task per scheduled run — and resuming a run that died
+
+**If `ASTRID_FIXALL_MAX_TASKS` is set, stop after working that many Ready tasks.** Push,
+report and release as usual, then end the run. Answering the inbox and clearing `RECHECK` /
+`REVIEW` do not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
+empty.
+
+The scheduled runners (`astrid-web/scripts/fixall-loop.sh`, `astrid-ios/scripts/fixall-loop.sh`)
+set it to `1`. A run that takes the whole queue does not fit its 50-minute watchdog once a gate
+takes ~10 minutes a task. On 2026-09-27 a web run was killed partway into the first of four
+tasks, and the next tick takes the next task anyway.
+
+**A run that dies mid-task no longer wedges the loop.** The runner commits whatever the run
+left uncommitted as a WIP commit on the task branch — or a `wip/` branch, never `main` —
+pushes it, says so in list chat, and returns the checkout to `main`. Before this it left the
+tree dirty "for a human", and guard 2 then skipped every tick until one came: twice on
+2026-09-27.
+
+**So a task branch whose tip is `wip: … UNFINISHED, UNVERIFIED` is a resume point.** Check it
+out and continue from it rather than starting over. It has not passed any gate, so never
+treat it as done or ship it.
+
+A harness without a scheduled runner (Windows today) follows the same rules when it is run
+on a schedule: set the cap, and put a died run's work on a branch before the next tick.
+
 ## After every task, re-check the queue AND the inbox
 
 ```
