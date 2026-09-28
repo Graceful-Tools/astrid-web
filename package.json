@@ -29,6 +29,8 @@
     "test:rate-limit": "vitest tests/auth/rate-limit-simple.test.ts",
     "predeploy:check": "tsx scripts/predeploy-check.ts",
     "check:model-sync": "tsx scripts/check-model-sync.ts",
+    "check:contract-fixtures": "tsx scripts/export-contract-fixtures.ts --check",
+    "export:contract-fixtures": "tsx scripts/export-contract-fixtures.ts",
     "check:docs": "tsx scripts/check-doc-links.ts && tsx scripts/report-script-inventory.ts --check",
     "check:reuse": "tsx scripts/check-reuse.ts --strict && npm run check:api-boundaries",
     "check:api-boundaries": "tsx scripts/check-api-boundaries.ts",
