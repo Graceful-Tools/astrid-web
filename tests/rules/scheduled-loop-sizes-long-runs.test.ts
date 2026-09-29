@@ -28,7 +28,12 @@ function size(queueOut: string, env: Record<string, string> = {}): Record<string
     'echo "NEXT=${ASTRID_FIXALL_NEXT_TASK-}"',
     'echo "DEFER=${ASTRID_FIXALL_DEFER_TASKS-}"',
   ].join('\n')
-  const out = execFileSync('bash', ['-c', script], { encoding: 'utf8', env: { PATH: process.env.PATH ?? '', QUEUE_OUT: queueOut, ...env } })
+  // The machine's own budget settings must not leak into the defaults under test.
+  const { FIXALL_MAX_USD: _max, FIXALL_LONG_MAX_USD: _long, ...inherited } = process.env
+  const out = execFileSync('bash', ['-c', script], {
+    encoding: 'utf8',
+    env: { ...inherited, QUEUE_OUT: queueOut, ...env },
+  })
   return Object.fromEntries(
     out
       .split('\n')
