@@ -17,7 +17,7 @@ import { join } from 'path'
 const loop = readFileSync(join(process.cwd(), 'scripts/fixall-loop.sh'), 'utf8')
 const selfUpdate = loop.slice(
   loop.indexOf('# ── Run what is merged'),
-  loop.indexOf('# ── Guard 3'),
+  loop.indexOf('# ── Doing must not be a dead end'),
 )
 
 let dir: string

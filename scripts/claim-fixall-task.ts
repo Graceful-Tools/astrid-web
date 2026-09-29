@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+import { appendFileSync } from "fs"
 import { loadScriptEnv } from './lib/load-env'
 import { parseClaimArgs } from './lib/fixall-claim-args'
 
@@ -77,6 +78,13 @@ async function main() {
   }
 
   console.log(`CLAIMED ${taskId}`)
+
+  // A scheduled runner passes a file to collect this run's claims. After the run
+  // it releases any of them still in Doing — the run died or stopped mid-task —
+  // so they do not sit there forever (scripts/release-stuck-doing.ts). Only a
+  // Ready claim moves a task to Doing; RECHECK and REVIEW leave it in Waiting.
+  const claimsFile = process.env.ASTRID_FIXALL_CLAIMS_FILE
+  if (claimsFile && action === "ready") appendFileSync(claimsFile, `${taskId}\n`)
 }
 
 main().catch(error => {
