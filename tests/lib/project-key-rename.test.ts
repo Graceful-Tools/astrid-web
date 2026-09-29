@@ -9,6 +9,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import {
   renameProjectKey,
   resolveTaskIdOrIdentifier,
@@ -19,7 +21,7 @@ import {
 } from '@/lib/task-identifier'
 
 type FakeProject = { id: string; name: string; key: string | null; nextSequence: number }
-type FakeAlias = { key: string; projectId: string }
+type FakeAlias = { key: string; projectId: string | null }
 type FakeTask = { id: string; identifier: string | null; sequence: number | null }
 
 function fakeClient(state: {
@@ -212,6 +214,28 @@ describe('renameProjectKey (AWTD-1024)', () => {
     await renameProjectKey('p-web', 'WEB', client as never)
 
     expect(await allocateTaskIdentifier(['l-web'], client as never)).toEqual({ identifier: 'WEB-13', sequence: 13 })
+  })
+})
+
+describe('a renamed project that is later deleted (AWTD-1024)', () => {
+  // Its tasks survive detached and carry NEW-N, so nothing minted still says
+  // OLD: the alias row is the ONLY thing reserving OLD. A cascade would free it,
+  // and a new project could mint an OLD-12 that old links then land on.
+  it('keeps the alias row: deleting the project orphans it rather than cascading', () => {
+    const schema = readFileSync(join(process.cwd(), 'prisma/schema.prisma'), 'utf8')
+    const model = schema.match(/model ProjectKeyAlias \{[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(model).toMatch(/projectId\s+String\?/)
+    expect(model).toMatch(/onDelete:\s*SetNull/)
+  })
+
+  it('an orphaned alias still reserves its key, and resolves to nothing rather than to another task', async () => {
+    const { state, client } = astridWeb()
+    state.aliases.push({ key: 'OLD', projectId: null })
+
+    expect(await renameProjectKey('p-web', 'OLD', client as never)).toMatchObject({ status: 409 })
+    expect(await checkRequestedProjectKey('OLD', client as never)).toMatchObject({ status: 409 })
+    expect(await canonicalizeIdentifier('OLD-12', client as never)).toBe('OLD-12')
+    expect(await resolveTaskIdOrIdentifier('OLD-12', client as never)).toBeNull()
   })
 })
 
