@@ -12,6 +12,7 @@ import {
   branchesForTask,
   countReleases,
   isAbandonedClaim,
+  isAwaitingBuild,
   isReleasableClaim,
   releaseDoingClaim,
   type DoingTask,
@@ -130,5 +131,39 @@ describe('releaseDoingClaim', () => {
     expect(outcome).toEqual({ action: 'handback', to: null })
     expect(api.assign).not.toHaveBeenCalled()
     expect(api.setStatus).toHaveBeenCalledWith(expect.anything(), 'waiting')
+  })
+})
+
+// AITD-439, 2026-09-29: finished, merged, pushed and commented "Awaiting build" —
+// then released to Ready ten seconds later, because a task that is done waits
+// for its TestFlight build IN Doing. The next run would have redone it, and a
+// second release would have handed finished work back to Jon.
+describe('isAwaitingBuild', () => {
+  const marker = (createdAt: string) => ({
+    content: 'Pushed.\n\n**Awaiting build:** `0862488`',
+    createdAt,
+  })
+
+  it('a pushed task waiting on its build is finished, not abandoned', () => {
+    expect(isAwaitingBuild([marker('2026-09-29T14:44:41Z')])).toBe(true)
+  })
+
+  it('no marker: nothing says the work landed', () => {
+    expect(isAwaitingBuild([{ content: 'Strategy: …', createdAt: '2026-09-29T14:00:00Z' }])).toBe(false)
+    expect(isAwaitingBuild([])).toBe(false)
+  })
+
+  it('a marker from before a completion is the fix that missed — reopened work is releasable', () => {
+    expect(isAwaitingBuild([
+      marker('2026-09-20T10:00:00Z'),
+      { content: 'Completed', systemEventType: 'COMPLETED', createdAt: '2026-09-21T10:00:00Z' },
+    ])).toBe(false)
+  })
+
+  it('a marker from before a release belongs to an earlier attempt', () => {
+    expect(isAwaitingBuild([
+      marker('2026-09-20T10:00:00Z'),
+      { content: `${RELEASE_MARKER}. earlier`, createdAt: '2026-09-21T10:00:00Z' },
+    ])).toBe(false)
   })
 })

@@ -48,7 +48,11 @@ export interface DoingTask {
 
 export interface ReleaseComment extends TimestampedComment {
   content?: string | null
+  systemEventType?: string | null
 }
+
+/** The line a session ends its "merged and pushed" comment with (astrid-ios .claude/commands/fixall.md). */
+export const AWAITING_BUILD = /\*\*Awaiting build:\*\*\s*`[0-9a-f]{7,40}`/i
 
 export interface DoingReleaseApi {
   setStatus(task: { id: string }, statusRole: string): Promise<void>
@@ -88,6 +92,32 @@ export function isAbandonedClaim(input: {
   if (stamps.length === 0) return false
   const idleMinutes = (input.now.getTime() - Math.max(...stamps)) / 60_000
   return idleMinutes >= input.staleMinutes
+}
+
+/**
+ * Finished and waiting for its TestFlight build — which is done, in Doing, on purpose.
+ *
+ * A task stays in Doing until a build carries its fix, and the pushing session
+ * says so with an `**Awaiting build:**` line; astrid-ios scripts/close-built-tasks.mjs
+ * completes it from that line. Releasing it instead sent AITD-439 back to Ready ten
+ * seconds after it was pushed (2026-09-29), to be redone, then handed back as failed.
+ *
+ * Only a marker newer than the last completion and the last release counts: an
+ * older one is the fix that missed (reopened) or an earlier attempt's.
+ */
+export function isAwaitingBuild(comments: ReleaseComment[]): boolean {
+  const at = (comment: ReleaseComment) => {
+    const time = comment.createdAt ? new Date(comment.createdAt).getTime() : NaN
+    return Number.isNaN(time) ? 0 : time
+  }
+  const newest = (match: (comment: ReleaseComment) => boolean) =>
+    Math.max(0, ...comments.filter(match).map(at))
+  const marker = newest(comment => AWAITING_BUILD.test(comment.content ?? ''))
+  if (marker === 0) return false
+  const superseded = newest(
+    comment => comment.systemEventType === 'COMPLETED' || (comment.content ?? '').startsWith(RELEASE_MARKER),
+  )
+  return marker > superseded
 }
 
 export function countReleases(comments: ReleaseComment[]): number {

@@ -61,6 +61,7 @@ export class SweepApi {
 
   async comments(task: { id: string }): Promise<Array<{
     content?: string | null
+    systemEventType?: string | null
     createdAt?: string | null
     updatedAt?: string | null
   }>> {
