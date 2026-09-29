@@ -95,4 +95,9 @@ describe('the scheduled loop takes one task per run', () => {
     const fixall = readFileSync(join(process.cwd(), '.claude/commands/fixall.md'), 'utf8')
     expect(fixall).toMatch(/ASTRID_FIXALL_MAX_TASKS/)
   })
+
+  it('gives one task a watchdog it can finish inside', () => {
+    // 2026-09-27: AWTD-1007, alone in its run, still hit the old 50m limit.
+    expect(loop).toMatch(/MAX_MINUTES="\$\{FIXALL_MAX_MINUTES:-75\}"/)
+  })
 })

@@ -63,18 +63,9 @@ are never returned: another agent or a person is already on them.
 
 ## One task per scheduled run
 
-**If `ASTRID_FIXALL_MAX_TASKS` is set, stop after working that many Ready tasks** —
-push, report, release as usual, and end the run. The scheduled runner sets it to `1`
-(`scripts/fixall-loop.sh`): a run that takes the whole queue does not fit its 50-minute
-watchdog once predeploy is ~10 minutes a task, and a killed run leaves half-done work
-behind. The next tick takes the next task. Answering the inbox and clearing `RECHECK` /
-`REVIEW` do not count toward the limit. Unset (an interactive `/fixall`), drive the
-queue to empty as above.
-
-If a run does die mid-task, the runner saves the uncommitted work as a WIP commit on the
-task branch (or a `wip/` branch, never `main`), pushes it, and returns to `main`. **A task
-branch whose tip is `wip: … UNFINISHED, UNVERIFIED` is a resume point:** check it out and
-continue from it rather than starting over, and do not treat it as done.
+**If `ASTRID_FIXALL_MAX_TASKS` is set, stop after that many Ready tasks.** The runner here
+sets it to `1`, and a `wip: … UNFINISHED, UNVERIFIED` branch tip is a resume point, not a
+finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has the rule and why.
 
 ## What is different here
 

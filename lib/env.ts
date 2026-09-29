@@ -186,6 +186,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_MCP_ENABLE_DNS_PROTECTION', scope: 'optional', description: 'Enables DNS-rebinding protection on the HTTP MCP transport.' },
   { name: 'ASTRID_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound AI-agent webhooks.' },
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
+  { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
   { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps this deployment’s defaults.' },
 
   // ── Brand ─────────────────────────────────────────────────────────────────

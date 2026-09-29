@@ -114,8 +114,10 @@ with a mechanical sweep on every run:
   automatically; blockers completed → back to `Ready` automatically; external condition due
   for a recheck → surfaced to the agent (below).
 - The sweep only ever touches tasks that are **unassigned or assigned to this harness**. A
-  person's tasks are theirs to move, and `Doing` is never touched — a peer session or a human
-  may be mid-task. Doing tasks are listed with their assignee so a human can spot a stale claim.
+  person's tasks are theirs to move, and the lane sweep never touches `Doing` — a peer session
+  or a human may be mid-task. Doing tasks are listed with their assignee so a human can spot a
+  stale claim; an agent's own abandoned claims are released by the scheduled runner instead
+  (*Doing must not be a dead end*, below).
 
 The sweep is a feature of `scripts/ready-tasks.ts` (OAuth API, never the DB), not of the MCP
 queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness <current-harness>` runs it
@@ -316,6 +318,57 @@ close a task while users are still affected. A merged branch is not a deployed o
 does not auto-deploy, so `main` having the fix changes nothing until someone deploys.
 
 ---
+
+## One task per scheduled run — and resuming a run that died
+
+**If `ASTRID_FIXALL_MAX_TASKS` is set, stop after working that many Ready tasks.** Push,
+report and release as usual, then end the run. Answering the inbox and clearing `RECHECK` /
+`REVIEW` do not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
+empty.
+
+The scheduled runners (`astrid-web/scripts/fixall-loop.sh`, `astrid-ios/scripts/fixall-loop.sh`)
+set it to `1`. A run that takes the whole queue does not fit its watchdog (75 minutes since 2026-09-28) once a gate
+takes ~10 minutes a task. On 2026-09-27 a web run was killed partway into the first of four
+tasks, and the next tick takes the next task anyway.
+
+**A run that dies mid-task no longer wedges the loop.** The runner commits whatever the run
+left uncommitted as a WIP commit on the task branch — or a `wip/` branch, never `main` —
+pushes it, says so in list chat, and returns the checkout to `main`. Before this it left the
+tree dirty "for a human", and guard 2 then skipped every tick until one came: twice on
+2026-09-27.
+
+**So a task branch whose tip is `wip: … UNFINISHED, UNVERIFIED` is a resume point.** Check it
+out and continue from it rather than starting over. It has not passed any gate, so never
+treat it as done or ship it.
+
+A harness without a scheduled runner (Windows today) follows the same rules when it is run
+on a schedule: set the cap, and put a died run's work on a branch before the next tick.
+
+## Doing must not be a dead end
+
+A claim moves a task Ready → `Doing`, and every way this workflow ends a task moves it on:
+completed, parked in `Waiting`, or handed back. **So an agent's task still in `Doing` after its
+session is gone was abandoned mid-task**, and before 2026-09-28 nothing ever moved it. The queue
+never takes `Doing`, so AWTD-1007, 1024 and 1025 sat there with their work on pushed branches
+while every tick reported "not in Ready".
+
+The scheduled runners release these themselves, via `scripts/release-stuck-doing.ts`:
+
+- **After every run**, exactly: `claim-fixall-task.ts` records each Ready claim in
+  `$ASTRID_FIXALL_CLAIMS_FILE`, and anything the run claimed that is still in `Doing` goes back
+  to `Ready`.
+- **At the start of every tick**, as a backstop: this agent's `Doing` claims on the board with
+  no activity (task update or comment) for `FIXALL_STALE_DOING_MINUTES` (default 180, well past
+  the watchdog) — an interactive session that died, or anything older than this rule.
+
+A release **keeps the agent assignment** and comments with the branch that carries the task's
+id, so the next run resumes from that work instead of starting over. **The second release
+hands the task back** to its human creator in `Waiting` rather than retrying it again — the same
+"fails twice, stop" rule as below.
+
+**So, while you work a task: comment as you go.** A claim with no activity for three hours
+reads as abandoned. And never finish a turn with a task you claimed still in `Doing`: complete
+it, park it, or hand it back.
 
 ## After every task, re-check the queue AND the inbox
 

@@ -51,7 +51,10 @@ REPO="${0:A:h:h}"
 TSX="$REPO/node_modules/.bin/tsx"
 CLAUDE="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
 MODEL="${FIXALL_MODEL:-opus}"
-MAX_MINUTES="${FIXALL_MAX_MINUTES:-50}"
+# 75, not 50: on 2026-09-27 a run capped at ONE task (AWTD-1007) still hit a 50m
+# watchdog. A killed run is now saved and harmless, but a task that never fits
+# would be killed on every attempt.
+MAX_MINUTES="${FIXALL_MAX_MINUTES:-75}"
 MAX_USD="${FIXALL_MAX_USD-10}"
 WEB_LIST_ID="a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
 
@@ -156,6 +159,42 @@ if [ "${FIXALL_FORCE:-0}" != "1" ]; then
 fi
 rm -f "$STUCK_FILE"
 
+# ── Run what is merged, not what someone last pulled by hand ─────────────────
+# Nothing else updates this checkout. On 2026-09-27 a merged loop fix sat unused
+# in astrid-ios until a human pulled it. The guards above have just confirmed a
+# clean tree on main, so a fast-forward cannot clobber anything. If the loop
+# script itself changed, exec the new version: same pid, so the lock is simply
+# reacquired, and FIXALL_SELF_UPDATED stops it updating twice. A failed fetch
+# (offline, auth) degrades to running the current checkout — it must not become
+# a loop that never runs. fsmonitor off: a stuck daemon hung a pull here.
+if [ "${FIXALL_FORCE:-0}" != "1" ] && [ "${FIXALL_SELF_UPDATED:-0}" != "1" ]; then
+  BEFORE=$(git rev-parse HEAD)
+  if GIT_TERMINAL_PROMPT=0 git -c core.fsmonitor=false fetch -q origin main 2>/dev/null \
+     && git -c core.fsmonitor=false merge -q --ff-only origin/main 2>/dev/null; then
+    AFTER=$(git rev-parse HEAD)
+    if [ "$BEFORE" != "$AFTER" ]; then
+      echo "  updated main $(git rev-parse --short "$BEFORE") → $(git rev-parse --short "$AFTER")"
+      if ! git diff --quiet "$BEFORE" "$AFTER" -- scripts/fixall-loop.sh; then
+        echo "  the loop changed — restarting on the new version"
+        FIXALL_SELF_UPDATED=1 exec "$0" "$@"
+      fi
+    fi
+  else
+    echo "  ⚠️  could not fast-forward main to origin/main — running on $(git rev-parse --short HEAD)"
+  fi
+fi
+
+# ── Doing must not be a dead end ─────────────────────────────────────────────
+# Doing is "being worked right now", and the queue never takes it — so a claim
+# whose session died sat there forever: on 2026-09-28 three did, each with its
+# work on a pushed branch, while every tick said "not in Ready". A claim idle for
+# FIXALL_STALE_DOING_MINUTES (default 180, well past the watchdog) is released
+# back to Ready, naming its branch; a second release hands it back to a human.
+# Before guard 3, so a released task counts as work for this very tick. Never
+# fatal: a failed release leaves the task where it already was.
+"$TSX" scripts/release-stuck-doing.ts --agent claude --list "$WEB_LIST_ID" \
+  --stale-minutes "${FIXALL_STALE_DOING_MINUTES:-180}" --repo "$REPO" 2>&1 | sed 's/^/ /'
+
 # ── Guard 3: is there actually any work? ─────────────────────────────────────
 # THE expensive question, asked the cheap way. Without this a quiet tick still
 # boots a whole session — CLAUDE.md, fixall.md, the MCP tool schemas — to call
@@ -233,10 +272,15 @@ fi
 # later tick until someone notices. macOS ships no `timeout`, hence the subshell.
 #
 # The budget catches one that stays BUSY — a task it cannot finish, retried
-# until the clock runs out — which the watchdog would not stop for 50 minutes.
+# until the clock runs out — which the watchdog would not stop for the whole window.
 # --max-budget-usd only works with -p, which is the mode this always runs in.
 BUDGET_ARGS=()
 [ -n "$MAX_USD" ] && BUDGET_ARGS=(--max-budget-usd "$MAX_USD")
+
+# Every task this run claims is recorded here (scripts/claim-fixall-task.ts), so
+# the ones it leaves in Doing can be released after it — exactly, no heuristic.
+CLAIMS_FILE=$(mktemp -t fixall-web-claims)
+export ASTRID_FIXALL_CLAIMS_FILE="$CLAIMS_FILE"
 
 echo "→ /fixall ($MODEL, watchdog ${MAX_MINUTES}m${MAX_USD:+, cap \$$MAX_USD})"
 "$CLAUDE" -p "/fixall" \
@@ -297,6 +341,12 @@ if [ "$END_BRANCH" != "main" ] && [ -z "$(git status --porcelain 2>/dev/null)" ]
   fi
   git checkout -q main && echo "  returned to main from $END_BRANCH"
 fi
+
+# A finished task is completed, a blocked one is in Waiting: anything this run
+# claimed that is STILL in Doing was abandoned mid-task. Release it now, after
+# the branch above is pushed, so its comment can point at the work.
+"$TSX" scripts/release-stuck-doing.ts --agent claude --claims-file "$CLAIMS_FILE" --repo "$REPO" 2>&1 | sed 's/^/ /'
+rm -f "$CLAIMS_FILE"
 
 # Phase two of waking, before the RESULT line so that line stays last (the
 # header promises it). A finished run had its chance at the preflight's items:
