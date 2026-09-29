@@ -283,6 +283,9 @@ export async function transformEventForAgent(
     }
   }
 
-  // task_updated, task_completed, task_deleted — pass through with taskId
-  return { type: mappedType, data: { taskId: data.taskId, ...data } }
+  // task_updated, task_completed, task_deleted — pass through with taskId.
+  // v1Task is for the app clients (AWTD-1040): an agent reads `task`, and the
+  // full shape would only grow every payload it is sent.
+  const { v1Task: _v1Task, ...agentData } = data
+  return { type: mappedType, data: { taskId: data.taskId, ...agentData } }
 }

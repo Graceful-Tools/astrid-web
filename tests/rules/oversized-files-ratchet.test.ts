@@ -94,7 +94,10 @@ const BUDGETS: Record<string, number> = {
   // assigned at all are one question asked twice.
   // 1605 → 1602: AWTD-1016 made a move mint an identifier as a create does.
   // The best-effort mint went to services/task-identifier-mint.ts, used by both.
-  'services/task.service.ts': 1602,
+  // 1602 → 1552: AWTD-1040 put the full v1 task on task events. The create
+  // path's two broadcasts went to services/task-create-broadcast.ts, and the
+  // v1 read to lib/tasks/v1-task-shape.ts beside the GET that owns the shape.
+  'services/task.service.ts': 1552,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

@@ -8,8 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireTaskAccess, requireTaskReadAccess, getDeprecationWarning } from '@/lib/api-auth-middleware'
-import type { V1TaskBlockerIds } from '@/lib/api-contracts/v1-ios-shapes'
-import { prisma } from '@/lib/prisma'
+import { loadV1Task } from '@/lib/tasks/v1-task-shape'
 import { validateParentTask, readParentTaskIdFromBody } from '@/lib/subtasks'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { trackEventFromRequest, AnalyticsEventType, detectPlatform } from '@/lib/analytics-events'
@@ -54,77 +53,12 @@ export const GET = withAuth<RouteContext>(
     // Throws ForbiddenError → withAuth catches → 403
     await requireTaskReadAccess(auth.userId, taskId)
 
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        lists: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            privacy: true,
-            githubRepositoryId: true,
-            aiAgentConfiguredBy: true,
-            listMembers: {
-              select: {
-                id: true,
-                listId: true,
-                userId: true,
-                role: true,
-              }
-            },
-          },
-        },
-        assignee: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            isAIAgent: true,
-            aiAgentType: true,
-          },
-        },
-        creator: {
-          select: { id: true, name: true, email: true, image: true },
-        },
-        comments: {
-          include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-                isAIAgent: true,
-              },
-            },
-            secureFiles: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: TASK_COMMENTS_RESPONSE_LIMIT,
-        },
-        attachments: true,
-        // Legacy's TASK_FULL_INCLUDE carries these; v1 did not, and web reads
-        // them (taskLevelAttachments / CommentSection). A response that drops
-        // them does not render fewer attachments — it renders none. (641a7615)
-        secureFiles: true,
-        // Blocking dependencies as plain id arrays (AWTD-1002). Ids only: the
-        // full shapes, with the permission filtering a title needs, are
-        // /api/v1/tasks/:id/blockers. A client that has never heard of these
-        // fields is unaffected, which is what lets the halves ship apart.
-        blockedBy: { select: { blockingTaskId: true } },
-        blocks: { select: { blockedTaskId: true } },
-      },
-    })
+    // The same shape the live task events carry as `v1Task` (AWTD-1040).
+    const task = await loadV1Task(taskId)
 
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
-
-    // Query is newest-first so the cap keeps recent comments; the wire order
-    // stays ascending, which is what clients always received (task a86b5bed).
-    task.comments?.reverse()
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -132,19 +66,9 @@ export const GET = withAuth<RouteContext>(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    // iOS expects a flat listIds array alongside the relation
-    const taskWithListIds = {
-      ...task,
-      listIds: task.lists?.map(list => list.id) || [],
-      ...({
-        blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
-        blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
-      } satisfies V1TaskBlockerIds),
-    }
-
     return NextResponse.json(
       {
-        task: taskWithListIds,
+        task,
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
