@@ -184,6 +184,17 @@ if [ "${FIXALL_FORCE:-0}" != "1" ] && [ "${FIXALL_SELF_UPDATED:-0}" != "1" ]; th
   fi
 fi
 
+# ── Doing must not be a dead end ─────────────────────────────────────────────
+# Doing is "being worked right now", and the queue never takes it — so a claim
+# whose session died sat there forever: on 2026-09-28 three did, each with its
+# work on a pushed branch, while every tick said "not in Ready". A claim idle for
+# FIXALL_STALE_DOING_MINUTES (default 180, well past the watchdog) is released
+# back to Ready, naming its branch; a second release hands it back to a human.
+# Before guard 3, so a released task counts as work for this very tick. Never
+# fatal: a failed release leaves the task where it already was.
+"$TSX" scripts/release-stuck-doing.ts --agent claude --list "$WEB_LIST_ID" \
+  --stale-minutes "${FIXALL_STALE_DOING_MINUTES:-180}" --repo "$REPO" 2>&1 | sed 's/^/ /'
+
 # ── Guard 3: is there actually any work? ─────────────────────────────────────
 # THE expensive question, asked the cheap way. Without this a quiet tick still
 # boots a whole session — CLAUDE.md, fixall.md, the MCP tool schemas — to call
@@ -266,6 +277,11 @@ fi
 BUDGET_ARGS=()
 [ -n "$MAX_USD" ] && BUDGET_ARGS=(--max-budget-usd "$MAX_USD")
 
+# Every task this run claims is recorded here (scripts/claim-fixall-task.ts), so
+# the ones it leaves in Doing can be released after it — exactly, no heuristic.
+CLAIMS_FILE=$(mktemp -t fixall-web-claims)
+export ASTRID_FIXALL_CLAIMS_FILE="$CLAIMS_FILE"
+
 echo "→ /fixall ($MODEL, watchdog ${MAX_MINUTES}m${MAX_USD:+, cap \$$MAX_USD})"
 "$CLAUDE" -p "/fixall" \
   --model "$MODEL" \
@@ -325,6 +341,12 @@ if [ "$END_BRANCH" != "main" ] && [ -z "$(git status --porcelain 2>/dev/null)" ]
   fi
   git checkout -q main && echo "  returned to main from $END_BRANCH"
 fi
+
+# A finished task is completed, a blocked one is in Waiting: anything this run
+# claimed that is STILL in Doing was abandoned mid-task. Release it now, after
+# the branch above is pushed, so its comment can point at the work.
+"$TSX" scripts/release-stuck-doing.ts --agent claude --claims-file "$CLAIMS_FILE" --repo "$REPO" 2>&1 | sed 's/^/ /'
+rm -f "$CLAIMS_FILE"
 
 # Phase two of waking, before the RESULT line so that line stays last (the
 # header promises it). A finished run had its chance at the preflight's items:
