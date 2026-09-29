@@ -28,6 +28,7 @@ import { SweepApi } from './lib/sweep-api'
 import {
   DEFAULT_STALE_DOING_MINUTES,
   isAbandonedClaim,
+  isAwaitingBuild,
   isReleasableClaim,
   releaseDoingClaim,
   type DoingTask,
@@ -157,6 +158,8 @@ async function main() {
     const task = await getTask(id)
     if (!task || !isReleasableClaim(task, email)) continue
     const comments = await sweep.comments(task)
+    // Done and pushed: it waits for its build in Doing, and close-built-tasks closes it.
+    if (isAwaitingBuild(comments)) continue
     if (mode === 'stale' && !isAbandonedClaim({ updatedAt: task.updatedAt, comments, now, staleMinutes })) continue
 
     const why = mode === 'claims'
