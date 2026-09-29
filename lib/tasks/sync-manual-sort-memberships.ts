@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { RedisCache } from '@/lib/redis'
 import { getListMemberIds } from '@/lib/list-member-utils'
-import { broadcastToUsers } from '@/lib/sse-utils'
+import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('tasks.sync-manual-sort-memberships')
@@ -61,7 +61,10 @@ export async function syncManualSortMemberships({
       await Promise.all(
         memberIds.map(userId => RedisCache.invalidate.userListsAllVersions(userId)),
       )
-      await broadcastToUsers(memberIds, {
+      // Each viewer also gets the list as their own GET returns it (AWTD-1046).
+      await broadcastListEvent({
+        listId: listRecord.id,
+        recipients: memberIds,
         type: 'list_updated',
         data: updatedList,
       })

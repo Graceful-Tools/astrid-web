@@ -17,6 +17,7 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { canConvertListFlavor } from "@/lib/list-flavors"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { recordDeletion } from "@/lib/deletion-log"
+import { broadcastListEvent } from "@/lib/lists/v1-list-shape"
 import {
   deleteListWithImageRelease,
   ListImageClaimError,
@@ -372,14 +373,16 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
       if (userIdsFiltered.length > 0) {
         // Strip per-user favorite fields — these are user-specific and must not
-        // overwrite other users' favorite state via SSE
+        // overwrite other users' favorite state via SSE. Each viewer's own is
+        // in `v1List`, with the rest of the list as their GET returns it
+        // (AWTD-1046).
         const { isFavorite: _isFav, favoriteOrder: _favOrd, ...broadcastData } = updatedListWithDefaultAssignee
         log.info(`[SSE] Broadcasting list update to ${userIdsFiltered.length} users`)
-        const { broadcastToUsers } = await import("@/lib/sse-utils")
-        broadcastToUsers(userIdsFiltered, {
+        await broadcastListEvent({
+          listId,
+          recipients: userIdsFiltered as string[],
           type: 'list_updated',
-          timestamp: new Date().toISOString(),
-          data: broadcastData
+          data: broadcastData,
         })
       }
     } catch (sseError) {
