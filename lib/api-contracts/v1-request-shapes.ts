@@ -104,6 +104,13 @@ export interface V1TaskUpdateRequest {
    */
   isAllDay?: boolean
 
+  /**
+   * ISO 8601, or `null`/`''` to clear. A new time re-arms the reminder. Ignored
+   * until AWTD-1038, so the response undid a device's snooze.
+   */
+  reminderTime?: string | null
+  reminderType?: string | null
+
   isPrivate?: boolean
   repeating?: string | null
   repeatingData?: Record<string, unknown> | null
@@ -410,7 +417,7 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
   for (const f of ['timerDuration', 'lastTimerValue'] as const) {
     if (b[f] !== undefined && b[f] !== null && !isFiniteNumber(b[f])) return wrong(f, 'a number or null')
   }
-  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason'] as const) {
+  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason', 'reminderType'] as const) {
     if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
   }
 
@@ -424,11 +431,13 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
     }
   }
 
-  // Same Invalid Date trap as dueDateTime — this one also reaches `new Date()`.
-  if (b.completedAt !== undefined && b.completedAt !== null) {
-    if (typeof b.completedAt !== 'string') return wrong('completedAt', 'an ISO 8601 string or null')
-    if (b.completedAt !== '' && Number.isNaN(new Date(b.completedAt).getTime())) {
-      return { ok: false, error: 'completedAt must be a valid ISO 8601 date' }
+  // Same Invalid Date trap as dueDateTime — these also reach `new Date()`.
+  for (const f of ['completedAt', 'reminderTime'] as const) {
+    if (b[f] !== undefined && b[f] !== null) {
+      if (typeof b[f] !== 'string') return wrong(f, 'an ISO 8601 string or null')
+      if (b[f] !== '' && Number.isNaN(new Date(b[f] as string).getTime())) {
+        return { ok: false, error: `${f} must be a valid ISO 8601 date` }
+      }
     }
   }
   for (const f of ['completedSource', 'localCompletionDate'] as const) {

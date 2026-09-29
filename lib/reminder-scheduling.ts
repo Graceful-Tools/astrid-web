@@ -151,29 +151,39 @@ interface RescheduleForUpdateArgs {
   userId: string
   dueDateTime: Date | null
   completed: boolean
+  /** The task's explicit reminder, if it has one still to come. */
+  reminderTime?: Date | null
+  reminderTypeLabel?: string
 }
 
 /**
  * The PUT-route convenience: cancel existing pending reminders for a task,
- * then schedule the standard automatic-update set if the task is still
- * incomplete and has a future due date. No-ops on completed tasks or
- * tasks without due dates (existing reminders are still cancelled).
+ * then schedule what the create path would — the explicit reminder if one is
+ * still to come, otherwise the standard automatic-update set for a future due
+ * date. No-ops on completed tasks (existing reminders are still cancelled).
  *
  * Wraps both cancellation and insertion in a try/catch — a reminder
  * failure must never fail the surrounding task update.
  */
 export async function rescheduleRemindersForUpdate(args: RescheduleForUpdateArgs): Promise<void> {
-  const { taskId, taskTitle, userId, dueDateTime, completed } = args
+  const { taskId, taskTitle, userId, dueDateTime, completed, reminderTime, reminderTypeLabel } = args
 
   try {
     await cancelPendingReminders(taskId)
 
-    if (completed || !dueDateTime) return
+    if (completed) return
 
-    const reminders = computeAutomaticReminders(dueDateTime, "automatic_update")
+    // A snoozed reminder (AWTD-1038) is the explicit one; a past one has fired
+    // or been missed, and the due date's own schedule takes over.
+    const reminders: ReminderScheduleEntry[] =
+      reminderTime && reminderTime > new Date()
+        ? [{ scheduledFor: reminderTime, type: "due_reminder", source: "explicit" }]
+        : dueDateTime
+          ? computeAutomaticReminders(dueDateTime, "automatic_update")
+          : []
     if (reminders.length === 0) return
 
-    await scheduleReminders({ taskId, taskTitle, userId, reminders })
+    await scheduleReminders({ taskId, taskTitle, userId, reminders, reminderTypeLabel })
   } catch (err) {
     log.error({ err, taskId }, "Failed to reschedule reminders for task update")
   }

@@ -918,6 +918,9 @@ export interface UpdateTaskIntent {
   statusRole?: string | null
   dueDateTime?: string | Date | null
   isAllDay?: boolean
+  /** `null` clears it. A new time re-arms it (`reminderSent` back to false). */
+  reminderTime?: string | Date | null
+  reminderType?: string | null
   isPrivate?: boolean
   repeating?: string | null
   repeatingData?: unknown
@@ -1167,6 +1170,12 @@ export async function updateTaskWithSideEffects(args: {
     return { ok: false, status: 400, error: parsedClosedReason.error }
   }
 
+  // Parsed before anything is written, including the roll-forward below.
+  const parsedReminder = parseTaskDate(intent.reminderTime)
+  if (parsedReminder.invalid) {
+    return { ok: false, status: 400, error: `Invalid reminderTime format: ${String(intent.reminderTime)}` }
+  }
+
   // ── Repeating series ──────────────────────────────────────────────────────
   // Resolved before the update is built: the helper writes the row itself, so
   // this branch returns the rolled-forward task instead of updating.
@@ -1228,6 +1237,13 @@ export async function updateTaskWithSideEffects(args: {
   if (has('parentTaskId')) data.parentTaskId = intent.parentTaskId
   if (has('dueDateTime')) data.dueDateTime = parseTaskDate(intent.dueDateTime).value
   if (has('isAllDay')) data.isAllDay = intent.isAllDay
+  // AWTD-1038: no update surface wrote this, so the response carried the old
+  // time and a snooze made on a device was undone by the answer to its edit.
+  if (has('reminderTime')) {
+    data.reminderTime = parsedReminder.value
+    data.reminderSent = false
+  }
+  if (has('reminderType')) data.reminderType = intent.reminderType || null
 
   // `repeatingData` is only meaningful for a custom schedule.
   if (has('repeatingData') || has('repeating')) {
@@ -1357,14 +1373,18 @@ async function runUpdateSideEffects(args: {
       existingTask.dueDateTime?.getTime() !== task.dueDateTime?.getTime()
     const completedChanged = existingTask.completed !== task.completed
     const assigneeChanged = existingTask.assigneeId !== task.assigneeId
+    const reminderChanged =
+      existingTask.reminderTime?.getTime() !== task.reminderTime?.getTime()
 
-    if (dueDateChanged || completedChanged || assigneeChanged) {
+    if (dueDateChanged || completedChanged || assigneeChanged || reminderChanged) {
       await rescheduleRemindersForUpdate({
         taskId: task.id,
         taskTitle: task.title,
         userId: task.assigneeId || task.creatorId || actorId,
         dueDateTime: task.dueDateTime ?? null,
         completed: !!task.completed,
+        reminderTime: task.reminderTime ?? null,
+        reminderTypeLabel: task.reminderType ?? undefined,
       })
     }
   } catch (err) {
