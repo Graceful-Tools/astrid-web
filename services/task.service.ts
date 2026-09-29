@@ -1368,28 +1368,7 @@ async function runUpdateSideEffects(args: {
   }
 
   // Reminders must follow the task, or a completed one keeps notifying.
-  try {
-    const dueDateChanged =
-      existingTask.dueDateTime?.getTime() !== task.dueDateTime?.getTime()
-    const completedChanged = existingTask.completed !== task.completed
-    const assigneeChanged = existingTask.assigneeId !== task.assigneeId
-    const reminderChanged =
-      existingTask.reminderTime?.getTime() !== task.reminderTime?.getTime()
-
-    if (dueDateChanged || completedChanged || assigneeChanged || reminderChanged) {
-      await rescheduleRemindersForUpdate({
-        taskId: task.id,
-        taskTitle: task.title,
-        userId: task.assigneeId || task.creatorId || actorId,
-        dueDateTime: task.dueDateTime ?? null,
-        completed: !!task.completed,
-        reminderTime: task.reminderTime ?? null,
-        reminderTypeLabel: task.reminderType ?? undefined,
-      })
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to reschedule reminders after task update')
-  }
+  await rescheduleRemindersForUpdate({ before: existingTask, after: task, actorId })
 
   // A blocker's completion decides other tasks' lanes, in BOTH directions:
   // completing unblocks its dependents, reopening re-blocks the ones still in

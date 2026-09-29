@@ -94,7 +94,9 @@ const BUDGETS: Record<string, number> = {
   // assigned at all are one question asked twice.
   // 1605 → 1602: AWTD-1016 made a move mint an identifier as a create does.
   // The best-effort mint went to services/task-identifier-mint.ts, used by both.
-  'services/task.service.ts': 1602,
+  // 1602 → 1601: AWTD-1038 taught the update path reminderTime. The decision
+  // of when and what to reschedule moved into lib/reminder-scheduling.ts.
+  'services/task.service.ts': 1601,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

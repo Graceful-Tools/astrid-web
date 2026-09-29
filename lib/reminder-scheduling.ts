@@ -145,46 +145,69 @@ export async function scheduleReminders(args: ScheduleArgs): Promise<void> {
   }
 }
 
-interface RescheduleForUpdateArgs {
-  taskId: string
-  taskTitle: string
-  userId: string
-  dueDateTime: Date | null
+/** The task columns a reminder decision reads. */
+interface ReminderTaskFields {
+  id: string
+  title: string
   completed: boolean
-  /** The task's explicit reminder, if it has one still to come. */
+  assigneeId: string | null
+  creatorId: string | null
+  dueDateTime: Date | null
   reminderTime?: Date | null
-  reminderTypeLabel?: string
+  reminderType?: string | null
 }
 
+const sameTime = (a?: Date | null, b?: Date | null) => a?.getTime() === b?.getTime()
+
 /**
- * The PUT-route convenience: cancel existing pending reminders for a task,
- * then schedule what the create path would — the explicit reminder if one is
- * still to come, otherwise the standard automatic-update set for a future due
- * date. No-ops on completed tasks (existing reminders are still cancelled).
+ * The update path: when a change touches what reminders depend on — due date,
+ * completion, assignee or the reminder itself — cancel the task's pending
+ * reminders and schedule what the create path would: the explicit reminder if
+ * one is still to come, otherwise the automatic-update set for a future due
+ * date. Nothing is re-queued for a completed task.
  *
  * Wraps both cancellation and insertion in a try/catch — a reminder
  * failure must never fail the surrounding task update.
  */
-export async function rescheduleRemindersForUpdate(args: RescheduleForUpdateArgs): Promise<void> {
-  const { taskId, taskTitle, userId, dueDateTime, completed, reminderTime, reminderTypeLabel } = args
+export async function rescheduleRemindersForUpdate(args: {
+  before: ReminderTaskFields
+  after: ReminderTaskFields
+  /** Receives the reminder when the task has neither assignee nor creator. */
+  actorId: string
+}): Promise<void> {
+  const { before, after: task, actorId } = args
+  if (
+    sameTime(before.dueDateTime, task.dueDateTime) &&
+    sameTime(before.reminderTime, task.reminderTime) &&
+    before.completed === task.completed &&
+    before.assigneeId === task.assigneeId
+  ) {
+    return
+  }
 
   try {
-    await cancelPendingReminders(taskId)
+    await cancelPendingReminders(task.id)
 
-    if (completed) return
+    if (task.completed) return
 
     // A snoozed reminder (AWTD-1038) is the explicit one; a past one has fired
     // or been missed, and the due date's own schedule takes over.
     const reminders: ReminderScheduleEntry[] =
-      reminderTime && reminderTime > new Date()
-        ? [{ scheduledFor: reminderTime, type: "due_reminder", source: "explicit" }]
-        : dueDateTime
-          ? computeAutomaticReminders(dueDateTime, "automatic_update")
+      task.reminderTime && task.reminderTime > new Date()
+        ? [{ scheduledFor: task.reminderTime, type: "due_reminder", source: "explicit" }]
+        : task.dueDateTime
+          ? computeAutomaticReminders(task.dueDateTime, "automatic_update")
           : []
     if (reminders.length === 0) return
 
-    await scheduleReminders({ taskId, taskTitle, userId, reminders, reminderTypeLabel })
+    await scheduleReminders({
+      taskId: task.id,
+      taskTitle: task.title,
+      userId: task.assigneeId || task.creatorId || actorId,
+      reminders,
+      reminderTypeLabel: task.reminderType ?? undefined,
+    })
   } catch (err) {
-    log.error({ err, taskId }, "Failed to reschedule reminders for task update")
+    log.error({ err, taskId: task.id }, "Failed to reschedule reminders for task update")
   }
 }
