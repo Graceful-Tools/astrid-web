@@ -54,7 +54,7 @@ import {
 } from '@/lib/task-update-handler'
 import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
 import { parseClosedReason } from '@/lib/closed-reason'
-import { parseCompletionStamp, parseRepeating } from '@/lib/task-enums'
+import { normalizeRepeatingData, parseCompletionStamp, parseRepeating } from '@/lib/task-enums'
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
@@ -571,18 +571,7 @@ export async function createTaskWithSideEffects(args: {
     dueDateTime.setUTCHours(0, 0, 0, 0)
   }
 
-  // `repeatingData` is only meaningful for a custom schedule, and arrives from
-  // some clients as a JSON string.
-  let repeatingData: unknown = input.customRepeatingData ?? null
-  if (input.repeating !== 'custom') {
-    repeatingData = null
-  } else if (typeof repeatingData === 'string') {
-    try {
-      repeatingData = JSON.parse(repeatingData)
-    } catch {
-      repeatingData = null
-    }
-  }
+  const repeatingData = normalizeRepeatingData(input.repeating, input.customRepeatingData)
 
   // ── Idempotency ───────────────────────────────────────────────────────────
   const clientRequestId =
@@ -922,6 +911,12 @@ export interface UpdateTaskIntent {
   repeating?: string | null
   repeatingData?: unknown
   repeatFrom?: string | null
+  /**
+   * A device-side roll-forward's count (AWTD-1035). Written only when this
+   * update does NOT roll the task itself — the roll increments the count, and
+   * honouring both would count one completion twice.
+   */
+  occurrenceCount?: number
   assigneeId?: string | null
   timerDuration?: number | null
   lastTimerValue?: number | null
@@ -1223,24 +1218,15 @@ export async function updateTaskWithSideEffects(args: {
     if (parsed.value !== undefined) data.repeating = parsed.value
   }
   if (has('repeatFrom')) data.repeatFrom = intent.repeatFrom
+  if (has('occurrenceCount')) data.occurrenceCount = intent.occurrenceCount
   if (has('timerDuration')) data.timerDuration = intent.timerDuration
   if (has('lastTimerValue')) data.lastTimerValue = intent.lastTimerValue
   if (has('parentTaskId')) data.parentTaskId = intent.parentTaskId
   if (has('dueDateTime')) data.dueDateTime = parseTaskDate(intent.dueDateTime).value
   if (has('isAllDay')) data.isAllDay = intent.isAllDay
 
-  // `repeatingData` is only meaningful for a custom schedule.
   if (has('repeatingData') || has('repeating')) {
-    let repeatingData: unknown = intent.repeatingData ?? null
-    if (intent.repeating !== 'custom') {
-      repeatingData = null
-    } else if (typeof repeatingData === 'string') {
-      try {
-        repeatingData = JSON.parse(repeatingData)
-      } catch {
-        repeatingData = null
-      }
-    }
+    const repeatingData = normalizeRepeatingData(intent.repeating, intent.repeatingData)
     if (has('repeatingData') || repeatingData === null) {
       data.repeatingData = repeatingData
     }

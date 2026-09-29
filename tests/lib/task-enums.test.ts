@@ -41,6 +41,7 @@ import {
   isRepeating,
   parseCompletedSource,
   parseRepeating,
+  normalizeRepeatingData,
 } from '@/lib/task-enums'
 
 describe('repeating (task e16e9b94)', () => {
@@ -178,5 +179,21 @@ describe('the API boundary rejects an invalid value (task e16e9b94)', () => {
       expect(bad.error).toContain('never')
       expect(bad.error).toContain('custom')
     }
+  })
+})
+
+describe('normalizeRepeatingData — shared by task create and update (AWTD-1035)', () => {
+  it('stores nothing for a schedule that is not custom', () => {
+    expect(normalizeRepeatingData('daily', { unit: 'weeks' })).toBeNull()
+  })
+
+  it('parses the JSON string some clients send, and keeps an object as-is', () => {
+    expect(normalizeRepeatingData('custom', '{"unit":"weeks"}')).toEqual({ unit: 'weeks' })
+    expect(normalizeRepeatingData('custom', { unit: 'days' })).toEqual({ unit: 'days' })
+  })
+
+  it('stores null for a string that does not parse, or no data at all', () => {
+    expect(normalizeRepeatingData('custom', '{not json')).toBeNull()
+    expect(normalizeRepeatingData('custom', undefined)).toBeNull()
   })
 })
