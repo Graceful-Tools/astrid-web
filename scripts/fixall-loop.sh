@@ -39,8 +39,10 @@
 #
 # Environment:
 #   FIXALL_MODEL        model for the unattended run (default: opus)
-#   FIXALL_MAX_MINUTES  watchdog, kills a wedged run (default: 50)
+#   FIXALL_MAX_MINUTES  watchdog, kills a wedged run (default: 75)
 #   FIXALL_MAX_USD      CLI budget bound for one run (default: 10; empty = none)
+#   FIXALL_LONG_RUN_WINDOW  local hours a LONG-RUN task may start (default: 22-6; "always")
+#   FIXALL_LONG_MAX_USD budget bound for a LONG-RUN run (default: 50)
 #   CLAUDE_BIN          path to the claude CLI (default: ~/.local/bin/claude)
 #   FIXALL_FORCE=1      skip the dirty-tree/branch guard (testing only)
 
@@ -56,6 +58,7 @@ MODEL="${FIXALL_MODEL:-opus}"
 # would be killed on every attempt.
 MAX_MINUTES="${FIXALL_MAX_MINUTES:-75}"
 MAX_USD="${FIXALL_MAX_USD-10}"
+LONG_RUN_WINDOW="${FIXALL_LONG_RUN_WINDOW:-22-6}"
 WEB_LIST_ID="a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
 
 echo "──────── fixall loop (web) $(date '+%Y-%m-%d %H:%M:%S') ────────"
@@ -228,9 +231,14 @@ fi
 # Exit 1 means "could not tell" (network, auth) and must NOT be read as empty:
 # a queue we cannot see is a reason to run and let the agent report properly,
 # not a reason to skip quietly forever.
-QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --include-unassigned --no-write-seen 2>&1)
+#
+# The same call plans the run's LENGTH (AWTD-1041, scripts/lib/long-run.ts): a
+# task flagged LONG-RUN is deferred outside the window — so a queue holding
+# only that one is idle this tick — and taken first inside it. "Size the run",
+# below, applies the answer.
+QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --include-unassigned --no-write-seen --long-run-window "$LONG_RUN_WINDOW" --default-minutes "$MAX_MINUTES" --max-tasks "$ASTRID_FIXALL_MAX_TASKS" 2>&1)
 QUEUE_STATUS=$?
-QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN):')
+QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN|RUN):')
 QUEUE_KEYS=$(echo "$QUEUE_OUT" | sed -n 's/^KEYS: //p' | head -1)
 echo "${QUEUE_LINES:-QUEUE: no verdict}" | sed 's/^/  /'
 if [ "$QUEUE_STATUS" -eq 3 ]; then
@@ -242,6 +250,21 @@ if [ ! -x "$CLAUDE" ]; then
   echo "RESULT: FAILED — no claude CLI at $CLAUDE (set CLAUDE_BIN)"
   exit 1
 fi
+
+# ── Size the run (AWTD-1041) ─────────────────────────────────────────────────
+# 75 minutes fits one ordinary task. A task flagged LONG-RUN in its description
+# asks for up to 8 hours, and the preflight has already decided whether this
+# tick may start it. Apply that: the watchdog and budget for the task it chose,
+# and the task ids for /fixall, which takes RUN-TASK first and never takes a
+# deferred one — a deferred long task under a 75m watchdog is the kill this
+# exists to prevent. A missing or malformed plan leaves the defaults alone.
+RUN_MINUTES=$(echo "$QUEUE_OUT" | sed -n 's/^RUN-MINUTES: \([0-9][0-9]*\)$/\1/p' | head -1)
+[ -n "$RUN_MINUTES" ] && MAX_MINUTES="$RUN_MINUTES"
+if echo "$QUEUE_OUT" | grep -q '^RUN-LONG: 1$' && [ -n "$MAX_USD" ]; then
+  MAX_USD="${FIXALL_LONG_MAX_USD:-50}"
+fi
+export ASTRID_FIXALL_NEXT_TASK=$(echo "$QUEUE_OUT" | sed -n 's/^RUN-TASK: //p' | head -1)
+export ASTRID_FIXALL_DEFER_TASKS=$(echo "$QUEUE_OUT" | sed -n 's/^RUN-DEFER: //p' | head -1)
 
 # ── Can this machine CALL the board, and PUBLISH what it finishes? ───────────
 # WARNS, never skips (AWTD-975). .claude/settings.local.json is gitignored, so
