@@ -489,3 +489,12 @@ Two things this does NOT change:
 - **Anything that reaches real users still waits for an explicit go-ahead** — an App Store
   submission on iOS/Mac (or a local `:upload`), a production deploy on web. Pushing is not
   shipping in either repo, which is exactly why pushing needs no permission and shipping does.
+
+**A finished task branch gets a PR, so it is actually asked for review.** On 2026-09-29 four
+completed tasks (AWTD-1007, 1024, 1025, 1035) sat on pushed branches with no PR: the board said
+complete and `main` had none of it. Inside a scheduled `claude -p` session `gh` is denied, so
+**the runner opens it** after the run (`scripts/open-fixall-prs.ts`): for each task the run
+claimed and completed, every unmerged branch whose name or commits carry the task's id gets a PR
+titled by the task, with its completion report as the body. So **put the task id in the branch
+name or the commit message**, or the runner cannot find the work. An interactive `/fixall` can
+run `gh` and opens its own. A PR the runner could not open is posted to the list chat.

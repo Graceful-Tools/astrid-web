@@ -342,6 +342,18 @@ if [ "$END_BRANCH" != "main" ] && [ -z "$(git status --porcelain 2>/dev/null)" ]
   git checkout -q main && echo "  returned to main from $END_BRANCH"
 fi
 
+# A completed task's branch gets a PR. `gh` is denied inside the session, so on
+# 2026-09-29 four finished tasks sat on pushed branches nobody was asked to
+# review — the board said complete, main had none of it. The runner can run gh.
+PR_OUT=$("$TSX" scripts/open-fixall-prs.ts --claims-file "$CLAIMS_FILE" --repo "$REPO" 2>&1)
+PR_STATUS=$?
+[ -n "$PR_OUT" ] && echo "$PR_OUT" | sed 's/^/ /'
+if [ "$PR_STATUS" -eq 3 ]; then
+  post_to_list "**Scheduled /fixall (web) finished work but could not open its PR** — open it by hand so it gets reviewed:
+
+$(echo "$PR_OUT" | grep 'PR: FAILED')"
+fi
+
 # A finished task is completed, a blocked one is in Waiting: anything this run
 # claimed that is STILL in Doing was abandoned mid-task. Release it now, after
 # the branch above is pushed, so its comment can point at the work.
