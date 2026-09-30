@@ -200,4 +200,61 @@ describe('BoardViewSection', () => {
       expect(await screen.findByText('The key WEB is already used by another project')).toBeInTheDocument()
     })
   })
+
+  describe('owner renames the key after tasks exist (AWTD-1024)', () => {
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+    function routeFetch(patch: () => Response) {
+      vi.mocked(global.fetch).mockImplementation(async (url, init) => {
+        if (url === '/api/v1/projects' && !init?.method) {
+          return json({ projects: [{ id: 'project-1', key: 'AWTD', lists: [{ id: 'list-1' }] }] })
+        }
+        if (url === '/api/v1/projects/project-1' && init?.method === 'PATCH') return patch()
+        return json({})
+      })
+    }
+
+    const renderBoard = () =>
+      renderSection({ list: makeList({ name: 'Astrid Web To-do', projectId: 'project-1' }), canEditSettings: true })
+
+    it('shows the board\'s current key, and says the old ids keep working', async () => {
+      routeFetch(() => json({ project: { id: 'project-1', key: 'WEB' }, previousKey: 'AWTD' }))
+      renderBoard()
+
+      const input = await screen.findByRole('textbox', { name: 'Task ID prefix' })
+      expect(input).toHaveValue('AWTD')
+      expect(screen.getByText('Rename').closest('button')).toBeDisabled()
+
+      fireEvent.change(input, { target: { value: 'web' } })
+      expect(screen.getByText('Tasks become WEB-12; AWTD-12 keeps working')).toBeInTheDocument()
+    })
+
+    it('PATCHes the new key and shows it once the server agrees', async () => {
+      routeFetch(() => json({ project: { id: 'project-1', key: 'WEB' }, previousKey: 'AWTD' }))
+      renderBoard()
+
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Task ID prefix' }), { target: { value: 'WEB' } })
+      fireEvent.click(screen.getByText('Rename'))
+
+      await vi.waitFor(() =>
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/v1/projects/project-1',
+          expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ key: 'WEB' }) })
+        )
+      )
+      await vi.waitFor(() => expect(screen.getByText('Rename').closest('button')).toBeDisabled())
+      expect(screen.getByRole('textbox', { name: 'Task ID prefix' })).toHaveValue('WEB')
+    })
+
+    it('shows the server\'s reason when the key is taken', async () => {
+      routeFetch(() => json({ error: 'The key AITD is already taken' }, 409))
+      renderBoard()
+
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Task ID prefix' }), { target: { value: 'AITD' } })
+      fireEvent.click(screen.getByText('Rename'))
+
+      expect(await screen.findByText('The key AITD is already taken')).toBeInTheDocument()
+    })
+  })
 })

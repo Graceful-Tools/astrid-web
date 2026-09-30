@@ -147,6 +147,18 @@ export interface V1TaskUpdateRequest {
    * 11pm in their zone may be on the next UTC day already.
    */
   localCompletionDate?: string | null
+
+  /**
+   * How many occurrences of a repeating series have been completed (AWTD-1035).
+   * iOS, the Mac and astrid-core roll a repeating task forward ON THE DEVICE
+   * and send the new date with `completed: false`, so the server's own roll —
+   * the only thing that ever incremented this — never runs for them, and a
+   * series set to end after N occurrences repeated forever. They send the count
+   * they computed instead. A non-negative integer; not clearable, so no null.
+   * Ignored when the same request makes the server roll (`completed: true` on
+   * a repeating task): that path increments the count itself.
+   */
+  occurrenceCount?: number
 }
 
 /**
@@ -405,6 +417,12 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
   // while the same body sent through MCP was rejected (task 17fea642).
   if (b.priority !== undefined && !isValidTaskPriority(b.priority)) {
     return wrong('priority', `an integer from ${MIN_TASK_PRIORITY} to ${MAX_TASK_PRIORITY}`)
+  }
+  if (
+    b.occurrenceCount !== undefined &&
+    !(Number.isInteger(b.occurrenceCount) && (b.occurrenceCount as number) >= 0)
+  ) {
+    return wrong('occurrenceCount', 'a non-negative integer')
   }
 
   for (const f of ['timerDuration', 'lastTimerValue'] as const) {

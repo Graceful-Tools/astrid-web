@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Voorvoegsel taak-ID",
     "keyExample": "Taken worden {example}, …",
-    "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter"
+    "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
+    "keyRename": "Hernoemen",
+    "keyRenameHint": "Taken worden {next}; {old} blijft werken",
+    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen"
   },
   "listSettings": {
     "adminSettings": "Beheerdersinstellingen",

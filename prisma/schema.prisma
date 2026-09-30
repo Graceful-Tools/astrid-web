@@ -269,10 +269,26 @@ model Project {
   owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      ProjectMember[]
   lists        TaskList[]
+  keyAliases   ProjectKeyAlias[]
 
   @@unique([key])
   @@index([ownerId])
   @@index([createdAt])
+}
+
+/// A key this project answered to before a rename (AWTD-1024, spec W4). `AWTD-12`
+/// keeps resolving after AWTD becomes WEB, the way GitHub redirects a renamed
+/// repo, and the key stays reserved: no other project may take it, or `AWTD-12`
+/// would come to name a different task. Deleted only when the same project takes
+/// the key back — deleting the project orphans the row instead, since its tasks
+/// survive as NEW-N and nothing else would still reserve OLD.
+model ProjectKeyAlias {
+  key       String   @id
+  projectId String?
+  createdAt DateTime @default(now())
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
 }
 
 model ProjectMember {

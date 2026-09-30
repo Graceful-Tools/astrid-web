@@ -32,6 +32,8 @@ const listInclude = {
 
 const projectInclude = {
   owner: { select: safeUserSelect },
+  // Old keys from a rename, so the autolinker links `OLD-12` too (AWTD-1024).
+  keyAliases: { select: { key: true } },
   members: { include: { user: { select: safeUserSelect } } },
   lists: {
     include: listInclude,

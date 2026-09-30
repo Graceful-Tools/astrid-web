@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Präfix für Aufgaben-IDs",
     "keyExample": "Aufgaben werden zu {example}, …",
-    "keyInvalid": "{min}–{max} Buchstaben oder Ziffern, beginnend mit einem Buchstaben"
+    "keyInvalid": "{min}–{max} Buchstaben oder Ziffern, beginnend mit einem Buchstaben",
+    "keyRename": "Umbenennen",
+    "keyRenameHint": "Aufgaben werden zu {next}; {old} funktioniert weiter",
+    "keyRenameFailed": "Präfix konnte nicht umbenannt werden"
   },
   "listSettings": {
     "adminSettings": "Admin-Einstellungen",

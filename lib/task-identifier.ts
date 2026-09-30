@@ -101,16 +101,45 @@ type PrismaLike = typeof prisma | Prisma.TransactionClient
 export async function allocateSequence(
   projectId: string,
   client: PrismaLike = prisma
-): Promise<number | null> {
-  const rows = await client.$queryRaw<Array<{ nextSequence: number }>>(
+): Promise<{ sequence: number; key: string | null } | null> {
+  // The key comes back from the same row lock as the number (AWTD-1024): a
+  // create that read AWTD just before a rename to WEB committed would otherwise
+  // mint AWTD-13 after every other AWTD-N had become WEB-N.
+  const rows = await client.$queryRaw<Array<{ nextSequence: number; key: string | null }>>(
     Prisma.sql`
       UPDATE "Project"
       SET "nextSequence" = "nextSequence" + 1
       WHERE "id" = ${projectId}
-      RETURNING "nextSequence" - 1 AS "nextSequence"
+      RETURNING "nextSequence" - 1 AS "nextSequence", "key"
     `
   )
-  return rows[0]?.nextSequence ?? null
+  const row = rows[0]
+  return row ? { sequence: row.nextSequence, key: row.key } : null
+}
+
+/**
+ * May `key` become a project key? (AWTD-1024)
+ *
+ * No when another project holds it, when it is an alias another project
+ * renamed away from, or when ids with that prefix already exist — a project
+ * deleted with its tasks still carrying `OLD-N` would otherwise hand those
+ * numbers out twice. `forProjectId`'s own alias does not count: taking an old
+ * key back is allowed.
+ */
+async function isProjectKeyTaken(
+  key: string,
+  client: PrismaLike,
+  forProjectId?: string
+): Promise<boolean> {
+  const holder = await client.project.findUnique({ where: { key }, select: { id: true } })
+  if (holder) return holder.id !== forProjectId
+  const alias = await client.projectKeyAlias.findUnique({ where: { key }, select: { projectId: true } })
+  if (alias) return alias.projectId !== forProjectId
+  const minted = await client.task.findFirst({
+    where: { identifier: { startsWith: `${key}-` } },
+    select: { id: true },
+  })
+  return Boolean(minted)
 }
 
 /**
@@ -139,8 +168,7 @@ export async function checkRequestedProjectKey(
       status: 400,
     }
   }
-  const holder = await client.project.findUnique({ where: { key }, select: { id: true } })
-  if (holder) return { error: `The key ${key} is already taken`, status: 409 }
+  if (await isProjectKeyTaken(key, client)) return { error: `The key ${key} is already taken`, status: 409 }
   return { key }
 }
 
@@ -158,15 +186,16 @@ export async function ensureProjectKey(
   const candidate = deriveProjectKey(project.name)
   if (!candidate) return null
 
-  // Every key on astrid.cc, not just this owner's (AWTD-1016).
-  const taken = await client.project.findMany({
-    where: { key: { not: null } },
-    select: { key: true },
-  })
-  const key = resolveProjectKeyCollision(
-    candidate,
-    taken.map(other => other.key as string)
-  )
+  // Every key on astrid.cc, not just this owner's (AWTD-1016), and every key a
+  // rename left behind as an alias (AWTD-1024).
+  const [taken, aliases] = await Promise.all([
+    client.project.findMany({ where: { key: { not: null } }, select: { key: true } }),
+    client.projectKeyAlias.findMany({ select: { key: true } }),
+  ])
+  const key = resolveProjectKeyCollision(candidate, [
+    ...taken.map(other => other.key as string),
+    ...aliases.map(alias => alias.key),
+  ])
 
   try {
     await client.project.update({ where: { id: projectId }, data: { key } })
@@ -202,13 +231,88 @@ export async function allocateTaskIdentifier(
   })
   if (!list?.projectId) return null
 
-  const key = await ensureProjectKey(list.projectId, client)
-  if (!key) return null
+  if (!(await ensureProjectKey(list.projectId, client))) return null
 
-  const sequence = await allocateSequence(list.projectId, client)
-  if (sequence === null) return null
+  const allocated = await allocateSequence(list.projectId, client)
+  if (!allocated?.key) return null
 
-  return { identifier: formatIdentifier(key, sequence), sequence }
+  return { identifier: formatIdentifier(allocated.key, allocated.sequence), sequence: allocated.sequence }
+}
+
+export type RenameProjectKeyResult =
+  | { key: string; previousKey: string | null }
+  | { error: string; status: 400 | 404 | 409 }
+
+/**
+ * Rename a project's key after tasks exist (AWTD-1024, spec W4).
+ *
+ * One transaction: the old key becomes an alias, the project takes the new
+ * one, and every `OLD-N` is rebuilt as `NEW-N` from its stored sequence, so a
+ * task keeps its number. Only ids exactly `OLD-<its own sequence>` move — the
+ * key is globally unique, so those are all this project's. A task that has
+ * since moved to another board keeps its first id (spec §4), and that id is
+ * this project's to rename.
+ *
+ * Taking back one of the project's own old keys drops that alias, since the
+ * key is a real key again.
+ */
+export async function renameProjectKey(
+  projectId: string,
+  value: unknown,
+  client: typeof prisma = prisma
+): Promise<RenameProjectKeyResult> {
+  const key = normalizeProjectKey(value)
+  if (!key) {
+    return {
+      error: `A key is ${MIN_PROJECT_KEY_LENGTH}–${MAX_PROJECT_KEY_LENGTH} letters or digits, starting with a letter`,
+      status: 400,
+    }
+  }
+
+  return client.$transaction(async tx => {
+    const project = await tx.project.findUnique({ where: { id: projectId }, select: { key: true } })
+    if (!project) return { error: 'Project not found', status: 404 as const }
+    if (project.key === key) return { key, previousKey: key }
+
+    if (await isProjectKeyTaken(key, tx, projectId)) {
+      return { error: `The key ${key} is already taken`, status: 409 as const }
+    }
+
+    await tx.projectKeyAlias.deleteMany({ where: { key, projectId } })
+    if (project.key) {
+      await tx.projectKeyAlias.create({ data: { key: project.key, projectId } })
+    }
+    await tx.project.update({ where: { id: projectId }, data: { key } })
+    if (project.key) {
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "Task"
+        SET "identifier" = ${key} || '-' || "sequence"
+        WHERE "identifier" = ${project.key} || '-' || "sequence"
+      `)
+    }
+    return { key, previousKey: project.key }
+  })
+}
+
+/**
+ * The identifier a task carries today for something typed as `value` —
+ * `AWTD-12` → `WEB-12` once AWTD was renamed to WEB (AWTD-1024). Renames
+ * chain: every old key's alias points at the project, not at the next key.
+ *
+ * Returns the normalized input when no alias applies, and null when `value` is
+ * not identifier-shaped at all.
+ */
+export async function canonicalizeIdentifier(
+  value: string,
+  client: PrismaLike = prisma
+): Promise<string | null> {
+  const parsed = parseIdentifier(value)
+  if (!parsed) return null
+  const alias = await client.projectKeyAlias.findUnique({
+    where: { key: parsed.key },
+    select: { project: { select: { key: true } } },
+  })
+  return formatIdentifier(alias?.project?.key ?? parsed.key, parsed.sequence)
 }
 
 /**
@@ -227,9 +331,13 @@ export async function resolveTaskIdOrIdentifier(
   const parsed = parseIdentifier(value)
   if (!parsed) return value
 
-  const task = await client.task.findUnique({
-    where: { identifier: formatIdentifier(parsed.key, parsed.sequence) },
-    select: { id: true },
-  })
-  return task?.id ?? null
+  const exact = formatIdentifier(parsed.key, parsed.sequence)
+  const task = await client.task.findUnique({ where: { identifier: exact }, select: { id: true } })
+  if (task) return task.id
+
+  // A renamed key (AWTD-1024): the miss path only, so a current id costs one read.
+  const current = await canonicalizeIdentifier(exact, client)
+  if (!current || current === exact) return null
+  const renamed = await client.task.findUnique({ where: { identifier: current }, select: { id: true } })
+  return renamed?.id ?? null
 }

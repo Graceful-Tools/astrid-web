@@ -60,7 +60,11 @@ export function useIdentifierLinkContext(listIds: string[]): IdentifierLinkConte
 
   return useMemo(() => {
     if (!loaded) return undefined
-    const keys = loaded.map(project => project.key).filter((key): key is string => Boolean(key))
+    // A renamed project's old keys link too: `/t/OLD-12` resolves through the
+    // alias (AWTD-1024).
+    const keys = loaded
+      .flatMap(project => [project.key, ...(project.keyAliases ?? []).map(alias => alias.key)])
+      .filter((key): key is string => Boolean(key))
     if (keys.length === 0) return undefined
     const ids = listKey ? listKey.split(',') : []
     return { keys, projectKey: projectFor(loaded, ids)?.key ?? null }

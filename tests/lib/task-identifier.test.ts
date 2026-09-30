@@ -182,6 +182,8 @@ describe('ensureProjectKey / allocateTaskIdentifier across owners (AWTD-1016)', 
           return project
         },
       },
+      // No project here has been renamed, so no key is held as an alias (AWTD-1024).
+      projectKeyAlias: { findMany: async () => [] },
       taskList: {
         findFirst: async ({ where }: { where: { id: { in: string[] } } }) =>
           lists.find(list => where.id.in.includes(list.id)) ?? null,
@@ -190,7 +192,7 @@ describe('ensureProjectKey / allocateTaskIdentifier across owners (AWTD-1016)', 
       $queryRaw: async (query: { values: unknown[] }) => {
         const project = projects.find(candidate => candidate.id === query.values[0])!
         project.nextSequence += 1
-        return [{ nextSequence: project.nextSequence - 1 }]
+        return [{ nextSequence: project.nextSequence - 1, key: project.key }]
       },
     }
   }

@@ -68,7 +68,7 @@ exists.
 The key is still derived from the project name, as today (`deriveProjectKey`). Collisions
 get a digit, so "Astrid Windows To-do" became `AWTD2`. A project owner may **set the key
 when the project is created**, before any task is minted. Changing it afterwards is a rename
-(W4) and is deferred.
+(W4, AWTD-1024): the tasks become `NEW-N`, and the old key stays behind as an alias.
 
 ### 4. Which tasks have an id, and moving
 
@@ -156,8 +156,14 @@ Web (Astrid Web To-do):
   searches the server, including identifiers. Show the id in task details, and add "Copy
   task id" to the task menu. Apply the show-rule to rows.
 - **W3: owner sets the key at project creation.**
-- **W4 (deferred): key rename with alias.** An old key keeps resolving, the way GitHub
-  redirects renamed repos.
+- **W4: key rename with alias — built (AWTD-1024).** `PATCH /api/v1/projects/:id { key }`
+  (owner only; also in the board settings) runs `renameProjectKey`. It rebuilds every
+  `OLD-N` as `NEW-N` from `Task.sequence`, and records `OLD` in `ProjectKeyAlias`. An old key
+  keeps resolving, the way GitHub redirects renamed repos: `/t/`, the API, MCP and search
+  go through `canonicalizeIdentifier`. The autolinker links alias keys too
+  (`/api/v1/projects` returns `keyAliases`). An alias is reserved: no other project may take
+  it. The same holds for a key whose `KEY-N` ids already exist. Only the same project may
+  take its old key back.
 
 Other clients:
 

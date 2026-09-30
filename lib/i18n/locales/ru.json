@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Префикс ID задач",
     "keyExample": "Задачи получат ID вида {example}, …",
-    "keyInvalid": "{min}–{max} букв или цифр, начиная с буквы"
+    "keyInvalid": "{min}–{max} букв или цифр, начиная с буквы",
+    "keyRename": "Переименовать",
+    "keyRenameHint": "Задачи станут {next}; {old} продолжит работать",
+    "keyRenameFailed": "Не удалось переименовать префикс"
   },
   "listSettings": {
     "adminSettings": "Настройки администратора",

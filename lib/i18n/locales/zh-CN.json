@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "任务 ID 前缀",
     "keyExample": "任务将编号为 {example} 等",
-    "keyInvalid": "{min}–{max} 个字母或数字，以字母开头"
+    "keyInvalid": "{min}–{max} 个字母或数字，以字母开头",
+    "keyRename": "重命名",
+    "keyRenameHint": "任务将变为 {next}；{old} 仍然有效",
+    "keyRenameFailed": "无法重命名前缀"
   },
   "listSettings": {
     "adminSettings": "管理员设置",

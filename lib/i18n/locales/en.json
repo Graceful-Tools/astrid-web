@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Task ID prefix",
     "keyExample": "Tasks become {example}, …",
-    "keyInvalid": "{min}–{max} letters or digits, starting with a letter"
+    "keyInvalid": "{min}–{max} letters or digits, starting with a letter",
+    "keyRename": "Rename",
+    "keyRenameHint": "Tasks become {next}; {old} keeps working",
+    "keyRenameFailed": "Couldn't rename the key"
   },
   "listSettings": {
     "adminSettings": "Admin Settings",

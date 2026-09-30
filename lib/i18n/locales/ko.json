@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "작업 ID 접두사",
     "keyExample": "작업은 {example} 형식이 됩니다",
-    "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작"
+    "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작",
+    "keyRename": "이름 변경",
+    "keyRenameHint": "작업이 {next}(으)로 바뀝니다. {old}도 계속 작동합니다",
+    "keyRenameFailed": "접두사를 변경하지 못했습니다"
   },
   "listSettings": {
     "adminSettings": "관리자 설정",

@@ -55,7 +55,8 @@ const BUDGETS: Record<string, number> = {
   'components/TaskManagerView.tsx': 1212,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
-  'components/TaskManager/MainContent/MainContent.tsx': 1115,
+  // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
+  'components/TaskManager/MainContent/MainContent.tsx': 1100,
   'lib/cache-manager.ts': 935,
   'lib/astrid-agent-runtime.ts': 835,
 
@@ -94,7 +95,11 @@ const BUDGETS: Record<string, number> = {
   // assigned at all are one question asked twice.
   // 1605 → 1602: AWTD-1016 made a move mint an identifier as a create does.
   // The best-effort mint went to services/task-identifier-mint.ts, used by both.
-  'services/task.service.ts': 1602,
+  // 1602 → 1588: AWTD-1035 accepted a client's occurrenceCount, paid for by
+  // moving the twice-copied custom repeatingData parse to lib/task-enums.ts.
+  // 1588 → 1587: AWTD-1007 clears the column when a task leaves its last board;
+  // the whole statusRole write went to services/task-status-role.ts.
+  'services/task.service.ts': 1587,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

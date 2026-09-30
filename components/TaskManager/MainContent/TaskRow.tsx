@@ -90,6 +90,9 @@ export interface TaskRowProps {
    * BOARD's columns rather than completing the task.
    */
   board?: BoardRowContext | null
+
+  /** The list being viewed; the row does not repeat its chip (AWTD-1025). */
+  currentListId?: string | null
 }
 
 /**
@@ -115,6 +118,7 @@ function TaskRowImpl({
   startMobileDrag,
   isSubtask,
   board,
+  currentListId,
 }: TaskRowProps) {
   const {
     selectedTaskId,
@@ -398,6 +402,7 @@ function TaskRowImpl({
           displayMode={taskDisplayMode}
           onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
           onBoard={Boolean(board)}
+          currentListId={currentListId}
         />
         {opensOptions && (
           <PriorityAssigneePicker

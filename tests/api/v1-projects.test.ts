@@ -14,12 +14,22 @@ vi.mock('@/lib/projects-service', () => ({
   listProjectsForUser: vi.fn(),
   createProjectForUser: vi.fn(),
   deleteProjectAndDetachLists: vi.fn(),
+  authorizeBoardOwner: vi.fn(),
+  collectProjectMemberUserIds: vi.fn(async () => []),
 }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     project: { findUnique: vi.fn() },
+    // checkRequestedProjectKey also refuses a renamed-away key or a minted prefix (AWTD-1024).
+    projectKeyAlias: { findUnique: vi.fn() },
+    task: { findFirst: vi.fn() },
   },
+}))
+
+vi.mock('@/lib/task-identifier', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/task-identifier')>()),
+  renameProjectKey: vi.fn(),
 }))
 
 // Project Mode is request-gated (task dd7172d8). Default: granted, so the
@@ -62,12 +72,14 @@ vi.mock('@/lib/redis', () => ({
 }))
 
 import { GET as listProjects, POST as createProject } from '@/app/api/v1/projects/route'
-import { DELETE as deleteProject } from '@/app/api/v1/projects/[id]/route'
+import { DELETE as deleteProject, PATCH as patchProject } from '@/app/api/v1/projects/[id]/route'
+import { renameProjectKey } from '@/lib/task-identifier'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import {
   listProjectsForUser,
   createProjectForUser,
   deleteProjectAndDetachLists,
+  authorizeBoardOwner,
 } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 import { projectModeGate } from '@/lib/project-mode'
@@ -78,6 +90,8 @@ const mockList = vi.mocked(listProjectsForUser)
 const mockCreate = vi.mocked(createProjectForUser)
 const mockDelete = vi.mocked(deleteProjectAndDetachLists)
 const mockPrisma = vi.mocked(prisma, true)
+const mockRename = vi.mocked(renameProjectKey)
+const mockOwner = vi.mocked(authorizeBoardOwner)
 
 const ownerAuth = {
   userId: 'owner-1',
@@ -92,7 +106,7 @@ const readOnlyAuth = {
   scopes: ['projects:read'],
 }
 
-function makeReq(method: 'GET' | 'POST' | 'DELETE', body?: unknown, path = 'http://localhost/api/v1/projects'): NextRequest {
+function makeReq(method: 'GET' | 'POST' | 'DELETE' | 'PATCH', body?: unknown, path = 'http://localhost/api/v1/projects'): NextRequest {
   return new NextRequest(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -279,5 +293,53 @@ describe('DELETE /api/v1/projects/:id', () => {
     )
     expect(res.status).toBe(403)
     expect(mockDelete).not.toHaveBeenCalled()
+  })
+})
+
+describe('PATCH /api/v1/projects/:id — rename the key (AWTD-1024)', () => {
+  const params = Promise.resolve({ id: 'p1' })
+  const patch = (body: unknown) =>
+    patchProject(makeReq('PATCH', body, 'http://localhost/api/v1/projects/p1'), { params } as any)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(ownerAuth as any)
+    mockOwner.mockResolvedValue({ ok: true })
+  })
+
+  it('renames for the owner and answers the new key and the one it replaced', async () => {
+    mockRename.mockResolvedValue({ key: 'WEB', previousKey: 'AWTD' })
+
+    const res = await patch({ key: 'web' })
+
+    expect(res.status).toBe(200)
+    expect(mockRename).toHaveBeenCalledWith('p1', 'web')
+    expect(await res.json()).toMatchObject({ project: { id: 'p1', key: 'WEB' }, previousKey: 'AWTD' })
+  })
+
+  it('403s a member who does not own the board, and 404s an unknown one', async () => {
+    mockOwner.mockResolvedValue({ error: 'forbidden' })
+    expect((await patch({ key: 'WEB' })).status).toBe(403)
+    mockOwner.mockResolvedValue({ error: 'not_found' })
+    expect((await patch({ key: 'WEB' })).status).toBe(404)
+    expect(mockRename).not.toHaveBeenCalled()
+  })
+
+  it('passes a taken or malformed key back with its status', async () => {
+    mockRename.mockResolvedValue({ error: 'The key AITD is already taken', status: 409 })
+    const res = await patch({ key: 'AITD' })
+    expect(res.status).toBe(409)
+    expect(await res.json()).toMatchObject({ error: 'The key AITD is already taken' })
+  })
+
+  it('400s a body without a key', async () => {
+    expect((await patch({ name: 'x' })).status).toBe(400)
+    expect(mockRename).not.toHaveBeenCalled()
+  })
+
+  it('requires projects:write', async () => {
+    mockAuth.mockResolvedValue(readOnlyAuth as any)
+    expect((await patch({ key: 'WEB' })).status).toBe(403)
+    expect(mockRename).not.toHaveBeenCalled()
   })
 })

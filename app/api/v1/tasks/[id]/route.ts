@@ -282,6 +282,7 @@ export const PUT = withAuth<RouteContext>(
     if (body.repeating !== undefined) intent.repeating = body.repeating
     if (body.repeatingData !== undefined) intent.repeatingData = body.repeatingData
     if (body.repeatFrom !== undefined) intent.repeatFrom = body.repeatFrom
+    if (body.occurrenceCount !== undefined) intent.occurrenceCount = body.occurrenceCount
     if (body.assigneeId !== undefined) intent.assigneeId = body.assigneeId || null
     if (body.timerDuration !== undefined) intent.timerDuration = body.timerDuration
     if (body.lastTimerValue !== undefined) intent.lastTimerValue = body.lastTimerValue
