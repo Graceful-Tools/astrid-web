@@ -80,6 +80,19 @@ export function splitTaskLists<T extends ListLike>(lists: T[] | undefined | null
 }
 
 /**
+ * The memberships a task row shows as chips while `currentListId` is being
+ * viewed (AWTD-1025): all of them except that one. Inside a list, every row
+ * would carry the same chip, which says nothing. A virtual view ("my-tasks",
+ * "today") matches no membership, so it hides nothing.
+ */
+export function listsShownOnRow<T extends { id: string }>(
+  lists: T[] | undefined | null,
+  currentListId: string | null | undefined,
+): T[] {
+  return (lists ?? []).filter(list => list.id !== currentListId)
+}
+
+/**
  * Is this a flavor change we allow?
  *
  * Regular ⇄ label is a supported admin action and preserves memberships (the

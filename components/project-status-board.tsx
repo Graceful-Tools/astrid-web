@@ -473,6 +473,7 @@ export function ProjectStatusBoard({
                         onCopyPublic={handleCopyPublic}
                         displayMode={taskDisplayMode}
                         identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
+                        currentListId={selectedListId}
                         /* Someone else's card opens the sheet too, in either
                            display mode (AWTD-877) — it is the only route to
                            reassign, reprioritise or move it, and to a
