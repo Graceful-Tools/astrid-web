@@ -72,6 +72,21 @@ export function parseRepeating(input: unknown): ParseResult<Repeating | undefine
   return { ok: true, value: input }
 }
 
+/**
+ * The `repeatingData` to store for a given `repeating`. Only a custom schedule
+ * has any, and some clients send it as a JSON string; anything else — or a
+ * string that does not parse — stores null. Shared by task create and update.
+ */
+export function normalizeRepeatingData(repeating: unknown, raw: unknown): unknown {
+  if (repeating !== 'custom') return null
+  if (typeof raw !== 'string') return raw ?? null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 // ─── Task.completedSource ─────────────────────────────────────────────────
 
 /**
