@@ -76,6 +76,7 @@ import {
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
 import { resolveCompletionFields } from './task-completion'
+import { resolveStatusRoleWrite } from './task-status-role'
 
 const log = createLogger('services.task')
 
@@ -1246,9 +1247,7 @@ export async function updateTaskWithSideEffects(args: {
     data.closedReason = parsedClosedReason.value
   }
 
-  if (has('statusRole') && requestedCompleted !== true) {
-    data.statusRole = intent.statusRole || null
-  }
+  Object.assign(data, await resolveStatusRoleWrite({ setsRole: has('statusRole'), intent, requestedCompleted, existingTask, validatedListIds }))
 
   // Invariant: completed = true => no status memberships (task db7c6670). The
   // listIds branch enforces it through the normalizer, but only when the

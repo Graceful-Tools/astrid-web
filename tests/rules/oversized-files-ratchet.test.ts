@@ -97,7 +97,9 @@ const BUDGETS: Record<string, number> = {
   // The best-effort mint went to services/task-identifier-mint.ts, used by both.
   // 1602 → 1588: AWTD-1035 accepted a client's occurrenceCount, paid for by
   // moving the twice-copied custom repeatingData parse to lib/task-enums.ts.
-  'services/task.service.ts': 1588,
+  // 1588 → 1587: AWTD-1007 clears the column when a task leaves its last board;
+  // the whole statusRole write went to services/task-status-role.ts.
+  'services/task.service.ts': 1587,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
