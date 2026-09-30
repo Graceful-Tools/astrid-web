@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Prefijo de ID de tarea",
     "keyExample": "Las tareas serán {example}, …",
-    "keyInvalid": "De {min} a {max} letras o dígitos, empezando por una letra"
+    "keyInvalid": "De {min} a {max} letras o dígitos, empezando por una letra",
+    "keyRename": "Renombrar",
+    "keyRenameHint": "Las tareas pasan a {next}; {old} sigue funcionando",
+    "keyRenameFailed": "No se pudo renombrar el prefijo"
   },
   "listSettings": {
     "adminSettings": "Ajustes de administrador",

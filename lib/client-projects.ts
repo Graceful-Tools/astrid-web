@@ -9,6 +9,8 @@ import { apiGet } from '@/lib/api'
 export interface ClientProject {
   id: string
   key?: string | null
+  /** Keys this project had before a rename; ids under them still resolve (AWTD-1024). */
+  keyAliases?: Array<{ key: string }> | null
   customStates?: unknown
   lists?: Array<{ id: string }> | null
 }

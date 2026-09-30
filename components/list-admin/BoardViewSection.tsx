@@ -18,6 +18,8 @@ import { useFeatureFlags } from "@/contexts/feature-flag-context"
 import { useTranslations } from "@/lib/i18n/client"
 import { PROJECT_MODE_FEATURE_KEY } from "@/lib/project-mode-shared"
 import { RequestBoardAccessDialog } from "@/components/list-admin/RequestBoardAccessDialog"
+import { fetchProjects } from "@/lib/client-projects"
+import { apiCall, refusalReason } from "@/lib/api"
 
 interface BoardViewSectionProps {
   list: TaskList
@@ -118,6 +120,47 @@ export function BoardViewSection({
       setIsCreatingProjectBoard(false)
     }
   }, [isCreatingProjectBoard, keyEdited, keyInvalid, list, onProjectBoardCreated, onUpdate, requestedKey])
+
+  // Once the board exists the key can still change (AWTD-1024): its tasks
+  // become NEW-N and every OLD-N already written down keeps resolving.
+  const [currentKey, setCurrentKey] = useState<string | null>(null)
+  const [renameInput, setRenameInput] = useState("")
+  const [isRenamingKey, setIsRenamingKey] = useState(false)
+  const renameKey = normalizeProjectKey(renameInput)
+  const renameInvalid = renameInput !== "" && !renameKey
+
+  useEffect(() => {
+    if (!list.projectId || !canEditSettings) return
+    let cancelled = false
+    fetchProjects()
+      .then(projects => {
+        const key = projects.find(project => project.id === list.projectId)?.key ?? null
+        if (cancelled) return
+        setCurrentKey(key)
+        setRenameInput(key ?? "")
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [list.projectId, canEditSettings])
+
+  const handleRenameKey = useCallback(async () => {
+    if (!list.projectId || !renameKey || renameKey === currentKey || isRenamingKey) return
+    setIsRenamingKey(true)
+    setProjectBoardError(null)
+    try {
+      const response = await apiCall(`/api/v1/projects/${list.projectId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ key: renameKey }),
+      })
+      const { project } = await response.json()
+      setCurrentKey(project.key)
+      setRenameInput(project.key)
+    } catch (error) {
+      setProjectBoardError(refusalReason(error) ?? t("projectMode.keyRenameFailed"))
+    } finally {
+      setIsRenamingKey(false)
+    }
+  }, [currentKey, isRenamingKey, list.projectId, renameKey, t])
 
   const handleRemoveProjectBoard = useCallback(async () => {
     if (!list.projectId || isRemovingProjectBoard) return
@@ -233,6 +276,38 @@ export function BoardViewSection({
                 ? t("projectMode.keyInvalid", { min: String(MIN_PROJECT_KEY_LENGTH), max: String(MAX_PROJECT_KEY_LENGTH) })
                 : requestedKey
                   ? t("projectMode.keyExample", { example: formatIdentifier(requestedKey, 1) })
+                  : null}
+            </span>
+          </div>
+        ) : null}
+        {list.projectId && currentKey ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor={`project-key-${list.id}`} className="text-xs theme-text-muted shrink-0">
+              {t("projectMode.keyLabel")}
+            </Label>
+            <Input
+              id={`project-key-${list.id}`}
+              value={renameInput}
+              onChange={(event) => setRenameInput(event.target.value.toUpperCase())}
+              maxLength={MAX_PROJECT_KEY_LENGTH}
+              aria-invalid={renameInvalid}
+              className="h-7 w-20 font-mono text-xs"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isRenamingKey || !renameKey || renameKey === currentKey}
+              onClick={handleRenameKey}
+              className="h-7"
+            >
+              {t("projectMode.keyRename")}
+            </Button>
+            <span className={`text-xs ${renameInvalid ? "text-red-500" : "theme-text-muted"}`}>
+              {renameInvalid
+                ? t("projectMode.keyInvalid", { min: String(MIN_PROJECT_KEY_LENGTH), max: String(MAX_PROJECT_KEY_LENGTH) })
+                : renameKey && renameKey !== currentKey
+                  ? t("projectMode.keyRenameHint", { old: formatIdentifier(currentKey, 12), next: formatIdentifier(renameKey, 12) })
                   : null}
             </span>
           </div>

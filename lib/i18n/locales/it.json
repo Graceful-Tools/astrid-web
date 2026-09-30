@@ -975,7 +975,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Prefisso ID attività",
     "keyExample": "Le attività diventano {example}, …",
-    "keyInvalid": "Da {min} a {max} lettere o cifre, iniziando con una lettera"
+    "keyInvalid": "Da {min} a {max} lettere o cifre, iniziando con una lettera",
+    "keyRename": "Rinomina",
+    "keyRenameHint": "Le attività diventano {next}; {old} continua a funzionare",
+    "keyRenameFailed": "Impossibile rinominare il prefisso"
   },
   "listSettings": {
     "adminSettings": "Impostazioni amministratore",
