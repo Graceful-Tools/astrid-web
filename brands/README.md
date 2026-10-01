@@ -146,3 +146,45 @@ A preview inherits the Vercel project's `NEXTAUTH_URL`, so absolute links in `/l
 and the plugin manifest reference the project's own host rather than the brand's. That is
 environment configuration, not a whitelabel gap — a real partner deployment sets its own
 `NEXTAUTH_URL` alongside the brand variables.
+
+## A partner deployment of its own (the full test)
+
+A preview shows a brand; it does not test one. It shares Astrid's database, pins agent
+identities to `astrid.cc`, and signs in by bouncing through `astrid.cc`. The only way to
+exercise the whole path — the session cookie on the partner's domain, passkeys under the
+partner's RP ID, agent mailboxes at the partner's agent domain, the schema migrated into an
+empty database — is a deployment of its own. `whitelabel-partner.brand.json` is that, at
+`https://tasks.gracefultools.com`, in the Vercel project `whitelabel-partner`.
+
+To stand one up:
+
+1. **Project.** `vercel project add <name>`, then set its framework to Next.js (the CLI
+   creates it as "Other").
+2. **Domain.** Add it to the project; point DNS at the CNAME Vercel recommends.
+3. **Database.** Vercel → the project → Storage → Create → Neon, connected to Production and
+   Preview. The first production build migrates it from empty.
+4. **Environment.** `npx tsx scripts/push-brand-env.ts <profile> --project <name>` writes the
+   profile, derives `NEXTAUTH_URL` from the brand domain, and generates `NEXTAUTH_SECRET`,
+   `ENCRYPTION_KEY`, `CRON_SECRET` and `INTERNAL_API_SECRET` — only when absent, because
+   rotating the first two signs everyone out and strands stored credentials. Run it again
+   after attaching the database to map Neon's `DATABASE_URL_UNPOOLED` to the
+   `DATABASE_URL_DIRECT` the build migrates through.
+5. **Deploy** a production build of that project.
+
+Sign-in starts passkey-only: Google and Apple each need an OAuth client registered for the
+partner's domain, so the profile turns them off rather than advertise buttons that fail. The
+native apps read the same `auth` capabilities and hide those buttons too.
+
+### Native apps against a partner deployment
+
+- **iOS / Mac:** `./scripts/apply-brand.sh whitelabel-partner` in astrid-ios points the app
+  at the partner host and adds `webcredentials:` (and `applinks:` on iOS) for its domain, so
+  native passkeys work there. The partner's site serves `apple-app-site-association` for the
+  same app IDs. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
+  from Xcode on a machine with that team. `--reset` reverts, byte for byte.
+- **Windows:** signs in through the browser (`/signin/desktop`), so passkeys on the
+  partner's site need nothing native. The app must be pointed at the partner host.
+- **The URL scheme stays `astrid`** in this profile. A scheme is part of an app's identity,
+  and the test binaries register only `astrid://`; a partner's own scheme needs a
+  partner-built app (bundle ID, scheme, store listing — frozen for us, see
+  docs/WHITELABELING.md §7).
