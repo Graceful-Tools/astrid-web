@@ -31,7 +31,19 @@ const DEFAULTS = {
   logo: '/images/astrid-character.png',
   icon: '/icons/icon-512x512.png',
   iconSmall: '/icons/icon-96x96.png',
+  defaultTheme: 'ocean',
+  fontFamily: '',
 } as const
+
+/** The three stylesheets under styles/themes/. A brand picks which one it starts on. */
+export const BRAND_THEMES = ['light', 'dark', 'ocean'] as const
+export type BrandTheme = (typeof BRAND_THEMES)[number]
+
+/** A theme name, or the default when the value names no stylesheet we ship. */
+function themeEnv(value: string | undefined, fallback: BrandTheme): BrandTheme {
+  const trimmed = value?.trim().toLowerCase()
+  return (BRAND_THEMES as readonly string[]).includes(trimmed ?? '') ? (trimmed as BrandTheme) : fallback
+}
 
 /** Trim and treat an empty/whitespace-only env var as unset. */
 function env(value: string | undefined, fallback: string): string {
@@ -132,6 +144,25 @@ export const BRAND = {
 
   /** Small square app mark, used in page headers. */
   iconSmall: env(process.env.NEXT_PUBLIC_BRAND_ICON_SMALL, DEFAULTS.iconSmall),
+
+  /**
+   * The theme a visitor sees before they have picked one: `light`, `dark` or `ocean`.
+   *
+   * Astrid starts on ocean. A partner styled after a white-canvas product wants light,
+   * and until this existed the only way to get it was to ask every user to open
+   * Appearance settings. A stored choice still wins — this is the starting point, not
+   * a lock. An unknown name falls back rather than breaking the theme switcher.
+   */
+  defaultTheme: themeEnv(process.env.NEXT_PUBLIC_BRAND_DEFAULT_THEME, DEFAULTS.defaultTheme),
+
+  /**
+   * A CSS `font-family` stack for the whole app. Empty keeps the bundled Inter.
+   *
+   * Set as an inline style on <body>, so it overrides Inter's class without
+   * loading anything: a partner's stack is usually the system font, which is why it
+   * is a value rather than a second `next/font` import.
+   */
+  fontFamily: env(process.env.NEXT_PUBLIC_BRAND_FONT_FAMILY, DEFAULTS.fontFamily),
 } as const
 
 export type Brand = typeof BRAND

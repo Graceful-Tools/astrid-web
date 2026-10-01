@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { BRAND } from '@/lib/brand/config'
+import { brandAccentRgb } from '@/lib/brand/colors'
 import "../globals.css"
 // These four used to be `@import` rules at the BOTTOM of globals.css. That is invalid CSS —
 // @import must precede all other rules — which PostCSS tolerated and Turbopack (the Next 16
@@ -28,6 +29,21 @@ import { SoundInitializer } from "@/components/sound-initializer"
 export const dynamic = 'force-dynamic'
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
+
+/**
+ * The brand accent as CSS custom properties, so stylesheets can paint it too.
+ * CSS cannot read env, so the stylesheets hardcoded the Astrid blue and a
+ * partner's focus ring and prose links stayed blue (task 518ec534). The RGB
+ * triplets feed `--theme-accent` in styles/themes/*.css; absent, those keep
+ * their built-in values (see brandAccentRgb).
+ */
+function brandCssVars(): React.CSSProperties {
+  const rgb = brandAccentRgb()
+  return {
+    '--brand-accent': BRAND.accentColor,
+    ...(rgb ? { '--brand-accent-rgb': rgb.accent, '--brand-accent-hover-rgb': rgb.hover } : {}),
+  } as React.CSSProperties
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -102,14 +118,14 @@ export default async function LocaleLayout({ children, params }: Props) {
       // The brand accent as a CSS custom property, so stylesheets can paint it
       // too. CSS cannot read env, so the stylesheets hardcoded the Astrid blue
       // and a partner's focus ring and prose links stayed blue (task 518ec534).
-      style={{ '--brand-accent': BRAND.accentColor } as React.CSSProperties}
+      style={brandCssVars()}
     >
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} style={BRAND.fontFamily ? { fontFamily: BRAND.fontFamily } : undefined}>
         <SoundInitializer />
         <NextIntlClientProvider messages={messages}>
           <Providers>{children}</Providers>

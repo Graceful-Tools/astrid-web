@@ -17,7 +17,7 @@
   /* Border colors (same as light) */
   --theme-border: 229, 231, 235;
   --theme-border-hover: 209, 213, 219;
-  --theme-border-focus: 59, 130, 246;
+  --theme-border-focus: var(--brand-accent-rgb, 59, 130, 246);
   --theme-border-input: 209, 213, 219;
 
   /* Text colors (same as light) */
@@ -28,8 +28,10 @@
   --theme-text-selected: 0, 0, 0;
 
   /* Interactive colors (same as light) */
-  --theme-accent: 59, 130, 246;
-  --theme-accent-hover: 37, 99, 235;
+  /* Brand accent when a partner sets one (app/[locale]/layout.tsx publishes the
+     triplets); the literals are Astrid's designed values and stay the fallback. */
+  --theme-accent: var(--brand-accent-rgb, 59, 130, 246);
+  --theme-accent-hover: var(--brand-accent-hover-rgb, 37, 99, 235);
   --theme-accent-text: 255, 255, 255;
 
   /* Status colors (same as light) */

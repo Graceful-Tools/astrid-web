@@ -85,6 +85,33 @@ export function darkenHex(hex: string, amount = 0.2): string {
   return `#${channels.map((c) => c.toString(16).padStart(2, '0')).join('')}`
 }
 
+/** `#rrggbb` → `"r, g, b"`, the form the `--theme-*` custom properties use. Null if not six-digit hex. */
+export function hexToRgbTriplet(hex: string): string | null {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!match) return null
+  return [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16)).join(', ')
+}
+
+/**
+ * The accent as the stylesheets need it, or null when they should use their own.
+ *
+ * `styles/themes/*.css` define `--theme-accent` (buttons, links, the focus ring) as
+ * an RGB triplet, and until task 518ec534's follow-up they hardcoded Astrid blue —
+ * so a partner's accent reached the manifest and the email chrome but not the UI.
+ * The layout now publishes these as `--brand-accent-rgb` / `--brand-accent-hover-rgb`
+ * and the stylesheets read them with their original values as the fallback.
+ *
+ * Null for the built-in accent ON PURPOSE: the stylesheets' fallbacks are the
+ * designed Astrid values, hover included, and a computed hover would not match
+ * them. A non-hex accent is null too — nothing sensible can be derived from it.
+ */
+export function brandAccentRgb(): { accent: string; hover: string } | null {
+  if (BRAND.accentColor.trim().toLowerCase() === '#3b82f6') return null
+  const accent = hexToRgbTriplet(BRAND.accentColor)
+  const hover = hexToRgbTriplet(darkenHex(BRAND.accentColor, 0.15))
+  return accent && hover ? { accent, hover } : null
+}
+
 /**
  * The two stops of the branded email header gradient. Previously the literal
  * `#3b82f6 → #2563eb`, which stayed Astrid blue on every partner deployment.
