@@ -111,6 +111,17 @@ npx tsx scripts/deploy-brand-preview.ts acme
 
 That reads `brands/acme.brand.json` and deploys with its `env` applied.
 
+Add `--alias <hostname>` to give the preview a stable address on the `*.astrid.cc`
+wildcard, the way `deploy-preview.sh` does for branches:
+
+```bash
+npx tsx scripts/deploy-brand-preview.ts whitelabel --alias whitelabel.astrid.cc
+```
+
+`whitelabel.brand.json` is exactly that: the standing white-label test site, styled after
+GitHub (light by default, GitHub blue, system font). Its `description` explains why it
+keeps `astrid.cc` as its domain — sign-in on a `*.astrid.cc` preview depends on it.
+
 ### One value is pinned, not taken from the profile
 
 `BRAND_AGENT_EMAIL_DOMAIN` is forced to `astrid.cc` on previews. Preview deployments

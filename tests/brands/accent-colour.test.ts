@@ -58,6 +58,35 @@ describe('brand accent colour reaches the things it paints (task 518ec534)', () 
     const { CHART_SERIES_COLORS } = await import('@/lib/brand/colors')
     expect(CHART_SERIES_COLORS.length).toBeGreaterThan(1)
   })
+
+  it('reaches the theme accent the UI paints with — buttons, links, focus — as RGB triplets', async () => {
+    // styles/themes/*.css define --theme-accent as "r, g, b" and hardcoded Astrid
+    // blue, so a partner's accent reached the manifest and the email chrome but
+    // not the app itself. The layout publishes these; the stylesheets read them.
+    const { brandAccentRgb, hexToRgbTriplet } = await import('@/lib/brand/colors')
+    expect(hexToRgbTriplet(ACME_ACCENT)).toBe('168, 85, 247')
+    expect(hexToRgbTriplet('rebeccapurple')).toBeNull()
+
+    const rgb = brandAccentRgb()
+    expect(rgb?.accent).toBe('168, 85, 247')
+    expect(rgb?.hover).not.toBe(rgb?.accent)
+
+    for (const theme of ['light', 'dark', 'ocean']) {
+      const css = readFileSync(join(process.cwd(), 'styles', 'themes', `${theme}-theme.css`), 'utf8')
+      expect(css, `${theme} theme must derive its accent from the brand`).toMatch(/--theme-accent:\s*var\(--brand-accent-rgb,/)
+      expect(css).toMatch(/--theme-accent-hover:\s*var\(--brand-accent-hover-rgb,/)
+      expect(css).toMatch(/--theme-border-focus:\s*var\(--brand-accent-rgb,/)
+    }
+  })
+
+  it('leaves the stylesheets on their own designed values for the Astrid accent', async () => {
+    // The CSS fallbacks ARE Astrid's design, hover included; a computed hover
+    // would not match them, so production publishes nothing and changes nothing.
+    process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR = ASTRID_ACCENT
+    vi.resetModules()
+    const { brandAccentRgb } = await import('@/lib/brand/colors')
+    expect(brandAccentRgb()).toBeNull()
+  })
 })
 
 describe('no source file outside the colour modules hardcodes the Astrid accent (task 518ec534)', () => {

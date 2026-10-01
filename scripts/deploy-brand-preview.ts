@@ -18,6 +18,13 @@
  *
  *   npx tsx scripts/deploy-brand-preview.ts acme
  *   npx tsx scripts/deploy-brand-preview.ts astrid     # unbranded regression check
+ *   npx tsx scripts/deploy-brand-preview.ts whitelabel --alias whitelabel.astrid.cc
+ *
+ * `--alias <hostname>` points a stable hostname at the deployment afterwards, the
+ * way scripts/deploy-preview.sh aliases <branch>.astrid.cc — the wildcard domain on
+ * the Vercel project makes any subdomain work. Without it the preview is reachable
+ * only at its one-off *.vercel.app URL, which is fine for a check and useless for a
+ * test site people keep coming back to.
  *
  * BRAND_AGENT_EMAIL_DOMAIN is deliberately PINNED to the production value — see
  * brands/README.md. Previews share the production database and agent User rows are
@@ -47,9 +54,16 @@ const PINNED_FOR_PREVIEW: Record<string, string> = {
   BRAND_AGENT_EMAIL_DOMAIN: 'astrid.cc',
 }
 
-const profileName = process.argv[2]
+const args = process.argv.slice(2)
+const aliasAt = args.indexOf('--alias')
+const alias = aliasAt === -1 ? null : args[aliasAt + 1]
+if (aliasAt !== -1 && (!alias || alias.startsWith('--'))) {
+  console.error('--alias requires a hostname, e.g. --alias whitelabel.astrid.cc')
+  process.exit(1)
+}
+const profileName = args.filter((arg, i) => arg !== '--alias' && i !== aliasAt + 1)[0]
 if (!profileName) {
-  console.error('Usage: npx tsx scripts/deploy-brand-preview.ts <profile>')
+  console.error('Usage: npx tsx scripts/deploy-brand-preview.ts <profile> [--alias <hostname>]')
   console.error('   e.g. npx tsx scripts/deploy-brand-preview.ts acme')
   process.exit(1)
 }
@@ -116,4 +130,15 @@ console.log(output.trim())
 if (url) {
   console.log(`\n✅ ${profile.name} preview: ${url}`)
   console.log(`   Verify:  curl -s ${url}/api/v1/capabilities | python3 -m json.tool`)
+  if (alias) {
+    execFileSync(
+      'npx',
+      ['vercel', 'alias', url, alias, '--token', token, '--scope', 'gracefultools'],
+      { encoding: 'utf8', stdio: ['inherit', 'inherit', 'inherit'] }
+    )
+    console.log(`\n🔗 ${profile.name} is live at https://${alias}`)
+  }
+} else if (alias) {
+  console.error(`❌ Could not find the deployment URL in Vercel's output, so ${alias} was NOT aliased.`)
+  process.exit(1)
 }

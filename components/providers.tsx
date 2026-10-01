@@ -4,6 +4,7 @@ import type React from "react"
 import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/contexts/theme-context"
+import { BRAND } from "@/lib/brand/config"
 import { SettingsProvider } from "@/contexts/settings-context"
 // SSEProvider removed - now using centralized SSE Manager
 import { PWARegistration } from "@/components/pwa-registration"
@@ -24,7 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           alike — the same reach <SpeedInsights /> has in the root layout. */}
       <WebVitalsReporter />
       <FeatureFlagProvider>
-        <ThemeProvider>
+        <ThemeProvider defaultTheme={BRAND.defaultTheme}>
           <SettingsProvider>
             <OfflineProvider>
               <CodingWorkflowProvider>

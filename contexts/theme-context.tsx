@@ -26,10 +26,10 @@ export function ThemeProvider({ children, defaultTheme = "ocean" }: ThemeProvide
     if (storedTheme && (storedTheme === "light" || storedTheme === "dark" || storedTheme === "ocean")) {
       setTheme(storedTheme)
     } else {
-      // Default to ocean theme
-      setTheme("ocean")
+      // No stored choice: the brand's starting theme (BRAND.defaultTheme).
+      setTheme(defaultTheme)
     }
-  }, [])
+  }, [defaultTheme])
 
   useEffect(() => {
     // Save theme to localStorage when it changes

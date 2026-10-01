@@ -207,6 +207,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_APP_STORE_URL', scope: 'optional', description: 'App Store listing. Empty string hides the download button entirely.' },
   { name: 'NEXT_PUBLIC_BRAND_APP_URL_SCHEME', scope: 'optional', description: 'Custom URL scheme the native apps register, without "://". The desktop sign-in hand-off returns the browser to <scheme>://auth/callback, so a fork shipping its own apps must set it or the hand-off deep-links into someone else\'s application.' },
   { name: 'NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG', scope: 'optional', description: 'Slug of the GitHub App users install.' },
+  { name: 'NEXT_PUBLIC_BRAND_DEFAULT_THEME', scope: 'optional', description: 'Theme a visitor starts on before choosing: light, dark or ocean. A stored choice still wins.' },
+  { name: 'NEXT_PUBLIC_BRAND_FONT_FAMILY', scope: 'optional', description: 'CSS font-family stack for the whole app. Unset keeps the bundled Inter.' },
   { name: 'NEXT_PUBLIC_BRAND_COPY', scope: 'optional', description: 'JSON overriding the brand voice — reminder nags and default-list captions.' },
 
   // ── Capabilities ──────────────────────────────────────────────────────────
