@@ -42,11 +42,11 @@ export default function SettingsFullPage() {
     // The app shell locks html/body scrolling, so this standalone page must own
     // its scroll surface — without it everything below the fold is unreachable.
     // (components/scroll-shell.tsx documents the pattern.)
-    <div className={`${scrollShellClassName} bg-background text-foreground`}>
-      <div className="border-b px-6 py-3 flex items-center gap-3 sticky top-0 bg-background z-10">
+    <div className={`${scrollShellClassName} theme-bg-primary theme-text-primary`}>
+      <div className="border-b theme-border px-6 py-3 flex items-center gap-3 sticky top-0 theme-bg-secondary z-10">
         <button
           onClick={goBack}
-          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-[rgb(var(--theme-surface-hover))] transition-colors"
           title="Back"
         >
           <ArrowLeft className="w-4 h-4" />

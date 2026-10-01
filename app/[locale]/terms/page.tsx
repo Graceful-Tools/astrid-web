@@ -5,53 +5,53 @@ import { ScrollShell } from "@/components/scroll-shell"
 
 export default function TermsOfService() {
   return (
-    <ScrollShell className="bg-black text-gray-100">
+    <ScrollShell className="theme-bg-primary theme-text-primary">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900">
+      <header className="border-b theme-border theme-bg-secondary">
         <div className="container mx-auto px-4 py-6">
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <Image src={BRAND.iconSmall} alt={BRAND.appName} width={32} height={32} className="rounded" />
-            <span className="text-2xl font-bold text-white">{BRAND.wordmark}</span>
+            <span className="text-2xl font-bold theme-text-primary">{BRAND.wordmark}</span>
           </Link>
         </div>
       </header>
 
       {/* Content */}
       <main className="container mx-auto px-4 py-12 max-w-3xl">
-        <h1 className="text-4xl font-bold text-white mb-2">Terms of Service</h1>
-        <p className="text-gray-500 mb-10">Last updated: January 3, 2026</p>
+        <h1 className="text-4xl font-bold theme-text-primary mb-2">Terms of Service</h1>
+        <p className="theme-text-muted mb-10">Last updated: January 3, 2026</p>
 
         <div className="space-y-10">
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">The Service</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">The Service</h2>
+            <p className="theme-text-secondary leading-relaxed">
               {BRAND.appName} is a task management application operated by Graceful Tools LLC.
               By using {BRAND.appName}, you agree to these terms.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Your Account</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Your Account</h2>
+            <p className="theme-text-secondary leading-relaxed">
               You&apos;re responsible for your account security and all activity under it.
               Keep your credentials safe and notify us of any unauthorized access.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Your Content</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Your Content</h2>
+            <p className="theme-text-secondary leading-relaxed">
               You own everything you create in {BRAND.appName}. We only use your content to
               provide the service—storing, syncing, and displaying it back to you.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Acceptable Use</h2>
-            <p className="text-gray-300 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Acceptable Use</h2>
+            <p className="theme-text-secondary leading-relaxed mb-3">
               Don&apos;t use {BRAND.appName} to:
             </p>
-            <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
+            <ul className="list-disc list-inside theme-text-secondary space-y-1 ml-2">
               <li>Break any laws</li>
               <li>Harass or harm others</li>
               <li>Distribute malware or spam</li>
@@ -61,50 +61,50 @@ export default function TermsOfService() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">External Services</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">External Services</h2>
+            <p className="theme-text-secondary leading-relaxed">
               {BRAND.appName} connects with Google and Apple for sign-in. When using these
               integrations, their respective terms apply.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Service Changes</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Service Changes</h2>
+            <p className="theme-text-secondary leading-relaxed">
               We may modify or discontinue features at any time. We&apos;ll try to give
               notice for significant changes.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Warranty Disclaimer</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Warranty Disclaimer</h2>
+            <p className="theme-text-secondary leading-relaxed">
               {BRAND.appName} is provided &quot;as is&quot; without warranties of any kind. We don&apos;t
               guarantee uptime, accuracy, or that the service will meet your specific needs.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Limitation of Liability</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Limitation of Liability</h2>
+            <p className="theme-text-secondary leading-relaxed">
               To the extent permitted by law, Graceful Tools LLC isn&apos;t liable for
               indirect damages, data loss, or service interruptions.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Termination</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Termination</h2>
+            <p className="theme-text-secondary leading-relaxed">
               You can delete your account anytime. We may suspend accounts that
               violate these terms.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold theme-text-primary mb-3">Contact</h2>
+            <p className="theme-text-secondary leading-relaxed">
               Questions? Reach us at{" "}
-              <a href={`mailto:legal@${BRAND.domain}`} className="text-blue-400 hover:text-blue-300">
+              <a href={`mailto:legal@${BRAND.domain}`} className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))]">
                 legal@{BRAND.domain}
               </a>
             </p>
@@ -112,14 +112,14 @@ export default function TermsOfService() {
         </div>
 
         {/* Footer Links */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-sm text-gray-400">
+        <div className="mt-12 pt-8 border-t theme-border">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-sm theme-text-secondary">
             <p>© {new Date().getFullYear()} Graceful Tools LLC</p>
             <div className="flex gap-6">
-              <Link href="/privacy" className="hover:text-white transition-colors">
+              <Link href="/privacy" className="hover:text-[rgb(var(--theme-text-primary))] transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/" className="hover:text-white transition-colors">
+              <Link href="/" className="hover:text-[rgb(var(--theme-text-primary))] transition-colors">
                 Back to Home
               </Link>
             </div>
