@@ -16,7 +16,9 @@
     "NEXT_PUBLIC_BRAND_LOGO": "/images/whitelabel-logo.png",
     "NEXT_PUBLIC_BRAND_WORDMARK": "whitelabel",
     "NEXT_PUBLIC_BRAND_SLOGAN": "Build together.",
-    "NEXT_PUBLIC_BRAND_APP_STORE_URL": ""
+    "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
+    "NEXT_PUBLIC_BRAND_ICON": "/icons/whitelabel-512.png",
+    "NEXT_PUBLIC_BRAND_ICON_SMALL": "/icons/whitelabel-96.png"
   },
   "expect": {
     "appName": "Whitelabel",
@@ -53,7 +55,7 @@
       "Astrid"
     ],
     "logo": "/images/whitelabel-logo.png",
-    "icon": "/icons/icon-512x512.png",
+    "icon": "/icons/whitelabel-512.png",
     "wordmark": "whitelabel",
     "slogan": "Build together.",
     "appStoreUrl": "",
