@@ -119,6 +119,15 @@ with a mechanical sweep on every run:
   stale claim; an agent's own abandoned claims are released by the scheduled runner instead
   (*Doing must not be a dead end*, below).
 
+**Every scheduled runner sweeps its board on every tick, before deciding whether there is work**
+— `--board web` in astrid-web's `scripts/fixall-loop.sh`, `--board ios` in astrid-ios's. So a
+`Waiting` task comes back by itself once its date arrives or its blockers are done, and a
+`RECHECK` due today wakes a run. (Until 2026-09-30 the iOS runner did not pass `--board`, so
+nothing parked on the iOS board ever came back on its own.) A `Waiting` task assigned to a
+**person** is theirs: the loop rechecks it only while it is the loop's, and once it has been
+handed to someone (AWTD-1014, step 2) its date passing is that person's reminder, not the loop's
+cue.
+
 The sweep is a feature of `scripts/ready-tasks.ts` (OAuth API, never the DB), not of the MCP
 queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness <current-harness>` runs it
 (`github-copilot` for Copilot, `claude-code` for Claude Code), and
