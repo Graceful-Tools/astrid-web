@@ -132,6 +132,16 @@ const ADVISORY_FLOORS: Array<{
       '(parseBody memory exhaustion), GHSA-crvj-82cr-hjcx (query-parser cache-key ' +
       'differential); <=4.13.4. Reached through @modelcontextprotocol/sdk',
   },
+  {
+    name: 'undici',
+    minVersion: '6.28.1',
+    severity: 'high',
+    advisory:
+      'GHSA-rfgv-xxqx-mfg5 (DoS via an unrequested WebSocket subprotocol), ' +
+      'GHSA-3wwx-pv8p-q78v (permessage-deflate decompression DoS), GHSA-r53p-7pc4-xj5r ' +
+      '(retry-interceptor response splitting); <6.28.1. A direct dependency pinned ' +
+      'EXACTLY in package.json (AWTD-1050), so a lockfile refresh cannot fix it — bump the pin',
+  },
 ]
 
 /**
