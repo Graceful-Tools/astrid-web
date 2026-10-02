@@ -132,6 +132,17 @@ const ADVISORY_FLOORS: Array<{
       '(parseBody memory exhaustion), GHSA-crvj-82cr-hjcx (query-parser cache-key ' +
       'differential); <=4.13.4. Reached through @modelcontextprotocol/sdk',
   },
+  {
+    name: 'brace-expansion',
+    minVersion: '5.0.12',
+    severity: 'high',
+    advisory:
+      'GHSA-qhr7-859c-m2p7 (nested brace groups, uncontrolled recursion; >=4.0.0 <5.0.11), ' +
+      'GHSA-6j4f-fj2g-mc7p (parseCommaParts recursion; >=4.0.0 <5.0.10) and the moderate ' +
+      'GHSA-q2hr-2g5m-vwhr (quadratic `{a},b}` rewrite; >=4.0.0 <5.0.12) — AWTD-1052; ' +
+      'stack/CPU DoS. Reached through minimatch@10. The nested 1.x copies are ' +
+      'eslint-only (dev) and outside all three ranges',
+  },
 ]
 
 /**
