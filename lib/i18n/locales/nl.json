@@ -1051,5 +1051,11 @@
   },
   "userPicker": {
     "optionalMessage": "Optioneel bericht…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "Ik help je graag, maar ik heb een AI-model nodig om te kunnen antwoorden! Ga naar {settingsLink} om je voorkeursmodel in te stellen.",
+      "onDeviceUnavailable": "Het gekozen model werkt alleen op ondersteunde Apple-apparaten, dus hier kan ik niet antwoorden. Ga naar {settingsLink} om een model te kiezen dat overal werkt."
+    }
   }
 }

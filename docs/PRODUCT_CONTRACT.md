@@ -103,6 +103,8 @@ Registry of shared strings that already exist on both (extend as consolidated):
 | Description | `tasks.taskDescription` | `tasks.description` | **name mismatch** — reconcile |
 | Add-task input placeholder | `tasks.addTaskPlaceholder` | `tasks.add_task_placeholder` | |
 | My Tasks (nav) | `listHeaders.myTasks` | `navigation.my_tasks` | **group mismatch** — reconcile |
+| Astrid: "set up a model" chat reply | `astridAgent.modelSetup.noModel` | — | **Server-rendered** (AWTD-1054): posted as Astrid's chat message in the request's `Accept-Language`, so iOS shows it as-is. Link stays root-relative `/settings/agents`, which iOS routes in-app (AITD-451). |
+| Astrid: "your model only runs on Apple devices" | `astridAgent.modelSetup.onDeviceUnavailable` | — | Server-rendered, as above. Sent when an on-device model is selected but the client cannot run it. |
 
 Known reconciliation items:
 - **`description` / `taskDescription`** and **`myTasks` group** differ beyond

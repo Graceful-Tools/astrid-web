@@ -1051,5 +1051,11 @@
   },
   "userPicker": {
     "optionalMessage": "Mensaje opcional…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "¡Me encantaría ayudarte, pero necesito un modelo de IA para responder! Ve a {settingsLink} para configurar tu modelo preferido.",
+      "onDeviceUnavailable": "El modelo que elegiste solo funciona en dispositivos Apple compatibles, así que no puedo responder aquí. Ve a {settingsLink} para elegir un modelo que funcione en todas partes."
+    }
   }
 }

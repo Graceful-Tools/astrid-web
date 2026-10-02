@@ -18,6 +18,7 @@ import { createLogger } from '@/lib/logger'
 import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
 import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
 import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
+import { getModelSetupPrompt, postAstridModelSetupPrompt } from '@/lib/astrid-agent/model-setup-prompt'
 import { COPILOT_BASE_URL, COPILOT_HEADERS } from '@/lib/ai/providers/copilot-provider'
 
 const log = createLogger('astrid-agent-runtime')
@@ -556,10 +557,12 @@ interface ProcessMessageParams {
    * covered by the unique index. (Task f0700542.)
    */
   replyClientRequestId?: string
+  /** Language for Astrid's own canned replies, from the request's Accept-Language. */
+  locale?: string
 }
 
 export async function processAstridMessage(params: ProcessMessageParams): Promise<void> {
-  const { userMessage, userId, userName, channelId, listId, replyClientRequestId } = params
+  const { userMessage, userId, userName, channelId, listId, replyClientRequestId, locale } = params
 
   // Resolve Astrid user and recipients up front for typing indicator
   let recipients: string[] = []
@@ -587,37 +590,20 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const { ON_DEVICE_MODEL_IDS } = await import('@/lib/ai/agent-config')
     const isOnDeviceModel = userSettings.defaultAgentId && (ON_DEVICE_MODEL_IDS as readonly string[]).includes(userSettings.defaultAgentId)
 
-    if (isOnDeviceModel) {
-      log.info(`[${BRAND.appName}] User ${userId} has on-device model selected — iOS handles response on-device`)
-      // iOS will process on-device and post via /agent-response.
-      stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
-      return
-    }
-
-    const service = await getPreferredAIService(userId)
-    const apiKey = await getAIServiceCredential(userId, service)
-    if (!apiKey) {
-      log.info(`[${BRAND.appName}] No ${service} API key for user ${userId}, sending setup prompt`)
-      const setupMessage = await prisma.chatMessage.create({
-        data: {
-          channelId,
-          authorId: astridUser.id,
-          content: "I'd love to help, but I need an AI model to power my responses! Head to [Settings > AI Agents](/settings/agents) to set up your preferred model and unlock my full capabilities.",
-          type: 'MARKDOWN',
-        },
-        include: {
-          author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } },
-        },
+    // Nothing that reaches this function can run an on-device model: web never
+    // can, and the iOS handoff calls the server only once the device has
+    // declined. Returning early here was silence (AWTD-1054).
+    const service = isOnDeviceModel ? null : await getPreferredAIService(userId)
+    const apiKey = service ? await getAIServiceCredential(userId, service) : null
+    if (!service || !apiKey) {
+      log.info(`[${BRAND.appName}] No usable model for user ${userId} (${service ?? 'on-device'}), sending setup prompt`)
+      await postAstridModelSetupPrompt({
+        channelId,
+        reason: service ? 'no-key' : 'on-device',
+        locale: locale ?? 'en',
+        clientRequestId: replyClientRequestId,
       })
-      if (recipients.length > 0) {
-        const serialized = { ...setupMessage, createdAt: setupMessage.createdAt.toISOString(), updatedAt: setupMessage.updatedAt.toISOString() }
-        await broadcastToUsers(recipients, {
-          type: 'chat_message_created',
-          timestamp: new Date().toISOString(),
-          data: { channelId, message: serialized },
-        })
-        stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
-      }
+      stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
       return
     }
 
@@ -754,7 +740,9 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     if (!apiKey) {
       const setupComment = await prisma.comment.create({
         data: {
-          content: "I'd love to help, but I need an AI model to power my responses! Head to [Settings > AI Agents](/settings/agents) to set up your preferred model and unlock my full capabilities.",
+          // English: comments arrive through comment.service, which has no
+          // request to read a language from (AWTD-1054).
+          content: await getModelSetupPrompt('no-key', 'en'),
           type: 'MARKDOWN',
           authorId: astridUser.id,
           taskId,

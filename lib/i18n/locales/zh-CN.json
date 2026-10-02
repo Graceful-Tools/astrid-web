@@ -1051,5 +1051,11 @@
   },
   "userPicker": {
     "optionalMessage": "可选留言…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "我很乐意帮忙，但需要一个 AI 模型才能回复！请前往 {settingsLink} 设置你偏好的模型。",
+      "onDeviceUnavailable": "你选择的模型只能在受支持的 Apple 设备上运行，所以我无法在这里回复。请前往 {settingsLink} 选择一个在任何地方都能使用的模型。"
+    }
   }
 }
