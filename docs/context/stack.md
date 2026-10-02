@@ -2,7 +2,7 @@
 
 ## Runtime & Framework
 - **Runtime**: Node.js (LTS)
-- **Framework**: Next.js 16.3.5 (App Router)
+- **Framework**: Next.js 16.3.6 (App Router)
 - **Language**: TypeScript 6
 - **Package Manager**: npm
 - **React**: React 19.3.0
