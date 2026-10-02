@@ -37,6 +37,8 @@ describe('agent registry defaults (task 97208a72)', () => {
       `claude@${BRAND.agentEmailDomain}`,
       `copilot@${BRAND.agentEmailDomain}`,
       `gemini@${BRAND.agentEmailDomain}`,
+      // Muse joined when Meta's Model API gave it a server executor (AWTD-1053).
+      `muse@${BRAND.agentEmailDomain}`,
       `openai@${BRAND.agentEmailDomain}`,
       `openclaw@${BRAND.agentEmailDomain}`,
     ])
@@ -132,7 +134,7 @@ describe('BRAND_ENABLED_AGENTS narrows the supported set (task 97208a72)', () =>
     process.env.BRAND_ENABLED_AGENTS = '   '
     const { getAllAgentConfigs } = await import('@/lib/ai/agent-config')
 
-    expect(getAllAgentConfigs()).toHaveLength(6)
+    expect(getAllAgentConfigs()).toHaveLength(7)
   })
 })
 

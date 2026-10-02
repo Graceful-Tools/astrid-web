@@ -92,6 +92,7 @@ const MAILBOX_CREDENTIAL_KEYS: Record<string, string> = {
   [AGENT_MAILBOXES.openai]: 'openai',
   [AGENT_MAILBOXES.gemini]: 'gemini',
   [AGENT_MAILBOXES.copilot]: 'copilot',
+  [AGENT_MAILBOXES.muse]: 'muse',
 }
 
 export interface AgentExecutionModeInput {

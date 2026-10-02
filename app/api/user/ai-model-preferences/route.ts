@@ -9,12 +9,12 @@ const log = createLogger('user.ai-model-preferences')
 
 
 const UpdateModelSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'muse', 'openclaw']),
   model: z.string().min(1).max(100)
 })
 
 const ResetModelSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw'])
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'muse', 'openclaw'])
 })
 
 /**
@@ -57,6 +57,10 @@ export async function GET() {
       copilot: {
         model: modelPreferences.copilot || DEFAULT_MODELS.copilot,
         isDefault: !modelPreferences.copilot
+      },
+      muse: {
+        model: modelPreferences.muse || DEFAULT_MODELS.muse,
+        isDefault: !modelPreferences.muse
       },
       openclaw: {
         model: modelPreferences.openclaw || DEFAULT_MODELS.openclaw,

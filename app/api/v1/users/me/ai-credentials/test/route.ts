@@ -5,7 +5,7 @@
  * with a minimal request. Updates the key's `isValid` and `lastTested`
  * status. Mirrors POST /api/v1/users/me/ai-credentials/test.
  *
- * Body: { serviceId: 'claude' | 'openai' | 'gemini' | 'openclaw' }
+ * Body: { serviceId: 'claude' | 'openai' | 'gemini' | 'muse' | 'openclaw' }
  */
 
 import { NextResponse } from 'next/server'
@@ -14,13 +14,14 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
+import { MUSE_BASE_URL } from '@/lib/ai/providers/muse-provider'
 
 const log = createLogger('v1.users.me.ai-credentials.test')
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
 
 const TestSchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'muse', 'openclaw']),
 })
 
 function decrypt(d: { encrypted: string; iv: string }): string {
@@ -54,9 +55,10 @@ async function testClaude(apiKey: string) {
   }
 }
 
-async function testOpenAI(apiKey: string) {
+/** OpenAI and Meta's Muse both answer GET {base}/models with a Bearer key. */
+async function testBearerModels(baseUrl: string, apiKey: string) {
   try {
-    const r = await fetch('https://api.openai.com/v1/models', {
+    const r = await fetch(`${baseUrl}/models`, {
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     })
     if (r.ok) return { success: true }
@@ -111,8 +113,9 @@ export const POST = withAuth(
       let testResult: { success: boolean; error?: string }
       switch (data.serviceId) {
         case 'claude': testResult = await testClaude(decryptedKey); break
-        case 'openai': testResult = await testOpenAI(decryptedKey); break
+        case 'openai': testResult = await testBearerModels('https://api.openai.com/v1', decryptedKey); break
         case 'gemini': testResult = await testGemini(decryptedKey); break
+        case 'muse': testResult = await testBearerModels(MUSE_BASE_URL, decryptedKey); break
         case 'openclaw':
           testResult = {
             success: false,

@@ -21,7 +21,7 @@ import {
 import { BRAND } from '@/lib/brand/config'
 import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 
-export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse' | 'openclaw'
 
 /** Product label for a service key; `openclaw` remains wire/storage compatibility. */
 export function agentServiceLabel(service: string): string {
@@ -88,6 +88,11 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
     'gpt-4o',
     'gpt-4o-mini',
   ],
+  // Meta Model API (AWTD-1053). 1.3 is current; 1.1 is still served.
+  muse: [
+    'muse-spark-1.3',
+    'muse-spark-1.1',
+  ],
 }
 
 /**
@@ -98,6 +103,7 @@ export const DEFAULT_MODELS: Partial<Record<AIService, string>> = {
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   copilot: 'gpt-4.1',
+  muse: 'muse-spark-1.3',
 }
 
 const STANDARD_CAPABILITIES = [
@@ -154,6 +160,16 @@ const AGENT_DEFINITIONS: Record<string, AIAgentConfig> = {
     model: 'gpt-4.1',
     displayName: 'GitHub Copilot Agent',
     agentType: 'copilot_agent',
+    contextFile: 'ASTRID.md',
+    capabilities: STANDARD_CAPABILITIES,
+  },
+  // One identity, two runtimes, like claude@: the user's Muse Code CLI when it
+  // is polling, Meta's Model API on the user's key in API mode (AWTD-1053).
+  muse: {
+    service: 'muse',
+    model: 'muse-spark-1.3',
+    displayName: 'Muse Agent',
+    agentType: 'muse_agent',
     contextFile: 'ASTRID.md',
     capabilities: STANDARD_CAPABILITIES,
   },
@@ -298,6 +314,7 @@ const BUILT_IN_AGENT_NAMES: Record<string, string> = {
   openai: 'OpenAI',
   gemini: 'Gemini',
   copilot: 'GitHub Copilot',
+  muse: 'Muse',
 }
 
 /**

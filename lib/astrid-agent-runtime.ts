@@ -19,6 +19,7 @@ import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
 import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
 import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
 import { COPILOT_BASE_URL, COPILOT_HEADERS } from '@/lib/ai/providers/copilot-provider'
+import { MUSE_BASE_URL, MUSE_DEFAULT_MODEL } from '@/lib/ai/providers/muse-provider'
 
 const log = createLogger('astrid-agent-runtime')
 
@@ -318,21 +319,16 @@ async function callOpenAIWithTools(
 }
 
 /**
- * GitHub Copilot tool-calling. Copilot's chat API is OpenAI-compatible, so this
- * reuses callOpenAIWithTools with the Copilot base URL and integration headers
- * rather than maintaining a second tool-calling loop.
+ * GitHub Copilot and Meta's Muse (AWTD-1053) serve OpenAI-compatible chat APIs,
+ * so they reuse callOpenAIWithTools with their own base URL, headers and default
+ * model rather than maintaining another tool-calling loop each.
  */
-async function callCopilotWithTools(
-  apiKey: string, systemPrompt: string, userMessage: string,
-  context: { userId: string }, model?: string
-): Promise<string> {
-  return callOpenAIWithTools(
-    apiKey, systemPrompt, userMessage, context,
-    model || 'gpt-4.1',
-    COPILOT_BASE_URL,
-    COPILOT_HEADERS,
-  )
+function openAICompatibleWithTools(baseUrl: string, defaultModel: string, headers: Record<string, string> = {}) {
+  return (apiKey: string, systemPrompt: string, userMessage: string, context: { userId: string }, model?: string) =>
+    callOpenAIWithTools(apiKey, systemPrompt, userMessage, context, model || defaultModel, baseUrl, headers)
 }
+const callCopilotWithTools = openAICompatibleWithTools(COPILOT_BASE_URL, 'gpt-4.1', COPILOT_HEADERS)
+const callMuseWithTools = openAICompatibleWithTools(MUSE_BASE_URL, MUSE_DEFAULT_MODEL)
 
 async function callGeminiWithTools(
   apiKey: string, systemPrompt: string, userMessage: string,
@@ -669,7 +665,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       userMessage: cleanMessage,
       toolContext,
       model,
-      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools },
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools, muse: callMuseWithTools },
     })
     if (response === null) return
 
@@ -807,7 +803,7 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       userMessage: cleanComment,
       toolContext,
       model,
-      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools },
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools, muse: callMuseWithTools },
     })
     if (response === null) return
 
