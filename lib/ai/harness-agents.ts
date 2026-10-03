@@ -22,8 +22,13 @@
  * readable half: who exists, and what every registry needs to know about them.
  *
  * The provider-routed agents (claude@, openai@, gemini@, copilot@) stay in
- * AGENT_DEFINITIONS. They have a server executor and a credential; these do
- * not. Merging the two would be one table with two disjoint halves.
+ * AGENT_DEFINITIONS. They have a server executor and a credential; most of
+ * these do not. Merging the two would be one table with two disjoint halves.
+ *
+ * Muse is the exception, as claude@ always was: Muse Code is a CLI, but Meta
+ * also serves the Muse models over an API (AWTD-1053), so `muse@` is ALSO in
+ * AGENT_DEFINITIONS and can run in either mode. `hasServerExecutor` marks that,
+ * and is what keeps it out of the forced-polling set.
  */
 
 export interface HarnessAgent {
@@ -40,6 +45,11 @@ export interface HarnessAgent {
    * `claude`, so the two are not the same field and must not be conflated.
    */
   harnessSelector: string
+  /**
+   * The server can also run this identity, on a provider key, when the user
+   * picks API mode (its AGENT_DEFINITIONS entry). Absent means polling-only.
+   */
+  hasServerExecutor?: boolean
   /** Brand icon, served by /api/v1/agent-icon/[slug]. */
   icon: {
     /** Slug on cdn.simpleicons.org. */
@@ -70,12 +80,14 @@ export const HARNESS_AGENTS: readonly HarnessAgent[] = [
     icon: { simpleIconSlug: 'openai', brandColor: '412991', localFallback: 'openai.svg' },
   },
   {
-    // Meta's terminal coding agent (Muse Code, August 2026). A CLI like Codex,
-    // NOT an API Astrid calls — so it is a harness agent, not a provider.
+    // Meta's terminal coding agent (Muse Code, August 2026), a CLI like Codex.
+    // Meta's Model API serves the same models, so the server can run muse@
+    // too when the user saves a Meta key (AWTD-1053).
     mailbox: 'muse',
     displayName: 'Muse Agent',
     label: 'Muse',
     harnessSelector: 'muse',
+    hasServerExecutor: true,
     icon: { simpleIconSlug: 'meta', brandColor: '0467DF', localFallback: 'muse.svg', padding: 0.125 },
   },
 ] as const
@@ -83,6 +95,11 @@ export const HARNESS_AGENTS: readonly HarnessAgent[] = [
 /** Just the mailboxes, in table order. */
 export function harnessAgentMailboxes(): string[] {
   return HARNESS_AGENTS.map((agent) => agent.mailbox)
+}
+
+/** Mailboxes the server has no executor for — they can only poll (or be off). */
+export function pollingOnlyHarnessMailboxes(): string[] {
+  return HARNESS_AGENTS.filter((agent) => !agent.hasServerExecutor).map((agent) => agent.mailbox)
 }
 
 /** One agent by mailbox, or null. */

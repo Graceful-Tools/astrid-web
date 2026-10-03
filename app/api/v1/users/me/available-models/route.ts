@@ -1,5 +1,5 @@
 /**
- * GET /api/v1/users/me/available-models?service=claude|openai|gemini
+ * GET /api/v1/users/me/available-models?service=claude|openai|gemini|copilot|muse
  *
  * Lists available models for an AI provider, using the user's stored
  * API key for the live fetch. Falls back to static suggestions if no
@@ -15,7 +15,7 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.users.me.available-models')
 
-const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot'] as const
+const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot', 'muse'] as const
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.available-models' },
@@ -25,7 +25,7 @@ export const GET = withAuth(
         typeof VALID_SERVICES[number] | null
       if (!service || !VALID_SERVICES.includes(service)) {
         return NextResponse.json(
-          { error: 'Invalid service. Use: claude, openai, gemini, copilot' },
+          { error: 'Invalid service. Use: claude, openai, gemini, copilot, muse' },
           { status: 400 }
         )
       }

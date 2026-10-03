@@ -255,7 +255,8 @@ describe('isAgentOffered (task 9dbe0b17)', () => {
  */
 describe('a locked harness agent accepts the modes it can actually run (task 42349da6)', () => {
   it('rejects only the modes that need a server executor', () => {
-    for (const mailbox of ['codex', 'muse']) {
+    // Muse left this set when Meta's Model API gave it an executor (AWTD-1053).
+    for (const mailbox of ['codex']) {
       expect(isModeLockedToPolling(mailbox), mailbox).toBe(true)
       expect(isModeSettableFor(mailbox, 'api'), `${mailbox} api`).toBe(false)
       expect(isModeSettableFor(mailbox, 'webhook'), `${mailbox} webhook`).toBe(false)
@@ -275,7 +276,7 @@ describe('a locked harness agent accepts the modes it can actually run (task 423
     // `off` that the API accepted would still resolve to polling — the exact
     // "a preference someone set and Astrid disobeyed" failure the module warns
     // about, just one layer down.
-    expect(resolveAgentExecutionMode({ mailbox: 'muse', storedModes: { muse: 'off' } })).toBe('off')
+    expect(resolveAgentExecutionMode({ mailbox: 'codex', storedModes: { codex: 'off' } })).toBe('off')
   })
 
   it('still forces polling for every other stored value', () => {
@@ -283,11 +284,11 @@ describe('a locked harness agent accepts the modes it can actually run (task 423
     // however they got into the blob.
     for (const stored of ['api', 'webhook']) {
       expect(
-        resolveAgentExecutionMode({ mailbox: 'muse', storedModes: { muse: stored } }),
+        resolveAgentExecutionMode({ mailbox: 'codex', storedModes: { codex: stored } }),
         stored
       ).toBe('polling')
     }
-    expect(resolveAgentExecutionMode({ mailbox: 'muse' })).toBe('polling')
+    expect(resolveAgentExecutionMode({ mailbox: 'codex' })).toBe('polling')
   })
 
   it('stops dispatching for a harness agent that was turned off', async () => {
@@ -336,7 +337,7 @@ describe('setAgentExecutionMode (task 42349da6)', () => {
 
   it('still refuses to give it a server runtime it does not have', async () => {
     for (const mode of ['api', 'webhook'] as const) {
-      await expect(setAgentExecutionMode('user-1', 'muse', mode)).rejects.toThrow('no API mode')
+      await expect(setAgentExecutionMode('user-1', 'codex', mode)).rejects.toThrow('no API mode')
     }
     expect(mockPrisma.user.update).not.toHaveBeenCalled()
   })
