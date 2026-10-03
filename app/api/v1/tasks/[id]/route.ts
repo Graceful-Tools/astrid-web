@@ -230,6 +230,10 @@ export const PUT = withAuth<RouteContext>(
       intent.isAllDay = body.isAllDay
     }
 
+    // AWTD-1038. `''` clears, like dueDateTime — iOS cannot send null.
+    if (body.reminderTime !== undefined) intent.reminderTime = body.reminderTime || null
+    if (body.reminderType !== undefined) intent.reminderType = body.reminderType
+
     const ifUnmodifiedSinceHeader = req.headers.get('If-Unmodified-Since')
     const ifUnmodifiedSince = ifUnmodifiedSinceHeader ? new Date(ifUnmodifiedSinceHeader) : null
 
