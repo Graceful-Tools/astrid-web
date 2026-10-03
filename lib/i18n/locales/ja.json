@@ -1051,5 +1051,11 @@
   },
   "userPicker": {
     "optionalMessage": "メッセージ（任意）…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "お手伝いしたいのですが、応答するにはAIモデルが必要です。{settingsLink} でお好みのモデルを設定してください。",
+      "onDeviceUnavailable": "選択中のモデルは対応するAppleデバイスでのみ動作するため、ここでは応答できません。{settingsLink} でどこでも使えるモデルを選んでください。"
+    }
   }
 }

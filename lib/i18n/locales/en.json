@@ -1051,5 +1051,11 @@
   },
   "userPicker": {
     "optionalMessage": "Optional message..."
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "I'd love to help, but I need an AI model to power my responses! Head to {settingsLink} to set up your preferred model.",
+      "onDeviceUnavailable": "Your selected model only runs on supported Apple devices, so I can't answer here. Head to {settingsLink} to choose a model that works everywhere."
+    }
   }
 }
