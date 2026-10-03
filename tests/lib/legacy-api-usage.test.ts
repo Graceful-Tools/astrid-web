@@ -104,6 +104,33 @@ describe('legacy usage bucketing (task 641a7615)', () => {
     expect(v1.route).toBe('/api/v1/shortcodes/:id')
   })
 
+  it('collapses a placeholder-user invite token, which carries no `inv_` prefix (AWTD-989)', () => {
+    // lib/placeholder-user-service.ts issues 64 raw hex chars with no prefix
+    // into the SAME Invitation.token column, and it travels in the path at
+    // /api/invitations/<token>. Matching on the `inv_` shape alone misses it
+    // entirely, so the bearer token lands in LegacyApiDailyUsage.route
+    // verbatim — the leak AWTD-984 closed, through a door it did not check.
+    // Tokens already issued keep their old shape until they expire, so the
+    // normaliser has to collapse by POSITION here, not by shape.
+    const bucket = legacyUsageBucket({
+      route:
+        '/api/invitations/9f2c4a6e8b1d3f5a7c9e2b4d6f8a1c3e9f2c4a6e8b1d3f5a7c9e2b4d6f8a1c3e',
+      method: 'GET', platform: 'web-desktop', at: new Date('2026-08-02T00:00:00Z'),
+    })
+
+    expect(bucket.route).toBe('/api/invitations/:id')
+  })
+
+  it('collapses whatever sits under /invite, whatever shape it has (AWTD-989)', () => {
+    // The web surface redeems at /invite/<token>. Same credential, same rule.
+    const bucket = legacyUsageBucket({
+      route: '/invite/not-a-recognised-shape-at-all',
+      method: 'GET', platform: 'web-desktop', at: new Date('2026-08-02T00:00:00Z'),
+    })
+
+    expect(bucket.route).toBe('/invite/:id')
+  })
+
   it('does not collapse an 8-char segment that is not a shortcode (AWTD-984)', () => {
     // "settings" is 8 alphanumeric chars but a real route word, not a
     // credential. Collapsing by shape alone would eat legitimate routes.

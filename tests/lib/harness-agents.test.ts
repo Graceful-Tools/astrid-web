@@ -23,7 +23,12 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { HARNESS_AGENTS, harnessAgentMailboxes, type HarnessAgent } from '@/lib/ai/harness-agents'
+import {
+  HARNESS_AGENTS,
+  harnessAgentMailboxes,
+  pollingOnlyHarnessMailboxes,
+  type HarnessAgent,
+} from '@/lib/ai/harness-agents'
 import { AGENT_MAILBOXES, LOCAL_HARNESS_AGENT_MAILBOXES, agentEmail, isLocalHarnessAgentEmail } from '@/lib/brand/agent-emails'
 import { getAgentIdentity, getAgentConfig } from '@/lib/ai/agent-config'
 import { pollableMailboxes, resolveAgentExecutionMode, isModeLockedToPolling } from '@/lib/ai/agent-execution-mode'
@@ -33,6 +38,16 @@ import { FIXALL_CLAIM_MAILBOXES } from '@/lib/fixall-claim'
 import { getAgentType } from '@/lib/webhooks/agent-type'
 
 const mailboxes = harnessAgentMailboxes()
+const pollingOnly = pollingOnlyHarnessMailboxes()
+const serverRunnable = mailboxes.filter(mailbox => !pollingOnly.includes(mailbox))
+
+describe('which harnesses the server can also run (AWTD-1053)', () => {
+  it('codex is polling-only and muse is server-runnable', () => {
+    // Pinned so the it.each blocks below are never vacuous on either side.
+    expect(pollingOnly).toEqual(['codex'])
+    expect(serverRunnable).toEqual(['muse'])
+  })
+})
 
 describe('the harness-agent table (AWTD-937)', () => {
   it('still contains the harnesses that predate it', () => {
@@ -59,18 +74,18 @@ describe('every harness agent is registered everywhere it must be (AWTD-937)', (
     expect(Object.values(AGENT_MAILBOXES)).toContain(mailbox)
   })
 
-  it.each(mailboxes)('%s is a local-harness identity, so no server executor claims it', mailbox => {
+  it.each(pollingOnly)('%s is a local-harness identity, so no server executor claims it', mailbox => {
     expect(LOCAL_HARNESS_AGENT_MAILBOXES as readonly string[]).toContain(mailbox)
     expect(isLocalHarnessAgentEmail(agentEmail(mailbox))).toBe(true)
   })
 
-  it.each(mailboxes)('%s is absent from the provider routing table', mailbox => {
+  it.each(pollingOnly)('%s is absent from the provider routing table', mailbox => {
     // In AGENT_DEFINITIONS it would be dispatched to a cloud provider, and the
     // cloud agent would eat work the local CLI was handed.
     expect(getAgentConfig(agentEmail(mailbox))).toBeNull()
   })
 
-  it.each(mailboxes)('%s has a display identity for the User row it owns', mailbox => {
+  it.each(pollingOnly)('%s has a display identity for the User row it owns', mailbox => {
     const identity = getAgentIdentity(agentEmail(mailbox))
     expect(identity).not.toBeNull()
     expect(identity?.agentType).toBe('local_harness_agent')
@@ -80,10 +95,24 @@ describe('every harness agent is registered everywhere it must be (AWTD-937)', (
     expect(pollableMailboxes()).toContain(mailbox)
   })
 
-  it.each(mailboxes)('%s is locked to polling and cannot be overridden to api', mailbox => {
+  it.each(pollingOnly)('%s is locked to polling and cannot be overridden to api', mailbox => {
     expect(isModeLockedToPolling(mailbox)).toBe(true)
     // Even an explicitly stored 'api' must not win: there is no executor.
     expect(resolveAgentExecutionMode({ mailbox, storedModes: { [mailbox]: 'api' } })).toBe('polling')
+  })
+
+  // A harness the server can ALSO run (Muse, AWTD-1053) is the claude@ shape:
+  // one identity, routed to a provider in API mode and left to the CLI when
+  // polling. The mode, not the table, decides which runtime gets the work.
+  it.each(serverRunnable)('%s is in the provider routing table, so API mode has an executor', mailbox => {
+    expect(getAgentConfig(agentEmail(mailbox))).not.toBeNull()
+    expect(isLocalHarnessAgentEmail(agentEmail(mailbox))).toBe(false)
+    expect(getAgentIdentity(agentEmail(mailbox))).not.toBeNull()
+  })
+
+  it.each(serverRunnable)('%s is not locked to polling, and an explicit api wins', mailbox => {
+    expect(isModeLockedToPolling(mailbox)).toBe(false)
+    expect(resolveAgentExecutionMode({ mailbox, storedModes: { [mailbox]: 'api' } })).toBe('api')
   })
 
   it.each(mailboxes)('%s may complete an OAuth consent as itself', mailbox => {

@@ -134,6 +134,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GEMINI_API_KEY', scope: 'tooling', description: 'Gemini key for scripts. The app uses per-user keys.' },
   { name: 'CLAUDE_API_KEY', scope: 'tooling', description: 'Legacy alias for ANTHROPIC_API_KEY, read by older scripts.' },
   { name: 'BRAND_ENABLED_AGENTS', scope: 'optional', description: 'Comma-separated agent mailboxes this deployment offers. Unset means all of them.' },
+  { name: 'BRAND_ASSISTANT_SERVICE', scope: 'optional', description: 'Provider behind the default assistant for users who have not picked one (claude, openai, gemini, copilot). Unset means claude.' },
   { name: 'CLAUDE_AGENT_EMAIL', scope: 'tooling', description: 'Agent mailbox used by local agent scripts.' },
   { name: 'CLAUDE_AGENT_ID', scope: 'tooling', description: 'Agent user id used by local agent scripts.' },
   // Same idea as CLAUDE_AGENT_ID, but harness-agnostic: the MCP server is run by

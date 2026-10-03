@@ -10,7 +10,7 @@ const log = createLogger('user.ai-api-keys')
 
 
 const SaveAPIKeySchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw']),
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'muse', 'openclaw']),
   apiKey: z.string().min(1).optional(),
   gatewayUrl: z.string().min(1).optional(),
   authToken: z.string().optional(),
@@ -23,7 +23,7 @@ const SaveAPIKeySchema = z.object({
 )
 
 const DeleteAPIKeySchema = z.object({
-  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'openclaw'])
+  serviceId: z.enum(['claude', 'openai', 'gemini', 'copilot', 'muse', 'openclaw'])
 })
 
 function getKeyPreview(key: string): string {

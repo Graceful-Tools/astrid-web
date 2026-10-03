@@ -298,6 +298,20 @@ describe('Agent SSE Event Transform', () => {
       expect(result!.data.priority).toBe(3)
     })
 
+    it('AWTD-1040: keeps the client-only v1Task out of the agent protocol', async () => {
+      const result = await transformEventForAgent({
+        type: 'task_updated',
+        data: {
+          taskId: 'task-100',
+          task: { id: 'task-100', title: 'Lean' },
+          v1Task: { id: 'task-100', title: 'Full', listIds: [] },
+        },
+      })
+
+      expect(result!.data.task).toEqual({ id: 'task-100', title: 'Lean' })
+      expect(result!.data).not.toHaveProperty('v1Task')
+    })
+
     it('should pass through task_completed events', async () => {
       const result = await transformEventForAgent({
         type: 'task_completed',

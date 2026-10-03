@@ -36,8 +36,9 @@
  */
 
 import { canAccessChatChannel } from '@/lib/chat-access'
-import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
+import { resolveDefaultAgentWithReason } from '@/lib/resolve-default-agent'
 import { processAstridMessage } from '@/lib/astrid-agent-runtime'
+import { postAstridModelSetupPrompt } from '@/lib/astrid-agent/model-setup-prompt'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { RedisCache } from '@/lib/redis'
@@ -65,6 +66,8 @@ export async function handOffAstridReply(args: {
   userId: string
   messageId?: unknown
   content?: unknown
+  /** Reply language, from the request's Accept-Language. */
+  locale?: string
 }): Promise<AstridHandoffResult> {
   const { channelId, userId } = args
 
@@ -119,12 +122,25 @@ export async function handOffAstridReply(args: {
     select: { listId: true },
   })
 
-  const agentId = await resolveDefaultAgent(channel?.listId || null, userId)
-  if (!agentId) {
-    // No selected agent means nobody to answer. Not an error: the client was
-    // right to hand off, there is simply nothing configured.
-    return { ok: true, dispatched: 'none', reason: 'no-agent' }
+  const resolution = await resolveDefaultAgentWithReason(channel?.listId || null, userId)
+  if (resolution.agentId === null) {
+    if (resolution.reason === 'none') {
+      // No selected agent means nobody to answer. Not an error: the client was
+      // right to hand off, there is simply nothing configured.
+      return { ok: true, dispatched: 'none', reason: 'no-agent' }
+    }
+    // An assistant IS selected and cannot run — this device cannot run the
+    // on-device model, or the chosen one has no key. That used to be silence;
+    // Astrid now says how to fix it (AWTD-1054).
+    postAstridModelSetupPrompt({
+      channelId,
+      reason: resolution.reason,
+      locale: args.locale ?? 'en',
+      clientRequestId: replyRequestId(messageId),
+    }).catch(err => log.error({ err }, `${BRAND.appName} handoff setup prompt failed`))
+    return { ok: true, dispatched: 'astrid' }
   }
+  const agentId = resolution.agentId
 
   const agent = await prisma.user.findUnique({
     where: { id: agentId },
@@ -141,6 +157,7 @@ export async function handOffAstridReply(args: {
       userName,
       channelId,
       listId: channel?.listId || null,
+      locale: args.locale,
       replyClientRequestId: replyRequestId(messageId),
     }).catch(err => log.error({ err }, `${BRAND.appName} handoff generation failed`))
 

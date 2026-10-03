@@ -66,6 +66,11 @@
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --mark-seen --failed --seen-keys '<keys json>'
  *     # → one strike per key; a key at MAX_FAILED_ATTEMPTS is recorded as seen
  *
+ * Long runs (AWTD-1041, scripts/lib/long-run.ts) — the web loop's preflight:
+ *   npx tsx scripts/agent-queue-status.ts … --long-run-window 22-6 --default-minutes 75 --max-tasks 1
+ *     # → RUN-MINUTES: <watchdog>, RUN-TASK: <id to take first>,
+ *     #   RUN-DEFER: <ids held for the window>, RUN-LONG: 1, RUN: <note>
+ *
  * Exit codes are the interface, matching the fixall scripts around it:
  *   0  there is work — the caller should start a run
  *   3  nothing to do — the caller should skip, and why is on stdout
@@ -89,6 +94,7 @@ import { parseReadyTaskClaims } from './lib/ready-tasks-output'
 import { adoptLegacySeenFile, defaultSeenFile } from './lib/fixall-seen-file'
 import { decideQueueVerdict, type LaneSnapshot, type QueueSnapshot } from './lib/agent-queue-verdict'
 import { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun } from './lib/wake-keys'
+import { DEFAULT_LONG_RUN_WINDOW, parseLongRunWindow, planRun } from './lib/long-run'
 
 loadScriptEnv()
 
@@ -292,7 +298,34 @@ async function main() {
     process.exit(1)
   }
 
-  const snapshot = (await response.json()) as QueueSnapshot
+  const fetched = (await response.json()) as QueueSnapshot
+
+  // Long runs (AWTD-1041), opt-in so the iOS loop's calls are unchanged. The
+  // plan is applied to the queue BEFORE the verdict: a long task deferred to
+  // its window is not work this tick, and a queue holding only that must read
+  // as idle, not start a session that has nothing it may take.
+  let snapshot = fetched
+  const windowSpec = arg('--long-run-window')
+  if (windowSpec !== undefined) {
+    const parsed = parseLongRunWindow(windowSpec)
+    if (!parsed) {
+      console.log(`RUN: long-run window "${windowSpec}" is not <start>-<end> or "always" — using ${DEFAULT_LONG_RUN_WINDOW}`)
+    }
+    const window = parsed ?? parseLongRunWindow(DEFAULT_LONG_RUN_WINDOW)!
+    const plan = planRun({
+      queue: fetched.queue,
+      hour: new Date().getHours(),
+      defaultMinutes: Number(arg('--default-minutes') ?? 75),
+      window,
+      maxTasks: Number(arg('--max-tasks') ?? 1),
+    })
+    snapshot = { ...fetched, queue: plan.queue, empty: plan.queue.length === 0 }
+    console.log(`RUN-MINUTES: ${plan.maxMinutes}`)
+    if (plan.long) console.log('RUN-LONG: 1')
+    if (plan.nextTask) console.log(`RUN-TASK: ${plan.nextTask.id}`)
+    if (plan.deferred.length > 0) console.log(`RUN-DEFER: ${plan.deferred.map(task => task.id).join(',')}`)
+    if (plan.note) console.log(`RUN: ${plan.note}`)
+  }
 
   // A board that was not swept has lanes nobody looked at — say so rather than
   // let "not asked" read as "clear".

@@ -123,8 +123,8 @@ export interface V1List {
   publicListType: string | null
   defaultIsPrivate: boolean | null
   defaultDueDate: string | null
-  // Only the PUT /lists/:id response currently emits this; optional so the
-  // GET/collection responses (which omit it) still satisfy the shape.
+  // GET and PUT /lists/:id and the live `v1List` emit this (one shape since
+  // AWTD-1046); optional because the collection response still omits it.
   defaultDueTime?: string | null
   githubRepositoryId: string | null
   preferredAiProvider: string | null

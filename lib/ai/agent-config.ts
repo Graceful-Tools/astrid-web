@@ -21,7 +21,7 @@ import {
 import { BRAND } from '@/lib/brand/config'
 import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 
-export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+export type AIService = 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse' | 'openclaw'
 
 /** Product label for a service key; `openclaw` remains wire/storage compatibility. */
 export function agentServiceLabel(service: string): string {
@@ -88,6 +88,11 @@ export const SUGGESTED_MODELS: Partial<Record<AIService, string[]>> = {
     'gpt-4o',
     'gpt-4o-mini',
   ],
+  // Meta Model API (AWTD-1053). 1.3 is current; 1.1 is still served.
+  muse: [
+    'muse-spark-1.3',
+    'muse-spark-1.1',
+  ],
 }
 
 /**
@@ -98,6 +103,7 @@ export const DEFAULT_MODELS: Partial<Record<AIService, string>> = {
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   copilot: 'gpt-4.1',
+  muse: 'muse-spark-1.3',
 }
 
 const STANDARD_CAPABILITIES = [
@@ -118,7 +124,7 @@ const STANDARD_CAPABILITIES = [
 const AGENT_DEFINITIONS: Record<string, AIAgentConfig> = {
   // The default agent identity — the underlying model is determined by user settings.
   astrid: {
-    service: 'claude', // Default service; overridden by user's configured model at runtime
+    service: 'claude', // Default service; BRAND_ASSISTANT_SERVICE, then the user's choice, override it
     model: 'claude-sonnet-4-6',
     displayName: BRAND.agentIdentityName,
     agentType: 'astrid_agent',
@@ -154,6 +160,16 @@ const AGENT_DEFINITIONS: Record<string, AIAgentConfig> = {
     model: 'gpt-4.1',
     displayName: 'GitHub Copilot Agent',
     agentType: 'copilot_agent',
+    contextFile: 'ASTRID.md',
+    capabilities: STANDARD_CAPABILITIES,
+  },
+  // One identity, two runtimes, like claude@: the user's Muse Code CLI when it
+  // is polling, Meta's Model API on the user's key in API mode (AWTD-1053).
+  muse: {
+    service: 'muse',
+    model: 'muse-spark-1.3',
+    displayName: 'Muse Agent',
+    agentType: 'muse_agent',
     contextFile: 'ASTRID.md',
     capabilities: STANDARD_CAPABILITIES,
   },
@@ -204,6 +220,40 @@ function resolveEnabledMailboxes(): string[] {
 
 export const ENABLED_AGENT_MAILBOXES: readonly string[] = resolveEnabledMailboxes()
 
+/** Providers that can back the default assistant — those with a server executor and a key. */
+const ASSISTANT_PROVIDERS = ['claude', 'openai', 'gemini', 'copilot'] as const
+export type AssistantService = (typeof ASSISTANT_PROVIDERS)[number]
+
+/**
+ * Which provider backs the brand's own assistant (`astrid@`) for a user who has not
+ * picked one (AWTD-1056).
+ *
+ * `BRAND_ASSISTANT_SERVICE=openai` makes a white label's assistant an OpenAI one; it
+ * was pinned to Claude, so a deployment that offered only OpenAI still routed there.
+ * Honoured only when that provider is enabled, else the first enabled provider, else
+ * Claude. Local harnesses (codex, muse) and Custom Agents are not providers — the
+ * server dispatches nothing to them — so they are refused rather than half-working.
+ * Server-only for the same reason as BRAND_ENABLED_AGENTS.
+ */
+function resolveAssistantService(): AssistantService {
+  const enabled = ASSISTANT_PROVIDERS.filter((service) => ENABLED_AGENT_MAILBOXES.includes(service))
+  const requested = process.env.BRAND_ASSISTANT_SERVICE?.trim().toLowerCase()
+  return enabled.find((service) => service === requested) ?? enabled[0] ?? 'claude'
+}
+
+export const BRAND_ASSISTANT_SERVICE: AssistantService = resolveAssistantService()
+
+/** The assistant's definition, with the provider and default model the brand chose. */
+function definitionFor(mailbox: string): AIAgentConfig {
+  const definition = AGENT_DEFINITIONS[mailbox]
+  if (mailbox !== 'astrid') return definition
+  return {
+    ...definition,
+    service: BRAND_ASSISTANT_SERVICE,
+    model: DEFAULT_MODELS[BRAND_ASSISTANT_SERVICE] ?? definition.model,
+  }
+}
+
 /**
  * AI Agent Registry — maps agent email to configuration.
  *
@@ -211,7 +261,7 @@ export const ENABLED_AGENT_MAILBOXES: readonly string[] = resolveEnabledMailboxe
  * see is unchanged from when this was a hardcoded literal.
  */
 export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = Object.fromEntries(
-  ENABLED_AGENT_MAILBOXES.map((mailbox) => [agentEmail(mailbox), AGENT_DEFINITIONS[mailbox]])
+  ENABLED_AGENT_MAILBOXES.map((mailbox) => [agentEmail(mailbox), definitionFor(mailbox)])
 )
 
 /**
@@ -298,6 +348,7 @@ const BUILT_IN_AGENT_NAMES: Record<string, string> = {
   openai: 'OpenAI',
   gemini: 'Gemini',
   copilot: 'GitHub Copilot',
+  muse: 'Muse',
 }
 
 /**
