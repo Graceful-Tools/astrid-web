@@ -154,6 +154,31 @@ const ADVISORY_FLOORS: Array<{
       'stack/CPU DoS. Reached through minimatch@10. The nested 1.x copies are ' +
       'eslint-only (dev) and outside all three ranges',
   },
+  {
+    name: 'fast-uri',
+    minVersion: '3.1.8',
+    severity: 'moderate',
+    advisory:
+      'GHSA-hrr3-gc8f-f4qj (inconsistent host case normalization via percent-encoded ' +
+      'octets); >=3.0.0 <3.1.8 — AWTD-1068. Reached through ajv',
+  },
+  {
+    name: 'ip-address',
+    minVersion: '10.7.1',
+    severity: 'moderate',
+    advisory:
+      'GHSA-j6r3-76f7-8jcv (isInSubnet compares across address families), ' +
+      'GHSA-h3mg-xc3c-68pw (unbounded parse diagnostic DoS), GHSA-rpw4-54j3-4h4q and ' +
+      'GHSA-2vr4-cq9g-pvrc (link-local / NAT64 SSRF classifier gaps); <=10.7.0 — AWTD-1068',
+  },
+  {
+    name: 'dompurify',
+    minVersion: '3.4.16',
+    severity: 'low',
+    advisory:
+      'GHSA-p98j-92pf-mc4p (IN_PLACE afterSanitize hook leaves detached handlers armed, ' +
+      'DOM XSS); >=3.4.13 <=3.4.15 — AWTD-1068. A direct dependency',
+  },
 ]
 
 /**
@@ -172,6 +197,22 @@ const NOT_SHIPPED: Array<{ name: string; why: string }> = [
       'recipient-domain validation bypasses, GHSA-8m3c-c648-2xjj disableFileAccess ' +
       'bypass), and 9.0.5 also violated its own peer range. Re-add it only alongside ' +
       'code that actually sends mail.',
+  },
+  {
+    name: 'braces',
+    why:
+      'GHSA-vfj7-8cjw-p6xm (stack-exhaustion DoS through deeply nested patterns) covers ' +
+      'every published version (<=3.0.3) and there is no patched release, so a floor ' +
+      'cannot express it. AWTD-1068: it reached production only through next-intl → ' +
+      '@parcel/watcher@2.5.1 → micromatch; @parcel/watcher 2.6.0 uses picomatch instead. ' +
+      'The remaining copies are dev-only (tailwindcss 3 via chokidar/fast-glob, ' +
+      'eslint-config-next via fast-glob).',
+  },
+  {
+    name: 'micromatch',
+    why:
+      'Every version depends on braces (see above). AWTD-1068: shipped only through ' +
+      '@parcel/watcher@2.5.1; keep it dev-only.',
   },
 ]
 
