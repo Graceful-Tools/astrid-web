@@ -95,11 +95,14 @@ const BUDGETS: Record<string, number> = {
   // assigned at all are one question asked twice.
   // 1605 → 1602: AWTD-1016 made a move mint an identifier as a create does.
   // The best-effort mint went to services/task-identifier-mint.ts, used by both.
+  // 1602 → 1552: AWTD-1040 put the full v1 task on task events. The create
+  // path's two broadcasts went to services/task-create-broadcast.ts, and the
+  // v1 read to lib/tasks/v1-task-shape.ts beside the GET that owns the shape.
   // 1602 → 1588: AWTD-1035 accepted a client's occurrenceCount, paid for by
   // moving the twice-copied custom repeatingData parse to lib/task-enums.ts.
   // 1588 → 1587: AWTD-1007 clears the column when a task leaves its last board;
   // the whole statusRole write went to services/task-status-role.ts.
-  'services/task.service.ts': 1587,
+  'services/task.service.ts': 1537,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

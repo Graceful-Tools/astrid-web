@@ -685,3 +685,109 @@ describe('SSE Event Delivery — Error Handling', () => {
     expect(response.status).toBe(200)
   })
 })
+
+// AWTD-1040: a task event carried only the lean agent projection, so every
+// connected client (astrid-core on iOS, Mac and Windows) followed each one with
+// GET /api/v1/tasks/:id. The event now also carries that exact response shape
+// as `v1Task`; its presence is the signal that the client may skip the fetch.
+describe('AWTD-1040 — task events carry the full v1 task as v1Task', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // The error-handling tests above leave broadcastToUsers throwing; the
+    // service swallows that, so a later broadcast would silently vanish.
+    vi.mocked(broadcastToUsers).mockReset()
+  })
+
+  async function getV1Task() {
+    const { GET } = await import('@/app/api/v1/tasks/[id]/route')
+    const req = new NextRequest('http://localhost/api/v1/tasks/task-1')
+    const res = await GET(req, { params: Promise.resolve({ id: 'task-1' }) })
+    return (await res.json()).task
+  }
+
+  const json = (value: unknown) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)))
+
+  it('AWTD-1040: task_updated carries exactly what GET /api/v1/tasks/:id returns', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask as any)
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask as any)
+
+    const { PUT } = await import('@/app/api/v1/tasks/[id]/route')
+    await PUT(
+      new NextRequest('http://localhost/api/v1/tasks/task-1', {
+        method: 'PUT',
+        body: JSON.stringify({ priority: 2 }),
+      }),
+      { params: Promise.resolve({ id: 'task-1' }) }
+    )
+
+    const call = vi.mocked(broadcastToUsers).mock.calls.find(
+      c => (c[1] as any).type === 'task_updated'
+    )
+    expect(call).toBeDefined()
+    const data = (call![1] as any).data
+    // The lean agent projection is unchanged — agents read it.
+    expect(data.task).toEqual(expect.objectContaining({ id: 'task-1', listId: 'list-1' }))
+    expect(json(data.v1Task)).toEqual(json(await getV1Task()))
+  })
+
+  it('AWTD-1040: task_created and task_assigned carry v1Task', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.taskList.findMany).mockResolvedValue([{
+      id: 'list-1',
+      name: 'Work',
+      privacy: 'PRIVATE',
+      isVirtual: false,
+      ownerId: 'user-1',
+      owner: { id: 'user-1', name: 'Jon', email: 'jon@test.com', image: null },
+      listMembers: [{ userId: 'member-1', role: 'member', user: { id: 'member-1', name: 'Member', email: 'm@test.com', image: null } }],
+    }] as any)
+    vi.mocked(prisma.task.create).mockResolvedValue(mockTask as any)
+    vi.mocked(prisma.task.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask as any)
+
+    const { POST } = await import('@/app/api/v1/tasks/route')
+    await POST(
+      new NextRequest('http://localhost/api/v1/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ title: 'New Task', listIds: ['list-1'], assigneeId: 'agent-1' }),
+      })
+    )
+
+    const expected = json(await getV1Task())
+    for (const type of ['task_created', 'task_assigned']) {
+      const call = vi.mocked(broadcastToUsers).mock.calls.find(c => (c[1] as any).type === type)
+      expect(call, type).toBeDefined()
+      expect(json((call![1] as any).data.v1Task), type).toEqual(expected)
+    }
+  })
+
+  it('AWTD-1040: a former assignee who cannot see the task gets the lean event only', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { getListMemberIds } = await import('@/lib/list-member-utils')
+    // Only user-1 and member-1 can see the list; outsider-1 was the assignee.
+    vi.mocked(getListMemberIds).mockReturnValue(['user-1', 'member-1'])
+    const existingTask = { ...mockTask, assigneeId: 'outsider-1' }
+    const updatedTask = { ...mockTask, assigneeId: 'member-1' }
+    vi.mocked(prisma.task.findUnique)
+      .mockResolvedValueOnce(existingTask as any)
+      .mockResolvedValue(updatedTask as any)
+    vi.mocked(prisma.task.update).mockResolvedValue(updatedTask as any)
+
+    const { PUT } = await import('@/app/api/v1/tasks/[id]/route')
+    await PUT(
+      new NextRequest('http://localhost/api/v1/tasks/task-1', {
+        method: 'PUT',
+        body: JSON.stringify({ assigneeId: 'member-1' }),
+      }),
+      { params: Promise.resolve({ id: 'task-1' }) }
+    )
+
+    const calls = vi.mocked(broadcastToUsers).mock.calls
+    const toOutsider = calls.find(c => (c[0] as string[]).includes('outsider-1'))
+    expect(toOutsider).toBeDefined()
+    expect((toOutsider![1] as any).data.v1Task).toBeUndefined()
+    const toAssignee = calls.find(c => (c[1] as any).type === 'task_assigned')
+    expect((toAssignee![1] as any).data.v1Task).toBeDefined()
+  })
+})

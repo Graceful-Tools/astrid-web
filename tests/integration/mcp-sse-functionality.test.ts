@@ -167,9 +167,12 @@ describe('MCP SSE Integration - Core Functionality', () => {
     const { readFileSync } = await import('node:fs')
     const { join } = await import('node:path')
     const service = readFileSync(join(process.cwd(), 'services/task.service.ts'), 'utf8')
+    // The broadcasts themselves moved next door (AWTD-1040, size ratchet).
+    const broadcast = readFileSync(join(process.cwd(), 'services/task-create-broadcast.ts'), 'utf8')
 
-    expect(service).toContain('task_created')
-    expect(service).toContain('broadcastToUsers')
+    expect(service).toContain('broadcastTaskCreated(')
+    expect(broadcast).toContain('task_created')
+    expect(broadcast).toContain('broadcastToUsers')
     expect(service).toContain('recordTaskCreationComment')
   })
 
