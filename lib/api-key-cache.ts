@@ -7,7 +7,7 @@ import CryptoJS from 'crypto-js'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import type { AIService } from '@/lib/ai/agent-config'
+import { BRAND_ASSISTANT_SERVICE, type AIService } from '@/lib/ai/agent-config'
 
 const log = createLogger('api-key-cache')
 
@@ -236,6 +236,9 @@ export async function getCachedModelPreference(
 
 /**
  * Get the user's preferred AI service (with fallback)
+ *
+ * Every fallback is the brand's assistant provider (BRAND_ASSISTANT_SERVICE,
+ * AWTD-1056) — Claude unless a white label chose otherwise.
  */
 export async function getPreferredAIService(userId: string): Promise<AIService> {
   try {
@@ -245,7 +248,7 @@ export async function getPreferredAIService(userId: string): Promise<AIService> 
     })
 
     if (!user?.aiAssistantSettings) {
-      return 'claude' // Default fallback
+      return BRAND_ASSISTANT_SERVICE // Default fallback
     }
 
     const settings = JSON.parse(user.aiAssistantSettings)
@@ -255,9 +258,13 @@ export async function getPreferredAIService(userId: string): Promise<AIService> 
       return settings.preferredService
     }
 
-    // Fallback: return the first service that has an API key
+    // Fallback: return the first service that has an API key, the brand's own first
     // Note: openclaw uses gateway URLs, not API keys, so it's not included here
-    const services: AIService[] = ['claude', 'openai', 'gemini', 'copilot', 'muse']
+    // Muse (AWTD-1053) is one more keyed provider; the brand's own comes first (AWTD-1056).
+    const services: AIService[] = [
+      BRAND_ASSISTANT_SERVICE,
+      ...(['claude', 'openai', 'gemini', 'copilot', 'muse'] as const).filter((s) => s !== BRAND_ASSISTANT_SERVICE),
+    ]
 
     for (const service of services) {
       if (await hasValidApiKey(userId, service)) {
@@ -265,10 +272,10 @@ export async function getPreferredAIService(userId: string): Promise<AIService> 
       }
     }
 
-    return 'claude' // Final fallback
+    return BRAND_ASSISTANT_SERVICE // Final fallback
 
   } catch (error) {
     log.error({ err: error }, 'Error getting preferred AI service:')
-    return 'claude'
+    return BRAND_ASSISTANT_SERVICE
   }
 }
