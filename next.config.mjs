@@ -43,6 +43,14 @@ const nextConfig = {
     '/api/downloads/[filename]': [
       'public/get-project-tasks-oauth.ts',
     ],
+    // astrid-core's rules as WebAssembly (lib/core-rules/wasm.ts). Loaded through a require
+    // resolved at runtime, which tracing cannot follow, by any server function — list
+    // permissions are checked everywhere — so every function carries it (~1.7 MB, read only
+    // when ASTRID_CORE_RULES_SHADOW=1).
+    '/**': [
+      'packages/astrid-rules/REVISION',
+      'packages/astrid-rules/node/**',
+    ],
   },
   async redirects() {
     return [

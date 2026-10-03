@@ -232,6 +232,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'LOG_TO_STDERR', scope: 'tooling', description: 'Set to 1 to send pino output to stderr. Required by the stdio MCP server, where stdout is the JSON-RPC channel and a log line is a malformed frame.' },
   { name: 'OTEL_SERVICE_NAME', scope: 'optional', description: 'Service name reported to tracing.' },
   { name: 'NEXT_PUBLIC_DEBUG_PERMISSIONS', scope: 'tooling', description: 'Logs permission decisions in the browser.' },
+  { name: 'ASTRID_CORE_RULES_SHADOW', scope: 'optional', description: 'Set to 1 to compare list-permission answers with astrid-core (packages/astrid-rules) on the Node runtime and log disagreements. Never changes an answer.' },
 
   // ── Apple / App Store ─────────────────────────────────────────────────────
   { name: 'TESTFLIGHT_PUBLIC_LINK', scope: 'optional', description: 'Public TestFlight join link shown on the download page.' },
@@ -273,6 +274,7 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── Platform-injected (never authored by an operator) ─────────────────────
   { name: 'NODE_ENV', scope: 'platform', description: 'Set by the runtime.' },
+  { name: 'NEXT_RUNTIME', scope: 'platform', description: 'nodejs | edge, set by Next.js; instrumentation.ts reads it to load Node-only code.' },
   { name: 'CI', scope: 'platform', description: 'Set by the CI runner.' },
   { name: 'PORT', scope: 'platform', description: 'Set by the host.' },
   { name: 'HOSTNAME', scope: 'platform', description: 'Set by the host.' },

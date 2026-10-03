@@ -69,6 +69,71 @@ interface ListLike {
 }
 
 /**
+ * The decisions astrid-core's `Access` rule answers, by the name it gives them.
+ *
+ * A shadow observer (see {@link setListPermissionsShadow}) is told each answer this module gives
+ * under one of these names, so it can ask the shared Rust core the same question and compare.
+ */
+export type ShadowedDecision =
+  | "role"
+  | "canEditTasks"
+  | "canEditTask"
+  | "hasExplicitRole"
+  | "canManage"
+  | "canManageMembers"
+  | "canDelete"
+
+export interface ShadowedAnswer {
+  decision: ShadowedDecision
+  user: UserLike
+  list: ListLike
+  /** For `canEditTask` only: the task's creator. */
+  taskCreatorId?: string | null
+  /** What this module answered — and returned. */
+  answer: string | boolean | null
+}
+
+type ShadowObserver = (answered: ShadowedAnswer) => void
+
+// On globalThis rather than in a module variable: Next compiles this module into several layers
+// (route handlers, server components, instrumentation), each with its own copy of module state,
+// and an observer installed from instrumentation.ts has to reach all of them.
+const SHADOW_KEY = Symbol.for("astrid.listPermissions.shadow")
+type ShadowHost = { [SHADOW_KEY]?: ShadowObserver | null }
+
+/**
+ * Install (or, with `null`, remove) an observer of every permission decision below — the
+ * astrid-core shadow pilot (lib/core-rules/list-permissions-shadow.ts, installed from
+ * instrumentation.ts on the Node runtime when ASTRID_CORE_RULES_SHADOW=1).
+ *
+ * A hook rather than an import because this module is pulled into client bundles and the edge
+ * middleware, neither of which may load WebAssembly from disk. The observer only watches: the
+ * answer returned is always this module's, an observer that throws is ignored, and with none
+ * installed the cost is one property read.
+ */
+export function setListPermissionsShadow(observer: ShadowObserver | null): void {
+  ;(globalThis as ShadowHost)[SHADOW_KEY] = observer
+}
+
+function shadowed<T extends string | boolean | null>(
+  decision: ShadowedDecision,
+  user: UserLike,
+  list: ListLike,
+  answer: T,
+  taskCreatorId?: string | null,
+): T {
+  const observer = (globalThis as ShadowHost)[SHADOW_KEY]
+  if (observer) {
+    try {
+      observer({ decision, user, list, taskCreatorId, answer })
+    } catch {
+      // Watching must never change what a person is allowed to do.
+    }
+  }
+  return answer
+}
+
+/**
  * Prisma `include` fragment for loading the project membership that
  * {@link getUserRoleInList} needs.
  *
@@ -159,6 +224,10 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
  */
 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
+  return shadowed("role", user, list, roleInList(user, list))
+}
+
+function roleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
   if (!user || !list) return null
 
   // The list owner always has full control — match via ownerId OR the owner
@@ -251,7 +320,11 @@ function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | nu
 }
 
 export function canUserEditTasks(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
+  return shadowed("canEditTasks", user, list, editTasks(user, list))
+}
+
+function editTasks(user: UserLike, list: ListLike): boolean {
+  const role = roleInList(user, list)
 
   // For public copy-only lists (default), only owner/admin/member can add tasks
   if (list.privacy === "PUBLIC" && (list.publicListType === "copy_only" || !list.publicListType)) {
@@ -282,7 +355,11 @@ interface TaskLike {
  * For copy-only lists: only list admin or owner can edit
  */
 export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
+  return shadowed("canEditTask", user, list, editTask(user, task, list), task?.creatorId)
+}
+
+function editTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
+  const role = roleInList(user, list)
 
   // Only log in development mode and when debugging permissions
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_PERMISSIONS === 'true') {
@@ -328,23 +405,23 @@ export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike):
  * `isOwner || isAdmin || isMember || isListMember` (task e2803305).
  */
 export function hasExplicitListRole(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner" || role === "admin" || role === "member"
+  const role = roleInList(user, list)
+  return shadowed("hasExplicitRole", user, list, role === "owner" || role === "admin" || role === "member")
 }
 
 export function canUserManageList(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner" || role === "admin"
+  const role = roleInList(user, list)
+  return shadowed("canManage", user, list, role === "owner" || role === "admin")
 }
 
 export function canUserManageMembers(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner" || role === "admin"
+  const role = roleInList(user, list)
+  return shadowed("canManageMembers", user, list, role === "owner" || role === "admin")
 }
 
 export function canUserDeleteList(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner"
+  const role = roleInList(user, list)
+  return shadowed("canDelete", user, list, role === "owner")
 }
 
 export function getListPermissionDescription(role: "owner" | "admin" | "member" | "viewer" | null): string {
