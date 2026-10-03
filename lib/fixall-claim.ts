@@ -49,7 +49,7 @@ export function fixallClaimAgentEmail(mailbox: FixallClaimMailbox): string {
  *
  * Configurable via FIXALL_CLAIM_BOARD_IDS (comma-separated) so a fork points at
  * its own boards rather than inheriting production ids it does not have
- * (task bc27c00a). The fallback is deliberately the current pair rather than
+ * (task bc27c00a). The fallback is deliberately the current boards rather than
  * empty: this is the allowlist the running loop depends on, and failing closed
  * on an env var that has to be present at DEPLOY time — the exact trap
  * ASTRID.md warns about — would silently stop every agent claiming work.
@@ -62,10 +62,15 @@ function resolveBoardIds(): readonly string[] {
   return DEFAULT_FIXALL_CLAIM_BOARD_IDS
 }
 
-/** Astrid's own web and iOS to-do boards. */
+/**
+ * Astrid's own web, iOS and Windows to-do boards. A board missing here does not
+ * fail loudly: its claims 409 exactly like a lost race, and the loop skips them
+ * without comment (AWTD-1008).
+ */
 const DEFAULT_FIXALL_CLAIM_BOARD_IDS = [
   "a623f322-4c3c-49b5-8a94-d2d9f00c82ba",
   "aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36",
+  "abb4f961-55ee-499e-9c51-d4a2e31ee439",
 ] as const
 
 export const FIXALL_CLAIM_BOARD_IDS: readonly string[] = resolveBoardIds()
