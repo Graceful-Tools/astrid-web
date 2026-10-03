@@ -27,4 +27,16 @@ export async function register() {
   registerOTel({
     serviceName: process.env.OTEL_SERVICE_NAME ?? 'astrid-web',
   })
+
+  // astrid-core shadow pilot: compare list-permission answers with the shared Rust core and log
+  // disagreements, without changing any answer. Node runtime only — the core is WebAssembly read
+  // from disk, which the edge runtime cannot do — and off unless asked for. Never fatal.
+  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.ASTRID_CORE_RULES_SHADOW === '1') {
+    try {
+      const { installListPermissionsShadow } = await import('@/lib/core-rules/list-permissions-shadow')
+      installListPermissionsShadow()
+    } catch {
+      // The shadow only watches; a server that cannot load it serves exactly as before.
+    }
+  }
 }
