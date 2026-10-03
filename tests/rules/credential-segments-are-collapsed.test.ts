@@ -70,10 +70,13 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   downloads: 'route-word', //   a release filename
   'agent-icon': 'route-word', // an agent slug
   connections: 'route-word', //  a connection KIND (google, github)
+  t: 'route-word', //           app/[locale]/t/[identifier] — a task id like AWTD-12 (AWTD-1016):
+  //                            human-readable and not a secret, like a project key
 
   // Opaque record ids — uuid or cuid, collapsed by shape before the parent is
   // ever consulted.
   admins: 'opaque-id',
+  blockers: 'opaque-id', // app/api/v1/tasks/[id]/blockers/[blockingTaskId] (AWTD-1002)
   agents: 'opaque-id',
   channels: 'opaque-id',
   chat: 'opaque-id', // app/api/v1/agent/chat/[channelId]
