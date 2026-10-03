@@ -252,6 +252,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'VERCEL_PROJECT_ID', scope: 'tooling', description: 'Vercel project scope for API queries.' },
   { name: 'VERCEL_GIT_EMAIL', scope: 'tooling', description: 'Git author email for agent commits; must be a Vercel team member.' },
   { name: 'VERCEL_GIT_NAME', scope: 'tooling', description: 'Git author name for agent commits.' },
+  { name: 'NEON_API_KEY', scope: 'tooling', description: 'Neon org API key; provisions partner databases (scripts/provision-brand-database.ts).' },
   { name: 'NEXT_DEV_PORT', scope: 'tooling', description: 'Preferred port for the dev server.' },
   { name: 'CHECK_REUSE_STRICT', scope: 'tooling', description: 'Forces check:reuse into strict mode.' },
   { name: 'API_BOUNDARY_BASE', scope: 'tooling', description: 'Git ref the API-boundary guard diffs against.' },

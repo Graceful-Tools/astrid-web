@@ -161,8 +161,12 @@ To stand one up:
 1. **Project.** `vercel project add <name>`, then set its framework to Next.js (the CLI
    creates it as "Other").
 2. **Domain.** Add it to the project; point DNS at the CNAME Vercel recommends.
-3. **Database.** Vercel → the project → Storage → Create → Neon, connected to Production and
-   Preview. The first production build migrates it from empty.
+3. **Database.** `npx tsx scripts/provision-brand-database.ts --project <name>` creates a
+   Neon project of the same name in the Graceful Tools org (`NEON_API_KEY` in `.env.local`)
+   and writes `DATABASE_URL` (pooled) and `DATABASE_URL_DIRECT` to Production and Preview,
+   printing no connection string. It refuses `astrid-web`, and a re-run is a no-op. (By hand:
+   Vercel → the project → Storage → Create → Neon.) The first production build migrates it
+   from empty.
 4. **Environment.** `npx tsx scripts/push-brand-env.ts <profile> --project <name>` writes the
    profile, derives `NEXTAUTH_URL` from the brand domain, and generates `NEXTAUTH_SECRET`,
    `ENCRYPTION_KEY`, `CRON_SECRET` and `INTERNAL_API_SECRET` — only when absent, because
