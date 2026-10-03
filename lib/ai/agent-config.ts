@@ -118,7 +118,7 @@ const STANDARD_CAPABILITIES = [
 const AGENT_DEFINITIONS: Record<string, AIAgentConfig> = {
   // The default agent identity — the underlying model is determined by user settings.
   astrid: {
-    service: 'claude', // Default service; overridden by user's configured model at runtime
+    service: 'claude', // Default service; BRAND_ASSISTANT_SERVICE, then the user's choice, override it
     model: 'claude-sonnet-4-6',
     displayName: BRAND.agentIdentityName,
     agentType: 'astrid_agent',
@@ -204,6 +204,40 @@ function resolveEnabledMailboxes(): string[] {
 
 export const ENABLED_AGENT_MAILBOXES: readonly string[] = resolveEnabledMailboxes()
 
+/** Providers that can back the default assistant — those with a server executor and a key. */
+const ASSISTANT_PROVIDERS = ['claude', 'openai', 'gemini', 'copilot'] as const
+export type AssistantService = (typeof ASSISTANT_PROVIDERS)[number]
+
+/**
+ * Which provider backs the brand's own assistant (`astrid@`) for a user who has not
+ * picked one (AWTD-1056).
+ *
+ * `BRAND_ASSISTANT_SERVICE=openai` makes a white label's assistant an OpenAI one; it
+ * was pinned to Claude, so a deployment that offered only OpenAI still routed there.
+ * Honoured only when that provider is enabled, else the first enabled provider, else
+ * Claude. Local harnesses (codex, muse) and Custom Agents are not providers — the
+ * server dispatches nothing to them — so they are refused rather than half-working.
+ * Server-only for the same reason as BRAND_ENABLED_AGENTS.
+ */
+function resolveAssistantService(): AssistantService {
+  const enabled = ASSISTANT_PROVIDERS.filter((service) => ENABLED_AGENT_MAILBOXES.includes(service))
+  const requested = process.env.BRAND_ASSISTANT_SERVICE?.trim().toLowerCase()
+  return enabled.find((service) => service === requested) ?? enabled[0] ?? 'claude'
+}
+
+export const BRAND_ASSISTANT_SERVICE: AssistantService = resolveAssistantService()
+
+/** The assistant's definition, with the provider and default model the brand chose. */
+function definitionFor(mailbox: string): AIAgentConfig {
+  const definition = AGENT_DEFINITIONS[mailbox]
+  if (mailbox !== 'astrid') return definition
+  return {
+    ...definition,
+    service: BRAND_ASSISTANT_SERVICE,
+    model: DEFAULT_MODELS[BRAND_ASSISTANT_SERVICE] ?? definition.model,
+  }
+}
+
 /**
  * AI Agent Registry — maps agent email to configuration.
  *
@@ -211,7 +245,7 @@ export const ENABLED_AGENT_MAILBOXES: readonly string[] = resolveEnabledMailboxe
  * see is unchanged from when this was a hardcoded literal.
  */
 export const AI_AGENT_CONFIG: Record<string, AIAgentConfig> = Object.fromEntries(
-  ENABLED_AGENT_MAILBOXES.map((mailbox) => [agentEmail(mailbox), AGENT_DEFINITIONS[mailbox]])
+  ENABLED_AGENT_MAILBOXES.map((mailbox) => [agentEmail(mailbox), definitionFor(mailbox)])
 )
 
 /**
