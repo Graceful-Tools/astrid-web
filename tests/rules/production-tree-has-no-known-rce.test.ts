@@ -143,6 +143,17 @@ const ADVISORY_FLOORS: Array<{
       '(retry-interceptor response splitting); <6.28.1. A direct dependency pinned ' +
       'EXACTLY in package.json (AWTD-1050), so a lockfile refresh cannot fix it — bump the pin',
   },
+  {
+    name: 'brace-expansion',
+    minVersion: '5.0.12',
+    severity: 'high',
+    advisory:
+      'GHSA-qhr7-859c-m2p7 (nested brace groups, uncontrolled recursion; >=4.0.0 <5.0.11), ' +
+      'GHSA-6j4f-fj2g-mc7p (parseCommaParts recursion; >=4.0.0 <5.0.10) and the moderate ' +
+      'GHSA-q2hr-2g5m-vwhr (quadratic `{a},b}` rewrite; >=4.0.0 <5.0.12) — AWTD-1052; ' +
+      'stack/CPU DoS. Reached through minimatch@10. The nested 1.x copies are ' +
+      'eslint-only (dev) and outside all three ranges',
+  },
 ]
 
 /**
