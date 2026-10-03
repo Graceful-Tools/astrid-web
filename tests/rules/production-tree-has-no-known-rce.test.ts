@@ -104,11 +104,12 @@ const ADVISORY_FLOORS: Array<{
 }> = [
   {
     name: 'next',
-    minVersion: '16.3.3',
+    minVersion: '16.3.6',
     severity: 'critical',
     advisory:
+      'GHSA-vcvr-r3jv-pc5j (RCE in next/og ImageResponse; >=16.2.0 <16.3.6, AWTD-1048), ' +
       'GHSA-2xp9-vwfh-vxw4 (unauthenticated RCE in the Image Optimization API with AVIF) ' +
-      'and GHSA-p293-qw3h-jr36 (unauthenticated RCE on Windows hosts); both <16.3.3',
+      'and GHSA-p293-qw3h-jr36 (unauthenticated RCE on Windows hosts); the last two <16.3.3',
   },
   {
     name: 'sharp',
