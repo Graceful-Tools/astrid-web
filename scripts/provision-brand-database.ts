@@ -71,8 +71,9 @@ async function main() {
   assertPartnerProject(target)
 
   const existingEnv = (await vercel<{ envs: Array<{ key: string }> }>(`/v9/projects/${project}/env`)).envs
-  if (existingEnv.some(row => row.key === 'DATABASE_URL')) {
-    console.log(`✅ "${project}" already has DATABASE_URL — nothing to do. (Delete it in Vercel first to re-provision.)`)
+  // Both, not either: a run that died between the two writes must finish the second.
+  if (['DATABASE_URL', 'DATABASE_URL_DIRECT'].every(key => existingEnv.some(row => row.key === key))) {
+    console.log(`✅ "${project}" already has DATABASE_URL and DATABASE_URL_DIRECT — nothing to do. (Delete them in Vercel first to re-provision.)`)
     return
   }
 
