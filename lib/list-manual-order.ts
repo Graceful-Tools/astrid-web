@@ -26,7 +26,7 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { RedisCache } from '@/lib/redis'
-import { broadcastToUsers } from '@/lib/sse-utils'
+import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { canUserEditTasks } from '@/lib/list-permissions'
 import { createLogger } from '@/lib/logger'
@@ -139,7 +139,8 @@ export async function setListManualOrder(args: {
     updatedList as Record<string, unknown>
 
   try {
-    await broadcastToUsers(memberIds, { type: 'list_updated', data: broadcastData })
+    // Each viewer also gets the list as their own GET returns it (AWTD-1046).
+    await broadcastListEvent({ listId, recipients: memberIds, type: 'list_updated', data: broadcastData })
   } catch (error) {
     // The order is saved. A failed fan-out means other clients redraw late,
     // which must not be reported as a failed reorder.

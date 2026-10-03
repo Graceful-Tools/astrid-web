@@ -30,7 +30,7 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { canUserBeAddedAsMember, SAVED_FILTER_MEMBER_ERROR } from '@/lib/list-permissions'
-import { broadcastToUsers } from '@/lib/sse-utils'
+import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { invalidateMemberCache, invalidateMemberCaches } from '@/lib/list-member-operations'
 
@@ -141,7 +141,7 @@ export async function addListMember(args: {
 
   await invalidateForMembershipChange(list, member.id)
 
-  broadcast(list, 'list_member_added', {
+  await broadcast(list, 'list_member_added', {
     listId: list.id,
     listName: list.name,
     listColor: list.color ?? null,
@@ -191,7 +191,7 @@ export async function changeListMemberRole(args: {
 
   await invalidateForMembershipChange(list, member.id)
 
-  broadcast(list, role === 'admin' ? 'list_admin_role_granted' : 'list_member_role_changed', {
+  await broadcast(list, role === 'admin' ? 'list_admin_role_granted' : 'list_member_role_changed', {
     listId: list.id,
     listName: list.name,
     listColor: list.color ?? null,
@@ -229,7 +229,7 @@ export async function removeListMember(args: {
 
   await invalidateForMembershipChange(list, member.id)
 
-  broadcastTo(recipients, 'list_member_removed', {
+  await broadcastTo(list, recipients, 'list_member_removed', {
     listId: list.id,
     listName: list.name,
     listColor: list.color ?? null,
@@ -242,21 +242,29 @@ export async function removeListMember(args: {
   return true
 }
 
-function broadcast(
+async function broadcast(
   list: MemberListContext,
   type: string,
   data: Record<string, unknown>,
   extraRecipients: string[] = [],
-): void {
-  broadcastTo([...audience(list), ...extraRecipients], type, data)
+): Promise<void> {
+  await broadcastTo(list, [...audience(list), ...extraRecipients], type, data)
 }
 
-function broadcastTo(recipients: string[], type: string, data: Record<string, unknown>): void {
+/**
+ * Recipients who can still see the list also get it whole, as `v1List`
+ * (AWTD-1046). A member just removed cannot, and gets `data` alone.
+ */
+async function broadcastTo(
+  list: MemberListContext,
+  recipients: string[],
+  type: string,
+  data: Record<string, unknown>,
+): Promise<void> {
   try {
-    const unique = Array.from(new Set(recipients))
-    if (unique.length === 0) return
-
-    broadcastToUsers(unique, {
+    await broadcastListEvent({
+      listId: list.id,
+      recipients,
       type,
       // Every membership event carries one; v1's three did not, and a consumer
       // that orders or de-duplicates on it saw undefined.

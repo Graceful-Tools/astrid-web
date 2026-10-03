@@ -6,7 +6,7 @@ import { getConsistentDefaultImage } from "@/lib/default-images"
 import { listVisibilityWhere } from "@/lib/list-permissions"
 import type { CreateListData } from "@/types"
 import { RedisCache } from "@/lib/redis"
-import { broadcastToUsers } from "@/lib/sse-utils"
+import { broadcastListEvent } from "@/lib/lists/v1-list-shape"
 import { getListMemberIds } from "@/lib/list-member-utils"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-events"
@@ -434,10 +434,12 @@ export async function POST(request: NextRequest) {
     // Broadcast SSE event for list creation
     try {
       log.info(`[SSE] Broadcasting list creation to ${userIdsToInvalidate.length} users`)
-      await broadcastToUsers([...new Set(userIdsToInvalidate)], {
+      // Each recipient also gets the list as their own GET returns it (AWTD-1046).
+      await broadcastListEvent({
+        listId: listWithDefaultAssignee.id,
+        recipients: userIdsToInvalidate,
         type: 'list_created',
-        timestamp: new Date().toISOString(),
-        data: listWithDefaultAssignee
+        data: listWithDefaultAssignee,
       })
     } catch (sseError) {
       log.error({ err: sseError }, 'Failed to broadcast list creation SSE event:')

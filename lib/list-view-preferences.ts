@@ -132,8 +132,15 @@ export async function saveListViewPreferences(args: {
   }
 }
 
-/** Overlay one stored row onto a list payload, leaving absent fields alone. */
-function overlay(list: ViewPreferenceCarrier, stored: ListViewPreferences | undefined): void {
+/**
+ * Overlay one stored row onto a list payload, leaving absent fields alone.
+ * Exported for callers that have already batch-loaded the rows for many users
+ * of one list (lib/lists/v1-list-shape.ts, AWTD-1046).
+ */
+export function overlayListViewPreferences(
+  list: ViewPreferenceCarrier,
+  stored: ListViewPreferences | undefined
+): void {
   if (!stored) return
   for (const field of LIST_VIEW_PREFERENCE_FIELDS) {
     // `null` in the row is a real value — the user cleared that filter — and
@@ -170,7 +177,7 @@ export async function hydrateListViewPreferences<T extends ViewPreferenceCarrier
 
   const byListId = new Map(stored.map(row => [row.listId, row as ListViewPreferences]))
   for (const list of lists) {
-    overlay(list, byListId.get(list.id))
+    overlayListViewPreferences(list, byListId.get(list.id))
   }
 
   return lists
@@ -185,6 +192,6 @@ export async function hydrateSingleListViewPreferences<T extends ViewPreferenceC
     where: { userId_listId: { userId, listId: list.id } },
   })) ?? null
 
-  overlay(list, (stored ?? undefined) as ListViewPreferences | undefined)
+  overlayListViewPreferences(list, (stored ?? undefined) as ListViewPreferences | undefined)
   return list
 }
