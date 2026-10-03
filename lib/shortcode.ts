@@ -7,12 +7,13 @@ import { BRAND } from '@/lib/brand/config'
 import { prisma } from "@/lib/prisma"
 import { customAlphabet } from "nanoid"
 import { createLogger } from '@/lib/logger'
+import { SHORTCODE_ALPHABET, SHORTCODE_LENGTH } from '@/lib/shortcode-format'
 
 const log = createLogger('shortcode')
 
 
-const SHORTCODE_LENGTH = 8
-const SHORTCODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+// Shape lives in lib/shortcode-format.ts so lib/legacy-api-usage.ts can strip
+// shortcodes out of telemetry without importing Prisma through this file.
 const nanoid = customAlphabet(SHORTCODE_ALPHABET, SHORTCODE_LENGTH)
 
 export type ShortcodeTargetType = "task" | "list"

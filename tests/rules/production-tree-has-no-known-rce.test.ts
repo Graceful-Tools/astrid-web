@@ -104,11 +104,12 @@ const ADVISORY_FLOORS: Array<{
 }> = [
   {
     name: 'next',
-    minVersion: '16.3.3',
+    minVersion: '16.3.6',
     severity: 'critical',
     advisory:
+      'GHSA-vcvr-r3jv-pc5j (RCE in next/og ImageResponse; >=16.2.0 <16.3.6, AWTD-1048), ' +
       'GHSA-2xp9-vwfh-vxw4 (unauthenticated RCE in the Image Optimization API with AVIF) ' +
-      'and GHSA-p293-qw3h-jr36 (unauthenticated RCE on Windows hosts); both <16.3.3',
+      'and GHSA-p293-qw3h-jr36 (unauthenticated RCE on Windows hosts); the last two <16.3.3',
   },
   {
     name: 'sharp',
@@ -132,6 +133,52 @@ const ADVISORY_FLOORS: Array<{
       '(parseBody memory exhaustion), GHSA-crvj-82cr-hjcx (query-parser cache-key ' +
       'differential); <=4.13.4. Reached through @modelcontextprotocol/sdk',
   },
+  {
+    name: 'undici',
+    minVersion: '6.28.1',
+    severity: 'high',
+    advisory:
+      'GHSA-rfgv-xxqx-mfg5 (DoS via an unrequested WebSocket subprotocol), ' +
+      'GHSA-3wwx-pv8p-q78v (permessage-deflate decompression DoS), GHSA-r53p-7pc4-xj5r ' +
+      '(retry-interceptor response splitting); <6.28.1. A direct dependency pinned ' +
+      'EXACTLY in package.json (AWTD-1050), so a lockfile refresh cannot fix it — bump the pin',
+  },
+  {
+    name: 'brace-expansion',
+    minVersion: '5.0.12',
+    severity: 'high',
+    advisory:
+      'GHSA-qhr7-859c-m2p7 (nested brace groups, uncontrolled recursion; >=4.0.0 <5.0.11), ' +
+      'GHSA-6j4f-fj2g-mc7p (parseCommaParts recursion; >=4.0.0 <5.0.10) and the moderate ' +
+      'GHSA-q2hr-2g5m-vwhr (quadratic `{a},b}` rewrite; >=4.0.0 <5.0.12) — AWTD-1052; ' +
+      'stack/CPU DoS. Reached through minimatch@10. The nested 1.x copies are ' +
+      'eslint-only (dev) and outside all three ranges',
+  },
+  {
+    name: 'fast-uri',
+    minVersion: '3.1.8',
+    severity: 'moderate',
+    advisory:
+      'GHSA-hrr3-gc8f-f4qj (inconsistent host case normalization via percent-encoded ' +
+      'octets); >=3.0.0 <3.1.8 — AWTD-1068. Reached through ajv',
+  },
+  {
+    name: 'ip-address',
+    minVersion: '10.7.1',
+    severity: 'moderate',
+    advisory:
+      'GHSA-j6r3-76f7-8jcv (isInSubnet compares across address families), ' +
+      'GHSA-h3mg-xc3c-68pw (unbounded parse diagnostic DoS), GHSA-rpw4-54j3-4h4q and ' +
+      'GHSA-2vr4-cq9g-pvrc (link-local / NAT64 SSRF classifier gaps); <=10.7.0 — AWTD-1068',
+  },
+  {
+    name: 'dompurify',
+    minVersion: '3.4.16',
+    severity: 'low',
+    advisory:
+      'GHSA-p98j-92pf-mc4p (IN_PLACE afterSanitize hook leaves detached handlers armed, ' +
+      'DOM XSS); >=3.4.13 <=3.4.15 — AWTD-1068. A direct dependency',
+  },
 ]
 
 /**
@@ -150,6 +197,22 @@ const NOT_SHIPPED: Array<{ name: string; why: string }> = [
       'recipient-domain validation bypasses, GHSA-8m3c-c648-2xjj disableFileAccess ' +
       'bypass), and 9.0.5 also violated its own peer range. Re-add it only alongside ' +
       'code that actually sends mail.',
+  },
+  {
+    name: 'braces',
+    why:
+      'GHSA-vfj7-8cjw-p6xm (stack-exhaustion DoS through deeply nested patterns) covers ' +
+      'every published version (<=3.0.3) and there is no patched release, so a floor ' +
+      'cannot express it. AWTD-1068: it reached production only through next-intl → ' +
+      '@parcel/watcher@2.5.1 → micromatch; @parcel/watcher 2.6.0 uses picomatch instead. ' +
+      'The remaining copies are dev-only (tailwindcss 3 via chokidar/fast-glob, ' +
+      'eslint-config-next via fast-glob).',
+  },
+  {
+    name: 'micromatch',
+    why:
+      'Every version depends on braces (see above). AWTD-1068: shipped only through ' +
+      '@parcel/watcher@2.5.1; keep it dev-only.',
   },
 ]
 

@@ -16,8 +16,9 @@ import { prisma } from '@/lib/prisma'
 import { canAccessChatChannel, getChatChannelRecipients } from '@/lib/chat-access'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { PushNotificationService } from '@/lib/push-notification-service'
-import { resolveDefaultAgent } from '@/lib/resolve-default-agent'
+import { resolveDefaultAgentWithReason } from '@/lib/resolve-default-agent'
 import { processAstridMessage } from '@/lib/astrid-agent-runtime'
+import { postAstridModelSetupPrompt, resolveRequestLocale } from '@/lib/astrid-agent/model-setup-prompt'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { createLogger } from '@/lib/logger'
 import { getUserRoleInList } from "@/lib/list-permissions"
@@ -75,6 +76,7 @@ export async function POST(
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+    const locale = resolveRequestLocale(req.headers.get('accept-language'))
 
     const body = await req.json()
     const { content, type, attachmentUrl, attachmentName, attachmentType, attachmentSize, replyToId, clientRequestId, fileId } = body
@@ -221,6 +223,7 @@ export async function POST(
               userName: senderName,
               channelId,
               listId: channel?.listId || null,
+              locale,
             }).catch(err => log.error({ err: err }, `[Chat API] ${BRAND.appName} runtime error:`))
           } else {
             // Other AI agents — send chat_mention SSE event for external processing
@@ -291,9 +294,15 @@ export async function POST(
           if (!isPersonalChannel) {
             // Shared channel — skip auto-response, require @mention
           } else {
-          const defaultAgentId = await resolveDefaultAgent(channel?.listId || null, auth.userId)
+          const resolution = await resolveDefaultAgentWithReason(channel?.listId || null, auth.userId)
+          const defaultAgentId = resolution.agentId
           log.info(`[Chat API] Default agent resolution: listId=${channel?.listId || 'null'}, userId=${auth.userId}, agentId=${defaultAgentId || 'null'}`)
-          if (defaultAgentId) {
+          if (resolution.agentId === null && resolution.reason !== 'none') {
+            // An assistant is selected but cannot run here (an on-device model
+            // on web, no key, a deleted agent). Silence until AWTD-1054.
+            postAstridModelSetupPrompt({ channelId, reason: resolution.reason, locale })
+              .catch(err => log.error({ err: err }, `[Chat API] ${BRAND.appName} setup prompt error:`))
+          } else if (defaultAgentId) {
             // Check if the default agent is Astrid
             const defaultAgent = await prisma.user.findUnique({
               where: { id: defaultAgentId },
@@ -308,6 +317,7 @@ export async function POST(
                 userName: senderName,
                 channelId,
                 listId: channel?.listId || null,
+                locale,
               }).catch(err => log.error({ err: err }, `[Chat API] ${BRAND.appName} default agent error:`))
             } else {
               // External agent — send SSE event

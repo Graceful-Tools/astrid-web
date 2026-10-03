@@ -34,6 +34,7 @@
       "openai",
       "gemini",
       "copilot",
+      "muse",
       "openclaw"
     ],
     "capabilities": {

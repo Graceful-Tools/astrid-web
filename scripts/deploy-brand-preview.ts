@@ -5,7 +5,7 @@
  * Task 97208a72. Brand variables come in two kinds and they need DIFFERENT flags:
  *
  *   NEXT_PUBLIC_*  are inlined into the bundle at build time  -> --build-env
- *   everything else (BRAND_ENABLED_AGENTS, BRAND_AGENT_EMAIL_DOMAIN) is read by server
+ *   everything else (BRAND_ENABLED_AGENTS, BRAND_ASSISTANT_SERVICE, BRAND_AGENT_EMAIL_DOMAIN) is read by server
  *                  code at request time                        -> --env (and --build-env,
  *                  so a build-time evaluation sees the same value)
  *

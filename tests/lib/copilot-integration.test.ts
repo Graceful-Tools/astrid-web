@@ -57,6 +57,7 @@ describe('GitHub Copilot end-to-end routing (task eed98c5f)', () => {
       openai: spy('openai'),
       gemini: spy('gemini'),
       copilot: spy('copilot'),
+      muse: spy('muse'),
     }
 
     const out = await dispatchToolCall({

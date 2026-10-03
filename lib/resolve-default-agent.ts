@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { hasValidApiKey } from '@/lib/api-key-cache'
 import { getAgentService, ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
+import type { ModelSetupReason } from '@/lib/astrid-agent/model-setup-prompt'
 
 const log = createLogger('resolve-default-agent')
 
@@ -115,6 +116,24 @@ export async function resolveDefaultAgent(
   listId: string | null,
   userId: string
 ): Promise<string | null> {
+  return (await resolveDefaultAgentWithReason(listId, userId)).agentId
+}
+
+/**
+ * The resolution, plus WHY nothing resolved (AWTD-1054).
+ *
+ * `none` means nobody selected an assistant, so a personal channel is just
+ * notes and stays quiet. Every other reason means one WAS selected and cannot
+ * run, which is the "set up a model" prompt's cue rather than silence.
+ */
+export type DefaultAgentResolution =
+  | { agentId: string }
+  | { agentId: null; reason: 'none' | ModelSetupReason }
+
+export async function resolveDefaultAgentWithReason(
+  listId: string | null,
+  userId: string
+): Promise<DefaultAgentResolution> {
   let agentId: string | null = null
 
   // 1. Check list-level override
@@ -155,13 +174,13 @@ export async function resolveDefaultAgent(
 
   if (!agentId) {
     log.info(`[resolveDefaultAgent] No agentId found for listId=${listId}, userId=${userId}`)
-    return null
+    return { agentId: null, reason: 'none' }
   }
 
   // 2b. On-device models (e.g. Apple Foundation Models) are handled client-side — no server processing
   if ((ON_DEVICE_MODEL_IDS as readonly string[]).includes(agentId)) {
     log.info(`[resolveDefaultAgent] On-device model selected for userId=${userId}, skipping server resolution`)
-    return null
+    return { agentId: null, reason: 'on-device' }
   }
 
   // 3. Validate: agent must exist and be an AI agent
@@ -172,7 +191,7 @@ export async function resolveDefaultAgent(
     })
     if (!agent?.isAIAgent) {
       log.info(`[resolveDefaultAgent] Agent ${agentId} not found or not AI agent`)
-      return null
+      return { agentId: null, reason: 'invalid-agent' }
     }
 
     // 4. Validate: user must have API key for this agent's service
@@ -183,17 +202,19 @@ export async function resolveDefaultAgent(
       const hasKey = await hasValidApiKey(userId, preferredService)
       if (!hasKey) {
         log.info(`[resolveDefaultAgent] No valid ${preferredService} API key for user ${userId}`)
-        return null
+        return { agentId: null, reason: 'no-key' }
       }
     } else {
       const service = getAgentService(agent.email) as 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
       const hasKey = await hasValidApiKey(userId, service)
-      if (!hasKey) return null
+      if (!hasKey) return { agentId: null, reason: 'no-key' }
     }
 
-    return agent.id
+    return { agentId: agent.id }
   } catch (error) {
+    // A lookup failure says nothing about the user's setup, so it must not
+    // tell them to go and fix it.
     log.error({ err: error }, '[resolveDefaultAgent] Error validating agent:')
-    return null
+    return { agentId: null, reason: 'none' }
   }
 }

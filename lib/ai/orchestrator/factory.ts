@@ -162,7 +162,7 @@ export async function createForTask<T extends AIOrchestratorLike>(
 
   const apiKeys = (mcpSettings.apiKeys || {}) as Record<string, { encrypted?: boolean }>
   const availableProviders = Object.keys(apiKeys).filter(
-    provider => apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini'].includes(provider),
+    provider => apiKeys[provider]?.encrypted && ['claude', 'openai', 'gemini', 'muse'].includes(provider),
   )
   if (await hasCopilotCredential(configuredByUserId)) availableProviders.push('copilot')
 

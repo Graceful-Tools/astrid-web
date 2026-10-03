@@ -60,7 +60,12 @@ describe('a task update is not broadcast back to its actor (task 8ef93fb9)', () 
     expect(broadcast.length).toBeGreaterThan(0)
 
     const declaration = source.slice(0, source.indexOf("type: justCompleted ? 'task_completed'"))
-    expect(declaration).toContain('broadcastToUsers(updateRecipients')
+    // Since AWTD-1040 the fan-out is two groups — viewers get the full v1
+    // task, a former assignee off the lists gets the lean event — and both
+    // are carved out of updateRecipients, never out of the raw audience.
+    expect(declaration).toContain('updateRecipients.filter(id => viewers.has(id))')
+    expect(declaration).toContain('updateRecipients.filter(id => !viewers.has(id))')
+    expect(declaration).toContain('broadcastToUsers(group')
   })
 
   it('derives updateRecipients from the filtered list, not from the raw audience', () => {

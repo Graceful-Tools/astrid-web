@@ -14,8 +14,9 @@ describe("buildAtomicFixallClaimWhere", () => {
   const now = new Date("2026-08-30T20:00:00.000Z")
   const webBoardId = "a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
   const iosBoardId = "aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36"
+  const windowsBoardId = "abb4f961-55ee-499e-9c51-d4a2e31ee439"
 
-  it("allows the web and iOS boards while preserving the other atomic guards", () => {
+  it("allows the web, iOS and Windows boards while preserving the other atomic guards", () => {
     expect(buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
@@ -24,13 +25,26 @@ describe("buildAtomicFixallClaimWhere", () => {
     })).toEqual(expect.objectContaining({
       id: "task-1",
       completed: false,
-      lists: { some: { id: { in: [webBoardId, iosBoardId] } } },
+      lists: { some: { id: { in: [webBoardId, iosBoardId, windowsBoardId] } } },
       OR: [{ assigneeId: null }, { assigneeId: "copilot-1" }],
       statusRole: "ready",
       AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
     }))
 
-    expect(FIXALL_CLAIM_BOARD_IDS).toEqual([webBoardId, iosBoardId])
+    expect(FIXALL_CLAIM_BOARD_IDS).toEqual([webBoardId, iosBoardId, windowsBoardId])
+  })
+
+  it("lets the Windows loop claim its own board's tasks (AWTD-1008)", () => {
+    // Missing from the allowlist, every Windows claim came back CLAIM_CONFLICT —
+    // which the workflow reads as a lost race and skips silently, forever.
+    const where = buildAtomicFixallClaimWhere({
+      taskId: "8aa5732c-a576-48c7-9c37-de94968d63e1",
+      agentId: "ai-agent-claude",
+      claim: { action: "ready", commentWatermark: null, agent: "claude" },
+      now,
+    })
+
+    expect(where.lists.some.id.in).toContain(windowsBoardId)
   })
 
   it("does not allow atomic claims from an arbitrary board", () => {

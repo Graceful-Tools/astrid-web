@@ -27,6 +27,7 @@ import {
 } from '@/lib/list-permissions'
 import { sendListInvitationEmail } from '@/lib/email'
 import { createLogger } from '@/lib/logger'
+import { INVITE_TOKEN_BYTES, INVITE_TOKEN_PREFIX } from '@/lib/invite-token-format'
 
 const log = createLogger('list-invite')
 
@@ -57,8 +58,17 @@ export interface InviterIdentity {
   name: string | null
 }
 
-function generateInvitationToken(): string {
-  return `inv_${randomBytes(16).toString('hex')}`
+/**
+ * Mint an invitation bearer token.
+ *
+ * The one generator for `Invitation.token` — `app/api/invitations/route.ts` and
+ * `lib/placeholder-user-service.ts` both call this rather than keeping their
+ * own (AWTD-989). The shape comes from `lib/invite-token-format.ts`, which
+ * `lib/legacy-api-usage.ts` also reads so telemetry strips the token instead of
+ * storing it.
+ */
+export function generateInvitationToken(): string {
+  return `${INVITE_TOKEN_PREFIX}${randomBytes(INVITE_TOKEN_BYTES).toString('hex')}`
 }
 
 export async function inviteToList(args: {

@@ -17,7 +17,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('user.ai-available-models')
 
 
-const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot'] as const
+const VALID_SERVICES = ['claude', 'openai', 'gemini', 'copilot', 'muse'] as const
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const service = request.nextUrl.searchParams.get('service') as typeof VALID_SERVICES[number] | null
     if (!service || !VALID_SERVICES.includes(service)) {
-      return NextResponse.json({ error: 'Invalid service. Use: claude, openai, gemini, copilot' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid service. Use: claude, openai, gemini, copilot, muse' }, { status: 400 })
     }
 
     // Get user's API key for this service

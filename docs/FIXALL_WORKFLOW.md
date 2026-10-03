@@ -331,7 +331,13 @@ does not auto-deploy, so `main` having the fix changes nothing until someone dep
 ## One task per scheduled run — and resuming a run that died
 
 **If `ASTRID_FIXALL_MAX_TASKS` is set, stop after working that many Ready tasks.** Push,
-report and release as usual, then end the run. Answering the inbox and clearing `RECHECK` /
+report and release as usual, then end the run.
+
+**If `ASTRID_FIXALL_NEXT_TASK` is set, take that task first** — the runner sized this run's
+watchdog for it. **Never take a task listed in `ASTRID_FIXALL_DEFER_TASKS`** (comma-separated
+ids): it is flagged `LONG-RUN`, this run has only the ordinary watchdog, and it will start in
+the long-run window instead. Leave it in Ready, without comment. (*Tasks longer than one run*,
+below.) Answering the inbox and clearing `RECHECK` /
 `REVIEW` do not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
 empty.
 
@@ -352,6 +358,34 @@ treat it as done or ship it.
 
 A harness without a scheduled runner (Windows today) follows the same rules when it is run
 on a schedule: set the cap, and put a died run's work on a branch before the next tick.
+
+### Tasks longer than one run — `LONG-RUN` (AWTD-1041)
+
+Some work does not fit 75 minutes, however it is split. Flag it with a line of its own in the
+task description:
+
+```
+LONG-RUN            ← 8 hours, the maximum
+LONG-RUN: 3h        ← or any shorter length (90m, 2.5 hours…), capped at 8h
+```
+
+The web runner's preflight (`scripts/agent-queue-status.ts --long-run-window`, decided in
+`scripts/lib/long-run.ts`) then plans the tick:
+
+- **Outside the long-run window** (22:00–06:00 local by default, `FIXALL_LONG_RUN_WINDOW`) the
+  flagged task is **deferred** — the run works the rest of the queue under the ordinary watchdog
+  and is told not to take it (`ASTRID_FIXALL_DEFER_TASKS`). A queue holding only deferred work is
+  an idle tick.
+- **Inside it**, the flagged task goes **first** (`ASTRID_FIXALL_NEXT_TASK`) and the run gets its
+  length as the watchdog, with a larger budget bound (`FIXALL_LONG_MAX_USD`, default 50).
+
+Why a window: a run holds the working-tree lock and launchd starts no second copy while it is
+alive, so an 8-hour run is sixteen ticks in which nothing else on the board moves. Overnight
+that costs nobody anything. A flag no longer than the ordinary watchdog changes nothing.
+
+Comment as you go on a long run (see below) — the stale-`Doing` backstop only runs between
+ticks, so it cannot release a live run, but a long silence still reads as abandoned to a person.
+The iOS runner does not read the flag yet.
 
 ## Doing must not be a dead end
 

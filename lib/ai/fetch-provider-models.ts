@@ -18,7 +18,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
  * Returns sorted model IDs relevant for chat/completion use.
  */
 export async function fetchProviderModels(
-  service: 'claude' | 'openai' | 'gemini' | 'copilot',
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse',
   apiKey: string
 ): Promise<string[]> {
   // Cache key uses first 8 chars of key to scope per-key without storing the full key
@@ -42,6 +42,9 @@ export async function fetchProviderModels(
         break
       case 'copilot':
         models = await fetchCopilotModels(apiKey)
+        break
+      case 'muse':
+        models = await fetchMuseModels(apiKey)
         break
       default:
         return []
@@ -115,6 +118,26 @@ async function fetchOpenAIModels(apiKey: string): Promise<string[]> {
     )
     .sort((a: string, b: string) => b.localeCompare(a))
   return models
+}
+
+/**
+ * Meta's Model API also lists the Muse Voice and Muse Image models, which the
+ * chat endpoint cannot run — only the Muse Spark family answers a completion.
+ */
+const MUSE_CHAT_MODEL = /^muse-spark/
+
+async function fetchMuseModels(apiKey: string): Promise<string[]> {
+  const { MUSE_BASE_URL } = await import('./providers/muse-provider')
+  const res = await fetch(`${MUSE_BASE_URL}/models`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  const models: string[] = (data.data || [])
+    .map((m: { id: string }) => m.id)
+    .filter((id: string) => id && MUSE_CHAT_MODEL.test(id))
+    .sort((a: string, b: string) => b.localeCompare(a))
+  return Array.from(new Set(models))
 }
 
 async function fetchGeminiModels(apiKey: string): Promise<string[]> {

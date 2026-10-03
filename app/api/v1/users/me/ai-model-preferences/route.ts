@@ -27,7 +27,7 @@ import { DEFAULT_MODELS, SUGGESTED_MODELS, type AIService } from '@/lib/ai/agent
 
 const TAG = 'v1.users.me.ai-model-preferences'
 
-const SERVICES = ['claude', 'openai', 'gemini', 'copilot', 'openclaw'] as const
+const SERVICES = ['claude', 'openai', 'gemini', 'copilot', 'muse', 'openclaw'] as const
 
 const UpdateModelSchema = z.object({
   serviceId: z.enum(SERVICES),

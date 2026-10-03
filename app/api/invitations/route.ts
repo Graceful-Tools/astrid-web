@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { inviteRateLimiter } from "@/lib/rate-limiter"
-import { randomBytes } from "crypto"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { sendInvitationEmail } from "@/lib/email"
 import { createLogger } from '@/lib/logger'
+// One generator for Invitation.token, shared with the telemetry normaliser that
+// has to strip it out of route strings (AWTD-989).
+import { generateInvitationToken } from "@/lib/list-invite"
 
 const log = createLogger('invitations')
-
-
-// Generate cryptographically secure invitation token
-function generateInvitationToken(): string {
-  return `inv_${randomBytes(16).toString('hex')}`
-}
 
 interface CreateInvitationData {
   email: string

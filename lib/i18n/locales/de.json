@@ -1051,5 +1051,11 @@
   },
   "userPicker": {
     "optionalMessage": "Optionale Nachricht …"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "Ich helfe gern, aber ich brauche ein KI-Modell, um antworten zu können! Öffne {settingsLink}, um dein bevorzugtes Modell einzurichten.",
+      "onDeviceUnavailable": "Dein ausgewähltes Modell läuft nur auf unterstützten Apple-Geräten, deshalb kann ich hier nicht antworten. Öffne {settingsLink}, um ein Modell zu wählen, das überall funktioniert."
+    }
   }
 }

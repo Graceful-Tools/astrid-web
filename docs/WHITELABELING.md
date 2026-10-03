@@ -33,7 +33,7 @@ environment at all and is asserted on every predeploy.
 | `NEXT_PUBLIC_*` | inlined into the bundle at build | `--build-env` |
 | everything else | by server code at request time | `--env` **and** `--build-env` |
 
-Passing a server-only variable (`BRAND_ENABLED_AGENTS`, `BRAND_AGENT_EMAIL_DOMAIN`) as
+Passing a server-only variable (`BRAND_ENABLED_AGENTS`, `BRAND_ASSISTANT_SERVICE`, `BRAND_AGENT_EMAIL_DOMAIN`) as
 `--build-env` alone **silently does nothing** — present while Next compiles, absent when
 the route runs. `scripts/deploy-brand-preview.ts` routes each variable correctly; if you
 deploy by hand, do the same.
@@ -141,6 +141,13 @@ and no runtime flag can turn it back on. Check the capability first.
 it needs `--env`). The default assistant is always retained — dropping it would orphan
 every task already assigned to it. Agent identities live at `BRAND_AGENT_EMAIL_DOMAIN`,
 defaulting to the brand domain.
+
+`BRAND_ASSISTANT_SERVICE=openai` picks the provider behind that default assistant — your
+equivalent of Astrid — for any user who has not chosen one (AWTD-1056). One of `claude`,
+`openai`, `gemini`, `copilot`; it must also be enabled, else the first enabled provider is
+used, else Claude. A user's own choice in settings still wins. Local harnesses (`codex`,
+`muse`) and Custom Agents cannot back it: the server dispatches nothing to them.
+Server-only, like `BRAND_ENABLED_AGENTS`.
 
 Clients learn all of this from **`GET /api/v1/capabilities`** rather than assuming, since
 one mobile build can point at several deployments.
