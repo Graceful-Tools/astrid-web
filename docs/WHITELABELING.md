@@ -52,6 +52,7 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_TITLE` | `Astrid Task Manager` | `<title>`, OpenGraph, PWA manifest |
 | `NEXT_PUBLIC_BRAND_TAGLINE` | *(prose)* | Metadata description |
 | `NEXT_PUBLIC_BRAND_DOMAIN` | `astrid.cc` | Apex, no scheme |
+| `NEXT_PUBLIC_BRAND_CANONICAL_HOST` | `www.` + a two-label domain; otherwise the domain itself | Host that page requests on the domain are 308'd to. A subdomain brand (`tasks.example.com`) needs nothing; set it only if your `www.` host differs from that guess |
 | `NEXT_PUBLIC_BRAND_SUPPORT_EMAIL` | `support@astrid.cc` | |
 | `NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL` | `remindme@astrid.cc` | Email-to-task address |
 | `NEXT_PUBLIC_BRAND_ACCENT_COLOR` | `#3b82f6` | `theme_color`, viewport, default list colour, and the UI accent (`--theme-accent`: buttons, links, focus ring) |

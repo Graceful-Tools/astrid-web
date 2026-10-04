@@ -72,6 +72,19 @@ describe('BRAND defaults (task 97208a72)', () => {
     expect(BRAND.agentEmailDomain).toBe('agents.acme.example')
   })
 
+  it('canonicalises to www only for a bare apex (AWTD-1082)', async () => {
+    expect((await import('@/lib/brand/config')).BRAND.canonicalHost).toBe('www.astrid.cc')
+
+    // www.tasks.gracefultools.com has no DNS record: a subdomain is its own canonical host.
+    vi.resetModules()
+    process.env.NEXT_PUBLIC_BRAND_DOMAIN = 'tasks.gracefultools.com'
+    expect((await import('@/lib/brand/config')).BRAND.canonicalHost).toBe('tasks.gracefultools.com')
+
+    vi.resetModules()
+    process.env.NEXT_PUBLIC_BRAND_CANONICAL_HOST = 'app.gracefultools.com'
+    expect((await import('@/lib/brand/config')).BRAND.canonicalHost).toBe('app.gracefultools.com')
+  })
+
   it('starts on ocean with Inter unless the brand says otherwise', async () => {
     const { BRAND } = await import('@/lib/brand/config')
     expect(BRAND.defaultTheme).toBe('ocean')

@@ -41,6 +41,7 @@ interface BrandProfile {
     appName: string
     productTitle: string
     domain: string
+    canonicalHost: string
     agentEmailDomain: string
     supportEmail: string
     inboundTaskEmail: string
@@ -322,18 +323,37 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     const { NextRequest } = await import('next/server')
 
     const domain = profile.expect.domain
+    const canonicalHost = profile.expect.canonicalHost
     const res = middleware(
       new NextRequest(`https://${domain}/dashboard`, { headers: { host: domain } })
     )
 
+    if (canonicalHost === domain) {
+      // AWTD-1082: tasks.gracefultools.com redirected to www.tasks.gracefultools.com,
+      // a host with no DNS record, so the whole partner site was unreachable.
+      expect(res.status, `${domain} is already canonical`).not.toBe(308)
+      return
+    }
+
     // A partner deployment redirecting to www.astrid.cc would hand its traffic
     // to someone else's domain.
     expect(res.status).toBe(308)
-    expect(res.headers.get('location')).toContain(`www.${domain}`)
+    expect(new URL(res.headers.get('location')!).host).toBe(canonicalHost)
     for (const literal of profile.expect.forbidLiterals) {
       expect(res.headers.get('location'), `redirect leaks "${literal}"`)
         .not.toContain(literal)
     }
+  })
+
+  it('serves the canonical host without redirecting it again', async () => {
+    const { middleware } = await import('@/middleware')
+    const { NextRequest } = await import('next/server')
+
+    const host = profile.expect.canonicalHost
+    const res = middleware(
+      new NextRequest(`https://${host}/dashboard`, { headers: { host } })
+    )
+    expect(res.status).not.toBe(308)
   })
 
   it('never redirects the API, .well-known or /mcp across hosts', async () => {

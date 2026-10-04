@@ -24,6 +24,7 @@
     "appName": "Whitelabel",
     "productTitle": "Whitelabel Tasks",
     "domain": "astrid.cc",
+    "canonicalHost": "www.astrid.cc",
     "agentEmailDomain": "astrid.cc",
     "supportEmail": "whitelabel-support@astrid.cc",
     "inboundTaskEmail": "whitelabel-tasks@astrid.cc",

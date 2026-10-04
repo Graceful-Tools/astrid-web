@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' ? `https://www.${BRAND.domain}` : '*',
+      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' ? `https://${BRAND.canonicalHost}` : '*',
       'Access-Control-Allow-Headers': 'Cache-Control, Cookie, Authorization',
       'Access-Control-Allow-Credentials': 'true',
       'X-Accel-Buffering': 'no', // Disable Nginx buffering

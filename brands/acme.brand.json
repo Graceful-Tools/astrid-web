@@ -28,6 +28,7 @@
     "appName": "Acme",
     "productTitle": "Acme Tasks",
     "domain": "tasks.acme.example",
+    "canonicalHost": "tasks.acme.example",
     "agentEmailDomain": "agents.acme.example",
     "supportEmail": "helpdesk@acme.example",
     "inboundTaskEmail": "todo@acme.example",

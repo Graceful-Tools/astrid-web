@@ -6,6 +6,7 @@
     "appName": "Astrid",
     "productTitle": "Astrid Task Manager",
     "domain": "astrid.cc",
+    "canonicalHost": "www.astrid.cc",
     "agentEmailDomain": "astrid.cc",
     "supportEmail": "support@astrid.cc",
     "inboundTaskEmail": "remindme@astrid.cc",

@@ -33,6 +33,7 @@
     "appName": "Whitelabel",
     "productTitle": "Whitelabel Tasks",
     "domain": "tasks.gracefultools.com",
+    "canonicalHost": "tasks.gracefultools.com",
     "agentEmailDomain": "tasks.gracefultools.com",
     "supportEmail": "support@tasks.gracefultools.com",
     "inboundTaskEmail": "tasks@tasks.gracefultools.com",

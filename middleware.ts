@@ -115,8 +115,9 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
 
   const nonceRequestInit = nonce ? { request: { headers: request.headers } } : undefined
 
-  // Canonicalise the apex to www for THIS brand's domain. Hardcoding astrid.cc
-  // sent a partner's apex traffic to somebody else's host.
+  // Canonicalise the apex to THIS brand's canonical host. Hardcoding astrid.cc
+  // sent a partner's apex traffic to somebody else's host, and always adding
+  // `www.` sent a subdomain brand to a host with no DNS (AWTD-1082).
   // EXCEPT for:
   // - .well-known paths (needed for iOS passkeys/AASA)
   // - /api routes (the iOS app uses the apex directly for API calls)
@@ -127,12 +128,13 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
   //   page — it must not be canonicalised.
   if (
     host === BRAND.domain &&
+    host !== BRAND.canonicalHost &&
     !pathname.startsWith("/.well-known") &&
     !isApi &&
     !pathname.startsWith("/mcp")
   ) {
     const url = request.nextUrl.clone()
-    url.host = `www.${BRAND.domain}`
+    url.host = BRAND.canonicalHost
     // Use 308 to preserve HTTP method (301 converts POST to GET)
     return NextResponse.redirect(url, 308)
   }

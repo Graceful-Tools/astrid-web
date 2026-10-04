@@ -195,6 +195,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_TITLE', scope: 'optional', description: 'Full product title for <title>, OpenGraph and the manifest.' },
   { name: 'NEXT_PUBLIC_BRAND_TAGLINE', scope: 'optional', description: 'One-line description used in metadata.' },
   { name: 'NEXT_PUBLIC_BRAND_DOMAIN', scope: 'optional', description: 'Apex domain, no scheme. Drives the redirect target, CORS allow-list and base URL.', validate: isDomain },
+  { name: 'NEXT_PUBLIC_BRAND_CANONICAL_HOST', scope: 'optional', description: 'Host page requests on the brand domain are 308d to. Defaults to www. + a two-label domain, else the domain itself.', validate: isDomain },
   { name: 'NEXT_PUBLIC_BRAND_SUPPORT_EMAIL', scope: 'optional', description: 'Support address shown to users.', validate: isEmail },
   { name: 'NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL', scope: 'optional', description: 'Address that turns inbound email into tasks.', validate: isEmail },
   { name: 'NEXT_PUBLIC_BRAND_ACCENT_COLOR', scope: 'optional', description: 'Accent colour: default list colour, focus ring, email chrome, theme_color.', validate: isHexColour },

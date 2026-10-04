@@ -51,6 +51,20 @@ function env(value: string | undefined, fallback: string): string {
   return trimmed ? trimmed : fallback
 }
 
+/**
+ * The host pages are served from when nothing says otherwise: `www.` for a bare
+ * two-label apex (`astrid.cc`), the domain itself for anything deeper.
+ *
+ * AWTD-1082: always prefixing `www.` sent `tasks.gracefultools.com` to
+ * `www.tasks.gracefultools.com`, which has no DNS record, so the partner site
+ * was unreachable. Guessing "no www" for a multi-label apex like `example.co.uk`
+ * only skips a cosmetic redirect; guessing "www" for a subdomain takes the site
+ * down. Set NEXT_PUBLIC_BRAND_CANONICAL_HOST when the guess is wrong.
+ */
+function defaultCanonicalHost(domain: string): string {
+  return domain.split('.').length === 2 ? `www.${domain}` : domain
+}
+
 export const BRAND = {
   /** Short product name, e.g. "Astrid". Interpolated into i18n copy as `{appName}`. */
   appName: env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.appName),
@@ -63,6 +77,16 @@ export const BRAND = {
 
   /** Apex domain, without scheme. Used for the production base-URL fallback. */
   domain: env(process.env.NEXT_PUBLIC_BRAND_DOMAIN, DEFAULTS.domain),
+
+  /**
+   * The host pages are canonicalised to — middleware 308s `domain` here when they
+   * differ. `www.astrid.cc` for Astrid; a partner on a subdomain is its own canonical
+   * host. See defaultCanonicalHost.
+   */
+  canonicalHost: env(
+    process.env.NEXT_PUBLIC_BRAND_CANONICAL_HOST,
+    defaultCanonicalHost(env(process.env.NEXT_PUBLIC_BRAND_DOMAIN, DEFAULTS.domain))
+  ),
 
   /**
    * Domain for AI agent identities (`claude@<domain>`). Server-only: agent emails are
