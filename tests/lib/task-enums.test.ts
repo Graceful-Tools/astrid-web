@@ -196,4 +196,19 @@ describe('normalizeRepeatingData — shared by task create and update (AWTD-1035
     expect(normalizeRepeatingData('custom', '{not json')).toBeNull()
     expect(normalizeRepeatingData('custom', undefined)).toBeNull()
   })
+
+  // A monthly pattern without monthRepeatType ends the series at its next completion on every
+  // client, so it is never stored without one: "same date", counted from the repeat anchor.
+  it('AWTD-1074: a monthly pattern with no monthRepeatType is stored as same_date', () => {
+    const every6Months = { type: 'custom', unit: 'months', interval: 6, endCondition: 'never' }
+    expect(normalizeRepeatingData('custom', every6Months)).toEqual({ ...every6Months, monthRepeatType: 'same_date' })
+    expect(normalizeRepeatingData('custom', JSON.stringify(every6Months))).toEqual({ ...every6Months, monthRepeatType: 'same_date' })
+    expect(normalizeRepeatingData('custom', { ...every6Months, monthRepeatType: 'bogus' })).toEqual({ ...every6Months, monthRepeatType: 'same_date' })
+  })
+
+  it('AWTD-1074: keeps a monthRepeatType that is set, and leaves other units alone', () => {
+    const weekday = { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: 1 } }
+    expect(normalizeRepeatingData('custom', weekday)).toEqual(weekday)
+    expect(normalizeRepeatingData('custom', { unit: 'weeks', interval: 1 })).toEqual({ unit: 'weeks', interval: 1 })
+  })
 })
