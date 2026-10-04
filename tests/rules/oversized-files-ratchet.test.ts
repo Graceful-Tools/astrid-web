@@ -149,7 +149,9 @@ const BUDGETS: Record<string, number> = {
   'components/oauth-app-manager.tsx': 859,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.
-  'lib/email-reminder-service.ts': 791,
+  // 791 → 790: AWTD-1073 escaped the HTML templates and dropped a duplicate
+  // branch in formatDueDate.
+  'lib/email-reminder-service.ts': 790,
 }
 
 /** Product code. Tests and scripts are long for their own reasons. */

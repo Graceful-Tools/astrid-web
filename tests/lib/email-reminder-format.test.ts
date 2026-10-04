@@ -475,4 +475,56 @@ describe('EmailReminderService - Email Format', () => {
       expect(text).toContain('/lists/list-456?task=task-snooze2&action=snooze')
     })
   })
+
+  // AWTD-1073: on a shared list another member's task title or list name lands
+  // in YOUR reminder email, so it must arrive as text, never as markup.
+  describe('AWTD-1073: user text is HTML-escaped in reminder and digest emails', () => {
+    const HOSTILE = '<a href="https://evil">x</a><img src=x onerror=alert(1)>'
+    const ESCAPED = '&lt;a href=&quot;https://evil&quot;&gt;x&lt;/a&gt;&lt;img src=x onerror=alert(1)&gt;'
+    const hostileTask = () => createMockTask({
+      title: HOSTILE,
+      listNames: [HOSTILE],
+      assigneeName: HOSTILE,
+      collaborators: [
+        { id: 'c1', name: '<b x', email: 'c@example.com' },
+        { id: 'c2', name: 'Ok', email: 'd@example.com' },
+      ],
+    })
+
+    const expectNoRawMarkup = (html: string) => {
+      expect(html).not.toContain('<a href="https://evil">')
+      expect(html).not.toContain('<img src=x onerror')
+      expect(html).toContain(ESCAPED)
+    }
+
+    it('task reminder HTML escapes title, list names, assignee and collaborator initials (AWTD-1073)', () => {
+      const html = (service as any).getTaskReminderHtml(hostileTask())
+      expectNoRawMarkup(html)
+      expect(html).not.toContain('<div class="avatar"><X</div>')
+      expect(html).toContain('<div class="avatar">&lt;X</div>')
+    })
+
+    it('daily digest HTML escapes task titles and list names (AWTD-1073)', () => {
+      const data: DailyDigestData = {
+        userId: 'user-1',
+        userEmail: 'test@example.com',
+        userName: HOSTILE,
+        overdueTasks: [],
+        dueTodayTasks: [hostileTask()],
+        dueTomorrowTasks: [],
+        upcomingTasks: [],
+      }
+      expectNoRawMarkup((service as any).getDailyDigestHtml(data))
+    })
+
+    it('weekly digest HTML escapes user name, task titles and list names (AWTD-1073)', () => {
+      const html = (service as any).getWeeklyDigestHtml({ userName: HOSTILE, upcomingTasks: [hostileTask()] })
+      expectNoRawMarkup(html)
+    })
+
+    it('plain-text reminder keeps the title as written (AWTD-1073)', () => {
+      const text = (service as any).getTaskReminderText(hostileTask())
+      expect(text).toContain('Task: ' + HOSTILE)
+    })
+  })
 })

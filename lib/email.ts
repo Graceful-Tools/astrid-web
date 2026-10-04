@@ -4,6 +4,7 @@ import { isEmailTransportLive, sendTransportEmail } from '@/lib/email-transport'
 import { getBaseUrl } from './base-url'
 import { BRAND } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
+import { escapeEmailHtml } from '@/lib/email-html'
 
 const log = createLogger('email')
 
@@ -404,20 +405,6 @@ interface FeatureAccessRequestData {
   useCase: string | null
   userEmail: string
   userName: string | null
-}
-
-/**
- * The use case is free text typed by a user and lands in an HTML email body,
- * so it must be escaped at the point of interpolation. Kept local rather than
- * imported from lib/markdown.ts, whose escapeHtml is module-private.
- */
-function escapeEmailHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
 }
 
 /**
