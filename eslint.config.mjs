@@ -23,7 +23,9 @@ const eslintConfig = [
       "metrics/**",
       "playwright-report/**",
       "coverage/**",
-      "public/**"
+      "public/**",
+      // wasm-bindgen output, vendored from astrid-core by scripts/build-astrid-rules.sh.
+      "packages/astrid-rules/**"
     ]
   },
   ...nextCoreWebVitals,
