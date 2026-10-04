@@ -286,10 +286,18 @@ export const useTaskOperations = ({
       // The server uses this to correctly calculate the next occurrence
       // without timezone confusion (e.g., 9pm PST = 5am UTC next day)
       let localCompletionDate: string | undefined
+      // And the browser's zone, so a TIMED repeating task steps on the person's calendar, as on
+      // iOS: 9am stays 9am across a daylight-saving change (AWTD-1063).
+      let timeZone: string | undefined
       if (updates.completed === true) {
         const now = new Date()
         // Format as YYYY-MM-DD in local timezone
         localCompletionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        try {
+          timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined
+        } catch {
+          timeZone = undefined
+        }
       }
 
       const apiData: Partial<ApiUpdateTaskData> = {
@@ -304,7 +312,8 @@ export const useTaskOperations = ({
           : updates.assigneeId || undefined,
         listIds: updates.listIds,
         repeating: (updates.repeating ?? existingTask?.repeating ?? currentTaskContext?.repeating) as any,
-        ...(localCompletionDate && { localCompletionDate })
+        ...(localCompletionDate && { localCompletionDate }),
+        ...(timeZone && { timeZone }),
       }
 
       // Check if offline

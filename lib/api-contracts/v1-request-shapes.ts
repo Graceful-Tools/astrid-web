@@ -154,6 +154,13 @@ export interface V1TaskUpdateRequest {
    * 11pm in their zone may be on the next UTC day already.
    */
   localCompletionDate?: string | null
+  /**
+   * The client's IANA time zone at completion (`America/Los_Angeles`), AWTD-1063. When the server
+   * rolls a TIMED repeating task forward, it steps on this zone's calendar, as iOS does, so 9am
+   * stays 9am across a daylight-saving change and "the third Tuesday" is the person's Tuesday.
+   * Absent, or a name the server does not know: UTC's calendar, the server's old answer.
+   */
+  timeZone?: string | null
 
   /**
    * How many occurrences of a repeating series have been completed (AWTD-1035).
@@ -458,7 +465,7 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
       }
     }
   }
-  for (const f of ['completedSource', 'localCompletionDate'] as const) {
+  for (const f of ['completedSource', 'localCompletionDate', 'timeZone'] as const) {
     if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
   }
 

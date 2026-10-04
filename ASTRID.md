@@ -484,6 +484,11 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   The same holds for **search queries** (AWTD-1062): `parseSearchQuery`
   (`lib/search-query-parser.ts`) is parsed by the core's `searchParse` on the
   server, TypeScript as fallback, pinned by `core-rules-search-parity.test.ts`.
+  **Repeating-task rollover** too (AWTD-1063): the server's completion path asks
+  `nextOccurrenceForTask` (`lib/repeating-rollover.ts`), which the core's `nextOccurrence`
+  answers; `types/repeating.ts` is the same rule in TypeScript (fallback and fixture source),
+  pinned by `core-rules-repeating-parity.test.ts`. A timed task steps on the person's zone
+  (the browser sends `timeZone`), an all-day one on UTC's. The browser computes no rollover.
   The quick-add parser `parseTaskInput` runs only in the browser, so it stays
   TypeScript; `core-rules-smart-parity.test.ts` pins it to the core's
   `smartParse` (what iOS and the Mac run).

@@ -49,5 +49,14 @@ export async function register() {
     } catch (error) {
       console.error('search query: astrid-core module failed to import; the TypeScript parses', error)
     }
+    // Repeating-task rollover too (AWTD-1063): lib/repeating-rollover.ts's nextOccurrenceForTask,
+    // whose caller is the server's completion path (lib/repeating-task-handler.ts). Same setting,
+    // same fallback, pinned by the shared repeating fixture.
+    try {
+      const { installRepeatingCore } = await import('@/lib/core-rules/repeating-core')
+      installRepeatingCore()
+    } catch (error) {
+      console.error('repeating: astrid-core module failed to import; the TypeScript decides', error)
+    }
   }
 }

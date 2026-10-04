@@ -45,6 +45,11 @@ export interface RepeatingCompletionArgs {
   /** YYYY-MM-DD from client; only used for all-day repeating tasks in COMPLETION_DATE mode. */
   localCompletionDate?: string
   /**
+   * The client's IANA zone (AWTD-1063). A timed series steps on this calendar, as on iOS; without
+   * it, on UTC's. Unknown names read as absent.
+   */
+  timeZone?: string | null
+  /**
    * Set when the task is being closed as canceled / duplicate / not-planned
    * rather than done (task 11042ae3).
    */
@@ -62,7 +67,7 @@ export interface RepeatingCompletionArgs {
 export async function resolveRepeatingTaskCompletion(
   args: RepeatingCompletionArgs,
 ): Promise<RepeatingTaskResult | null> {
-  const { taskId, existingCompleted, dataCompleted, localCompletionDate, closedReason } = args
+  const { taskId, existingCompleted, dataCompleted, localCompletionDate, timeZone, closedReason } = args
 
   if (dataCompleted === undefined) return null
 
@@ -77,6 +82,7 @@ export async function resolveRepeatingTaskCompletion(
     existingCompleted,
     dataCompleted,
     localCompletionDate,
+    timeZone,
   )
 
   if (!result?.shouldRollForward && !result?.shouldTerminate) return null
