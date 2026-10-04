@@ -144,6 +144,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // keyword tables beside the answers so a client reads the same words.
   'smart.json': () => runDriver('smart.mjs', 'smart'),
   'task-identifiers.json': exportTaskIdentifiers,
+  // How a description, comment or chat message reads: web's renderer run in a jsdom window (the
+  // browser path, through DOMPurify) and its HTML read back into the core's blocks (AWTD-1064).
+  'markdown.json': () => runDriver('markdown.mjs', 'markdown'),
 }
 
 let failed = false
