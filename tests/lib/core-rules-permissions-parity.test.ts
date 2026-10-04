@@ -93,7 +93,20 @@ describe('the permissions fixture at the pinned core revision', () => {
     expect(has((l) => l.admins?.length)).toBe(true)
     expect(has((l) => l.members?.length)).toBe(true)
     expect(has((l) => l.listType === 'status' && l.project?.lists?.length)).toBe(true)
-    expect(fixture.cases.length).toBeGreaterThanOrEqual(64)
+    expect(fixture.cases.length).toBeGreaterThanOrEqual(68)
+  })
+
+  it('records that project owners and admins outrank a plain list membership (2026-10-04)', () => {
+    // At a core revision from before the decision these cases say "member", and the TypeScript
+    // run above fails on them: the pin and the rules must move together.
+    const outranked = fixture.cases.filter(
+      (c) =>
+        c.list.listMembers?.some((m) => m.userId === fixture.userId && m.role?.toLowerCase() !== 'admin') &&
+        (c.list.project?.ownerId === fixture.userId ||
+          c.list.project?.members?.some((m) => m.userId === fixture.userId && m.role?.toLowerCase() === 'admin')),
+    )
+    expect(outranked.length).toBeGreaterThanOrEqual(3)
+    for (const c of outranked) expect(c.expected.role).toBe('admin')
   })
 
   it('puts every case to the core — none is outside its domain any more', () => {
