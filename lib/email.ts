@@ -4,6 +4,7 @@ import { isEmailTransportLive, sendTransportEmail } from '@/lib/email-transport'
 import { getBaseUrl } from './base-url'
 import { BRAND } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
+import { escapeEmailHtml } from '@/lib/email-html'
 
 const log = createLogger('email')
 
@@ -137,7 +138,7 @@ export async function sendVerificationEmail(data: EmailVerificationData) {
 function getVerificationEmailHtml(data: EmailVerificationData, verifyUrl: string): string {
   const action = data.isEmailChange ? "confirm your new email address" : "verify your email address"
   const warning = data.isEmailChange 
-    ? `<p><strong>Note:</strong> This will change your email from ${data.currentEmail} to ${data.email}.</p>`
+    ? `<p><strong>Note:</strong> This will change your email from ${escapeEmailHtml(data.currentEmail ?? "")} to ${escapeEmailHtml(data.email)}.</p>`
     : ""
 
   return `
@@ -157,7 +158,7 @@ function getVerificationEmailHtml(data: EmailVerificationData, verifyUrl: string
     <body>
       <div class="container">
         <h2>Email Verification Required</h2>
-        <p>Hi ${data.userName},</p>
+        <p>Hi ${escapeEmailHtml(data.userName)},</p>
         <p>Please click the button below to ${action}:</p>
         
         ${warning}
@@ -273,14 +274,14 @@ function getListInvitationHtml(data: ListInvitationData): string {
     <body>
       <div class="container">
         <h2>You've been invited to collaborate!</h2>
-        <p><strong>${data.inviterName}</strong> has invited you to collaborate on the list <strong>"${data.listName}"</strong>.</p>
+        <p><strong>${escapeEmailHtml(data.inviterName)}</strong> has invited you to collaborate on the list <strong>"${escapeEmailHtml(data.listName)}"</strong>.</p>
         
         <div class="list-info">
           <p><strong>Your role:</strong> ${data.role}</p>
           <p>As a ${data.role}, you'll be able to ${roleDescription}.</p>
         </div>
         
-        ${data.message ? `<p><em>Message from ${data.inviterName}:</em></p><p>"${data.message}"</p>` : ''}
+        ${data.message ? `<p><em>Message from ${escapeEmailHtml(data.inviterName)}:</em></p><p>"${escapeEmailHtml(data.message)}"</p>` : ''}
         
         <p>Click the button below to accept the invitation:</p>
         
@@ -356,9 +357,9 @@ function getEmailHtml(invitation: Invitation, inviteUrl: string): string {
     <body>
       <div class="container">
         <h2>You've been invited!</h2>
-        <p><strong>${senderName}</strong> has invited you to collaborate on a task management workspace.</p>
+        <p><strong>${escapeEmailHtml(senderName)}</strong> has invited you to collaborate on a task management workspace.</p>
         
-        ${invitation.message ? `<p><em>"${invitation.message}"</em></p>` : ''}
+        ${invitation.message ? `<p><em>"${escapeEmailHtml(invitation.message)}"</em></p>` : ''}
         
         <p>Click the button below to accept the invitation:</p>
         
@@ -404,20 +405,6 @@ interface FeatureAccessRequestData {
   useCase: string | null
   userEmail: string
   userName: string | null
-}
-
-/**
- * The use case is free text typed by a user and lands in an HTML email body,
- * so it must be escaped at the point of interpolation. Kept local rather than
- * imported from lib/markdown.ts, whose escapeHtml is module-private.
- */
-function escapeEmailHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
 }
 
 /**
