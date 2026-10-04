@@ -28,7 +28,7 @@ const DAILY: TaskNextOccurrenceInput = {
 // The TypeScript's answer for DAILY: 9am PDT the next day.
 const TYPESCRIPT = '2026-03-08T16:00:00.000Z'
 
-const answering = (value: Record<string, unknown>) => vi.fn(() => JSON.stringify({ ok: true, value }))
+const answering = (value: Record<string, unknown>) => vi.fn((_request: string) => JSON.stringify({ ok: true, value }))
 
 afterEach(() => {
   setRepeatingCore(null)
@@ -43,7 +43,7 @@ describe('the core decides', () => {
     setRepeatingCore(hook.next)
 
     expect(nextOccurrenceForTask(DAILY)).toEqual({ nextDueDate: '2030-01-01T00:00:00.000Z', shouldTerminate: false, newOccurrenceCount: 9 })
-    const request = JSON.parse(core.mock.calls[0][0] as unknown as string)
+    const request = JSON.parse(core.mock.calls[0][0])
     expect(request).toEqual({
       kind: 'nextOccurrence',
       repeating: 'daily',
@@ -62,7 +62,7 @@ describe('the core decides', () => {
     const core = answering({ nextDueDate: '2026-03-08T17:00:00Z', shouldTerminate: false, newOccurrenceCount: 1 })
     setRepeatingCore(createRepeatingCore(core, silentReporter()).next)
     nextOccurrenceForTask({ ...DAILY, currentDueDate: new Date('2026-03-07T17:00:00Z'), completion: new Date('2026-03-07T18:00:00Z'), timeZone: null })
-    const request = JSON.parse(core.mock.calls[0][0] as unknown as string)
+    const request = JSON.parse(core.mock.calls[0][0])
     expect(request).toMatchObject({ currentDueDate: '2026-03-07T17:00:00.000Z', completion: '2026-03-07T18:00:00.000Z', timeZone: 'UTC' })
   })
 
