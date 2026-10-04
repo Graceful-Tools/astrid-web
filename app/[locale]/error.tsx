@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle, RefreshCw, Home } from "lucide-react"
 import Link from "next/link"
 import { createLogger } from '@/lib/logger'
+import { reportClientError } from '@/lib/client-error-report'
 
 const log = createLogger('[locale].error.tsx')
 
@@ -24,6 +25,8 @@ export default function Error({ error, reset }: ErrorProps) {
     if (process.env.NODE_ENV === "development") {
       log.error({ err: error }, "Route error:")
     }
+    // Production is where a render error has to be recorded (AWTD-1076).
+    reportClientError(error, "route")
   }, [error])
 
   return (

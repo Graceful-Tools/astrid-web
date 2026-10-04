@@ -163,6 +163,16 @@ export const webVitalsRateLimiter = new RateLimiter({
   keyGenerator: (request) => clientIpKey('web-vitals', request),
 })
 
+// Client render-error beacon (AWTD-1076). Unauthenticated because a crash can
+// happen before or without a session. A crashing page sends one report per
+// boundary render, so a small budget is plenty and keeps a loop from flooding
+// the logs.
+export const clientErrorsRateLimiter = new RateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  maxRequests: 10,
+  keyGenerator: (request) => clientIpKey('client-errors', request),
+})
+
 // Preset configurations for different endpoints
 export const RATE_LIMITS = {
   // Webhook endpoints - higher limits for legitimate AI service integrations

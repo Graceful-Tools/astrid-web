@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { createLogger } from '@/lib/logger'
 import { BRAND } from '@/lib/brand/config'
 import { brandAccentRgb } from '@/lib/brand/colors'
+import { reportClientError } from '@/lib/client-error-report'
 
 const log = createLogger('global-error.tsx')
 
@@ -20,6 +21,7 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     log.error({ err: error }, "Global error:")
+    reportClientError(error, "global")
   }, [error])
 
   return (
