@@ -201,6 +201,7 @@ export const PUT = withAuth<RouteContext>(
     if (body.localCompletionDate !== undefined) {
       intent.localCompletionDate = body.localCompletionDate
     }
+    if (body.timeZone !== undefined) intent.timeZone = body.timeZone
     if (body.statusRole !== undefined) intent.statusRole = body.statusRole
     if (body.isPrivate !== undefined) intent.isPrivate = body.isPrivate
     if (body.repeating !== undefined) intent.repeating = body.repeating

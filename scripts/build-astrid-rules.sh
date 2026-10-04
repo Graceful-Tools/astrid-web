@@ -16,6 +16,7 @@
 #   fixtures/permissions.json the contract fixtures at that revision, for the parity tests
 #   fixtures/search.json      (tests/lib/core-rules-*-parity.test.ts)
 #   fixtures/smart.json
+#   fixtures/repeating.json
 #
 # Server-only: no browser build is vendored (377 KB gzipped is too much to ship to every page for
 # a shadow check). astrid-core's scripts/build-wasm.sh writes one when that changes.
@@ -60,7 +61,7 @@ mkdir -p "$pkg/fixtures"
 cp -R "$out/node" "$pkg/node"
 # The glue is CommonJS; say so, so a "type": "module" anywhere above it cannot change how it loads.
 printf '{ "type": "commonjs" }\n' >"$pkg/node/package.json"
-for fixture in permissions search smart; do
+for fixture in permissions search smart repeating; do
   cp "$tree/contracts/fixtures/$fixture.json" "$pkg/fixtures/$fixture.json"
 done
 printf '%s\n' "$rev" >"$pkg/REVISION"

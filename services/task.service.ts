@@ -842,6 +842,8 @@ export interface UpdateTaskIntent {
   closedReason?: string | null
   /** YYYY-MM-DD from the client; all-day repeating tasks in COMPLETION_DATE mode. */
   localCompletionDate?: string | null
+  /** The client's IANA zone: a timed repeating task steps on its calendar (AWTD-1063). */
+  timeZone?: string | null
   statusRole?: string | null
   dueDateTime?: string | Date | null
   isAllDay?: boolean
@@ -1117,6 +1119,7 @@ export async function updateTaskWithSideEffects(args: {
     existingCompleted: existingTask.completed,
     dataCompleted: requestedCompleted,
     localCompletionDate: intent.localCompletionDate ?? undefined,
+    timeZone: intent.timeZone ?? null,
     closedReason: parsedClosedReason.value,
   })
 

@@ -3,6 +3,7 @@ import { safeHealthCheck, ensureMigrations } from "@/lib/runtime-migrations"
 import { createLogger } from '@/lib/logger'
 import { listPermissionsCoreStatus } from '@/lib/core-rules/list-permissions-core'
 import { searchQueryCoreStatus } from '@/lib/core-rules/search-query-core'
+import { repeatingCoreStatus } from '@/lib/core-rules/repeating-core'
 
 const log = createLogger('health')
 
@@ -54,6 +55,8 @@ export async function GET(request: NextRequest) {
       coreRules: listPermissionsCoreStatus(),
       // The same for search-query parsing (AWTD-1062).
       coreRulesSearch: searchQueryCoreStatus(),
+      // And for repeating-task rollover on completion (AWTD-1063).
+      coreRulesRepeating: repeatingCoreStatus(),
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
       webhookSecretConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
       webhookUrl: process.env.CLAUDE_REMOTE_WEBHOOK_URL ? `${process.env.CLAUDE_REMOTE_WEBHOOK_URL.slice(0, 30)}...` : null

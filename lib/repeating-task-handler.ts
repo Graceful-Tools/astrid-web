@@ -13,11 +13,8 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import type { RepeatFromMode } from '@/types/task'
-import type { CustomRepeatingPattern, SimplePatternEndCondition } from '@/types/repeating'
-import { calculateNextOccurrence, calculateSimpleRepeatingNextOccurrence, checkSimplePatternEndCondition } from '@/types/repeating'
-import { createLogger } from '@/lib/logger'
-
-const log = createLogger('repeating-task-handler')
+import { isKnownTimeZone } from '@/types/repeating'
+import { nextOccurrenceForTask } from '@/lib/repeating-rollover'
 
 
 export interface RepeatingTaskResult {
@@ -26,6 +23,9 @@ export interface RepeatingTaskResult {
   nextDueDate: Date | null
   newOccurrenceCount: number
 }
+
+const SIMPLE_PATTERNS = new Set(['daily', 'weekly', 'monthly', 'yearly'])
+const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /**
  * Handle repeating task completion
@@ -36,16 +36,24 @@ export interface RepeatingTaskResult {
  * 3. If not terminating, roll the task forward (clear completed flag, update due date, increment occurrence count)
  * 4. If terminating, clear the repeating configuration
  *
+ * The arithmetic is astrid-core's `nextOccurrence` (lib/repeating-rollover.ts, AWTD-1063), the
+ * rule iOS and the Mac run, with the TypeScript as the fail-safe. A TIMED task steps on the
+ * person's calendar when the client says which zone they are in (`timeZone`). Without one it
+ * steps on UTC's, as the server always did. An ALL-DAY task steps on UTC's calendar either way.
+ *
  * @param taskId - ID of the task being completed
  * @param wasCompleted - Previous completion status (to detect completion toggle)
  * @param isNowCompleted - New completion status
+ * @param localCompletionDate - YYYY-MM-DD, the client's own calendar day at completion
+ * @param timeZone - the client's IANA zone (`America/Los_Angeles`); an unknown name reads as absent
  * @returns Result indicating whether to roll forward and the new state
  */
 export async function handleRepeatingTaskCompletion(
   taskId: string,
   wasCompleted: boolean,
   isNowCompleted: boolean,
-  localCompletionDate?: string // YYYY-MM-DD format from client's local timezone
+  localCompletionDate?: string,
+  timeZone?: string | null,
 ): Promise<RepeatingTaskResult | null> {
   // Only process when task is being marked as complete (not un-complete)
   if (!isNowCompleted || wasCompleted) {
@@ -69,93 +77,49 @@ export async function handleRepeatingTaskCompletion(
     return null
   }
 
-  // Only process repeating tasks (not "never")
-  if (task.repeating === 'never') {
+  // Only a pattern the server can step rolls: a custom one with its pattern stored, or a simple
+  // one. Anything else (never, custom with nothing stored) just completes.
+  const steppable = (task.repeating === 'custom' && !!task.repeatingData) || SIMPLE_PATTERNS.has(task.repeating)
+  if (!steppable) {
     return null
   }
 
-  // Determine completion date
-  // For all-day tasks with COMPLETION_DATE mode, use the client's local date if provided
-  // This fixes the bug where completing at 9pm PST (= 5am UTC next day) would use the wrong date
-  let completionDate: Date
-  if (task.isAllDay && localCompletionDate && task.repeatFrom !== 'DUE_DATE') {
-    // Parse the local date string and set to UTC midnight
-    // e.g., "2026-01-05" -> 2026-01-05T00:00:00.000Z
-    const [year, month, day] = localCompletionDate.split('-').map(Number)
-    completionDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
-  } else {
-    completionDate = new Date()
-  }
-  // Use dueDateTime for time reference
-  const timeReference = task.dueDateTime
-  const currentDueDate = task.dueDateTime
-  const currentOccurrenceCount = task.occurrenceCount || 0
-  const repeatFrom: RepeatFromMode = task.repeatFrom as RepeatFromMode || 'COMPLETION_DATE'
+  const repeatFrom: RepeatFromMode = (task.repeatFrom as RepeatFromMode) || 'COMPLETION_DATE'
+  const zone = isKnownTimeZone(timeZone) ? timeZone : null
 
-  // Handle custom repeating patterns
-  if (task.repeating === 'custom' && task.repeatingData) {
-    const pattern = task.repeatingData as unknown as CustomRepeatingPattern
-
-    const result = calculateNextOccurrence(
-      pattern,
-      timeReference,
-      completionDate,
-      repeatFrom,
-      currentOccurrenceCount
-    )
-
-    return {
-      shouldRollForward: !result.shouldTerminate,
-      shouldTerminate: result.shouldTerminate,
-      nextDueDate: result.nextDueDate,
-      newOccurrenceCount: result.newOccurrenceCount
-    }
+  // The instant the completion happened, and the zone whose calendar it is read on.
+  //
+  // An all-day task repeating from its completion anchors on the person's calendar DAY. The client
+  // sends that day (`localCompletionDate`), which is right even when an offline completion reaches
+  // the server a day later. It is sent as that day's UTC midnight, read in UTC. Without it, the
+  // day is read off the server's clock in the person's zone (UTC when unknown). Completing at 9pm
+  // in California is 5am UTC the next day, so that answer is only as good as the zone.
+  let completion = new Date()
+  let calendarZone = zone ?? 'UTC'
+  const localDay = localCompletionDate ? LOCAL_DATE.exec(localCompletionDate) : null
+  if (task.isAllDay && repeatFrom !== 'DUE_DATE' && localDay) {
+    const [, year, month, day] = localDay.map(Number)
+    completion = new Date(Date.UTC(year, month - 1, day))
+    calendarZone = 'UTC'
   }
 
-  // Handle simple repeating patterns (daily, weekly, monthly, yearly)
-  if (['daily', 'weekly', 'monthly', 'yearly'].includes(task.repeating)) {
-    const nextDueDate = calculateSimpleRepeatingNextOccurrence(
-      task.repeating as "daily" | "weekly" | "monthly" | "yearly",
-      timeReference,
-      completionDate,
-      repeatFrom
-    )
+  const answer = nextOccurrenceForTask({
+    repeating: task.repeating,
+    pattern: task.repeatingData ?? null,
+    currentDueDate: task.dueDateTime,
+    completion,
+    repeatFrom,
+    occurrenceCount: task.occurrenceCount || 0,
+    timeZone: calendarZone,
+    isAllDay: task.isAllDay,
+  })
 
-    // Increment occurrence count
-    const newOccurrenceCount = currentOccurrenceCount + 1
-
-    // Check for end conditions in repeatingData
-    // Simple patterns can optionally have end conditions stored in repeatingData
-    let endData: SimplePatternEndCondition | null = null
-    if (task.repeatingData) {
-      try {
-        const data = task.repeatingData as any
-        if (data && typeof data === 'object' && data.endCondition) {
-          endData = {
-            endCondition: data.endCondition,
-            endAfterOccurrences: data.endAfterOccurrences,
-            endUntilDate: data.endUntilDate ? new Date(data.endUntilDate) : undefined
-          }
-        }
-      } catch (e) {
-        log.warn({ e }, 'Failed to parse end condition data for simple pattern:')
-        // If parsing fails, continue without end conditions
-        endData = null
-      }
-    }
-
-    // Check if pattern should terminate
-    const endResult = checkSimplePatternEndCondition(nextDueDate, newOccurrenceCount, endData)
-
-    return {
-      shouldRollForward: !endResult.shouldTerminate,
-      shouldTerminate: endResult.shouldTerminate,
-      nextDueDate: endResult.shouldTerminate ? null : nextDueDate,
-      newOccurrenceCount: endResult.newOccurrenceCount
-    }
+  return {
+    shouldRollForward: !answer.shouldTerminate,
+    shouldTerminate: answer.shouldTerminate,
+    nextDueDate: answer.nextDueDate === null ? null : new Date(answer.nextDueDate),
+    newOccurrenceCount: answer.newOccurrenceCount,
   }
-
-  return null
 }
 
 /**
