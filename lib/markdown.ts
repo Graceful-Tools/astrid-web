@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify'
-import { marked } from 'marked'
+import { Marked, marked } from 'marked'
 import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
@@ -79,29 +79,46 @@ const REFERENCE_RULES: Array<{
   },
 ]
 
-/** Swap Astrid references out for sentinels, keeping the rendered HTML aside. */
-function extractReferences(text: string): { text: string; rendered: string[] } {
+/**
+ * Swap Astrid references out for sentinels, keeping aside both the pill each one draws as and the
+ * text it was typed as (`typed`), which is what it reads as inside code.
+ */
+function extractReferences(text: string): { text: string; rendered: string[]; typed: string[] } {
   const rendered: string[] = []
+  const typed: string[] = []
 
   const withSentinels = REFERENCE_RULES.reduce(
     (acc, rule) =>
-      acc.replace(rule.pattern, (_match, label: string, id: string) => {
+      acc.replace(rule.pattern, (match: string, label: string, id: string) => {
         rendered.push(rule.render(label, id))
+        typed.push(match)
         return `${REF_OPEN}${rendered.length - 1}${REF_CLOSE}`
       }),
     text
   )
 
-  return { text: withSentinels, rendered }
+  return { text: withSentinels, rendered, typed }
 }
 
-/** Put the reference pills back once markdown rendering is done. */
-function restoreReferences(html: string, rendered: string[]): string {
+/**
+ * Put the references back once markdown rendering is done: as pills, except inside code, where
+ * code is literal and a reference reads as it was typed. That is how the Apple apps draw it
+ * through astrid-core (CONTRACTS.md D38, followed since AWTD-1064).
+ */
+function restoreReferences(html: string, rendered: string[], typed: string[]): string {
   if (rendered.length === 0) return html
-  return html.replace(
-    new RegExp(`${REF_OPEN}(\\d+)${REF_CLOSE}`, 'g'),
-    (match, index: string) => rendered[Number(index)] ?? match
+  const sentinel = new RegExp(`${REF_OPEN}(\\d+)${REF_CLOSE}`, 'g')
+  const literalInCode = html.replace(
+    /(<code\b[^>]*>)([\s\S]*?)(<\/code>)/g,
+    (_whole, open: string, body: string, close: string) =>
+      open +
+      body.replace(sentinel, (match, index: string) => {
+        const original = typed[Number(index)]
+        return original === undefined ? match : escapeHtml(original)
+      }) +
+      close
   )
+  return literalInCode.replace(sentinel, (match, index: string) => rendered[Number(index)] ?? match)
 }
 
 /**
@@ -150,11 +167,22 @@ export function renderMarkdown(text: string): string {
     return DOMPurify.sanitize(html)
   }
 
-  // For server-side rendering, strip dangerous content
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<[^>]*on\w+\s*=/gi, '<')
-    .replace(/<iframe[^>]*>/gi, '')
+  return serverFallback(text)
+}
+
+/**
+ * What the markdown renderers return where there is no DOM to sanitise in: the text, escaped, with
+ * its line breaks. No markup from the text survives.
+ *
+ * Nothing renders markdown on the server today. Every caller is a client component, and their
+ * content arrives after hydration. A server render of one would be the server-side rendering pass
+ * with no data. This used to be a regex "sanitiser" (strip `<script>…</script>`, `on…=`,
+ * `<iframe`) that let through `<img src=x onerror=…>` split across lines, `javascript:` hrefs,
+ * `<svg>`, `<object>` and so on. If a server path ever needs rich text, ask astrid-core's
+ * `renderMarkdown` rule (as lib/core-rules/ does for permissions and search). Do not grow this.
+ */
+function serverFallback(text: string): string {
+  return escapeHtml(text).replace(/\n/g, '<br>')
 }
 
 /**
@@ -177,8 +205,42 @@ const RICH_TEXT_TAGS = [
   'input', // GFM task list checkboxes
 ]
 
-/** `type`/`checked`/`disabled` are for checkboxes; `align` for table cells. */
-const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align']
+/**
+ * `type`/`checked`/`disabled` are for checkboxes; `align` for table cells; `start` for an ordered
+ * list that does not begin at 1 (`3. three` is numbered 3, as on iOS — CONTRACTS.md D38). DOMPurify
+ * checks a value only for URI attributes, so `start` takes whatever `marked` wrote, which is the
+ * list's number.
+ */
+const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start']
+
+const RICH_TEXT_TAG_SET = new Set(RICH_TEXT_TAGS)
+
+/**
+ * HTML typed into a description reads as its text, as iOS draws it through astrid-core
+ * (CONTRACTS.md D38, followed since AWTD-1064). `marked` passes typed HTML through, and DOMPurify
+ * would KEEP the tags this renderer's own output needs (`<strong>`, `<a>`, `<input>`, …). So in
+ * typed HTML those tags are renamed to one no allowlist names. DOMPurify then removes the tag and
+ * keeps its text, which is what it already does for every other tag (`<b>`, `<div>`). Typed
+ * `<script>`, `<style>`, `<img>` and the rest are left exactly as they were, for DOMPurify to drop
+ * with their content as before. The change only ever narrows what passes.
+ */
+function typedHtmlAsText(html: string): string {
+  return html.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9-]*)/g, (whole, slash: string, name: string) =>
+    RICH_TEXT_TAG_SET.has(name.toLowerCase()) ? `<${slash}astrid-typed-${name}` : whole
+  )
+}
+
+/**
+ * The renderer for descriptions, comments and chat: GFM, a newline is a line break, and typed HTML
+ * is text. Its own instance, so `renderMarkdown` (the editor preview) is unchanged.
+ */
+const richText = new Marked({
+  gfm: true,
+  breaks: true,
+  renderer: {
+    html: ({ text }) => typedHtmlAsText(text),
+  },
+})
 
 /** Marker standing in for a fenced code block's `<code>` while inline ones are styled. */
 const PRE_CODE_SENTINEL = '\uE002'
@@ -213,7 +275,7 @@ export function renderMarkdownWithLinks(
   if (!text) return ""
 
   const extracted = extractReferences(text)
-  const { rendered } = extracted
+  const { rendered, typed } = extracted
   // Task ids (AWTD-12, #12) link to /t/<id> — AFTER references are masked, so
   // an id inside a `![Title](uuid)` title stays text (AWTD-1017). Without a
   // context nothing links: the reader's visible keys are what gate it.
@@ -222,14 +284,15 @@ export function renderMarkdownWithLinks(
         rendered.push(
           `<a href="${link.href}" class="font-mono text-amber-700 dark:text-amber-300 no-underline hover:underline">${escapeHtml(link.match)}</a>`
         )
+        typed.push(link.match)
         return `${REF_OPEN}${rendered.length - 1}${REF_CLOSE}`
       })
     : extracted.text
 
-  let html = marked.parse(withSentinels, { async: false }) as string
+  let html = richText.parse(withSentinels, { async: false }) as string
   html = decorateExternalLinks(html)
   html = styleInlineCode(html, options?.codeClass || '')
-  html = restoreReferences(html, rendered)
+  html = restoreReferences(html, rendered, typed)
 
   // Sanitize the HTML to prevent XSS.
   //
@@ -244,11 +307,7 @@ export function renderMarkdownWithLinks(
     })
   }
 
-  // For server-side rendering, strip dangerous content
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<[^>]*on\w+\s*=/gi, '<')
-    .replace(/<iframe[^>]*>/gi, '')
+  return serverFallback(text)
 }
 
 /**
