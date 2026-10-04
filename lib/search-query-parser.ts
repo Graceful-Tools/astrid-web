@@ -114,7 +114,82 @@ function tokenize(query: string): string[] {
   return tokens
 }
 
+/**
+ * Parses a query, or returns `undefined` to leave it to the TypeScript below. Given the
+ * TypeScript's own answer so it can compare.
+ */
+export type SearchQueryCore = (query: string, typescriptAnswer: ParsedSearchQuery) => ParsedSearchQuery | undefined
+
+// On globalThis, as with lib/list-permissions.ts's hook: Next compiles this module into several
+// layers, each with its own module state, and the core is installed once from instrumentation.ts.
+const CORE_KEY = Symbol.for('astrid.searchQuery.core')
+type CoreHost = { [CORE_KEY]?: SearchQueryCore | null }
+
+/**
+ * Install (or, with `null`, remove) astrid-core's `searchParse` as the parser behind
+ * {@link parseSearchQuery} — lib/core-rules/search-query-core.ts, installed from
+ * instrumentation.ts on the Node runtime (AWTD-1062).
+ *
+ * A hook rather than an import so this module stays pure: the contract-fixture driver runs it
+ * under plain Node, and nothing here may load WebAssembly from disk. Where nothing is installed
+ * (scripts, tests, the stdio MCP server) the TypeScript parses, pinned to the core by the shared
+ * search fixture (tests/lib/core-rules-search-parity.test.ts).
+ *
+ * Fail-safe by construction: the TypeScript answer is computed first and returned whenever the
+ * core declines, throws, or answers something that is not a parse.
+ */
+export function setSearchQueryCore(core: SearchQueryCore | null): void {
+  ;(globalThis as CoreHost)[CORE_KEY] = core
+}
+
+const SEARCH_PRIORITIES: ReadonlySet<unknown> = new Set(['none', 'low', 'medium', 'high'])
+const SEARCH_DUES: ReadonlySet<unknown> = new Set(['today', 'overdue', 'week', 'month', 'none'])
+const SEARCH_STATES: ReadonlySet<unknown> = new Set(['open', 'done', 'canceled'])
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+
+/**
+ * Is this a parse the search route can act on — every field present, of its type, and from its
+ * vocabulary? A core answer that is not is discarded for the TypeScript one.
+ */
+export function isParsedSearchQuery(value: unknown): value is ParsedSearchQuery {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  const nullableString = (x: unknown) => x === null || typeof x === 'string'
+  return (
+    typeof v.text === 'string' &&
+    nullableString(v.assignee) &&
+    nullableString(v.identifier) &&
+    isStringArray(v.listNames) &&
+    isStringArray(v.labelNames) &&
+    isStringArray(v.statuses) &&
+    Array.isArray(v.priorities) &&
+    v.priorities.every((p) => SEARCH_PRIORITIES.has(p)) &&
+    (v.due === null || SEARCH_DUES.has(v.due)) &&
+    (v.state === null || SEARCH_STATES.has(v.state))
+  )
+}
+
 export function parseSearchQuery(query: string): ParsedSearchQuery {
+  const typescriptAnswer = parseWithTypeScript(query)
+  const core = (globalThis as CoreHost)[CORE_KEY]
+  if (!core) return typescriptAnswer
+  try {
+    const answer = core(query, typescriptAnswer)
+    return answer !== undefined && isParsedSearchQuery(answer) ? answer : typescriptAnswer
+  } catch {
+    // A core that throws must never fail a search: the TypeScript answer stands.
+    return typescriptAnswer
+  }
+}
+
+/**
+ * The TypeScript parser: the server's fallback, and the canonical source astrid-core's
+ * `search.json` fixture is generated from. A grammar change lands here first, then in astrid-core
+ * (regenerate, port), then in packages/astrid-rules (scripts/build-astrid-rules.sh).
+ */
+function parseWithTypeScript(query: string): ParsedSearchQuery {
   const result: ParsedSearchQuery = {
     text: '',
     assignee: null,
