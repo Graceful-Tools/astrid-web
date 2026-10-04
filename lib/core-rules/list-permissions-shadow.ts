@@ -78,10 +78,27 @@ export interface ShadowStats {
 interface Reporter {
   disagreement(details: Record<string, unknown>): void
   failure(details: Record<string, unknown>): void
+  /** Running totals, now and then — see SUMMARY_EVERY. Optional so a test can ignore it. */
+  summary?(details: Record<string, unknown>): void
 }
 
 /** Distinct disagreements logged per process, at most. */
 const MAX_LOGGED = 50
+
+/**
+ * Totals are reported after this many observations, then every this-many more. Without them a
+ * quiet log cannot be read: "they agree" looks the same as "everything was skipped" or "it
+ * failed once, logged once, and went silent" — and the cutover decision rests on a quiet log.
+ */
+export const SUMMARY_EVERY = 1000
+
+/**
+ * The member count, coarsened for the dedup key: one systematic divergence must not spend the
+ * MAX_LOGGED budget one list size at a time and silence every other disagreement.
+ */
+function memberBucket(count: number): '0' | '1' | 'many' {
+  return count === 0 ? '0' : count === 1 ? '1' : 'many'
+}
 
 /**
  * An observer for {@link setListPermissionsShadow} that compares each answer with `runJson`'s.
@@ -95,8 +112,17 @@ export function createListPermissionsShadow(
   const stats: ShadowStats = { compared: 0, disagreed: 0, skipped: 0, failed: 0 }
   const logged = new Set<string>()
   let failureLogged = false
+  let observations = 0
 
   function observe(answered: ShadowedAnswer): void {
+    observations++
+    if (observations % SUMMARY_EVERY === 0) {
+      try {
+        report.summary?.({ revision, stats: { ...stats }, distinctLogged: logged.size })
+      } catch {
+        // A reporter that throws must not take the comparison down with it.
+      }
+    }
     try {
       const built = coreRequestFor(answered)
       if ('skip' in built) {
@@ -116,7 +142,7 @@ export function createListPermissionsShadow(
 
       stats.disagreed++
       const details = { decision: answered.decision, ts: answered.answer, core, shape: shapeOf(answered) }
-      const signature = JSON.stringify(details)
+      const signature = JSON.stringify({ ...details, shape: { ...details.shape, memberCount: memberBucket(details.shape.memberCount) } })
       if (logged.size < MAX_LOGGED && !logged.has(signature)) {
         logged.add(signature)
         report.disagreement({ ...details, revision, stats: { ...stats } })
@@ -151,6 +177,7 @@ export function installListPermissionsShadow(env: NodeJS.ProcessEnv = process.en
       {
         disagreement: (details) => log.warn(details, 'list permissions: astrid-core disagrees'),
         failure: (details) => log.warn(details, 'list permissions: astrid-core could not answer'),
+        summary: (details) => log.info(details, 'list permissions: astrid-core shadow totals'),
       },
       core.revision,
     )
