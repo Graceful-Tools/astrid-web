@@ -36,8 +36,9 @@ describe('apex→www redirect is a brand setting', () => {
   })
 
   it('still redirects an apex brand by default (Astrid unchanged)', async () => {
-    const res = await pageResponse('astrid.cc', undefined)
+    // A neutral apex — tests must not hardcode the brand domain (task f5022e72).
+    const res = await pageResponse('example.com', undefined)
     expect(res.status).toBe(308)
-    expect(new URL(res.headers.get('location')!).host).toBe('www.astrid.cc')
+    expect(new URL(res.headers.get('location')!).host).toBe('www.example.com')
   })
 })
