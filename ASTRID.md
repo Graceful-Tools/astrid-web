@@ -476,6 +476,11 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   `lib/list-member-utils.ts`. **Never inline** `list.ownerId === user.id` or
   `list.admins.some(...)` — call `canUserManageList` / `canUserEditTasks` /
   `isListAdminOrOwner`, or reuse a `canEdit*` value already in scope.
+  On the Node server those functions are decided by astrid-core (WebAssembly in
+  `packages/astrid-rules`, installed from `instrumentation.ts`; AWTD-1061); the
+  TypeScript is what the browser runs and the server's fail-safe fallback. A rule
+  change goes TypeScript → astrid-core fixture and port → `scripts/build-astrid-rules.sh`;
+  `tests/lib/core-rules-permissions-parity.test.ts` fails until they agree.
 - **User-facing copy** lives in i18n locale files (`lib/i18n/locales/*.json`) —
   use `t("…")`, never a string literal in JSX. Keep key names mirrored with the
   Apple app's `Localizable.strings` where the string is shared.

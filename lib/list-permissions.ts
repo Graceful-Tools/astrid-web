@@ -71,10 +71,10 @@ interface ListLike {
 /**
  * The decisions astrid-core's `Access` rule answers, by the name it gives them.
  *
- * A shadow observer (see {@link setListPermissionsShadow}) is told each answer this module gives
- * under one of these names, so it can ask the shared Rust core the same question and compare.
+ * On the server these are decided by the shared Rust core (see {@link setListPermissionsCore});
+ * everywhere else, and whenever the core cannot answer, by the TypeScript below.
  */
-export type ShadowedDecision =
+export type ListDecision =
   | "role"
   | "canEditTasks"
   | "canEditTask"
@@ -83,54 +83,73 @@ export type ShadowedDecision =
   | "canManageMembers"
   | "canDelete"
 
-export interface ShadowedAnswer {
-  decision: ShadowedDecision
+type ListRoleAnswer = "owner" | "admin" | "member" | "viewer" | null
+
+export interface ListDecisionQuestion {
+  decision: ListDecision
   user: UserLike
   list: ListLike
   /** For `canEditTask` only: the task's creator. */
   taskCreatorId?: string | null
-  /** What this module answered — and returned. */
-  answer: string | boolean | null
+  /**
+   * The TypeScript rules' answer — what this module returns if the core does not answer, and
+   * what the core's answer is compared with.
+   */
+  typescriptAnswer: string | boolean | null
 }
 
-type ShadowObserver = (answered: ShadowedAnswer) => void
+/**
+ * Answers a question, or returns `undefined` to leave it to the TypeScript rules.
+ */
+export type ListPermissionsCore = (question: ListDecisionQuestion) => string | boolean | null | undefined
 
 // On globalThis rather than in a module variable: Next compiles this module into several layers
 // (route handlers, server components, instrumentation), each with its own copy of module state,
-// and an observer installed from instrumentation.ts has to reach all of them.
-const SHADOW_KEY = Symbol.for("astrid.listPermissions.shadow")
-type ShadowHost = { [SHADOW_KEY]?: ShadowObserver | null }
+// and a core installed from instrumentation.ts has to reach all of them.
+const CORE_KEY = Symbol.for("astrid.listPermissions.core")
+type CoreHost = { [CORE_KEY]?: ListPermissionsCore | null }
 
 /**
- * Install (or, with `null`, remove) an observer of every permission decision below — the
- * astrid-core shadow pilot (lib/core-rules/list-permissions-shadow.ts, installed from
- * instrumentation.ts on the Node runtime when ASTRID_CORE_RULES_SHADOW=1).
+ * Install (or, with `null`, remove) the decider for every permission decision below — astrid-core
+ * as WebAssembly (lib/core-rules/list-permissions-core.ts), installed from instrumentation.ts on
+ * the Node runtime (AWTD-1061).
  *
  * A hook rather than an import because this module is pulled into client bundles and the edge
- * middleware, neither of which may load WebAssembly from disk. The observer only watches: the
- * answer returned is always this module's, an observer that throws is ignored, and with none
- * installed the cost is one property read.
+ * middleware, neither of which may load WebAssembly from disk. There — and in scripts, tests and
+ * the stdio MCP server, which install nothing — the TypeScript below decides, and it is pinned to
+ * the core by the shared permissions fixture (tests/lib/core-rules-permissions-parity.test.ts).
+ *
+ * Fail-safe by construction: the TypeScript answer is always computed first, and it is what is
+ * returned when the core declines (`undefined`), throws, or answers something that is not a
+ * valid answer to the question asked.
  */
-export function setListPermissionsShadow(observer: ShadowObserver | null): void {
-  ;(globalThis as ShadowHost)[SHADOW_KEY] = observer
+export function setListPermissionsCore(core: ListPermissionsCore | null): void {
+  ;(globalThis as CoreHost)[CORE_KEY] = core
 }
 
-function shadowed<T extends string | boolean | null>(
-  decision: ShadowedDecision,
+const ROLE_ANSWERS: ReadonlySet<unknown> = new Set(["owner", "admin", "member", "viewer", null])
+
+function isValidAnswer(decision: ListDecision, answer: unknown): boolean {
+  return decision === "role" ? ROLE_ANSWERS.has(answer) : typeof answer === "boolean"
+}
+
+function decided<T extends string | boolean | null>(
+  decision: ListDecision,
   user: UserLike,
   list: ListLike,
-  answer: T,
+  typescriptAnswer: T,
   taskCreatorId?: string | null,
 ): T {
-  const observer = (globalThis as ShadowHost)[SHADOW_KEY]
-  if (observer) {
-    try {
-      observer({ decision, user, list, taskCreatorId, answer })
-    } catch {
-      // Watching must never change what a person is allowed to do.
-    }
+  const core = (globalThis as CoreHost)[CORE_KEY]
+  if (!core) return typescriptAnswer
+  try {
+    const answer = core({ decision, user, list, taskCreatorId, typescriptAnswer })
+    if (answer === undefined || !isValidAnswer(decision, answer)) return typescriptAnswer
+    return answer as T
+  } catch {
+    // A core that throws must never deny, allow or crash: the TypeScript answer stands.
+    return typescriptAnswer
   }
-  return answer
 }
 
 /**
@@ -221,10 +240,17 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
  * - Admin: Can manage list settings and add/remove members (like managers)
  * - Member: Can add, edit, and manage tasks on the list
  * - Viewer: Can view tasks but not edit (for public lists)
+ *
+ * On the Node server these rules are decided by astrid-core (AWTD-1061); the TypeScript below is
+ * what the browser runs, the server's fail-safe fallback, and still the canonical source the
+ * core's permissions fixture is generated from. So a rule change lands here first, then in
+ * astrid-core (regenerate, port), then in packages/astrid-rules (scripts/build-astrid-rules.sh) —
+ * and tests/lib/core-rules-permissions-parity.test.ts fails until all three agree, because a
+ * disagreement is a control the browser offers and the server refuses.
  */
 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
-  return shadowed("role", user, list, roleInList(user, list))
+  return decided<ListRoleAnswer>("role", user, list, roleInList(user, list))
 }
 
 function roleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
@@ -320,7 +346,7 @@ function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | nu
 }
 
 export function canUserEditTasks(user: UserLike, list: ListLike): boolean {
-  return shadowed("canEditTasks", user, list, editTasks(user, list))
+  return decided("canEditTasks", user, list, editTasks(user, list))
 }
 
 function editTasks(user: UserLike, list: ListLike): boolean {
@@ -355,7 +381,7 @@ interface TaskLike {
  * For copy-only lists: only list admin or owner can edit
  */
 export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
-  return shadowed("canEditTask", user, list, editTask(user, task, list), task?.creatorId)
+  return decided("canEditTask", user, list, editTask(user, task, list), task?.creatorId)
 }
 
 function editTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
@@ -406,22 +432,22 @@ function editTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
  */
 export function hasExplicitListRole(user: UserLike, list: ListLike): boolean {
   const role = roleInList(user, list)
-  return shadowed("hasExplicitRole", user, list, role === "owner" || role === "admin" || role === "member")
+  return decided("hasExplicitRole", user, list, role === "owner" || role === "admin" || role === "member")
 }
 
 export function canUserManageList(user: UserLike, list: ListLike): boolean {
   const role = roleInList(user, list)
-  return shadowed("canManage", user, list, role === "owner" || role === "admin")
+  return decided("canManage", user, list, role === "owner" || role === "admin")
 }
 
 export function canUserManageMembers(user: UserLike, list: ListLike): boolean {
   const role = roleInList(user, list)
-  return shadowed("canManageMembers", user, list, role === "owner" || role === "admin")
+  return decided("canManageMembers", user, list, role === "owner" || role === "admin")
 }
 
 export function canUserDeleteList(user: UserLike, list: ListLike): boolean {
   const role = roleInList(user, list)
-  return shadowed("canDelete", user, list, role === "owner")
+  return decided("canDelete", user, list, role === "owner")
 }
 
 export function getListPermissionDescription(role: "owner" | "admin" | "member" | "viewer" | null): string {

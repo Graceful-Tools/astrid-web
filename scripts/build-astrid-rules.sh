@@ -3,7 +3,7 @@
 #
 #   scripts/build-astrid-rules.sh                 # rebuild at the revision in REVISION
 #   scripts/build-astrid-rules.sh --rev <sha>     # move the pin, then rebuild
-#   scripts/build-astrid-rules.sh --core <dir>    # build from this checkout (default ../astrid-core)
+#   scripts/build-astrid-rules.sh --core <dir>    # build from this checkout or worktree (default ../astrid-core)
 #
 # The same discipline as astrid-ios's core/Cargo.toml pin: the web runs exactly the revision
 # recorded in packages/astrid-rules/REVISION, and moving it is a deliberate, reviewable commit
@@ -36,7 +36,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$rev" ]] || rev="$(tr -d '[:space:]' <"$pkg/REVISION")"
-[[ -d "$core/.git" ]] || { echo "no astrid-core checkout at $core (pass --core)" >&2; exit 1; }
+# `git rev-parse` rather than a test for a .git directory: in a worktree, .git is a file.
+git -C "$core" rev-parse --git-dir >/dev/null 2>&1 || { echo "no astrid-core checkout at $core (pass --core)" >&2; exit 1; }
 export PATH="$HOME/.cargo/bin:$PATH"
 
 git -C "$core" fetch --quiet origin || true

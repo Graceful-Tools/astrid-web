@@ -28,15 +28,18 @@ export async function register() {
     serviceName: process.env.OTEL_SERVICE_NAME ?? 'astrid-web',
   })
 
-  // astrid-core shadow pilot: compare list-permission answers with the shared Rust core and log
-  // disagreements, without changing any answer. Node runtime only — the core is WebAssembly read
-  // from disk, which the edge runtime cannot do — and off unless asked for. Never fatal.
-  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.ASTRID_CORE_RULES_SHADOW === '1') {
+  // astrid-core decides list permissions on the Node runtime (AWTD-1061): every route handler and
+  // server component asks lib/list-permissions.ts, which this installs the core into. The core is
+  // WebAssembly read from disk, which the edge runtime cannot do; there, in the browser, and if
+  // anything here fails, the TypeScript rules decide — the same answers, pinned by the shared
+  // permissions fixture. ASTRID_CORE_RULES=shadow|off is the rollback. Never fatal.
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
     try {
-      const { installListPermissionsShadow } = await import('@/lib/core-rules/list-permissions-shadow')
-      installListPermissionsShadow()
-    } catch {
-      // The shadow only watches; a server that cannot load it serves exactly as before.
+      const { installListPermissionsCore } = await import('@/lib/core-rules/list-permissions-core')
+      installListPermissionsCore()
+    } catch (error) {
+      // Only reachable if the module itself fails to import; installListPermissionsCore never throws.
+      console.error('list permissions: astrid-core module failed to import; the TypeScript rules decide', error)
     }
   }
 }
