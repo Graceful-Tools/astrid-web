@@ -76,15 +76,42 @@ export function parseRepeating(input: unknown): ParseResult<Repeating | undefine
  * The `repeatingData` to store for a given `repeating`. Only a custom schedule
  * has any, and some clients send it as a JSON string; anything else — or a
  * string that does not parse — stores null. Shared by task create and update.
+ *
+ * A monthly pattern always leaves here with a `monthRepeatType`: without one,
+ * every client ends the series at its next completion (AWTD-1074). The default
+ * is `same_date` — N months from the repeat anchor, which is the completion
+ * date unless the task repeats from its due date.
+ *
+ * And no interval is stored below 1: every client re-opens an interval-0
+ * series on the same date forever (AWTD-1075).
  */
 export function normalizeRepeatingData(repeating: unknown, raw: unknown): unknown {
   if (repeating !== 'custom') return null
-  if (typeof raw !== 'string') return raw ?? null
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return null
+  let data: unknown = raw ?? null
+  if (typeof raw === 'string') {
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      return null
+    }
   }
+  return withMinimumInterval(withMonthRepeatType(data))
+}
+
+function withMinimumInterval(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data
+  const pattern = data as Record<string, unknown>
+  if (typeof pattern.interval !== 'number' || pattern.interval >= 1) return data
+  return { ...pattern, interval: 1 }
+}
+
+const MONTH_REPEAT_TYPES: readonly unknown[] = ['same_date', 'same_weekday']
+
+function withMonthRepeatType(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data
+  const pattern = data as Record<string, unknown>
+  if (pattern.unit !== 'months' || MONTH_REPEAT_TYPES.includes(pattern.monthRepeatType)) return data
+  return { ...pattern, monthRepeatType: 'same_date' }
 }
 
 // ─── Task.completedSource ─────────────────────────────────────────────────
