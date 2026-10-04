@@ -8,7 +8,7 @@ kept here.
 
 | Concern | Canonical home | Required use |
 |---|---|---|
-| List/task permissions — **the rules** | `lib/list-permissions.ts` | Who may do what, and the Prisma clause that expresses it: `getUserRoleInList`, the `canUser*` predicates, `listVisibilityWhere()`. Never reproduce owner/admin role math, and never hand-roll a visibility `OR` |
+| List/task permissions — **the rules** | `lib/list-permissions.ts` | Who may do what, and the Prisma clause that expresses it: `getUserRoleInList`, the `canUser*` predicates, `listVisibilityWhere()`. Never reproduce owner/admin role math, and never hand-roll a visibility `OR`. On the server the predicates are decided by astrid-core (`lib/core-rules/list-permissions-core.ts`, AWTD-1061) — call them, never the core directly |
 | List/task permissions — **the roster** | `lib/list-member-utils.ts` | Turning a list payload into people: `getAllListMembers`, `getListMemberIds`, `hasListAccess`. Built ON TOP of the rules module, which it imports; it must never answer a permission question the rules module does not |
 | User-facing copy | `lib/i18n/locales/*.json` | Use `t("...")`; shared Web/iOS wording also follows [`PRODUCT_CONTRACT.md`](./PRODUCT_CONTRACT.md) |
 | List settings rendering | `components/TaskManager/MainContent/ListSettingsHost.tsx` | Keep layout variants behind the shared host |

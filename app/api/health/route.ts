@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { safeHealthCheck, ensureMigrations } from "@/lib/runtime-migrations"
 import { createLogger } from '@/lib/logger'
+import { listPermissionsCoreStatus } from '@/lib/core-rules/list-permissions-core'
 
 const log = createLogger('health')
 
@@ -46,6 +47,10 @@ export async function GET(request: NextRequest) {
       // error anyone sees. Production ran that way from 2026-08-19 until a log
       // review found it. This flag is what makes it observable (task a5eb65a4).
       cronSecretConfigured: !!process.env.CRON_SECRET,
+      // Whether astrid-core decides list permissions in this process (AWTD-1061). The fallback is
+      // silent by design — the TypeScript gives the same answers — so this is the one place a
+      // deploy can see that the core did not load: { mode: 'decide', loaded: false }.
+      coreRules: listPermissionsCoreStatus(),
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
       webhookSecretConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
       webhookUrl: process.env.CLAUDE_REMOTE_WEBHOOK_URL ? `${process.env.CLAUDE_REMOTE_WEBHOOK_URL.slice(0, 30)}...` : null

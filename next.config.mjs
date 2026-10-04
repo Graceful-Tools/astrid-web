@@ -44,9 +44,10 @@ const nextConfig = {
       'public/get-project-tasks-oauth.ts',
     ],
     // astrid-core's rules as WebAssembly (lib/core-rules/wasm.ts). Loaded through a require
-    // resolved at runtime, which tracing cannot follow, by any server function — list
-    // permissions are checked everywhere — so every function carries it (~1.7 MB, read only
-    // when ASTRID_CORE_RULES_SHADOW=1).
+    // resolved at runtime, which tracing cannot follow, by every server function at start —
+    // list permissions are decided by it everywhere (AWTD-1061) — so every function carries it
+    // (~1.7 MB). Missing files are not an outage: the TypeScript rules decide, and /api/health
+    // reports coreRules.loaded=false.
     '/**': [
       'packages/astrid-rules/REVISION',
       'packages/astrid-rules/node/**',
