@@ -211,4 +211,20 @@ describe('normalizeRepeatingData — shared by task create and update (AWTD-1035
     expect(normalizeRepeatingData('custom', weekday)).toEqual(weekday)
     expect(normalizeRepeatingData('custom', { unit: 'weeks', interval: 1 })).toEqual({ unit: 'weeks', interval: 1 })
   })
+
+  // Every client re-opens an interval-0 series on the same date forever, so the smallest interval
+  // stored is 1 (Jon on the task: "make the interval 1 day as minimum").
+  it('AWTD-1075: an interval below 1 is stored as 1, whatever the unit', () => {
+    const everyZeroDays = { type: 'custom', unit: 'days', interval: 0, endCondition: 'never' }
+    expect(normalizeRepeatingData('custom', everyZeroDays)).toEqual({ ...everyZeroDays, interval: 1 })
+    expect(normalizeRepeatingData('custom', JSON.stringify(everyZeroDays))).toEqual({ ...everyZeroDays, interval: 1 })
+    expect(normalizeRepeatingData('custom', { ...everyZeroDays, interval: -3 })).toEqual({ ...everyZeroDays, interval: 1 })
+    expect(normalizeRepeatingData('custom', { unit: 'years', interval: 0, month: 3, day: 1 })).toEqual({ unit: 'years', interval: 1, month: 3, day: 1 })
+  })
+
+  it('AWTD-1075: leaves an interval of 1 or more, and one that is not a number, alone', () => {
+    expect(normalizeRepeatingData('custom', { unit: 'days', interval: 3 })).toEqual({ unit: 'days', interval: 3 })
+    expect(normalizeRepeatingData('custom', { unit: 'days' })).toEqual({ unit: 'days' })
+    expect(normalizeRepeatingData('custom', { unit: 'days', interval: '0' })).toEqual({ unit: 'days', interval: '0' })
+  })
 })

@@ -81,6 +81,9 @@ export function parseRepeating(input: unknown): ParseResult<Repeating | undefine
  * every client ends the series at its next completion (AWTD-1074). The default
  * is `same_date` — N months from the repeat anchor, which is the completion
  * date unless the task repeats from its due date.
+ *
+ * And no interval is stored below 1: every client re-opens an interval-0
+ * series on the same date forever (AWTD-1075).
  */
 export function normalizeRepeatingData(repeating: unknown, raw: unknown): unknown {
   if (repeating !== 'custom') return null
@@ -92,7 +95,14 @@ export function normalizeRepeatingData(repeating: unknown, raw: unknown): unknow
       return null
     }
   }
-  return withMonthRepeatType(data)
+  return withMinimumInterval(withMonthRepeatType(data))
+}
+
+function withMinimumInterval(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data
+  const pattern = data as Record<string, unknown>
+  if (typeof pattern.interval !== 'number' || pattern.interval >= 1) return data
+  return { ...pattern, interval: 1 }
 }
 
 const MONTH_REPEAT_TYPES: readonly unknown[] = ['same_date', 'same_weekday']
