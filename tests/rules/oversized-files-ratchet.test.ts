@@ -44,7 +44,7 @@ const THRESHOLD = 800
  */
 const BUDGETS: Record<string, number> = {
   // The seven the task named.
-  'hooks/useTaskManagerController.ts': 1661,
+  'hooks/useTaskManagerController.ts': 1658,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in

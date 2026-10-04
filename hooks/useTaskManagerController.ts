@@ -42,6 +42,7 @@ import {
   useTaskSelection,
   useTaskDragDrop
 } from "@/hooks/task-manager"
+import { useOpenTaskFromUrl } from "@/hooks/task-manager/useOpenTaskFromUrl"
 
 interface UseTaskManagerControllerProps {
   initialSelectedListId?: string
@@ -150,20 +151,16 @@ export function useTaskManagerController({
     selectedTaskId: tempSelectedTaskId
   })
 
-  // Update navigation hook with actual task data for auto-open from URL
-  useEffect(() => {
-    if (initialSelectedTaskId && !listState.loading && listState.tasks.length > 0) {
-      const taskExists = listState.tasks.some(t => t.id === initialSelectedTaskId)
-      if (taskExists && tempSelectedTaskId !== initialSelectedTaskId) {
-        setTempSelectedTaskId(initialSelectedTaskId)
-        if (isMobile && externalSetMobileView) {
-          requestAnimationFrame(() => {
-            externalSetMobileView('task')
-          })
-        }
-      }
-    }
-  }, [initialSelectedTaskId, listState.loading, listState.tasks, tempSelectedTaskId, isMobile, externalSetMobileView])
+  // Open the task a link names (?task=), once per id (AWTD-1076)
+  useOpenTaskFromUrl({
+    urlTaskId: initialSelectedTaskId,
+    loading: listState.loading,
+    tasks: listState.tasks,
+    selectedTaskId: tempSelectedTaskId,
+    setSelectedTaskId: setTempSelectedTaskId,
+    isMobile,
+    setMobileView: externalSetMobileView,
+  })
 
   // Close task details when switching lists
   const previousSelectedListId = useRef(navigationState.selectedListId)
