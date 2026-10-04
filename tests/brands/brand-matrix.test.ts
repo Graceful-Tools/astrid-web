@@ -326,6 +326,12 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       new NextRequest(`https://${domain}/dashboard`, { headers: { host: domain } })
     )
 
+    // A brand served on its own subdomain has no www host: it must not redirect at all, or
+    // the site never opens (tasks.gracefultools.com, 2026-10-04).
+    if (profile.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT === 'false') {
+      expect(res.headers.get('location') ?? '').not.toContain(`www.${domain}`)
+      return
+    }
     // A partner deployment redirecting to www.astrid.cc would hand its traffic
     // to someone else's domain.
     expect(res.status).toBe(308)
