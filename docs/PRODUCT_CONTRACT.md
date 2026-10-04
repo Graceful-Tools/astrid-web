@@ -40,7 +40,11 @@ Role resolution (`getUserRoleInList`): **owner** (list owner, by `ownerId`, the
 status lists. Three rules iOS must mirror exactly:
 
 1. **The higher role wins.** A list admin who is only a project member stays an
-   admin — project membership can never *demote* someone.
+   admin — project membership can never *demote* someone. And the other way
+   (Jon, 2026-10-04): a plain list member who owns or administers the project
+   is an **admin** of the list — a plain list membership can never demote a
+   project owner or admin either. Before that date list membership was
+   consulted first and such a person was only a member.
 2. **The project owner resolves to `admin`, not `owner`.** `owner` is the only
    role that can delete a list; owning the project must not grant the power to
    delete a list somebody else owns and merely attached to it.

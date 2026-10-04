@@ -277,22 +277,26 @@ function roleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member
   // inline `admins.some(...)` checks this consolidates), before member.
   if (list.admins?.some((a) => a?.id === user.id)) return "admin"
 
+  // Project membership cascades to every list in the project (task 6c20d125).
+  const projectRole = getProjectRole(user, list)
+
   // Presence in listMembers IS membership. The role refines what the member may
   // do; a missing or unrecognised role must not revoke access. ListMember.role
   // defaults to "member" in the schema, and every inline check this replaces
-  // treated any listMembers row as membership (task e2803305).
-  if (membership) return "member"
+  // treated any listMembers row as membership (task e2803305). The legacy
+  // denormalized members array counts the same way.
+  const isListMember = !!membership || !!list.members?.some((m) => m?.id === user.id)
 
-  // Legacy denormalized members array (same precedence as membership member).
-  if (list.members?.some((m) => m?.id === user.id)) return "member"
+  // The HIGHER of the list role and the project role wins (Jon, 2026-10-04):
+  // a plain list member who owns or administers the project is an admin of the
+  // list. Before that, list membership was consulted first and such a person
+  // was only a member. Admin is the ceiling — a project role never makes anyone
+  // a list's owner (see getProjectRole).
+  if (isListMember) return projectRole === "admin" ? "admin" : "member"
 
-  // Project membership cascades to every list in the project (task 6c20d125).
-  //
-  // Ordered after list membership so the *higher* role wins: someone who is a
-  // list admin but only a project member stays an admin. It sits before the
-  // PUBLIC viewer fallback because a project member is a real collaborator, not
-  // a passer-by, and must not be downgraded to read-only on a public list.
-  const projectRole = getProjectRole(user, list)
+  // It sits before the PUBLIC viewer fallback because a project member is a
+  // real collaborator, not a passer-by, and must not be downgraded to read-only
+  // on a public list.
   if (projectRole) return projectRole
 
   // For public lists, users have viewer access

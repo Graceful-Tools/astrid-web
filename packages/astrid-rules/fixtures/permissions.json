@@ -1551,7 +1551,7 @@
       }
     },
     {
-      "name": "a plain list member who is a project admin stays a member",
+      "name": "a plain list member who is a project admin is an admin of the list",
       "list": {
         "id": "list-1",
         "ownerId": "user-other",
@@ -1586,19 +1586,19 @@
         }
       },
       "expected": {
-        "role": "member",
+        "role": "admin",
         "canViewList": true,
         "canEditTasks": true,
         "canEditOwnTask": true,
         "canEditOthersTask": true,
         "hasExplicitListRole": true,
-        "canManageList": false,
-        "canManageMembers": false,
+        "canManageList": true,
+        "canManageMembers": true,
         "canDeleteList": false
       }
     },
     {
-      "name": "a plain list member who owns the project stays a member",
+      "name": "a plain list member who owns the project is an admin of the list, never its owner",
       "list": {
         "id": "list-1",
         "ownerId": "user-other",
@@ -1628,19 +1628,19 @@
         }
       },
       "expected": {
-        "role": "member",
+        "role": "admin",
         "canViewList": true,
         "canEditTasks": true,
         "canEditOwnTask": true,
         "canEditOthersTask": true,
         "hasExplicitListRole": true,
-        "canManageList": false,
-        "canManageMembers": false,
+        "canManageList": true,
+        "canManageMembers": true,
         "canDeleteList": false
       }
     },
     {
-      "name": "a legacy-array member who owns the project stays a member",
+      "name": "a legacy-array member who owns the project is an admin of the list",
       "list": {
         "id": "list-1",
         "ownerId": "user-other",
@@ -1667,6 +1667,100 @@
         }
       },
       "expected": {
+        "role": "admin",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": true,
+        "hasExplicitListRole": true,
+        "canManageList": true,
+        "canManageMembers": true,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "a plain list member with an UPPERCASE role who is a project ADMIN is an admin",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "MEMBER",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ],
+        "project": {
+          "id": "project-1",
+          "ownerId": "user-project-owner",
+          "members": [
+            {
+              "userId": "user-me",
+              "role": "ADMIN"
+            }
+          ],
+          "lists": []
+        }
+      },
+      "expected": {
+        "role": "admin",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": true,
+        "hasExplicitListRole": true,
+        "canManageList": true,
+        "canManageMembers": true,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "a plain list member who is a plain project member stays a member",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "member",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ],
+        "project": {
+          "id": "project-1",
+          "ownerId": "user-project-owner",
+          "members": [
+            {
+              "userId": "user-me",
+              "role": "member"
+            }
+          ],
+          "lists": []
+        }
+      },
+      "expected": {
         "role": "member",
         "canViewList": true,
         "canEditTasks": true,
@@ -1675,6 +1769,105 @@
         "hasExplicitListRole": true,
         "canManageList": false,
         "canManageMembers": false,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "a plain list member who owns the project, on a public collaborative list, is an admin",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PUBLIC",
+        "publicListType": "collaborative",
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "member",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ],
+        "project": {
+          "id": "project-1",
+          "ownerId": "user-me",
+          "members": [],
+          "lists": []
+        }
+      },
+      "expected": {
+        "role": "admin",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": true,
+        "hasExplicitListRole": true,
+        "canManageList": true,
+        "canManageMembers": true,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "status list: a plain member of it who administers the project is an admin",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "member",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ],
+        "listType": "status",
+        "project": {
+          "id": "project-1",
+          "ownerId": "user-project-owner",
+          "members": [
+            {
+              "userId": "user-me",
+              "role": "admin"
+            }
+          ],
+          "lists": [
+            {
+              "id": "domain-1",
+              "listMembers": [
+                {
+                  "userId": "user-me"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "role": "admin",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": true,
+        "hasExplicitListRole": true,
+        "canManageList": true,
+        "canManageMembers": true,
         "canDeleteList": false
       }
     },

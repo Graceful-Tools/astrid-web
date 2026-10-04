@@ -659,6 +659,56 @@ describe('Project membership cascades to project lists (6c20d125)', () => {
     expect(getUserRoleInList(bob, list as never)).toBe('admin')
   })
 
+  // Jon, 2026-10-04: the higher of (list role, project role) wins. Until then a
+  // plain list membership was consulted first, so a project owner or admin who
+  // had also been added to the list as a member was ONLY a member of it.
+  describe('project owners and admins outrank a plain list membership (2026-10-04)', () => {
+    it('a plain list member who administers the project is an admin of the list', () => {
+      const list = listInProject({
+        listMembers: [{ userId: 'bob', role: 'member' }],
+        project: { id: 'project-1', ownerId: 'alice', members: [{ userId: 'bob', role: 'admin' }] },
+      })
+      expect(getUserRoleInList(bob, list as never)).toBe('admin')
+      expect(canUserManageList(bob, list as never)).toBe(true)
+      expect(canUserManageMembers(bob, list as never)).toBe(true)
+      expect(canUserDeleteList(bob, list as never)).toBe(false)
+    })
+
+    it('a plain list member who owns the project is an admin of the list — never its owner', () => {
+      const list = listInProject({
+        listMembers: [{ userId: 'bob', role: 'member' }],
+        project: { id: 'project-1', ownerId: 'bob', members: [] },
+      })
+      expect(getUserRoleInList(bob, list as never)).toBe('admin')
+      expect(canUserManageList(bob, list as never)).toBe(true)
+      expect(canUserDeleteList(bob, list as never)).toBe(false)
+    })
+
+    it('a legacy-array member who owns the project is an admin of the list', () => {
+      const list = listInProject({
+        members: [{ id: 'bob' }],
+        project: { id: 'project-1', ownerId: 'bob', members: [] },
+      })
+      expect(getUserRoleInList(bob, list as never)).toBe('admin')
+    })
+
+    it('a plain list member who is a plain project member stays a member', () => {
+      const list = listInProject({
+        listMembers: [{ userId: 'bob', role: 'member' }],
+        project: { id: 'project-1', ownerId: 'alice', members: [{ userId: 'bob', role: 'member' }] },
+      })
+      expect(getUserRoleInList(bob, list as never)).toBe('member')
+    })
+
+    it('the list owner stays owner whatever the project says', () => {
+      const list = listInProject({
+        ownerId: 'bob',
+        project: { id: 'project-1', ownerId: 'alice', members: [{ userId: 'bob', role: 'admin' }] },
+      })
+      expect(getUserRoleInList(bob, list as never)).toBe('owner')
+    })
+  })
+
   it('does not downgrade a project member to viewer on a public list', () => {
     const list = listInProject({ privacy: 'PUBLIC' })
     expect(getUserRoleInList(bob, list as never)).toBe('member')
