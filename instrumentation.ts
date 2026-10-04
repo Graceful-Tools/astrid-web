@@ -41,5 +41,13 @@ export async function register() {
       // Only reachable if the module itself fails to import; installListPermissionsCore never throws.
       console.error('list permissions: astrid-core module failed to import; the TypeScript rules decide', error)
     }
+    // Search queries too (AWTD-1062): lib/search-query-parser.ts's parseSearchQuery, whose caller
+    // is GET /api/v1/search. Same setting, same fallback, pinned by the shared search fixture.
+    try {
+      const { installSearchQueryCore } = await import('@/lib/core-rules/search-query-core')
+      installSearchQueryCore()
+    } catch (error) {
+      console.error('search query: astrid-core module failed to import; the TypeScript parses', error)
+    }
   }
 }

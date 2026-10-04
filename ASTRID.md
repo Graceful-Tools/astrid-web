@@ -481,6 +481,12 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   TypeScript is what the browser runs and the server's fail-safe fallback. A rule
   change goes TypeScript → astrid-core fixture and port → `scripts/build-astrid-rules.sh`;
   `tests/lib/core-rules-permissions-parity.test.ts` fails until they agree.
+  The same holds for **search queries** (AWTD-1062): `parseSearchQuery`
+  (`lib/search-query-parser.ts`) is parsed by the core's `searchParse` on the
+  server, TypeScript as fallback, pinned by `core-rules-search-parity.test.ts`.
+  The quick-add parser `parseTaskInput` runs only in the browser, so it stays
+  TypeScript; `core-rules-smart-parity.test.ts` pins it to the core's
+  `smartParse` (what iOS and the Mac run).
 - **User-facing copy** lives in i18n locale files (`lib/i18n/locales/*.json`) —
   use `t("…")`, never a string literal in JSX. Keep key names mirrored with the
   Apple app's `Localizable.strings` where the string is shared.
