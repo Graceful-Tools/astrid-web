@@ -163,6 +163,17 @@ export const BRAND = {
    * is a value rather than a second `next/font` import.
    */
   fontFamily: env(process.env.NEXT_PUBLIC_BRAND_FONT_FAMILY, DEFAULTS.fontFamily),
+
+  /**
+   * Whether the bare brand domain redirects to `www.<domain>` (middleware.ts).
+   *
+   * Right for an apex like astrid.cc, wrong for a brand that IS a subdomain: the partner
+   * test site at tasks.gracefultools.com redirected every page to
+   * www.tasks.gracefultools.com, which has no DNS, so it never opened (2026-10-04). On by
+   * default so Astrid is unchanged; set NEXT_PUBLIC_BRAND_WWW_REDIRECT=false to serve the
+   * domain as-is.
+   */
+  wwwRedirect: process.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT?.trim().toLowerCase() !== 'false',
 } as const
 
 export type Brand = typeof BRAND

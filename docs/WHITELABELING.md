@@ -56,6 +56,7 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL` | `remindme@astrid.cc` | Email-to-task address |
 | `NEXT_PUBLIC_BRAND_ACCENT_COLOR` | `#3b82f6` | `theme_color`, viewport, default list colour, and the UI accent (`--theme-accent`: buttons, links, focus ring) |
 | `NEXT_PUBLIC_BRAND_DEFAULT_THEME` | `ocean` | `light`, `dark` or `ocean` — where a visitor starts; a stored choice still wins |
+| `NEXT_PUBLIC_BRAND_WWW_REDIRECT` | `true` | `false` when the brand domain is a subdomain (`tasks.example.com`): no `www.` host exists to redirect to |
 | `NEXT_PUBLIC_BRAND_FONT_FAMILY` | *(Inter)* | CSS `font-family` stack for the whole app, e.g. the system stack |
 | `NEXT_PUBLIC_BRAND_AGENT_NAME` | brand name | Default assistant's display name |
 | `NEXT_PUBLIC_BRAND_LOGO` | `/images/astrid-character.png` | Mascot art — sign-in, empty states |

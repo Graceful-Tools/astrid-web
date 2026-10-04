@@ -125,7 +125,9 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
   //   https://<domain>/mcp therefore arrived unauthenticated and got a 401
   //   that looked like a credentials problem. /mcp is an API surface, not a
   //   page — it must not be canonicalised.
+  // - a brand served on its own subdomain (BRAND.wwwRedirect false): there is no www host.
   if (
+    BRAND.wwwRedirect &&
     host === BRAND.domain &&
     !pathname.startsWith("/.well-known") &&
     !isApi &&
