@@ -10,6 +10,8 @@ import { getBaseUrl } from "./base-url"
 import { isAstridSubdomainUrl, sameOrigin } from "./auth-host"
 import { createDefaultListsForUser } from "./default-lists"
 import { createLogger } from '@/lib/logger'
+import { isGoogleEmailVerified } from '@/lib/auth/google-identity'
+import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 
 const log = createLogger('auth-config')
 
@@ -69,10 +71,16 @@ const customAdapter = {
     if (process.env.NODE_ENV === "development") {
       log.info(user.email, "[Auth] Creating new user:")
     }
+    // Only the OAuth flow reaches this adapter (Google is the sole NextAuth
+    // provider; passkeys and the mobile routes create users themselves), and
+    // signIn has already refused an email Google did not verify. So the row
+    // starts verified — left null, the user's next sign-in would "adopt" their
+    // own account and revoke passkeys they had added in between (AWTD-1088).
     return await prisma.user.create({
       data: {
         ...user,
-        email: user.email.toLowerCase()
+        email: user.email.toLowerCase(),
+        emailVerified: user.emailVerified ?? new Date()
       }
     })
   },
@@ -96,15 +104,12 @@ const customAdapter = {
     })
     
     if (existingAccount) {
-      if (process.env.NODE_ENV === "development") {
-        log.info("[Auth] Account already exists, updating userId if needed")
-      }
-      // Update the userId in case it changed
+      // An identity belongs to exactly one user. This used to "update the
+      // userId in case it changed" — silently moving a Google (or any) login
+      // from one account to another (AWTD-1088).
       if (existingAccount.userId !== account.userId) {
-        await prisma.account.update({
-          where: { id: existingAccount.id },
-          data: { userId: account.userId }
-        })
+        log.warn({ provider: account.provider }, "[Auth] Refusing to move a provider identity to a different user")
+        throw new Error("This sign-in is already linked to another account")
       }
       return
     }
@@ -179,6 +184,15 @@ const authConfig: NextAuthOptions = {
       
       // Handle Google OAuth sign-in/sign-up
       if (account?.provider === "google" && user?.email) {
+        // Google must affirm it verified this address before we trust it to
+        // name an account. The mobile routes have always required this
+        // (verifyGoogleIdentity); the web callback linked on any email at all
+        // (AWTD-1088).
+        if (!isGoogleEmailVerified((profile as { email_verified?: string | boolean } | undefined)?.email_verified)) {
+          log.warn("[Auth] Refusing Google sign-in: email not verified by Google")
+          return false
+        }
+
         try {
           // Check if user already exists with this email
           const existingUser = await prisma.user.findUnique({
@@ -187,6 +201,11 @@ const authConfig: NextAuthOptions = {
           })
 
           if (existingUser) {
+            // Google just proved ownership of this address; any credential
+            // registered while it was unproven (a pre-hijacking passkey) does
+            // not survive. Same rule as the mobile routes (task 1a52195f).
+            await adoptUnverifiedAccount(prisma, existingUser, "google")
+
             // Check if Google account is already linked
             const existingGoogleAccount = existingUser.accounts.find(
               acc => acc.provider === "google"
@@ -219,9 +238,10 @@ const authConfig: NextAuthOptions = {
             // This ensures profile pictures are refreshed from Google
             const googlePicture = (profile as any)?.picture
             if (googlePicture || profile?.name) {
-              const updateData: { name?: string; image?: string; emailVerified?: Date } = {
-                emailVerified: new Date() // Mark email as verified since it's from Google
-              }
+              // No emailVerified here: adoptUnverifiedAccount above is the only
+              // thing allowed to verify an account, because it also revokes
+              // what the unverified account had accumulated (AWTD-1088).
+              const updateData: { name?: string; image?: string } = {}
 
               // Update name if provided and user doesn't have one
               if (profile?.name && !existingUser.name) {
