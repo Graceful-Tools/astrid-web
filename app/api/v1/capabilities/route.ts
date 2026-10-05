@@ -16,9 +16,10 @@
  * when it needs to know which sign-in methods to show.
  */
 import { NextResponse } from 'next/server'
-import { CAPABILITIES } from '@/lib/brand/capabilities'
+import { AUTH_PROVIDERS, CAPABILITIES } from '@/lib/brand/capabilities'
 import { BRAND } from '@/lib/brand/config'
 import { BRAND_COPY } from '@/lib/brand/copy'
+import { AUTH_PROVIDER_KINDS } from '@/lib/brand/auth-providers'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,13 @@ export async function GET() {
         google: CAPABILITIES.authGoogle,
         apple: CAPABILITIES.authApple,
         passkey: CAPABILITIES.authPasskey,
+        // Additive (spec §6.5). A client that predates them reads the three
+        // booleans above, which keep their meaning; an absent key must read as
+        // NOT offered for these two, since they are off unless configured.
+        github: CAPABILITIES.authGithub,
+        sso: CAPABILITIES.authSso,
+        // The order is the button order.
+        providers: AUTH_PROVIDERS.map(id => ({ id, kind: AUTH_PROVIDER_KINDS[id] })),
       },
       sync: {
         googleTasks: CAPABILITIES.syncGoogleTasks,

@@ -1,6 +1,6 @@
 "use client"
 
-import { CAPABILITIES } from '@/lib/brand/capabilities'
+import { AUTH_PROVIDERS, CAPABILITIES } from '@/lib/brand/capabilities'
 import { BRAND } from '@/lib/brand/config'
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Chrome, Loader2, AlertCircle, Mail, KeyRound } from "lucide-react"
+import { Chrome, Loader2, AlertCircle, Mail, KeyRound, Github, Building2 } from "lucide-react"
 import Image from "next/image"
 import { useWebAuthn } from "@/hooks/use-webauthn"
 import Link from "next/link"
@@ -87,6 +87,20 @@ export function SignInContent() {
       log.error({ err: error }, "Google sign in error:")
       setError("An unexpected error occurred during sign in")
     } finally {
+      setLoading(false)
+    }
+  }
+
+  // GitHub and SSO are plain redirects to the provider (spec §6.2): no preview
+  // bounce, since each brand registers its own callback URLs.
+  const handleRedirectSignIn = async (providerId: "github" | "sso") => {
+    setLoading(true)
+    setError(null)
+    try {
+      await signIn(providerId, { callbackUrl: searchParams?.get("callbackUrl") || "/" })
+    } catch (error) {
+      log.error({ err: error, providerId }, "Sign in error:")
+      setError("An unexpected error occurred during sign in")
       setLoading(false)
     }
   }
@@ -232,6 +246,23 @@ export function SignInContent() {
             {/* Create Account View (Default) */}
             {!showPasskeyEmailPrompt && (
               <div className="space-y-4">
+                {/* Opt-in providers, in the brand's configured order (spec §6.2).
+                    The server omits their NextAuth providers when unlisted, so
+                    this is presentation, not the boundary. */}
+                {AUTH_PROVIDERS.filter((id): id is "github" | "sso" => id === "github" || id === "sso").map(id => (
+                <Button
+                  key={id}
+                  type="button"
+                  onClick={() => handleRedirectSignIn(id)}
+                  disabled={loading || isPasskeyLoading}
+                  className="w-full theme-surface hover:bg-[rgb(var(--theme-surface-hover))] theme-text-primary border theme-border-input font-medium h-12 rounded-xl shadow-sm"
+                  size="lg"
+                >
+                  {id === "github" ? <Github className="w-5 h-5 mr-2" /> : <Building2 className="w-5 h-5 mr-2" />}
+                  {id === "github" ? "Continue with GitHub" : `Continue with ${providers?.sso?.name ?? "SSO"}`}
+                </Button>
+                ))}
+
                 {/* 1. Google - Most prominent (blue), rendered immediately for fast LCP */}
                 {/* Hidden when the deployment disables Google sign-in; the NextAuth
                     provider is omitted too, so this is presentation, not the boundary. */}

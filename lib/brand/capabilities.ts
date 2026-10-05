@@ -30,6 +30,8 @@
  * it into the client bundle — do not refactor these into a loop or a computed key.
  */
 
+import { resolveAuthProviders, type AuthProviderId } from './auth-providers'
+
 /** A capability is on unless explicitly set to "false"/"0"/"off". */
 function enabled(value: string | undefined): boolean {
   const normalized = value?.trim().toLowerCase()
@@ -39,14 +41,35 @@ function enabled(value: string | undefined): boolean {
 
 const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
 
+/**
+ * The sign-in providers this deployment offers, in button order (spec §6.2).
+ * Unset, NEXT_PUBLIC_BRAND_AUTH_PROVIDERS falls back to the three legacy
+ * switches, so a deployment that sets nothing is unchanged. GitHub and SSO are
+ * on only when listed. See lib/brand/auth-providers.ts for the rules.
+ */
+export const AUTH_PROVIDERS: readonly AuthProviderId[] = resolveAuthProviders(
+  process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS,
+  {
+    google: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE),
+    apple: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE),
+    passkey: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY),
+  },
+)
+
 export const CAPABILITIES = {
   // --- Authentication -----------------------------------------------------
+  // Each is "is it in AUTH_PROVIDERS", so every existing gate on these keys
+  // follows the provider list without change.
   /** Google OAuth sign-in. */
-  authGoogle: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE),
+  authGoogle: AUTH_PROVIDERS.includes('google'),
   /** Sign in with Apple. */
-  authApple: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE),
+  authApple: AUTH_PROVIDERS.includes('apple'),
   /** WebAuthn passkeys. */
-  authPasskey: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY),
+  authPasskey: AUTH_PROVIDERS.includes('passkey'),
+  /** Sign in with GitHub, through the brand's GitHub App. Off unless listed. */
+  authGithub: AUTH_PROVIDERS.includes('github'),
+  /** Enterprise single sign-on (OIDC). Off unless listed. */
+  authSso: AUTH_PROVIDERS.includes('sso'),
 
   // --- External sync ------------------------------------------------------
   /** Two-way sync with Google Tasks. */
@@ -123,9 +146,11 @@ export function capabilityGate(key: CapabilityKey): Response | null {
  * user is locked out. Guarded at startup by assertUsableAuthConfiguration().
  */
 export const AUTH_CAPABILITIES: readonly CapabilityKey[] = [
+  'authGithub',
   'authGoogle',
   'authApple',
   'authPasskey',
+  'authSso',
 ]
 
 export function enabledAuthMethods(): CapabilityKey[] {
@@ -143,8 +168,9 @@ export function assertUsableAuthConfiguration(): void {
   if (enabledAuthMethods().length === 0) {
     throw new Error(
       'Brand configuration disables every authentication method — no one could sign in. ' +
-        'Enable at least one of NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE, ' +
-        'NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE or NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY.'
+        'List at least one of github, google, apple, passkey or sso in ' +
+        'NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (or, with it unset, leave one of ' +
+        'NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE / _APPLE / _PASSKEY on).'
     )
   }
 }

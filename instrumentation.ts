@@ -24,6 +24,22 @@ export async function register() {
   // sign in. This hook runs once per server start regardless of route. Task 97208a72.
   assertUsableAuthConfiguration()
 
+  // Every listed provider must have what it needs (spec §6.2). Missing
+  // credentials for GitHub or SSO stop the boot; for the legacy providers they
+  // are logged, since a wrong guess about an existing deployment would be an
+  // outage rather than a safety check.
+  {
+    const { AUTH_PROVIDERS } = await import('@/lib/brand/capabilities')
+    const { checkProviderCredentials } = await import('@/lib/auth/provider-credentials')
+    const credentials = checkProviderCredentials(AUTH_PROVIDERS)
+    for (const warning of credentials.warnings) {
+      console.error(`[auth] sign-in provider is missing configuration — ${warning}`)
+    }
+    if (credentials.fatal.length > 0) {
+      throw new Error(`Sign-in providers are listed without their configuration: ${credentials.fatal.join('; ')}`)
+    }
+  }
+
   registerOTel({
     serviceName: process.env.OTEL_SERVICE_NAME ?? 'astrid-web',
   })

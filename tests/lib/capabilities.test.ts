@@ -34,11 +34,15 @@ describe('capability defaults (task 97208a72)', () => {
     process.env = { ...ORIGINAL_ENV }
   })
 
-  it('enables every capability when nothing is configured', async () => {
+  it('enables every capability when nothing is configured — except the opt-in sign-in providers', async () => {
     const { CAPABILITIES } = await import('@/lib/brand/capabilities')
 
+    // GitHub and SSO sign-in need credentials, so they are on only when listed
+    // in NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (spec §6.2). Defaulting them on would
+    // put a failing button on every existing deployment.
+    const OPT_IN = new Set(['authGithub', 'authSso'])
     for (const [key, value] of Object.entries(CAPABILITIES)) {
-      expect(value, `${key} should default to enabled`).toBe(true)
+      expect(value, `${key} default`).toBe(!OPT_IN.has(key))
     }
   })
 
@@ -193,6 +197,55 @@ describe('authentication configuration must stay usable (task 97208a72)', () => 
   })
 })
 
+describe('the login-provider list drives the auth capabilities (spec §6.2)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearCapabilityEnv()
+    delete process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+  })
+
+  it('offers exactly the listed providers, in order', async () => {
+    process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS = 'github,passkey'
+    const { CAPABILITIES, AUTH_PROVIDERS } = await import('@/lib/brand/capabilities')
+
+    expect(AUTH_PROVIDERS).toEqual(['github', 'passkey'])
+    expect(CAPABILITIES.authGithub).toBe(true)
+    expect(CAPABILITIES.authPasskey).toBe(true)
+    expect(CAPABILITIES.authGoogle).toBe(false)
+    expect(CAPABILITIES.authApple).toBe(false)
+    expect(CAPABILITIES.authSso).toBe(false)
+  })
+
+  it('leaves GitHub and SSO off when nothing lists them', async () => {
+    const { CAPABILITIES, AUTH_PROVIDERS } = await import('@/lib/brand/capabilities')
+
+    expect(AUTH_PROVIDERS).toEqual(['google', 'apple', 'passkey'])
+    expect(CAPABILITIES.authGithub).toBe(false)
+    expect(CAPABILITIES.authSso).toBe(false)
+  })
+
+  it('counts a GitHub-only deployment as one you can sign in to', async () => {
+    process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS = 'github'
+    const { assertUsableAuthConfiguration, enabledAuthMethods } = await import('@/lib/brand/capabilities')
+
+    expect(enabledAuthMethods()).toEqual(['authGithub'])
+    expect(() => assertUsableAuthConfiguration()).not.toThrow()
+  })
+
+  it('still refuses a list that leaves nobody able to sign in', async () => {
+    process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS = 'okta'
+    const { assertUsableAuthConfiguration } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertUsableAuthConfiguration()).toThrow(/no one could sign in/i)
+  })
+})
+
 describe('discovery documents follow the capabilities (task 97208a72)', () => {
   const ORIGINAL_ENV = { ...process.env }
 
@@ -244,7 +297,16 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     const { GET } = await import('@/app/api/v1/capabilities/route')
     const body = await (await GET()).json()
 
-    expect(body.auth).toEqual({ google: true, apple: true, passkey: true })
+    expect(body.auth).toEqual({
+      google: true, apple: true, passkey: true, github: false, sso: false,
+      // Ordered — the order is the button order (spec §6.5). Clients that
+      // predate this read the booleans, which keep their meaning.
+      providers: [
+        { id: 'google', kind: 'oauth' },
+        { id: 'apple', kind: 'oauth' },
+        { id: 'passkey', kind: 'webauthn' },
+      ],
+    })
     expect(body.sync).toEqual({ googleTasks: true, githubIssues: true })
     expect(body.integrations.customAgents).toBe(true)
     expect(body.integrations.openclaw).toBe(true)
@@ -261,6 +323,19 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     expect(body.sync.githubIssues).toBe(true)
     expect(body.auth.google).toBe(false)
     expect(body.auth.passkey).toBe(true)
+  })
+
+  it('serves the configured provider list in order (spec §6.5)', async () => {
+    process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS = 'github,sso,passkey'
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.auth.providers).toEqual([
+      { id: 'github', kind: 'oauth' },
+      { id: 'sso', kind: 'oidc' },
+      { id: 'passkey', kind: 'webauthn' },
+    ])
+    expect(body.auth).toMatchObject({ github: true, sso: true, passkey: true, google: false, apple: false })
   })
 
   it('never discloses the agent email domain', async () => {

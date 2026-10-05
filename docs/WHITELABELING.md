@@ -112,7 +112,40 @@ scheme included). An origin that is not on the list receives no
 configuration ended up granting `https://astrid.cc` credentialed access to every
 deployment.
 
-**At least one auth method must remain.** A build with all three off is an outage, not a
+### Sign-in providers
+
+Which sign-in methods a brand offers is one ordered list:
+
+```bash
+NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"   # also the button order
+```
+
+| Provider | Needs | Email trusted when |
+|---|---|---|
+| `github` | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — the brand's **GitHub App's own** OAuth client (`Iv…`), with "Email addresses: read" and `/api/auth/callback/github` among its callback URLs | GitHub reports it as the user's verified primary |
+| `google` | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google's `email_verified` claim |
+| `apple` | the mobile token routes (no web button yet) | Apple's `email_verified` claim |
+| `passkey` | — (RP ID per §7) | verified by email, as before |
+| `sso` | `AUTH_SSO_ISSUER`, `AUTH_SSO_CLIENT_ID`, `AUTH_SSO_CLIENT_SECRET`, `AUTH_SSO_DOMAINS` (optional `AUTH_SSO_LABEL`) — any OIDC IdP | it is in `AUTH_SSO_DOMAINS` — an IdP can assert any address, so trust is bound to domains |
+
+- **Unset, the list is derived from the three `ENABLE_AUTH_*` switches**, so a deployment
+  that sets nothing is unchanged. A switch set to off still removes its provider from an
+  explicit list.
+- **GitHub and SSO are never on by default.** Listing them is the only way in, and the
+  server refuses to start if they are listed without their settings (`instrumentation.ts`
+  → `lib/auth/provider-credentials.ts`). For the legacy providers a missing credential is
+  logged rather than fatal.
+- **Every federated sign-in links by one rule**, `lib/auth/federated-identity-linking.ts`:
+  an identity already linked signs in; otherwise the email must be one the provider vouches
+  for (above), and never an AI agent, an address at the agent domain, or
+  `INITIAL_ADMIN_EMAIL`. A sign-in that fails the rule is refused, new user or not.
+- **Clients** read `auth.providers` (ordered `{ id, kind }`) from
+  `GET /api/v1/capabilities`, alongside the original booleans plus `github` and `sso`.
+
+Per-organisation SSO (a connection per customer domain, SAML via a broker) is the next
+step — docs/specs/GITHUB_PROJECTS_WHITELABEL.md §6.4.
+
+**At least one auth method must remain.** A build with none of them is an outage, not a
 degraded feature, so `instrumentation.ts` asserts it at server start and the process
 refuses to boot. Without that check the sign-in page renders a 200 with no buttons —
 indistinguishable from a working page until a user tries to sign in.

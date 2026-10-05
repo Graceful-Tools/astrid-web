@@ -198,11 +198,16 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     const body = await (await GET()).json()
 
     const caps = profile.expect.capabilities
-    expect(body.auth).toEqual({
+    expect(body.auth).toMatchObject({
       google: caps.authGoogle,
       apple: caps.authApple,
       passkey: caps.authPasskey,
     })
+    // The ordered list carries the same set the booleans do (spec §6.5).
+    const offered = (body.auth.providers as Array<{ id: string }>).map(p => p.id)
+    for (const [id, on] of Object.entries(body.auth).filter(([k]) => k !== 'providers')) {
+      expect(offered.includes(id), `auth.providers vs auth.${id}`).toBe(on)
+    }
     expect(body.sync).toEqual({
       googleTasks: caps.syncGoogleTasks,
       githubIssues: caps.syncGithubIssues,
