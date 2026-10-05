@@ -129,9 +129,12 @@ html, body {
 }
 
 .task-row-selected {
-  /* Selection reads via the tinted background (theme-bg-selected). Keep the
-     same thin border + subtle shadow as incomplete rows — no blue glow ring,
-     no heavier shadow (task 37464d1f). */
+  /* A crisp accent-blue border, as the Mac app draws it (AWTD-1084). An inset
+     outline rather than a wider border, so selecting a row does not shift it;
+     outline follows the rounded corners. Still no glow ring and no heavier
+     shadow than other rows (task 37464d1f). */
+  outline: 2px solid rgb(var(--theme-accent));
+  outline-offset: -2px;
 }
 
 .task-row-completed {
@@ -170,10 +173,11 @@ html, body {
   border-top: none;
 }
 
-/* Desktop arrow: match the panel border */
-.task-panel-desktop > .task-panel-arrow {
-  border-left-color: rgb(var(--theme-border));
-  border-bottom-color: rgb(var(--theme-border));
+/* Desktop arrow: match the panel's accent-blue selection ring (AWTD-1084).
+   .theme-panel-arrow in the selector outranks each theme's border-color. */
+.task-panel-desktop > .task-panel-arrow.theme-panel-arrow {
+  border-left: 2px solid rgb(var(--theme-accent));
+  border-bottom: 2px solid rgb(var(--theme-accent));
 }
 
 .panel-header {
@@ -586,8 +590,9 @@ html, body {
 
 .task-panel-desktop {
   @apply fixed top-32 bottom-10 bg-white dark:bg-gray-800 flex flex-col z-30 rounded-xl;
-  /* Subtle border + shadow for floating panel look */
-  box-shadow: 0 0 0 1px rgb(var(--theme-border)), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  /* Accent-blue selection ring, matching the selected row (AWTD-1084), plus
+     a soft shadow for the floating panel look */
+  box-shadow: 0 0 0 2px rgb(var(--theme-accent)), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
   /* Responsive width that adapts to available space and layout configuration */
   width: clamp(
     var(--task-panel-min-width),
