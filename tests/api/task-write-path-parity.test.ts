@@ -25,6 +25,7 @@ const handleRepeatingTaskCompletion = vi.hoisted(() => vi.fn())
 const applyRepeatingTaskRollForward = vi.hoisted(() => vi.fn())
 const recordTaskEvents = vi.hoisted(() => vi.fn())
 const notifyTaskUpdate = vi.hoisted(() => vi.fn())
+const dispatchAgentAssignment = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -49,6 +50,13 @@ vi.mock('@/lib/task-state-change-tracker', () => ({
 }))
 vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents }))
 vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
+vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
+const authorizeAssigneeChange = vi.hoisted(() => vi.fn())
+vi.mock('@/services/assignee-authorization', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/assignee-authorization')>()
+  authorizeAssigneeChange.mockImplementation(actual.authorizeAssigneeChange)
+  return { ...actual, authorizeAssigneeChange }
+})
 
 // Everything else the handlers fire off afterwards wants a real DB/Redis/SSE.
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
@@ -267,6 +275,28 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     await drive({ completed: true, closedReason: 'canceled' })
 
     expect(applyRepeatingTaskRollForward).not.toHaveBeenCalled()
+  })
+
+  // P1 step 3: the update path dispatches through the same helper as create.
+  // It used to depend on a $extends hook in lib/prisma.ts instead.
+  it('dispatches an assignee change through the one agent-assignment helper', async () => {
+    taskUpdate.mockResolvedValue({ ...OPEN_TASK, assigneeId: 'agent-1', assignee: { id: 'agent-1', isAIAgent: true } })
+    // Who may be assigned is the assignee rule's business, tested on its own;
+    // this case is about what happens once the assignment is allowed.
+    authorizeAssigneeChange.mockResolvedValueOnce({ ok: true })
+
+    await drive({ assigneeId: 'agent-1' })
+
+    expect(dispatchAgentAssignment).toHaveBeenCalledTimes(1)
+    expect(dispatchAgentAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'task-1', assigneeId: 'agent-1', previousAssigneeId: 'user-1', deferred: true }),
+    )
+  })
+
+  it('does not dispatch when the assignee is unchanged', async () => {
+    await drive({ completed: true })
+
+    expect(dispatchAgentAssignment).not.toHaveBeenCalled()
   })
 
   it('clears the completion stamp when the task is reopened', async () => {

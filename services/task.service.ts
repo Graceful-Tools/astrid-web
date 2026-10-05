@@ -64,7 +64,7 @@ import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { broadcastTaskCreated } from './task-create-broadcast'
-import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
+import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 import {
   computeAutomaticReminders,
   scheduleReminders,
@@ -765,25 +765,13 @@ async function runCreateSideEffects(args: {
   const memberIds = await broadcastTaskCreated({ task, actorId, creatorName })
 
   // An AI agent has to be told, or the one feature agent assignment exists for
-  // never starts. Prefer the assignee already loaded; fall back to a lookup
-  // when a caller handed us a task without it.
-  try {
-    if (task.assigneeId) {
-      const assignee =
-        anyTask.assignee ??
-        (await prisma.user.findUnique({
-          where: { id: task.assigneeId },
-          select: { id: true, isAIAgent: true, aiAgentType: true, name: true },
-        }))
-      if (assignee?.isAIAgent) {
-        await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
-      }
-    } else if (anyTask.aiAgentId) {
-      await aiAgentWebhookService.notifyTaskAssignmentViaAIAgentId(task.id, anyTask.aiAgentId)
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to notify AI agent about task assignment')
-  }
+  // never starts. Same helper as the update path.
+  await dispatchAgentAssignment({
+    taskId: task.id,
+    assigneeId: task.assigneeId,
+    assignee: anyTask.assignee,
+    aiAgentId: anyTask.aiAgentId,
+  })
 
   try {
     if (await isRedisAvailable()) {
@@ -1291,6 +1279,18 @@ async function runUpdateSideEffects(args: {
 
   // Reminders must follow the task, or a completed one keeps notifying.
   await rescheduleRemindersForUpdate({ before: existingTask, after: task, actorId })
+
+  // A newly assigned agent is told here, explicitly — not by a hook inside the
+  // Prisma client that fired on any raw assignee write (spec §5.2 step 3).
+  if (task.assigneeId && task.assigneeId !== existingTask.assigneeId) {
+    await dispatchAgentAssignment({
+      taskId: task.id,
+      assigneeId: task.assigneeId,
+      previousAssigneeId: existingTask.assigneeId ?? null,
+      assignee: task.assignee,
+      deferred: true,
+    })
+  }
 
   // A blocker's completion decides other tasks' lanes, in BOTH directions:
   // completing unblocks its dependents, reopening re-blocks the ones still in
