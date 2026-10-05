@@ -5,9 +5,9 @@ Projects (v2). This also covers the three workstreams that make it possible:
 consolidating the write path, a login-provider registry, and one GitHub connection.
 Revision 2, 2026-10-05.*
 
-Status: **Proposal, product decisions made (§0.2), not implemented.** Five verified
-defects found during this review (§2) are independent of GitHub. They should be fixed
-first, regardless of whether the rest is built.
+Status: **In progress — P0, P1, P2 done; P3 partly done; P4–P8 not started** (2026-10-05).
+See §17 for exactly what landed, what did not, and what each remaining phase needs. None
+of it is deployed: production deploys are manual (CLAUDE.md rule 1).
 
 Companions:
 - [WHITELABELING.md](../WHITELABELING.md) covers brand identity and capabilities. This
@@ -1083,3 +1083,98 @@ from the fixes themselves. Sizes: S = days, M = 1–2 weeks, L = 3+ weeks.
 - [Sub-issues REST API](https://docs.github.com/en/rest/issues/sub-issues)
 - [Issue dependencies REST API](https://docs.github.com/en/enterprise-cloud@latest/rest/issues/issue-dependencies)
 - [Issues and Projects GA: sub-issues, issue types](https://github.com/orgs/community/discussions/154148)
+
+---
+
+## 17. Implementation status (2026-10-05)
+
+All on `main`; nothing deployed. Each item was built red-green, with the regression or
+rule test named.
+
+### P0 — defects (§2): done
+
+| # | Task | Commit | Test |
+|---|---|---|---|
+| S1 | [AWTD-1087](https://astrid.cc/t/AWTD-1087) | `be1ab035` | `tests/api/github-installation-claim.test.ts` |
+| S2 | [AWTD-1088](https://astrid.cc/t/AWTD-1088) | `26d1ea4a` | `tests/lib/auth-google-web-linking.test.ts` |
+| S3 | [AWTD-1089](https://astrid.cc/t/AWTD-1089) | `3075744c` | `tests/api/invitations-assignee-rule.test.ts` |
+| B1 | [AWTD-1090](https://astrid.cc/t/AWTD-1090) | `fd990c65` | `tests/api/v1-project-statuses.test.ts`, Postgres tier |
+| B2 | [AWTD-1091](https://astrid.cc/t/AWTD-1091) | `3aba1e1b` | `tests/api/v1-lists-members-userId.test.ts` |
+| B3 | [AWTD-1092](https://astrid.cc/t/AWTD-1092) | `7493e7c9` | `tests/api/task-write-path-parity.test.ts` |
+| B4 | [AWTD-1093](https://astrid.cc/t/AWTD-1093) | `b8fe5064` | `tests/rules/task-completion-goes-through-the-service.test.ts` |
+| B5 | [AWTD-1094](https://astrid.cc/t/AWTD-1094) | `26a1a9d7` | `tests/rules/coding-agent-has-its-own-capability.test.ts` |
+
+**Before the deploy that carries S1:**
+- The GitHub App's Callback URL list must include `https://<domain>/api/github/setup`.
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (the App's `Iv…` client) must be set in
+  production. Without them, new installation links fail closed; existing links keep
+  working.
+
+**For the whitelabel-partner deployment:** set
+`NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT=false` (B5), or its coding agent turns on.
+
+### P1 — one write path (§5): done
+
+| Step | Commit | What |
+|---|---|---|
+| 2 | `b8fe5064` | `services/complete-task.ts`; every completion goes through the service |
+| 3 | `75ca42c5` | `services/agent-assignment-dispatch.ts`; the `$extends` hook is deleted from `lib/prisma.ts` |
+| 4 | `9fb2a460` | `services/post-comment-as.ts`; agent/system comments go through the comment service; agent→agent loop guard |
+| 5 | `0042441d` | email-to-task creates through the service; batch copy applies the assignee rule |
+| 6 | `0bfdf842` | membership changes announce themselves (`announceListMember*`, `announceRosterChanges`); legacy leave delegates |
+| 7 | `0bfdf842` | `tests/rules/entity-writes-go-through-services.test.ts`, with a reasoned allow-list and a slack check |
+| 8 | `87b659ef` | `lib/backends/` `TaskBackend` seam (local only) in front of create/update/delete; fake-remote runs of the parity suites |
+
+Behaviour changes worth knowing:
+- The "🤖 starting" acknowledgement comment, previously posted only by the deleted hook on
+  update, is gone.
+- Assigning the default assistant to an existing task now notifies it. It used to notify
+  nobody.
+
+### P2 — login providers (§6): done for web
+
+Commit `6cf7c53e`:
+- `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS`
+- GitHub and deployment-level OIDC SSO
+- `lib/auth/federated-identity-linking.ts`, one linking rule for Google, GitHub and SSO
+- boot credential checks
+- `auth.providers` on `/api/v1/capabilities`
+- sign-in buttons
+- WHITELABELING.md "Sign-in providers"
+
+**Not done:**
+- Moving the four mobile token routes (`/api/auth/{apple,google}`, `/api/v1/auth/{apple,google}`)
+  onto the shared helper, and the single session format (§6.5).
+- Per-org SSO and SAML (§6.4 v2, P7).
+- Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off.
+
+### P3 — one GitHub connection (§7): partly done
+
+Done:
+- The capability split (`codingAgent`, B5).
+- Installation access proven by `GET /user/installations` (S1).
+- One App instance and one host module (`1c971f62`).
+- `githubGraphQL` timed.
+
+Not done, and why:
+- **The `GitHubInstallation` / `GitHubInstallationAccess` / `GitHubInstallationRepo`
+  tables and the move from `GitHubIntegration`.** These are schema migrations, which apply
+  at deploy and so wait for an approved deploy.
+- **User-to-server tokens in `Integration[GITHUB]` and the Issues-sync migration with
+  dual-read.** These need the App's permissions extended (Issues, Email addresses) on
+  GitHub, and the pre-flight report run against production.
+- **One webhook endpoint for `issues`/`issue_comment`.** This needs the App subscribed to
+  those events on GitHub.
+- **The Connections → GitHub settings card.**
+
+### P4–P8 — the Projects backend, fields, recurrence, per-org SSO, brand: not started
+
+These need, in order:
+1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.
+2. The brand's GitHub App given Organization Projects read/write and the `projects_v2*`
+   events.
+3. A test org for the live smoke test (§14.2).
+4. The astrid-ios work in §11.3.
+
+The seam they plug into, `TaskBackend` (§5.3), is in place.
+
