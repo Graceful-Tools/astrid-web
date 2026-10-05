@@ -39,6 +39,11 @@ vi.mock('@/lib/email', () => ({
   sendInvitationEmail: vi.fn(),
 }))
 
+const { updateTaskWithSideEffects } = vi.hoisted(() => ({
+  updateTaskWithSideEffects: vi.fn().mockResolvedValue({ ok: true, task: { id: 'task-123' }, rolledForward: false }),
+}))
+vi.mock('@/services/task.service', () => ({ updateTaskWithSideEffects }))
+
 vi.mock('@/lib/redis', () => ({
   RedisCache: {
     del: vi.fn().mockResolvedValue(undefined),
@@ -164,10 +169,11 @@ describe('/api/invitations', () => {
       expect(data.success).toBe(true)
       expect(data.userExists).toBe(true)
       expect(data.assignedUser).toEqual(existingUser)
-      expect(prisma.task.update).toHaveBeenCalledWith({
-        where: { id: 'task-123' },
-        data: { assigneeId: 'existing-user-123' },
-      })
+      // Through the service (assignee rules), not a raw write — AWTD-1089.
+      expect(updateTaskWithSideEffects).toHaveBeenCalledWith(
+        expect.objectContaining({ taskId: 'task-123', intent: { assigneeId: 'existing-user-123' } }),
+      )
+      expect(prisma.task.update).not.toHaveBeenCalled()
     })
 
     it('should reject duplicate invitations', async () => {
