@@ -8,6 +8,7 @@ import { Webhooks, createNodeMiddleware } from '@octokit/webhooks'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
+import { completeTask } from '@/services/complete-task'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('api.github.webhooks')
@@ -221,11 +222,19 @@ webhooks?.on('pull_request', async ({ payload }) => {
         }
       })
 
-      // Mark the task as completed
-      await prisma.task.update({
-        where: { id: workflow.taskId },
-        data: { completed: true }
-      })
+      // Mark the task as completed — through the service, so the merge
+      // completes it the way a person would (AWTD-1093). Attributed to the
+      // task's creator: the PR merge happened on GitHub, on their behalf.
+      if (workflow.task.creatorId) {
+        const completion = await completeTask({
+          taskId: workflow.taskId,
+          actorId: workflow.task.creatorId,
+          completedSource: 'github',
+        })
+        if (!completion.ok) {
+          log.warn({ taskId: workflow.taskId, error: completion.error }, 'Completing task after PR merge was refused')
+        }
+      }
 
       // Notify the task creator
       if (workflow.task.creatorId) {

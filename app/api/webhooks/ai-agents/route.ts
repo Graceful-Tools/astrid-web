@@ -6,6 +6,7 @@ import { broadcastToUsers } from "@/lib/sse-utils"
 import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
+import { completeTask } from '@/services/complete-task'
 
 const log = createLogger('api.webhooks.ai-agents')
 
@@ -212,10 +213,18 @@ export async function POST(request: NextRequest) {
     switch (payload.event) {
       case 'task.completed':
         if (payload.task.completed) {
-          await prisma.task.update({
-            where: { id: task.id },
-            data: { completed: true }
+          // Through the service: a raw write skipped the stamp, the lane,
+          // blocked dependents and repeating roll-forward (AWTD-1093).
+          const completion = await completeTask({
+            taskId: task.id,
+            actorId: payload.aiAgent.id,
+            actorName: mcpToken.user.name ?? undefined,
+            actorType: 'agent',
           })
+          if (!completion.ok) {
+            log.warn({ taskId: task.id, error: completion.error }, 'Agent completion refused')
+            return NextResponse.json({ error: completion.error }, { status: completion.status })
+          }
           log.info(`✅ Task marked as completed: ${task.title}`)
         }
         break
