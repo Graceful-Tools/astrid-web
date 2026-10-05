@@ -148,10 +148,12 @@ export const ENV_VARS: EnvVar[] = [
   // ── GitHub ────────────────────────────────────────────────────────────────
   { name: 'GITHUB_APP_ID', scope: 'optional', description: 'GitHub App id for repository integration.' },
   { name: 'GITHUB_APP_PRIVATE_KEY', scope: 'optional', description: 'GitHub App RSA private key. Without it no App-authenticated call works.' },
-  // The Issues-sync OAuth app (GITHUB_SYNC_*) is what actually performs the
-  // user-facing OAuth; these two are read by setup scripts only.
-  { name: 'GITHUB_CLIENT_ID', scope: 'tooling', description: 'GitHub App OAuth client id, read by setup scripts.' },
-  { name: 'GITHUB_CLIENT_SECRET', scope: 'tooling', description: 'GitHub App OAuth client secret, read by setup scripts.' },
+  // The GitHub App's own OAuth client (Iv…), distinct from the Issues-sync
+  // OAuth app (GITHUB_SYNC_*). /api/github/setup uses it to ask GitHub whether
+  // the user can see an installation before linking it (AWTD-1087); without
+  // it, linking is refused.
+  { name: 'GITHUB_CLIENT_ID', scope: 'optional', description: 'GitHub App OAuth client id. Required to link an App installation.' },
+  { name: 'GITHUB_CLIENT_SECRET', scope: 'optional', description: 'GitHub App OAuth client secret. Required to link an App installation.' },
   { name: 'GITHUB_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies GitHub App webhooks.' },
   { name: 'GITHUB_TOKEN', scope: 'tooling', description: 'Personal access token used by maintenance scripts and the gh CLI.' },
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },

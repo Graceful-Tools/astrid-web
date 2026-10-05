@@ -1,9 +1,9 @@
 /**
  * GitHub Installations API
- * Returns the current user's connected GitHub installation
- * OR detects unlinked installations from GitHub API when user has no DB record
+ * Returns the current user's linked GitHub installations.
  *
- * Security: Each user only sees their own installation or available unlinked installations
+ * Security: a user sees only installations linked to them, and links are made
+ * only after GitHub confirms the user can see the installation (AWTD-1087).
  */
 
 import { BRAND } from '@/lib/brand/config'
@@ -89,67 +89,18 @@ export async function GET(request: NextRequest) {
           message: `Found ${validInstallations.length} connected installation(s)`
         })
       }
-      // All installations were invalid, fall through to detect available installations
+      // Every linked installation was uninstalled on GitHub: same as none linked.
     }
 
-    // User has no linked integration (or it was uninstalled)
-    // Detect available installations from GitHub API
-    try {
-      // Get all installations of this GitHub App
-      const allInstallations = await app.octokit.request('GET /app/installations')
-
-      // Get all installation IDs already connected to other users
-      const connectedInstallations = await prisma.gitHubIntegration.findMany({
-        where: {
-          userId: { not: session.user.id },
-          installationId: { not: null }
-        },
-        select: { installationId: true }
-      })
-      const connectedIds = new Set(connectedInstallations.map(i => i.installationId))
-
-      // Filter to only show installations not connected to other users
-      const availableInstallations = allInstallations.data.filter(
-        (inst: any) => !connectedIds.has(inst.id)
-      )
-
-      // Transform for the UI
-      const detectedInstallations = availableInstallations.map((inst: any) => {
-        const account = inst.account as any
-        return {
-          id: inst.id,
-          account: {
-            login: account?.login || account?.name || 'unknown',
-            avatar_url: account?.avatar_url || ''
-          },
-          target_type: inst.target_type,
-          created_at: inst.created_at,
-          updated_at: inst.updated_at
-        }
-      })
-
-      if (detectedInstallations.length > 0) {
-        return NextResponse.json({
-          installations: [],
-          detectedInstallations,
-          message: `Found ${detectedInstallations.length} available GitHub installation(s). Click "Connect" to link one to your account.`
-        })
-      }
-
-      return NextResponse.json({
-        installations: [],
-        detectedInstallations: [],
-        message: `No GitHub installation connected. Install the ${BRAND.appName} Agent on GitHub first.`
-      })
-
-    } catch (detectError: any) {
-      log.error({ err: detectError }, 'Error detecting GitHub installations:')
-      return NextResponse.json({
-        installations: [],
-        detectedInstallations: [],
-        message: `No GitHub installation connected. Install the ${BRAND.appName} Agent on GitHub first.`
-      })
-    }
+    // No linked installation. Installations of the App that nobody has linked
+    // are NOT offered here: "unclaimed" is not "yours", and listing them handed
+    // every signed-in user every org's installation to claim (AWTD-1087).
+    // Linking goes through /api/github/setup, which asks GitHub to prove access.
+    return NextResponse.json({
+      installations: [],
+      detectedInstallations: [],
+      message: `No GitHub installation connected. Install the ${BRAND.appName} Agent on GitHub first.`
+    })
 
   } catch (error) {
     log.error({ err: error }, 'Error fetching GitHub installations:')

@@ -17,6 +17,13 @@ export async function POST(request: NextRequest) {
   const capabilityBlocked = capabilityGate('syncGithubIssues')
   if (capabilityBlocked) return capabilityBlocked
 
+  // Development-only, enforced HERE. The settings page hid the button outside
+  // development, but the route took any installationId from any signed-in
+  // user in production (AWTD-1087).
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   try {
     const session = await getUnifiedSession()
     if (!session?.user) {
