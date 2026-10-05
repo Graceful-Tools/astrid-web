@@ -1110,8 +1110,9 @@ export async function updateTaskWithSideEffects(args: {
   }
 
   // ── Repeating series ──────────────────────────────────────────────────────
-  // Resolved before the update is built: the helper writes the row itself, so
-  // this branch returns the rolled-forward task instead of updating.
+  // Resolved before the update is built: the helper writes the row itself. A
+  // roll-forward returns that task; a terminating series clears its recurrence
+  // and completes through the ordinary path below (AWTD-1092).
   const repeatingResult = await resolveRepeatingTaskCompletion({
     taskId,
     existingCompleted: existingTask.completed,
@@ -1120,15 +1121,8 @@ export async function updateTaskWithSideEffects(args: {
     closedReason: parsedClosedReason.value,
   })
 
-  // A terminating series clears its recurrence and then completes through the
-  // ordinary path below — stamp, lane, dependents, events. It used to return
-  // here as if it had rolled forward, leaving the final occurrence open
-  // (AWTD-1092). Only a genuine roll-forward short-circuits.
-  if (repeatingResult?.shouldTerminate) {
-    await applyRepeatingTaskRollForward(taskId, repeatingResult)
-  } else if (repeatingResult) {
-    await applyRepeatingTaskRollForward(taskId, repeatingResult)
-
+  if (repeatingResult) await applyRepeatingTaskRollForward(taskId, repeatingResult)
+  if (repeatingResult && !repeatingResult.shouldTerminate) {
     const rolled = await prisma.task.findUnique({
       where: { id: taskId },
       include: (include ?? TASK_FULL_INCLUDE) as never,
