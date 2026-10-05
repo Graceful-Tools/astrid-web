@@ -37,6 +37,15 @@ const broadcastToUsers = vi.hoisted(() => vi.fn())
 const trackAnalyticsEvent = vi.hoisted(() => vi.fn())
 const notifyTaskAssignment = vi.hoisted(() => vi.fn())
 
+// The TaskBackend seam (spec §5.2 step 8), passthrough unless a case says not.
+const backend = vi.hoisted(() => ({
+  kind: 'github_project' as const,
+  createTask: vi.fn(),
+  updateTask: vi.fn(),
+  deleteTask: vi.fn(),
+}))
+vi.mock('@/lib/backends/resolve', () => ({ taskBackendFor: () => backend }))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     task: { create: taskCreate, findUnique: taskFindUnique, findFirst: taskFindFirst },
@@ -124,6 +133,7 @@ beforeEach(() => {
   // Echo back what was written, the way Prisma does — a side effect that reads
   // the persisted row (reminders read dueDateTime) is testing nothing if the
   // mock always returns the same frozen task.
+  backend.createTask.mockImplementation(async (_ctx: unknown, data: unknown) => ({ ok: true, value: data }))
   taskCreate.mockImplementation(async ({ data }: any) =>
     createdTask({
       identifier: data.identifier ?? null,
@@ -455,3 +465,31 @@ describe('every create surface goes through the service (epic 9dedd8aa)', () => 
     expect(src).toMatch(/createTaskWithSideEffects/)
   })
 })
+
+describe('create goes through the owning TaskBackend first (spec §5.2 step 8)', () => {
+  it('writes the row the backend accepted', async () => {
+    backend.createTask.mockImplementation(async (_ctx: unknown, data: any) => ({
+      ok: true, value: { ...data, title: 'As the remote stored it' },
+    }))
+    const { createTaskWithSideEffects } = await service()
+
+    await createTaskWithSideEffects({ input: { title: 'A task', listIds: ['list-1'] }, actorId: 'creator-1' })
+
+    expect(backend.createTask).toHaveBeenCalledWith({ actorId: 'creator-1' }, expect.objectContaining({ title: 'A task' }))
+    expect(taskCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ title: 'As the remote stored it' }) }),
+    )
+  })
+
+  it('creates nothing when the backend refuses', async () => {
+    backend.createTask.mockResolvedValue({ ok: false, status: 403, error: 'Remote refused' })
+    const { createTaskWithSideEffects } = await service()
+
+    const result = await createTaskWithSideEffects({ input: { title: 'A task', listIds: ['list-1'] }, actorId: 'creator-1' })
+
+    expect(result).toEqual({ ok: false, status: 403, error: 'Remote refused' })
+    expect(taskCreate).not.toHaveBeenCalled()
+    expect(recordTaskCreationComment).not.toHaveBeenCalled()
+  })
+})
+

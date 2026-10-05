@@ -26,6 +26,14 @@ const applyRepeatingTaskRollForward = vi.hoisted(() => vi.fn())
 const recordTaskEvents = vi.hoisted(() => vi.fn())
 const notifyTaskUpdate = vi.hoisted(() => vi.fn())
 const dispatchAgentAssignment = vi.hoisted(() => vi.fn())
+// The TaskBackend seam (spec §5.2 step 8). Defaults to the local passthrough;
+// cases below swap in a fake remote that reshapes or refuses.
+const fakeBackend = vi.hoisted(() => ({
+  kind: 'github_project' as const,
+  createTask: vi.fn(async (_ctx: unknown, data: Record<string, unknown>) => ({ ok: true as const, value: data })),
+  updateTask: vi.fn(async (_ctx: unknown, _id: string, data: Record<string, unknown>) => ({ ok: true as const, value: data })),
+  deleteTask: vi.fn(async () => ({ ok: true as const, value: undefined })),
+}))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -51,6 +59,7 @@ vi.mock('@/lib/task-state-change-tracker', () => ({
 vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents }))
 vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
 vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
+vi.mock('@/lib/backends/resolve', () => ({ taskBackendFor: () => fakeBackend }))
 const authorizeAssigneeChange = vi.hoisted(() => vi.fn())
 vi.mock('@/services/assignee-authorization', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/assignee-authorization')>()
@@ -198,6 +207,7 @@ beforeEach(() => {
   taskUpdate.mockResolvedValue({ ...OPEN_TASK, completed: true })
   handleRepeatingTaskCompletion.mockResolvedValue(null)
   cancelActiveCodingWorkflow.mockResolvedValue({ cancelled: false })
+  fakeBackend.updateTask.mockImplementation(async (_ctx, _id, data) => ({ ok: true as const, value: data }))
 })
 
 describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f2ee)', (name) => {
@@ -297,6 +307,38 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     await drive({ completed: true })
 
     expect(dispatchAgentAssignment).not.toHaveBeenCalled()
+  })
+
+  // ── The TaskBackend seam (spec §5.2 step 8) ──────────────────────────────
+  it('asks the owning backend AFTER the service rules, with the computed row', async () => {
+    await drive({ completed: true })
+
+    expect(fakeBackend.updateTask).toHaveBeenCalledWith(
+      { actorId: 'user-1' },
+      'task-1',
+      expect.objectContaining({ completed: true, completedAt: expect.any(Date), statusRole: null }),
+    )
+  })
+
+  it('writes what the backend accepted, not what it was asked', async () => {
+    fakeBackend.updateTask.mockImplementation(async (_ctx, _id, data) => ({
+      ok: true as const, value: { ...data, title: 'Normalised by the remote' },
+    }))
+
+    await drive({ completed: true })
+
+    expect(updateData().title).toBe('Normalised by the remote')
+  })
+
+  it('writes nothing and fires no side effects when the backend refuses', async () => {
+    fakeBackend.updateTask.mockResolvedValue({ ok: false, status: 403, error: 'Remote refused' } as never)
+
+    // The MCP surface reports a refusal by throwing; the HTTP ones by status.
+    await drive({ completed: true }).catch(() => undefined)
+
+    expect(taskUpdate).not.toHaveBeenCalled()
+    expect(recordTaskEvents).not.toHaveBeenCalled()
+    expect(notifyTaskUpdate).not.toHaveBeenCalled()
   })
 
   it('clears the completion stamp when the task is reopened', async () => {

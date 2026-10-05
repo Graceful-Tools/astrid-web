@@ -22,6 +22,15 @@ const cancelActiveCodingWorkflow = vi.hoisted(() => vi.fn())
 const syncManualSortMemberships = vi.hoisted(() => vi.fn())
 const broadcastToUsers = vi.hoisted(() => vi.fn())
 
+// The TaskBackend seam (spec §5.2 step 8), passthrough unless a case says not.
+const backend = vi.hoisted(() => ({
+  kind: 'github_project' as const,
+  createTask: vi.fn(),
+  updateTask: vi.fn(),
+  deleteTask: vi.fn(),
+}))
+vi.mock('@/lib/backends/resolve', () => ({ taskBackendFor: () => backend }))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: { task: { delete: taskDelete, findUnique: taskFindUnique } },
 }))
@@ -53,6 +62,7 @@ beforeEach(() => {
   taskFindUnique.mockResolvedValue({ ...TASK })
   taskDelete.mockResolvedValue({ ...TASK })
   cancelActiveCodingWorkflow.mockResolvedValue({ cancelled: false })
+  backend.deleteTask.mockResolvedValue({ ok: true, value: undefined })
 })
 
 describe('deleteTaskWithSideEffects (epic 9dedd8aa)', () => {
@@ -169,3 +179,19 @@ describe('every delete surface goes through the service (epic 9dedd8aa)', () => 
     expect(src).toMatch(/deleteTaskWithSideEffects/)
   })
 })
+
+describe('delete goes through the owning TaskBackend first (spec §5.2 step 8)', () => {
+  it('keeps the task, tells nobody, and reports the refusal when the backend refuses', async () => {
+    backend.deleteTask.mockResolvedValue({ ok: false, status: 403, error: 'Remote refused' })
+    const { deleteTaskWithSideEffects } = await import('@/services/task.service')
+
+    const result = await deleteTaskWithSideEffects({ taskId: 'task-1', actorId: 'creator-1' })
+
+    expect(result).toMatchObject({ deleted: false, refused: { status: 403, error: 'Remote refused' } })
+    expect(taskDelete).not.toHaveBeenCalled()
+    expect(cancelActiveCodingWorkflow).not.toHaveBeenCalled()
+    expect(recordDeletion).not.toHaveBeenCalled()
+    expect(broadcastToUsers).not.toHaveBeenCalled()
+  })
+})
+

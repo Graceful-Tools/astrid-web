@@ -65,6 +65,8 @@ import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { broadcastTaskCreated } from './task-create-broadcast'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
+import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
+import { taskBackendFor } from '@/lib/backends/resolve'
 import {
   computeAutomaticReminders,
   scheduleReminders,
@@ -224,7 +226,7 @@ export async function deleteTaskWithSideEffects(args: {
   actorId: string
   /** Shown in the SSE payload; surfaces that have it can pass it. */
   actorName?: string
-}): Promise<{ deleted: boolean; audience: string[] }> {
+}): Promise<{ deleted: boolean; audience: string[]; refused?: { status: number; error: string } }> {
   const { taskId, actorId, actorName } = args
 
   // Read the audience while the relations still exist.
@@ -249,6 +251,11 @@ export async function deleteTaskWithSideEffects(args: {
   const audience = audienceForTask(task as never)
   const previousListIds = (task.lists ?? []).map(list => list.id)
   const listNames = (task.lists ?? []).map(list => list.name)
+
+  // The owning backend first (spec §5.3), before anything is cancelled or
+  // re-evaluated: a refusal must leave the task, and its agent, untouched.
+  const removal = await taskBackendFor(previousListIds).deleteTask({ actorId }, taskId)
+  if (!removal.ok) return { deleted: false, audience: [], refused: { status: removal.status, error: removal.error } }
 
   // Who was waiting on this task — read BEFORE the delete, because the
   // dependency rows cascade away with it and asking after returns nobody
@@ -325,32 +332,7 @@ export async function deleteTaskWithSideEffects(args: {
 // Slice 3: the CREATE verb (epic 9dedd8aa)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * The relations every side effect below needs, and the richest shape any
- * surface returns. Kept private for the same reason TASK_ACCESS_INCLUDE is:
- * the SSE fan-out reads `lists.listMembers`, and a caller that created with a
- * thinner include would silently broadcast to nobody.
- *
- * Surfaces narrow this for the wire themselves. They must: legacy's shape
- * carries `list.owner` and `listMembers.user` — whole user records, emails
- * included — and handing that to v1 or MCP verbatim would newly publish list
- * members' email addresses to API consumers that have never received them.
- * Same DB state everywhere, unchanged wire contracts.
- */
-const TASK_CREATE_INCLUDE = {
-  assignee: true,
-  creator: true,
-  lists: {
-    include: {
-      owner: true,
-      listMembers: { include: { user: true } },
-    },
-  },
-  comments: { include: { author: true } },
-  attachments: true,
-} as const
-
-export type CreatedTask = Prisma.TaskGetPayload<{ include: typeof TASK_CREATE_INCLUDE }>
+export type { CreatedTask }
 
 export interface CreateTaskInput {
   title: string
@@ -652,10 +634,12 @@ export async function createTaskWithSideEffects(args: {
     lists: { connect: connectListIds.map(id => ({ id })) },
   }
 
+  const accepted = await taskBackendFor(connectListIds).createTask({ actorId }, data)
+  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   let task: CreatedTask
   try {
     task = (await prisma.task.create({
-      data: data as never,
+      data: accepted.value as never,
       include: TASK_CREATE_INCLUDE,
     })) as CreatedTask
   } catch (err) {
@@ -866,22 +850,8 @@ export interface UpdateTaskIntent {
  */
 export type UpdateTaskResult =
   | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
-  | { ok: false; status: 400 | 403 | 404 | 412; error: string; code?: string; conflict?: any }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 412; error: string; code?: string; conflict?: any }
 
-/** The pre-update columns the event diff and the change rules read. */
-const TASK_UPDATE_EXISTING_INCLUDE = {
-  lists: {
-    select: {
-      id: true,
-      name: true,
-      listType: true,
-      privacy: true,
-      publicListType: true,
-      ownerId: true,
-      listMembers: { select: { userId: true, role: true } },
-    },
-  },
-} as const
 
 /**
  * Update a task, with every side effect the update implies.
@@ -1205,9 +1175,12 @@ export async function updateTaskWithSideEffects(args: {
     }
   }
 
+  const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
+  const accepted = await taskBackendFor(lists).updateTask({ actorId }, taskId, data)
+  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   const task = await prisma.task.update({
     where: { id: taskId },
-    data: data as never,
+    data: accepted.value as never,
     include: (include ?? TASK_FULL_INCLUDE) as never,
   })
 
