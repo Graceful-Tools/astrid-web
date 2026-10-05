@@ -17,6 +17,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { userCanAccessTask } from '@/services/task.service'
+import { authorizeNewTaskAssignee } from '@/services/assignee-authorization'
 
 export type BatchCopyResult =
   | { ok: true; task: Record<string, unknown> }
@@ -92,6 +93,20 @@ export async function batchCopyTask(args: {
     assigneeProvided,
     firstList: targetLists[0],
   })
+
+  // The create path's assignee gate (AWTD-891). This accepted a caller-supplied
+  // assignee unchecked — AI agents included, billed to the list's configured
+  // user. A list's own default is the owner's consent and is not re-asked.
+  const assigneeAllowed = await authorizeNewTaskAssignee({
+    requested: assigneeProvided ? assigneeId ?? null : undefined,
+    resolved: finalAssigneeId,
+    actorId: userId,
+    targetListIds,
+    requireListMembership: false,
+  })
+  if (!assigneeAllowed.ok) {
+    return { ok: false, status: assigneeAllowed.status, error: assigneeAllowed.error }
+  }
 
   const copiedTask = await prisma.task.create({
     data: {
