@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
-import { App } from '@octokit/app'
+import { getGitHubApp } from '@/lib/github/app'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
@@ -45,10 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const app = new App({
-      appId: parseInt(process.env.GITHUB_APP_ID),
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY
-    })
+    const app = getGitHubApp()
 
     const allRepositories: any[] = []
     const errors: string[] = []

@@ -12,8 +12,8 @@
  * `GITHUB_SYNC_CLIENT_ID`).
  */
 
-const GITHUB_WEB = 'https://github.com'
-const GITHUB_API = 'https://api.github.com'
+import { GITHUB_API_URL as GITHUB_API, GITHUB_WEB_URL as GITHUB_WEB } from '@/lib/github/host'
+
 const PAGE_SIZE = 100
 /** /user/installations is paginated; nobody legitimately sees more than this. */
 const MAX_PAGES = 10

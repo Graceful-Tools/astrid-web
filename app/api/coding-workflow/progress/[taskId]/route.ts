@@ -4,6 +4,7 @@ import { createLogger } from '@/lib/logger'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
+import { GITHUB_WEB_URL } from '@/lib/github/host'
 
 const log = createLogger('coding-workflow.progress.[taskId]')
 
@@ -141,7 +142,7 @@ export const GET = withAuth<RouteContext>(
         repositoryId: workflow.repositoryId,
         deploymentUrl: workflow.deploymentUrl,
         prUrl: workflow.pullRequestNumber ?
-          `https://github.com/${workflow.repositoryId}/pull/${workflow.pullRequestNumber}` :
+          `${GITHUB_WEB_URL}/${workflow.repositoryId}/pull/${workflow.pullRequestNumber}` :
           null
       },
 

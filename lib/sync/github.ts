@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { fetchWithTimeout } from '@/lib/ai/clients/fetch-with-timeout'
 import { prisma } from '@/lib/prisma'
 import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
+import { GITHUB_API_URL as GITHUB_API, GITHUB_WEB_URL } from '@/lib/github/host'
 
 /**
  * GitHub Issues sync — server-side helpers.
@@ -13,7 +14,6 @@ import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
  *   GITHUB_SYNC_WEBHOOK_SECRET                          (issues webhook nudge)
  */
 
-const GITHUB_API = 'https://api.github.com'
 
 export function githubSyncConfigured(): boolean {
   return !!(process.env.GITHUB_SYNC_CLIENT_ID && process.env.GITHUB_SYNC_CLIENT_SECRET)
@@ -79,7 +79,7 @@ export async function exchangeGithubCode(
   code: string,
   redirectUri?: string
 ): Promise<{ accessToken: string; scopes: string[] } | null> {
-  const res = await fetch('https://github.com/login/oauth/access_token', {
+  const res = await fetch(`${GITHUB_WEB_URL}/login/oauth/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
@@ -148,13 +148,20 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
 
 /** GraphQL call (sub-issue parent lookups — REST doesn't expose an issue's parent). */
 export async function githubGraphQL(token: string, query: string): Promise<any> {
-  const res = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  // Timed like every other GitHub call here: an untimed GraphQL request could
+  // hold a sync pass until the function was killed (spec §3.2 G7).
+  const res = await fetchWithTimeout(
+    `${GITHUB_API}/graphql`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
     },
-    body: JSON.stringify({ query }),
-  })
+    GITHUB_REQUEST_TIMEOUT_MS,
+    'GitHub',
+  )
   return res.json().catch(() => null)
 }

@@ -10,7 +10,7 @@ import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
-import { App } from '@octokit/app'
+import { getGitHubApp } from '@/lib/github/app'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
@@ -44,10 +44,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Initialize GitHub App
-    const app = new App({
-      appId: parseInt(process.env.GITHUB_APP_ID),
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY
-    })
+    const app = getGitHubApp()
 
     // If user has linked integrations, fetch them from GitHub
     const linkedIntegrations = userIntegrations.filter(i => i.installationId)

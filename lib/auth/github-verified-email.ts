@@ -9,12 +9,13 @@
  */
 
 import { createLogger } from '@/lib/logger'
+import { GITHUB_API_URL } from '@/lib/github/host'
 
 const log = createLogger('auth.github-email')
 
 export async function githubVerifiedPrimaryEmail(accessToken: string): Promise<string | null> {
   try {
-    const res = await fetch('https://api.github.com/user/emails', {
+    const res = await fetch(`${GITHUB_API_URL}/user/emails`, {
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${accessToken}`,

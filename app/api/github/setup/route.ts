@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
-import { App } from '@octokit/app'
+import { getGitHubApp } from '@/lib/github/app'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { mintOAuthStateWithSubject, verifyOAuthStateWithSubject } from '@/lib/sync/oauth-state'
@@ -43,10 +43,7 @@ function setupRedirectUri(request: NextRequest): string {
 async function fetchInstallationRepositories(installationId: number): Promise<any[]> {
   if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_PRIVATE_KEY) return []
   try {
-    const app = new App({
-      appId: parseInt(process.env.GITHUB_APP_ID),
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY
-    })
+    const app = getGitHubApp()
     const installationOctokit = await app.getInstallationOctokit(installationId)
     const reposResponse = await installationOctokit.request('GET /installation/repositories')
     const installationDetails = await app.octokit.request('GET /app/installations/{installation_id}', {

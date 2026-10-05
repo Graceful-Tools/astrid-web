@@ -154,6 +154,8 @@ export const ENV_VARS: EnvVar[] = [
   // it, linking is refused.
   { name: 'GITHUB_CLIENT_ID', scope: 'optional', description: 'GitHub App OAuth client id. Required to link an App installation.' },
   { name: 'GITHUB_CLIENT_SECRET', scope: 'optional', description: 'GitHub App OAuth client secret. Required to link an App installation.' },
+  { name: 'GITHUB_API_URL', scope: 'optional', description: 'GitHub API root. Default https://api.github.com; set for a GHE.com tenant.' },
+  { name: 'GITHUB_WEB_URL', scope: 'optional', description: 'GitHub web root for OAuth and links. Default https://github.com.' },
   { name: 'GITHUB_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies GitHub App webhooks.' },
   { name: 'GITHUB_TOKEN', scope: 'tooling', description: 'Personal access token used by maintenance scripts and the gh CLI.' },
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },
