@@ -26,6 +26,12 @@ vi.mock('@/lib/redis', () => ({
   RedisCache: { del: vi.fn(), keys: { userLists: (id: string) => `userLists:${id}` } },
 }))
 
+// What follows a leave — caches and the list_member_removed event — is the
+// member service's one implementation (spec §5.2 step 6). leaveList used to
+// clear only the leaver's own cache and tell nobody.
+const { announceListMemberRemoved } = vi.hoisted(() => ({ announceListMemberRemoved: vi.fn() }))
+vi.mock('@/services/list-member.service', () => ({ announceListMemberRemoved }))
+
 import { leaveList } from '@/lib/list-leave'
 import { prisma } from '@/lib/prisma'
 import { RedisCache } from '@/lib/redis'
@@ -156,7 +162,7 @@ describe('leaveList (task e0613ae5)', () => {
     mockPrisma.listMember.findFirst.mockImplementation(
       memberLookup({ callerRole: 'member', ownerHasAdminRow: true }) as never,
     )
-    mockRedis.del.mockRejectedValue(new Error('redis down') as never)
+    announceListMemberRemoved.mockRejectedValue(new Error('redis down') as never)
 
     const result = await leaveList({ listId: 'list-1', userId: 'u-1' })
 
@@ -176,3 +182,31 @@ describe('leaveList (task e0613ae5)', () => {
     expect(result).toMatchObject({ ok: false, status: 404 })
   })
 })
+
+describe('leaving is announced (spec §5.2 step 6)', () => {
+  it('announces the removal with the roster as it was before the leave', async () => {
+    mockPrisma.taskList.findUnique.mockResolvedValue({
+      ...LIST, color: '#000', isVirtual: false, listMembers: [{ userId: 'u-1' }, { userId: 'u-2' }],
+    } as never)
+    mockPrisma.listMember.findFirst.mockImplementation(
+      memberLookup({ callerRole: 'member', ownerHasAdminRow: true }) as never,
+    )
+
+    await leaveList({ listId: 'list-1', userId: 'u-1' })
+
+    expect(announceListMemberRemoved).toHaveBeenCalledWith({
+      list: expect.objectContaining({ id: 'list-1', listMembers: [{ userId: 'u-1' }, { userId: 'u-2' }] }),
+      member: { id: 'u-1' },
+      actor: { id: 'u-1' },
+    })
+  })
+
+  it('announces nothing when the leave is refused', async () => {
+    mockPrisma.listMember.findFirst.mockImplementation(memberLookup({ callerRole: null, ownerHasAdminRow: true }) as never)
+
+    await leaveList({ listId: 'list-1', userId: 'u-1' })
+
+    expect(announceListMemberRemoved).not.toHaveBeenCalled()
+  })
+})
+

@@ -23,6 +23,7 @@ import {
   ListImageClaimError,
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
+import { announceRosterChanges } from '@/services/list-member.service'
 
 const log = createLogger('api.lists.id')
 
@@ -317,6 +318,17 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
       },
     })
+
+    // A roster replace (adminIds / memberIds) is written above in one go; who
+    // joined and who left is announced here the member service's way, so open
+    // clients see it (spec §5.2 step 6). It used to send only list_updated.
+    if (data.adminIds !== undefined || data.memberIds !== undefined) {
+      await announceRosterChanges({
+        before: existingList,
+        after: updatedList,
+        actor: { id: session.user.id, name: session.user.name, email: session.user.email },
+      })
+    }
 
     // Manually fetch defaultAssignee if it's a valid user ID (not "unassigned")
     let defaultAssignee = null

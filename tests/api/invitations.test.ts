@@ -44,6 +44,11 @@ const { updateTaskWithSideEffects } = vi.hoisted(() => ({
 }))
 vi.mock('@/services/task.service', () => ({ updateTaskWithSideEffects }))
 
+// Accepting a list invitation is announced the member service's way — caches
+// and list_member_added — instead of silently (spec §5.2 step 6).
+const { announceListMemberAdded } = vi.hoisted(() => ({ announceListMemberAdded: vi.fn() }))
+vi.mock('@/services/list-member.service', () => ({ announceListMemberAdded }))
+
 vi.mock('@/lib/redis', () => ({
   RedisCache: {
     del: vi.fn().mockResolvedValue(undefined),
@@ -461,6 +466,37 @@ describe('/api/invitations/[token]', () => {
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
       expect(data.message).toBe('Invitation accepted successfully')
+      expect(announceListMemberAdded).toHaveBeenCalledWith(
+        expect.objectContaining({
+          list: expect.objectContaining({ id: 'list-123' }),
+          member: expect.objectContaining({ id: 'test-user-id' }),
+          role: 'member',
+          actor: expect.objectContaining({ id: 'user-456' }),
+        }),
+      )
+    })
+
+    it('assigns an accepted task invitation through the task service (spec §5.2 step 6)', async () => {
+      const txTaskUpdate = vi.fn()
+      vi.mocked(prisma.$transaction).mockImplementation(vi.fn().mockImplementation((callback) => callback({
+        invitation: { update: vi.fn().mockResolvedValue({}) },
+        task: { update: txTaskUpdate },
+      })))
+      vi.mocked(prisma.invitation.findUnique).mockResolvedValue({
+        ...mockInvitation, type: 'TASK_ASSIGNMENT', listId: null, taskId: 'task-9',
+      } as any)
+      updateTaskWithSideEffects.mockResolvedValueOnce({ ok: true, task: { id: 'task-9' }, rolledForward: false })
+
+      const response = await AcceptInvitation(
+        new NextRequest('http://localhost:3000/api/invitations/inv_1234567890_abcdef', { method: 'POST' }),
+        { params: Promise.resolve({ token: 'inv_1234567890_abcdef' }) }
+      )
+
+      expect(response.status).toBe(200)
+      expect(txTaskUpdate).not.toHaveBeenCalled()
+      expect(updateTaskWithSideEffects).toHaveBeenCalledWith(
+        expect.objectContaining({ taskId: 'task-9', actorId: 'test-user-id', intent: { assigneeId: 'test-user-id' } }),
+      )
     })
 
     it('should require authentication', async () => {

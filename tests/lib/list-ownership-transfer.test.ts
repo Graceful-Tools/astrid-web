@@ -27,6 +27,11 @@ vi.mock('@/lib/redis', () => ({
   RedisCache: { invalidate: { userListsAllVersions: vi.fn() } },
 }))
 
+// The old owner leaves in a transfer; that is announced through the member
+// service like any other departure (spec §5.2 step 6). It used to be silent.
+const { announceListMemberRemoved } = vi.hoisted(() => ({ announceListMemberRemoved: vi.fn() }))
+vi.mock('@/services/list-member.service', () => ({ announceListMemberRemoved }))
+
 import { listEligibleNewOwners, transferListOwnership } from '@/lib/list-ownership-transfer'
 import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
@@ -348,3 +353,21 @@ describe('listEligibleNewOwners (task f4b40af3)', () => {
     expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
 })
+
+describe('a transfer announces the old owner leaving (spec §5.2 step 6)', () => {
+  it('announces the removal against the roster before the transfer', async () => {
+    captureTransaction()
+    mockPrisma.taskList.findUnique.mockResolvedValue({
+      ...LIST, name: 'Work', color: '#000', isVirtual: false, listMembers: [{ userId: 'new-owner-1' }],
+    } as never)
+
+    await transferListOwnership({ listId: 'list-1', currentUserId: 'owner-1', newOwnerId: 'new-owner-1' })
+
+    expect(announceListMemberRemoved).toHaveBeenCalledWith({
+      list: expect.objectContaining({ id: 'list-1', ownerId: 'owner-1' }),
+      member: { id: 'owner-1' },
+      actor: { id: 'owner-1' },
+    })
+  })
+})
+

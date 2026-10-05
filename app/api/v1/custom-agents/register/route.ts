@@ -19,6 +19,7 @@ import { checkAgentRateLimit, addRateLimitHeaders, AGENT_RATE_LIMITS } from '@/l
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { getUserRoleInList } from "@/lib/list-permissions"
+import { addListMember } from '@/services/list-member.service'
 
 const log = createLogger('v1.custom-agents.register')
 
@@ -115,22 +116,27 @@ export const POST = withAuth(
         const list = await prisma.taskList.findUnique({
           where: { id: listId },
           select: {
+            id: true,
+            name: true,
+            color: true,
             ownerId: true,
-            listMembers: { where: { userId: auth.userId }, select: { userId: true, role: true } },
+            isVirtual: true,
+            listMembers: { select: { userId: true, role: true } },
           },
         })
         const callerRole = list ? getUserRoleInList({ id: auth.userId }, list as never) : null
-        if (callerRole !== 'owner' && callerRole !== 'admin') {
+        if (!list || (callerRole !== 'owner' && callerRole !== 'admin')) {
           log.error({ listId, userId: auth.userId }, 'Refused agent list-add: caller is not owner/admin')
           continue
         }
         try {
-          await prisma.listMember.create({
-            data: {
-              userId: agentUser.id,
-              listId,
-              role: 'member',
-            }
+          // Through the member service: caches and list_member_added, so the
+          // agent appears in open clients (spec §5.2 step 6).
+          await addListMember({
+            list,
+            member: { id: agentUser.id, name: agentUser.name, email: agentUser.email, isAIAgent: true },
+            role: 'member',
+            actor: { id: auth.userId, name: auth.user?.name, email: auth.user?.email },
           })
         } catch (error) {
           log.error({ err: error, listId }, 'Failed to add agent to list')
