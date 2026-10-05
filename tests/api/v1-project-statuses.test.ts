@@ -26,6 +26,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { row } from '../fixtures/prisma-rows'
+import { unknownWhereFields } from '../utils/prisma-where'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/prisma', () => ({
@@ -233,10 +234,35 @@ describe('DELETE /api/v1/projects/:id/statuses (AWTD-883)', () => {
     // Without this the tasks stay on the board matching no column: present in
     // the list view, invisible on the board.
     expect(mockPrisma.task.updateMany).toHaveBeenCalledWith({
-      where: { listId: { in: ['list-1', 'list-2'] }, statusRole: 'custom-blocked' },
+      where: { lists: { some: { id: { in: ['list-1', 'list-2'] } } }, statusRole: 'custom-blocked' },
       data: { statusRole: null },
     })
     expect(writtenStates()).toEqual([])
+  })
+
+  // AWTD-1090: this used to assert `where: { listId: … }` — a column Task does
+  // not have. The real client rejected it on every call, so deleting a status
+  // always failed with a 500, while this mock-based test stayed green.
+  it('only filters on fields Task actually has', async () => {
+    boardIs([blocked], OWNER, [{ id: 'list-1' }])
+
+    await DELETE(req('DELETE', { role: 'custom-blocked' }), ctx)
+
+    expect(mockPrisma.task.updateMany).toHaveBeenCalled()
+    for (const [args] of mockPrisma.task.updateMany.mock.calls) {
+      expect(unknownWhereFields('Task', (args as { where: Record<string, unknown> }).where)).toEqual([])
+    }
+  })
+
+  it('also clears the stashed lane on done tasks, so a reopen does not restore a deleted column (AWTD-1090)', async () => {
+    boardIs([blocked], OWNER, [{ id: 'list-1' }])
+
+    await DELETE(req('DELETE', { role: 'custom-blocked' }), ctx)
+
+    expect(mockPrisma.task.updateMany).toHaveBeenCalledWith({
+      where: { lists: { some: { id: { in: ['list-1'] } } }, statusRoleBeforeDone: 'custom-blocked' },
+      data: { statusRoleBeforeDone: null },
+    })
   })
 
   it('refuses to remove a built-in column', async () => {

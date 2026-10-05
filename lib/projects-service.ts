@@ -492,12 +492,20 @@ export async function removeUserStatus(
     return { error: 'invalid', message: write.message }
   }
 
-  const listIds = project.lists.map(l => l.id)
+  const onBoard = { lists: { some: { id: { in: project.lists.map(l => l.id) } } } }
   await prisma.$transaction([
-    // Clear the role on tasks that were in this column.
+    // Clear the role on tasks that were in this column. Task has no `listId` —
+    // filtering on it made Prisma reject this transaction on every call, so a
+    // status could never be deleted (AWTD-1090).
     prisma.task.updateMany({
-      where: { listId: { in: listIds }, statusRole: role },
+      where: { ...onBoard, statusRole: role },
       data: { statusRole: null },
+    }),
+    // A done task remembers the lane it left; reopening must not restore a
+    // column that no longer exists.
+    prisma.task.updateMany({
+      where: { ...onBoard, statusRoleBeforeDone: role },
+      data: { statusRoleBeforeDone: null },
     }),
     // Remove the state from the board config.
     prisma.project.update({

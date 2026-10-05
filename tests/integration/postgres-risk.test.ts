@@ -83,6 +83,53 @@ describe('ephemeral PostgreSQL risk behavior', () => {
     await expect(prisma.comment.findUnique({ where: { id: comment.id } })).resolves.toBeNull()
   })
 
+  // AWTD-1090: removeUserStatus filtered `task.updateMany({ where: { listId } })`
+  // on a model with no listId. The unit test mocked Prisma and asserted that
+  // shape, so only a real client could show that every status delete failed.
+  it('deletes a custom board status against the real schema', async () => {
+    const owner = await prisma.user.create({
+      data: buildUserCreate({ email: `${runPrefix}-status@example.test` }),
+    })
+    const project = await prisma.project.create({
+      data: {
+        name: `${runPrefix}-board`,
+        color: '#3b82f6',
+        ownerId: owner.id,
+        customStates: [{ role: 'custom-blocked', name: 'Blocked', order: 0 }],
+      },
+    })
+    const list = await prisma.taskList.create({
+      data: buildListCreate(owner.id, { project: { connect: { id: project.id } } }),
+    })
+    const inColumn = await prisma.task.create({
+      data: buildTaskCreate(owner.id, list.id, {
+        title: `${runPrefix}-in-column`,
+        statusRole: 'custom-blocked',
+      }),
+    })
+    const doneFromColumn = await prisma.task.create({
+      data: buildTaskCreate(owner.id, list.id, {
+        title: `${runPrefix}-done-from-column`,
+        completed: true,
+        statusRoleBeforeDone: 'custom-blocked',
+      }),
+    })
+
+    const { removeUserStatus } = await import('@/lib/projects-service')
+    const result = await removeUserStatus(owner.id, 'custom-blocked', project.id)
+
+    expect(result).not.toHaveProperty('error')
+    await expect(
+      prisma.task.findUnique({ where: { id: inColumn.id }, select: { statusRole: true } }),
+    ).resolves.toEqual({ statusRole: null })
+    await expect(
+      prisma.task.findUnique({ where: { id: doneFromColumn.id }, select: { statusRoleBeforeDone: true } }),
+    ).resolves.toEqual({ statusRoleBeforeDone: null })
+    await expect(
+      prisma.project.findUnique({ where: { id: project.id }, select: { customStates: true } }),
+    ).resolves.toEqual({ customStates: [] })
+  })
+
   it('round-trips JSON and representative nested membership query shapes', async () => {
     const owner = await prisma.user.create({
       data: buildUserCreate({ email: `${runPrefix}-owner@example.test` }),
