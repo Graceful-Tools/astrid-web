@@ -3,6 +3,7 @@ import { mcpTokenLookup } from "@/lib/mcp-token"
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs } from '@/services/post-comment-as'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-agent.workflow-complete')
@@ -187,14 +188,13 @@ ${actionRequired}
 *Automated update from GitHub Actions workflow*`
 
     try {
-      await prisma.comment.create({
-        data: {
-          content: completionComment,
-          type: 'MARKDOWN',
-          taskId,
-          authorId: mcpToken.user.id
-        }
+      // Through the comment service, so the list sees it live (P1 step 4).
+      const posted = await postCommentAs({
+        taskId,
+        authorId: mcpToken.user.id,
+        content: completionComment,
       })
+      if (!posted.ok) throw new Error(posted.error)
 
       log.info('✅ [Workflow Complete] Added completion comment to task')
     } catch (commentError) {

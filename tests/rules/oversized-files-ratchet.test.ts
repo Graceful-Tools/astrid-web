@@ -58,7 +58,9 @@ const BUDGETS: Record<string, number> = {
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
   'components/TaskManager/MainContent/MainContent.tsx': 1100,
   'lib/cache-manager.ts': 935,
-  'lib/astrid-agent-runtime.ts': 819,
+  // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
+  // through the comment service (spec §5.2 step 4).
+  'lib/astrid-agent-runtime.ts': 797,
 
   // Six more the threshold found that the filing did not list. Recording them
   // is not endorsing them — it is the difference between seven watched files

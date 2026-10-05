@@ -143,6 +143,10 @@ async function notifyMentionsAndTriggerAgents(
       if (!mentionedUser) continue
 
       if (mentionedUser.isAIAgent) {
+        // An agent's comment never wakes an agent: agent replies go through the
+        // comment service, so without this the assistant's own answers would
+        // trigger it again.
+        if (commenter.isAIAgent) continue
         const { ASTRID_EMAIL } = await import('@/lib/astrid-agent')
         if (mentionedUser.email === ASTRID_EMAIL) {
           const { processAstridComment } = await import('@/lib/astrid-agent-runtime')

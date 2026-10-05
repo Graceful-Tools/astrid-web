@@ -15,6 +15,7 @@ import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { getTokenForUser } from '@/lib/astrid-api-client'
 import { getBaseUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs } from '@/services/post-comment-as'
 import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
 import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
 import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
@@ -734,25 +735,11 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     const service = await getPreferredAIService(userId)
     const apiKey = await getAIServiceCredential(userId, service)
     if (!apiKey) {
-      const setupComment = await prisma.comment.create({
-        data: {
-          // English: comments arrive through comment.service, which has no
-          // request to read a language from (AWTD-1054).
-          content: await getModelSetupPrompt('no-key', 'en'),
-          type: 'MARKDOWN',
-          authorId: astridUser.id,
-          taskId,
-        },
-        include: { author: { select: { id: true, name: true, email: true, image: true } } },
-      })
-      if (recipients.length > 0) {
-        await broadcastToUsers(recipients, {
-          type: 'comment_created',
-          timestamp: new Date().toISOString(),
-          data: { taskId, comment: { ...setupComment, createdAt: setupComment.createdAt.toISOString(), updatedAt: setupComment.updatedAt.toISOString() } },
-        })
-        stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
-      }
+      // Through the comment service, which broadcasts it to the list (P1 step 4).
+      // English: comments arrive through comment.service, which has no request
+      // to read a language from (AWTD-1054).
+      await postCommentAs({ taskId, authorId: astridUser.id, content: await getModelSetupPrompt('no-key', 'en') })
+      if (recipients.length > 0) stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
       return
     }
 
@@ -795,19 +782,10 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     })
     if (response === null) return
 
-    const comment = await prisma.comment.create({
-      data: { content: response, type: 'MARKDOWN', authorId: astridUser.id, taskId },
-      include: { author: { select: { id: true, name: true, email: true, image: true } } },
-    })
-
-    if (recipients.length > 0) {
-      await broadcastToUsers(recipients, {
-        type: 'comment_created',
-        timestamp: new Date().toISOString(),
-        data: { taskId, comment: { ...comment, createdAt: comment.createdAt.toISOString(), updatedAt: comment.updatedAt.toISOString() } },
-      })
-      stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
-    }
+    // Through the comment service: broadcast, notifications, mention pushes.
+    const posted = await postCommentAs({ taskId, authorId: astridUser.id, content: response })
+    if (!posted.ok) log.error({ taskId, error: posted.error }, `[${BRAND.appName}] Could not post reply`)
+    if (recipients.length > 0) stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
 
     log.info(`[${BRAND.appName}] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
   } catch (error) {

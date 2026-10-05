@@ -7,6 +7,7 @@ import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
 import { completeTask } from '@/services/complete-task'
+import { postCommentAs } from '@/services/post-comment-as'
 
 const log = createLogger('api.webhooks.ai-agents')
 
@@ -238,14 +239,10 @@ export async function POST(request: NextRequest) {
 
           const validAuthorId = await ensureAIAgentExists(payload.aiAgent)
 
-          await prisma.comment.create({
-            data: {
-              content: commentContent,
-              type: 'TEXT',
-              authorId: validAuthorId,
-              taskId: task.id
-            }
-          })
+          // Through the comment service: list broadcast and notifications, like
+          // any other comment (P1 step 4).
+          const posted = await postCommentAs({ taskId: task.id, authorId: validAuthorId, content: commentContent, type: 'TEXT' })
+          if (!posted.ok) return NextResponse.json({ error: posted.error }, { status: 400 })
           log.info(`💬 Comment added to task: ${task.title}`)
         }
         break
@@ -254,14 +251,13 @@ export async function POST(request: NextRequest) {
         if (payload.task.error) {
           const validAuthorId = await ensureAIAgentExists(payload.aiAgent)
 
-          await prisma.comment.create({
-            data: {
-              content: `❌ Error: ${payload.task.error}`,
-              type: 'TEXT',
-              authorId: validAuthorId,
-              taskId: task.id
-            }
+          const posted = await postCommentAs({
+            taskId: task.id,
+            authorId: validAuthorId,
+            content: `❌ Error: ${payload.task.error}`,
+            type: 'TEXT',
           })
+          if (!posted.ok) return NextResponse.json({ error: posted.error }, { status: 400 })
           log.info(`⚠️ Error logged for task: ${task.title}`)
         }
         break
