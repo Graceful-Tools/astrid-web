@@ -76,6 +76,7 @@ and stack versions with `npm run check:docs`.
 - **[Project Status Board](./product/project-status-board.md)** - Board behavior (columns, drag, statuses)
 - **[Spec: Task Blocking Dependencies](./specs/TASK_BLOCKING_DEPENDENCIES.md)** - Implemented (AWTD-1002): "waiting on tasks", and why the Waiting→Ready rule has exactly one implementation
 - **[Spec: prod Pointers for Dependency Repos](./specs/PROD_POINTERS_FOR_DEPENDENCIES.md)** - Decided (AWTD-1015): astrid-core and other non-deploying repos get `<app>-prod` branches and `<app>-v<version>` tags, moved by the consuming app's release
+- **[Spec: GitHub Projects White Label](./specs/GITHUB_PROJECTS_WHITELABEL.md)** - Proposal (not implemented): architecture review and spec for running Astrid as a white-label client on GitHub Projects v2 — GitHub-authoritative replica, one backend seam, one GitHub App
 - **[Spec: Task Identifiers](./specs/TASK_IDENTIFIERS.md)** - Decided (AWTD-1010): short ids like `AWTD-1007` / `#1007` — uniqueness across astrid.cc, typing, visibility, where each client shows them
 
 ### 🎨 UI & Design
