@@ -112,6 +112,10 @@ export async function applyRepeatingTaskCompletion(
 
   await applyRepeatingTaskRollForward(taskId, result)
 
+  // A terminated series has nothing to roll to: the caller completes the final
+  // occurrence through its normal path (AWTD-1092).
+  if (result.shouldTerminate) return { rolledForward: false }
+
   const updatedTask = await prisma.task.findUnique({
     where: { id: taskId },
     include: TASK_FULL_INCLUDE,

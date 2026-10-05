@@ -139,7 +139,9 @@ export async function applyRepeatingTaskRollForward(
   result: RepeatingTaskResult
 ): Promise<void> {
   if (result.shouldTerminate) {
-    // Series has ended - clear repeating config and keep task completed
+    // Series has ended - clear the repeating config. Completing the final
+    // occurrence is the caller's ordinary completion path, not this write
+    // (AWTD-1092: this branch used to be the only write, so it never completed).
     await prisma.task.update({
       where: { id: taskId },
       data: {

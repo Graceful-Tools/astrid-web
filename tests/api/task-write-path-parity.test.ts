@@ -236,6 +236,26 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.anything())
   })
 
+  // AWTD-1092: the last occurrence of a series (count or until reached) used to
+  // stay OPEN. The terminate branch cleared the recurrence but never completed
+  // the task, and the surface returned early as if it had rolled forward — so
+  // the user had to complete it a second time. The parity cases above only
+  // ever mocked shouldTerminate: false.
+  it('completes the final occurrence when the series terminates', async () => {
+    handleRepeatingTaskCompletion.mockResolvedValue({
+      shouldRollForward: false, shouldTerminate: true,
+      nextDueDate: null, newOccurrenceCount: 3,
+    })
+
+    await drive({ completed: true })
+
+    expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.objectContaining({ shouldTerminate: true }))
+    const data = updateData()
+    expect(data.completed).toBe(true)
+    expect(data.completedAt).toBeInstanceOf(Date)
+    expect(data.statusRole).toBeNull()
+  })
+
   it('does NOT roll a repeating series forward when the occurrence is CANCELED', async () => {
     // "we're not doing this one" and "this one is done, schedule the next" are
     // opposite intents (task 11042ae3). v1 skipped this guard entirely.

@@ -1120,7 +1120,13 @@ export async function updateTaskWithSideEffects(args: {
     closedReason: parsedClosedReason.value,
   })
 
-  if (repeatingResult) {
+  // A terminating series clears its recurrence and then completes through the
+  // ordinary path below — stamp, lane, dependents, events. It used to return
+  // here as if it had rolled forward, leaving the final occurrence open
+  // (AWTD-1092). Only a genuine roll-forward short-circuits.
+  if (repeatingResult?.shouldTerminate) {
+    await applyRepeatingTaskRollForward(taskId, repeatingResult)
+  } else if (repeatingResult) {
     await applyRepeatingTaskRollForward(taskId, repeatingResult)
 
     const rolled = await prisma.task.findUnique({
