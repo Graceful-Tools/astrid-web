@@ -10,11 +10,16 @@ import { GitHubClient } from '@/lib/github-client'
 import { createLogger } from '@/lib/logger'
 import { completeTask } from '@/services/complete-task'
 import { getBaseUrl } from '@/lib/base-url'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-workflow.merge-request')
 
 
 export async function POST(request: NextRequest) {
+  // A deployment without the coding agent must refuse server-side (AWTD-1094).
+  const capabilityBlocked = capabilityGate('codingAgent')
+  if (capabilityBlocked) return capabilityBlocked
+
   try {
     // Verify user session
     const session = await getUnifiedSession()

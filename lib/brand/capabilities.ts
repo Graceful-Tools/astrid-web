@@ -63,6 +63,12 @@ export const CAPABILITIES = {
   integrationOpenClaw: integrationCustomAgents,
   /** OpenAPI + ai-plugin discovery documents for ChatGPT actions. */
   integrationChatGptActions: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS),
+  /**
+   * The AI coding agent: the GitHub App that turns a task into a branch, a PR
+   * and a merge. Its own switch — it used to ride on `syncGithubIssues`, so
+   * turning Issues sync off silently removed it too (AWTD-1094).
+   */
+  codingAgent: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT),
 
   // --- Product surfaces ----------------------------------------------------
   /**

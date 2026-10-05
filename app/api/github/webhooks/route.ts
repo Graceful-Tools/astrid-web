@@ -403,9 +403,9 @@ webhooks?.onError((error) => {
  * POST handler for GitHub webhooks
  */
 export async function POST(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -464,9 +464,9 @@ export async function POST(request: NextRequest) {
  * GET handler for webhook health check
  */
 export async function GET() {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   return NextResponse.json({

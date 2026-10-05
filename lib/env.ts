@@ -224,6 +224,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_MCP', scope: 'optional', description: 'MCP server and its discovery documents.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW', scope: 'optional', description: 'User-operated Custom Agents over OAuth, REST and SSE.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS', scope: 'optional', description: 'OpenAPI and ai-plugin discovery documents.' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT', scope: 'optional', description: 'The GitHub App coding agent, independent of Issues sync (AWTD-1094).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK', scope: 'optional', description: 'Creating tasks by emailing the inbound address.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED', scope: 'optional', description: 'Public .ics calendar feed.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', scope: 'optional', description: 'Projects and status boards. Off compiles back to the single-player to-do app.' },

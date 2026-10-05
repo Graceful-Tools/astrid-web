@@ -30,7 +30,7 @@ interface GitHubTriggerRequest {
  * Called by astrid-code-assistant.yml workflow
  */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'api.coding-agent.github-trigger' },
+  { scopes: ['tasks:write'], tag: 'api.coding-agent.github-trigger', capability: 'codingAgent' },
   async (request: NextRequest, auth) => {
     log.info(
       '🤖 [GitHub Trigger] Received AI orchestration request from GitHub Actions',

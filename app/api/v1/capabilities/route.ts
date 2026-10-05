@@ -45,6 +45,8 @@ export async function GET() {
         customAgents: CAPABILITIES.integrationCustomAgents,
         openclaw: CAPABILITIES.integrationOpenClaw,
         chatgptActions: CAPABILITIES.integrationChatGptActions,
+        // The GitHub App coding agent, separate from Issues sync (AWTD-1094).
+        codingAgent: CAPABILITIES.codingAgent,
       },
       services: {
         emailToTask: CAPABILITIES.emailToTask,

@@ -70,9 +70,9 @@ async function fetchInstallationRepositories(installationId: number): Promise<an
 }
 
 export async function GET(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {

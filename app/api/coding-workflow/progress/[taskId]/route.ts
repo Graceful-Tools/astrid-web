@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic'
 type RouteContext = { params: Promise<{ taskId: string }> }
 
 export const GET = withAuth<RouteContext>(
-  { scopes: ['tasks:read'], tag: 'coding-workflow.progress' },
+  { scopes: ['tasks:read'], tag: 'coding-workflow.progress', capability: 'codingAgent' },
   async (_req, auth, { params }) => {
   const { taskId } = await params
 

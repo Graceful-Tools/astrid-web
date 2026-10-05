@@ -207,6 +207,7 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       googleTasks: caps.syncGoogleTasks,
       githubIssues: caps.syncGithubIssues,
     })
+    expect(body.integrations.codingAgent).toBe(caps.codingAgent)
     expect(body.brand.appName).toBe(profile.expect.appName)
   })
 

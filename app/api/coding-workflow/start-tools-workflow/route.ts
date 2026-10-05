@@ -18,10 +18,15 @@ import { getTaskForUser } from '@/services/task.service'
 import { startToolsWorkflow } from '@/lib/coding-workflow/start-tools-workflow'
 import { createLogger } from '@/lib/logger'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('api.coding-workflow.start-tools-workflow')
 
 export async function POST(request: NextRequest) {
+  // A deployment without the coding agent must refuse server-side (AWTD-1094).
+  const capabilityBlocked = capabilityGate('codingAgent')
+  if (capabilityBlocked) return capabilityBlocked
+
   try {
     const session = await getUnifiedSession()
     if (!session?.user) {

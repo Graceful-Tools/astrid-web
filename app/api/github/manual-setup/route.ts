@@ -12,9 +12,9 @@ const log = createLogger('github.manual-setup')
 
 
 export async function POST(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   // Development-only, enforced HERE. The settings page hid the button outside

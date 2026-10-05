@@ -92,6 +92,7 @@ An unrecognised value counts as enabled — a typo must not silently remove a fe
 | `NEXT_PUBLIC_BRAND_ENABLE_MCP` | MCP server and discovery |
 | `NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW` | Third-party OpenClaw workers |
 | `NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS` | OpenAPI + ai-plugin documents |
+| `NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT` | The GitHub App coding agent (task → branch → PR → merge). Independent of Issues sync since AWTD-1094 — it used to ride on `SYNC_GITHUB_ISSUES`, so a profile that disabled Issues sync and wants the agent gone must now say so |
 | `NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE` | Projects, status boards and the team-shaped features |
 | `NEXT_PUBLIC_BRAND_ENABLE_TASK_COST` | Per-task cost tracking |
 | `NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK` | Inbound email-to-task |

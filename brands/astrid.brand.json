@@ -25,6 +25,7 @@
       "authPasskey": true,
       "syncGoogleTasks": true,
       "syncGithubIssues": true,
+      "codingAgent": true,
       "integrationMcp": true,
       "integrationOpenClaw": true,
       "integrationChatGptActions": true,
