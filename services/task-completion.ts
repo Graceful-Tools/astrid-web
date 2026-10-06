@@ -11,6 +11,7 @@
  * this module decides WHEN it applies, that one decides WHAT it says.
  */
 
+import { parseClosedReason } from '@/lib/closed-reason'
 import { parseCompletionStamp } from '@/lib/task-enums'
 import { resolveCompletionStatusTransition } from '@/lib/task-status'
 
@@ -74,4 +75,42 @@ export function resolveCompletionFields({
   )
 
   return { ok: true, data }
+}
+
+/**
+ * What a CREATE may say about a task that arrives already done (AWTD-1123).
+ *
+ * GitHub issue import is the caller that needs it: a closed issue becomes a
+ * completed task in one write, carrying when it was closed, where, and why.
+ */
+export interface CreateCompletionInput {
+  completedAt?: string | Date | null
+  completedSource?: string | null
+  closedReason?: string | null
+}
+
+/**
+ * The completion columns for a new task, by the update path's rules: validated
+ * by the same parsers, stamped now when no stamp was given, and written only
+ * when the task is created completed. An open task has nothing to stamp.
+ */
+export function resolveCreateCompletionFields(
+  completed: boolean,
+  input: CreateCompletionInput,
+): CompletionFieldsResult {
+  if (!completed) return { ok: true, data: {} }
+
+  const stamp = parseCompletionStamp(input)
+  if (!stamp.ok) return { ok: false, error: stamp.error }
+  const closedReason = parseClosedReason(input.closedReason)
+  if (!closedReason.ok) return { ok: false, error: closedReason.error }
+
+  return {
+    ok: true,
+    data: {
+      completedAt: stamp.value.completedAt ?? new Date(),
+      completedSource: stamp.value.completedSource,
+      closedReason: closedReason.value,
+    },
+  }
 }

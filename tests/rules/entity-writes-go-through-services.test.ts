@@ -50,7 +50,6 @@ const ALLOWED: Record<string, string> = {
   'lib/copy-utils.ts': 'list/task copies: per-task side effects would multiply past the function budget; history copied verbatim',
   'lib/task-batch-copy.ts': 'copy into several lists; assignee gated by authorizeNewTaskAssignee',
   'lib/system-tasks.ts': 'system-authored verify-email task (no creator), shared with the weekly batch insert',
-  'lib/sync/github/apply-issues.ts': 'import create, transactional with its ExternalTaskLink row; updates go through the service',
   'lib/projects-service.ts': 'a deleted board column clears its lane across the board in one statement',
 }
 

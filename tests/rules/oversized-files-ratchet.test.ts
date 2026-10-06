@@ -108,7 +108,9 @@ const BUDGETS: Record<string, number> = {
   // the whole statusRole write went to services/task-status-role.ts.
   // 1536 → 1509: the include shapes moved to services/task-includes.ts, paying
   // for the TaskBackend seam (spec §5.2 step 8) with room to spare.
-  'services/task.service.ts': 1509,
+  // 1509 → 1501: AWTD-1123 let a create carry its completion fields, decided in
+  // services/task-completion.ts; parseTaskDate went to services/task-dates.ts.
+  'services/task.service.ts': 1501,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
