@@ -217,6 +217,20 @@ npm run validate:settings:fix   # Claude Code only — validates .claude/setting
 npm run monitor:vercel          # optional; OK if it fails when Vercel isn't configured
 npx tsx scripts/get-astrid-tasks.ts   # pull tasks (arg: web | ios | all; default all)
 ```
+**Take the working-tree lock first, in any interactive session that edits this checkout**
+— `/fixstuff`, `/fixall`, or plain work:
+
+```bash
+npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness claude-code   # exit 2: use a worktree
+```
+
+The scheduled `/fixall` loop (`scripts/fixall-loop.sh`) runs in this checkout every half
+hour, and the lock is the only thing that tells it someone is here. On 2026-10-05 a tick
+started while an unlocked session was between commits on `main`, then saved that
+session's edits as its own WIP and checked out `main` (AWTD-1095). The loop is more
+careful now: it skips when `main` has unpushed commits, and it never moves a dirty `main`.
+But a lock-free session stays invisible to it whenever its tree happens to be clean.
+
 Present tasks, ask which to work on, then implement. Run `npm run predeploy` **after**
 implementation, not before. Follow the per-task coding workflow in
 [ASTRID.md](../ASTRID.md) (strategy comment → RED-GREEN TDD → verify → fix-summary comment).
