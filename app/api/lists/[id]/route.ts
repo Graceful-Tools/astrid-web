@@ -24,6 +24,7 @@ import {
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
 import { announceRosterChanges } from '@/services/list-member.service'
+import { unassignTasksOnListGoingPublic } from '@/services/list-public-unassign'
 
 const log = createLogger('api.lists.id')
 
@@ -290,15 +291,6 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           }
         }
 
-        if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
-          log.info(`🔓 List ${listId} becoming public - unassigning all tasks`)
-          await client.task.updateMany({
-            where: { lists: { some: { id: listId } } },
-            data: { assigneeId: null },
-          })
-          log.info(`✅ Unassigned all tasks in list ${listId}`)
-        }
-
         return client.taskList.update({
           where: { id: listId },
           data: updateData,
@@ -328,6 +320,17 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         after: updatedList,
         actor: { id: session.user.id, name: session.user.name, email: session.user.email },
       })
+    }
+
+    // A public list has no assignees. Each task is unassigned through the task
+    // service, after the list change has committed (AWTD-1109).
+    if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
+      const { unassigned, failed } = await unassignTasksOnListGoingPublic({
+        listId,
+        actorId: session.user.id,
+        actorName: session.user.name ?? undefined,
+      })
+      log.info({ listId, unassigned, failed }, 'List became public; unassigned its tasks')
     }
 
     // Manually fetch defaultAssignee if it's a valid user ID (not "unassigned")
