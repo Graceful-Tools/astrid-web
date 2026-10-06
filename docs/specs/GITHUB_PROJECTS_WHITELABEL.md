@@ -1178,3 +1178,16 @@ These need, in order:
 
 The seam they plug into, `TaskBackend` (§5.3), is in place.
 
+### Where the remaining work is tracked
+
+Every remaining item is a task, written to stand on its own.
+
+| Owner | Tasks |
+|---|---|
+| **Jon: before the next deploy** | [AWTD-1096](https://astrid.cc/t/AWTD-1096) GitHub App callback URLs + OAuth client in prod · [AWTD-1097](https://astrid.cc/t/AWTD-1097) whitelabel-partner `CODING_AGENT=false` · [AWTD-1098](https://astrid.cc/t/AWTD-1098) ship P0–P2 |
+| **Jon: unblockers** | [AWTD-1099](https://astrid.cc/t/AWTD-1099) schema decision · [AWTD-1100](https://astrid.cc/t/AWTD-1100) App permissions/events · [AWTD-1101](https://astrid.cc/t/AWTD-1101) test org · [AWTD-1102](https://astrid.cc/t/AWTD-1102) §15 questions · [AWTD-1103](https://astrid.cc/t/AWTD-1103) partner brand |
+| P2 remainder | [AWTD-1104](https://astrid.cc/t/AWTD-1104) mobile routes onto the shared rule · [AWTD-1110](https://astrid.cc/t/AWTD-1110) Apple on web · [AITD-465](https://astrid.cc/t/AITD-465) iOS/Mac GitHub + SSO sign-in |
+| P3 remainder | [AWTD-1111](https://astrid.cc/t/AWTD-1111) installation model · [AWTD-1112](https://astrid.cc/t/AWTD-1112) user tokens + Issues sync migration · [AWTD-1113](https://astrid.cc/t/AWTD-1113) one webhook · [AWTD-1114](https://astrid.cc/t/AWTD-1114) Connections card |
+| P4–P8 | [AWTD-1115](https://astrid.cc/t/AWTD-1115) P4 mirror · [AWTD-1116](https://astrid.cc/t/AWTD-1116) P5 write-through · [AWTD-1117](https://astrid.cc/t/AWTD-1117) P6a fields · [AWTD-1118](https://astrid.cc/t/AWTD-1118) P6b spawn recurrence · [AWTD-1119](https://astrid.cc/t/AWTD-1119) P6c rich mapping · [AWTD-1120](https://astrid.cc/t/AWTD-1120) P7 per-org SSO · [AWTD-1121](https://astrid.cc/t/AWTD-1121) P8 brand · [AITD-466](https://astrid.cc/t/AITD-466) iOS/Mac boards · [AWTD2-66](https://astrid.cc/t/AWTD2-66) Windows fixtures |
+| Found in review | [AWTD-1095](https://astrid.cc/t/AWTD-1095) /fixall loop clobbers an interactive session · [AWTD-1106](https://astrid.cc/t/AWTD-1106) merge route's unauthenticated comment fetch · [AWTD-1107](https://astrid.cc/t/AWTD-1107) coding agent uses only the first installation · [AWTD-1108](https://astrid.cc/t/AWTD-1108) SSE event names in API_CONTRACT · [AWTD-1109](https://astrid.cc/t/AWTD-1109) shrink the entity-writes allow-list |
+
