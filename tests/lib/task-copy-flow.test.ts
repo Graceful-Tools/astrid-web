@@ -26,10 +26,6 @@ vi.mock('@/lib/copy-utils', () => ({ copyTask }))
 const broadcastToUsers = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers }))
 
-vi.mock('@/lib/list-member-utils', () => ({
-  getListMemberIds: vi.fn(() => ['owner-1', 'member-2', 'copier-1']),
-}))
-
 const invalidateUserStats = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/user-stats', () => ({ invalidateUserStats }))
 
@@ -113,25 +109,11 @@ describe('copyTaskForUser (task e0613ae5)', () => {
     expect(result.ok).toBe(true)
   })
 
-  it('still succeeds when the broadcast throws', async () => {
-    broadcastToUsers.mockImplementation(() => { throw new Error('sse down') })
-
-    const result = await copyTaskForUser({ taskId: 't1', userId: COPIER, targetListId: 'list-1' })
-
-    expect(result.ok).toBe(true)
-  })
-
-  it('broadcasts to the other list members but not the copier', async () => {
+  it('sends no event of its own — the create path does (AWTD-1124)', async () => {
+    // copyTask creates through services/task-bulk-create, which broadcasts
+    // task_created to the list's members. A second send here delivered every
+    // copy twice.
     await copyTaskForUser({ taskId: 't1', userId: COPIER, targetListId: 'list-1' })
-
-    expect(broadcastToUsers).toHaveBeenCalledTimes(1)
-    const recipients = broadcastToUsers.mock.calls[0][0] as string[]
-    expect(recipients).toEqual(expect.arrayContaining(['owner-1', 'member-2']))
-    expect(recipients).not.toContain(COPIER)
-  })
-
-  it('does not broadcast when there is no target list', async () => {
-    await copyTaskForUser({ taskId: 't1', userId: COPIER })
 
     expect(broadcastToUsers).not.toHaveBeenCalled()
   })

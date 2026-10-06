@@ -1,4 +1,6 @@
+import type { Prisma, Task as TaskRow, Comment as CommentRow } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+import { createTasksInBulk, type BulkTaskInput } from "@/services/task-bulk-create"
 import { getConsistentDefaultImage } from "@/lib/default-images"
 import { getTaskCountInclude, getMultipleListTaskCounts } from "@/lib/task-count-utils"
 import { canAccessList } from "@/lib/list-member-utils"
@@ -37,6 +39,8 @@ export interface CopyListOptions {
   /** User name for creating proper naming format for public lists */
   newOwnerName?: string
 }
+
+type SourceTask = TaskRow & { comments: CommentRow[] }
 
 export interface CopyTaskResult {
   success: boolean
@@ -87,62 +91,26 @@ export async function copyTask(
       finalAssigneeId = options.newOwnerId
     }
 
-    // Prepare the new task data
-    const newTaskData: any = {
-      title: originalTask.title, // No [copy] suffix
-      description: originalTask.description,
-      priority: originalTask.priority,
-      repeating: originalTask.repeating,
-      repeatingData: originalTask.repeatingData,
-      repeatFrom: originalTask.repeatFrom || 'COMPLETION_DATE', // Preserve repeat mode (default to COMPLETION_DATE)
-      occurrenceCount: 0, // Reset occurrence count for new task copy
-      isPrivate: false, // Copied tasks default to not private (user can change in their list)
-      completed: false, // Always start as incomplete
-      creatorId: options.newOwnerId,
-      originalTaskId: originalTask.id, // Track the source
-      dueDateTime: options.preserveDueDate ? originalTask.dueDateTime : null,
-      assigneeId: finalAssigneeId,
-    }
-
-    // Connect to target list if specified
-    if (options.targetListId) {
-      newTaskData.lists = {
-        connect: [{ id: options.targetListId }]
-      }
-    }
-
-    // Create the copied task
-    const copiedTask = await prisma.task.create({
-      data: newTaskData,
-      include: {
-        assignee: true,
-        creator: true,
-        lists: true
-      }
+    // Created through the bulk path (AWTD-1124) so the copy gets what a create
+    // means — identifier, reminders, manual sort, live event — and history
+    // goes in with it, original authors preserved.
+    const { tasks, rejected } = await createTasksInBulk({
+      actorId: options.newOwnerId,
+      tasks: [copyInput(originalTask, {
+        targetListId: options.targetListId,
+        assigneeId: finalAssigneeId,
+        preserveDueDate: options.preserveDueDate,
+        includeComments: options.includeComments,
+      })],
     })
 
-    // Copy comments if requested (optional - preserve original author)
-    if (options.includeComments && originalTask.comments.length > 0) {
-      // Filter out system comments (authorId is null)
-      const userComments = originalTask.comments.filter(comment => comment.authorId !== null)
-
-      if (userComments.length > 0) {
-        const copiedComments = userComments.map(comment => ({
-          content: comment.content,
-          taskId: copiedTask.id,
-          authorId: comment.authorId, // Preserve original author
-          createdAt: new Date()
-        }))
-
-        await prisma.comment.createMany({
-          data: copiedComments
-        })
-      }
+    if (!tasks[0]) {
+      return { success: false, error: rejected?.[0]?.error ?? "Failed to copy task" }
     }
 
     return {
       success: true,
-      copiedTask: copiedTask as any as Task
+      copiedTask: tasks[0] as any as Task
     }
 
   } catch (error) {
@@ -151,6 +119,41 @@ export async function copyTask(
       success: false,
       error: "Failed to copy task"
     }
+  }
+}
+
+/** A source task as a bulk-create row: what a copy keeps, and what it resets. */
+function copyInput(
+  originalTask: SourceTask,
+  options: {
+    targetListId?: string
+    assigneeId: string | null
+    preserveDueDate?: boolean
+    includeComments?: boolean
+  }
+): BulkTaskInput {
+  return {
+    data: {
+      title: originalTask.title, // No [copy] suffix
+      description: originalTask.description,
+      priority: originalTask.priority,
+      repeating: originalTask.repeating,
+      repeatingData: (originalTask.repeatingData ?? undefined) as Prisma.InputJsonValue | undefined,
+      repeatFrom: originalTask.repeatFrom || 'COMPLETION_DATE', // Preserve repeat mode (default to COMPLETION_DATE)
+      occurrenceCount: 0, // Reset occurrence count for new task copy
+      isPrivate: false, // Copied tasks default to not private (user can change in their list)
+      completed: false, // Always start as incomplete
+      originalTaskId: originalTask.id, // Track the source
+      dueDateTime: options.preserveDueDate ? originalTask.dueDateTime : null,
+      assigneeId: options.assigneeId,
+    },
+    listIds: options.targetListId ? [options.targetListId] : [],
+    // System comments (no author) are the source's own history, not the copy's.
+    comments: options.includeComments
+      ? originalTask.comments
+          .filter(comment => comment.authorId !== null)
+          .map(comment => ({ content: comment.content, authorId: comment.authorId }))
+      : undefined,
   }
 }
 
@@ -259,27 +262,22 @@ export async function copyListWithTasks(
 
     // Copy tasks if requested
     if (options.includeTasks && originalList.tasks.length > 0) {
-      const copiedTasks = []
       log.info(`📝 Copying ${originalList.tasks.length} tasks from original list`)
 
-      for (const originalTask of originalList.tasks) {
-        log.info(`📝 Copying task: ${originalTask.title} (ID: ${originalTask.id})`)
-
-        const taskCopyResult = await copyTask(originalTask.id, {
-          newOwnerId: options.newOwnerId,
+      // One batch, so the side effects are paid once rather than per task
+      // (AWTD-1124). Copied into a list, a task starts unassigned — the rule
+      // copyTask applies, whatever preserveTaskAssignees says.
+      const { tasks, rejected } = await createTasksInBulk({
+        actorId: options.newOwnerId,
+        tasks: originalList.tasks.map(originalTask => copyInput(originalTask, {
           targetListId: copiedList.id,
+          assigneeId: null,
           preserveDueDate: true,
-          preserveAssignee: options.preserveTaskAssignees,
-          assignToUser: options.assignToUser
-        })
-
-        if (taskCopyResult.success && taskCopyResult.copiedTask) {
-          copiedTasks.push(taskCopyResult.copiedTask)
-          copiedTasksCount++
-          log.info(`✅ Task copied successfully: ${taskCopyResult.copiedTask.title} (ID: ${taskCopyResult.copiedTask.id})`)
-        } else {
-          log.error(`❌ Failed to copy task: ${originalTask.title} - ${taskCopyResult.error}`)
-        }
+        })),
+      })
+      copiedTasksCount = tasks.length
+      for (const failure of rejected ?? []) {
+        log.error(`❌ Failed to copy task: ${originalList.tasks[failure.index]?.title} - ${failure.error}`)
       }
 
       log.info(`📝 Total tasks copied: ${copiedTasksCount}`)
