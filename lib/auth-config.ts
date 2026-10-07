@@ -210,15 +210,21 @@ function buildProviders() {
   // deployment. The web provider exists only once its credentials do (AWTD-1110).
   // Its Services ID's Return URL must be /api/auth/callback/apple.
   if (hasCapability('authApple') && hasAppleWebCredentials()) {
-    providers.push(AppleProvider({
-      clientId: process.env.APPLE_SERVICES_ID!,
-      clientSecret: appleClientSecret({
-        teamId: process.env.APPLE_TEAM_ID!,
-        keyId: process.env.APPLE_KEY_ID!,
+    // Minted at module load, so a bad key must cost the Apple button only — not
+    // every sign-in method on the page.
+    try {
+      providers.push(AppleProvider({
         clientId: process.env.APPLE_SERVICES_ID!,
-        privateKey: process.env.APPLE_PRIVATE_KEY!,
-      }),
-    }))
+        clientSecret: appleClientSecret({
+          teamId: process.env.APPLE_TEAM_ID!,
+          keyId: process.env.APPLE_KEY_ID!,
+          clientId: process.env.APPLE_SERVICES_ID!,
+          privateKey: process.env.APPLE_PRIVATE_KEY!,
+        }),
+      }))
+    } catch (error) {
+      log.error({ err: error }, 'APPLE_PRIVATE_KEY is not a usable .p8 PEM — web Apple sign-in disabled')
+    }
   }
 
   return providers

@@ -112,6 +112,13 @@ describe('the NextAuth provider list follows NEXT_PUBLIC_BRAND_AUTH_PROVIDERS', 
       expect(ids).not.toContain('apple')
     })
 
+    it('skips Apple, rather than breaking every sign-in, when its key is not a usable PEM', async () => {
+      process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS = 'apple,passkey'
+      Object.assign(process.env, appleWeb, { APPLE_PRIVATE_KEY: 'not a key' })
+      const ids = (await loadAuthConfig()).providers.map(p => p.id)
+      expect(ids).not.toContain('apple')
+    })
+
     it('does not register Apple when the brand does not offer it', async () => {
       process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS = 'passkey'
       Object.assign(process.env, appleWeb)
