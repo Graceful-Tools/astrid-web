@@ -1142,9 +1142,20 @@ Commit `6cf7c53e`:
 - sign-in buttons
 - WHITELABELING.md "Sign-in providers"
 
+AWTD-1104: the four mobile token routes (`/api/auth/{apple,google}`,
+`/api/v1/auth/{apple,google}`) now verify the provider token and hand off to
+`lib/auth/native-sign-in.ts`:
+- `signInWithVerifiedIdentity` applies the same linking rule.
+- Each route issues the NextAuth JWT that passkey and desktop use, set as
+  `next-auth.session-token`, and in production also as the `__Secure-` name.
+- They no longer write `Session` rows. The cookie fallback
+  (`lib/auth/session-cookie.ts`) still accepts old rows until they expire.
+
 **Not done:**
-- Moving the four mobile token routes (`/api/auth/{apple,google}`, `/api/v1/auth/{apple,google}`)
-  onto the shared helper, and the single session format (§6.5).
+- Deleting the database-session fallbacks (`lib/auth/session-cookie.ts`, `mobile-session`, and
+  the ad-hoc `prisma.session` reads in sse, secure-files, ai-api-keys and signout) once the last
+  pre-AWTD-1104 row has expired.
+- The `sessionEpoch` revocation claim (§6.5), which waits on SSO deprovisioning (P7).
 - Per-org SSO and SAML (§6.4 v2, P7).
 - Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off.
 
