@@ -105,7 +105,6 @@
     "test:e2e:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
     "test:e2e:report": "playwright show-report",
     "playwright:install": "playwright install --with-deps",
-    "playwright:setup": "tsx --env-file=.env.local scripts/create-test-user.ts",
     "playwright:setup:ci-auth": "tsx scripts/create-e2e-auth-state.ts",
     "test:suggest": "tsx scripts/suggest-test-type.ts",
     "offline:check": "tsx scripts/check-offline-mutations.ts",

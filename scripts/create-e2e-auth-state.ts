@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
+import { mintSessionToken, sessionStorageState } from '../e2e/utils/minted-session'
 
-function requireEnvironment(name: 'TEST_DATABASE_URL'): string {
+function requireEnvironment(name: 'TEST_DATABASE_URL' | 'NEXTAUTH_SECRET'): string {
   const value = process.env[name]
   if (!value) {
     throw new Error(`${name} is required to provision authenticated E2E state`)
@@ -11,6 +12,8 @@ function requireEnvironment(name: 'TEST_DATABASE_URL'): string {
 }
 
 const databaseUrl = requireEnvironment('TEST_DATABASE_URL')
+const secret = requireEnvironment('NEXTAUTH_SECRET')
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000'
 const parsedUrl = new URL(databaseUrl)
 const databaseName = parsedUrl.pathname.slice(1).toLowerCase()
 if (
@@ -28,22 +31,13 @@ process.env.DATABASE_URL_DIRECT = databaseUrl
 const prisma = new PrismaClient()
 const authDirectory = path.resolve('.auth')
 
-async function writeState(fileName: string, token: string) {
+// A NextAuth JWT, not a database Session row: the web UI only reads the JWT,
+// so a Session-row cookie left the browser signed out (AWTD-1039).
+async function writeState(fileName: string, user: Parameters<typeof mintSessionToken>[0]) {
+  const token = await mintSessionToken(user, secret)
   await writeFile(
     path.join(authDirectory, fileName),
-    JSON.stringify({
-      cookies: [{
-        name: 'next-auth.session-token',
-        value: token,
-        domain: 'localhost',
-        path: '/',
-        expires: Math.floor(Date.now() / 1000) + 60 * 60,
-        httpOnly: true,
-        secure: false,
-        sameSite: 'Lax',
-      }],
-      origins: [],
-    }, null, 2)
+    JSON.stringify(sessionStorageState(token, baseURL), null, 2)
   )
 }
 
@@ -60,23 +54,10 @@ async function main() {
     update: { name: 'Playwright Outsider', isActive: true },
     create: { email: 'playwright-outsider@example.test', name: 'Playwright Outsider' },
   })
-  const expires = new Date(Date.now() + 60 * 60 * 1000)
-  const [ownerSession, outsiderSession] = await Promise.all([
-    prisma.session.upsert({
-      where: { sessionToken: 'playwright-owner-session' },
-      update: { userId: owner.id, expires },
-      create: { sessionToken: 'playwright-owner-session', userId: owner.id, expires },
-    }),
-    prisma.session.upsert({
-      where: { sessionToken: 'playwright-outsider-session' },
-      update: { userId: outsider.id, expires },
-      create: { sessionToken: 'playwright-outsider-session', userId: outsider.id, expires },
-    }),
-  ])
 
   await Promise.all([
-    writeState('user.json', ownerSession.sessionToken),
-    writeState('outsider.json', outsiderSession.sessionToken),
+    writeState('user.json', owner),
+    writeState('outsider.json', outsider),
   ])
 }
 

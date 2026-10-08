@@ -250,7 +250,7 @@ cloud `openai@` agent.
 | `npm run predeploy:dry` | Analyze only, apply no fixes |
 | `npm run predeploy:ci` | CI mode: create tasks on failure, exit 1 |
 | `npm run test:run` | Vitest once |
-| `npm run test:e2e` | Playwright E2E (auth specs skip without `PLAYWRIGHT_TEST_EMAIL`) |
+| `npm run test:e2e` | Playwright E2E (signed-in specs need a minted session: docs/testing/PLAYWRIGHT_AUTH_GUIDE.md) |
 | `npm run deploy:canary` | Post-deploy production health check |
 | `npm run dev` | Dev server |
 
