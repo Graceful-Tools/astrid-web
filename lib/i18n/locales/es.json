@@ -754,6 +754,12 @@
         "listDesc": "La casilla completa la tarea, y la prioridad y el responsable tienen cada uno su propia fila.",
         "projectDesc": "Compacto. Al tocar la casilla se abren prioridad, responsable, estado y completar."
       },
+      "listImages": {
+        "title": "Imágenes de listas",
+        "description": "Muestra una imagen junto a cada lista en la barra lateral y en el encabezado de la lista (sincronizado entre dispositivos)",
+        "label": "Mostrar imágenes de listas",
+        "offDesc": "Si está desactivado, cada lista muestra su color."
+      },
       "emailToTask": {
         "title": "Correo a Tarea",
         "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",

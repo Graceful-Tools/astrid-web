@@ -754,6 +754,12 @@
         "listDesc": "Das Kontrollkästchen schließt die Aufgabe ab; Priorität und zugewiesene Person haben je eine eigene Zeile.",
         "projectDesc": "Kompakt. Ein Tippen auf das Kontrollkästchen öffnet Priorität, zugewiesene Person, Status und Abschließen."
       },
+      "listImages": {
+        "title": "Listenbilder",
+        "description": "Ein Bild neben jeder Liste in der Seitenleiste und im Listenkopf anzeigen (geräteübergreifend synchronisiert)",
+        "label": "Listenbilder anzeigen",
+        "offDesc": "Wenn aus, zeigt jede Liste stattdessen ihre Farbe."
+      },
       "emailToTask": {
         "title": "E-Mail zu Aufgabe",
         "description": "Erstellen Sie Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",

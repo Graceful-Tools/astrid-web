@@ -754,6 +754,12 @@
         "listDesc": "A caixa de seleção conclui a tarefa, e prioridade e responsável têm cada um a sua própria linha.",
         "projectDesc": "Compacto. Tocar na caixa abre prioridade, responsável, estado e concluir."
       },
+      "listImages": {
+        "title": "Imagens das listas",
+        "description": "Mostrar uma imagem ao lado de cada lista na barra lateral e no cabeçalho da lista (sincronizado entre dispositivos)",
+        "label": "Mostrar imagens das listas",
+        "offDesc": "Desativado: cada lista mostra a sua cor."
+      },
       "emailToTask": {
         "title": "E-mail para Tarefa",
         "description": "Crie tarefas instantaneamente enviando e-mails para {inboundTaskEmail}",

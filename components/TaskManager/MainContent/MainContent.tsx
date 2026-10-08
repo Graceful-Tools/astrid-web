@@ -32,8 +32,8 @@ import {
   Copy,
   Search
 } from "lucide-react"
-import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { ListHeaderImage } from "./ListHeaderImage"
 import type { Task, TaskList } from "@/types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 import { useTranslations } from "@/lib/i18n/client"
@@ -596,21 +596,9 @@ export function MainContent({
 
                 return (
                   <div className="flex items-center justify-start space-x-4 mb-4">
-                    {/* List Image */}
-                    <img
-                      src={getListImageUrl(currentList)}
-                      alt={currentList.name}
-                      className={`w-16 h-16 rounded-xl object-cover flex-shrink-0 ${canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
-                      onClick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
-                      title={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Click to change image" : currentList.name}
-                      onError={(e) => {
-                        // Fallback to consistent default image on error
-                        const target = e.currentTarget as HTMLImageElement
-                        const fallbackImage = getConsistentDefaultImage(currentList.id).filename
-                        if (target.src !== fallbackImage) {
-                          target.src = fallbackImage
-                        }
-                      }}
+                    <ListHeaderImage
+                      list={currentList}
+                      onPick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
                     />
 
                     {/* Editable List Name and Description */}

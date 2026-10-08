@@ -754,6 +754,12 @@
         "listDesc": "核取方塊用於完成任務，優先順序與負責人各佔一列。",
         "projectDesc": "精簡模式。點按核取方塊會開啟優先順序、負責人、狀態與完成。"
       },
+      "listImages": {
+        "title": "清單圖片",
+        "description": "在側邊欄和清單標題中，於每個清單旁顯示圖片（跨裝置同步）",
+        "label": "顯示清單圖片",
+        "offDesc": "關閉後，每個清單改為顯示其顏色。"
+      },
       "emailToTask": {
         "title": "郵件建立任務",
         "description": "透過傳送郵件到{inboundTaskEmail}即時建立任務",

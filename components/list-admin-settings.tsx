@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { EnhancedListImageDisplay } from "./enhanced-list-image-display"
+import { useListImagesVisibility } from "@/contexts/list-images-context"
 import type { TaskList, User } from "../types/task"
 import { BoardViewSection } from "@/components/list-admin/BoardViewSection"
 import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
@@ -37,23 +38,27 @@ export function ListAdminSettings({
   onProjectBoardCreated,
   onProjectBoardRemoved
 }: ListAdminSettingsProps) {
+  const { showListImages } = useListImagesVisibility()
   return (
     <div className="space-y-4">
       {/* List Name */}
       <ListNameSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
 
-      {/* Enhanced List Image Display */}
-      <div className="flex items-center justify-between">
-        <Label className="text-sm theme-text-secondary">List Image</Label>
-        <EnhancedListImageDisplay
-          list={list}
-          canEdit={canEditSettings}
-          onImageClick={onEditImage}
-          size="thumbnail"
-          showEditOverlay={true}
-          className="rounded-full"
-        />
-      </div>
+      {/* Enhanced List Image Display — absent under hide_list_images: an
+          image the app never draws is not something to set up. */}
+      {showListImages && (
+        <div className="flex items-center justify-between">
+          <Label className="text-sm theme-text-secondary">List Image</Label>
+          <EnhancedListImageDisplay
+            list={list}
+            canEdit={canEditSettings}
+            onImageClick={onEditImage}
+            size="thumbnail"
+            showEditOverlay={true}
+            className="rounded-full"
+          />
+        </div>
+      )}
 
       {/* Project Status Board */}
       <BoardViewSection

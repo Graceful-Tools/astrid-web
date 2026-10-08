@@ -389,6 +389,21 @@ Get a user's public profile. The `email` field is returned only when the request
 
 ---
 
+### GET|PATCH `/api/v1/users/me/smart-tasks`
+Task-creation and display preferences. GET requires `user:read`, PATCH requires
+`user:write`. PATCH accepts any subset of the fields and returns the updated set;
+it also emits `user_settings_updated` to the user's other sessions.
+
+| Field | Type | Notes |
+|---|---|---|
+| `showListImages` | `boolean \| null` | "Show list images". `null` = follow the `hide_list_images` experiment flag (`GET /api/v1/features`); `true`/`false` = the user's explicit choice, which always wins. Draw list images when `showListImages ?? !features.hide_list_images`. PATCH `null` to return to the experiment. Any other type → 400. |
+
+The response includes `emailToTaskEnabled`, `defaultTaskDueOffset`,
+`defaultDueTime`, `smartTaskCreationEnabled`, `subtaskDisplay` and
+`taskDisplayMode`, which follow the same PATCH rules.
+
+---
+
 ### GET `/api/v1/users/me/connections`
 Everything that can act as the account, from every source, as one list.
 Requires `user:read`.

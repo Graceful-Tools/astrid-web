@@ -754,6 +754,12 @@
         "listDesc": "La casella completa l'attività, e priorità e assegnatario hanno ciascuno la propria riga.",
         "projectDesc": "Compatto. Toccando la casella si aprono priorità, assegnatario, stato e completa."
       },
+      "listImages": {
+        "title": "Immagini delle liste",
+        "description": "Mostra un’immagine accanto a ogni lista nella barra laterale e nell’intestazione (sincronizzato tra dispositivi)",
+        "label": "Mostra immagini delle liste",
+        "offDesc": "Se disattivato, ogni lista mostra il suo colore."
+      },
       "emailToTask": {
         "title": "Email a Attività",
         "description": "Crea attività istantaneamente inviando email a {inboundTaskEmail}",

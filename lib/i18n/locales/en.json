@@ -754,6 +754,12 @@
         "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
         "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
       },
+      "listImages": {
+        "title": "List images",
+        "description": "Show a picture beside each list in the sidebar and list header (synced across devices)",
+        "label": "Show list images",
+        "offDesc": "When off, each list shows its color instead."
+      },
       "emailToTask": {
         "title": "Email-to-Task",
         "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",
