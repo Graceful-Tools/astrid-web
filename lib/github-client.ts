@@ -58,6 +58,7 @@ export class GitHubClient {
   private app: App
   private octokitCache: Map<number, any> = new Map() // Cache Octokit per installationId
   private defaultInstallationId: number | null = null
+  private installationIds: number[] = []
   private repositories: RepositoryInfo[] = [] // Per-repo installation mapping
 
   constructor() {
@@ -82,46 +83,60 @@ export class GitHubClient {
   }
 
   /**
-   * Authenticate the client for a specific user's GitHub integration
+   * Authenticate the client for every one of the user's GitHub installations.
+   *
+   * A user has one GitHubIntegration row per installation (org), and each row
+   * caches only that installation's repos — so the ROW says which installation
+   * a repo belongs to. The entries cannot be trusted for it: the
+   * installation_repositories webhook and the repositories refresh wrote them
+   * without an installationId. (AWTD-1107)
    */
   private async authenticateForUser(userId: string): Promise<void> {
     log.debug({ userId }, 'Authenticating for user')
 
-    // Get user's first GitHub integration (for backward compatibility)
-    const integration = await prisma.gitHubIntegration.findFirst({
-      where: { userId }
-    })
+    const integrations = (await prisma.gitHubIntegration.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' }
+    })).filter(integration => integration.installationId)
 
     log.debug({
       userId,
-      hasIntegration: !!integration,
-      installationId: integration?.installationId
+      installationIds: integrations.map(i => i.installationId)
     }, 'Integration lookup result')
 
-    if (!integration || !integration.installationId) {
+    if (integrations.length === 0) {
       throw new Error(`No GitHub integration found for user ${userId}`)
     }
 
-    this.defaultInstallationId = integration.installationId
+    this.installationIds = integrations.map(i => i.installationId as number)
+    // The oldest installation, for the calls that are not about one repo.
+    const defaultInstallationId = this.installationIds[0]
+    this.defaultInstallationId = defaultInstallationId
 
-    // Store repositories with their per-repo installation IDs
-    // The repositories field is a JSON array with per-repo installationId
-    if (integration.repositories && Array.isArray(integration.repositories)) {
-      this.repositories = integration.repositories as unknown as RepositoryInfo[]
-      log.debug({
-        repoCount: this.repositories.length,
-        repos: this.repositories.map(r => `${r.fullName} (inst: ${r.installationId})`)
-      }, 'Loaded repository installation mappings')
-    }
+    this.repositories = integrations.flatMap(integration => {
+      const repos = Array.isArray(integration.repositories)
+        ? integration.repositories as Record<string, any>[]
+        : []
+      return repos.map(repo => ({
+        ...repo,
+        // Cached rows may predate the camelCase mapping.
+        fullName: repo.fullName || repo.full_name,
+        installationId: integration.installationId as number
+      }) as RepositoryInfo)
+    })
+    log.debug({
+      repoCount: this.repositories.length,
+      repos: this.repositories.map(r => `${r.fullName} (inst: ${r.installationId})`)
+    }, 'Loaded repository installation mappings')
 
     try {
       // Create authenticated Octokit instance for the default installation
-      log.debug({ installationId: integration.installationId }, 'Creating default Octokit instance')
-      const octokit = await this.app.getInstallationOctokit(integration.installationId)
-      this.octokitCache.set(integration.installationId, octokit)
+      log.debug({ installationId: defaultInstallationId }, 'Creating default Octokit instance')
+      const octokit = await this.app.getInstallationOctokit(defaultInstallationId)
+      this.octokitCache.set(defaultInstallationId, octokit)
       log.debug({
         hasOctokit: !!octokit,
-        installationId: integration.installationId
+        installationId: defaultInstallationId
       }, 'Octokit created successfully')
     } catch (error) {
       log.error({ error }, 'Failed to create Octokit')
@@ -130,13 +145,15 @@ export class GitHubClient {
   }
 
   /**
-   * Get the installation ID for a specific repository
-   * Falls back to default installation if repo not found in mapping
+   * Get the installation ID for a specific repository.
+   *
+   * Never falls back across installations: with several, a repo missing from
+   * the cached mapping could belong to any of them, and a guess hands it the
+   * wrong org's token. Only a user with a single installation gets that one.
    */
   private getInstallationIdForRepo(repoFullName: string): number {
-    // Find the repo in our mapping
     const repoInfo = this.repositories.find(
-      r => r.fullName.toLowerCase() === repoFullName.toLowerCase()
+      r => r.fullName?.toLowerCase() === repoFullName.toLowerCase()
     )
 
     if (repoInfo) {
@@ -147,15 +164,20 @@ export class GitHubClient {
       return repoInfo.installationId
     }
 
-    // Fall back to default
     if (!this.defaultInstallationId) {
       throw new Error('GitHub client not authenticated. Call authenticateForUser() first.')
+    }
+
+    if (this.installationIds.length > 1) {
+      throw new Error(
+        `Repository ${repoFullName} is not among the cached repositories of your ${this.installationIds.length} GitHub installations. Refresh your GitHub repositories and try again.`
+      )
     }
 
     log.debug({
       repo: repoFullName,
       installationId: this.defaultInstallationId
-    }, 'Using default installation ID (repo not in mapping)')
+    }, 'Using the only installation ID (repo not in mapping)')
     return this.defaultInstallationId
   }
 
@@ -663,16 +685,23 @@ export class GitHubClient {
   }
 
   /**
-   * Get installation repositories for the current user
+   * Get the repositories of one of the user's installations — the default one
+   * unless named. A caller caching the result on an integration row must name
+   * that row's installation, or it caches another org's repos there.
    */
-  async getInstallationRepositories(): Promise<Array<{
+  async getInstallationRepositories(installationId?: number): Promise<Array<{
     id: number
     name: string
     fullName: string
     private: boolean
     defaultBranch: string
   }>> {
-    const octokit = this.ensureAuthenticated()
+    if (installationId !== undefined && !this.installationIds.includes(installationId)) {
+      throw new Error(`Installation ${installationId} is not one of this user's GitHub installations`)
+    }
+    const octokit = installationId === undefined
+      ? this.ensureAuthenticated()
+      : await this.getOctokitForInstallation(installationId)
 
     try {
       const { data } = await octokit.apps.listReposAccessibleToInstallation()

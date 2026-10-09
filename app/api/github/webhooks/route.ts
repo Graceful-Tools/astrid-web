@@ -103,7 +103,9 @@ webhooks?.on('installation_repositories', async ({ payload }) => {
         id: repo.id,
         name: repo.name,
         fullName: repo.full_name,
-        defaultBranch: ('default_branch' in repo ? repo.default_branch : null) || 'main'
+        defaultBranch: ('default_branch' in repo ? repo.default_branch : null) || 'main',
+        // Record whose repo this is, as the refresh route does (AWTD-1107).
+        installationId: payload.installation.id
       })) || []
 
       await prisma.gitHubIntegration.update({
