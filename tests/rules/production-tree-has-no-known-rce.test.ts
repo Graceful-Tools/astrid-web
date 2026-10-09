@@ -172,6 +172,14 @@ const ADVISORY_FLOORS: Array<{
       'GHSA-2vr4-cq9g-pvrc (link-local / NAT64 SSRF classifier gaps); <=10.7.0 — AWTD-1068',
   },
   {
+    name: 'proxy-addr',
+    minVersion: '2.0.8',
+    severity: 'critical',
+    advisory:
+      'GHSA-jqcg-44mw-7w3h (IP spoofing via an IPv4-mapped IPv6 trust subnet); ' +
+      '>=1.1.0 <2.0.8 — AWTD-1130. Reached through @modelcontextprotocol/sdk → express',
+  },
+  {
     name: 'dompurify',
     minVersion: '3.4.16',
     severity: 'low',
