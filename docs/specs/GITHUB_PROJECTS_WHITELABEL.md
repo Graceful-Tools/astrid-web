@@ -1160,7 +1160,9 @@ AWTD-1104: the four mobile token routes (`/api/auth/{apple,google}`,
   pre-AWTD-1104 row has expired.
 - The `sessionEpoch` revocation claim (§6.5), which waits on SSO deprovisioning (P7).
 - Per-org SSO and SAML (§6.4 v2, P7).
-- Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off.
+- Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off. The web half is done
+  ([AWTD-1105](https://astrid.cc/t/AWTD-1105)): `ios` and `mac` hand-off clients, and
+  `/auth/desktop?provider=github|google|sso` starts that provider directly for a signed-out user.
 
 ### P3 — one GitHub connection (§7): partly done
 
