@@ -31,7 +31,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 
-import { pushBlockersIn } from '../../scripts/check-board-permissions'
+import { allowedToolsIn, pushBlockersIn } from '../../scripts/check-board-permissions'
 
 const ROOT = process.cwd()
 const WORKFLOW = '.github/workflows/production-deployment.yml'
@@ -199,18 +199,10 @@ describe('pushing main does not deploy (AWTD-879)', () => {
  * machine the loop runs on; that half is `fixall-loop.sh`'s startup check, the
  * same warn-and-continue arrangement AWTD-975 built for the board tools.
  *
- * The checked-in template IS visible, and
- *
- *     expect(pushBlockersIn(readFileSync('.claude/settings.json.example')))
- *       .toEqual([])
- *
- * is the assertion this file is eventually for. It is NOT here yet because the
- * two entries are still in that template: `.claude/**` is a protected path and
- * Claude Code refuses to write there mid-run — correctly, since a session that
- * can widen its own permissions has none. So AWTD-978 waits on a human for the
- * deletions, and that line lands with them. Until then the detector is exercised
- * over fixtures and run against the real files by the startup check, which is
- * the arrangement that at least makes the gap LOUD instead of silent.
+ * The checked-in template IS visible, and the last test below asserts it gates
+ * no push. `.claude/**` is a protected path an agent cannot write — correctly,
+ * since a session that can widen its own permissions has none — so the template
+ * deletions and that assertion land together, by a human.
  */
 describe('nor does any permission gate the push (AWTD-978)', () => {
   const loop = readFileSync(join(ROOT, 'scripts/fixall-loop.sh'), 'utf8')
@@ -290,4 +282,14 @@ describe('nor does any permission gate the push (AWTD-978)', () => {
     )
   })
 
+  it('the checked-in template gates no push', () => {
+    // The template is what a fresh machine's settings.local.json is copied from,
+    // so a gate left here comes back on every new checkout.
+    const template = readFileSync(join(ROOT, '.claude/settings.json.example'), 'utf8')
+
+    // pushBlockersIn reads a broken file as `[]`, which would pass vacuously;
+    // allowedToolsIn throws on one, so this proves the file was actually read.
+    expect(allowedToolsIn(template)).toContain('Bash(git *)')
+    expect(pushBlockersIn(template)).toEqual([])
+  })
 })
