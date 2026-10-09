@@ -164,12 +164,14 @@ function buildProviders() {
 
   if (hasCapability('authSso')) {
     // Deployment-level OIDC SSO (spec §6.4 v1): one IdP from env. Identities
-    // are trusted only for AUTH_SSO_DOMAINS — see emailTrustFor.
+    // are trusted only for AUTH_SSO_DOMAINS — see emailTrustFor. A missing issuer
+    // must not throw here: this module is imported by every authed route, and
+    // instrumentation.ts already fails the boot naming the missing variables.
     providers.push({
       id: 'sso',
       name: process.env.AUTH_SSO_LABEL?.trim() || 'SSO',
       type: 'oauth',
-      wellKnown: `${process.env.AUTH_SSO_ISSUER!.replace(/\/+$/, '')}/.well-known/openid-configuration`,
+      wellKnown: `${(process.env.AUTH_SSO_ISSUER ?? '').replace(/\/+$/, '')}/.well-known/openid-configuration`,
       clientId: process.env.AUTH_SSO_CLIENT_ID!,
       clientSecret: process.env.AUTH_SSO_CLIENT_SECRET!,
       authorization: { params: { scope: 'openid email profile' } },

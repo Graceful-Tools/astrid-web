@@ -867,7 +867,10 @@ delta. The detail pane shows "Previous occurrence" and "Next occurrence" links f
 
 ### 11.1 Brand profile (GitHub brand)
 
-The partner name is a placeholder: `brands/github-projects.brand.json`.
+`brands/github-projects.brand.json` is **Lanes for GitHub Projects**, a generic Graceful
+Tools brand at `projects.gracefultools.com` (AWTD-1103). Its GitHub App slug,
+`lanes-for-github-projects`, is a placeholder until that App is registered, and
+`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` joins the profile when P4 builds it.
 
 ```json
 "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github,sso",
