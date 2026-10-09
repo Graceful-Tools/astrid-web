@@ -21,6 +21,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import type { SseEventType } from '@/lib/sse-event-types'
 import { createLogger } from '@/lib/logger'
 import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
@@ -163,7 +164,7 @@ export async function loadV1ListsForViewers(
 export async function broadcastListEvent(args: {
   listId: string
   recipients: string[]
-  type: string
+  type: SseEventType
   data: Record<string, unknown>
   timestamp?: string
 }): Promise<void> {
