@@ -33,6 +33,7 @@ import { createLogger } from "../lib/logger"
 // Re-exported below rather than moved-and-forgotten, as OAUTH_MCP_TOOLS was.
 import { OAuthAPIClient } from "./oauth-api-client"
 import { fetchListMessages } from "./list-chat"
+import { callBlockerTool, isBlockerTool } from "./blockers"
 
 const log = createLogger("mcp.server-oauth")
 
@@ -219,6 +220,7 @@ export default class AstridMCPServerOAuth {
           case "get_list_messages":
             return await this.getListMessages(args)
           default:
+            if (isBlockerTool(name)) return await callBlockerTool(this.oauthClient, name, args)
             throw new Error(`Unknown tool: ${name}`)
         }
       } catch (error) {
@@ -508,21 +510,8 @@ export default class AstridMCPServerOAuth {
       `/api/v1/tasks/${taskId}/comments`
     )
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              taskId,
-              comments: data.comments,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    }
+    const body = { taskId, comments: data.comments }
+    return { content: [{ type: "text", text: JSON.stringify(body, null, 2) }] }
   }
 
   private logStartup(transportLabel: string) {
