@@ -98,11 +98,12 @@ function fakeClient(state: {
       }
       return count
     },
-    // allocateSequence's UPDATE ... RETURNING.
+    // allocateSequenceRange's UPDATE ... RETURNING — values are [count, projectId, count].
     $queryRaw: async (query: { values: unknown[] }) => {
-      const project = projects.find(candidate => candidate.id === query.values[0])!
-      project.nextSequence += 1
-      return [{ nextSequence: project.nextSequence - 1, key: project.key }]
+      const [count, projectId] = query.values as [number, string]
+      const project = projects.find(candidate => candidate.id === projectId)!
+      project.nextSequence += count
+      return [{ nextSequence: project.nextSequence - count, key: project.key }]
     },
     $transaction: async <T,>(fn: (tx: unknown) => Promise<T>) => fn(client),
   }

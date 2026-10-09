@@ -102,19 +102,33 @@ export async function allocateSequence(
   projectId: string,
   client: PrismaLike = prisma
 ): Promise<{ sequence: number; key: string | null } | null> {
+  const range = await allocateSequenceRange(projectId, 1, client)
+  return range ? { sequence: range.firstSequence, key: range.key } : null
+}
+
+/**
+ * Take `count` consecutive sequence numbers in one statement (AWTD-1124): a
+ * bulk create pays one row lock per project, not one per task. Returns the
+ * first; the batch owns `firstSequence … firstSequence + count - 1`.
+ */
+export async function allocateSequenceRange(
+  projectId: string,
+  count: number,
+  client: PrismaLike = prisma
+): Promise<{ firstSequence: number; key: string | null } | null> {
   // The key comes back from the same row lock as the number (AWTD-1024): a
   // create that read AWTD just before a rename to WEB committed would otherwise
   // mint AWTD-13 after every other AWTD-N had become WEB-N.
   const rows = await client.$queryRaw<Array<{ nextSequence: number; key: string | null }>>(
     Prisma.sql`
       UPDATE "Project"
-      SET "nextSequence" = "nextSequence" + 1
+      SET "nextSequence" = "nextSequence" + ${count}
       WHERE "id" = ${projectId}
-      RETURNING "nextSequence" - 1 AS "nextSequence", "key"
+      RETURNING "nextSequence" - ${count} AS "nextSequence", "key"
     `
   )
   const row = rows[0]
-  return row ? { sequence: row.nextSequence, key: row.key } : null
+  return row ? { firstSequence: row.nextSequence, key: row.key } : null
 }
 
 /**
