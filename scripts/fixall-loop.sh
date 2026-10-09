@@ -311,7 +311,7 @@ BUDGET_ARGS=()
 
 # Every task this run claims is recorded here (scripts/claim-fixall-task.ts), so
 # the ones it leaves in Doing can be released after it — exactly, no heuristic.
-CLAIMS_FILE=$(mktemp -t fixall-web-claims)
+CLAIMS_FILE=$(mktemp "${TMPDIR:-/tmp}/fixall-web-claims.XXXXXX")
 export ASTRID_FIXALL_CLAIMS_FILE="$CLAIMS_FILE"
 
 echo "→ /fixall ($MODEL, watchdog ${MAX_MINUTES}m${MAX_USD:+, cap \$$MAX_USD})"
@@ -357,7 +357,7 @@ SAVED_BRANCH=""
 END_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 if [ -n "$(git status --porcelain 2>/dev/null)" ] && { [ "$END_BRANCH" = "main" ] || [ "$END_BRANCH" = "HEAD" ]; }; then
   SNAP_BRANCH="wip/fixall-web-$(date +%Y%m%d-%H%M%S)"
-  SNAP_INDEX=$(mktemp -t fixall-web-index)
+  SNAP_INDEX=$(mktemp "${TMPDIR:-/tmp}/fixall-web-index.XXXXXX")
   # Start from the real index so staged work is in the snapshot; a missing
   # index must be a missing file, since git reads an empty one as corrupt.
   cp "$(git rev-parse --git-path index)" "$SNAP_INDEX" 2>/dev/null || rm -f "$SNAP_INDEX"
