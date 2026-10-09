@@ -80,7 +80,8 @@ import {
   type AnalyticsPlatformValue,
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
-import { resolveCompletionFields } from './task-completion'
+import { resolveCompletionFields, resolveCreateCompletionFields, type CreateCompletionInput } from './task-completion'
+import { parseTaskDate } from './task-dates'
 import { resolveStatusRoleWrite } from './task-status-role'
 
 const log = createLogger('services.task')
@@ -335,7 +336,7 @@ export async function deleteTaskWithSideEffects(args: {
 
 export type { CreatedTask }
 
-export interface CreateTaskInput {
+export interface CreateTaskInput extends CreateCompletionInput {
   title: string
   description?: string | null
   priority?: number
@@ -545,6 +546,9 @@ export async function createTaskWithSideEffects(args: {
   if (parsedReminder.invalid) {
     return { ok: false, status: 400, error: `Invalid reminderTime format: ${String(input.reminderTime)}` }
   }
+  // After the status normalisation above, which may itself decide `completed`.
+  const completion = resolveCreateCompletionFields(completed, input)
+  if (!completion.ok) return { ok: false, status: 400, error: completion.error }
 
   let dueDateTime = parsedDue.value ?? parsedWhen.value
   // `when` has always meant an all-day date; an explicit isAllDay wins over it.
@@ -625,6 +629,7 @@ export async function createTaskWithSideEffects(args: {
     reminderType: input.reminderType || null,
     reminderSent: false,
     completed,
+    ...completion.data,
     creatorId: actorId,
     assigneeId: finalAssigneeId,
     identifier: minted?.identifier ?? null,
@@ -665,19 +670,6 @@ export async function createTaskWithSideEffects(args: {
   await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds })
 
   return { ok: true, task, idempotent: false }
-}
-
-/** Parse a date field that may arrive as a string, a Date, or nothing. */
-function parseTaskDate(value: string | Date | null | undefined): {
-  value: Date | null
-  invalid: boolean
-} {
-  if (!value) return { value: null, invalid: false }
-  if (value instanceof Date) {
-    return isNaN(value.getTime()) ? { value: null, invalid: true } : { value, invalid: false }
-  }
-  const parsed = new Date(value)
-  return isNaN(parsed.getTime()) ? { value: null, invalid: true } : { value: parsed, invalid: false }
 }
 
 /**
