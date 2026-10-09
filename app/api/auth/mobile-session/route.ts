@@ -9,8 +9,8 @@ const log = createLogger('auth.mobile-session')
 
 // Session validation endpoint for iOS
 // Supports both:
-// 1. JWT tokens (from passkey auth, NextAuth JWT strategy)
-// 2. Database sessions (from Apple/Google mobile auth)
+// 1. JWT tokens (NextAuth JWT strategy — every sign-in path issues one)
+// 2. Database sessions (Apple/Google mobile auth before AWTD-1104, until they expire)
 async function mobileSessionHandler(request: NextRequest) {
   try {
     // Get session token from cookie

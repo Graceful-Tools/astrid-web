@@ -39,7 +39,7 @@ const ROOT = process.cwd()
  */
 // 144 → 143: AWTD-1087 deleted app/api/github/connect-installation, which let any
 // signed-in user claim any org's GitHub App installation.
-const CEILING = 143 // 145 → 144: v1 task GET reads through lib/tasks/v1-task-shape (AWTD-1040)
+const CEILING = 139 // 143 → 139: the four native sign-in routes go through lib/auth/native-sign-in (AWTD-1104)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
