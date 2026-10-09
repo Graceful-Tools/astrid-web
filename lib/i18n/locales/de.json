@@ -987,6 +987,10 @@
     "keyRenameFailed": "Präfix konnte nicht umbenannt werden"
   },
   "listSettings": {
+    "color": {
+      "label": "Listenfarbe",
+      "custom": "Eigene Farbe"
+    },
     "adminSettings": "Admin-Einstellungen",
     "sortAndFilters": "Sortierung & Filter",
     "sortAndFiltersAreYours": "Nur du siehst diese Einstellungen – sie ändern die Liste für niemanden sonst.",

@@ -987,6 +987,10 @@
     "keyRenameFailed": "Não foi possível renomear o prefixo"
   },
   "listSettings": {
+    "color": {
+      "label": "Cor da lista",
+      "custom": "Cor personalizada"
+    },
     "adminSettings": "Configurações de administrador",
     "sortAndFilters": "Ordenação e filtros",
     "sortAndFiltersAreYours": "Só você vê isto — não altera a lista para mais ninguém.",

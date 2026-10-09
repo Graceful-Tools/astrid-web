@@ -987,6 +987,10 @@
     "keyRenameFailed": "無法重新命名前綴"
   },
   "listSettings": {
+    "color": {
+      "label": "清單顏色",
+      "custom": "自訂顏色"
+    },
     "adminSettings": "管理員設定",
     "sortAndFilters": "排序與篩選",
     "sortAndFiltersAreYours": "僅你可見，不會改變其他成員看到的清單。",

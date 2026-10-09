@@ -987,6 +987,10 @@
     "keyRenameFailed": "Kon het voorvoegsel niet hernoemen"
   },
   "listSettings": {
+    "color": {
+      "label": "Lijstkleur",
+      "custom": "Aangepaste kleur"
+    },
     "adminSettings": "Beheerdersinstellingen",
     "sortAndFilters": "Sorteren en filters",
     "sortAndFiltersAreYours": "Alleen jij ziet dit — het verandert de lijst voor niemand anders.",

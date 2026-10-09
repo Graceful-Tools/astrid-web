@@ -987,6 +987,10 @@
     "keyRenameFailed": "接頭辞を変更できませんでした"
   },
   "listSettings": {
+    "color": {
+      "label": "リストの色",
+      "custom": "カスタムカラー"
+    },
     "adminSettings": "管理者設定",
     "sortAndFilters": "並び替えとフィルター",
     "sortAndFiltersAreYours": "これはあなたにのみ適用されます。他のメンバーのリストは変わりません。",

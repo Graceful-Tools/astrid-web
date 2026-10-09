@@ -987,6 +987,10 @@
     "keyRenameFailed": "无法重命名前缀"
   },
   "listSettings": {
+    "color": {
+      "label": "列表颜色",
+      "custom": "自定义颜色"
+    },
     "adminSettings": "管理员设置",
     "sortAndFilters": "排序和筛选",
     "sortAndFiltersAreYours": "仅你可见，不会改变其他成员看到的列表。",

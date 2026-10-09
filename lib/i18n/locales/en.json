@@ -987,6 +987,10 @@
     "keyRenameFailed": "Couldn't rename the key"
   },
   "listSettings": {
+    "color": {
+      "label": "List Color",
+      "custom": "Custom color"
+    },
     "adminSettings": "Admin Settings",
     "sortAndFilters": "Sort & Filters",
     "sortAndFiltersAreYours": "Only you see these — they don't change the list for anyone else.",

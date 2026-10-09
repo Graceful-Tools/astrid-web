@@ -987,6 +987,10 @@
     "keyRenameFailed": "접두사를 변경하지 못했습니다"
   },
   "listSettings": {
+    "color": {
+      "label": "목록 색상",
+      "custom": "사용자 지정 색상"
+    },
     "adminSettings": "관리자 설정",
     "sortAndFilters": "정렬 및 필터",
     "sortAndFiltersAreYours": "나에게만 적용됩니다. 다른 구성원의 목록은 바뀌지 않습니다.",

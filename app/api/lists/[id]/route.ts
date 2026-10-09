@@ -15,6 +15,7 @@ import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-event
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
 import { canConvertListFlavor } from "@/lib/list-flavors"
+import { isListColor } from "@/lib/brand/colors"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { recordDeletion } from "@/lib/deletion-log"
 import { broadcastListEvent } from "@/lib/lists/v1-list-shape"
@@ -182,6 +183,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       })
 
       manualSortOrderUpdate = tasksInList.map(task => task.id)
+    }
+
+    // Same rule as PUT /api/v1/lists/[id]: the colour is painted into inline
+    // styles everywhere the list appears, so only #rrggbb is stored.
+    if (data.color !== undefined && !isListColor(data.color)) {
+      return NextResponse.json({ error: "Invalid color (must be #rrggbb)" }, { status: 400 })
     }
 
     // Flavor changes are limited to regular ⇄ label (task 60f5849d). listType

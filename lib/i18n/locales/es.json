@@ -987,6 +987,10 @@
     "keyRenameFailed": "No se pudo renombrar el prefijo"
   },
   "listSettings": {
+    "color": {
+      "label": "Color de la lista",
+      "custom": "Color personalizado"
+    },
     "adminSettings": "Ajustes de administrador",
     "sortAndFilters": "Orden y filtros",
     "sortAndFiltersAreYours": "Solo tú ves esto: no cambia la lista para nadie más.",

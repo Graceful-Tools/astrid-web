@@ -26,6 +26,7 @@ import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
 import { shapeV1List, V1_LIST_READ_INCLUDE } from "@/lib/lists/v1-list-shape"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
+import { isListColor } from "@/lib/brand/colors"
 import {
   deleteListWithImageRelease,
   ListImageClaimError,
@@ -171,7 +172,12 @@ export const PUT = withAuth<RouteContext>(
     if (isOwnerOrAdmin) {
       if (body.name !== undefined) updateData.name = body.name
       if (body.description !== undefined) updateData.description = body.description
-      if (body.color !== undefined) updateData.color = body.color
+      if (body.color !== undefined) {
+        if (!isListColor(body.color)) {
+          return NextResponse.json({ error: 'Invalid color (must be #rrggbb)' }, { status: 400 })
+        }
+        updateData.color = body.color
+      }
       if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl
       if (body.privacy !== undefined) updateData.privacy = body.privacy
       if (body.defaultAssigneeId !== undefined) updateData.defaultAssigneeId = body.defaultAssigneeId

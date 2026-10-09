@@ -10,6 +10,7 @@ import { DeleteListSection } from "@/components/list-admin/DeleteListSection"
 import { RecentlyCompletedWindowSection } from "@/components/list-admin/RecentlyCompletedWindowSection"
 import { ExternalSyncSection } from "./list-admin/ExternalSyncSection"
 import { ListNameSection } from "@/components/list-admin/ListNameSection"
+import { ListColorSection } from "@/components/list-admin/ListColorSection"
 import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructionsSection"
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
 import { ListAiAgentSection } from "@/components/list-admin/ListAiAgentSection"
@@ -43,6 +44,10 @@ export function ListAdminSettings({
     <div className="space-y-4">
       {/* List Name */}
       <ListNameSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
+
+      {/* List Color — shown in both hide_list_images arms: it is what marks a
+          list wherever its image is not drawn. */}
+      <ListColorSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
 
       {/* Enhanced List Image Display — absent under hide_list_images: an
           image the app never draws is not something to set up. */}

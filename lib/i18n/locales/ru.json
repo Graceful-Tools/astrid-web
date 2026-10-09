@@ -987,6 +987,10 @@
     "keyRenameFailed": "Не удалось переименовать префикс"
   },
   "listSettings": {
+    "color": {
+      "label": "Цвет списка",
+      "custom": "Свой цвет"
+    },
     "adminSettings": "Настройки администратора",
     "sortAndFilters": "Сортировка и фильтры",
     "sortAndFiltersAreYours": "Это видите только вы — для других участников список не меняется.",

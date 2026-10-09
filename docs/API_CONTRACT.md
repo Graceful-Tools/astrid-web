@@ -255,6 +255,11 @@ Create a new list.
 ### PUT `/api/lists/{id}`
 Update an existing list.
 
+`color`, when sent, must be a six-digit hex string (`#rrggbb`); anything else
+is rejected with 400 `Invalid color (must be #rrggbb)`. The same rule applies
+to `PUT /api/v1/lists/{id}`. Only the fields sent are changed on v1, so
+`{ "color": "#22c55e" }` alone is a valid recolour.
+
 ### DELETE `/api/lists/{id}`
 Delete a list.
 

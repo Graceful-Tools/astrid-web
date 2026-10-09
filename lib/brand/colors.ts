@@ -48,6 +48,18 @@ export const LIST_COLOR_PALETTE: readonly string[] = [
   '#ec4899', // pink
 ] as const
 
+/** Six-digit hex — the only colour form lists store, and the form the helpers below parse. */
+const HEX6 = /^#([0-9a-f]{6})$/i
+
+/**
+ * Whether `value` may be stored as a list's colour. It is painted into inline
+ * styles on every surface that shows the list, and on iOS, so the API accepts
+ * `#rrggbb` only — never a named colour or a CSS expression.
+ */
+export function isListColor(value: unknown): value is string {
+  return typeof value === 'string' && HEX6.test(value)
+}
+
 /** Pick a colour for a list the user did not colour themselves. */
 export function randomListColor(): string {
   return LIST_COLOR_PALETTE[Math.floor(Math.random() * LIST_COLOR_PALETTE.length)]
@@ -74,7 +86,7 @@ export const DANGER_COLOR = '#ef4444'
  * `rgb()` string gets a flat header rather than a broken gradient.
  */
 export function darkenHex(hex: string, amount = 0.2): string {
-  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim())
+  const match = HEX6.exec(hex.trim())
   if (!match) return hex
 
   const channels = [0, 2, 4].map((offset) => {
@@ -87,7 +99,7 @@ export function darkenHex(hex: string, amount = 0.2): string {
 
 /** `#rrggbb` → `"r, g, b"`, the form the `--theme-*` custom properties use. Null if not six-digit hex. */
 export function hexToRgbTriplet(hex: string): string | null {
-  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim())
+  const match = HEX6.exec(hex.trim())
   if (!match) return null
   return [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16)).join(', ')
 }

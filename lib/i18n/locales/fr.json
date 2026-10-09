@@ -987,6 +987,10 @@
     "keyRenameFailed": "Impossible de renommer le préfixe"
   },
   "listSettings": {
+    "color": {
+      "label": "Couleur de la liste",
+      "custom": "Couleur personnalisée"
+    },
     "adminSettings": "Paramètres d’administration",
     "sortAndFilters": "Tri et filtres",
     "sortAndFiltersAreYours": "Vous seul voyez ces réglages : ils ne modifient la liste pour personne d'autre.",
