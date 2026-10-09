@@ -24,7 +24,55 @@ export async function register() {
   // sign in. This hook runs once per server start regardless of route. Task 97208a72.
   assertUsableAuthConfiguration()
 
+  // Every listed provider must have what it needs (spec §6.2). Missing
+  // credentials for GitHub or SSO stop the boot; for the legacy providers they
+  // are logged, since a wrong guess about an existing deployment would be an
+  // outage rather than a safety check.
+  {
+    const { AUTH_PROVIDERS } = await import('@/lib/brand/capabilities')
+    const { checkProviderCredentials } = await import('@/lib/auth/provider-credentials')
+    const credentials = checkProviderCredentials(AUTH_PROVIDERS)
+    for (const warning of credentials.warnings) {
+      console.error(`[auth] sign-in provider is missing configuration — ${warning}`)
+    }
+    if (credentials.fatal.length > 0) {
+      throw new Error(`Sign-in providers are listed without their configuration: ${credentials.fatal.join('; ')}`)
+    }
+  }
+
   registerOTel({
     serviceName: process.env.OTEL_SERVICE_NAME ?? 'astrid-web',
   })
+
+  // astrid-core decides list permissions on the Node runtime (AWTD-1061): every route handler and
+  // server component asks lib/list-permissions.ts, which this installs the core into. The core is
+  // WebAssembly read from disk, which the edge runtime cannot do; there, in the browser, and if
+  // anything here fails, the TypeScript rules decide — the same answers, pinned by the shared
+  // permissions fixture. ASTRID_CORE_RULES=shadow|off is the rollback. Never fatal.
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    try {
+      const { installListPermissionsCore } = await import('@/lib/core-rules/list-permissions-core')
+      installListPermissionsCore()
+    } catch (error) {
+      // Only reachable if the module itself fails to import; installListPermissionsCore never throws.
+      console.error('list permissions: astrid-core module failed to import; the TypeScript rules decide', error)
+    }
+    // Search queries too (AWTD-1062): lib/search-query-parser.ts's parseSearchQuery, whose caller
+    // is GET /api/v1/search. Same setting, same fallback, pinned by the shared search fixture.
+    try {
+      const { installSearchQueryCore } = await import('@/lib/core-rules/search-query-core')
+      installSearchQueryCore()
+    } catch (error) {
+      console.error('search query: astrid-core module failed to import; the TypeScript parses', error)
+    }
+    // Repeating-task rollover too (AWTD-1063): lib/repeating-rollover.ts's nextOccurrenceForTask,
+    // whose caller is the server's completion path (lib/repeating-task-handler.ts). Same setting,
+    // same fallback, pinned by the shared repeating fixture.
+    try {
+      const { installRepeatingCore } = await import('@/lib/core-rules/repeating-core')
+      installRepeatingCore()
+    } catch (error) {
+      console.error('repeating: astrid-core module failed to import; the TypeScript decides', error)
+    }
+  }
 }

@@ -754,6 +754,12 @@
         "listDesc": "La case à cocher termine la tâche, et la priorité et l'assigné ont chacun leur propre ligne.",
         "projectDesc": "Compact. Toucher la case ouvre priorité, assigné, état et terminer."
       },
+      "listImages": {
+        "title": "Images des listes",
+        "description": "Afficher une image à côté de chaque liste dans la barre latérale et l’en-tête de liste (synchronisé sur tous les appareils)",
+        "label": "Afficher les images des listes",
+        "offDesc": "Désactivé : chaque liste affiche sa couleur à la place."
+      },
       "emailToTask": {
         "title": "E-mail vers tâche",
         "description": "Créez des tâches instantanément en envoyant des e-mails à {inboundTaskEmail}",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Préfixe des ID de tâche",
     "keyExample": "Les tâches deviennent {example}, …",
-    "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre"
+    "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre",
+    "keyRename": "Renommer",
+    "keyRenameHint": "Les tâches deviennent {next} ; {old} fonctionne toujours",
+    "keyRenameFailed": "Impossible de renommer le préfixe"
   },
   "listSettings": {
     "adminSettings": "Paramètres d’administration",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "Message facultatif…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "J'aimerais beaucoup vous aider, mais j'ai besoin d'un modèle d'IA pour répondre ! Rendez-vous dans {settingsLink} pour configurer votre modèle préféré.",
+      "onDeviceUnavailable": "Le modèle sélectionné ne fonctionne que sur les appareils Apple compatibles, je ne peux donc pas répondre ici. Rendez-vous dans {settingsLink} pour choisir un modèle qui fonctionne partout."
+    }
   }
 }

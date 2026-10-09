@@ -33,7 +33,7 @@ environment at all and is asserted on every predeploy.
 | `NEXT_PUBLIC_*` | inlined into the bundle at build | `--build-env` |
 | everything else | by server code at request time | `--env` **and** `--build-env` |
 
-Passing a server-only variable (`BRAND_ENABLED_AGENTS`, `BRAND_AGENT_EMAIL_DOMAIN`) as
+Passing a server-only variable (`BRAND_ENABLED_AGENTS`, `BRAND_ASSISTANT_SERVICE`, `BRAND_AGENT_EMAIL_DOMAIN`) as
 `--build-env` alone **silently does nothing** — present while Next compiles, absent when
 the route runs. `scripts/deploy-brand-preview.ts` routes each variable correctly; if you
 deploy by hand, do the same.
@@ -54,7 +54,10 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_DOMAIN` | `astrid.cc` | Apex, no scheme |
 | `NEXT_PUBLIC_BRAND_SUPPORT_EMAIL` | `support@astrid.cc` | |
 | `NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL` | `remindme@astrid.cc` | Email-to-task address |
-| `NEXT_PUBLIC_BRAND_ACCENT_COLOR` | `#3b82f6` | `theme_color`, viewport theme |
+| `NEXT_PUBLIC_BRAND_ACCENT_COLOR` | `#3b82f6` | `theme_color`, viewport, default list colour, and the UI accent (`--theme-accent`: buttons, links, focus ring) |
+| `NEXT_PUBLIC_BRAND_DEFAULT_THEME` | `ocean` | `light`, `dark` or `ocean` — where a visitor starts; a stored choice still wins |
+| `NEXT_PUBLIC_BRAND_WWW_REDIRECT` | `true` | `false` when the brand domain is a subdomain (`tasks.example.com`): no `www.` host exists to redirect to |
+| `NEXT_PUBLIC_BRAND_FONT_FAMILY` | *(Inter)* | CSS `font-family` stack for the whole app, e.g. the system stack |
 | `NEXT_PUBLIC_BRAND_AGENT_NAME` | brand name | Default assistant's display name |
 | `NEXT_PUBLIC_BRAND_LOGO` | `/images/astrid-character.png` | Mascot art — sign-in, empty states |
 | `NEXT_PUBLIC_BRAND_ICON` | `/icons/icon-512x512.png` | Large square mark |
@@ -89,6 +92,7 @@ An unrecognised value counts as enabled — a typo must not silently remove a fe
 | `NEXT_PUBLIC_BRAND_ENABLE_MCP` | MCP server and discovery |
 | `NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW` | Third-party OpenClaw workers |
 | `NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS` | OpenAPI + ai-plugin documents |
+| `NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT` | The GitHub App coding agent (task → branch → PR → merge). Independent of Issues sync since AWTD-1094 — it used to ride on `SYNC_GITHUB_ISSUES`, so a profile that disabled Issues sync and wants the agent gone must now say so |
 | `NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE` | Projects, status boards and the team-shaped features |
 | `NEXT_PUBLIC_BRAND_ENABLE_TASK_COST` | Per-task cost tracking |
 | `NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK` | Inbound email-to-task |
@@ -108,7 +112,40 @@ scheme included). An origin that is not on the list receives no
 configuration ended up granting `https://astrid.cc` credentialed access to every
 deployment.
 
-**At least one auth method must remain.** A build with all three off is an outage, not a
+### Sign-in providers
+
+Which sign-in methods a brand offers is one ordered list:
+
+```bash
+NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"   # also the button order
+```
+
+| Provider | Needs | Email trusted when |
+|---|---|---|
+| `github` | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — the brand's **GitHub App's own** OAuth client (`Iv…`), with "Email addresses: read" and `/api/auth/callback/github` among its callback URLs | GitHub reports it as the user's verified primary |
+| `google` | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google's `email_verified` claim |
+| `apple` | the mobile token routes (no web button yet) | Apple's `email_verified` claim |
+| `passkey` | — (RP ID per §7) | verified by email, as before |
+| `sso` | `AUTH_SSO_ISSUER`, `AUTH_SSO_CLIENT_ID`, `AUTH_SSO_CLIENT_SECRET`, `AUTH_SSO_DOMAINS` (optional `AUTH_SSO_LABEL`) — any OIDC IdP | it is in `AUTH_SSO_DOMAINS` — an IdP can assert any address, so trust is bound to domains |
+
+- **Unset, the list is derived from the three `ENABLE_AUTH_*` switches**, so a deployment
+  that sets nothing is unchanged. A switch set to off still removes its provider from an
+  explicit list.
+- **GitHub and SSO are never on by default.** Listing them is the only way in, and the
+  server refuses to start if they are listed without their settings (`instrumentation.ts`
+  → `lib/auth/provider-credentials.ts`). For the legacy providers a missing credential is
+  logged rather than fatal.
+- **Every federated sign-in links by one rule**, `lib/auth/federated-identity-linking.ts`:
+  an identity already linked signs in; otherwise the email must be one the provider vouches
+  for (above), and never an AI agent, an address at the agent domain, or
+  `INITIAL_ADMIN_EMAIL`. A sign-in that fails the rule is refused, new user or not.
+- **Clients** read `auth.providers` (ordered `{ id, kind }`) from
+  `GET /api/v1/capabilities`, alongside the original booleans plus `github` and `sso`.
+
+Per-organisation SSO (a connection per customer domain, SAML via a broker) is the next
+step — docs/specs/GITHUB_PROJECTS_WHITELABEL.md §6.4.
+
+**At least one auth method must remain.** A build with none of them is an outage, not a
 degraded feature, so `instrumentation.ts` asserts it at server start and the process
 refuses to boot. Without that check the sign-in page renders a 200 with no buttons —
 indistinguishable from a working page until a user tries to sign in.
@@ -139,6 +176,13 @@ and no runtime flag can turn it back on. Check the capability first.
 it needs `--env`). The default assistant is always retained — dropping it would orphan
 every task already assigned to it. Agent identities live at `BRAND_AGENT_EMAIL_DOMAIN`,
 defaulting to the brand domain.
+
+`BRAND_ASSISTANT_SERVICE=openai` picks the provider behind that default assistant — your
+equivalent of Astrid — for any user who has not chosen one (AWTD-1056). One of `claude`,
+`openai`, `gemini`, `copilot`; it must also be enabled, else the first enabled provider is
+used, else Claude. A user's own choice in settings still wins. Local harnesses (`codex`,
+`muse`) and Custom Agents cannot back it: the server dispatches nothing to them.
+Server-only, like `BRAND_ENABLED_AGENTS`.
 
 Clients learn all of this from **`GET /api/v1/capabilities`** rather than assuming, since
 one mobile build can point at several deployments.

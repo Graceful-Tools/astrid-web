@@ -11,9 +11,9 @@
  * - Auto-send invitations to placeholder users
  */
 
-import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendInvitationEmail } from '@/lib/email'
+import { generateInvitationToken } from '@/lib/list-invite'
 import type { User } from '@prisma/client'
 import { createLogger } from '@/lib/logger'
 
@@ -213,7 +213,7 @@ export class PlaceholderUserService {
     const invitation = await prisma.invitation.create({
       data: {
         email: placeholderUser.email,
-        token: this.generateInvitationToken(),
+        token: generateInvitationToken(),
         type: taskId ? 'TASK_ASSIGNMENT' : 'LIST_SHARING',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         senderId: inviter.id,
@@ -262,13 +262,6 @@ export class PlaceholderUserService {
     return capitalized || 'User'
   }
 
-  /**
-   * Generate cryptographically secure invitation token
-   */
-  private generateInvitationToken(): string {
-    // Generate 32 bytes of cryptographically secure random data
-    return randomBytes(32).toString('hex')
-  }
 }
 
 // Export singleton instance

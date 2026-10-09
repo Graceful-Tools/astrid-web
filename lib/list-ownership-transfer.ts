@@ -20,6 +20,7 @@ import { RedisCache } from '@/lib/redis'
 import { getUserRoleInList } from '@/lib/list-permissions'
 import { createLogger } from '@/lib/logger'
 import type { V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
+import { announceListMemberRemoved } from '@/services/list-member.service'
 
 const log = createLogger('list-ownership-transfer')
 
@@ -134,13 +135,15 @@ export async function transferListOwnership(args: {
   // else owns. Not selecting it can only under-grant, never over-grant.
   const list = await prisma.taskList.findUnique({
     where: { id: listId },
-    select: { id: true, ownerId: true },
+    // The roster is for announcing the old owner's departure afterwards; the
+    // role check below still sees only `ownerId`.
+    select: { id: true, ownerId: true, name: true, color: true, isVirtual: true, listMembers: { select: { userId: true } } },
   })
   if (!list) {
     return { ok: false, status: 404, error: 'List not found' }
   }
 
-  if (getUserRoleInList({ id: currentUserId }, list) !== 'owner') {
+  if (getUserRoleInList({ id: currentUserId }, { id: list.id, ownerId: list.ownerId }) !== 'owner') {
     return { ok: false, status: 403, error: 'Only the owner can transfer ownership' }
   }
 
@@ -204,6 +207,15 @@ export async function transferListOwnership(args: {
       { err: error, listId, oldOwnerId: currentUserId, newOwnerId },
       'Failed to invalidate user-lists cache after ownership transfer'
     )
+  }
+
+  // The old owner has left the list: tell it, the member service's way. The
+  // transfer used to be silent, so open clients kept the old owner in place
+  // (spec §5.2 step 6). Best-effort, for the same reason as the cache above.
+  try {
+    await announceListMemberRemoved({ list, member: { id: currentUserId }, actor: { id: currentUserId } })
+  } catch (error) {
+    log.error({ err: error, listId }, 'Failed to announce the old owner leaving after a transfer')
   }
 
   return { ok: true }

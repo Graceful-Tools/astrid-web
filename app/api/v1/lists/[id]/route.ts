@@ -7,7 +7,6 @@
  */
 
 import { NextResponse } from 'next/server'
-import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
@@ -21,11 +20,11 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
-import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
-import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
+import { resolveDefaultAssignees } from '@/lib/default-assignee'
 import { canUserManageList } from "@/lib/list-permissions"
-import { DEFAULT_LIST_SHOW_SUBTASKS, normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
-import { normalizeAgentEnabledConfig, serializeListAgentFields } from "@/lib/resolve-default-agent"
+import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
+import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
+import { shapeV1List, V1_LIST_READ_INCLUDE } from "@/lib/lists/v1-list-shape"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 import {
   deleteListWithImageRelease,
@@ -69,20 +68,7 @@ export const GET = withAuth<RouteContext>(
           { privacy: 'PUBLIC' },
         ]
       },
-      include: {
-        owner: {
-          select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true }
-        },
-        listMembers: {
-          include: {
-            user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
-          }
-        },
-        listInvites: {
-          select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
-        },
-        _count: { select: { tasks: true } }
-      }
+      include: V1_LIST_READ_INCLUDE,
     })
 
     if (!list) {
@@ -102,51 +88,7 @@ export const GET = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: {
-          id: list.id,
-          name: list.name,
-          description: list.description || '',
-          color: list.color || DEFAULT_LIST_COLOR,
-          imageUrl: list.imageUrl,
-          privacy: list.privacy,
-          isFavorite: list.isFavorite,
-          favoriteOrder: list.favoriteOrder,
-          owner: list.owner,
-          listMembers: list.listMembers,
-          invitations: list.listInvites,
-          taskCount: list._count.tasks,
-          isVirtual: list.isVirtual,
-          virtualListType: list.virtualListType,
-          sortBy: list.sortBy,
-          manualSortOrder: list.manualSortOrder,
-          filterPriority: list.filterPriority,
-          filterAssignee: list.filterAssignee,
-          filterDueDate: list.filterDueDate,
-          filterCompletion: list.filterCompletion,
-          filterRepeating: list.filterRepeating,
-          filterAssignedBy: list.filterAssignedBy,
-          filterInLists: list.filterInLists,
-          defaultPriority: list.defaultPriority,
-          defaultRepeating: list.defaultRepeating,
-          ownerId: list.ownerId,
-          defaultAssigneeId: list.defaultAssigneeId,
-          // Same parity gap as the collection route (task dc143ab2): this
-          // projection dropped fields the web reads, and a missing field here
-          // is a feature silently switched off rather than an error.
-          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
-          ...serializeListAgentFields(list.aiAgentsEnabled),
-          publicListType: list.publicListType ?? null,
-          defaultIsPrivate: list.defaultIsPrivate,
-          defaultDueDate: list.defaultDueDate,
-          githubRepositoryId: list.githubRepositoryId,
-          preferredAiProvider: list.preferredAiProvider,
-          projectId: list.projectId ?? null,
-          listType: (list.listType ?? 'regular') as V1List['listType'],
-          recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
-          showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
-          createdAt: list.createdAt,
-          updatedAt: list.updatedAt
-        } satisfies V1List,
+        list: shapeV1List(list, defaultAssignees),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
@@ -320,20 +262,7 @@ export const PUT = withAuth<RouteContext>(
         update: client => client.taskList.update({
           where: { id },
           data: updateData,
-          include: {
-            owner: {
-              select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true }
-            },
-            listMembers: {
-              include: {
-                user: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } }
-              }
-            },
-            listInvites: {
-              select: { id: true, listId: true, email: true, role: true, token: true, createdAt: true, createdBy: true }
-            },
-            _count: { select: { tasks: true } }
-          }
+          include: V1_LIST_READ_INCLUDE,
         }),
       })
     } catch (error) {
@@ -379,52 +308,7 @@ export const PUT = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: {
-          id: list.id,
-          name: list.name,
-          description: list.description || '',
-          color: list.color || DEFAULT_LIST_COLOR,
-          imageUrl: list.imageUrl,
-          privacy: list.privacy,
-          isFavorite: list.isFavorite,
-          favoriteOrder: list.favoriteOrder,
-          owner: list.owner,
-          listMembers: list.listMembers,
-          invitations: list.listInvites,
-          taskCount: list._count.tasks,
-          isVirtual: list.isVirtual,
-          virtualListType: list.virtualListType,
-          sortBy: list.sortBy,
-          manualSortOrder: list.manualSortOrder,
-          filterPriority: list.filterPriority,
-          filterAssignee: list.filterAssignee,
-          filterDueDate: list.filterDueDate,
-          filterCompletion: list.filterCompletion,
-          filterRepeating: list.filterRepeating,
-          filterAssignedBy: list.filterAssignedBy,
-          filterInLists: list.filterInLists,
-          defaultPriority: list.defaultPriority,
-          defaultRepeating: list.defaultRepeating,
-          ownerId: list.ownerId,
-          defaultAssigneeId: list.defaultAssigneeId,
-          // Same parity gap as the collection route (task dc143ab2): this
-          // projection dropped fields the web reads, and a missing field here
-          // is a feature silently switched off rather than an error.
-          defaultAssignee: pickDefaultAssignee(list.defaultAssigneeId, defaultAssignees) as V1UserSummary | null,
-          ...serializeListAgentFields(list.aiAgentsEnabled),
-          publicListType: list.publicListType ?? null,
-          defaultIsPrivate: list.defaultIsPrivate,
-          defaultDueDate: list.defaultDueDate,
-          defaultDueTime: list.defaultDueTime,
-          githubRepositoryId: list.githubRepositoryId,
-          preferredAiProvider: list.preferredAiProvider,
-          projectId: list.projectId ?? null,
-          listType: (list.listType ?? 'regular') as V1List['listType'],
-          recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
-          showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
-          createdAt: list.createdAt,
-          updatedAt: list.updatedAt
-        } satisfies V1List,
+        list: shapeV1List(list, defaultAssignees),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }

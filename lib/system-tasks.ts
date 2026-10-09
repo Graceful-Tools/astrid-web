@@ -1,6 +1,7 @@
 import { BRAND } from '@/lib/brand/config'
 import { prisma } from "./prisma"
 import { createLogger } from '@/lib/logger'
+import { completeTask } from '@/services/complete-task'
 
 const log = createLogger('system-tasks')
 
@@ -132,11 +133,12 @@ export async function completeVerifyEmailTask(userId: string): Promise<{ complet
       return { completed: false }
     }
 
-    // Mark it as complete
-    await prisma.task.update({
-      where: { id: task.id },
-      data: { completed: true },
-    })
+    // Mark it as complete, as the user who just verified (AWTD-1093)
+    const completion = await completeTask({ taskId: task.id, actorId: userId })
+    if (!completion.ok) {
+      log.warn({ taskId: task.id, error: completion.error }, '[SystemTasks] Completing verify email task was refused')
+      return { completed: false }
+    }
 
     log.info(`[SystemTasks] Completed verify email task ${task.id} for user ${userId}`)
     return { completed: true }

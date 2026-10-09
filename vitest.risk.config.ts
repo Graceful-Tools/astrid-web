@@ -27,6 +27,14 @@ export default mergeConfig(
       // reporting 68% (AWTD-866).
       'tests/lib/api-auth-middleware.test.ts',
       'tests/lib/list-permissions.test.ts',
+      // AWTD-1061: the core now decides list permissions on the server — risk surface by definition.
+      'tests/lib/core-rules-list-permissions.test.ts',
+      'tests/lib/core-rules-permissions-parity.test.ts',
+      // AWTD-1064: rendered markdown is HTML from user text. The sanitiser contract (allowlist,
+      // xss-* cases) and the no-DOM floor are risk surface by definition.
+      'tests/lib/core-rules-markdown-parity.test.ts',
+      'tests/lib/markdown-follow-ios.test.ts',
+      'tests/lib/markdown-server-fallback.test.ts',
       // Saved-filter membership is part of the list-permissions risk surface.
       // AWTD-927 added 49 lines to lib/list-permissions.ts and put their tests
       // here, outside this list — so the new functions counted against the
@@ -57,6 +65,8 @@ export default mergeConfig(
       include: [
         'lib/api-auth-wrapper.ts',
         'lib/list-permissions.ts',
+        'lib/core-rules/list-permissions-core.ts',
+        'lib/markdown.ts',
         // Was 'lib/task-read-access.ts', which does not exist and has not for
         // as long as this list has said so. requireTaskAccess and
         // requireTaskReadAccess live in api-auth-middleware, so the risk gate

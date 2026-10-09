@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskDetailBlockersRow } from '@/components/task-detail/TaskDetailBlockersRow'
+import { badgeVariants } from '@/components/ui/badge'
 import type { Task } from '@/types/task'
 
 const apiGet = vi.hoisted(() => vi.fn())
@@ -75,5 +76,34 @@ describe('TaskDetailBlockersRow (AWTD-1002)', () => {
       .filter(text => ['Neighbour', 'Elsewhere', 'Waits on me', 'Self'].includes(text ?? ''))
 
     expect(offered).toEqual(['Neighbour', 'Elsewhere'])
+  })
+})
+
+describe('TaskDetailBlockersRow design (AWTD-1007)', () => {
+  it('marks the row with an inverted triangle — a yield sign — in the muted icon column', async () => {
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+
+    const icon = screen.getByTestId('waiting-on-icon')
+    expect(icon.getAttribute('class')).toContain('lucide-triangle')
+    expect(icon.getAttribute('class')).toContain('rotate-180')
+    expect(icon.getAttribute('class')).toContain('w-4 h-4')
+    expect(icon.closest('.theme-text-muted')).not.toBeNull()
+  })
+
+  it('lists a blocker the way Lists are listed — a badge carrying its short id', async () => {
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+
+    const chip = screen.getByTestId('task-blocker-visible')
+    // The Lists row's Badge: the pill shape and the secondary fill.
+    const badge = badgeVariants({ variant: 'secondary' })
+    for (const cls of ['rounded-full', 'bg-secondary']) {
+      expect(badge).toContain(cls)
+      expect(chip.classList.contains(cls)).toBe(true)
+    }
+    expect(chip.textContent).toContain('AWTD-1')
+    // A hidden blocker says nothing about itself — not even its id.
+    expect(screen.getByTestId('task-blocker-secret').textContent).not.toContain('secret')
   })
 })

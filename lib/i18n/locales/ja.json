@@ -754,6 +754,12 @@
         "listDesc": "チェックボックスでタスクを完了し、優先度と担当者はそれぞれ独立した行になります。",
         "projectDesc": "コンパクト表示。チェックボックスをタップすると優先度・担当者・状態・完了が開きます。"
       },
+      "listImages": {
+        "title": "リストの画像",
+        "description": "サイドバーとリストのヘッダーで各リストの横に画像を表示します（デバイス間で同期）",
+        "label": "リストの画像を表示",
+        "offDesc": "オフにすると、各リストは代わりに色で表示されます。"
+      },
       "emailToTask": {
         "title": "メールからタスク",
         "description": "{inboundTaskEmail}にメールを送信してタスクを即座に作成",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "タスクIDの接頭辞",
     "keyExample": "タスクは {example} のようになります",
-    "keyInvalid": "{min}〜{max} 文字の英数字（先頭は英字）"
+    "keyInvalid": "{min}〜{max} 文字の英数字（先頭は英字）",
+    "keyRename": "名前を変更",
+    "keyRenameHint": "タスクは {next} になります。{old} も引き続き使えます",
+    "keyRenameFailed": "接頭辞を変更できませんでした"
   },
   "listSettings": {
     "adminSettings": "管理者設定",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "メッセージ（任意）…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "お手伝いしたいのですが、応答するにはAIモデルが必要です。{settingsLink} でお好みのモデルを設定してください。",
+      "onDeviceUnavailable": "選択中のモデルは対応するAppleデバイスでのみ動作するため、ここでは応答できません。{settingsLink} でどこでも使えるモデルを選んでください。"
+    }
   }
 }

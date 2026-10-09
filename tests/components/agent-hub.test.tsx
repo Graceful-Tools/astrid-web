@@ -311,26 +311,28 @@ describe('the hub only offers modes the server accepts (task 42349da6)', () => {
     expect(isModeSettableFor(mailbox, 'webhook'), `${mailbox} webhook`).toBe(serverRun)
   })
 
-  it('has a locked row in the table, so this is not vacuously true', () => {
-    // If Muse ever leaves the hub, this is the prompt to re-point the case at
-    // whatever harness agent replaced it rather than delete the guard.
-    expect(AGENT_HUB_MODE_MAILBOXES.filter(m => isModeLockedToPolling(m))).toContain('muse')
+  it('Muse is no longer a locked row: Meta\'s Model API runs it (AWTD-1053)', () => {
+    // Muse was this guard's locked example. Today no hub row is locked — the
+    // Codex row points at `openai` — so the it.each above covers the unlocked
+    // half only. A harness-only row added later is caught by it.each again.
+    expect(AGENT_HUB_MODE_MAILBOXES).toContain('muse')
+    expect(isModeLockedToPolling('muse')).toBe(false)
   })
 })
 
-describe('the Muse row, which has no server runtime (task 42349da6)', () => {
+describe('the Muse row, which Astrid can now run (AWTD-1053)', () => {
   beforeEach(() => {
     mockFetches({ muse: 'polling' })
     putMock.mockResolvedValue({ json: () => Promise.resolve({ modes: { muse: 'off' } }) })
   })
 
-  it('offers no "Astrid runs it" button, because there is nothing to run it', async () => {
+  it('offers "Astrid runs it", since a Meta key gives the server an executor', async () => {
     render(<AgentHub />)
     const muse = await screen.findByText('Muse')
     const row = muse.closest('div.border') as HTMLElement
     expect(
       within(row).queryByRole('button', { name: new RegExp(`${BRAND.appName} runs it`) })
-    ).toBeNull()
+    ).not.toBeNull()
   })
 
   it('can still be turned off, and says so to the server', async () => {
@@ -347,11 +349,10 @@ describe('the Muse row, which has no server runtime (task 42349da6)', () => {
     )
   })
 
-  it('offers no webhook transport under "I run it"', async () => {
+  it('still tells a polling user their own Muse setup does the work', async () => {
     render(<AgentHub />)
     const muse = await screen.findByText('Muse')
     fireEvent.click(muse)
     expect(await screen.findByText(/Your own Muse setup does the work/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Webhook server/ })).toBeNull()
   })
 })

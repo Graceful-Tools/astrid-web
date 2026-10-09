@@ -134,6 +134,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GEMINI_API_KEY', scope: 'tooling', description: 'Gemini key for scripts. The app uses per-user keys.' },
   { name: 'CLAUDE_API_KEY', scope: 'tooling', description: 'Legacy alias for ANTHROPIC_API_KEY, read by older scripts.' },
   { name: 'BRAND_ENABLED_AGENTS', scope: 'optional', description: 'Comma-separated agent mailboxes this deployment offers. Unset means all of them.' },
+  { name: 'BRAND_ASSISTANT_SERVICE', scope: 'optional', description: 'Provider behind the default assistant for users who have not picked one (claude, openai, gemini, copilot). Unset means claude.' },
   { name: 'CLAUDE_AGENT_EMAIL', scope: 'tooling', description: 'Agent mailbox used by local agent scripts.' },
   { name: 'CLAUDE_AGENT_ID', scope: 'tooling', description: 'Agent user id used by local agent scripts.' },
   // Same idea as CLAUDE_AGENT_ID, but harness-agnostic: the MCP server is run by
@@ -147,10 +148,14 @@ export const ENV_VARS: EnvVar[] = [
   // ── GitHub ────────────────────────────────────────────────────────────────
   { name: 'GITHUB_APP_ID', scope: 'optional', description: 'GitHub App id for repository integration.' },
   { name: 'GITHUB_APP_PRIVATE_KEY', scope: 'optional', description: 'GitHub App RSA private key. Without it no App-authenticated call works.' },
-  // The Issues-sync OAuth app (GITHUB_SYNC_*) is what actually performs the
-  // user-facing OAuth; these two are read by setup scripts only.
-  { name: 'GITHUB_CLIENT_ID', scope: 'tooling', description: 'GitHub App OAuth client id, read by setup scripts.' },
-  { name: 'GITHUB_CLIENT_SECRET', scope: 'tooling', description: 'GitHub App OAuth client secret, read by setup scripts.' },
+  // The GitHub App's own OAuth client (Iv…), distinct from the Issues-sync
+  // OAuth app (GITHUB_SYNC_*). /api/github/setup uses it to ask GitHub whether
+  // the user can see an installation before linking it (AWTD-1087); without
+  // it, linking is refused.
+  { name: 'GITHUB_CLIENT_ID', scope: 'optional', description: 'GitHub App OAuth client id. Required to link an App installation.' },
+  { name: 'GITHUB_CLIENT_SECRET', scope: 'optional', description: 'GitHub App OAuth client secret. Required to link an App installation.' },
+  { name: 'GITHUB_API_URL', scope: 'optional', description: 'GitHub API root. Default https://api.github.com; set for a GHE.com tenant.' },
+  { name: 'GITHUB_WEB_URL', scope: 'optional', description: 'GitHub web root for OAuth and links. Default https://github.com.' },
   { name: 'GITHUB_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies GitHub App webhooks.' },
   { name: 'GITHUB_TOKEN', scope: 'tooling', description: 'Personal access token used by maintenance scripts and the gh CLI.' },
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },
@@ -207,6 +212,9 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_APP_STORE_URL', scope: 'optional', description: 'App Store listing. Empty string hides the download button entirely.' },
   { name: 'NEXT_PUBLIC_BRAND_APP_URL_SCHEME', scope: 'optional', description: 'Custom URL scheme the native apps register, without "://". The desktop sign-in hand-off returns the browser to <scheme>://auth/callback, so a fork shipping its own apps must set it or the hand-off deep-links into someone else\'s application.' },
   { name: 'NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG', scope: 'optional', description: 'Slug of the GitHub App users install.' },
+  { name: 'NEXT_PUBLIC_BRAND_DEFAULT_THEME', scope: 'optional', description: 'Theme a visitor starts on before choosing: light, dark or ocean. A stored choice still wins.' },
+  { name: 'NEXT_PUBLIC_BRAND_WWW_REDIRECT', scope: 'optional', description: 'Set to false when the brand domain is itself a subdomain (no www host): stops the apex→www redirect.' },
+  { name: 'NEXT_PUBLIC_BRAND_FONT_FAMILY', scope: 'optional', description: 'CSS font-family stack for the whole app. Unset keeps the bundled Inter.' },
   { name: 'NEXT_PUBLIC_BRAND_COPY', scope: 'optional', description: 'JSON overriding the brand voice — reminder nags and default-list captions.' },
 
   // ── Capabilities ──────────────────────────────────────────────────────────
@@ -218,6 +226,13 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_MCP', scope: 'optional', description: 'MCP server and its discovery documents.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW', scope: 'optional', description: 'User-operated Custom Agents over OAuth, REST and SSE.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS', scope: 'optional', description: 'OpenAPI and ai-plugin discovery documents.' },
+  { name: 'NEXT_PUBLIC_BRAND_AUTH_PROVIDERS', scope: 'optional', description: 'Ordered sign-in providers: github, google, apple, passkey, sso. Unset = the legacy ENABLE_AUTH_* switches.' },
+  { name: 'AUTH_SSO_ISSUER', scope: 'optional', description: 'OIDC issuer URL for deployment-level SSO. Required when sso is listed.' },
+  { name: 'AUTH_SSO_CLIENT_ID', scope: 'optional', description: 'OIDC client id for SSO. Required when sso is listed.' },
+  { name: 'AUTH_SSO_CLIENT_SECRET', scope: 'optional', description: 'OIDC client secret for SSO. Required when sso is listed.' },
+  { name: 'AUTH_SSO_DOMAINS', scope: 'optional', description: 'Comma-separated email domains the SSO IdP may vouch for. Required when sso is listed.' },
+  { name: 'AUTH_SSO_LABEL', scope: 'optional', description: 'Button label for SSO, e.g. "Acme SSO". Default "SSO".' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT', scope: 'optional', description: 'The GitHub App coding agent, independent of Issues sync (AWTD-1094).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK', scope: 'optional', description: 'Creating tasks by emailing the inbound address.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED', scope: 'optional', description: 'Public .ics calendar feed.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', scope: 'optional', description: 'Projects and status boards. Off compiles back to the single-player to-do app.' },
@@ -230,6 +245,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'LOG_TO_STDERR', scope: 'tooling', description: 'Set to 1 to send pino output to stderr. Required by the stdio MCP server, where stdout is the JSON-RPC channel and a log line is a malformed frame.' },
   { name: 'OTEL_SERVICE_NAME', scope: 'optional', description: 'Service name reported to tracing.' },
   { name: 'NEXT_PUBLIC_DEBUG_PERMISSIONS', scope: 'tooling', description: 'Logs permission decisions in the browser.' },
+  { name: 'ASTRID_CORE_RULES', scope: 'optional', description: 'How astrid-core (packages/astrid-rules) takes part in list permissions, search-query parsing and repeating-task rollover on the Node runtime. Unset: the core decides and the TypeScript rules are the fail-safe fallback and are compared. "shadow": the TypeScript decides and the core is only compared. "off": the core is not loaded. The rollback for AWTD-1061, AWTD-1062 and AWTD-1063 without a code revert.' },
 
   // ── Apple / App Store ─────────────────────────────────────────────────────
   { name: 'TESTFLIGHT_PUBLIC_LINK', scope: 'optional', description: 'Public TestFlight join link shown on the download page.' },
@@ -271,6 +287,7 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── Platform-injected (never authored by an operator) ─────────────────────
   { name: 'NODE_ENV', scope: 'platform', description: 'Set by the runtime.' },
+  { name: 'NEXT_RUNTIME', scope: 'platform', description: 'nodejs | edge, set by Next.js; instrumentation.ts reads it to load Node-only code.' },
   { name: 'CI', scope: 'platform', description: 'Set by the CI runner.' },
   { name: 'PORT', scope: 'platform', description: 'Set by the host.' },
   { name: 'HOSTNAME', scope: 'platform', description: 'Set by the host.' },

@@ -49,12 +49,12 @@ describe('GET /api/v1/features', () => {
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
     mockFeatures.mockResolvedValue(row({
       version: 42,
-      features: { google_tasks: false, project_mode: false, task_cost: false },
+      features: { google_tasks: false, project_mode: false, task_cost: false, hide_list_images: false },
     }))
     const response = await GET(new NextRequest('http://localhost/api/v1/features') as never, {} as never)
     expect(await response.json()).toEqual({
       version: 42,
-      features: { google_tasks: false, project_mode: false, task_cost: false },
+      features: { google_tasks: false, project_mode: false, task_cost: false, hide_list_images: false },
     })
     expect(mockFeatures).toHaveBeenCalledWith('user-1')
   })
@@ -63,7 +63,7 @@ describe('GET /api/v1/features', () => {
     mockAuth.mockResolvedValue(sessionCaller('user-1') as never)
     mockFeatures.mockResolvedValue(row({
       version: 42,
-      features: { google_tasks: false, project_mode: false, task_cost: false },
+      features: { google_tasks: false, project_mode: false, task_cost: false, hide_list_images: false },
     }))
     const first = await GET(new NextRequest('http://localhost/api/v1/features') as never, {} as never)
     const etag = first.headers.get('etag')!

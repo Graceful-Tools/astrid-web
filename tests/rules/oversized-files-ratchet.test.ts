@@ -55,9 +55,12 @@ const BUDGETS: Record<string, number> = {
   'components/TaskManagerView.tsx': 1212,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
-  'components/TaskManager/MainContent/MainContent.tsx': 1115,
+  // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
+  'components/TaskManager/MainContent/MainContent.tsx': 1088,
   'lib/cache-manager.ts': 935,
-  'lib/astrid-agent-runtime.ts': 835,
+  // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
+  // through the comment service (spec §5.2 step 4).
+  'lib/astrid-agent-runtime.ts': 797,
 
   // Six more the threshold found that the filing did not list. Recording them
   // is not endorsing them — it is the difference between seven watched files
@@ -94,7 +97,18 @@ const BUDGETS: Record<string, number> = {
   // assigned at all are one question asked twice.
   // 1605 → 1602: AWTD-1016 made a move mint an identifier as a create does.
   // The best-effort mint went to services/task-identifier-mint.ts, used by both.
-  'services/task.service.ts': 1602,
+  // 1602 → 1601: AWTD-1038 taught the update path reminderTime. The decision
+  // of when and what to reschedule moved into lib/reminder-scheduling.ts.
+  // 1602 → 1552: AWTD-1040 put the full v1 task on task events. The create
+  // path's two broadcasts went to services/task-create-broadcast.ts, and the
+  // v1 read to lib/tasks/v1-task-shape.ts beside the GET that owns the shape.
+  // 1602 → 1588: AWTD-1035 accepted a client's occurrenceCount, paid for by
+  // moving the twice-copied custom repeatingData parse to lib/task-enums.ts.
+  // 1588 → 1587: AWTD-1007 clears the column when a task leaves its last board;
+  // the whole statusRole write went to services/task-status-role.ts.
+  // 1536 → 1509: the include shapes moved to services/task-includes.ts, paying
+  // for the TaskBackend seam (spec §5.2 step 8) with room to spare.
+  'services/task.service.ts': 1509,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
@@ -139,7 +153,9 @@ const BUDGETS: Record<string, number> = {
   'components/oauth-app-manager.tsx': 859,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.
-  'lib/email-reminder-service.ts': 791,
+  // 791 → 790: AWTD-1073 escaped the HTML templates and dropped a duplicate
+  // branch in formatDueDate.
+  'lib/email-reminder-service.ts': 790,
 }
 
 /** Product code. Tests and scripts are long for their own reasons. */

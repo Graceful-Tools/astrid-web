@@ -69,6 +69,90 @@ interface ListLike {
 }
 
 /**
+ * The decisions astrid-core's `Access` rule answers, by the name it gives them.
+ *
+ * On the server these are decided by the shared Rust core (see {@link setListPermissionsCore});
+ * everywhere else, and whenever the core cannot answer, by the TypeScript below.
+ */
+export type ListDecision =
+  | "role"
+  | "canEditTasks"
+  | "canEditTask"
+  | "hasExplicitRole"
+  | "canManage"
+  | "canManageMembers"
+  | "canDelete"
+
+type ListRoleAnswer = "owner" | "admin" | "member" | "viewer" | null
+
+export interface ListDecisionQuestion {
+  decision: ListDecision
+  user: UserLike
+  list: ListLike
+  /** For `canEditTask` only: the task's creator. */
+  taskCreatorId?: string | null
+  /**
+   * The TypeScript rules' answer — what this module returns if the core does not answer, and
+   * what the core's answer is compared with.
+   */
+  typescriptAnswer: string | boolean | null
+}
+
+/**
+ * Answers a question, or returns `undefined` to leave it to the TypeScript rules.
+ */
+export type ListPermissionsCore = (question: ListDecisionQuestion) => string | boolean | null | undefined
+
+// On globalThis rather than in a module variable: Next compiles this module into several layers
+// (route handlers, server components, instrumentation), each with its own copy of module state,
+// and a core installed from instrumentation.ts has to reach all of them.
+const CORE_KEY = Symbol.for("astrid.listPermissions.core")
+type CoreHost = { [CORE_KEY]?: ListPermissionsCore | null }
+
+/**
+ * Install (or, with `null`, remove) the decider for every permission decision below — astrid-core
+ * as WebAssembly (lib/core-rules/list-permissions-core.ts), installed from instrumentation.ts on
+ * the Node runtime (AWTD-1061).
+ *
+ * A hook rather than an import because this module is pulled into client bundles and the edge
+ * middleware, neither of which may load WebAssembly from disk. There — and in scripts, tests and
+ * the stdio MCP server, which install nothing — the TypeScript below decides, and it is pinned to
+ * the core by the shared permissions fixture (tests/lib/core-rules-permissions-parity.test.ts).
+ *
+ * Fail-safe by construction: the TypeScript answer is always computed first, and it is what is
+ * returned when the core declines (`undefined`), throws, or answers something that is not a
+ * valid answer to the question asked.
+ */
+export function setListPermissionsCore(core: ListPermissionsCore | null): void {
+  ;(globalThis as CoreHost)[CORE_KEY] = core
+}
+
+const ROLE_ANSWERS: ReadonlySet<unknown> = new Set(["owner", "admin", "member", "viewer", null])
+
+function isValidAnswer(decision: ListDecision, answer: unknown): boolean {
+  return decision === "role" ? ROLE_ANSWERS.has(answer) : typeof answer === "boolean"
+}
+
+function decided<T extends string | boolean | null>(
+  decision: ListDecision,
+  user: UserLike,
+  list: ListLike,
+  typescriptAnswer: T,
+  taskCreatorId?: string | null,
+): T {
+  const core = (globalThis as CoreHost)[CORE_KEY]
+  if (!core) return typescriptAnswer
+  try {
+    const answer = core({ decision, user, list, taskCreatorId, typescriptAnswer })
+    if (answer === undefined || !isValidAnswer(decision, answer)) return typescriptAnswer
+    return answer as T
+  } catch {
+    // A core that throws must never deny, allow or crash: the TypeScript answer stands.
+    return typescriptAnswer
+  }
+}
+
+/**
  * Prisma `include` fragment for loading the project membership that
  * {@link getUserRoleInList} needs.
  *
@@ -156,9 +240,20 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
  * - Admin: Can manage list settings and add/remove members (like managers)
  * - Member: Can add, edit, and manage tasks on the list
  * - Viewer: Can view tasks but not edit (for public lists)
+ *
+ * On the Node server these rules are decided by astrid-core (AWTD-1061); the TypeScript below is
+ * what the browser runs, the server's fail-safe fallback, and still the canonical source the
+ * core's permissions fixture is generated from. So a rule change lands here first, then in
+ * astrid-core (regenerate, port), then in packages/astrid-rules (scripts/build-astrid-rules.sh) —
+ * and tests/lib/core-rules-permissions-parity.test.ts fails until all three agree, because a
+ * disagreement is a control the browser offers and the server refuses.
  */
 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
+  return decided<ListRoleAnswer>("role", user, list, roleInList(user, list))
+}
+
+function roleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
   if (!user || !list) return null
 
   // The list owner always has full control — match via ownerId OR the owner
@@ -182,22 +277,26 @@ export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "ad
   // inline `admins.some(...)` checks this consolidates), before member.
   if (list.admins?.some((a) => a?.id === user.id)) return "admin"
 
+  // Project membership cascades to every list in the project (task 6c20d125).
+  const projectRole = getProjectRole(user, list)
+
   // Presence in listMembers IS membership. The role refines what the member may
   // do; a missing or unrecognised role must not revoke access. ListMember.role
   // defaults to "member" in the schema, and every inline check this replaces
-  // treated any listMembers row as membership (task e2803305).
-  if (membership) return "member"
+  // treated any listMembers row as membership (task e2803305). The legacy
+  // denormalized members array counts the same way.
+  const isListMember = !!membership || !!list.members?.some((m) => m?.id === user.id)
 
-  // Legacy denormalized members array (same precedence as membership member).
-  if (list.members?.some((m) => m?.id === user.id)) return "member"
+  // The HIGHER of the list role and the project role wins (Jon, 2026-10-04):
+  // a plain list member who owns or administers the project is an admin of the
+  // list. Before that, list membership was consulted first and such a person
+  // was only a member. Admin is the ceiling — a project role never makes anyone
+  // a list's owner (see getProjectRole).
+  if (isListMember) return projectRole === "admin" ? "admin" : "member"
 
-  // Project membership cascades to every list in the project (task 6c20d125).
-  //
-  // Ordered after list membership so the *higher* role wins: someone who is a
-  // list admin but only a project member stays an admin. It sits before the
-  // PUBLIC viewer fallback because a project member is a real collaborator, not
-  // a passer-by, and must not be downgraded to read-only on a public list.
-  const projectRole = getProjectRole(user, list)
+  // It sits before the PUBLIC viewer fallback because a project member is a
+  // real collaborator, not a passer-by, and must not be downgraded to read-only
+  // on a public list.
   if (projectRole) return projectRole
 
   // For public lists, users have viewer access
@@ -251,7 +350,11 @@ function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | nu
 }
 
 export function canUserEditTasks(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
+  return decided("canEditTasks", user, list, editTasks(user, list))
+}
+
+function editTasks(user: UserLike, list: ListLike): boolean {
+  const role = roleInList(user, list)
 
   // For public copy-only lists (default), only owner/admin/member can add tasks
   if (list.privacy === "PUBLIC" && (list.publicListType === "copy_only" || !list.publicListType)) {
@@ -282,7 +385,11 @@ interface TaskLike {
  * For copy-only lists: only list admin or owner can edit
  */
 export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
+  return decided("canEditTask", user, list, editTask(user, task, list), task?.creatorId)
+}
+
+function editTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
+  const role = roleInList(user, list)
 
   // Only log in development mode and when debugging permissions
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_PERMISSIONS === 'true') {
@@ -328,23 +435,23 @@ export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike):
  * `isOwner || isAdmin || isMember || isListMember` (task e2803305).
  */
 export function hasExplicitListRole(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner" || role === "admin" || role === "member"
+  const role = roleInList(user, list)
+  return decided("hasExplicitRole", user, list, role === "owner" || role === "admin" || role === "member")
 }
 
 export function canUserManageList(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner" || role === "admin"
+  const role = roleInList(user, list)
+  return decided("canManage", user, list, role === "owner" || role === "admin")
 }
 
 export function canUserManageMembers(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner" || role === "admin"
+  const role = roleInList(user, list)
+  return decided("canManageMembers", user, list, role === "owner" || role === "admin")
 }
 
 export function canUserDeleteList(user: UserLike, list: ListLike): boolean {
-  const role = getUserRoleInList(user, list)
-  return role === "owner"
+  const role = roleInList(user, list)
+  return decided("canDelete", user, list, role === "owner")
 }
 
 export function getListPermissionDescription(role: "owner" | "admin" | "member" | "viewer" | null): string {

@@ -27,6 +27,15 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+// Tasks are created through the task service (identifier, reminders,
+// broadcast, assignee rules) — spec §5.2 step 5. These tests assert what the
+// service is asked for.
+const { createTaskWithSideEffects } = vi.hoisted(() => ({ createTaskWithSideEffects: vi.fn() }))
+vi.mock('@/services/task.service', () => ({ createTaskWithSideEffects }))
+
+const created = (task: unknown) => ({ ok: true, task, idempotent: false })
+const createCall = () => createTaskWithSideEffects.mock.calls[0][0]
+
 vi.mock('@/lib/placeholder-user-service', () => ({
   placeholderUserService: {
     findUserByEmail: vi.fn(),
@@ -73,22 +82,23 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockResolvedValue(mockTask as any)
+      createTaskWithSideEffects.mockResolvedValue(created(mockTask as any))
 
       const result = await emailToTaskService.processEmail(email)
 
       expect(result).toBeTruthy()
       expect(result?.routing).toBe('self')
       expect(result?.task.title).toBe('Buy groceries')
-      expect(prisma.task.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          title: 'Buy groceries',
-          description: 'Milk, eggs, bread',
-          creatorId: 'user-1',
-          assigneeId: 'user-1',
+      expect(createTaskWithSideEffects).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: 'user-1',
+          input: expect.objectContaining({
+            title: 'Buy groceries',
+            description: 'Milk, eggs, bread',
+            assigneeId: 'user-1',
+          }),
         }),
-        include: expect.anything(),
-      })
+      )
     })
 
     it('should return null if user has email-to-task disabled', async () => {
@@ -112,7 +122,7 @@ describe('EmailToTaskService', () => {
       const result = await emailToTaskService.processEmail(email)
 
       expect(result).toBeNull()
-      expect(prisma.task.create).not.toHaveBeenCalled()
+      expect(createTaskWithSideEffects).not.toHaveBeenCalled()
     })
 
     it('should clean subject line (remove RE: and FW:)', async () => {
@@ -137,13 +147,11 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1', title: 'Original Task' }))
+      createTaskWithSideEffects.mockResolvedValue(created(row({ id: 'task-1', title: 'Original Task' })))
 
       await emailToTaskService.processEmail(email)
 
-      const callArgs = vi.mocked(prisma.task.create).mock.calls[0][0]
-      expect(callArgs.data.title).toBe('Original Task')
-      expect(callArgs.include).toBeDefined()
+      expect(createCall().input.title).toBe('Original Task')
     })
   })
 
@@ -177,7 +185,7 @@ describe('EmailToTaskService', () => {
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
       vi.mocked(placeholderUserService.findOrCreatePlaceholderUser).mockResolvedValue(mockAssignee as any)
-      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
+      createTaskWithSideEffects.mockResolvedValue(created(row({ id: 'task-1' })))
 
       const result = await emailToTaskService.processEmail(email)
 
@@ -185,12 +193,7 @@ describe('EmailToTaskService', () => {
       expect(result?.routing).toBe('assigned')
       expect(result?.createdUsers).toHaveLength(1)
       expect(result?.createdUsers[0].email).toBe('assignee@example.com')
-      expect(prisma.task.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          assigneeId: 'assignee-1',
-        }),
-        include: expect.anything(),
-      })
+      expect(createCall().input.assigneeId).toBe('assignee-1')
     })
   })
 
@@ -231,7 +234,7 @@ describe('EmailToTaskService', () => {
       vi.mocked(placeholderUserService.findOrCreateMultiplePlaceholderUsers).mockResolvedValue(mockRecipients as any)
       vi.mocked(prisma.taskList.create).mockResolvedValue(mockList as any)
       vi.mocked(prisma.taskList.update).mockResolvedValue(mockList as any)
-      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
+      createTaskWithSideEffects.mockResolvedValue(created(row({ id: 'task-1' })))
 
       const result = await emailToTaskService.processEmail(email)
 
@@ -263,10 +266,8 @@ describe('EmailToTaskService', () => {
       // Note: Recipients are added as admins via listMember.createMany, not taskList.update
       // (legacy admins.connect pattern removed)
 
-      const callArgs = vi.mocked(prisma.task.create).mock.calls[0][0]
-      expect(callArgs.data.assigneeId).toBe('user-1') // First recipient from TO line
-      expect(callArgs.data.lists).toEqual({ connect: [{ id: 'list-1' }] })
-      expect(callArgs.include).toBeDefined()
+      expect(createCall().input.assigneeId).toBe('user-1') // First recipient from TO line
+      expect(createCall().input.listIds).toEqual(['list-1'])
     })
 
     it('should exclude sender and remindme from recipient list', async () => {
@@ -298,7 +299,7 @@ describe('EmailToTaskService', () => {
       })
       vi.mocked(prisma.taskList.create).mockResolvedValue(row({ id: 'list-1' }))
       vi.mocked(prisma.taskList.update).mockResolvedValue(row({ id: 'list-1' }))
-      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
+      createTaskWithSideEffects.mockResolvedValue(created(row({ id: 'task-1' })))
 
       await emailToTaskService.processEmail(email)
 
@@ -340,7 +341,7 @@ describe('EmailToTaskService', () => {
       vi.mocked(placeholderUserService.findOrCreateMultiplePlaceholderUsers).mockResolvedValue(mockRecipients as any)
       vi.mocked(prisma.taskList.create).mockResolvedValue(row({ id: 'list-1' }))
       vi.mocked(prisma.taskList.update).mockResolvedValue(row({ id: 'list-1' }))
-      vi.mocked(prisma.task.create).mockResolvedValue(row({ id: 'task-1' }))
+      createTaskWithSideEffects.mockResolvedValue(created(row({ id: 'task-1' })))
 
       await emailToTaskService.processEmail(email)
 
@@ -352,8 +353,7 @@ describe('EmailToTaskService', () => {
       )
 
       // Verify task is assigned to first person from TO line
-      const taskCallArgs = vi.mocked(prisma.task.create).mock.calls[0][0]
-      expect(taskCallArgs.data.assigneeId).toBe('to-1') // first-to@example.com
+      expect(createCall().input.assigneeId).toBe('to-1') // first-to@example.com
     })
   })
 
@@ -380,8 +380,8 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockImplementation((async (args: { data: Record<string, unknown> }) => {
-        const dueDate = args.data.dueDateTime
+      createTaskWithSideEffects.mockImplementation((async (args: { input: Record<string, unknown> }) => {
+        const dueDate = args.input.dueDateTime
         expect(dueDate).toBeTruthy()
 
         // Should be ~1 day from now at 9 AM
@@ -393,10 +393,11 @@ describe('EmailToTaskService', () => {
         expect(dueDateObj.getMinutes()).toBe(0)
         expect(dueDateObj.getDate()).toBe(tomorrow.getDate())
 
-        return { id: 'task-1' } as any
+        return created({ id: 'task-1' })
       }) as never)
 
       await emailToTaskService.processEmail(email)
+      expect(createTaskWithSideEffects).toHaveBeenCalled()
     })
 
     it('should handle "none" due date offset', async () => {
@@ -421,12 +422,13 @@ describe('EmailToTaskService', () => {
       }
 
       vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue(mockSender as any)
-      vi.mocked(prisma.task.create).mockImplementation((async (args: { data: Record<string, unknown> }) => {
-        expect(args.data.dueDateTime).toBeNull()
-        return { id: 'task-1' } as any
+      createTaskWithSideEffects.mockImplementation((async (args: { input: Record<string, unknown> }) => {
+        expect(args.input.dueDateTime).toBeNull()
+        return created({ id: 'task-1' })
       }) as never)
 
       await emailToTaskService.processEmail(email)
+      expect(createTaskWithSideEffects).toHaveBeenCalled()
     })
   })
 
@@ -450,7 +452,7 @@ describe('EmailToTaskService', () => {
       )
 
       expect(result).toBeNull()
-      expect(prisma.task.create).not.toHaveBeenCalled()
+      expect(createTaskWithSideEffects).not.toHaveBeenCalled()
       // Never mint a placeholder account for an address that has not proved it
       // exists — that is what turns a spoofed From into a permanent user.
       expect(placeholderUserService.findUserByEmail).not.toHaveBeenCalled()
@@ -462,8 +464,47 @@ describe('EmailToTaskService', () => {
       const result = await emailToTaskService.processEmail(spoofed(undefined))
 
       expect(result).toBeNull()
-      expect(prisma.task.create).not.toHaveBeenCalled()
+      expect(createTaskWithSideEffects).not.toHaveBeenCalled()
       expect(placeholderUserService.findUserByEmail).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('email-to-task creates through the task service (spec §5.2 step 5)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('never writes the task row itself', async () => {
+    vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue({
+      id: 'user-1', email: 'user@example.com', emailToTaskEnabled: true,
+      defaultTaskDueOffset: 'none', emailToTaskListId: null,
+    } as any)
+    createTaskWithSideEffects.mockResolvedValue(created({ id: 'task-1', title: 'Hello' }))
+
+    await emailToTaskService.processEmail({
+      senderAuth: { spf: 'pass', dkim: 'pass' },
+      from: 'user@example.com', to: [`remindme@${BRAND.domain}`], cc: [], bcc: [],
+      subject: 'Hello', body: 'World',
+    })
+
+    expect(prisma.task.create).not.toHaveBeenCalled()
+    expect(createTaskWithSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: 'user-1', requireAssigneeListMembership: false }),
+    )
+  })
+
+  it('surfaces a refused create instead of pretending it worked', async () => {
+    vi.mocked(placeholderUserService.findUserByEmail).mockResolvedValue({
+      id: 'user-1', email: 'user@example.com', emailToTaskEnabled: true,
+      defaultTaskDueOffset: 'none', emailToTaskListId: null,
+    } as any)
+    createTaskWithSideEffects.mockResolvedValue({ ok: false, status: 403, error: 'nope' })
+
+    await expect(
+      emailToTaskService.processEmail({
+        senderAuth: { spf: 'pass', dkim: 'pass' },
+        from: 'user@example.com', to: [`remindme@${BRAND.domain}`], cc: [], bcc: [],
+        subject: 'Hello', body: 'World',
+      }),
+    ).rejects.toThrow('nope')
   })
 })

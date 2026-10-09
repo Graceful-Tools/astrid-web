@@ -90,6 +90,9 @@ export interface TaskRowProps {
    * BOARD's columns rather than completing the task.
    */
   board?: BoardRowContext | null
+
+  /** The list being viewed; the row does not repeat its chip (AWTD-1025). */
+  currentListId?: string | null
 }
 
 /**
@@ -115,6 +118,7 @@ function TaskRowImpl({
   startMobileDrag,
   isSubtask,
   board,
+  currentListId,
 }: TaskRowProps) {
   const {
     selectedTaskId,
@@ -241,19 +245,36 @@ function TaskRowImpl({
   // Recording it in state as well as in the shared map is what schedules the
   // one re-render that reads it back. (Task ed1d85ba.)
   const [selfMeasuredHeight, setSelfMeasuredHeight] = React.useState<number | null>(null)
-  const registerRow = registerTaskRow(task.id)
-  const rowRef = (node: HTMLDivElement | null) => {
-    registerRow(node)
-    // Only manual sort needs the height on the very first render. The drop
-    // overlay and origin placeholder are sized from it too, but they exist only
-    // mid-drag, where `draggingTaskMetrics` is already re-rendering the row.
-    // Recording it unconditionally would cost every row a second render on
-    // mount to learn something nothing was about to draw.
+  // A STABLE ref. It was an inline function that also set state, and an inline ref is a new
+  // function every render — so React called it again after every commit, and a row whose
+  // height had not settled (the detail pane opening on tap) set state from each commit until
+  // React threw #185, "Maximum update depth exceeded" (production, 2026-10-04). The ref now
+  // only records the node; measuring happens in the layout effects below.
+  const rowNodeRef = React.useRef<HTMLDivElement | null>(null)
+  const rowRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      rowNodeRef.current = node
+      registerTaskRow(task.id)(node)
+    },
+    [registerTaskRow, task.id],
+  )
+  // Keep the shared measurement map current on every commit, as the inline ref used to. It
+  // writes a ref, never state, so it cannot schedule another render.
+  React.useLayoutEffect(() => {
+    if (rowNodeRef.current) registerTaskRow(task.id)(rowNodeRef.current)
+  })
+  // Only manual sort needs the height on the very first render. The drop overlay and origin
+  // placeholder are sized from it too, but they exist only mid-drag, where
+  // `draggingTaskMetrics` is already re-rendering the row. Recording it unconditionally would
+  // cost every row a second render on mount to learn something nothing was about to draw.
+  // Runs when manual sort switches on or the row changes task — not on its own update.
+  React.useLayoutEffect(() => {
+    const node = rowNodeRef.current
     if (!node || !manualSortActive) return
     const { height } = node.getBoundingClientRect()
     if (height <= 0) return
     setSelfMeasuredHeight(previous => (previous === height ? previous : height))
-  }
+  }, [manualSortActive, task.id])
   const measuredHeight = taskMeasurementsRef.current.get(task.id) ?? selfMeasuredHeight
   const dropGap = isTouchManualSort ? 0 : 8
   const dropOverlayPosition =
@@ -398,6 +419,7 @@ function TaskRowImpl({
           displayMode={taskDisplayMode}
           onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
           onBoard={Boolean(board)}
+          currentListId={currentListId}
         />
         {opensOptions && (
           <PriorityAssigneePicker

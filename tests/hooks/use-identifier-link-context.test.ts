@@ -35,6 +35,13 @@ describe('useIdentifierLinkContext (AWTD-1017)', () => {
     await waitFor(() => expect(result.current).toEqual({ keys: ['AWTD', 'AITD'], projectKey: 'AWTD' }))
   })
 
+  it('links a renamed project\'s old key too, so AWTD-12 in old comments still links (AWTD-1024)', async () => {
+    mockProjects([{ id: 'p1', key: 'WEB', keyAliases: [{ key: 'AWTD' }], lists: [{ id: 'web-board' }] }])
+    const { result } = renderHook(() => useIdentifierLinkContext(['web-board']))
+    // `#12` means the current key; only the full form needs the alias.
+    await waitFor(() => expect(result.current).toEqual({ keys: ['WEB', 'AWTD'], projectKey: 'WEB' }))
+  })
+
   it('has no project key for text outside any project', async () => {
     mockProjects(PROJECTS)
     const { result } = renderHook(() => useIdentifierLinkContext(['personal']))

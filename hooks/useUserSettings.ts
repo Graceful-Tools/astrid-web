@@ -24,6 +24,12 @@ export interface UserSettings {
   subtaskDisplay: string
   /** "list" | "project" — which task-detail design this user sees. */
   taskDisplayMode: string
+  /**
+   * "Show list images": null = follow the hide_list_images experiment,
+   * true/false = the user chose. Read it through useListImagesVisibility(),
+   * which resolves it against the flag — not directly.
+   */
+  showListImages: boolean | null
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -33,6 +39,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   defaultDueTime: '17:00',
   subtaskDisplay: 'indented',
   taskDisplayMode: DEFAULT_TASK_DISPLAY_MODE,
+  showListImages: null,
 }
 
 export function useUserSettings() {

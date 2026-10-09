@@ -30,7 +30,7 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { canUserBeAddedAsMember, SAVED_FILTER_MEMBER_ERROR } from '@/lib/list-permissions'
-import { broadcastToUsers } from '@/lib/sse-utils'
+import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { invalidateMemberCache, invalidateMemberCaches } from '@/lib/list-member-operations'
 
@@ -139,9 +139,25 @@ export async function addListMember(args: {
     data: { listId: list.id, userId: member.id, role },
   })
 
+  await announceListMemberAdded({ list, member, role, actor })
+}
+
+/**
+ * Everything that follows a member being added: their cache and everyone's,
+ * then the event. Exported for writes that must stay where they are — an
+ * invitation accepted in the same transaction that marks it accepted — so they
+ * still get the one implementation of what an addition means (spec §5.2 step 6).
+ */
+export async function announceListMemberAdded(args: {
+  list: MemberListContext
+  member: AffectedMember
+  role: string
+  actor: MemberActor
+}): Promise<void> {
+  const { list, member, role, actor } = args
   await invalidateForMembershipChange(list, member.id)
 
-  broadcast(list, 'list_member_added', {
+  await broadcast(list, 'list_member_added', {
     listId: list.id,
     listName: list.name,
     listColor: list.color ?? null,
@@ -191,7 +207,7 @@ export async function changeListMemberRole(args: {
 
   await invalidateForMembershipChange(list, member.id)
 
-  broadcast(list, role === 'admin' ? 'list_admin_role_granted' : 'list_member_role_changed', {
+  await broadcast(list, role === 'admin' ? 'list_admin_role_granted' : 'list_member_role_changed', {
     listId: list.id,
     listName: list.name,
     listColor: list.color ?? null,
@@ -218,7 +234,6 @@ export async function removeListMember(args: {
   actor: MemberActor
 }): Promise<boolean> {
   const { list, member, actor } = args
-  const recipients = audience(list)
 
   // deleteMany for the same reason changeListMemberRole uses updateMany: the
   // count answers "did this membership exist" without throwing.
@@ -227,9 +242,27 @@ export async function removeListMember(args: {
   })
   if (result.count === 0) return false
 
+  await announceListMemberRemoved({ list, member, actor })
+  return true
+}
+
+/**
+ * Everything that follows a member leaving or being removed. `list` must be
+ * the roster as it was BEFORE the removal — that is what puts the removed
+ * member in the audience. Exported for the leave and ownership-transfer paths,
+ * whose writes carry their own rules (spec §5.2 step 6).
+ */
+export async function announceListMemberRemoved(args: {
+  list: MemberListContext
+  member: AffectedMember
+  actor: MemberActor
+}): Promise<void> {
+  const { list, member, actor } = args
+  const recipients = audience(list)
+
   await invalidateForMembershipChange(list, member.id)
 
-  broadcastTo(recipients, 'list_member_removed', {
+  await broadcastTo(list, recipients, 'list_member_removed', {
     listId: list.id,
     listName: list.name,
     listColor: list.color ?? null,
@@ -238,25 +271,31 @@ export async function removeListMember(args: {
     userId: member.id,
     removedBy: actorLabel(actor),
   })
-
-  return true
 }
 
-function broadcast(
+async function broadcast(
   list: MemberListContext,
   type: string,
   data: Record<string, unknown>,
   extraRecipients: string[] = [],
-): void {
-  broadcastTo([...audience(list), ...extraRecipients], type, data)
+): Promise<void> {
+  await broadcastTo(list, [...audience(list), ...extraRecipients], type, data)
 }
 
-function broadcastTo(recipients: string[], type: string, data: Record<string, unknown>): void {
+/**
+ * Recipients who can still see the list also get it whole, as `v1List`
+ * (AWTD-1046). A member just removed cannot, and gets `data` alone.
+ */
+async function broadcastTo(
+  list: MemberListContext,
+  recipients: string[],
+  type: string,
+  data: Record<string, unknown>,
+): Promise<void> {
   try {
-    const unique = Array.from(new Set(recipients))
-    if (unique.length === 0) return
-
-    broadcastToUsers(unique, {
+    await broadcastListEvent({
+      listId: list.id,
+      recipients,
       type,
       // Every membership event carries one; v1's three did not, and a consumer
       // that orders or de-duplicates on it saw undefined.
@@ -267,3 +306,39 @@ function broadcastTo(recipients: string[], type: string, data: Record<string, un
     log.error({ err, type }, 'Failed to broadcast list membership event')
   }
 }
+
+/** A list with its roster, as a roster replace reads it before and after. */
+export type RosterSnapshot = Omit<MemberListContext, 'listMembers'> & {
+  listMembers: Array<{ userId: string; role: string; user?: { name?: string | null; email?: string | null } | null }>
+}
+
+/**
+ * Announce each member a wholesale roster replace added or dropped — the legacy
+ * list PUT's adminIds/memberIds, which rewrites the roster in one transaction
+ * and used to send only list_updated. Best-effort: the write is done.
+ */
+export async function announceRosterChanges(args: {
+  before: RosterSnapshot
+  after: RosterSnapshot
+  actor: MemberActor
+}): Promise<void> {
+  const { before, after, actor } = args
+  const beforeIds = new Set(before.listMembers.map(m => m.userId))
+  const afterIds = new Set(after.listMembers.map(m => m.userId))
+  try {
+    for (const m of after.listMembers.filter(m => !beforeIds.has(m.userId))) {
+      await announceListMemberAdded({
+        list: after,
+        member: { id: m.userId, name: m.user?.name, email: m.user?.email },
+        role: m.role,
+        actor,
+      })
+    }
+    for (const m of before.listMembers.filter(m => !afterIds.has(m.userId))) {
+      await announceListMemberRemoved({ list: before, member: { id: m.userId }, actor })
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to announce roster changes')
+  }
+}
+

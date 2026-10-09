@@ -54,7 +54,7 @@ import {
 } from '@/lib/task-update-handler'
 import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
 import { parseClosedReason } from '@/lib/closed-reason'
-import { parseCompletionStamp, parseRepeating } from '@/lib/task-enums'
+import { normalizeRepeatingData, parseCompletionStamp, parseRepeating } from '@/lib/task-enums'
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
@@ -62,7 +62,11 @@ import { notifyTaskUpdate } from '@/lib/notification-store'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
-import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
+import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
+import { broadcastTaskCreated } from './task-create-broadcast'
+import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
+import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
+import { taskBackendFor } from '@/lib/backends/resolve'
 import {
   computeAutomaticReminders,
   scheduleReminders,
@@ -76,6 +80,7 @@ import {
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
 import { resolveCompletionFields } from './task-completion'
+import { resolveStatusRoleWrite } from './task-status-role'
 
 const log = createLogger('services.task')
 
@@ -221,7 +226,7 @@ export async function deleteTaskWithSideEffects(args: {
   actorId: string
   /** Shown in the SSE payload; surfaces that have it can pass it. */
   actorName?: string
-}): Promise<{ deleted: boolean; audience: string[] }> {
+}): Promise<{ deleted: boolean; audience: string[]; refused?: { status: number; error: string } }> {
   const { taskId, actorId, actorName } = args
 
   // Read the audience while the relations still exist.
@@ -246,6 +251,11 @@ export async function deleteTaskWithSideEffects(args: {
   const audience = audienceForTask(task as never)
   const previousListIds = (task.lists ?? []).map(list => list.id)
   const listNames = (task.lists ?? []).map(list => list.name)
+
+  // The owning backend first (spec §5.3), before anything is cancelled or
+  // re-evaluated: a refusal must leave the task, and its agent, untouched.
+  const removal = await taskBackendFor(previousListIds).deleteTask({ actorId }, taskId)
+  if (!removal.ok) return { deleted: false, audience: [], refused: { status: removal.status, error: removal.error } }
 
   // Who was waiting on this task — read BEFORE the delete, because the
   // dependency rows cascade away with it and asking after returns nobody
@@ -322,32 +332,7 @@ export async function deleteTaskWithSideEffects(args: {
 // Slice 3: the CREATE verb (epic 9dedd8aa)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * The relations every side effect below needs, and the richest shape any
- * surface returns. Kept private for the same reason TASK_ACCESS_INCLUDE is:
- * the SSE fan-out reads `lists.listMembers`, and a caller that created with a
- * thinner include would silently broadcast to nobody.
- *
- * Surfaces narrow this for the wire themselves. They must: legacy's shape
- * carries `list.owner` and `listMembers.user` — whole user records, emails
- * included — and handing that to v1 or MCP verbatim would newly publish list
- * members' email addresses to API consumers that have never received them.
- * Same DB state everywhere, unchanged wire contracts.
- */
-const TASK_CREATE_INCLUDE = {
-  assignee: true,
-  creator: true,
-  lists: {
-    include: {
-      owner: true,
-      listMembers: { include: { user: true } },
-    },
-  },
-  comments: { include: { author: true } },
-  attachments: true,
-} as const
-
-export type CreatedTask = Prisma.TaskGetPayload<{ include: typeof TASK_CREATE_INCLUDE }>
+export type { CreatedTask }
 
 export interface CreateTaskInput {
   title: string
@@ -571,18 +556,7 @@ export async function createTaskWithSideEffects(args: {
     dueDateTime.setUTCHours(0, 0, 0, 0)
   }
 
-  // `repeatingData` is only meaningful for a custom schedule, and arrives from
-  // some clients as a JSON string.
-  let repeatingData: unknown = input.customRepeatingData ?? null
-  if (input.repeating !== 'custom') {
-    repeatingData = null
-  } else if (typeof repeatingData === 'string') {
-    try {
-      repeatingData = JSON.parse(repeatingData)
-    } catch {
-      repeatingData = null
-    }
-  }
+  const repeatingData = normalizeRepeatingData(input.repeating, input.customRepeatingData)
 
   // ── Idempotency ───────────────────────────────────────────────────────────
   const clientRequestId =
@@ -660,10 +634,12 @@ export async function createTaskWithSideEffects(args: {
     lists: { connect: connectListIds.map(id => ({ id })) },
   }
 
+  const accepted = await taskBackendFor(connectListIds).createTask({ actorId }, data)
+  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   let task: CreatedTask
   try {
     task = (await prisma.task.create({
-      data: data as never,
+      data: accepted.value as never,
       include: TASK_CREATE_INCLUDE,
     })) as CreatedTask
   } catch (err) {
@@ -769,94 +745,17 @@ async function runCreateSideEffects(args: {
     log.error({ err }, 'Failed to schedule reminders for new task')
   }
 
-  const listNames = (anyTask.lists ?? []).map((list: any) => list.name)
-
-  if (task.assigneeId && task.assigneeId !== actorId) {
-    try {
-      broadcastToUsers([task.assigneeId], {
-        type: 'task_assigned',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          task: enrichTaskForAgent(task as never),
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          dueDateTime: task.dueDateTime,
-          listId: anyTask.lists?.[0]?.id,
-          listName: anyTask.lists?.[0]?.name,
-          githubRepositoryId: anyTask.lists?.[0]?.githubRepositoryId,
-          assignerName: creatorName,
-          assignerId: anyTask.creator?.id ?? actorId,
-          // Legacy field names, still read by older clients.
-          taskTitle: task.title,
-          taskPriority: task.priority,
-          taskDueDateTime: task.dueDateTime,
-          userId: actorId,
-          listNames,
-          comments: (anyTask.comments ?? []).map((c: any) => ({
-            id: c.id,
-            content: c.content,
-            authorName: c.author?.name,
-            createdAt: c.createdAt,
-          })),
-        },
-      })
-    } catch (err) {
-      log.error({ err }, 'Failed to send task_assigned SSE notification')
-    }
-  }
-
-  // Everyone else who can see the list: not the creator (they are looking at
-  // it) and not the assignee (they got task_assigned above).
-  const memberIds = new Set<string>()
-  for (const list of anyTask.lists ?? []) {
-    getListMemberIds(list as never).forEach(id => memberIds.add(id))
-  }
-  try {
-    const recipients = Array.from(memberIds).filter(
-      id => id !== actorId && id !== task.assigneeId
-    )
-    if (recipients.length > 0) {
-      broadcastToUsers(recipients, {
-        type: 'task_created',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId: task.id,
-          task: enrichTaskForAgent(task as never),
-          taskTitle: task.title,
-          taskPriority: task.priority,
-          taskDueDateTime: task.dueDateTime,
-          creatorName,
-          userId: actorId,
-          listNames,
-        },
-      })
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to send task_created SSE notifications')
-  }
+  // task_assigned to the assignee, task_created to the rest of the lists.
+  const memberIds = await broadcastTaskCreated({ task, actorId, creatorName })
 
   // An AI agent has to be told, or the one feature agent assignment exists for
-  // never starts. Prefer the assignee already loaded; fall back to a lookup
-  // when a caller handed us a task without it.
-  try {
-    if (task.assigneeId) {
-      const assignee =
-        anyTask.assignee ??
-        (await prisma.user.findUnique({
-          where: { id: task.assigneeId },
-          select: { id: true, isAIAgent: true, aiAgentType: true, name: true },
-        }))
-      if (assignee?.isAIAgent) {
-        await aiAgentWebhookService.notifyTaskAssignment(task.id, task.assigneeId)
-      }
-    } else if (anyTask.aiAgentId) {
-      await aiAgentWebhookService.notifyTaskAssignmentViaAIAgentId(task.id, anyTask.aiAgentId)
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to notify AI agent about task assignment')
-  }
+  // never starts. Same helper as the update path.
+  await dispatchAgentAssignment({
+    taskId: task.id,
+    assigneeId: task.assigneeId,
+    assignee: anyTask.assignee,
+    aiAgentId: anyTask.aiAgentId,
+  })
 
   try {
     if (await isRedisAvailable()) {
@@ -913,15 +812,24 @@ export interface UpdateTaskIntent {
   completedAt?: string | Date | null
   completedSource?: string | null
   closedReason?: string | null
-  /** YYYY-MM-DD from the client; all-day repeating tasks in COMPLETION_DATE mode. */
-  localCompletionDate?: string | null
+  localCompletionDate?: string | null // YYYY-MM-DD from the client: all-day repeating tasks in COMPLETION_DATE mode
+  timeZone?: string | null // the client's IANA zone: a timed repeating task steps on its calendar (AWTD-1063)
   statusRole?: string | null
   dueDateTime?: string | Date | null
   isAllDay?: boolean
+  /** `null` clears it. A new time re-arms it (`reminderSent` back to false). */
+  reminderTime?: string | Date | null
+  reminderType?: string | null
   isPrivate?: boolean
   repeating?: string | null
   repeatingData?: unknown
   repeatFrom?: string | null
+  /**
+   * A device-side roll-forward's count (AWTD-1035). Written only when this
+   * update does NOT roll the task itself — the roll increments the count, and
+   * honouring both would count one completion twice.
+   */
+  occurrenceCount?: number
   assigneeId?: string | null
   timerDuration?: number | null
   lastTimerValue?: number | null
@@ -942,22 +850,8 @@ export interface UpdateTaskIntent {
  */
 export type UpdateTaskResult =
   | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
-  | { ok: false; status: 400 | 403 | 404 | 412; error: string; code?: string; conflict?: any }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 412; error: string; code?: string; conflict?: any }
 
-/** The pre-update columns the event diff and the change rules read. */
-const TASK_UPDATE_EXISTING_INCLUDE = {
-  lists: {
-    select: {
-      id: true,
-      name: true,
-      listType: true,
-      privacy: true,
-      publicListType: true,
-      ownerId: true,
-      listMembers: { select: { userId: true, role: true } },
-    },
-  },
-} as const
 
 /**
  * Update a task, with every side effect the update implies.
@@ -1167,20 +1061,26 @@ export async function updateTaskWithSideEffects(args: {
     return { ok: false, status: 400, error: parsedClosedReason.error }
   }
 
+  // Parsed before anything is written, including the roll-forward below.
+  const parsedReminder = parseTaskDate(intent.reminderTime)
+  if (parsedReminder.invalid) {
+    return { ok: false, status: 400, error: `Invalid reminderTime format: ${String(intent.reminderTime)}` }
+  }
+
   // ── Repeating series ──────────────────────────────────────────────────────
-  // Resolved before the update is built: the helper writes the row itself, so
-  // this branch returns the rolled-forward task instead of updating.
+  // Resolved before the update is built: the helper writes the row itself. A
+  // roll-forward returns that task; a terminating series clears its recurrence
+  // and completes through the ordinary path below (AWTD-1092).
   const repeatingResult = await resolveRepeatingTaskCompletion({
     taskId,
     existingCompleted: existingTask.completed,
     dataCompleted: requestedCompleted,
-    localCompletionDate: intent.localCompletionDate ?? undefined,
+    localCompletionDate: intent.localCompletionDate ?? undefined, timeZone: intent.timeZone ?? null,
     closedReason: parsedClosedReason.value,
   })
 
-  if (repeatingResult) {
-    await applyRepeatingTaskRollForward(taskId, repeatingResult)
-
+  if (repeatingResult) await applyRepeatingTaskRollForward(taskId, repeatingResult)
+  if (repeatingResult && !repeatingResult.shouldTerminate) {
     const rolled = await prisma.task.findUnique({
       where: { id: taskId },
       include: (include ?? TASK_FULL_INCLUDE) as never,
@@ -1223,24 +1123,22 @@ export async function updateTaskWithSideEffects(args: {
     if (parsed.value !== undefined) data.repeating = parsed.value
   }
   if (has('repeatFrom')) data.repeatFrom = intent.repeatFrom
+  if (has('occurrenceCount')) data.occurrenceCount = intent.occurrenceCount
   if (has('timerDuration')) data.timerDuration = intent.timerDuration
   if (has('lastTimerValue')) data.lastTimerValue = intent.lastTimerValue
   if (has('parentTaskId')) data.parentTaskId = intent.parentTaskId
   if (has('dueDateTime')) data.dueDateTime = parseTaskDate(intent.dueDateTime).value
   if (has('isAllDay')) data.isAllDay = intent.isAllDay
+  // AWTD-1038: no update surface wrote this, so the response carried the old
+  // time and a snooze made on a device was undone by the answer to its edit.
+  if (has('reminderTime')) {
+    data.reminderTime = parsedReminder.value
+    data.reminderSent = false
+  }
+  if (has('reminderType')) data.reminderType = intent.reminderType || null
 
-  // `repeatingData` is only meaningful for a custom schedule.
   if (has('repeatingData') || has('repeating')) {
-    let repeatingData: unknown = intent.repeatingData ?? null
-    if (intent.repeating !== 'custom') {
-      repeatingData = null
-    } else if (typeof repeatingData === 'string') {
-      try {
-        repeatingData = JSON.parse(repeatingData)
-      } catch {
-        repeatingData = null
-      }
-    }
+    const repeatingData = normalizeRepeatingData(intent.repeating, intent.repeatingData)
     if (has('repeatingData') || repeatingData === null) {
       data.repeatingData = repeatingData
     }
@@ -1260,9 +1158,7 @@ export async function updateTaskWithSideEffects(args: {
     data.closedReason = parsedClosedReason.value
   }
 
-  if (has('statusRole') && requestedCompleted !== true) {
-    data.statusRole = intent.statusRole || null
-  }
+  Object.assign(data, await resolveStatusRoleWrite({ setsRole: has('statusRole'), intent, requestedCompleted, existingTask, validatedListIds }))
 
   // Invariant: completed = true => no status memberships (task db7c6670). The
   // listIds branch enforces it through the normalizer, but only when the
@@ -1279,9 +1175,12 @@ export async function updateTaskWithSideEffects(args: {
     }
   }
 
+  const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
+  const accepted = await taskBackendFor(lists).updateTask({ actorId }, taskId, data)
+  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   const task = await prisma.task.update({
     where: { id: taskId },
-    data: data as never,
+    data: accepted.value as never,
     include: (include ?? TASK_FULL_INCLUDE) as never,
   })
 
@@ -1352,23 +1251,18 @@ async function runUpdateSideEffects(args: {
   }
 
   // Reminders must follow the task, or a completed one keeps notifying.
-  try {
-    const dueDateChanged =
-      existingTask.dueDateTime?.getTime() !== task.dueDateTime?.getTime()
-    const completedChanged = existingTask.completed !== task.completed
-    const assigneeChanged = existingTask.assigneeId !== task.assigneeId
+  await rescheduleRemindersForUpdate({ before: existingTask, after: task, actorId })
 
-    if (dueDateChanged || completedChanged || assigneeChanged) {
-      await rescheduleRemindersForUpdate({
-        taskId: task.id,
-        taskTitle: task.title,
-        userId: task.assigneeId || task.creatorId || actorId,
-        dueDateTime: task.dueDateTime ?? null,
-        completed: !!task.completed,
-      })
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to reschedule reminders after task update')
+  // A newly assigned agent is told here, explicitly — not by a hook inside the
+  // Prisma client that fired on any raw assignee write (spec §5.2 step 3).
+  if (task.assigneeId && task.assigneeId !== existingTask.assigneeId) {
+    await dispatchAgentAssignment({
+      taskId: task.id,
+      assigneeId: task.assigneeId,
+      previousAssigneeId: existingTask.assigneeId ?? null,
+      assignee: task.assignee,
+      deferred: true,
+    })
   }
 
   // A blocker's completion decides other tasks' lanes, in BOTH directions:
@@ -1481,15 +1375,20 @@ async function runUpdateSideEffects(args: {
   // both the broadcast and the cache invalidation — those had drifted into
   // answering the same question two different ways.
   const audience = new Set<string>()
+  // The audience minus a former assignee who is no longer on any of the task's
+  // lists: only these are sent the full task (AWTD-1040). The former assignee
+  // still hears that it changed, in the lean form it always received.
+  const viewers = new Set<string>()
   try {
-    if (task.assigneeId) audience.add(task.assigneeId)
-    if (task.creatorId) audience.add(task.creatorId)
-    if (existingTask.assigneeId) audience.add(existingTask.assigneeId)
+    if (task.assigneeId) viewers.add(task.assigneeId)
+    if (task.creatorId) viewers.add(task.creatorId)
     for (const list of task.lists ?? []) {
       for (const memberId of getListMemberIds(list as never) ?? []) {
-        audience.add(memberId)
+        viewers.add(memberId)
       }
     }
+    viewers.forEach(id => audience.add(id))
+    if (existingTask.assigneeId) audience.add(existingTask.assigneeId)
   } catch (err) {
     // Guarded like everything else past the write. An update that is already
     // committed must not be reported as a failure because working out who to
@@ -1539,23 +1438,31 @@ async function runUpdateSideEffects(args: {
       const assigneeChanged =
         Object.hasOwn(intent, 'assigneeId') && task.assigneeId !== existingTask.assigneeId
 
+      // Re-read in the v1 shape rather than reshaping `task`: callers pass
+      // their own include, and only the v1 read include is the GET's shape.
+      const v1Task = await loadV1TaskForEvent(task.id)
+
       let updateRecipients = recipients
       if (assigneeChanged && task.assigneeId && task.assigneeId !== actorId) {
         broadcastToUsers([task.assigneeId], {
           type: 'task_assigned',
           timestamp: new Date().toISOString(),
-          data: { taskId: task.id, task: enrichTaskForAgent(task as never) },
+          data: { taskId: task.id, task: enrichTaskForAgent(task as never), v1Task },
         })
         updateRecipients = recipients.filter(id => id !== task.assigneeId)
       }
 
-      if (updateRecipients.length > 0) {
-        broadcastToUsers(updateRecipients, {
+      const withFullTask = updateRecipients.filter(id => viewers.has(id))
+      const leanOnly = updateRecipients.filter(id => !viewers.has(id))
+      for (const [group, full] of [[withFullTask, true], [leanOnly, false]] as const) {
+        if (group.length === 0) continue
+        broadcastToUsers(group, {
           type: justCompleted ? 'task_completed' : 'task_updated',
           timestamp: new Date().toISOString(),
           data: {
             taskId: task.id,
             task: enrichTaskForAgent(task as never),
+            ...(full ? { v1Task } : {}),
             // The flat duplicates below are the WEB route's payload and only
             // its own: every field here is already inside `task`, and v1 and
             // the agent PATCH deliberately send the lean pair, which

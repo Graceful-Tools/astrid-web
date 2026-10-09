@@ -754,6 +754,12 @@
         "listDesc": "Das Kontrollkästchen schließt die Aufgabe ab; Priorität und zugewiesene Person haben je eine eigene Zeile.",
         "projectDesc": "Kompakt. Ein Tippen auf das Kontrollkästchen öffnet Priorität, zugewiesene Person, Status und Abschließen."
       },
+      "listImages": {
+        "title": "Listenbilder",
+        "description": "Ein Bild neben jeder Liste in der Seitenleiste und im Listenkopf anzeigen (geräteübergreifend synchronisiert)",
+        "label": "Listenbilder anzeigen",
+        "offDesc": "Wenn aus, zeigt jede Liste stattdessen ihre Farbe."
+      },
       "emailToTask": {
         "title": "E-Mail zu Aufgabe",
         "description": "Erstellen Sie Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Präfix für Aufgaben-IDs",
     "keyExample": "Aufgaben werden zu {example}, …",
-    "keyInvalid": "{min}–{max} Buchstaben oder Ziffern, beginnend mit einem Buchstaben"
+    "keyInvalid": "{min}–{max} Buchstaben oder Ziffern, beginnend mit einem Buchstaben",
+    "keyRename": "Umbenennen",
+    "keyRenameHint": "Aufgaben werden zu {next}; {old} funktioniert weiter",
+    "keyRenameFailed": "Präfix konnte nicht umbenannt werden"
   },
   "listSettings": {
     "adminSettings": "Admin-Einstellungen",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "Optionale Nachricht …"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "Ich helfe gern, aber ich brauche ein KI-Modell, um antworten zu können! Öffne {settingsLink}, um dein bevorzugtes Modell einzurichten.",
+      "onDeviceUnavailable": "Dein ausgewähltes Modell läuft nur auf unterstützten Apple-Geräten, deshalb kann ich hier nicht antworten. Öffne {settingsLink}, um ein Modell zu wählen, das überall funktioniert."
+    }
   }
 }

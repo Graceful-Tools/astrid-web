@@ -754,6 +754,12 @@
         "listDesc": "A caixa de seleção conclui a tarefa, e prioridade e responsável têm cada um a sua própria linha.",
         "projectDesc": "Compacto. Tocar na caixa abre prioridade, responsável, estado e concluir."
       },
+      "listImages": {
+        "title": "Imagens das listas",
+        "description": "Mostrar uma imagem ao lado de cada lista na barra lateral e no cabeçalho da lista (sincronizado entre dispositivos)",
+        "label": "Mostrar imagens das listas",
+        "offDesc": "Desativado: cada lista mostra a sua cor."
+      },
       "emailToTask": {
         "title": "E-mail para Tarefa",
         "description": "Crie tarefas instantaneamente enviando e-mails para {inboundTaskEmail}",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Prefixo do ID da tarefa",
     "keyExample": "As tarefas serão {example}, …",
-    "keyInvalid": "De {min} a {max} letras ou dígitos, começando com uma letra"
+    "keyInvalid": "De {min} a {max} letras ou dígitos, começando com uma letra",
+    "keyRename": "Renomear",
+    "keyRenameHint": "As tarefas passam a {next}; {old} continua a funcionar",
+    "keyRenameFailed": "Não foi possível renomear o prefixo"
   },
   "listSettings": {
     "adminSettings": "Configurações de administrador",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "Mensagem opcional…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "Adoraria ajudar, mas preciso de um modelo de IA para responder! Acesse {settingsLink} para configurar seu modelo preferido.",
+      "onDeviceUnavailable": "O modelo selecionado só funciona em dispositivos Apple compatíveis, então não consigo responder aqui. Acesse {settingsLink} para escolher um modelo que funcione em qualquer lugar."
+    }
   }
 }

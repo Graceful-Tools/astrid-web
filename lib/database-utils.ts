@@ -182,38 +182,6 @@ export class OptimizedQueries {
   }
 
   /**
-   * Bulk operations for better performance
-   */
-  static async bulkCreateTasks(tasks: Array<{
-    title: string
-    description?: string
-    assigneeId: string
-    creatorId: string
-    listIds: string[]
-    priority?: number
-    when?: Date
-  }>) {
-    const results = await Promise.all(
-      tasks.map(async ({ listIds, ...taskData }) => {
-        return await prisma.task.create({
-          data: {
-            ...taskData,
-            lists: {
-              connect: listIds.map(id => ({ id }))
-            }
-          },
-          include: {
-            lists: true,
-            assignee: true,
-            creator: true,
-          }
-        })
-      })
-    )
-    return results
-  }
-
-  /**
    * Optimized list members query
    */
   static async getListMembers(listId: string) {

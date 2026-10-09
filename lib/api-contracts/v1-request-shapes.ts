@@ -104,6 +104,13 @@ export interface V1TaskUpdateRequest {
    */
   isAllDay?: boolean
 
+  /**
+   * ISO 8601, or `null`/`''` to clear. A new time re-arms the reminder. Ignored
+   * until AWTD-1038, so the response undid a device's snooze.
+   */
+  reminderTime?: string | null
+  reminderType?: string | null
+
   isPrivate?: boolean
   repeating?: string | null
   repeatingData?: Record<string, unknown> | null
@@ -147,6 +154,25 @@ export interface V1TaskUpdateRequest {
    * 11pm in their zone may be on the next UTC day already.
    */
   localCompletionDate?: string | null
+  /**
+   * The client's IANA time zone at completion (`America/Los_Angeles`), AWTD-1063. When the server
+   * rolls a TIMED repeating task forward, it steps on this zone's calendar, as iOS does, so 9am
+   * stays 9am across a daylight-saving change and "the third Tuesday" is the person's Tuesday.
+   * Absent, or a name the server does not know: UTC's calendar, the server's old answer.
+   */
+  timeZone?: string | null
+
+  /**
+   * How many occurrences of a repeating series have been completed (AWTD-1035).
+   * iOS, the Mac and astrid-core roll a repeating task forward ON THE DEVICE
+   * and send the new date with `completed: false`, so the server's own roll —
+   * the only thing that ever incremented this — never runs for them, and a
+   * series set to end after N occurrences repeated forever. They send the count
+   * they computed instead. A non-negative integer; not clearable, so no null.
+   * Ignored when the same request makes the server roll (`completed: true` on
+   * a repeating task): that path increments the count itself.
+   */
+  occurrenceCount?: number
 }
 
 /**
@@ -406,11 +432,17 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
   if (b.priority !== undefined && !isValidTaskPriority(b.priority)) {
     return wrong('priority', `an integer from ${MIN_TASK_PRIORITY} to ${MAX_TASK_PRIORITY}`)
   }
+  if (
+    b.occurrenceCount !== undefined &&
+    !(Number.isInteger(b.occurrenceCount) && (b.occurrenceCount as number) >= 0)
+  ) {
+    return wrong('occurrenceCount', 'a non-negative integer')
+  }
 
   for (const f of ['timerDuration', 'lastTimerValue'] as const) {
     if (b[f] !== undefined && b[f] !== null && !isFiniteNumber(b[f])) return wrong(f, 'a number or null')
   }
-  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason'] as const) {
+  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason', 'reminderType'] as const) {
     if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
   }
 
@@ -424,14 +456,16 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
     }
   }
 
-  // Same Invalid Date trap as dueDateTime — this one also reaches `new Date()`.
-  if (b.completedAt !== undefined && b.completedAt !== null) {
-    if (typeof b.completedAt !== 'string') return wrong('completedAt', 'an ISO 8601 string or null')
-    if (b.completedAt !== '' && Number.isNaN(new Date(b.completedAt).getTime())) {
-      return { ok: false, error: 'completedAt must be a valid ISO 8601 date' }
+  // Same Invalid Date trap as dueDateTime — these also reach `new Date()`.
+  for (const f of ['completedAt', 'reminderTime'] as const) {
+    if (b[f] !== undefined && b[f] !== null) {
+      if (typeof b[f] !== 'string') return wrong(f, 'an ISO 8601 string or null')
+      if (b[f] !== '' && Number.isNaN(new Date(b[f] as string).getTime())) {
+        return { ok: false, error: `${f} must be a valid ISO 8601 date` }
+      }
     }
   }
-  for (const f of ['completedSource', 'localCompletionDate'] as const) {
+  for (const f of ['completedSource', 'localCompletionDate', 'timeZone'] as const) {
     if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
   }
 

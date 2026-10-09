@@ -72,6 +72,29 @@ describe('BRAND defaults (task 97208a72)', () => {
     expect(BRAND.agentEmailDomain).toBe('agents.acme.example')
   })
 
+  it('starts on ocean with Inter unless the brand says otherwise', async () => {
+    const { BRAND } = await import('@/lib/brand/config')
+    expect(BRAND.defaultTheme).toBe('ocean')
+    expect(BRAND.fontFamily).toBe('')
+  })
+
+  it('lets a brand pick its starting theme and font stack', async () => {
+    // The white-label test site is styled after a white-canvas product: it has
+    // to start on light, and asking every user to open Appearance first is not
+    // a brand.
+    process.env.NEXT_PUBLIC_BRAND_DEFAULT_THEME = 'Light'
+    process.env.NEXT_PUBLIC_BRAND_FONT_FAMILY = '-apple-system, "Segoe UI", sans-serif'
+    const { BRAND } = await import('@/lib/brand/config')
+    expect(BRAND.defaultTheme).toBe('light')
+    expect(BRAND.fontFamily).toBe('-apple-system, "Segoe UI", sans-serif')
+  })
+
+  it('falls back to ocean for a theme name we do not ship, rather than breaking the switcher', async () => {
+    process.env.NEXT_PUBLIC_BRAND_DEFAULT_THEME = 'solarized'
+    const { BRAND } = await import('@/lib/brand/config')
+    expect(BRAND.defaultTheme).toBe('ocean')
+  })
+
   it('treats a blank env var as unset rather than as an empty brand name', async () => {
     process.env.NEXT_PUBLIC_BRAND_NAME = '   '
 

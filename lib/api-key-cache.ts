@@ -7,6 +7,7 @@ import CryptoJS from 'crypto-js'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { BRAND_ASSISTANT_SERVICE, type AIService } from '@/lib/ai/agent-config'
 
 const log = createLogger('api-key-cache')
 
@@ -20,7 +21,7 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
  */
 export async function getCachedApiKey(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+  service: AIService
 ): Promise<string | null> {
   try {
     const cacheKey = `${userId}-${service}`
@@ -99,7 +100,7 @@ export async function getCachedApiKey(
  */
 export async function getAIServiceCredential(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+  service: AIService
 ): Promise<string | null> {
   if (service === 'copilot') {
     const { copilotTokenFor } = await import('@/lib/copilot/oauth')
@@ -113,7 +114,7 @@ export async function getAIServiceCredential(
  * Clear cache for a user (useful when keys are updated)
  */
 export function clearApiKeyCache(userId: string): void {
-  const services = ['claude', 'openai', 'gemini', 'openclaw']
+  const services = ['claude', 'openai', 'gemini', 'muse', 'openclaw']
   services.forEach(service => {
     apiKeyCache.delete(`${userId}-${service}`)
   })
@@ -184,7 +185,7 @@ function decryptApiKeyNew(encryptedData: { encrypted: string; iv: string }): str
  */
 export async function hasValidApiKey(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+  service: AIService
 ): Promise<boolean> {
   try {
     const key = await getAIServiceCredential(userId, service)
@@ -200,7 +201,7 @@ export async function hasValidApiKey(
  */
 export async function getCachedModelPreference(
   userId: string,
-  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'
+  service: AIService
 ): Promise<string | null> {
   try {
     // Fetch from database
@@ -235,8 +236,11 @@ export async function getCachedModelPreference(
 
 /**
  * Get the user's preferred AI service (with fallback)
+ *
+ * Every fallback is the brand's assistant provider (BRAND_ASSISTANT_SERVICE,
+ * AWTD-1056) — Claude unless a white label chose otherwise.
  */
-export async function getPreferredAIService(userId: string): Promise<'claude' | 'openai' | 'gemini' | 'copilot' | 'openclaw'> {
+export async function getPreferredAIService(userId: string): Promise<AIService> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -244,7 +248,7 @@ export async function getPreferredAIService(userId: string): Promise<'claude' | 
     })
 
     if (!user?.aiAssistantSettings) {
-      return 'claude' // Default fallback
+      return BRAND_ASSISTANT_SERVICE // Default fallback
     }
 
     const settings = JSON.parse(user.aiAssistantSettings)
@@ -254,9 +258,13 @@ export async function getPreferredAIService(userId: string): Promise<'claude' | 
       return settings.preferredService
     }
 
-    // Fallback: return the first service that has an API key
+    // Fallback: return the first service that has an API key, the brand's own first
     // Note: openclaw uses gateway URLs, not API keys, so it's not included here
-    const services: Array<'claude' | 'openai' | 'gemini' | 'copilot'> = ['claude', 'openai', 'gemini', 'copilot']
+    // Muse (AWTD-1053) is one more keyed provider; the brand's own comes first (AWTD-1056).
+    const services: AIService[] = [
+      BRAND_ASSISTANT_SERVICE,
+      ...(['claude', 'openai', 'gemini', 'copilot', 'muse'] as const).filter((s) => s !== BRAND_ASSISTANT_SERVICE),
+    ]
 
     for (const service of services) {
       if (await hasValidApiKey(userId, service)) {
@@ -264,10 +272,10 @@ export async function getPreferredAIService(userId: string): Promise<'claude' | 
       }
     }
 
-    return 'claude' // Final fallback
+    return BRAND_ASSISTANT_SERVICE // Final fallback
 
   } catch (error) {
     log.error({ err: error }, 'Error getting preferred AI service:')
-    return 'claude'
+    return BRAND_ASSISTANT_SERVICE
   }
 }

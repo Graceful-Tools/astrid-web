@@ -11,8 +11,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const canAccessChatChannel = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/chat-access', () => ({ canAccessChatChannel }))
 
-const resolveDefaultAgent = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/resolve-default-agent', () => ({ resolveDefaultAgent }))
+const resolveDefaultAgentWithReason = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/resolve-default-agent', () => ({ resolveDefaultAgentWithReason }))
+
+const postAstridModelSetupPrompt = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/astrid-agent/model-setup-prompt', () => ({ postAstridModelSetupPrompt }))
 
 const processAstridMessage = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/astrid-agent-runtime', () => ({ processAstridMessage }))
@@ -59,7 +62,8 @@ beforeEach(() => {
   channelFindUnique.mockResolvedValue({ listId: 'list-1' })
   cacheGet.mockResolvedValue(null)
   cacheSet.mockResolvedValue(undefined)
-  resolveDefaultAgent.mockResolvedValue('agent-astrid')
+  resolveDefaultAgentWithReason.mockResolvedValue({ agentId: 'agent-astrid' })
+  postAstridModelSetupPrompt.mockResolvedValue(undefined)
   userFindUnique.mockResolvedValue({ email: `astrid@${BRAND.agentEmailDomain}` })
   processAstridMessage.mockResolvedValue(undefined)
 })
@@ -157,7 +161,7 @@ describe('handOffAstridReply (task f0700542)', () => {
   })
 
   it('reports no-agent rather than erroring when nothing is configured', async () => {
-    resolveDefaultAgent.mockResolvedValue(null)
+    resolveDefaultAgentWithReason.mockResolvedValue({ agentId: null, reason: 'none' })
 
     // The client was right to hand off; there is simply nobody to answer.
     expect(await handOffAstridReply(base)).toEqual({
@@ -165,5 +169,27 @@ describe('handOffAstridReply (task f0700542)', () => {
       dispatched: 'none',
       reason: 'no-agent',
     })
+    expect(postAstridModelSetupPrompt).not.toHaveBeenCalled()
   })
+
+  it.each(['no-key', 'on-device', 'invalid-agent'] as const)(
+    'AWTD-1054: posts the setup prompt when the selected assistant cannot run (%s)',
+    async (reason) => {
+      // Before AWTD-1054 these all came back as no-agent and nobody answered:
+      // an iOS user whose device cannot run the on-device model, or whose
+      // chosen assistant has no key, handed off into silence.
+      resolveDefaultAgentWithReason.mockResolvedValue({ agentId: null, reason })
+
+      const result = await handOffAstridReply({ ...base, locale: 'fr' })
+
+      expect(result).toEqual({ ok: true, dispatched: 'astrid' })
+      expect(postAstridModelSetupPrompt).toHaveBeenCalledWith({
+        channelId: 'channel-1',
+        reason,
+        locale: 'fr',
+        clientRequestId: replyRequestId('msg-1'),
+      })
+      expect(processAstridMessage).not.toHaveBeenCalled()
+    }
+  )
 })

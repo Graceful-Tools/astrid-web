@@ -263,6 +263,16 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false,
     },
     {
+      // astrid-core's Rust tests compile in contracts/fixtures/, generated from this repo's
+      // shared rules. A change to one of those rules has to regenerate its fixture in the same
+      // PR, so the drift is caught where it is made (AWTD-1031). Not auto-fixed: regenerating
+      // is a contract change for every client, which is a decision, not a repair.
+      name: 'Contract Fixtures',
+      command: 'npm run check:contract-fixtures',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
+    {
       name: 'Documentation Links',
       command: 'npm run check:docs',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,

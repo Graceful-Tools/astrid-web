@@ -32,6 +32,7 @@ import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getAgentConfig } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs } from '@/services/post-comment-as'
 
 const log = createLogger('coding-workflow.start-tools')
 
@@ -140,14 +141,14 @@ export async function startToolsWorkflow(args: {
           where: { id: aiAgentId },
           select: { id: true },
         })
-        await prisma.comment.create({
-          data: {
-            taskId,
-            authorId: agent?.id ?? null,
-            content: `❌ **Workflow error**\n\n\`\`\`\n${error.message}\n\`\`\``,
-            type: 'MARKDOWN',
-          },
+        if (!agent) throw new Error(`Agent ${aiAgentId} not found to report the error as`)
+        // Through the comment service, so the list sees the failure (P1 step 4).
+        const posted = await postCommentAs({
+          taskId,
+          authorId: agent.id,
+          content: `❌ **Workflow error**\n\n\`\`\`\n${error.message}\n\`\`\``,
         })
+        if (!posted.ok) throw new Error(posted.error)
       } catch (e) {
         log.error({ err: e }, 'Failed to post workflow error comment')
       }

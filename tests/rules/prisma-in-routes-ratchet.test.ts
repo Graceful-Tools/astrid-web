@@ -37,7 +37,9 @@ const ROOT = process.cwd()
  * import out of that route. The slack check is what noticed — a ceiling left
  * above the real number stops ratcheting.
  */
-const CEILING = 145 // 146 → 145: legacy manual-order now delegates to lib/list-manual-order (task 7883f710)
+// 144 → 143: AWTD-1087 deleted app/api/github/connect-installation, which let any
+// signed-in user claim any org's GitHub App installation.
+const CEILING = 143 // 145 → 144: v1 task GET reads through lib/tasks/v1-task-shape (AWTD-1040)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

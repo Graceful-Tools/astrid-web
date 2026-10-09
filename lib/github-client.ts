@@ -3,7 +3,8 @@
  * Handles all GitHub operations for the coding agent
  */
 
-import { App } from '@octokit/app'
+import type { App } from '@octokit/app'
+import { getGitHubApp } from '@/lib/github/app'
 import { Octokit } from '@octokit/rest'
 import { prisma } from './prisma'
 import { createLogger } from './logger'
@@ -67,13 +68,7 @@ export class GitHubClient {
       hasWebhookSecret: !!process.env.GITHUB_WEBHOOK_SECRET
     }, 'Initializing GitHub App')
 
-    this.app = new App({
-      appId: parseInt(process.env.GITHUB_APP_ID!),
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY!,
-      webhooks: {
-        secret: process.env.GITHUB_WEBHOOK_SECRET!
-      }
-    })
+    this.app = getGitHubApp()
     log.debug('GitHub App initialized successfully')
   }
 

@@ -1,14 +1,13 @@
 "use client"
 
 import React from "react"
-import { Globe, Hash, Users } from "lucide-react"
+import { ListGlyph } from "@/components/list-glyph"
 import { TaskLeadingControl } from "@/components/task-leading-control"
 import { PublicTaskCopyButton } from "@/components/public-task-copy-button"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
-import { getAllListMembers } from "@/lib/list-member-utils"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { isCanceled } from "@/lib/closed-reason"
-import { splitTaskLists } from "@/lib/list-flavors"
+import { listsShownOnRow, splitTaskLists } from "@/lib/list-flavors"
 import { useTranslations } from "@/lib/i18n/client"
 import { format } from "date-fns"
 import type { Task } from "@/types/task"
@@ -30,6 +29,8 @@ export interface TaskRowContentProps {
   /** Task id to show, muted, before the title (AWTD-1017). The caller decides
    *  with shouldShowTaskIdentifier — only board cards pass one. */
   identifier?: string | null
+  /** The list being viewed; its chip is not repeated on every row (AWTD-1025). */
+  currentListId?: string | null
 }
 
 export function TaskRowContent({
@@ -43,12 +44,13 @@ export function TaskRowContent({
   onOpenOptions,
   onBoard,
   identifier,
+  currentListId,
 }: TaskRowContentProps) {
   const { t } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
   // (task 60f5849d).
   const { lists: domainLists, labels } = splitTaskLists(
-    (task.lists || []).filter(list => list != null)
+    listsShownOnRow((task.lists || []).filter(list => list != null), currentListId)
   )
   return (
     <>
@@ -120,23 +122,7 @@ export function TaskRowContent({
                       className="flex items-center space-x-1 rounded px-1.5 py-0 text-xs"
                       style={{ backgroundColor: `${list.color}15` }}
                     >
-                      {(() => {
-                        const privacy = list?.privacy
-                        if (privacy === 'PUBLIC') {
-                          return <Globe className="w-3 h-3 text-green-500" />
-                        }
-                        const allMembers = getAllListMembers(list)
-                        const hasAdditionalMembers = allMembers.length > 1
-                        if (hasAdditionalMembers) {
-                          return <Users className="w-3 h-3 text-blue-500" />
-                        }
-                        return (
-                          <Hash
-                            className={`w-3 h-3 ${isMobile ? 'flex-shrink-0' : ''}`}
-                            style={{ color: list.color }}
-                          />
-                        )
-                      })()}
+                      <ListGlyph list={list} className={`w-3 h-3 ${isMobile ? 'flex-shrink-0' : ''}`} />
                       <span className={`theme-text-secondary ${isMobile ? 'truncate' : ''}`}>{list.name}</span>
                     </div>
                   ))}

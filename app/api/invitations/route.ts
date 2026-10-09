@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { inviteRateLimiter } from "@/lib/rate-limiter"
-import { randomBytes } from "crypto"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { sendInvitationEmail } from "@/lib/email"
 import { createLogger } from '@/lib/logger'
+// One generator for Invitation.token, shared with the telemetry normaliser that
+// has to strip it out of route strings (AWTD-989).
+import { generateInvitationToken } from "@/lib/list-invite"
+import { updateTaskWithSideEffects } from "@/services/task.service"
 
 const log = createLogger('invitations')
-
-
-// Generate cryptographically secure invitation token
-function generateInvitationToken(): string {
-  return `inv_${randomBytes(16).toString('hex')}`
-}
 
 interface CreateInvitationData {
   email: string
@@ -86,11 +83,21 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Assign task directly to existing user
-        await prisma.task.update({
-          where: { id: data.taskId },
-          data: { assigneeId: existingUser.id }
+        // Assign through the service, never a raw write: it applies the
+        // assignee rules (who may be assigned, which agents this caller may
+        // hand work to — AWTD-891), and a raw `assigneeId` write also tripped
+        // the agent-dispatch hook, starting a run billed to someone else
+        // (AWTD-1089).
+        const result = await updateTaskWithSideEffects({
+          taskId: data.taskId,
+          actorId: session.user.id,
+          actorName: session.user.name || session.user.email || 'Someone',
+          actorType: 'user',
+          intent: { assigneeId: existingUser.id },
         })
+        if (!result.ok) {
+          return NextResponse.json({ error: result.error }, { status: result.status })
+        }
 
         return NextResponse.json({
           success: true,

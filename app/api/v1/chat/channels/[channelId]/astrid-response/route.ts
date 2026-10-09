@@ -18,6 +18,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { handOffAstridReply } from '@/lib/astrid-handoff'
+import { resolveRequestLocale } from '@/lib/astrid-agent/model-setup-prompt'
 import { createLogger } from '@/lib/logger'
 import { BRAND } from '@/lib/brand/config'
 
@@ -42,6 +43,7 @@ export const POST = withAuth<RouteContext>(
       userId: auth.userId,
       messageId: body.message_id,
       content: body.content,
+      locale: resolveRequestLocale(req.headers.get('accept-language')),
     })
 
     if (!result.ok) {

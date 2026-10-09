@@ -754,6 +754,12 @@
         "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
         "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
       },
+      "listImages": {
+        "title": "List images",
+        "description": "Show a picture beside each list in the sidebar and list header (synced across devices)",
+        "label": "Show list images",
+        "offDesc": "When off, each list shows its color instead."
+      },
       "emailToTask": {
         "title": "Email-to-Task",
         "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Task ID prefix",
     "keyExample": "Tasks become {example}, …",
-    "keyInvalid": "{min}–{max} letters or digits, starting with a letter"
+    "keyInvalid": "{min}–{max} letters or digits, starting with a letter",
+    "keyRename": "Rename",
+    "keyRenameHint": "Tasks become {next}; {old} keeps working",
+    "keyRenameFailed": "Couldn't rename the key"
   },
   "listSettings": {
     "adminSettings": "Admin Settings",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "Optional message..."
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "I'd love to help, but I need an AI model to power my responses! Head to {settingsLink} to set up your preferred model.",
+      "onDeviceUnavailable": "Your selected model only runs on supported Apple devices, so I can't answer here. Head to {settingsLink} to choose a model that works everywhere."
+    }
   }
 }

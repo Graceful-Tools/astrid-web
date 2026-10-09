@@ -15,10 +15,13 @@ import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { getTokenForUser } from '@/lib/astrid-api-client'
 import { getBaseUrl } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs } from '@/services/post-comment-as'
 import { startTyping, stopTyping } from '@/lib/astrid-agent/typing-indicator'
 import { dispatchToolCall } from '@/lib/astrid-agent/dispatch-ai-service'
 import { loadUserAIPreferences } from '@/lib/astrid-agent/user-preferences'
+import { getModelSetupPrompt, postAstridModelSetupPrompt } from '@/lib/astrid-agent/model-setup-prompt'
 import { COPILOT_BASE_URL, COPILOT_HEADERS } from '@/lib/ai/providers/copilot-provider'
+import { MUSE_BASE_URL, MUSE_DEFAULT_MODEL } from '@/lib/ai/providers/muse-provider'
 
 const log = createLogger('astrid-agent-runtime')
 
@@ -318,21 +321,16 @@ async function callOpenAIWithTools(
 }
 
 /**
- * GitHub Copilot tool-calling. Copilot's chat API is OpenAI-compatible, so this
- * reuses callOpenAIWithTools with the Copilot base URL and integration headers
- * rather than maintaining a second tool-calling loop.
+ * GitHub Copilot and Meta's Muse (AWTD-1053) serve OpenAI-compatible chat APIs,
+ * so they reuse callOpenAIWithTools with their own base URL, headers and default
+ * model rather than maintaining another tool-calling loop each.
  */
-async function callCopilotWithTools(
-  apiKey: string, systemPrompt: string, userMessage: string,
-  context: { userId: string }, model?: string
-): Promise<string> {
-  return callOpenAIWithTools(
-    apiKey, systemPrompt, userMessage, context,
-    model || 'gpt-4.1',
-    COPILOT_BASE_URL,
-    COPILOT_HEADERS,
-  )
+function openAICompatibleWithTools(baseUrl: string, defaultModel: string, headers: Record<string, string> = {}) {
+  return (apiKey: string, systemPrompt: string, userMessage: string, context: { userId: string }, model?: string) =>
+    callOpenAIWithTools(apiKey, systemPrompt, userMessage, context, model || defaultModel, baseUrl, headers)
 }
+const callCopilotWithTools = openAICompatibleWithTools(COPILOT_BASE_URL, 'gpt-4.1', COPILOT_HEADERS)
+const callMuseWithTools = openAICompatibleWithTools(MUSE_BASE_URL, MUSE_DEFAULT_MODEL)
 
 async function callGeminiWithTools(
   apiKey: string, systemPrompt: string, userMessage: string,
@@ -556,10 +554,12 @@ interface ProcessMessageParams {
    * covered by the unique index. (Task f0700542.)
    */
   replyClientRequestId?: string
+  /** Language for Astrid's own canned replies, from the request's Accept-Language. */
+  locale?: string
 }
 
 export async function processAstridMessage(params: ProcessMessageParams): Promise<void> {
-  const { userMessage, userId, userName, channelId, listId, replyClientRequestId } = params
+  const { userMessage, userId, userName, channelId, listId, replyClientRequestId, locale } = params
 
   // Resolve Astrid user and recipients up front for typing indicator
   let recipients: string[] = []
@@ -587,37 +587,20 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
     const { ON_DEVICE_MODEL_IDS } = await import('@/lib/ai/agent-config')
     const isOnDeviceModel = userSettings.defaultAgentId && (ON_DEVICE_MODEL_IDS as readonly string[]).includes(userSettings.defaultAgentId)
 
-    if (isOnDeviceModel) {
-      log.info(`[${BRAND.appName}] User ${userId} has on-device model selected — iOS handles response on-device`)
-      // iOS will process on-device and post via /agent-response.
-      stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
-      return
-    }
-
-    const service = await getPreferredAIService(userId)
-    const apiKey = await getAIServiceCredential(userId, service)
-    if (!apiKey) {
-      log.info(`[${BRAND.appName}] No ${service} API key for user ${userId}, sending setup prompt`)
-      const setupMessage = await prisma.chatMessage.create({
-        data: {
-          channelId,
-          authorId: astridUser.id,
-          content: "I'd love to help, but I need an AI model to power my responses! Head to [Settings > AI Agents](/settings/agents) to set up your preferred model and unlock my full capabilities.",
-          type: 'MARKDOWN',
-        },
-        include: {
-          author: { select: { id: true, name: true, email: true, image: true, isAIAgent: true, aiAgentType: true } },
-        },
+    // Nothing that reaches this function can run an on-device model: web never
+    // can, and the iOS handoff calls the server only once the device has
+    // declined. Returning early here was silence (AWTD-1054).
+    const service = isOnDeviceModel ? null : await getPreferredAIService(userId)
+    const apiKey = service ? await getAIServiceCredential(userId, service) : null
+    if (!service || !apiKey) {
+      log.info(`[${BRAND.appName}] No usable model for user ${userId} (${service ?? 'on-device'}), sending setup prompt`)
+      await postAstridModelSetupPrompt({
+        channelId,
+        reason: service ? 'no-key' : 'on-device',
+        locale: locale ?? 'en',
+        clientRequestId: replyClientRequestId,
       })
-      if (recipients.length > 0) {
-        const serialized = { ...setupMessage, createdAt: setupMessage.createdAt.toISOString(), updatedAt: setupMessage.updatedAt.toISOString() }
-        await broadcastToUsers(recipients, {
-          type: 'chat_message_created',
-          timestamp: new Date().toISOString(),
-          data: { channelId, message: serialized },
-        })
-        stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
-      }
+      stopTyping({ recipients, agentId: astridUser.id, scope: channelScope })
       return
     }
 
@@ -669,7 +652,7 @@ export async function processAstridMessage(params: ProcessMessageParams): Promis
       userMessage: cleanMessage,
       toolContext,
       model,
-      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools },
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools, muse: callMuseWithTools },
     })
     if (response === null) return
 
@@ -752,23 +735,11 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
     const service = await getPreferredAIService(userId)
     const apiKey = await getAIServiceCredential(userId, service)
     if (!apiKey) {
-      const setupComment = await prisma.comment.create({
-        data: {
-          content: "I'd love to help, but I need an AI model to power my responses! Head to [Settings > AI Agents](/settings/agents) to set up your preferred model and unlock my full capabilities.",
-          type: 'MARKDOWN',
-          authorId: astridUser.id,
-          taskId,
-        },
-        include: { author: { select: { id: true, name: true, email: true, image: true } } },
-      })
-      if (recipients.length > 0) {
-        await broadcastToUsers(recipients, {
-          type: 'comment_created',
-          timestamp: new Date().toISOString(),
-          data: { taskId, comment: { ...setupComment, createdAt: setupComment.createdAt.toISOString(), updatedAt: setupComment.updatedAt.toISOString() } },
-        })
-        stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
-      }
+      // Through the comment service, which broadcasts it to the list (P1 step 4).
+      // English: comments arrive through comment.service, which has no request
+      // to read a language from (AWTD-1054).
+      await postCommentAs({ taskId, authorId: astridUser.id, content: await getModelSetupPrompt('no-key', 'en') })
+      if (recipients.length > 0) stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
       return
     }
 
@@ -807,23 +778,14 @@ export async function processAstridComment(params: ProcessCommentParams): Promis
       userMessage: cleanComment,
       toolContext,
       model,
-      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools },
+      callers: { claude: callClaudeWithTools, openai: callOpenAIWithTools, gemini: callGeminiWithTools, copilot: callCopilotWithTools, muse: callMuseWithTools },
     })
     if (response === null) return
 
-    const comment = await prisma.comment.create({
-      data: { content: response, type: 'MARKDOWN', authorId: astridUser.id, taskId },
-      include: { author: { select: { id: true, name: true, email: true, image: true } } },
-    })
-
-    if (recipients.length > 0) {
-      await broadcastToUsers(recipients, {
-        type: 'comment_created',
-        timestamp: new Date().toISOString(),
-        data: { taskId, comment: { ...comment, createdAt: comment.createdAt.toISOString(), updatedAt: comment.updatedAt.toISOString() } },
-      })
-      stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
-    }
+    // Through the comment service: broadcast, notifications, mention pushes.
+    const posted = await postCommentAs({ taskId, authorId: astridUser.id, content: response })
+    if (!posted.ok) log.error({ taskId, error: posted.error }, `[${BRAND.appName}] Could not post reply`)
+    if (recipients.length > 0) stopTyping({ recipients, agentId: astridUser.id, scope: taskScope })
 
     log.info(`[${BRAND.appName}] Commented on task "${taskTitle}" using ${service}/${model || 'default'}`)
   } catch (error) {

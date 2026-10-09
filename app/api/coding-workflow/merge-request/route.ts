@@ -8,12 +8,18 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { GitHubClient } from '@/lib/github-client'
 import { createLogger } from '@/lib/logger'
+import { completeTask } from '@/services/complete-task'
 import { getBaseUrl } from '@/lib/base-url'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-workflow.merge-request')
 
 
 export async function POST(request: NextRequest) {
+  // A deployment without the coding agent must refuse server-side (AWTD-1094).
+  const capabilityBlocked = capabilityGate('codingAgent')
+  if (capabilityBlocked) return capabilityBlocked
+
   try {
     // Verify user session
     const session = await getUnifiedSession()
@@ -116,11 +122,15 @@ Please check the GitHub repository and try again, or merge manually.`,
       }
     })
 
-    // Mark task as completed
-    await prisma.task.update({
-      where: { id: taskId },
-      data: { completed: true }
+    // Mark task as completed, as the person who merged it (AWTD-1093)
+    const completion = await completeTask({
+      taskId,
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email || undefined,
     })
+    if (!completion.ok) {
+      log.warn({ taskId, error: completion.error }, 'Completing task after merge was refused')
+    }
 
     // Post completion comment
     await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {

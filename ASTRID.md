@@ -476,6 +476,29 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   `lib/list-member-utils.ts`. **Never inline** `list.ownerId === user.id` or
   `list.admins.some(...)` — call `canUserManageList` / `canUserEditTasks` /
   `isListAdminOrOwner`, or reuse a `canEdit*` value already in scope.
+  On the Node server those functions are decided by astrid-core (WebAssembly in
+  `packages/astrid-rules`, installed from `instrumentation.ts`; AWTD-1061); the
+  TypeScript is what the browser runs and the server's fail-safe fallback. A rule
+  change goes TypeScript → astrid-core fixture and port → `scripts/build-astrid-rules.sh`;
+  `tests/lib/core-rules-permissions-parity.test.ts` fails until they agree.
+  The same holds for **search queries** (AWTD-1062): `parseSearchQuery`
+  (`lib/search-query-parser.ts`) is parsed by the core's `searchParse` on the
+  server, TypeScript as fallback, pinned by `core-rules-search-parity.test.ts`.
+  **Repeating-task rollover** too (AWTD-1063): the server's completion path asks
+  `nextOccurrenceForTask` (`lib/repeating-rollover.ts`), which the core's `nextOccurrence`
+  answers; `types/repeating.ts` is the same rule in TypeScript (fallback and fixture source),
+  pinned by `core-rules-repeating-parity.test.ts`. A timed task steps on the person's zone
+  (the browser sends `timeZone`), an all-day one on UTC's. The browser computes no rollover.
+  **Markdown** (AWTD-1064) renders only in the browser (`renderMarkdownWithLinks`,
+  `lib/markdown.ts`: `marked` + DOMPurify), so it stays TypeScript;
+  `core-rules-markdown-parity.test.ts` holds it to the core's `renderMarkdown` (what iOS
+  draws) block for block, and checks every case's HTML, the `xss-*` ones included, against the
+  sanitiser's allowlist. Typed HTML reads as text and a reference inside code as typed, as on
+  iOS. There is no server-side markdown render; if one is needed, ask the core, never the
+  no-DOM fallback (escaped text only).
+  The quick-add parser `parseTaskInput` runs only in the browser, so it stays
+  TypeScript; `core-rules-smart-parity.test.ts` pins it to the core's
+  `smartParse` (what iOS and the Mac run).
 - **User-facing copy** lives in i18n locale files (`lib/i18n/locales/*.json`) —
   use `t("…")`, never a string literal in JSX. Keep key names mirrored with the
   Apple app's `Localizable.strings` where the string is shared.

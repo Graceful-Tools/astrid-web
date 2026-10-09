@@ -1,0 +1,106 @@
+{
+  "name": "Whitelabel Partner",
+  "description": "The full white-label test: the Whitelabel brand as a partner would run it, on its own domain (tasks.gracefultools.com), its own Vercel project (whitelabel-partner) and its own database, with agent identities on that domain. Sign-in is passkey-only until Google/Apple are registered for the domain; services that need credentials this project does not have are off, so the profile advertises only what works. Set up with scripts/push-brand-env.ts; see brands/README.md. The URL scheme stays astrid: it is part of an app's identity, and the test binaries (iOS, Mac, Windows) register only astrid://, so a partner's own scheme needs a partner-built app.",
+  "env": {
+    "NEXT_PUBLIC_BRAND_NAME": "Whitelabel",
+    "NEXT_PUBLIC_BRAND_TITLE": "Whitelabel Tasks",
+    "NEXT_PUBLIC_BRAND_TAGLINE": "Plan, track and ship work together",
+    "NEXT_PUBLIC_BRAND_DOMAIN": "tasks.gracefultools.com",
+    "NEXT_PUBLIC_BRAND_SUPPORT_EMAIL": "support@tasks.gracefultools.com",
+    "NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL": "tasks@tasks.gracefultools.com",
+    "NEXT_PUBLIC_BRAND_ACCENT_COLOR": "#0969da",
+    "NEXT_PUBLIC_BRAND_DEFAULT_THEME": "light",
+    "NEXT_PUBLIC_BRAND_FONT_FAMILY": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+    "NEXT_PUBLIC_BRAND_AGENT_NAME": "Whitelabel Assistant",
+    "BRAND_AGENT_EMAIL_DOMAIN": "tasks.gracefultools.com",
+    "NEXT_PUBLIC_BRAND_LOGO": "/images/whitelabel-logo.png",
+    "NEXT_PUBLIC_BRAND_WORDMARK": "whitelabel",
+    "NEXT_PUBLIC_BRAND_SLOGAN": "Build together.",
+    "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
+    "NEXT_PUBLIC_BRAND_ICON": "/icons/whitelabel-512.png",
+    "NEXT_PUBLIC_BRAND_ICON_SMALL": "/icons/whitelabel-96.png",
+    "BRAND_ENABLED_AGENTS": "claude",
+    "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "astrid",
+    "NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false",
+    "NEXT_PUBLIC_BRAND_WWW_REDIRECT": "false"
+  },
+  "expect": {
+    "appName": "Whitelabel",
+    "productTitle": "Whitelabel Tasks",
+    "domain": "tasks.gracefultools.com",
+    "agentEmailDomain": "tasks.gracefultools.com",
+    "supportEmail": "support@tasks.gracefultools.com",
+    "inboundTaskEmail": "tasks@tasks.gracefultools.com",
+    "accentColor": "#0969da",
+    "enabledAgents": [
+      "astrid",
+      "claude"
+    ],
+    "capabilities": {
+      "authGoogle": false,
+      "authApple": false,
+      "authPasskey": true,
+      "syncGoogleTasks": false,
+      "syncGithubIssues": false,
+      "codingAgent": false,
+      "integrationMcp": true,
+      "integrationOpenClaw": false,
+      "integrationChatGptActions": false,
+      "emailToTask": false,
+      "calendarFeed": true
+    },
+    "requireLiterals": [
+      "Whitelabel"
+    ],
+    "forbidLiterals": [
+      "Astrid",
+      "astrid.cc"
+    ],
+    "logo": "/images/whitelabel-logo.png",
+    "icon": "/icons/whitelabel-512.png",
+    "wordmark": "whitelabel",
+    "slogan": "Build together.",
+    "appStoreUrl": "",
+    "githubAppSlug": "astrid-code-assistant"
+  },
+  "copy": {
+    "reminders": {
+      "general": [
+        "You have a task waiting.",
+        "Reminder: there is work on your list.",
+        "A task needs your attention."
+      ],
+      "due": [
+        "This task is due now.",
+        "Due today: time to take a look.",
+        "Scheduled work is ready to start."
+      ],
+      "responses": [
+        "Ready when you are.",
+        "Pick it up whenever suits you.",
+        "Waiting on you."
+      ]
+    },
+    "defaultLists": {
+      "today": {
+        "name": "Today",
+        "description": "tasks due today"
+      },
+      "not-in-list": {
+        "name": "No project",
+        "description": "tasks not filed under a project"
+      },
+      "assigned": {
+        "name": "Assigned to others",
+        "description": "tasks you have handed to someone else"
+      }
+    }
+  }
+}

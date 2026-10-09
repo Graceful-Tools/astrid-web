@@ -18,6 +18,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+// The create path's assignee gate (AWTD-891). Batch copy accepted a caller-
+// supplied assignee with no check at all — AI agents included — so it is now
+// asked here, and its answer is what these tests drive.
+const { authorizeNewTaskAssignee } = vi.hoisted(() => ({ authorizeNewTaskAssignee: vi.fn() }))
+vi.mock('@/services/assignee-authorization', () => ({ authorizeNewTaskAssignee }))
+
 import { batchCopyTask } from '@/lib/task-batch-copy'
 import { prisma } from '@/lib/prisma'
 
@@ -55,6 +61,7 @@ beforeEach(() => {
     [{ id: 'list-a', name: 'A', ownerId: USER, defaultAssigneeId: null }] as never
   )
   mockPrisma.task.create.mockResolvedValue({ id: 'copy-1' } as never)
+  authorizeNewTaskAssignee.mockResolvedValue({ ok: true })
 })
 
 describe('batchCopyTask (task e0613ae5)', () => {
@@ -236,3 +243,29 @@ describe('list membership must be visible to the access check (task 73733c3d)', 
     expect(await batchCopyTask(baseArgs())).toMatchObject({ ok: false, status: 403 })
   })
 })
+
+describe('batch copy applies the assignee rule (spec §5.2 step 5)', () => {
+  it('asks the create-path gate about a caller-supplied assignee', async () => {
+    await batchCopyTask(baseArgs({ assigneeId: 'agent-1', assigneeProvided: true, targetListIds: ['list-a'] }))
+
+    expect(authorizeNewTaskAssignee).toHaveBeenCalledWith({
+      requested: 'agent-1',
+      resolved: 'agent-1',
+      actorId: USER,
+      targetListIds: ['list-a'],
+      requireListMembership: false,
+    })
+  })
+
+  it('refuses the copy when the gate refuses the assignee', async () => {
+    authorizeNewTaskAssignee.mockResolvedValue({
+      ok: false, status: 403, error: 'Only the task creator, or a list owner or admin, can assign an AI agent to this task',
+    })
+
+    const result = await batchCopyTask(baseArgs({ assigneeId: 'agent-1', assigneeProvided: true }))
+
+    expect(result).toMatchObject({ ok: false, status: 403 })
+    expect(mockPrisma.task.create).not.toHaveBeenCalled()
+  })
+})
+

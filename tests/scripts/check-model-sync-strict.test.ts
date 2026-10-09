@@ -27,7 +27,10 @@ const run = (...args: string[]) =>
     timeout: 60_000,
   })
 
-describe('check-model-sync --strict (task 1985804a)', () => {
+// Each test cold-starts `npx tsx` (~7s on an idle machine). The 15s default
+// timed out under full-suite load (AWTD-1051) while the child still had its
+// own 60s budget, so the test now waits as long as the spawn does.
+describe('check-model-sync --strict (task 1985804a)', { timeout: 60_000 }, () => {
   it('exits 1 when it cannot verify under --strict', () => {
     const result = run('--strict')
     expect(result.stdout).toContain('UNVERIFIED')

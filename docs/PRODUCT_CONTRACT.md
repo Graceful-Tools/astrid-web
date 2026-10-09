@@ -40,7 +40,11 @@ Role resolution (`getUserRoleInList`): **owner** (list owner, by `ownerId`, the
 status lists. Three rules iOS must mirror exactly:
 
 1. **The higher role wins.** A list admin who is only a project member stays an
-   admin — project membership can never *demote* someone.
+   admin — project membership can never *demote* someone. And the other way
+   (Jon, 2026-10-04): a plain list member who owns or administers the project
+   is an **admin** of the list — a plain list membership can never demote a
+   project owner or admin either. Before that date list membership was
+   consulted first and such a person was only a member.
 2. **The project owner resolves to `admin`, not `owner`.** `owner` is the only
    role that can delete a list; owning the project must not grant the power to
    delete a list somebody else owns and merely attached to it.
@@ -103,6 +107,8 @@ Registry of shared strings that already exist on both (extend as consolidated):
 | Description | `tasks.taskDescription` | `tasks.description` | **name mismatch** — reconcile |
 | Add-task input placeholder | `tasks.addTaskPlaceholder` | `tasks.add_task_placeholder` | |
 | My Tasks (nav) | `listHeaders.myTasks` | `navigation.my_tasks` | **group mismatch** — reconcile |
+| Astrid: "set up a model" chat reply | `astridAgent.modelSetup.noModel` | — | **Server-rendered** (AWTD-1054): posted as Astrid's chat message in the request's `Accept-Language`, so iOS shows it as-is. Link stays root-relative `/settings/agents`, which iOS routes in-app (AITD-451). |
+| Astrid: "your model only runs on Apple devices" | `astridAgent.modelSetup.onDeviceUnavailable` | — | Server-rendered, as above. Sent when an on-device model is selected but the client cannot run it. |
 
 Known reconciliation items:
 - **`description` / `taskDescription`** and **`myTasks` group** differ beyond

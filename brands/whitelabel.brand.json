@@ -1,0 +1,99 @@
+{
+  "name": "Whitelabel",
+  "description": "The white-label test site at whitelabel.astrid.cc, styled after GitHub: light canvas by default, GitHub's blue as the accent, the system font stack, a flat neutral voice. Deliberately keeps astrid.cc as its domain — it is served from the *.astrid.cc wildcard, and Google sign-in on a preview only works by bouncing through astrid.cc with the .astrid.cc session cookie (lib/auth-host.ts), which a different brand domain would break. Every capability stays on, like production. Deploy with `npx tsx scripts/deploy-brand-preview.ts whitelabel --alias whitelabel.astrid.cc`.",
+  "env": {
+    "NEXT_PUBLIC_BRAND_NAME": "Whitelabel",
+    "NEXT_PUBLIC_BRAND_TITLE": "Whitelabel Tasks",
+    "NEXT_PUBLIC_BRAND_TAGLINE": "Plan, track and ship work together",
+    "NEXT_PUBLIC_BRAND_DOMAIN": "astrid.cc",
+    "NEXT_PUBLIC_BRAND_SUPPORT_EMAIL": "whitelabel-support@astrid.cc",
+    "NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL": "whitelabel-tasks@astrid.cc",
+    "NEXT_PUBLIC_BRAND_ACCENT_COLOR": "#0969da",
+    "NEXT_PUBLIC_BRAND_DEFAULT_THEME": "light",
+    "NEXT_PUBLIC_BRAND_FONT_FAMILY": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+    "NEXT_PUBLIC_BRAND_AGENT_NAME": "Whitelabel Assistant",
+    "BRAND_AGENT_EMAIL_DOMAIN": "astrid.cc",
+    "NEXT_PUBLIC_BRAND_LOGO": "/images/whitelabel-logo.png",
+    "NEXT_PUBLIC_BRAND_WORDMARK": "whitelabel",
+    "NEXT_PUBLIC_BRAND_SLOGAN": "Build together.",
+    "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
+    "NEXT_PUBLIC_BRAND_ICON": "/icons/whitelabel-512.png",
+    "NEXT_PUBLIC_BRAND_ICON_SMALL": "/icons/whitelabel-96.png"
+  },
+  "expect": {
+    "appName": "Whitelabel",
+    "productTitle": "Whitelabel Tasks",
+    "domain": "astrid.cc",
+    "agentEmailDomain": "astrid.cc",
+    "supportEmail": "whitelabel-support@astrid.cc",
+    "inboundTaskEmail": "whitelabel-tasks@astrid.cc",
+    "accentColor": "#0969da",
+    "enabledAgents": [
+      "astrid",
+      "claude",
+      "openai",
+      "gemini",
+      "copilot",
+      "muse",
+      "openclaw"
+    ],
+    "capabilities": {
+      "authGoogle": true,
+      "authApple": true,
+      "authPasskey": true,
+      "syncGoogleTasks": true,
+      "syncGithubIssues": true,
+      "codingAgent": true,
+      "integrationMcp": true,
+      "integrationOpenClaw": true,
+      "integrationChatGptActions": true,
+      "emailToTask": true,
+      "calendarFeed": true
+    },
+    "requireLiterals": [
+      "Whitelabel"
+    ],
+    "forbidLiterals": [
+      "Astrid"
+    ],
+    "logo": "/images/whitelabel-logo.png",
+    "icon": "/icons/whitelabel-512.png",
+    "wordmark": "whitelabel",
+    "slogan": "Build together.",
+    "appStoreUrl": "",
+    "githubAppSlug": "astrid-code-assistant"
+  },
+  "copy": {
+    "reminders": {
+      "general": [
+        "You have a task waiting.",
+        "Reminder: there is work on your list.",
+        "A task needs your attention."
+      ],
+      "due": [
+        "This task is due now.",
+        "Due today: time to take a look.",
+        "Scheduled work is ready to start."
+      ],
+      "responses": [
+        "Ready when you are.",
+        "Pick it up whenever suits you.",
+        "Waiting on you."
+      ]
+    },
+    "defaultLists": {
+      "today": {
+        "name": "Today",
+        "description": "tasks due today"
+      },
+      "not-in-list": {
+        "name": "No project",
+        "description": "tasks not filed under a project"
+      },
+      "assigned": {
+        "name": "Assigned to others",
+        "description": "tasks you have handed to someone else"
+      }
+    }
+  }
+}

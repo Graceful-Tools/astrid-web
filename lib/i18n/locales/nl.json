@@ -754,6 +754,12 @@
         "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
         "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
       },
+      "listImages": {
+        "title": "Lijstafbeeldingen",
+        "description": "Toon een afbeelding naast elke lijst in de zijbalk en de lijstkop (gesynchroniseerd tussen apparaten)",
+        "label": "Lijstafbeeldingen tonen",
+        "offDesc": "Uit: elke lijst toont in plaats daarvan zijn kleur."
+      },
       "emailToTask": {
         "title": "E-mail naar Taak",
         "description": "Maak direct taken door e-mails te sturen naar {inboundTaskEmail}",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "Voorvoegsel taak-ID",
     "keyExample": "Taken worden {example}, …",
-    "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter"
+    "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
+    "keyRename": "Hernoemen",
+    "keyRenameHint": "Taken worden {next}; {old} blijft werken",
+    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen"
   },
   "listSettings": {
     "adminSettings": "Beheerdersinstellingen",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "Optioneel bericht…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "Ik help je graag, maar ik heb een AI-model nodig om te kunnen antwoorden! Ga naar {settingsLink} om je voorkeursmodel in te stellen.",
+      "onDeviceUnavailable": "Het gekozen model werkt alleen op ondersteunde Apple-apparaten, dus hier kan ik niet antwoorden. Ga naar {settingsLink} om een model te kiezen dat overal werkt."
+    }
   }
 }

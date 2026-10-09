@@ -2,9 +2,10 @@
 
 import React from "react"
 import { Button } from "@/components/ui/button"
-import { Globe, Users, Settings } from "lucide-react"
+import { Globe, Hash, Users, Settings } from "lucide-react"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { useListImagesVisibility } from "@/contexts/list-images-context"
 import type { TaskList } from "@/types/task"
 
 interface ListItemProps {
@@ -41,6 +42,7 @@ export function ListItem({
   dropMode = 'move'
 }: ListItemProps) {
   const privacy = list.privacy
+  const { showListImages } = useListImagesVisibility()
 
   // Determine if list has additional members (shared) using consolidated utility
   const allMembers = getAllListMembers(list)
@@ -109,18 +111,29 @@ export function ListItem({
       >
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center space-x-2 min-w-0 flex-1 overflow-hidden">
-            <img
-              src={getListImageUrl(list)}
-              alt={list.name}
-              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
-              onError={(e) => {
-                const target = e.currentTarget as HTMLImageElement
-                const defaultImage = getConsistentDefaultImage(list.id).filename
-                if (target.src !== defaultImage) {
-                  target.src = defaultImage
-                }
-              }}
-            />
+            {showListImages ? (
+              <img
+                src={getListImageUrl(list)}
+                alt={list.name}
+                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement
+                  const defaultImage = getConsistentDefaultImage(list.id).filename
+                  if (target.src !== defaultImage) {
+                    target.src = defaultImage
+                  }
+                }}
+              />
+            ) : (
+              // hide_list_images: the list's colour, no image. Public/shared
+              // already show on the right of the row, so only the Hash here.
+              <Hash
+                className="w-4 h-4 flex-shrink-0"
+                style={{ color: list.color }}
+                aria-hidden="true"
+                data-testid="list-color-glyph"
+              />
+            )}
             <span className="truncate text-left w-full">{list.name}</span>
           </div>
           <div className="flex items-center space-x-2 flex-shrink-0">

@@ -12,10 +12,17 @@ const log = createLogger('github.manual-setup')
 
 
 export async function POST(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
+
+  // Development-only, enforced HERE. The settings page hid the button outside
+  // development, but the route took any installationId from any signed-in
+  // user in production (AWTD-1087).
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   try {
     const session = await getUnifiedSession()

@@ -47,6 +47,7 @@ import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { getAIServiceCredential, getCachedModelPreference } from '@/lib/api-key-cache'
 import { callCopilot } from '@/lib/ai/providers/copilot-provider'
+import { callMuse } from '@/lib/ai/providers/muse-provider'
 import { getAgentConfig, type AIService } from '@/lib/ai/agent-config'
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from '@/lib/ai/clients/fetch-with-timeout'
 import {
@@ -55,6 +56,7 @@ import {
 } from '@/lib/ai/prompt-trust'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs, type PostCommentAsResult } from '@/services/post-comment-as'
 
 const log = createLogger('assistant-workflow')
 
@@ -64,6 +66,7 @@ const DEFAULT_MODELS = {
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   copilot: 'gpt-4.1',
+  muse: 'muse-spark-1.3',
 } as const
 
 export interface RunAssistantWorkflowArgs {
@@ -127,6 +130,13 @@ export async function runAssistantWorkflow(
       return { ok: false, status: 404, error: 'Task not found' }
     }
 
+    // The assignee (this agent) speaks through the comment service, so its
+    // replies are broadcast and notified like anyone's (P1 step 4).
+    const sayAsAssignee = async (content: string, fileId?: string): Promise<PostCommentAsResult> => {
+      if (!task.assigneeId) return { ok: false, error: 'Task has no assignee to comment as' }
+      return postCommentAs({ taskId, authorId: task.assigneeId, content, type: 'TEXT', fileId })
+    }
+
     // Determine which AI service to use based on agent email
     const service = getServiceFromEmail(agentEmail)
     if (!service) {
@@ -136,13 +146,7 @@ export async function runAssistantWorkflow(
 
     // OpenClaw tasks now arrive via the channel plugin, not assistant-workflow
     if (service === 'openclaw') {
-      await prisma.comment.create({
-        data: {
-          taskId,
-          authorId: task.assigneeId,
-          content: `To use OpenClaw with ${BRAND.appName}, install the ${BRAND.appName} channel plugin in your OpenClaw instance. OpenClaw connects outbound to ${BRAND.appName} — no gateway URL needed.\n\nSee: https://github.com/Graceful-Tools/astrid-web/tree/main/packages/openclaw-astrid-channel`
-        }
-      })
+      await sayAsAssignee(`To use OpenClaw with ${BRAND.appName}, install the ${BRAND.appName} channel plugin in your OpenClaw instance. OpenClaw connects outbound to ${BRAND.appName} — no gateway URL needed.\n\nSee: https://github.com/Graceful-Tools/astrid-web/tree/main/packages/openclaw-astrid-channel`)
       return { ok: false, status: 400, error: 'OpenClaw uses channel plugin', commented: true }
     }
 
@@ -152,13 +156,7 @@ export async function runAssistantWorkflow(
       log.info(`⚠️ [AssistantWorkflow] No ${service} API key for user ${creatorId}`)
 
       // Post a comment explaining the issue
-      await prisma.comment.create({
-        data: {
-          taskId,
-          authorId: task.assigneeId,
-          content: `I'd love to help with this task, but I need an API key to be configured. Please go to Settings → AI Agents and add your ${service.charAt(0).toUpperCase() + service.slice(1)} API key.`
-        }
-      })
+      await sayAsAssignee(`I'd love to help with this task, but I need an API key to be configured. Please go to Settings → AI Agents and add your ${service.charAt(0).toUpperCase() + service.slice(1)} API key.`)
 
       return { ok: false, status: 400, error: 'No API key configured', commented: true }
     }
@@ -179,13 +177,7 @@ export async function runAssistantWorkflow(
       log.error({ err: aiError }, `❌ [AssistantWorkflow] AI call failed:`)
 
       // Post error comment
-      await prisma.comment.create({
-        data: {
-          taskId,
-          authorId: task.assigneeId,
-          content: `I encountered an error while processing this task: ${aiError.message || 'Unknown error'}. Please try again or check your API key settings.`
-        }
-      })
+      await sayAsAssignee(`I encountered an error while processing this task: ${aiError.message || 'Unknown error'}. Please try again or check your API key settings.`)
 
       return {
         ok: false,
@@ -255,21 +247,10 @@ export async function runAssistantWorkflow(
     }
 
     // Post the AI response as a comment
-    const comment = await prisma.comment.create({
-      data: {
-        taskId,
-        authorId: task.assigneeId,
-        content: commentContent
-      }
-    })
-
-    // Link the file to the comment if uploaded
-    if (fileId) {
-      await prisma.secureFile.update({
-        where: { id: fileId },
-        data: { commentId: comment.id }
-      })
-    }
+    // The attachment is linked before the broadcast, so the list sees it at once.
+    const posted = await sayAsAssignee(commentContent, fileId ?? undefined)
+    if (!posted.ok) return { ok: false, status: 500, error: posted.error }
+    const comment = posted.comment
 
     log.info(`✅ [AssistantWorkflow] Posted response for task ${taskId}${fileId ? ' with attachment' : ''}`)
 
@@ -357,7 +338,7 @@ Respond to the new comment. Be concise but thorough.`
  * For coding tasks, Astrid now dispatches to external runtimes via webhooks/SSE.
  */
 async function callAIService(
-  service: 'claude' | 'openai' | 'gemini' | 'copilot',
+  service: 'claude' | 'openai' | 'gemini' | 'copilot' | 'muse',
   apiKey: string,
   prompt: string,
   model: string,
@@ -414,6 +395,11 @@ async function callAIService(
 
     case 'copilot': {
       const response = await callCopilot({ apiKey, prompt, userId, model })
+      return response.content
+    }
+
+    case 'muse': {
+      const response = await callMuse({ apiKey, prompt, userId, model })
       return response.content
     }
 

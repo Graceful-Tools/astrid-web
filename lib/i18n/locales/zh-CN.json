@@ -754,6 +754,12 @@
         "listDesc": "复选框用于完成任务，优先级和负责人各占一行。",
         "projectDesc": "紧凑模式。点按复选框会打开优先级、负责人、状态和完成。"
       },
+      "listImages": {
+        "title": "列表图片",
+        "description": "在侧边栏和列表标题中，在每个列表旁显示图片（跨设备同步）",
+        "label": "显示列表图片",
+        "offDesc": "关闭后，每个列表改为显示其颜色。"
+      },
       "emailToTask": {
         "title": "邮件创建任务",
         "description": "通过发送邮件到{inboundTaskEmail}即时创建任务",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "任务 ID 前缀",
     "keyExample": "任务将编号为 {example} 等",
-    "keyInvalid": "{min}–{max} 个字母或数字，以字母开头"
+    "keyInvalid": "{min}–{max} 个字母或数字，以字母开头",
+    "keyRename": "重命名",
+    "keyRenameHint": "任务将变为 {next}；{old} 仍然有效",
+    "keyRenameFailed": "无法重命名前缀"
   },
   "listSettings": {
     "adminSettings": "管理员设置",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "可选留言…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "我很乐意帮忙，但需要一个 AI 模型才能回复！请前往 {settingsLink} 设置你偏好的模型。",
+      "onDeviceUnavailable": "你选择的模型只能在受支持的 Apple 设备上运行，所以我无法在这里回复。请前往 {settingsLink} 选择一个在任何地方都能使用的模型。"
+    }
   }
 }

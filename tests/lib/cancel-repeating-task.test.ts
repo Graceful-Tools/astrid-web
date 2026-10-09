@@ -117,3 +117,21 @@ describe('Cancelling a repeating task (11042ae3)', () => {
     expect(outcome).toEqual({ rolledForward: false })
   })
 })
+
+describe('A terminating series (AWTD-1092)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('clears the recurrence but hands completion back to the caller', async () => {
+    mockDetect.mockResolvedValue({ shouldRollForward: false, shouldTerminate: true } as never)
+
+    const outcome = await applyRepeatingTaskCompletion({
+      taskId: 'task-1',
+      existingCompleted: false,
+      dataCompleted: true,
+    })
+
+    expect(mockApply).toHaveBeenCalledWith('task-1', expect.objectContaining({ shouldTerminate: true }))
+    expect(outcome).toEqual({ rolledForward: false })
+  })
+})
+

@@ -2,7 +2,8 @@
   "webcredentials": {
     "apps": [
       "34K3P7PD2W.Graceful-Tools-Inc.Astrid-App",
-      "34K3P7PD2W.Graceful-Tools-Inc.Astrid-Mac"
+      "34K3P7PD2W.Graceful-Tools-Inc.Astrid-Mac",
+      "34K3P7PD2W.Graceful-Tools-Inc.Whitelabel"
     ]
   },
   "applinks": {
@@ -10,6 +11,14 @@
     "details": [
       {
         "appID": "34K3P7PD2W.Graceful-Tools-Inc.Astrid-App",
+        "paths": [
+          "/s/*",
+          "/tasks/*",
+          "/lists/*"
+        ]
+      },
+      {
+        "appID": "34K3P7PD2W.Graceful-Tools-Inc.Whitelabel",
         "paths": [
           "/s/*",
           "/tasks/*",

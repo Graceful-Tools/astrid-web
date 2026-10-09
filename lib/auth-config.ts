@@ -2,6 +2,7 @@ import { BRAND } from '@/lib/brand/config'
 import { hasCapability, assertUsableAuthConfiguration } from '@/lib/brand/capabilities'
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import GithubProvider from "next-auth/providers/github"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
@@ -10,6 +11,9 @@ import { getBaseUrl } from "./base-url"
 import { isAstridSubdomainUrl, sameOrigin } from "./auth-host"
 import { createDefaultListsForUser } from "./default-lists"
 import { createLogger } from '@/lib/logger'
+import { isGoogleEmailVerified } from '@/lib/auth/google-identity'
+import { linkFederatedIdentity, type FederatedSignIn } from '@/lib/auth/federated-identity-linking'
+import { githubVerifiedPrimaryEmail } from '@/lib/auth/github-verified-email'
 
 const log = createLogger('auth-config')
 
@@ -69,10 +73,16 @@ const customAdapter = {
     if (process.env.NODE_ENV === "development") {
       log.info(user.email, "[Auth] Creating new user:")
     }
+    // Only the OAuth flow reaches this adapter (passkeys and the mobile routes
+    // create users themselves), and signIn has already refused any email the
+    // provider does not vouch for (linkFederatedIdentity). So the row starts
+    // verified — left null, the user's next sign-in would "adopt" their own
+    // account and revoke passkeys they had added in between (AWTD-1088).
     return await prisma.user.create({
       data: {
         ...user,
-        email: user.email.toLowerCase()
+        email: user.email.toLowerCase(),
+        emailVerified: user.emailVerified ?? new Date()
       }
     })
   },
@@ -96,15 +106,12 @@ const customAdapter = {
     })
     
     if (existingAccount) {
-      if (process.env.NODE_ENV === "development") {
-        log.info("[Auth] Account already exists, updating userId if needed")
-      }
-      // Update the userId in case it changed
+      // An identity belongs to exactly one user. This used to "update the
+      // userId in case it changed" — silently moving a Google (or any) login
+      // from one account to another (AWTD-1088).
       if (existingAccount.userId !== account.userId) {
-        await prisma.account.update({
-          where: { id: existingAccount.id },
-          data: { userId: account.userId }
-        })
+        log.warn({ provider: account.provider }, "[Auth] Refusing to move a provider identity to a different user")
+        throw new Error("This sign-in is already linked to another account")
       }
       return
     }
@@ -145,6 +152,40 @@ function buildProviders() {
 
   const providers: NextAuthOptions["providers"] = []
 
+  if (hasCapability('authGithub')) {
+    // The brand's GitHub App's own OAuth client — one consent gives the session
+    // and, later, the user-to-server token (spec §7). Its Callback URL must
+    // include /api/auth/callback/github.
+    providers.push(GithubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }))
+  }
+
+  if (hasCapability('authSso')) {
+    // Deployment-level OIDC SSO (spec §6.4 v1): one IdP from env. Identities
+    // are trusted only for AUTH_SSO_DOMAINS — see emailTrustFor.
+    providers.push({
+      id: 'sso',
+      name: process.env.AUTH_SSO_LABEL?.trim() || 'SSO',
+      type: 'oauth',
+      wellKnown: `${process.env.AUTH_SSO_ISSUER!.replace(/\/+$/, '')}/.well-known/openid-configuration`,
+      clientId: process.env.AUTH_SSO_CLIENT_ID!,
+      clientSecret: process.env.AUTH_SSO_CLIENT_SECRET!,
+      authorization: { params: { scope: 'openid email profile' } },
+      idToken: true,
+      checks: ['pkce', 'state'],
+      profile(claims: Record<string, string | undefined>) {
+        return {
+          id: claims.sub!,
+          email: claims.email ?? null,
+          name: claims.name ?? claims.preferred_username ?? claims.email ?? null,
+          image: claims.picture ?? null,
+        }
+      },
+    })
+  }
+
   if (hasCapability('authGoogle')) {
     providers.push(GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -163,6 +204,36 @@ function buildProviders() {
   return providers
 }
 
+/** Providers whose sign-in goes through linkFederatedIdentity. */
+const FEDERATED_PROVIDERS = new Set(['google', 'github', 'sso'])
+
+/**
+ * How far a provider vouches for the email it handed over (spec §6.3).
+ * Google: its email_verified claim. GitHub: the primary address it reports as
+ * verified in /user/emails — the profile email can be unverified, and NextAuth's
+ * own fallback picks the primary without checking. SSO: domain-bound.
+ */
+async function emailTrustFor(
+  provider: string,
+  email: string,
+  account: { access_token?: string | null },
+  profile: unknown,
+): Promise<Pick<FederatedSignIn, 'emailTrust' | 'allowedDomains'>> {
+  if (provider === 'google') {
+    const claim = (profile as { email_verified?: string | boolean } | undefined)?.email_verified
+    return { emailTrust: isGoogleEmailVerified(claim) ? 'verified' : 'none' }
+  }
+  if (provider === 'github') {
+    const verified = account.access_token ? await githubVerifiedPrimaryEmail(account.access_token) : null
+    return { emailTrust: verified && verified.toLowerCase() === email.toLowerCase() ? 'verified' : 'none' }
+  }
+  if (provider === 'sso') {
+    const allowedDomains = (process.env.AUTH_SSO_DOMAINS ?? '').split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
+    return { emailTrust: 'domain-bound', allowedDomains }
+  }
+  return { emailTrust: 'none' }
+}
+
 const authConfig: NextAuthOptions = {
   adapter: customAdapter,
   providers: buildProviders(),
@@ -177,87 +248,30 @@ const authConfig: NextAuthOptions = {
         }, "[Auth] SignIn callback triggered:")
       }
       
-      // Handle Google OAuth sign-in/sign-up
-      if (account?.provider === "google" && user?.email) {
+      // Federated providers sign in only through the shared linking rule
+      // (lib/auth/federated-identity-linking.ts, spec §6.3): an identity
+      // already linked signs in; otherwise the email must be one the provider
+      // vouches for, and linking adopts the account first. Google used to have
+      // its own copy here, which linked on any email at all (AWTD-1088).
+      if (account && FEDERATED_PROVIDERS.has(account.provider)) {
+        if (!user?.email) return false
         try {
-          // Check if user already exists with this email
-          const existingUser = await prisma.user.findUnique({
-            where: { email: user.email.toLowerCase() },
-            include: { accounts: true }
+          return await linkFederatedIdentity({
+            provider: account.provider,
+            account: account as never,
+            email: user.email,
+            ...(await emailTrustFor(account.provider, user.email, account, profile)),
+            profile: {
+              name: profile?.name ?? user.name,
+              image: (profile as { picture?: string } | undefined)?.picture ?? user.image ?? null,
+            },
           })
-
-          if (existingUser) {
-            // Check if Google account is already linked
-            const existingGoogleAccount = existingUser.accounts.find(
-              acc => acc.provider === "google"
-            )
-
-            if (!existingGoogleAccount) {
-              if (process.env.NODE_ENV === "development") {
-                log.info({ email: existingUser.email }, "[Auth] Linking Google account to existing user")
-              }
-
-              // Link Google account to existing user
-              await prisma.account.create({
-                data: {
-                  userId: existingUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  refresh_token: account.refresh_token,
-                  access_token: account.access_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                  session_state: account.session_state
-                }
-              })
-            }
-
-            // Always update user info with Google profile data on sign-in
-            // This ensures profile pictures are refreshed from Google
-            const googlePicture = (profile as any)?.picture
-            if (googlePicture || profile?.name) {
-              const updateData: { name?: string; image?: string; emailVerified?: Date } = {
-                emailVerified: new Date() // Mark email as verified since it's from Google
-              }
-
-              // Update name if provided and user doesn't have one
-              if (profile?.name && !existingUser.name) {
-                updateData.name = profile.name
-              }
-
-              // Always update image from Google (refresh it)
-              if (googlePicture) {
-                updateData.image = googlePicture
-                if (process.env.NODE_ENV === "development") {
-                  log.info({ pictureSnippet: googlePicture.substring(0, 50) + "..." }, "[Auth] Updating user image from Google")
-                }
-              }
-
-              await prisma.user.update({
-                where: { id: existingUser.id },
-                data: updateData
-              })
-            }
-
-            if (process.env.NODE_ENV === "development") {
-              log.info({ email: existingUser.email }, "[Auth] Google OAuth successful for existing user")
-            }
-          } else {
-            if (process.env.NODE_ENV === "development") {
-              log.info({ email: user.email }, "[Auth] Google OAuth sign up for new user")
-            }
-          }
-
-          return true
         } catch (error) {
-          log.error({ err: error }, "[Auth] Error during Google OAuth sign-in:")
+          log.error({ err: error, provider: account.provider }, "[Auth] Error during federated sign-in")
           return false
         }
       }
-      
+
       // Handle credentials sign-in
       if (account?.provider === "credentials") {
         if (process.env.NODE_ENV === "development") {

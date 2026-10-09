@@ -9,11 +9,16 @@ import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
 import { createLogger } from '@/lib/logger'
 import { getBaseUrl } from '@/lib/base-url'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-workflow.request-changes')
 
 
 export async function POST(request: NextRequest) {
+  // A deployment without the coding agent must refuse server-side (AWTD-1094).
+  const capabilityBlocked = capabilityGate('codingAgent')
+  if (capabilityBlocked) return capabilityBlocked
+
   try {
     // Verify user session
     const session = await getUnifiedSession()

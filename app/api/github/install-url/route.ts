@@ -7,14 +7,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
+import { GITHUB_WEB_URL } from '@/lib/github/host'
 
 const log = createLogger('github.install-url')
 
 
 export async function GET(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     // Use the actual GitHub App name from your GitHub App settings
     const appName = BRAND.githubAppSlug // The registered GitHub App backing the coding agent
-    const installUrl = `https://github.com/apps/${appName}/installations/new?state=${state}`
+    const installUrl = `${GITHUB_WEB_URL}/apps/${appName}/installations/new?state=${state}`
 
     return NextResponse.json({ installUrl })
 

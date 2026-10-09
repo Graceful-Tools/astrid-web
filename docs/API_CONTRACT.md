@@ -389,6 +389,21 @@ Get a user's public profile. The `email` field is returned only when the request
 
 ---
 
+### GET|PATCH `/api/v1/users/me/smart-tasks`
+Task-creation and display preferences. GET requires `user:read`, PATCH requires
+`user:write`. PATCH accepts any subset of the fields and returns the updated set;
+it also emits `user_settings_updated` to the user's other sessions.
+
+| Field | Type | Notes |
+|---|---|---|
+| `showListImages` | `boolean \| null` | "Show list images". `null` = follow the `hide_list_images` experiment flag (`GET /api/v1/features`); `true`/`false` = the user's explicit choice, which always wins. Draw list images when `showListImages ?? !features.hide_list_images`. PATCH `null` to return to the experiment. Any other type → 400. |
+
+The response includes `emailToTaskEnabled`, `defaultTaskDueOffset`,
+`defaultDueTime`, `smartTaskCreationEnabled`, `subtaskDisplay` and
+`taskDisplayMode`, which follow the same PATCH rules.
+
+---
+
 ### GET `/api/v1/users/me/connections`
 Everything that can act as the account, from every source, as one list.
 Requires `user:read`.
@@ -441,6 +456,28 @@ configuration. 400 for an unknown kind, 404 when the row is not the caller's.
 { "success": true, "kind": "authorizedApp", "id": "string", "revokedTokens": 2,
   "meta": { "apiVersion": "v1", "authSource": "session" } }
 ```
+
+### AI service ids
+`serviceId` in `PUT|DELETE /api/v1/users/me/ai-credentials` and
+`POST /api/v1/users/me/ai-credentials/test`, the keys of
+`GET|PUT /api/v1/users/me/ai-model-preferences`, `?service=` on
+`GET /api/v1/users/me/available-models`, and `preferredService` in
+`/api/v1/users/me/ai-preferences` all take one of the following values:
+
+| Value | Provider | Default model |
+|---|---|---|
+| `claude` | Anthropic | `claude-sonnet-4-6` |
+| `openai` | OpenAI | `gpt-4o` |
+| `gemini` | Google | `gemini-2.5-flash` |
+| `copilot` | GitHub Copilot (GitHub OAuth or a pasted token) | `gpt-4.1` |
+| `muse` | Meta Model API (`https://api.meta.ai/v1`), using a key from the Meta Developer Console. Added by AWTD-1053. | `muse-spark-1.3` |
+| `openclaw` | Custom Agent (credentials only, no model) | — |
+
+`muse@` is one identity with two runtimes, like `claude@`. In `polling` mode
+the Muse Code CLI works its queue. In `api` mode the server runs it on the
+user's Meta key. `available-agents` returns `{ "service": "muse", "name": "Muse" }`
+for it under the same rules as every other built-in. Clients must treat an
+unknown service value as a provider they cannot configure, not as an error.
 
 ---
 
@@ -697,3 +734,4 @@ X-RateLimit-Reset: 1640000000
 - Initial stable API release
 - All endpoints documented above
 - Added `GET /api/v1/app-version` for the iOS/Mac Update card (AWTD-920)
+- Added the `muse` AI service id (Meta Model API). `muse@` can now be server-run (AWTD-1053)

@@ -102,14 +102,15 @@ const ROWS: AgentRowConfig[] = [
     keyDocsUrl: 'https://platform.openai.com/docs/api-reference',
   },
   {
-    // Muse Code is a local CLI only — there is no Meta API Astrid calls, so it
-    // has no key field and its identity is always the polling one (AWTD-937).
+    // Like Claude: the Muse Code CLI polls muse@, or Astrid runs it on a Meta
+    // Model API key (AWTD-1053). One identity either way.
     key: 'muse',
     label: 'Muse',
     modeMailbox: 'muse',
     service: 'muse',
     pollMailbox: 'muse',
     identityFor: () => 'muse',
+    keyDocsUrl: 'https://developer.meta.com/ai/',
   },
   {
     key: 'copilot',

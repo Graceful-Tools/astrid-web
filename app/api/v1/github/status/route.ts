@@ -17,7 +17,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { getGitHubStatus } from '@/lib/github-status'
 
 export const GET = withAuth(
-  { scopes: ['user:read'], tag: 'v1.github.status' },
+  { scopes: ['user:read'], tag: 'v1.github.status', capability: 'codingAgent' },
   async (_req, auth) => {
     const status = await getGitHubStatus(auth.userId, 'v1/github/status')
     return NextResponse.json(status)

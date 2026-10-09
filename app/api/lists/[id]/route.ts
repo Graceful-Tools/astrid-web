@@ -17,11 +17,13 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { canConvertListFlavor } from "@/lib/list-flavors"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { recordDeletion } from "@/lib/deletion-log"
+import { broadcastListEvent } from "@/lib/lists/v1-list-shape"
 import {
   deleteListWithImageRelease,
   ListImageClaimError,
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
+import { announceRosterChanges } from '@/services/list-member.service'
 
 const log = createLogger('api.lists.id')
 
@@ -317,6 +319,17 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       },
     })
 
+    // A roster replace (adminIds / memberIds) is written above in one go; who
+    // joined and who left is announced here the member service's way, so open
+    // clients see it (spec §5.2 step 6). It used to send only list_updated.
+    if (data.adminIds !== undefined || data.memberIds !== undefined) {
+      await announceRosterChanges({
+        before: existingList,
+        after: updatedList,
+        actor: { id: session.user.id, name: session.user.name, email: session.user.email },
+      })
+    }
+
     // Manually fetch defaultAssignee if it's a valid user ID (not "unassigned")
     let defaultAssignee = null
     if (updatedList.defaultAssigneeId && updatedList.defaultAssigneeId !== "unassigned") {
@@ -372,14 +385,16 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
 
       if (userIdsFiltered.length > 0) {
         // Strip per-user favorite fields — these are user-specific and must not
-        // overwrite other users' favorite state via SSE
+        // overwrite other users' favorite state via SSE. Each viewer's own is
+        // in `v1List`, with the rest of the list as their GET returns it
+        // (AWTD-1046).
         const { isFavorite: _isFav, favoriteOrder: _favOrd, ...broadcastData } = updatedListWithDefaultAssignee
         log.info(`[SSE] Broadcasting list update to ${userIdsFiltered.length} users`)
-        const { broadcastToUsers } = await import("@/lib/sse-utils")
-        broadcastToUsers(userIdsFiltered, {
+        await broadcastListEvent({
+          listId,
+          recipients: userIdsFiltered as string[],
           type: 'list_updated',
-          timestamp: new Date().toISOString(),
-          data: broadcastData
+          data: broadcastData,
         })
       }
     } catch (sseError) {

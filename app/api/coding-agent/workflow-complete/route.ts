@@ -3,6 +3,8 @@ import { mcpTokenLookup } from "@/lib/mcp-token"
 import { prisma } from '@/lib/prisma'
 import { isCodingAgent } from '@/lib/ai-agent-utils'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs } from '@/services/post-comment-as'
+import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-agent.workflow-complete')
 
@@ -25,6 +27,10 @@ interface WorkflowCompleteRequest {
  * Called by astrid-code-assistant.yml workflow in the notify-completion job
  */
 export async function POST(request: NextRequest) {
+  // A deployment without the coding agent must refuse server-side (AWTD-1094).
+  const capabilityBlocked = capabilityGate('codingAgent')
+  if (capabilityBlocked) return capabilityBlocked
+
   try {
     log.info('📊 [Workflow Complete] Received completion notification from GitHub Actions')
 
@@ -182,14 +188,13 @@ ${actionRequired}
 *Automated update from GitHub Actions workflow*`
 
     try {
-      await prisma.comment.create({
-        data: {
-          content: completionComment,
-          type: 'MARKDOWN',
-          taskId,
-          authorId: mcpToken.user.id
-        }
+      // Through the comment service, so the list sees it live (P1 step 4).
+      const posted = await postCommentAs({
+        taskId,
+        authorId: mcpToken.user.id,
+        content: completionComment,
       })
+      if (!posted.ok) throw new Error(posted.error)
 
       log.info('✅ [Workflow Complete] Added completion comment to task')
     } catch (commentError) {
@@ -247,6 +252,10 @@ ${actionRequired}
  * GET endpoint to check the workflow completion service
  */
 export async function GET() {
+  // A deployment without the coding agent must refuse server-side (AWTD-1094).
+  const capabilityBlocked = capabilityGate('codingAgent')
+  if (capabilityBlocked) return capabilityBlocked
+
   return NextResponse.json({
     service: 'GitHub Actions Workflow Completion',
     status: 'available',

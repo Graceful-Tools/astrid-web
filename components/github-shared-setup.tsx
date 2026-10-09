@@ -18,8 +18,7 @@ import {
   Github,
   RefreshCw,
   Info,
-  X,
-  Link as LinkIcon
+  X
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -42,9 +41,7 @@ interface ConnectionStatus {
 
 export function GitHubSharedSetup() {
   const [installations, setInstallations] = useState<GitHubInstallation[]>([])
-  const [detectedInstallations, setDetectedInstallations] = useState<GitHubInstallation[]>([])
   const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState<number | null>(null)
   const [disconnecting, setDisconnecting] = useState<number | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null)
 
@@ -79,9 +76,7 @@ export function GitHubSharedSetup() {
       const response = await fetch('/api/github/installations')
       if (response.ok) {
         const data = await response.json()
-        // API returns all linked installations OR detected unlinked installations
         setInstallations(data.installations || [])
-        setDetectedInstallations(data.detectedInstallations || [])
       }
     } catch (error) {
       console.error('Error fetching installation:', error)
@@ -92,31 +87,6 @@ export function GitHubSharedSetup() {
     // Open GitHub App installation page
     // After installation, GitHub redirects to /api/github/setup with the installation_id
     window.location.href = `https://github.com/apps/${BRAND.githubAppSlug}/installations/new`
-  }
-
-  const handleConnectInstallation = async (installationId: number) => {
-    try {
-      setConnecting(installationId)
-
-      const response = await fetch('/api/github/connect-installation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ installationId })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        toast.success(data.message || 'GitHub connected successfully')
-        await loadData()
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to connect installation')
-      }
-    } catch (error) {
-      toast.error('Failed to connect GitHub installation')
-    } finally {
-      setConnecting(null)
-    }
   }
 
   const handleDisconnect = async (installationId?: number) => {
@@ -246,90 +216,6 @@ export function GitHubSharedSetup() {
             >
               <Github className="w-4 h-4 mr-2" />
               Add Another Account
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Detected unlinked installations - user installed on GitHub but didn't link to Astrid
-  if (detectedInstallations.length > 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center space-x-3">
-            <Github className="w-6 h-6 text-blue-500" />
-            <div>
-              <CardTitle>GitHub Installation Detected</CardTitle>
-              <CardDescription>
-                We found your GitHub App installation. Click to connect it to {BRAND.appName}.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              You&apos;ve already installed the {BRAND.appName} Agent on GitHub. Just click &quot;Connect&quot; below to link it to your {BRAND.appName} account.
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-3">
-            {detectedInstallations.map((inst) => (
-              <div
-                key={inst.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="relative w-10 h-10">
-                    <img
-                      src={inst.account.avatar_url}
-                      alt={inst.account.login}
-                      className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                        if (fallback) fallback.classList.remove('hidden')
-                      }}
-                    />
-                    <div className="hidden w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center absolute inset-0">
-                      <Github className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">{inst.account.login}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Installation ID: {inst.id}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => handleConnectInstallation(inst.id)}
-                  disabled={connecting === inst.id}
-                  className="w-full sm:w-auto"
-                >
-                  {connecting === inst.id ? (
-                    <>
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <LinkIcon className="w-4 h-4 mr-2" />
-                      Connect
-                    </>
-                  )}
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center pt-2">
-            <Button variant="ghost" size="sm" onClick={loadData}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
             </Button>
           </div>
         </CardContent>

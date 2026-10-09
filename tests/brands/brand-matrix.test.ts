@@ -198,15 +198,21 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     const body = await (await GET()).json()
 
     const caps = profile.expect.capabilities
-    expect(body.auth).toEqual({
+    expect(body.auth).toMatchObject({
       google: caps.authGoogle,
       apple: caps.authApple,
       passkey: caps.authPasskey,
     })
+    // The ordered list carries the same set the booleans do (spec §6.5).
+    const offered = (body.auth.providers as Array<{ id: string }>).map(p => p.id)
+    for (const [id, on] of Object.entries(body.auth).filter(([k]) => k !== 'providers')) {
+      expect(offered.includes(id), `auth.providers vs auth.${id}`).toBe(on)
+    }
     expect(body.sync).toEqual({
       googleTasks: caps.syncGoogleTasks,
       githubIssues: caps.syncGithubIssues,
     })
+    expect(body.integrations.codingAgent).toBe(caps.codingAgent)
     expect(body.brand.appName).toBe(profile.expect.appName)
   })
 
@@ -326,6 +332,12 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       new NextRequest(`https://${domain}/dashboard`, { headers: { host: domain } })
     )
 
+    // A brand served on its own subdomain has no www host: it must not redirect at all, or
+    // the site never opens (tasks.gracefultools.com, 2026-10-04).
+    if (profile.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT === 'false') {
+      expect(res.headers.get('location') ?? '').not.toContain(`www.${domain}`)
+      return
+    }
     // A partner deployment redirecting to www.astrid.cc would hand its traffic
     // to someone else's domain.
     expect(res.status).toBe(308)

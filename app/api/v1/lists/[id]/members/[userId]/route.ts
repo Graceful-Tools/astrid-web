@@ -173,21 +173,13 @@ export const DELETE = withAuth<RouteContext>(
       )
     }
 
-    await prisma.listMember.delete({
-      where: {
-        listId_userId: { listId: id, userId },
-      }
-    })
-
-    // The row is gone, but `userLists`/`userTasks` still name this member until
-    // the cache is cleared — so the next read puts them back and the removal
-    // looks like it never happened. That is the whole of task e27642cc: an
-    // agent removed from a list "keeps showing back up". Nothing was re-adding
-    // it; the write simply outlived its cache.
+    // The service deletes the row, clears the caches that still name this
+    // member (task e27642cc: a removed agent "kept showing back up" because the
+    // write outlived its cache) and broadcasts list_member_removed.
     //
-    // The legacy handler has always done this. This one deleted, broadcast SSE
-    // and returned, never importing a cache module at all — so the divergence
-    // arrived the moment a caller moved from the legacy route to v1.
+    // It must be the ONLY delete. This route used to delete the row itself
+    // first; the service's deleteMany then found nothing, read that as "was not
+    // a member", and skipped the invalidation and the broadcast (AWTD-1091).
     await removeListMember({
       list,
       member: { id: userId },

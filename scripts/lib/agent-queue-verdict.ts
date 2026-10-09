@@ -28,6 +28,8 @@ export interface QueueSnapshotTask {
   id: string
   identifier?: string | null
   title?: string
+  /** Carries the LONG-RUN flag (AWTD-1041, scripts/lib/long-run.ts). */
+  description?: string | null
 }
 
 export interface AttentionSnapshot {

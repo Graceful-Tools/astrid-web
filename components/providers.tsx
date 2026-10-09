@@ -4,6 +4,7 @@ import type React from "react"
 import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/contexts/theme-context"
+import { BRAND } from "@/lib/brand/config"
 import { SettingsProvider } from "@/contexts/settings-context"
 // SSEProvider removed - now using centralized SSE Manager
 import { PWARegistration } from "@/components/pwa-registration"
@@ -12,6 +13,7 @@ import { PWAStatus } from "@/components/pwa-status"
 import { CodingWorkflowProvider } from "@/components/coding-workflow-provider"
 import { OfflineProvider } from "@/components/offline-provider"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
+import { ListImagesProvider } from "@/contexts/list-images-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
 import { WebVitalsReporter } from "@/components/web-vitals-reporter"
 
@@ -24,21 +26,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
           alike — the same reach <SpeedInsights /> has in the root layout. */}
       <WebVitalsReporter />
       <FeatureFlagProvider>
-        <ThemeProvider>
+        <ThemeProvider defaultTheme={BRAND.defaultTheme}>
           <SettingsProvider>
-            <OfflineProvider>
-              <CodingWorkflowProvider>
-                {/* One editing session for the whole app (task 7b60c7c5): opening
-                    any editor commits and closes the active one, wherever it lives. */}
-                <EditingSessionProvider>
-                  <PWARegistration />
-                  <PWAStatus />
-                  {children}
-                  <Toaster />
-                  <PWAInstallPrompt />
-                </EditingSessionProvider>
-              </CodingWorkflowProvider>
-            </OfflineProvider>
+            <ListImagesProvider>
+              <OfflineProvider>
+                <CodingWorkflowProvider>
+                  {/* One editing session for the whole app (task 7b60c7c5): opening
+                      any editor commits and closes the active one, wherever it lives. */}
+                  <EditingSessionProvider>
+                    <PWARegistration />
+                    <PWAStatus />
+                    {children}
+                    <Toaster />
+                    <PWAInstallPrompt />
+                  </EditingSessionProvider>
+                </CodingWorkflowProvider>
+              </OfflineProvider>
+            </ListImagesProvider>
           </SettingsProvider>
         </ThemeProvider>
       </FeatureFlagProvider>

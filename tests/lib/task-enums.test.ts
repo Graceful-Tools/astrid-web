@@ -41,6 +41,7 @@ import {
   isRepeating,
   parseCompletedSource,
   parseRepeating,
+  normalizeRepeatingData,
 } from '@/lib/task-enums'
 
 describe('repeating (task e16e9b94)', () => {
@@ -178,5 +179,52 @@ describe('the API boundary rejects an invalid value (task e16e9b94)', () => {
       expect(bad.error).toContain('never')
       expect(bad.error).toContain('custom')
     }
+  })
+})
+
+describe('normalizeRepeatingData — shared by task create and update (AWTD-1035)', () => {
+  it('stores nothing for a schedule that is not custom', () => {
+    expect(normalizeRepeatingData('daily', { unit: 'weeks' })).toBeNull()
+  })
+
+  it('parses the JSON string some clients send, and keeps an object as-is', () => {
+    expect(normalizeRepeatingData('custom', '{"unit":"weeks"}')).toEqual({ unit: 'weeks' })
+    expect(normalizeRepeatingData('custom', { unit: 'days' })).toEqual({ unit: 'days' })
+  })
+
+  it('stores null for a string that does not parse, or no data at all', () => {
+    expect(normalizeRepeatingData('custom', '{not json')).toBeNull()
+    expect(normalizeRepeatingData('custom', undefined)).toBeNull()
+  })
+
+  // A monthly pattern without monthRepeatType ends the series at its next completion on every
+  // client, so it is never stored without one: "same date", counted from the repeat anchor.
+  it('AWTD-1074: a monthly pattern with no monthRepeatType is stored as same_date', () => {
+    const every6Months = { type: 'custom', unit: 'months', interval: 6, endCondition: 'never' }
+    expect(normalizeRepeatingData('custom', every6Months)).toEqual({ ...every6Months, monthRepeatType: 'same_date' })
+    expect(normalizeRepeatingData('custom', JSON.stringify(every6Months))).toEqual({ ...every6Months, monthRepeatType: 'same_date' })
+    expect(normalizeRepeatingData('custom', { ...every6Months, monthRepeatType: 'bogus' })).toEqual({ ...every6Months, monthRepeatType: 'same_date' })
+  })
+
+  it('AWTD-1074: keeps a monthRepeatType that is set, and leaves other units alone', () => {
+    const weekday = { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: 1 } }
+    expect(normalizeRepeatingData('custom', weekday)).toEqual(weekday)
+    expect(normalizeRepeatingData('custom', { unit: 'weeks', interval: 1 })).toEqual({ unit: 'weeks', interval: 1 })
+  })
+
+  // Every client re-opens an interval-0 series on the same date forever, so the smallest interval
+  // stored is 1 (Jon on the task: "make the interval 1 day as minimum").
+  it('AWTD-1075: an interval below 1 is stored as 1, whatever the unit', () => {
+    const everyZeroDays = { type: 'custom', unit: 'days', interval: 0, endCondition: 'never' }
+    expect(normalizeRepeatingData('custom', everyZeroDays)).toEqual({ ...everyZeroDays, interval: 1 })
+    expect(normalizeRepeatingData('custom', JSON.stringify(everyZeroDays))).toEqual({ ...everyZeroDays, interval: 1 })
+    expect(normalizeRepeatingData('custom', { ...everyZeroDays, interval: -3 })).toEqual({ ...everyZeroDays, interval: 1 })
+    expect(normalizeRepeatingData('custom', { unit: 'years', interval: 0, month: 3, day: 1 })).toEqual({ unit: 'years', interval: 1, month: 3, day: 1 })
+  })
+
+  it('AWTD-1075: leaves an interval of 1 or more, and one that is not a number, alone', () => {
+    expect(normalizeRepeatingData('custom', { unit: 'days', interval: 3 })).toEqual({ unit: 'days', interval: 3 })
+    expect(normalizeRepeatingData('custom', { unit: 'days' })).toEqual({ unit: 'days' })
+    expect(normalizeRepeatingData('custom', { unit: 'days', interval: '0' })).toEqual({ unit: 'days', interval: '0' })
   })
 })

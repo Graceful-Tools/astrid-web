@@ -754,6 +754,12 @@
         "listDesc": "체크박스로 작업을 완료하며, 우선순위와 담당자는 각각 별도의 행을 가집니다.",
         "projectDesc": "간결하게 표시. 체크박스를 누르면 우선순위, 담당자, 상태, 완료가 열립니다."
       },
+      "listImages": {
+        "title": "목록 이미지",
+        "description": "사이드바와 목록 헤더에서 각 목록 옆에 이미지를 표시합니다 (기기 간 동기화)",
+        "label": "목록 이미지 표시",
+        "offDesc": "끄면 각 목록에 이미지 대신 색상이 표시됩니다."
+      },
       "emailToTask": {
         "title": "이메일에서 작업",
         "description": "{inboundTaskEmail}로 이메일을 보내 즉시 작업 생성",
@@ -975,7 +981,10 @@
     "requestFailed": "Couldn't send your request. Please try again.",
     "keyLabel": "작업 ID 접두사",
     "keyExample": "작업은 {example} 형식이 됩니다",
-    "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작"
+    "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작",
+    "keyRename": "이름 변경",
+    "keyRenameHint": "작업이 {next}(으)로 바뀝니다. {old}도 계속 작동합니다",
+    "keyRenameFailed": "접두사를 변경하지 못했습니다"
   },
   "listSettings": {
     "adminSettings": "관리자 설정",
@@ -1048,5 +1057,11 @@
   },
   "userPicker": {
     "optionalMessage": "선택 메시지…"
+  },
+  "astridAgent": {
+    "modelSetup": {
+      "noModel": "도와드리고 싶지만, 답변하려면 AI 모델이 필요해요! {settingsLink}에서 원하는 모델을 설정해 주세요.",
+      "onDeviceUnavailable": "선택한 모델은 지원되는 Apple 기기에서만 작동해서 여기서는 답변할 수 없어요. {settingsLink}에서 어디서나 작동하는 모델을 선택해 주세요."
+    }
   }
 }

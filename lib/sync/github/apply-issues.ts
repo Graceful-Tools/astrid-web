@@ -32,6 +32,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { mapWithConcurrency } from '@/lib/concurrency'
 import type { PulledIssue } from '@/lib/sync/github/pull-issues'
+import { updateTaskWithSideEffects, type UpdateTaskIntent } from '@/services/task.service'
 
 const log = createLogger('sync.github.apply')
 
@@ -66,6 +67,36 @@ function isStale(item: PulledIssue, existingRemoteUpdatedAt: Date | null): boole
   if (!item.remoteUpdatedAt) return false
   if (!existingRemoteUpdatedAt) return false
   return new Date(item.remoteUpdatedAt) <= existingRemoteUpdatedAt
+}
+
+type LinkedTaskContent = {
+  title: string
+  description: string | null
+  completed: boolean
+  closedReason: string | null
+} | null
+
+/**
+ * The update intent for an issue against its task as it stands: only fields
+ * that differ. `completed` is sent only when it flips, because the service
+ * stamps completedAt on every `completed: true` it is given.
+ */
+function changedFields(task: LinkedTaskContent, item: PulledIssue): UpdateTaskIntent {
+  const description = item.notes ?? ''
+  const closedReason = item.closedReason ?? null
+  const intent: UpdateTaskIntent = {}
+
+  if (!task || task.title !== item.title) intent.title = item.title
+  if (!task || (task.description ?? '') !== description) intent.description = description
+  if (!task || (task.closedReason ?? null) !== closedReason) intent.closedReason = closedReason
+  if (!task || task.completed !== item.completed) {
+    intent.completed = item.completed
+    if (item.completed) {
+      intent.completedSource = 'github'
+      if (item.completedAt) intent.completedAt = item.completedAt
+    }
+  }
+  return intent
 }
 
 export async function applyPulledIssues(args: {
@@ -131,7 +162,15 @@ export async function applyPulledIssues(args: {
       userId: link.userId,
       remoteId: { in: applicable.map(item => item.remoteId) },
     },
-    select: { id: true, astridTaskId: true, remoteUpdatedAt: true, remoteId: true },
+    select: {
+      id: true,
+      astridTaskId: true,
+      remoteUpdatedAt: true,
+      remoteId: true,
+      // Still one query: the linked task's current content, so an issue that
+      // changed nothing writes nothing (AWTD-1093).
+      task: { select: { title: true, description: true, completed: true, closedReason: true } },
+    },
   })
 
   const existingByRemoteId = new Map(existingRows.map(row => [row.remoteId, row]))
@@ -147,30 +186,32 @@ export async function applyPulledIssues(args: {
       if (existing) {
         if (isStale(item, existing.remoteUpdatedAt)) return 'skipped'
 
-        // Independent rows, so one round trip rather than two. Not a
-        // transaction: if the link write is the one that fails, the watermark
-        // simply does not advance and the next run reapplies — which is the
-        // recoverable direction. A half-applied CREATE is the one that is not,
-        // and that is still transactional below.
-        await Promise.all([
-          prisma.task.update({
-            where: { id: existing.astridTaskId },
-            data: {
-              title: item.title,
-              description: item.notes ?? '',
-              completed: item.completed,
-              completedAt: item.completedAt ? new Date(item.completedAt) : null,
-              closedReason: item.closedReason ?? null,
-            },
-          }),
-          prisma.externalTaskLink.update({
-            where: { id: existing.id },
-            data: {
-              remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
-              lastSyncedAt: new Date(),
-            },
-          }),
-        ])
+        // Through the task service, and only for what actually changed. A raw
+        // write completed tasks with no completedSource, left the board lane on
+        // a done task, never promoted the tasks it was blocking and broadcast
+        // nothing; and writing unchanged content bumped updatedAt, which push
+        // then read as a local edit (AWTD-1093).
+        const intent = changedFields(existing.task, item)
+        if (Object.keys(intent).length > 0) {
+          const outcome = await updateTaskWithSideEffects({
+            taskId: existing.astridTaskId,
+            actorId: link.userId,
+            intent,
+          })
+          // Propagate, like every other failure here: the caller must not
+          // commit the cursor past an issue that was not applied.
+          if (!outcome.ok) throw new Error(`Applying ${item.remoteId} failed: ${outcome.error}`)
+        }
+
+        // After the task, not alongside it: if the task write fails, the
+        // watermark must not advance.
+        await prisma.externalTaskLink.update({
+          where: { id: existing.id },
+          data: {
+            remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
+            lastSyncedAt: new Date(),
+          },
+        })
         return 'updated'
       }
 
@@ -185,6 +226,7 @@ export async function applyPulledIssues(args: {
               description: item.notes ?? '',
               completed: item.completed,
               completedAt: item.completedAt ? new Date(item.completedAt) : null,
+              completedSource: item.completed ? 'github' : null,
               closedReason: item.closedReason ?? null,
               creatorId: link.userId,
               // '' means no assignee resolved to an Astrid user — leave it unset

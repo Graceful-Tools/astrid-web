@@ -6,7 +6,7 @@
 
 import { agentEmailForService } from '@/lib/ai/agent-config'
 import { prisma } from './prisma'
-import { broadcastToUsers } from './sse-utils'
+import { postCommentAs } from '@/services/post-comment-as'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('ai-agent-comment-service')
@@ -142,97 +142,15 @@ export async function createAIAgentComment(
       return { success: false, error: 'AI agent user not found for task' }
     }
 
-    const agentUserId = agentUser.id
-    const agentDisplayName = agentUser.name || (task.aiAgent?.name ?? 'AI Agent')
+    // Through the comment service: list broadcast, notifications, mention
+    // pushes — the same as any comment. This used to insert the row and hand-
+    // roll its own SSE fan-out (P1 step 4). Agent-authored comments do not
+    // re-wake agents; the service's side effects skip that for AI commenters.
+    const posted = await postCommentAs({ taskId, authorId: agentUser.id, content: content.trim(), type })
+    if (!posted.ok) return { success: false, error: posted.error }
 
-    // Create the comment with proper relations
-    const comment = await prisma.comment.create({
-      data: {
-        content: content.trim(),
-        type,
-        taskId,
-        authorId: agentUserId
-      },
-      include: {
-        author: true,
-        secureFiles: true,
-        replies: {
-          include: {
-            author: true,
-            secureFiles: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-      },
-    })
-
-    // SSE Broadcasting - follow the same logic as the comment controller
-    try {
-      // Collect all users who should be notified (same logic as comment controller)
-      const userIds = new Set<string>()
-
-      // Add task assignee (if not AI agent)
-      if (task.assigneeId && task.assigneeId !== agentUserId) {
-        userIds.add(task.assigneeId)
-      }
-
-      // Add task creator (if not AI agent)
-      if (task.creatorId && task.creatorId !== agentUserId) {
-        userIds.add(task.creatorId)
-      }
-
-      // Add all list members
-      task.lists.forEach(list => {
-        // Add list owner
-        if (list.ownerId && list.ownerId !== agentUserId) {
-          userIds.add(list.ownerId)
-        }
-
-        // Add members from listMembers relation
-        list.listMembers?.forEach(listMember => {
-          if (listMember.user.id !== agentUserId) {
-            userIds.add(listMember.user.id)
-          }
-        })
-      })
-
-      // Broadcast to all relevant users (same format as comment controller)
-      if (userIds.size > 0) {
-        log.info(Array.from(userIds), '🤖 Broadcasting AI agent comment to users:')
-        broadcastToUsers(Array.from(userIds), {
-          type: 'comment_created',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            taskTitle: task.title,
-            commentId: comment.id,
-            commentContent: comment.content.substring(0, 100), // First 100 chars for preview
-            commenterName: agentDisplayName,
-            userId: agentUserId,
-            listNames: task.lists.map(list => list.name),
-            comment: {
-              id: comment.id,
-              content: comment.content,
-              type: comment.type,
-              author: comment.author,
-              createdAt: comment.createdAt,
-              parentCommentId: comment.parentCommentId
-            }
-          }
-        })
-      }
-    } catch (sseError) {
-      log.error({ err: sseError }, "Failed to send AI agent comment SSE notifications:")
-      // Continue - comment was still created
-    }
-
-    // Note: We skip workflow action processing for AI agent comments to prevent infinite loops
-    // The isCommenterAIAgent check in the comment controller would prevent this anyway
-
-    log.info('✅ AI agent comment created successfully with SSE broadcasting')
-    return { success: true, comment }
+    log.info('✅ AI agent comment created')
+    return { success: true, comment: posted.comment }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
