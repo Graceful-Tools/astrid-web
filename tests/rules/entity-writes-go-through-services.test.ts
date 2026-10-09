@@ -39,8 +39,7 @@ const ALLOWED: Record<string, string> = {
   'lib/list-ownership-transfer.ts': 'one transaction with the owner change; announced with announceListMemberRemoved',
   'app/api/invitations/[token]/route.ts': 'membership upserted in the transaction that consumes the invitation; announced after commit',
   'app/api/lists/[id]/route.ts':
-    'roster replace inside the image-ownership transaction, announced with announceRosterChanges; ' +
-    'bulk unassign when a list goes public',
+    'roster replace inside the image-ownership transaction, announced with announceRosterChanges',
 
   // ── A new list's initial roster: nobody can be viewing it yet ──────────
   'app/api/lists/route.ts': 'members of a list being created',

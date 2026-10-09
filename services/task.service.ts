@@ -42,6 +42,7 @@ import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
 import { authorizeAssigneeChange, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
+import { cancelCodingWorkflowForUpdate } from './coding-workflow-on-update'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
@@ -1241,14 +1242,11 @@ async function runUpdateSideEffects(args: {
 
   const justCompleted = requestedCompleted === true && !existingTask.completed
 
-  // Stop the agent working on something that is now done.
-  if (justCompleted) {
-    try {
-      await cancelActiveCodingWorkflow({ taskId: task.id, reason: cancelWorkflowReason })
-    } catch (err) {
-      log.error({ err }, 'Failed to cancel coding workflow after task update')
-    }
-  }
+  // Stop the agent working on something that is now done, or no longer its.
+  await cancelCodingWorkflowForUpdate({
+    taskId: task.id, justCompleted, completionReason: cancelWorkflowReason,
+    previousAssigneeId: existingTask.assigneeId ?? null, assigneeId: task.assigneeId ?? null,
+  })
 
   // Reminders must follow the task, or a completed one keeps notifying.
   await rescheduleRemindersForUpdate({ before: existingTask, after: task, actorId })
