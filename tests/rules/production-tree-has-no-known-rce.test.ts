@@ -113,9 +113,11 @@ const ADVISORY_FLOORS: Array<{
   },
   {
     name: 'sharp',
-    minVersion: '0.35.4',
+    minVersion: '0.35.5',
     severity: 'high',
-    advisory: 'GHSA-rgj7-g3m4-5g8c (libheif); <0.35.4. Reached through `next`',
+    advisory:
+      'GHSA-wq5f-xc86-pv6w (librsvg; <0.35.5, AWTD-1131) and ' +
+      'GHSA-rgj7-g3m4-5g8c (libheif; <0.35.4). Reached through `next`',
   },
   {
     name: 'js-yaml',
