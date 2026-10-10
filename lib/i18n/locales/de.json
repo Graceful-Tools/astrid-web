@@ -7,7 +7,9 @@
     "publicSharedLists": "Öffentliche geteilte Listen",
     "publicLists": "Öffentliche Listen",
     "seeAllCollaborative": "Alle kollaborativen Listen anzeigen →",
-    "seeAllSuggested": "Alle vorgeschlagenen Listen anzeigen →"
+    "seeAllSuggested": "Alle vorgeschlagenen Listen anzeigen →",
+    "hideSidebar": "Seitenleiste ausblenden",
+    "showSidebar": "Seitenleiste einblenden"
   },
   "userMenu": {
     "settings": "Einstellungen",

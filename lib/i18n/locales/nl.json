@@ -7,7 +7,9 @@
     "publicSharedLists": "Openbare Gedeelde Lijsten",
     "publicLists": "Openbare Lijsten",
     "seeAllCollaborative": "Bekijk alle samenwerkingslijsten →",
-    "seeAllSuggested": "Bekijk alle aanbevolen lijsten →"
+    "seeAllSuggested": "Bekijk alle aanbevolen lijsten →",
+    "hideSidebar": "Zijbalk verbergen",
+    "showSidebar": "Zijbalk tonen"
   },
   "userMenu": {
     "settings": "Instellingen",

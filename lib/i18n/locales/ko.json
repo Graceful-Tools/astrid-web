@@ -7,7 +7,9 @@
     "publicSharedLists": "공개 공유 목록",
     "publicLists": "공개 목록",
     "seeAllCollaborative": "모든 협업 목록 보기 →",
-    "seeAllSuggested": "모든 추천 목록 보기 →"
+    "seeAllSuggested": "모든 추천 목록 보기 →",
+    "hideSidebar": "사이드바 숨기기",
+    "showSidebar": "사이드바 표시"
   },
   "userMenu": {
     "settings": "설정",

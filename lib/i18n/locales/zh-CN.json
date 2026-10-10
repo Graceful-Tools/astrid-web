@@ -7,7 +7,9 @@
     "publicSharedLists": "公开共享列表",
     "publicLists": "公开列表",
     "seeAllCollaborative": "查看所有协作列表 →",
-    "seeAllSuggested": "查看所有推荐列表 →"
+    "seeAllSuggested": "查看所有推荐列表 →",
+    "hideSidebar": "隐藏侧边栏",
+    "showSidebar": "显示侧边栏"
   },
   "userMenu": {
     "settings": "设置",
