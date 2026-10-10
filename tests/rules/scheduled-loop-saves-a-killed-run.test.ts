@@ -63,18 +63,40 @@ describe('the scheduled loop saves a killed run instead of wedging', () => {
     expect(out).toMatch(/POSTED: .*saved unfinished work on `fix\/awtd-1025-chip`/)
   })
 
-  it('never commits to main — work left on main goes to a wip/ branch', () => {
+  it('never commits to main — work left on main is snapshotted to a wip/ branch', () => {
     writeFileSync(join(repo, 'a.txt'), 'dirtied on main\n')
 
     runCleanup()
 
     expect(git('rev-parse', '--abbrev-ref', 'HEAD')).toBe('main')
-    expect(git('status', '--porcelain')).toBe('')
     expect(git('log', '-1', '--format=%s', 'main')).toBe('init')
     expect(git('show', 'origin/main:a.txt')).toBe('one')
     const wip = git('branch', '-r', '--list', 'origin/wip/fixall-web-*')
     expect(wip).not.toBe('')
     expect(git('show', `${wip}:a.txt`)).toBe('dirtied on main')
+  })
+
+  it("AWTD-1095: leaves another session's edits on main in its tree, staged state and all", () => {
+    // 2026-10-05 08:10: an interactive session was editing main while a tick
+    // ran. The cleanup took its edits for the run's WIP, committed them to a
+    // wip/ branch and checked out main — removing them from the session's tree.
+    writeFileSync(join(repo, 'a.txt'), 'interactive edit\n')
+    writeFileSync(join(repo, 'staged.ts'), 'export const x = 1\n')
+    git('add', 'staged.ts')
+    writeFileSync(join(repo, 'untracked.md'), 'notes\n')
+    const before = git('status', '--porcelain')
+
+    const out = runCleanup()
+
+    expect(git('rev-parse', '--abbrev-ref', 'HEAD')).toBe('main')
+    expect(git('status', '--porcelain')).toBe(before)
+    expect(readFileSync(join(repo, 'a.txt'), 'utf8')).toBe('interactive edit\n')
+    expect(readFileSync(join(repo, 'untracked.md'), 'utf8')).toBe('notes\n')
+    // Still recoverable from origin, should the edits turn out to be the run's.
+    const wip = git('branch', '-r', '--list', 'origin/wip/fixall-web-*')
+    expect(git('show', `${wip}:untracked.md`)).toBe('notes')
+    expect(git('show', `${wip}:staged.ts`)).toBe('export const x = 1')
+    expect(out).toMatch(/POSTED: .*left uncommitted changes on main/)
   })
 
   it('leaves a clean main alone', () => {
@@ -86,6 +108,39 @@ describe('the scheduled loop saves a killed run instead of wedging', () => {
 
   it('bypasses the pre-commit hook, which would refuse unverified work', () => {
     expect(cleanup).toMatch(/git commit -q --no-verify/)
+  })
+})
+
+describe('guard 2 treats unpushed commits on main as work in progress (AWTD-1095)', () => {
+  const guard2 = loop.slice(loop.indexOf('skip_guard2() {'), loop.indexOf('rm -f "$STUCK_FILE"'))
+
+  function runGuard2(): string {
+    const script = [
+      'post_to_list() { echo "POSTED: $1"; }',
+      `STUCK_DIR="${dir}/stuck"`,
+      'STUCK_FILE="$STUCK_DIR/stuck-web"',
+      'STUCK_ALERT_MINUTES=120',
+      guard2,
+      'echo PASSED',
+    ].join('\n')
+    return execFileSync('bash', ['-c', script], { cwd: repo, encoding: 'utf8' })
+  }
+
+  it('skips a clean main that has commits origin/main lacks', () => {
+    // 2026-10-05 07:53: an interactive session's tree was momentarily clean
+    // between commits, with main ahead of origin. The tick started anyway.
+    writeFileSync(join(repo, 'a.txt'), 'committed, not pushed\n')
+    git('commit', '-q', '-am', 'local work')
+
+    const out = runGuard2()
+
+    expect(out).toMatch(/RESULT: SKIPPED — main has 1 commit\(s\) origin\/main lacks/)
+    expect(out).not.toMatch(/PASSED/)
+    expect(git('log', '-1', '--format=%s')).toBe('local work')
+  })
+
+  it('passes a clean main that matches origin/main', () => {
+    expect(runGuard2()).toMatch(/PASSED/)
   })
 })
 

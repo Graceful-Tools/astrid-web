@@ -91,6 +91,8 @@ export async function listGitHubRepositories(args: {
         fullName: repo.fullName,
         defaultBranch: repo.defaultBranch || 'main',
         private: repo.private || false,
+        // Record whose repo this is (AWTD-1107).
+        installationId: githubIntegration.installationId,
       }))
 
       await prisma.gitHubIntegration.update({

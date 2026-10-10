@@ -108,7 +108,9 @@ const BUDGETS: Record<string, number> = {
   // the whole statusRole write went to services/task-status-role.ts.
   // 1536 → 1509: the include shapes moved to services/task-includes.ts, paying
   // for the TaskBackend seam (spec §5.2 step 8) with room to spare.
-  'services/task.service.ts': 1509,
+  // 1507 → 1499: AWTD-1123 let a create carry its completion fields, decided in
+  // services/task-completion.ts; parseTaskDate went to services/task-dates.ts.
+  'services/task.service.ts': 1499,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
@@ -140,7 +142,9 @@ const BUDGETS: Record<string, number> = {
   // new code went into mcp/list-chat.ts, and the Zod task schemas — which this
   // file's own comment had flagged as belonging elsewhere for some time —
   // followed into mcp/task-schemas.ts. Smaller than before the feature again.
-  'mcp/mcp-server-oauth.ts': 564,
+  // 564 → 553: AWTD-1086's blocker tools live in mcp/blockers.ts behind one
+  // dispatch line, and getTaskComments lost its hand-rolled JSON wrapper.
+  'mcp/mcp-server-oauth.ts': 553,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.
